@@ -132,6 +132,8 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE = 'campaign_investment_accounts_more';
 
+    public const STATE_CAMPAIGN_PENSION_MORE = 'campaign_pension_more';
+
     public const STATE_CAMPAIGN_PENSION_CONTRIBS = 'campaign_pension_contribs';
 
     public const STATE_CAMPAIGN_PENSION_HISTORY = 'campaign_pension_history';
@@ -556,7 +558,8 @@ final class OnboardingStateMachine
                 // known; campaign2_pension_pots will surface it for value confirmation).
                 // For savetax the skip behaviour is identical to the prior
                 // skipIfNotEmployed — byte-identical savetax path guaranteed.
-                'next' => self::class.'::nextFromCampaignOccupationalScheme',
+                // 'next' is corpus DATA now (static: campaign_pension_more) — the
+                // pension form (CSJ 2026-09-16) asks for another first.
                 'skip_if' => [self::class, 'skipIfOccupationalScheme'],
                 // Linear scripted step that writes no entity record (workplace
                 // pension details inform retirement advice, not a create_* row).
@@ -566,6 +569,10 @@ final class OnboardingStateMachine
                 // would re-prompt and stall the walk. Opt in to advancing once
                 // the answer is substantive — the side-question is answered in
                 // the same turn and the script moves on.
+            ],
+            self::STATE_CAMPAIGN_PENSION_MORE => [
+                'next' => self::class.'::nextFromPensionMore',
+                'skip_if' => [self::class, 'skipIfOccupationalScheme'],
             ],
             self::STATE_CAMPAIGN_PENSION_CONTRIBS => [
                 // For savetax: ends the pensions section → verify gate (unchanged).
@@ -1318,7 +1325,7 @@ final class OnboardingStateMachine
 
         return [
             'income' => 'income', 'savings' => 'bank accounts', 'investments' => 'investments',
-            'pensions' => 'pensions', 'spouse' => 'spouse details',
+            'property' => 'property', 'pensions' => 'pensions', 'spouse' => 'spouse details',
             'expenditure' => 'expenditure', 'protection' => 'protection cover',
             'estate' => 'estate records', 'goals' => 'goals',
         ][$section] ?? 'details';
@@ -2236,6 +2243,28 @@ final class OnboardingStateMachine
      * PensionCheck: advances to campaign2_pension_pots (pot-value loop).
      * SaveTax: advances to campaign_pension_contribs (unchanged savetax path).
      */
+    /**
+     * After the pension form (CSJ 2026-09-16): "yes" re-opens it; otherwise
+     * the pot-value loop asks for any value left blank, then the section
+     * closes — the form already covered the personal pension, so the typed
+     * personal-pension question is skipped when one is on file.
+     */
+    public static function nextFromPensionMore(string $answer, User $user): string
+    {
+        if (self::saidYes($answer)) {
+            return self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME;
+        }
+
+        if ($user->onboarding_fyn_selection !== 'pensioncheck' && app(PensionStore::class)->hasPersonalPension($user)) {
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['pension_contribs_done'] = true;
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+        }
+
+        return self::nextFromCampaignOccupationalScheme($answer, $user);
+    }
+
     public static function nextFromCampaignOccupationalScheme(string $answer, User $user): string
     {
         // Every pension captured is asked for its current value, if known

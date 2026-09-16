@@ -14,6 +14,8 @@ use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
+use App\Models\DBPension;
+use App\Models\DCPension;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
@@ -1625,6 +1627,7 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
+            OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
         ][$formStateId] ?? null;
         if ($loopState === null) {
             return false;
@@ -1650,6 +1653,7 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'],
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts'],
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'investment accounts'],
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE => [PensionStore::ENTITY_KEY, DCPension::where('user_id', $user->id)->count() + DBPension::where('user_id', $user->id)->count(), 'pensions'],
             default => [null, 0, ''],
         };
         if ($entityKey === null) {
