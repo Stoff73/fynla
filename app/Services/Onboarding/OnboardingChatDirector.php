@@ -3718,7 +3718,7 @@ PROMPT;
 
         if ($inputs === []) {
             // Nothing recognisable was filled in. Never advance on an empty form.
-            $line = 'Fill in at least one property before saving.';
+            $line = 'Fill in at least one before saving.';
             yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => ['_form' => ['message' => $line, 'fields' => []]]];
             yield ['type' => 'content', 'text' => $line];
             $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
@@ -3732,21 +3732,28 @@ PROMPT;
         }
 
         foreach ($inputs as $kind => $input) {
-            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'running'];
-            $facts = ['ownership_type' => $input['ownership_type']];
+            // The create tool is per kind (CaptureForms): a cash ISA is a
+            // savings row, a stocks and shares ISA an investment row.
+            $definition = CaptureForms::kind($form['name'], $kind);
+            $tool = (string) $definition['tool'];
+            yield ['type' => 'tool_use', 'tool' => $tool, 'status' => 'running'];
+            $facts = [];
+            if (isset($input['ownership_type'])) {
+                $facts['ownership_type'] = $input['ownership_type'];
+            }
             if (isset($input['ownership_percentage'])) {
                 $facts['ownership_percentage'] = $input['ownership_percentage'];
             }
             try {
-                $result = $this->coordinatingAgent->executeTool('create_property', $input, $user, $conversation->id, confirmedFacts: $facts);
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id, confirmedFacts: $facts);
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Form capture write failed', ['user_id' => $user->id, 'kind' => $kind, 'error' => $e->getMessage()]);
                 $result = ['error' => true, 'message' => 'Unable to save the record. Please try again.'];
             }
-            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'complete'];
+            yield ['type' => 'tool_use', 'tool' => $tool, 'status' => 'complete'];
 
             if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
-                $row = ['type' => 'entity_created', 'entity_type' => 'property', 'entity_id' => $result['entity_id'], 'name' => CaptureForms::kindLabel($form['name'], $kind)];
+                $row = ['type' => 'entity_created', 'entity_type' => (string) $definition['entity_type'], 'entity_id' => $result['entity_id'], 'name' => $definition['label']];
                 $recordsCreated[] = self::recordRowFromEvent($row);
                 yield $row;
 
@@ -6082,8 +6089,87 @@ PROMPT;
             OnboardingStateMachine::STATE_BASE_WORK => $this->incomeAck($user),
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'Thanks — I\'ve noted your monthly spending.',
             OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING => $this->charitableGivingAck($user),
+            // CSJ 2026-09-16: the spouse section no longer visits a details
+            // page, so Fyn repeats back what was saved here instead.
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD => $this->spouseHouseholdAck($user),
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => $this->spouseAssetsAck($user),
             default => null,
         };
+    }
+
+    /**
+     * Repeats back the working spouse's figures from the household input row
+     * (capture_spouse_household_data): income, ISA balance, pension
+     * contributions and pot, dividends — only what was actually given.
+     */
+    private function spouseHouseholdAck(User $user): string
+    {
+        $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        if ($row === null) {
+            return "Got it — I've noted your spouse's details.";
+        }
+
+        $parts = [];
+        if ((float) ($row->spouse_annual_income ?? 0) > 0) {
+            $parts[] = 'earns '.$this->pounds((float) $row->spouse_annual_income).' a year';
+        }
+        if ((float) ($row->spouse_isa_balance ?? 0) > 0) {
+            $parts[] = 'has '.$this->pounds((float) $row->spouse_isa_balance).' in ISAs'.($row->spouse_isa_provider ? ' with '.$row->spouse_isa_provider : '');
+        }
+        if ((float) ($row->spouse_pension_input_annual ?? 0) > 0) {
+            $parts[] = 'pays '.$this->pounds((float) $row->spouse_pension_input_annual).' a year into their pension'.($row->spouse_pension_provider ? ' with '.$row->spouse_pension_provider : '');
+        }
+        if ((float) ($row->spouse_existing_pension_balance ?? 0) > 0) {
+            $parts[] = 'has a pension pot of '.$this->pounds((float) $row->spouse_existing_pension_balance);
+        }
+        if ((float) ($row->spouse_annual_dividends ?? 0) > 0) {
+            $parts[] = 'receives '.$this->pounds((float) $row->spouse_annual_dividends).' a year in dividends';
+        }
+
+        return $parts === []
+            ? "Got it — I've noted your spouse's details."
+            : 'Got it — your spouse '.$this->joinClauses($parts).'.';
+    }
+
+    /**
+     * Repeats back a non-working spouse's own holdings
+     * (capture_spouse_non_working_assets), or that they hold nothing.
+     */
+    private function spouseAssetsAck(User $user): string
+    {
+        $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        $parts = [];
+        foreach ([
+            'spouse_existing_savings_balance' => 'in savings',
+            'spouse_existing_isa_balance' => 'in ISAs',
+            'spouse_existing_investment_balance' => 'in investments',
+            'spouse_existing_dividend_holdings_value' => 'in dividend-paying shares',
+            'spouse_existing_pension_balance' => 'in pensions',
+        ] as $column => $label) {
+            if ($row !== null && (float) ($row->{$column} ?? 0) > 0) {
+                $parts[] = $this->pounds((float) $row->{$column}).' '.$label;
+            }
+        }
+
+        return $parts === []
+            ? 'Got it — your spouse has nothing in their own name, so their allowances are all free to use.'
+            : 'Got it — your spouse has '.$this->joinClauses($parts).' in their own name.';
+    }
+
+    private function pounds(float $amount): string
+    {
+        return '£'.number_format($amount, 0);
+    }
+
+    /** "a, b and c" */
+    private function joinClauses(array $parts): string
+    {
+        if (count($parts) <= 1) {
+            return (string) ($parts[0] ?? '');
+        }
+        $last = array_pop($parts);
+
+        return implode(', ', $parts).' and '.$last;
     }
 
     /**

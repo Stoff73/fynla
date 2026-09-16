@@ -327,15 +327,21 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
 
     // Capture-ends enter the announce gate (Okay → navigate/confirm) — never the
     // (now removed) redundant "anything else?" verify gate.
+    // The bank and investment captures ask "another?" first (CSJ 2026-09-16);
+    // their _more states' "No" is the capture-end that enters the gate.
     foreach ([
-        OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
-        OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
-        OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
+        OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
     ] as $stateId) {
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
         expect($resolved)->toBe('campaign_verify_announce', "state {$stateId} should enter the announce gate");
     }
+
+    // CSJ 2026-09-16: the spouse section end repeats the figures back in chat
+    // and moves on — no details page, no Okay, no confirm.
+    $spouseNext = $states[OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD]['next'];
+    expect($spouseNext('', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE);
 
     // The pensions capture-end passes through the pot-value loop first (CSJ
     // 2026-09-15: every pension is asked for its value); with nothing
@@ -407,4 +413,18 @@ it('navigation event does not leak the internal state id in its description', fu
     expect($nav['description'] ?? '')->not->toContain('campaign_verify');
     // The route + section still ride the event for the surfaces that navigate.
     expect($nav['route_path'])->toBe('/savings');
+});
+
+it('the Save Tax income and spouse ends skip the details page; everything else and the pension check keep it', function (): void {
+    $savetax = User::factory()->create(['onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax', 'onboarding_fyn_context' => []]);
+    expect(OnboardingStateMachine::enterCampaignVerify($savetax, 'income'))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME)
+        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'spouse'))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE)
+        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'savings'))->toBe('campaign_verify_announce')
+        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'property'))->toBe('campaign_verify_announce');
+
+    $pensioncheck = User::factory()->create(['onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'pensioncheck', 'onboarding_fyn_context' => []]);
+    expect(OnboardingStateMachine::enterCampaignVerify($pensioncheck, 'spouse'))->toBe('campaign_verify_announce');
+
+    $journey = User::factory()->create(['onboarding_fyn_path' => 'journey', 'onboarding_fyn_context' => []]);
+    expect(OnboardingStateMachine::enterCampaignVerify($journey, 'income', 'journey_base'))->toBe('campaign_verify_announce');
 });

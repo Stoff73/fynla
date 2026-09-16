@@ -179,3 +179,31 @@ it('queues a form posted while another turn holds the conversation lock, and str
     expect(Property::where('user_id', $user->id)->where('property_type', 'main_residence')->exists())->toBeTrue()
         ->and($body)->toContain('"type":"onboarding_advance"');
 });
+
+// ── Account forms (CSJ 2026-09-16) ─────────────────────────────────────────
+
+it('accepts a well-formed answer for each account form', function (): void {
+    // One conversation per post: a second post while the first turn still
+    // holds the conversation is queued (202), which is not what is under test.
+    $fresh = fn (): int => AiConversation::create(['user_id' => $this->user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])->id;
+    postForm($this, $fresh(), ['form' => ['name' => 'isa', 'answers' => [
+        'cash_isa' => ['provider' => 'Nationwide', 'current_value' => 12000, 'interest_rate' => 4.5],
+    ]]])->assertOk();
+    postForm($this, $fresh(), ['form' => ['name' => 'savings', 'answers' => [
+        'current_account' => ['provider' => 'Barclays', 'current_value' => 3200, 'ownership_type' => 'joint'],
+    ]]])->assertOk();
+    postForm($this, $fresh(), ['form' => ['name' => 'investment', 'answers' => [
+        'gia' => ['provider' => 'Vanguard', 'current_value' => 45000, 'ownership_type' => 'individual'],
+    ]]])->assertOk();
+});
+
+it('rejects a provider over 255 characters, a rate over 20, an unknown kind and a missing required rate', function (): void {
+    postForm($this, $this->conversation->id, ['form' => ['name' => 'isa', 'answers' => [
+        'cash_isa' => ['provider' => str_repeat('a', 256), 'current_value' => 1, 'interest_rate' => 21],
+        'junior_isa' => ['provider' => 'x', 'current_value' => 1],
+    ]]])->assertStatus(422)->assertJsonValidationErrors(['form.answers.cash_isa.provider', 'form.answers.cash_isa.interest_rate', 'form.answers.junior_isa']);
+
+    postForm($this, $this->conversation->id, ['form' => ['name' => 'savings', 'answers' => [
+        'easy_access' => ['provider' => 'Marcus', 'current_value' => 1, 'ownership_type' => 'individual'],
+    ]]])->assertStatus(422)->assertJsonValidationErrors(['form.answers.easy_access.interest_rate']);
+});

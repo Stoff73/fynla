@@ -68,13 +68,24 @@
           :name="kind.key + '.' + fieldKey"
           type="number"
           inputmode="decimal"
-          min="0.01"
-          max="99.99"
-          step="0.01"
+          v-bind="percentAttrs(fieldKey)"
           class="form-input"
           :disabled="disabled || locked"
           :value="answers[kind.key][fieldKey] ?? ''"
           @input="setNumber(kind.key, fieldKey, $event.target.value)"
+        >
+
+        <input
+          v-else-if="field(fieldKey).type === 'text'"
+          :id="inputId(kind.key, fieldKey)"
+          :name="kind.key + '.' + fieldKey"
+          type="text"
+          maxlength="255"
+          autocomplete="off"
+          class="form-input"
+          :disabled="disabled || locked"
+          :value="answers[kind.key][fieldKey] ?? ''"
+          @input="setText(kind.key, fieldKey, $event.target.value)"
         >
 
         <p v-if="field(fieldKey).hint" class="form-hint">{{ field(fieldKey).hint }}</p>

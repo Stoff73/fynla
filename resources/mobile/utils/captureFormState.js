@@ -36,6 +36,7 @@ export const captureFormMixin = {
         const type = this.field(fieldKey).type;
         if (type === 'money_or_none') return this.isNone(kind.key, fieldKey) || this.hasNumber(kind.key, fieldKey);
         if (type === 'choice') return Boolean(this.answers[kind.key][fieldKey]);
+        if (type === 'text') return this.hasText(kind.key, fieldKey);
         return this.hasNumber(kind.key, fieldKey);
       }));
     },
@@ -47,6 +48,9 @@ export const captureFormMixin = {
     inputId(kindKey, fieldKey) { return `fyn-form-${kindKey}-${fieldKey}`; },
     isNone(kindKey, fieldKey) { return Boolean(this.none[kindKey] && this.none[kindKey][fieldKey]); },
     hasNumber(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'number' && !Number.isNaN(v); },
+    hasText(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'string' && v !== ''; },
+    // A percent field's bounds come from the schema; the defaults are the ownership-share range.
+    percentAttrs(fieldKey) { const f = this.field(fieldKey); return { min: f.min ?? 0.01, max: f.max ?? 99.99, step: f.step ?? 0.01 }; },
     conditionMet(kindKey, fieldKey) {
       const when = this.field(fieldKey).required_when;
       if (!when) return true;
@@ -61,6 +65,10 @@ export const captureFormMixin = {
     setNumber(kindKey, fieldKey, raw) {
       const n = raw === '' ? null : Number(raw);
       this.answers[kindKey] = { ...this.answers[kindKey], [fieldKey]: n === null || Number.isNaN(n) ? undefined : n };
+    },
+    setText(kindKey, fieldKey, raw) {
+      const t = String(raw ?? '').trim();
+      this.answers[kindKey] = { ...this.answers[kindKey], [fieldKey]: t === '' ? undefined : t };
     },
     setNone(kindKey, fieldKey, checked) {
       this.none[kindKey] = { ...this.none[kindKey], [fieldKey]: checked };
