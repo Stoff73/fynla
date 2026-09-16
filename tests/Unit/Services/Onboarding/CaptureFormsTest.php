@@ -217,7 +217,7 @@ it('offers the two investment kinds and builds their inputs with the share only 
 
     $form = ['name' => 'investment', 'answers' => [
         'gia' => ['provider' => 'Vanguard', 'current_value' => 45000, 'ownership_type' => 'individual', 'ownership_percentage' => 40],
-        'other' => ['provider' => 'Freetrade', 'current_value' => 5000, 'ownership_type' => 'joint'],
+        'other' => ['provider' => 'Freetrade', 'investment_type' => 'shares', 'current_value' => 5000, 'ownership_type' => 'joint'],
     ]];
     $inputs = CaptureForms::toolInputs($form);
     expect($inputs['gia'])->toBe([
@@ -225,10 +225,16 @@ it('offers the two investment kinds and builds their inputs with the share only 
         'current_value' => 45000.0, 'ownership_type' => 'individual',
     ])
         ->and($inputs['other'])->toBe([
-            'account_name' => 'Freetrade Other investment', 'account_type' => 'other', 'provider' => 'Freetrade',
+            'account_name' => 'Freetrade shares', 'account_type' => 'other', 'provider' => 'Freetrade',
             'current_value' => 5000.0, 'ownership_type' => 'joint', 'ownership_percentage' => 50.0,
         ])
-        ->and(CaptureForms::summarise($form))->toBe('General Investment Account with Vanguard worth £45,000, individual. Other investment with Freetrade worth £5,000, joint, my share 50%.');
+        ->and(CaptureForms::summarise($form))->toBe('General Investment Account with Vanguard worth £45,000, individual. Shares with Freetrade worth £5,000, joint, my share 50%.')
+        ->and(CaptureForms::schema('investment')['fields']['investment_type']['required'])->toBeFalse()
+        ->and(CaptureForms::schema('investment')['kinds'][0]['fields'])->not->toContain('investment_type');
+
+    $untyped = ['name' => 'investment', 'answers' => ['other' => ['provider' => 'Freetrade', 'current_value' => 5000, 'ownership_type' => 'individual']]];
+    expect(CaptureForms::toolInputs($untyped)['other']['account_name'])->toBe('Freetrade Other investment')
+        ->and(CaptureForms::summarise($untyped))->toBe('Other investment with Freetrade worth £5,000, individual.');
 });
 
 it('the three account steps are form turns owned by the corpus with short lead-ins', function (): void {

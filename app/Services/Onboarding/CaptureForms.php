@@ -316,8 +316,10 @@ final class CaptureForms
     private static function investmentInputs(array $kind, array $answers): array
     {
         $provider = trim((string) $answers['provider']);
+        // "Other investment" may say what it is; that becomes the name.
+        $type = trim((string) ($answers['investment_type'] ?? ''));
         $input = [
-            'account_name' => $provider.' '.$kind['label'],
+            'account_name' => $provider.' '.($type !== '' ? $type : $kind['label']),
             'account_type' => $kind['account_type'],
             'provider' => $provider,
             'current_value' => (float) $answers['current_value'],
@@ -362,7 +364,11 @@ final class CaptureForms
     /** @param  array<string, mixed>  $input */
     private static function investmentSentence(string $label, array $input): string
     {
-        $parts = [$label.' with '.$input['provider'].' worth '.self::pounds($input['current_value']), $input['ownership_type']];
+        // The name carries the typed type for "Other investment" ("Freetrade shares").
+        $what = str_starts_with($input['account_name'], $input['provider'].' ') && ! str_ends_with($input['account_name'], $label)
+            ? ucfirst(substr($input['account_name'], strlen($input['provider']) + 1))
+            : $label;
+        $parts = [$what.' with '.$input['provider'].' worth '.self::pounds($input['current_value']), $input['ownership_type']];
         if (isset($input['ownership_percentage'])) {
             $parts[] = 'my share '.self::percent($input['ownership_percentage']);
         }
@@ -497,10 +503,13 @@ final class CaptureForms
                 ['key' => 'gia', 'label' => 'General Investment Account', 'account_type' => 'personal_investment_account',
                     'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => $fields],
                 ['key' => 'other', 'label' => 'Other investment', 'account_type' => 'other',
-                    'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => $fields],
+                    'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => ['provider', 'investment_type', ...array_slice($fields, 1)]],
             ],
             'fields' => [
                 'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
+                // CSJ 2026-09-16: an optional free-text type for "Other investment".
+                'investment_type' => ['type' => 'text', 'label' => 'What type of investment is it', 'required' => false,
+                    'hint' => 'For example shares, a fund or crowdfunding'],
                 'current_value' => ['type' => 'money', 'label' => 'Current value', 'required' => true],
                 'ownership_type' => ['type' => 'choice', 'label' => 'Ownership', 'required' => true, 'options' => [
                     ['value' => 'individual', 'label' => 'Individual'],
