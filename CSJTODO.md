@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-14 session 3 — application mapping programme: overview, 17 (emails), 01 (auth), 02a (onboarding) and 02b (campaigns) mapped; 55 mapping bugs raised (none fixed, none decided). CSJ's focus for the next session: fix the mapping bugs; mapping paused at section 03. Commit 86ef97b41 on dev. Handover: `handover/September/14/handover-2026-09-14-session-3.md`*
+*Last updated: 2026-09-16 session 1 — Save Tax property capture form shipped to prod in four releases (PRs #859–#866, main `ac40f1dd3`); spec for the ISA / bank / investment forms committed on dev; mapping bugs and the eleven mapping PRs still parked. Commit on dev. Handover: `handover/September/16/handover-2026-09-16-session-1.md`*
 
 ## The board position
 
@@ -19,6 +19,12 @@ live checklist and is **generated** — regenerate it, never hand-edit the count
 Every non-iOS item is closed. The rule is unchanged — **a citation is not a verification**
 — and **verify the instrument before trusting the measurement**: CSJ's 2026-09-10 order to
 re-check the nine items before fixing found one already resolved and one overstated.
+
+## Save Tax capture forms (CSJ, 2026-09-15/16) — property shipped, accounts next
+
+- [x] Property step is a structured form on web and `/m` (Home / Second home / Buy to let), asks "another property?" after Save, short lead-in prompt, native keeps the typed prompt. Live on fynla.org since 2026-09-16 (releases #860, #862, #864, #866).
+- [ ] **NEXT — ISA, bank/savings and investment forms**: spec `docs/superpowers/specs/2026-09-16-savetax-account-capture-forms-design.md`. Part A (generalise the tool per kind and the property-shaped `toolInputs`/`summarise`) first as its own PR; then the three schemas, `_more` loops and short prompts. **BLOCKED ON CSJ — Part F decisions** (kinds per form; bank joint fixed 50/50; interest rate required on savings kinds; ISA "paid in this year" field; bonds/share schemes stay typed).
+- [ ] Adjacent, CSJ to decide: after a partial refusal the saved kind stays editable in the re-opened form; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hangs after opening Chat with Fyn in a phone-width desktop window (three times on csjones, full width fine).
 
 ## Application mapping programme (CSJ, 2026-09-14) — in progress
 

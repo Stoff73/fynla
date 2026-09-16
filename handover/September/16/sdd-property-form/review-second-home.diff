@@ -1,0 +1,184 @@
+diff --git a/app/Services/Onboarding/CaptureForms.php b/app/Services/Onboarding/CaptureForms.php
+index 6f556ac5b..ef3826e10 100644
+--- a/app/Services/Onboarding/CaptureForms.php
++++ b/app/Services/Onboarding/CaptureForms.php
+@@ -169,6 +169,8 @@ private static function property(): array
+             'kinds' => [
+                 ['key' => 'main_residence', 'label' => 'Home',
+                     'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
++                ['key' => 'secondary_residence', 'label' => 'Second home',
++                    'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
+                 ['key' => 'buy_to_let', 'label' => 'Buy to let',
+                     'fields' => ['current_value', 'mortgage_outstanding_balance', 'monthly_rental_income', 'ownership_type', 'ownership_percentage']],
+             ],
+diff --git a/docs/superpowers/specs/2026-09-15-savetax-property-capture-form-design.md b/docs/superpowers/specs/2026-09-15-savetax-property-capture-form-design.md
+index 521a60596..e3bbf4816 100644
+--- a/docs/superpowers/specs/2026-09-15-savetax-property-capture-form-design.md
++++ b/docs/superpowers/specs/2026-09-15-savetax-property-capture-form-design.md
+@@ -11,8 +11,9 @@ ## What the user sees
+ 
+ At the property step Fyn's message is the existing prompt text followed by a small form inside the chat:
+ 
+-- Two option boxes: **Home** and **Buy to let**. Either or both expand.
++- Three option boxes: **Home**, **Second home** and **Buy to let**. Any combination expands.
+ - **Home** expands to: Value *, Mortgage outstanding * (with a "No mortgage" choice), Ownership *.
++- **Second home** expands to: Value *, Mortgage outstanding * (with a "No mortgage" choice), Ownership * — the same fields as Home.
+ - **Buy to let** expands to: Value *, Mortgage outstanding * (with "No mortgage"), Monthly rental income *, Ownership *.
+ - **Ownership** offers Individual, Joint, Tenants in common. Joint and Tenants in common reveal **Your share %** *, pre-filled 50. Trust is not offered here (the full app form has it). No joint-owner name is asked; the spouse joint-record memory names the co-owner as it does for typed capture.
+ - Required fields carry an asterisk, as the app's forms do. Save is disabled until every expanded kind's required fields are filled.
+@@ -39,9 +40,11 @@ ### 1. The schema — one server-side home
+ ```
+ name: property
+ kinds:
+-  - key: main_residence   label: Home
++  - key: main_residence      label: Home
+     fields: current_value, mortgage, ownership
+-  - key: buy_to_let       label: Buy to let
++  - key: secondary_residence label: Second home
++    fields: current_value, mortgage, ownership
++  - key: buy_to_let          label: Buy to let
+     fields: current_value, mortgage, monthly_rental_income, ownership
+ fields:
+   current_value          money   required
+@@ -51,7 +54,7 @@ ### 1. The schema — one server-side home
+   ownership_percentage   percent required-when ownership in (joint, tenants_in_common)   default 50
+ ```
+ 
+-Labels, hints and the asterisk rule are part of the schema so both renderers show the same words. Option values are the canonical enums (`individual`, `joint`, `tenants_in_common`; `main_residence`, `buy_to_let`).
++Labels, hints and the asterisk rule are part of the schema so both renderers show the same words. Option values are the canonical enums (`individual`, `joint`, `tenants_in_common`; `main_residence`, `secondary_residence`, `buy_to_let`).
+ 
+ ### 2. The state
+ 
+@@ -68,8 +71,9 @@ ### 3. Submission
+ form:
+   name: property
+   answers:
+-    main_residence?: { current_value, has_mortgage, mortgage_outstanding_balance?, ownership_type, ownership_percentage? }
+-    buy_to_let?:     { current_value, has_mortgage, mortgage_outstanding_balance?, monthly_rental_income, ownership_type, ownership_percentage? }
++    main_residence?:      { current_value, has_mortgage, mortgage_outstanding_balance?, ownership_type, ownership_percentage? }
++    secondary_residence?: { current_value, has_mortgage, mortgage_outstanding_balance?, ownership_type, ownership_percentage? }
++    buy_to_let?:          { current_value, has_mortgage, mortgage_outstanding_balance?, monthly_rental_income, ownership_type, ownership_percentage? }
+ ```
+ 
+ `SendAiChatMessageRequest` validates the shape only: `form.name` must be a known schema, each answer block matches the schema's kinds and field types. Business rules stay in the store.
+diff --git a/fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md b/fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md
+index 9c961833f..d246470ec 100644
+--- a/fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md
++++ b/fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md
+@@ -169,7 +169,7 @@
+   turn_type: form
+   form: property
+   prompt_text: "Now your property. **For each one: is it your home, a second home or a buy-to-let; roughly what it's worth; whether there's a mortgage and how much is left on it; and whether you own it individually or jointly? If jointly, who owns it with you and your share.**"
+-  form_prompt_text: "Now your property. **Tell me about your home and any buy to let — fill in the boxes below and tap Save.**"
++  form_prompt_text: "Now your property. **Tell me about your home, any second home and any buy to let — fill in the boxes below and tap Save.**"
+   capture_field: null
+   next: { branch: enterCampaignVerify }
+ 
+diff --git a/tests/Feature/AI/SendAiChatMessageFormRequestTest.php b/tests/Feature/AI/SendAiChatMessageFormRequestTest.php
+index 661630df7..1053d8e25 100644
+--- a/tests/Feature/AI/SendAiChatMessageFormRequestTest.php
++++ b/tests/Feature/AI/SendAiChatMessageFormRequestTest.php
+@@ -63,6 +63,12 @@ function postForm($test, int $conversationId, array $body)
+     ]]])->assertOk();
+ });
+ 
++it('accepts a well-formed second home answer', function (): void {
++    postForm($this, $this->conversation->id, ['form' => ['name' => 'property', 'answers' => [
++        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
++    ]]])->assertOk();
++});
++
+ it('validates only the kinds that were submitted', function (): void {
+     postForm($this, $this->conversation->id, ['form' => ['name' => 'property', 'answers' => [
+         'buy_to_let' => ['current_value' => 200000, 'mortgage_outstanding_balance' => null, 'monthly_rental_income' => 850, 'ownership_type' => 'individual'],
+diff --git a/tests/Feature/Onboarding/PropertyCaptureFormTurnTest.php b/tests/Feature/Onboarding/PropertyCaptureFormTurnTest.php
+index 662ba2a71..9ba34d946 100644
+--- a/tests/Feature/Onboarding/PropertyCaptureFormTurnTest.php
++++ b/tests/Feature/Onboarding/PropertyCaptureFormTurnTest.php
+@@ -169,6 +169,27 @@ function propertyAnswers(array $overrides = []): array
+         ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+ });
+ 
++it('saves a second home alone', function (): void {
++    $user = formStepUser();
++    $conversation = formConversation($user);
++    FynStreamHarness::fake()->bind();
++    $form = ['name' => 'property', 'answers' => [
++        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
++    ]];
++
++    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise($form), null, true, $form), false);
++
++    $home = Property::where('user_id', $user->id)->first();
++    expect(Property::where('user_id', $user->id)->count())->toBe(1)
++        ->and($home->property_type)->toBe('secondary_residence')
++        ->and((float) $home->current_value)->toBe(300000.0)
++        ->and((float) $home->outstanding_mortgage)->toBe(0.0)
++        ->and($home->ownership_type)->toBe('individual')
++        ->and(collect($events)->where('type', 'entity_created'))->toHaveCount(1)
++        ->and(collect($events)->firstWhere('type', 'capture_complete'))->not->toBeNull()
++        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
++});
++
+ it('reports a refused kind on the form, keeps the landed one, and stays on the step', function (): void {
+     // Free holds two properties; a third is refused by the tier cap.
+     $user = formStepUser();
+diff --git a/tests/Unit/Services/Onboarding/CaptureFormsTest.php b/tests/Unit/Services/Onboarding/CaptureFormsTest.php
+index 447d0c0e5..1287bee6a 100644
+--- a/tests/Unit/Services/Onboarding/CaptureFormsTest.php
++++ b/tests/Unit/Services/Onboarding/CaptureFormsTest.php
+@@ -11,6 +11,14 @@
+         ->and(CaptureForms::schema('bank'))->toBeNull();
+ });
+ 
++it('offers the three property kinds in order: Home, Second home, Buy to let', function (): void {
++    $kinds = CaptureForms::schema('property')['kinds'];
++
++    expect(array_column($kinds, 'key'))->toBe(['main_residence', 'secondary_residence', 'buy_to_let'])
++        ->and(array_column($kinds, 'label'))->toBe(['Home', 'Second home', 'Buy to let'])
++        ->and(CaptureForms::kindLabel('property', 'secondary_residence'))->toBe('Second home');
++});
++
+ it('marks the required fields and the conditional share', function (): void {
+     $fields = CaptureForms::schema('property')['fields'];
+     expect($fields['current_value']['required'])->toBeTrue()
+@@ -39,6 +47,17 @@
+         ]);
+ });
+ 
++it('builds a create_property input for a second home in the same shape as Home', function (): void {
++    $inputs = CaptureForms::toolInputs(['name' => 'property', 'answers' => [
++        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
++    ]]);
++
++    expect($inputs['secondary_residence'])->toBe([
++        'property_type' => 'secondary_residence', 'current_value' => 300000.0, 'has_mortgage' => false,
++        'ownership_type' => 'individual',
++    ]);
++});
++
+ it('drops a share sent for an individual owner and defaults a missing shared one to 50', function (): void {
+     $inputs = CaptureForms::toolInputs(['name' => 'property', 'answers' => [
+         'main_residence' => ['current_value' => 1, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 40],
+@@ -58,6 +77,14 @@
+     expect($line)->toBe('Home worth £750,000, mortgage £325,000, joint, my share 50%. Buy to let worth £450,000, no mortgage, rent £1,000 a month, individual.');
+ });
+ 
++it('composes the transcript line for a second home', function (): void {
++    $line = CaptureForms::summarise(['name' => 'property', 'answers' => [
++        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
++    ]]);
++
++    expect($line)->toBe('Second home worth £300,000, no mortgage, individual.');
++});
++
+ it('produces validation rules per kind and field', function (): void {
+     $rules = CaptureForms::rules('property');
+     expect($rules['main_residence.current_value'])->toBe(['required_with:main_residence', 'numeric', 'min:0', 'max:999999999.99'])
+@@ -81,5 +108,5 @@
+         ->and($state['form'])->toBe('property')
+         ->and($state['capture_focus'])->toBe('property')
+         ->and($state['prompt_text'])->toBe("Now your property. **For each one: is it your home, a second home or a buy-to-let; roughly what it's worth; whether there's a mortgage and how much is left on it; and whether you own it individually or jointly? If jointly, who owns it with you and your share.**")
+-        ->and($state['form_prompt_text'])->toBe('Now your property. **Tell me about your home and any buy to let — fill in the boxes below and tap Save.**');
++        ->and($state['form_prompt_text'])->toBe('Now your property. **Tell me about your home, any second home and any buy to let — fill in the boxes below and tap Save.**');
+ });
