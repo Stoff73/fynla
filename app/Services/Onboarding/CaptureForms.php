@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use Carbon\Carbon;
+
 /**
  * The ONE home for the structured capture forms Fyn shows in the chat
  * (CSJ 2026-09-15: onboarding captures data in a shape we expect, through
@@ -32,6 +34,12 @@ final class CaptureForms
 
     public const SPOUSE_ASSETS = 'spouse_assets';
 
+    /** Journey path: date of birth and marital status, ONE write through capture_personal_details. */
+    public const PERSONAL = 'personal';
+
+    /** Journey path: the spouse or partner's name, date of birth and email, ONE write through capture_spouse_details (creates and links their account). */
+    public const SPOUSE_DETAILS = 'spouse_details';
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
@@ -42,7 +50,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS];
     }
 
     /** @return array<string, mixed>|null */
@@ -56,6 +64,8 @@ final class CaptureForms
             self::PENSION => self::pension(),
             self::SPOUSE_HOUSEHOLD => self::spouseHousehold(),
             self::SPOUSE_ASSETS => self::spouseAssets(),
+            self::PERSONAL => self::personal(),
+            self::SPOUSE_DETAILS => self::spouseDetails(),
             default => null,
         };
     }
@@ -129,6 +139,8 @@ final class CaptureForms
             'choice' => [$presence, 'in:'.implode(',', array_column($field['options'], 'value'))],
             'percent' => [$presence, 'numeric', 'min:'.($field['min'] ?? '0.01'), 'max:'.($field['max'] ?? '99.99')],
             'text' => [$presence, 'string', 'max:255'],
+            'date' => [$presence, 'date_format:Y-m-d'],
+            'email' => [$presence, 'email', 'max:255'],
         };
     }
 
@@ -200,7 +212,11 @@ final class CaptureForms
         }
 
         if (isset($schema['tool'])) {
-            return self::spouseSentence($schema, (array) ($form['answers'] ?? []));
+            return match ($schema['name']) {
+                self::PERSONAL => self::personalSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
+            };
         }
 
         $sentences = [];
@@ -494,7 +510,7 @@ final class CaptureForms
             foreach ($fieldKeys as $fieldKey) {
                 $value = $given[$fieldKey] ?? null;
                 $type = $schema['fields'][$fieldKey]['type'];
-                if ($type === 'text') {
+                if (in_array($type, ['text', 'choice', 'date', 'email'], true)) {
                     $value = trim((string) $value);
                     if ($value !== '') {
                         $input[$fieldKey] = $value;
@@ -790,6 +806,105 @@ final class CaptureForms
                 'spouse_existing_investment_balance' => ['type' => 'money', 'label' => 'Investments value', 'required' => true],
                 'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none'],
                 'spouse_existing_pension_balance' => ['type' => 'money', 'label' => 'Pension pot value', 'required' => true],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function personalSentence(array $input): string
+    {
+        $parts = [];
+        if (isset($input['date_of_birth'])) {
+            $parts[] = 'I was born on '.Carbon::parse($input['date_of_birth'])->format('j F Y');
+        }
+        if (isset($input['marital_status'])) {
+            $parts[] = "I'm ".self::maritalWords($input['marital_status']);
+        }
+
+        return $parts === [] ? '' : ucfirst(implode(' and ', $parts)).'.';
+    }
+
+    public static function maritalWords(string $status): string
+    {
+        return match ($status) {
+            'civil_partnership' => 'in a civil partnership',
+            default => str_replace('_', ' ', $status),
+        };
+    }
+
+    /**
+     * Journey path personal details: date of birth and marital status, both
+     * required, ONE write through capture_personal_details (the handler
+     * enforces the 18–105 age bounds).
+     *
+     * @return array<string, mixed>
+     */
+    private static function personal(): array
+    {
+        return [
+            'name' => self::PERSONAL,
+            'submit_label' => 'Save',
+            'tool' => 'capture_personal_details',
+            'entity_type' => 'personal',
+            'lead_fields' => ['date_of_birth', 'marital_status'],
+            'kinds' => [],
+            'fields' => [
+                'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
+                'marital_status' => ['type' => 'choice', 'label' => 'Marital status', 'required' => true, 'options' => [
+                    ['value' => 'single', 'label' => 'Single'],
+                    ['value' => 'married', 'label' => 'Married'],
+                    ['value' => 'civil_partnership', 'label' => 'In a civil partnership'],
+                    ['value' => 'divorced', 'label' => 'Divorced'],
+                    ['value' => 'widowed', 'label' => 'Widowed'],
+                ]],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function spouseDetailsSentence(array $input): string
+    {
+        $name = trim(($input['first_name'] ?? '').' '.($input['last_name'] ?? ''));
+        $parts = ['My spouse is '.($name === '' ? 'as follows' : $name)];
+        if (isset($input['date_of_birth'])) {
+            $parts[] = 'born on '.Carbon::parse($input['date_of_birth'])->format('j F Y');
+        }
+        if (isset($input['email'])) {
+            $parts[] = 'email '.$input['email'];
+        }
+        if (isset($input['annual_income'])) {
+            $parts[] = 'earning '.self::pounds($input['annual_income']).' a year';
+        }
+
+        return implode(', ', $parts).'.';
+    }
+
+    /**
+     * Journey path spouse or partner details — the fields
+     * capture_spouse_details needs to create and link their account (name,
+     * date of birth, email) plus their income if known. ONE write.
+     *
+     * @return array<string, mixed>
+     */
+    private static function spouseDetails(): array
+    {
+        return [
+            'name' => self::SPOUSE_DETAILS,
+            'submit_label' => 'Save',
+            'tool' => 'capture_spouse_details',
+            'entity_type' => 'spouse',
+            'lead_fields' => ['first_name', 'last_name', 'date_of_birth', 'email', 'annual_income'],
+            'kinds' => [],
+            'fields' => [
+                'first_name' => ['type' => 'text', 'label' => 'Their first name', 'required' => true],
+                'last_name' => ['type' => 'text', 'label' => 'Their last name', 'required' => false],
+                'date_of_birth' => ['type' => 'date', 'label' => 'Their date of birth', 'required' => true],
+                'email' => ['type' => 'email', 'label' => 'Their email address', 'required' => true, 'hint' => "I'll create their account and link the two of you so you can plan together"],
+                'annual_income' => ['type' => 'money', 'label' => 'Their annual income', 'required' => false, 'hint' => 'Before tax. Leave blank if you are not sure'],
             ],
         ];
     }

@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -315,4 +315,43 @@ it('the spouse forms fold every section into one household write', function (): 
         ]])
         ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => []]))->toBe('My spouse has nothing in their own name.')
         ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => ['savings' => ['spouse_existing_savings_balance' => 8000]]]))->toBe('£8,000 in savings.');
+});
+
+it('the personal form asks date of birth and marital status as lead fields and writes once through capture_personal_details', function (): void {
+    $schema = CaptureForms::schema('personal');
+    expect($schema['tool'])->toBe('capture_personal_details')
+        ->and($schema['lead_fields'])->toBe(['date_of_birth', 'marital_status'])
+        ->and($schema['kinds'])->toBe([])
+        ->and(array_column($schema['fields']['marital_status']['options'], 'value'))->toBe(['single', 'married', 'civil_partnership', 'divorced', 'widowed'])
+        ->and(CaptureForms::rules('personal'))->toBe([
+            '_lead.date_of_birth' => ['required_with:_lead', 'date_format:Y-m-d'],
+            '_lead.marital_status' => ['required_with:_lead', 'in:single,married,civil_partnership,divorced,widowed'],
+        ])
+        ->and(CaptureForms::names())->toContain('personal');
+
+    $form = ['name' => 'personal', 'answers' => ['_lead' => ['date_of_birth' => '1985-01-12', 'marital_status' => 'civil_partnership']]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['date_of_birth' => '1985-01-12', 'marital_status' => 'civil_partnership']])
+        ->and(CaptureForms::summarise($form))->toBe("I was born on 12 January 1985 and I'm in a civil partnership.");
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+    expect($state['form'])->toBe('personal')
+        ->and($state['form_prompt_text'])->toBe('Let me grab a few basics first, {first_name}.');
+});
+
+it('the spouse details form asks name, date of birth, email and income as lead fields and writes once through capture_spouse_details', function (): void {
+    $schema = CaptureForms::schema('spouse_details');
+    expect($schema['tool'])->toBe('capture_spouse_details')
+        ->and($schema['lead_fields'])->toBe(['first_name', 'last_name', 'date_of_birth', 'email', 'annual_income'])
+        ->and($schema['kinds'])->toBe([])
+        ->and(CaptureForms::rules('spouse_details')['_lead.email'])->toBe(['required_with:_lead', 'email', 'max:255'])
+        ->and(CaptureForms::rules('spouse_details')['_lead.last_name'])->toBe(['nullable', 'string', 'max:255']);
+
+    $form = ['name' => 'spouse_details', 'answers' => ['_lead' => ['first_name' => ' Jamie ', 'date_of_birth' => '1986-03-03', 'email' => 'jamie@example.com', 'annual_income' => 40000]]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['first_name' => 'Jamie', 'date_of_birth' => '1986-03-03', 'email' => 'jamie@example.com', 'annual_income' => 40000.0]])
+        ->and(CaptureForms::summarise($form))->toBe('My spouse is Jamie, born on 3 March 1986, email jamie@example.com, earning £40,000 a year.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+    expect($state['form'])->toBe('spouse_details')
+        ->and($state['form_prompt_text'])->toBe("Now your spouse or partner's details.")
+        ->and($state['skip_link']['label'])->toBe('Skip this for now');
 });

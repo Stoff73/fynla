@@ -1078,13 +1078,19 @@ final class OnboardingChatDirector
                     'prompt_text' => $formPromptText,
                     'form' => $schema,
                 ];
-                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, [
-                    'metadata' => [
-                        'capture_form' => $schema,
-                        'onboarding_step' => $stateId,
-                        'turn_intent' => $turnIntent->value,
-                    ],
-                ]);
+                $metadata = [
+                    'capture_form' => $schema,
+                    'onboarding_step' => $stateId,
+                    'turn_intent' => $turnIntent->value,
+                ];
+                // A state's skip link (base_spouse) travels with the form the
+                // same way it does with the typed prompt: a separate event
+                // both clients already render, and the row's metadata for resume.
+                if (is_array($skipLink) && ! empty($skipLink)) {
+                    $metadata['skip_link'] = $skipLink;
+                    yield ['type' => 'skip_link', 'skip_link' => $skipLink];
+                }
+                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, ['metadata' => $metadata]);
                 yield ['type' => 'done', 'message_id' => $assistantMessage->id];
 
                 return;
@@ -3888,12 +3894,12 @@ PROMPT;
             // (prod conversation 881). Move on to the loop question, which
             // states the limit and offers the next section.
             if ($this->everyErrorIsTierCap($errors)) {
-                yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+                yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
                 return;
             }
 
-            $this->recordProgress($user, $currentStateId, ['selection' => 'savetax', 'raw_message' => mb_substr($message, 0, 500)]);
+            $this->recordProgress($user, $currentStateId, ['selection' => (string) ($user->onboarding_fyn_selection ?? 'savetax'), 'raw_message' => mb_substr($message, 0, 500)]);
             yield ['type' => 'done', 'message_id' => $saved->id];
 
             return;
@@ -3906,7 +3912,7 @@ PROMPT;
                 yield ['type' => 'content', 'text' => $ack];
                 $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
             }
-            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
             return;
         }
@@ -3916,7 +3922,7 @@ PROMPT;
             'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
             'records_created' => $recordsCreated,
         ];
-        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
     }
 
     /** @param  array<string, array{error_type?: string}>  $errors */
@@ -6200,6 +6206,7 @@ PROMPT;
     private function buildCaptureAck(User $user, string $stateId, array $interpretation): ?string
     {
         return match ($stateId) {
+            OnboardingStateMachine::STATE_BASE_PERSONAL => $this->personalAck($user),
             OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
@@ -6212,6 +6219,15 @@ PROMPT;
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => $this->spouseAssetsAck($user),
             default => null,
         };
+    }
+
+    /** Repeats back the personal form (journey path, CSJ 2026-09-16): date of birth and marital status. */
+    private function personalAck(User $user): string
+    {
+        $dob = $user->date_of_birth ? ' born on '.$user->date_of_birth->format('j F Y') : '';
+        $marital = $user->marital_status ? ' and '.CaptureForms::maritalWords((string) $user->marital_status) : '';
+
+        return "Thanks — I've noted you're".$dob.$marital.'.';
     }
 
     /**

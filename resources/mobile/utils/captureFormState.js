@@ -42,8 +42,9 @@ export const captureFormMixin = {
     sections() { return this.leadSection ? [this.leadSection, ...this.openKinds] : this.openKinds; },
     // Render order: lead fields first, then the kind boxes, then each open kind.
     blocks() {
-      const kindsRow = { key: '_kinds', type: 'kinds' };
-      return this.leadSection ? [this.leadSection, kindsRow, ...this.openKinds] : [kindsRow, ...this.openKinds];
+      // A lead-only schema (the personal form) has no kind boxes to render.
+      const kindsRow = (this.schema.kinds || []).length ? [{ key: '_kinds', type: 'kinds' }] : [];
+      return this.leadSection ? [this.leadSection, ...kindsRow, ...this.openKinds] : [...kindsRow, ...this.openKinds];
     },
     isValid() {
       if (this.openKinds.length === 0 && !this.leadSection && !this.schema.allow_empty) return false;
@@ -52,7 +53,7 @@ export const captureFormMixin = {
         const type = this.field(fieldKey).type;
         if (type === 'money_or_none') return this.isNone(kind.key, fieldKey) || this.hasNumber(kind.key, fieldKey);
         if (type === 'choice') return Boolean(this.answers[kind.key][fieldKey]);
-        if (type === 'text') return this.hasText(kind.key, fieldKey);
+        if (type === 'text' || type === 'date' || type === 'email') return this.hasText(kind.key, fieldKey);
         return this.hasNumber(kind.key, fieldKey);
       }));
     },

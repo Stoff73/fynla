@@ -167,4 +167,39 @@ describe('FynCaptureForm', () => {
     expect(share.attributes('max')).toBe('99.99');
     expect(share.attributes('step')).toBe('0.01');
   });
+
+  it('renders a date field as a native date input, requires it, and posts it as YYYY-MM-DD with no kind boxes', async () => {
+    const personal = {
+      name: 'personal', submit_label: 'Save', tool: 'capture_personal_details', lead_fields: ['date_of_birth', 'marital_status'], kinds: [],
+      fields: {
+        date_of_birth: { type: 'date', label: 'Your date of birth', required: true },
+        marital_status: { type: 'choice', label: 'Marital status', required: true, options: [{ value: 'single', label: 'Single' }, { value: 'married', label: 'Married' }] },
+      },
+    };
+    const w = mount(FynCaptureForm, { props: { schema: personal } });
+    expect(w.find('input[type="date"][name="_lead.date_of_birth"]').exists()).toBe(true);
+    expect(w.findAll('button[type="button"]').length).toBe(0);
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[name="_lead.date_of_birth"]').setValue('1985-01-12');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[type="radio"][value="married"]').setValue(true);
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'personal', answers: { _lead: { date_of_birth: '1985-01-12', marital_status: 'married' } } });
+  });
+
+  it('renders an email field as a native email input and requires it', async () => {
+    const spouse = {
+      name: 'spouse_details', submit_label: 'Save', tool: 'capture_spouse_details', lead_fields: ['first_name', 'email'], kinds: [],
+      fields: { first_name: { type: 'text', label: 'Their first name', required: true }, email: { type: 'email', label: 'Their email address', required: true } },
+    };
+    const w = mount(FynCaptureForm, { props: { schema: spouse } });
+    expect(w.find('input[type="email"][name="_lead.email"]').exists()).toBe(true);
+    await w.find('input[name="_lead.first_name"]').setValue('Jamie');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[name="_lead.email"]').setValue(' jamie@example.com ');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'spouse_details', answers: { _lead: { first_name: 'Jamie', email: 'jamie@example.com' } } });
+  });
 });

@@ -57,6 +57,8 @@ focus_selection:
 
 base_personal:
   turn_type: grouped_extract
+  form: personal
+  form_prompt_text: 'Let me grab a few basics first, {first_name}.'
   prompt_text: { builder: buildPersonalPrompt }
   extraction_tool: capture_personal_details
   retry_text: "Sorry, I didn't catch both pieces. Could you tell me your date of birth (something like 12 January 1985) and your marital status?"
@@ -64,6 +66,8 @@ base_personal:
 
 base_spouse:
   turn_type: grouped_extract
+  form: spouse_details
+  form_prompt_text: "Now your spouse or partner's details."
   prompt_text: { builder: buildSpousePrompt }
   extraction_tool: capture_spouse_details
   retry_text: 'I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?'
