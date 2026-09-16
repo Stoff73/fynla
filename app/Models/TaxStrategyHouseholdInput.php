@@ -41,9 +41,11 @@ class TaxStrategyHouseholdInput extends Model
         'spouse_existing_pension_balance',
         'spouse_isa_provider',
         'spouse_pension_provider',
+        'spouse_holding_transferred_at',
     ];
 
     protected $casts = [
+        'spouse_holding_transferred_at' => 'datetime',
         'spouse_annual_income' => 'decimal:2',
         'spouse_isa_balance' => 'decimal:2',
         'spouse_unrealised_gains' => 'decimal:2',
