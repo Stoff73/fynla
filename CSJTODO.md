@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-16 session 1 — Save Tax property capture form shipped to prod in four releases (PRs #859–#866, main `ac40f1dd3`); spec for the ISA / bank / investment forms committed on dev; mapping bugs and the eleven mapping PRs still parked. Commit on dev. Handover: `handover/September/16/handover-2026-09-16-session-1.md`*
+*Last updated: 2026-09-16 session 2 — every Save Tax capture step is a structured form in the Fyn chat (property, ISA, bank/savings, investment, pension, both spouse variants), with cap-aware "another?" loops, no-lead-in re-open, first-field focus, and no details-page visit after income/spouse/expenditure. Seven releases, main `b64ec17cc`. Next: the same form shapes for the journey onboarding, spouse details, dependants, detailed expenditure. Handover: `handover/September/16/handover-2026-09-16-session-2.md`*
 
 ## The board position
 
@@ -20,11 +20,11 @@ Every non-iOS item is closed. The rule is unchanged — **a citation is not a ve
 — and **verify the instrument before trusting the measurement**: CSJ's 2026-09-10 order to
 re-check the nine items before fixing found one already resolved and one overstated.
 
-## Save Tax capture forms (CSJ, 2026-09-15/16) — property shipped, accounts next
+## Capture forms in the Fyn chat (CSJ, 2026-09-15/16) — Save Tax done, journey next
 
-- [x] Property step is a structured form on web and `/m` (Home / Second home / Buy to let), asks "another property?" after Save, short lead-in prompt, native keeps the typed prompt. Live on fynla.org since 2026-09-16 (releases #860, #862, #864, #866).
-- [ ] **NEXT — ISA, bank/savings and investment forms**: spec `docs/superpowers/specs/2026-09-16-savetax-account-capture-forms-design.md`. Part A (generalise the tool per kind and the property-shaped `toolInputs`/`summarise`) first as its own PR; then the three schemas, `_more` loops and short prompts. **BLOCKED ON CSJ — Part F decisions** (kinds per form; bank joint fixed 50/50; interest rate required on savings kinds; ISA "paid in this year" field; bonds/share schemes stay typed).
-- [ ] Adjacent, CSJ to decide: after a partial refusal the saved kind stays editable in the re-opened form; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hangs after opening Chat with Fyn in a phone-width desktop window (three times on csjones, full width fine).
+- [x] Property, ISA (Cash / Stocks and Shares), bank and savings (joint 50/50, no share), investment (General Investment Account / Other + optional type), pension (Workplace / Personal or SIPP) and spouse (working: income above, "choose more than one" boxes, one save, recap; non-working: holdings in their own name, Save with nothing chosen) are structured forms on web and `/m`. Each multi-record step asks "another?" after Save; at the plan cap the question becomes the limit statement with one Continue bubble; re-open after "Yes" has no lead-in; opening a kind scrolls and focuses its first field. Income, spouse and expenditure ends do not visit a page. Live on fynla.org (releases #872–#885, main `b64ec17cc`). Recipe: handover 2026-09-16 session 2, "How to add a capture form".
+- [ ] **NEXT — the same form shapes for the journey onboarding**: `base_spouse` (spouse details), `base_dependants`/`base_dependants_detail`, `base_work` (income), `base_expenditure` (and detailed expenditure), `campaign_charitable_giving`, pension-check states. Survey the corpus, propose a table (tool, fields, one-write vs per-kind, loop or not) to CSJ, then one PR per step with the csjones gate on web and `/m`.
+- [ ] Adjacent, CSJ to decide: `/savings` verify page lists accounts only in preview mode (real users see the Open Banking promo); the level-up celebration overlay covers the Fyn panel after a save until tapped; on Free two ISAs use up the investment cap (a General Investment Account is then refused); the spouse extractor (typed path) attributed the ISA's provider to the pension; native (no forms header) still gets the typed questions; after a partial refusal the saved kind stays editable; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hung after opening Chat with Fyn in a phone-width desktop window (csjones, 2026-09-16 session 1).
 
 ## Application mapping programme (CSJ, 2026-09-14) — in progress
 
@@ -56,18 +56,6 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       and `/m`: MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55 (subject to MB-44). Unskip
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
-
-## Next session starts here — property capture form (CSJ, 2026-09-15)
-
-CSJ's decision 2026-09-15 17:01: onboarding stops parsing free text for property; a structured
-form in the chat (Home / Buy to let), same property store, no model. Spec
-`docs/superpowers/specs/2026-09-15-savetax-property-capture-form-design.md`, plan
-`docs/superpowers/plans/2026-09-15-savetax-property-capture-form.md` (12 tasks), branch
-`feat/savetax-property-capture-form` at `c7216000a` — Tasks 1–5 done and reviewed, resume at
-Task 6 via subagent-driven development with the ledger in
-`handover/September/15/sdd-property-form/`. Scope: Save Tax `campaign_property` only; web + `/m`;
-native untouched (`X-Fynla-Forms` header). CSJ: verify in their Chrome, never headless; check
-every subagent's work personally. Handover: `handover/September/15/handover-2026-09-15-session-2.md`.
 
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
@@ -177,6 +165,8 @@ every subagent's work personally. Handover: `handover/September/15/handover-2026
   guard `nextFrom…('')` (skip rules pass an empty answer; `matchBubble('')` hits the first bubble).
 
 ## Deploy state
+
+- 2026-09-16 session 2: prod (fynla.org) = main `b64ec17cc` == dev `307210164` (releases #872, #874, #876, #878, #881, #883, #885; PHP + corpus + both bundles); csjones on dev `307210164`. Backups `~/release-backups/2026-09-16b..f/`.
 
 - **fynla.org = main `357e44e4b`** (tree identical to dev `e4afd0d1c`), two releases on
   2026-09-15 (#856, #858) after six PHP-only fixes (#840–#853). Migrations `2026_09_15_140000`
