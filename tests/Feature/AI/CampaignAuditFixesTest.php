@@ -310,7 +310,9 @@ it('routes a retired campaign user with captured income into the income verify a
 
     $next = OnboardingStateMachine::nextFromRetirementDate('2020', $user);
 
-    expect($next)->toBe('campaign_verify_announce')
+    // CSJ 2026-09-16: the Save Tax income end no longer visits the income
+    // page — it goes straight to the income advice (then the next section).
+    expect($next)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME)
         ->and($user->refresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('income');
 });
 

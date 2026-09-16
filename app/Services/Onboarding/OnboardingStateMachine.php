@@ -1090,11 +1090,33 @@ final class OnboardingStateMachine
         $user->onboarding_fyn_context = $context;
         $user->save();
 
+        // CSJ 2026-09-16: on the Save Tax walk the income and spouse sections
+        // do not visit a details page. The capture ack has already repeated
+        // back what was saved, so the walk goes straight to the section's
+        // advice (skipped during onboarding) and on to the next section —
+        // exactly where a "Yes, that's right" on the verify page would land.
+        if (self::sectionSkipsVerifyPage($user, $section)) {
+            return self::campaignSectionAdvice($section)
+                ?? self::nextCampaignSection($section, $user->refresh());
+        }
+
         // Announce first: Fyn states it's taking the user to the section page and
         // waits for an "Okay" tap before navigating (campaign_verify_announce →
         // campaign_verify_navigate). The section's own capture "anything else?"
         // gate already covered "more"; we never ask it again.
         return 'campaign_verify_announce';
+    }
+
+    /**
+     * Sections whose Save Tax capture end skips the announce → navigate →
+     * confirm loop (CSJ 2026-09-16: income and spouse). Journey users and the
+     * pension check keep the page visit.
+     */
+    public static function sectionSkipsVerifyPage(User $user, string $section): bool
+    {
+        return ($user->onboarding_fyn_path ?? '') === 'campaign'
+            && ($user->onboarding_fyn_selection ?? 'savetax') === 'savetax'
+            && in_array($section, ['income', 'spouse'], true);
     }
 
     /**
