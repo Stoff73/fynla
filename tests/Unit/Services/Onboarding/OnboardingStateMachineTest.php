@@ -35,6 +35,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_INTRO,
             OnboardingStateMachine::STATE_CAMPAIGN_DOB,
             OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,

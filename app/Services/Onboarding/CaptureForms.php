@@ -26,6 +26,8 @@ final class CaptureForms
 
     public const INVESTMENT = 'investment';
 
+    public const PENSION = 'pension';
+
     private const MONEY_MAX = '999999999.99';
 
     private const MONTHLY_MAX = '999999.99';
@@ -33,7 +35,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION];
     }
 
     /** @return array<string, mixed>|null */
@@ -44,6 +46,7 @@ final class CaptureForms
             self::ISA => self::isa(),
             self::SAVINGS => self::savings(),
             self::INVESTMENT => self::investment(),
+            self::PENSION => self::pension(),
             default => null,
         };
     }
@@ -145,6 +148,7 @@ final class CaptureForms
                 self::ISA => self::isaInputs($kind, $answers),
                 self::SAVINGS => self::savingsInputs($kind, $answers),
                 self::INVESTMENT => self::investmentInputs($kind, $answers),
+                self::PENSION => self::pensionInputs($kind, $answers),
             };
         }
 
@@ -172,6 +176,7 @@ final class CaptureForms
                 self::ISA => self::isaSentence($label, $input),
                 self::SAVINGS => self::savingsSentence($label, $input),
                 self::INVESTMENT => self::investmentSentence($label, $input),
+                self::PENSION => self::pensionSentence($label, $input),
             };
         }
 
@@ -376,6 +381,63 @@ final class CaptureForms
         return implode(', ', $parts).'.';
     }
 
+    /**
+     * create_pension (defined contribution). A workplace pension carries the
+     * contribution percentages and whether it is salary sacrifice; a
+     * personal pension or SIPP carries what the user pays in each year
+     * (stored monthly). Unknown values are omitted, never null.
+     *
+     * @param  array<string, mixed>  $kind
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    private static function pensionInputs(array $kind, array $answers): array
+    {
+        $provider = trim((string) $answers['provider']);
+        $input = [
+            'pension_category' => 'dc',
+            'scheme_name' => $provider.' '.lcfirst($kind['label']),
+            'scheme_type' => $kind['scheme_type'],
+            'provider' => $provider,
+        ];
+        if (is_numeric($answers['current_value'] ?? null)) {
+            $input['current_fund_value'] = (float) $answers['current_value'];
+        }
+        if ($kind['key'] === 'workplace') {
+            $input['employee_contribution_percent'] = (float) $answers['employee_contribution_percent'];
+            if (is_numeric($answers['employer_contribution_percent'] ?? null)) {
+                $input['employer_contribution_percent'] = (float) $answers['employer_contribution_percent'];
+            }
+            $input['salary_sacrifice'] = ($answers['salary_sacrifice'] ?? 'no') === 'yes';
+        } elseif (is_numeric($answers['annual_contribution'] ?? null)) {
+            $input['monthly_contribution_amount'] = round(((float) $answers['annual_contribution']) / 12, 2);
+        }
+
+        return $input;
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function pensionSentence(string $label, array $input): string
+    {
+        $parts = [$label.' with '.$input['provider']];
+        if (isset($input['current_fund_value'])) {
+            $parts[] = 'worth '.self::pounds($input['current_fund_value']);
+        }
+        if (isset($input['employee_contribution_percent'])) {
+            $contrib = 'I pay '.self::percent($input['employee_contribution_percent']);
+            if (isset($input['employer_contribution_percent'])) {
+                $contrib .= ' and my employer '.self::percent($input['employer_contribution_percent']);
+            }
+            $parts[] = $contrib;
+            $parts[] = ($input['salary_sacrifice'] ?? false) ? 'salary sacrifice' : 'not salary sacrifice';
+        }
+        if (isset($input['monthly_contribution_amount'])) {
+            $parts[] = 'I pay in '.self::pounds($input['monthly_contribution_amount'] * 12).' a year';
+        }
+
+        return implode(', ', $parts).'.';
+    }
+
     private static function percent(float $value): string
     {
         return rtrim(rtrim(number_format($value, 2), '0'), '.').'%';
@@ -517,6 +579,43 @@ final class CaptureForms
                 ]],
                 'ownership_percentage' => ['type' => 'percent', 'label' => 'Your share %', 'required' => false, 'default' => 50,
                     'required_when' => ['field' => 'ownership_type', 'in' => ['joint']]],
+            ],
+        ];
+    }
+
+    /**
+     * Pensions (CSJ 2026-09-16): a workplace pension and a personal pension
+     * or SIPP, both defined contribution rows through create_pension.
+     * Values may be unknown; the pot-value loop asks later for any missing.
+     *
+     * @return array<string, mixed>
+     */
+    private static function pension(): array
+    {
+        return [
+            'name' => self::PENSION,
+            'submit_label' => 'Save',
+            'kinds' => [
+                ['key' => 'workplace', 'label' => 'Workplace pension', 'scheme_type' => 'occupational',
+                    'tool' => 'create_pension', 'entity_type' => 'dc_pension',
+                    'fields' => ['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice']],
+                ['key' => 'personal', 'label' => 'Personal pension or SIPP', 'scheme_type' => 'personal',
+                    'tool' => 'create_pension', 'entity_type' => 'dc_pension',
+                    'fields' => ['provider', 'current_value', 'annual_contribution']],
+            ],
+            'fields' => [
+                'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
+                'current_value' => ['type' => 'money', 'label' => 'Current value', 'required' => false,
+                    'hint' => "Leave blank if you don't know"],
+                'employee_contribution_percent' => ['type' => 'percent', 'label' => 'You pay % of salary', 'required' => true, 'min' => 0, 'max' => 100, 'step' => 0.1],
+                'employer_contribution_percent' => ['type' => 'percent', 'label' => 'Your employer pays %', 'required' => false, 'min' => 0, 'max' => 100, 'step' => 0.1,
+                    'hint' => 'Leave blank if none or unknown'],
+                'salary_sacrifice' => ['type' => 'choice', 'label' => 'Salary sacrifice', 'required' => true, 'options' => [
+                    ['value' => 'yes', 'label' => 'Yes'],
+                    ['value' => 'no', 'label' => 'No'],
+                ]],
+                'annual_contribution' => ['type' => 'money', 'label' => 'You pay in each year', 'required' => false,
+                    'hint' => "Leave blank if you don't pay in"],
             ],
         ];
     }
