@@ -37,7 +37,9 @@ it('builds field rules for a text, an optional money and a bounded percent', fun
         ->and(CaptureForms::fieldRules('cash_isa', 'interest_rate', ['type' => 'percent', 'min' => 0, 'max' => 20]))
         ->toBe(['nullable', 'numeric', 'min:0', 'max:20'])
         ->and(CaptureForms::fieldRules('main_residence', 'ownership_percentage', ['type' => 'percent']))
-        ->toBe(['nullable', 'numeric', 'min:0.01', 'max:99.99']);
+        ->toBe(['nullable', 'numeric', 'min:0.01', 'max:99.99'])
+        ->and(CaptureForms::fieldRules('easy_access', 'interest_rate', ['type' => 'percent', 'required' => true, 'min' => 0, 'max' => 20]))
+        ->toBe(['required_with:easy_access', 'numeric', 'min:0', 'max:20']);
 });
 
 it('marks the required fields and the conditional share', function (): void {

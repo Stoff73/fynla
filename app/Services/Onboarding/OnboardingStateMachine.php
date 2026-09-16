@@ -489,6 +489,9 @@ final class OnboardingStateMachine
             // accounts (CSJ 2026-09-16) — mirrors STATE_CAMPAIGN_PROPERTY_MORE.
             self::STATE_CAMPAIGN_ISA_MORE => [
                 'next' => self::class.'::nextFromIsaMore',
+                // A skipped capture state resolves through its static next
+                // (applySkipRules), so the loop question must skip with it.
+                'skip_if' => [self::class, 'skipIfNoIsa'],
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
@@ -510,6 +513,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [
                 'next' => self::class.'::nextFromBankAccountsMore',
+                'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [

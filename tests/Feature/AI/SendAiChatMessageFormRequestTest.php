@@ -183,13 +183,16 @@ it('queues a form posted while another turn holds the conversation lock, and str
 // ── Account forms (CSJ 2026-09-16) ─────────────────────────────────────────
 
 it('accepts a well-formed answer for each account form', function (): void {
-    postForm($this, $this->conversation->id, ['form' => ['name' => 'isa', 'answers' => [
+    // One conversation per post: a second post while the first turn still
+    // holds the conversation is queued (202), which is not what is under test.
+    $fresh = fn (): int => AiConversation::create(['user_id' => $this->user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])->id;
+    postForm($this, $fresh(), ['form' => ['name' => 'isa', 'answers' => [
         'cash_isa' => ['provider' => 'Nationwide', 'current_value' => 12000, 'interest_rate' => 4.5],
     ]]])->assertOk();
-    postForm($this, $this->conversation->id, ['form' => ['name' => 'savings', 'answers' => [
+    postForm($this, $fresh(), ['form' => ['name' => 'savings', 'answers' => [
         'current_account' => ['provider' => 'Barclays', 'current_value' => 3200, 'ownership_type' => 'joint'],
     ]]])->assertOk();
-    postForm($this, $this->conversation->id, ['form' => ['name' => 'investment', 'answers' => [
+    postForm($this, $fresh(), ['form' => ['name' => 'investment', 'answers' => [
         'gia' => ['provider' => 'Vanguard', 'current_value' => 45000, 'ownership_type' => 'individual'],
     ]]])->assertOk();
 });

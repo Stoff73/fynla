@@ -112,7 +112,7 @@ final class CaptureForms
             'money' => [$presence, 'numeric', 'min:0', 'max:'.($fieldKey === 'monthly_rental_income' ? self::MONTHLY_MAX : self::MONEY_MAX)],
             'money_or_none' => ['present', 'nullable', 'numeric', 'min:0', 'max:'.self::MONEY_MAX],
             'choice' => [$presence, 'in:'.implode(',', array_column($field['options'], 'value'))],
-            'percent' => ['nullable', 'numeric', 'min:'.($field['min'] ?? '0.01'), 'max:'.($field['max'] ?? '99.99')],
+            'percent' => [$presence, 'numeric', 'min:'.($field['min'] ?? '0.01'), 'max:'.($field['max'] ?? '99.99')],
             'text' => [$presence, 'string', 'max:255'],
         };
     }

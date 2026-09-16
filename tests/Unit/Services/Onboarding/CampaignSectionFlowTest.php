@@ -135,7 +135,10 @@ it('only asks ISA when ISA was ticked, bank/savings otherwise', function () {
     $bankOnly = campaignUser(['funnel_answers' => ['assets' => ['bank']]]);
 
     expect(SM::nextCampaignSection('income', $isaOnly))->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS)
-        ->and(SM::nextCampaignSection('income', $bankOnly))->toBe(SM::STATE_CAMPAIGN_BANK_ACCOUNTS);
+        ->and(SM::nextCampaignSection('income', $bankOnly))->toBe(SM::STATE_CAMPAIGN_BANK_ACCOUNTS)
+        // The "another ISA?" loop skips with the ISA question (CSJ 2026-09-16 forms):
+        // an ISA-only user's "No" leaves the savings section for the verify gate.
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ISA_MORE, "No, that's everything", $isaOnly))->toBe('campaign_verify_announce');
 });
 
 it('opens the income-first entry with the funnel recap greeting', function () {
