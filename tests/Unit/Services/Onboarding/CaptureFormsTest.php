@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -284,4 +284,35 @@ it('the pension step is a form turn with the loop question after it', function (
     expect([$state['turn_type'], $state['form'], $state['form_prompt_text'], $state['next']])->toBe(['form', 'pension', 'Now your pensions.', 'campaign_pension_more'])
         ->and($state['capture_focus'])->toBe('occupational')
         ->and($state['prompt_text'])->toContain('workplace pension');
+});
+
+it('the spouse forms fold every section into one household write', function (): void {
+    $schema = CaptureForms::schema('spouse_household');
+    expect($schema['tool'])->toBe('capture_spouse_household_data')
+        ->and($schema['lead_fields'])->toBe(['spouse_annual_income'])
+        ->and($schema['kinds_prompt'])->toBe('Do they have any of the following? You can choose more than one.')
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['ISAs', 'A pension', 'Investments'])
+        ->and(CaptureForms::rules('spouse_household'))->toHaveKey('_lead.spouse_annual_income')
+        ->and(CaptureForms::rules('spouse_household')['_lead.spouse_annual_income'][0])->toBe('required_with:_lead');
+
+    $form = ['name' => 'spouse_household', 'answers' => [
+        '_lead' => ['spouse_annual_income' => 45000],
+        'isa' => ['spouse_isa_balance' => 12000, 'spouse_isa_provider' => ' Nationwide '],
+        'pension' => ['spouse_pension_input_annual' => 3000],
+    ]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => [
+        'spouse_annual_income' => 45000.0, 'spouse_isa_balance' => 12000.0, 'spouse_isa_provider' => 'Nationwide', 'spouse_pension_input_annual' => 3000.0,
+    ]])
+        ->and(CaptureForms::summarise($form))->toBe('My spouse earns £45,000 a year, £12,000 in ISAs with Nationwide, pays £3,000 a year into their pension.');
+
+    $assets = CaptureForms::schema('spouse_assets');
+    expect($assets['tool'])->toBe('capture_spouse_non_working_assets')
+        ->and($assets['allow_empty'])->toBeTrue()
+        ->and(array_column($assets['kinds'], 'label'))->toBe(['Savings', 'ISAs', 'Investments', 'A pension'])
+        ->and(CaptureForms::toolInputs(['name' => 'spouse_assets', 'answers' => []]))->toBe(['_lead' => [
+            'spouse_existing_savings_balance' => 0.0, 'spouse_existing_isa_balance' => 0.0, 'spouse_existing_investment_balance' => 0.0,
+            'spouse_existing_dividend_holdings_value' => 0.0, 'spouse_existing_pension_balance' => 0.0,
+        ]])
+        ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => []]))->toBe('My spouse has nothing in their own name.')
+        ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => ['savings' => ['spouse_existing_savings_balance' => 8000]]]))->toBe('£8,000 in savings.');
 });
