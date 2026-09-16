@@ -1346,6 +1346,8 @@ final class OnboardingStateMachine
             'property' => 'property', 'pensions' => 'pensions', 'spouse' => 'spouse details',
             'expenditure' => 'expenditure', 'protection' => 'protection cover',
             'estate' => 'estate records', 'goals' => 'goals',
+            // Pension Check sections (csjones 2026-09-16: both announced "your details page").
+            'state_pension' => 'State Pension', 'retirement_goals' => 'retirement goals',
         ][$section] ?? 'details';
     }
 
