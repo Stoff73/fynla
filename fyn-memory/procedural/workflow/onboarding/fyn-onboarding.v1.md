@@ -227,11 +227,23 @@ campaign_dob:
   next: { branch: nextFromCampaignDob }
 
 campaign_occupational_scheme:
-  turn_type: delegated
+  turn_type: form
+  form: pension
   prompt_text: "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on."
+  form_prompt_text: 'Now your pensions.'
   capture_field: null
-  next: { branch: nextFromCampaignOccupationalScheme }
+  next: campaign_pension_more
   advance_on_answered_question: true
+
+campaign_pension_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another pension to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+    - { id: 'continue', label: 'Continue to the next section' }
+  capture_field: null
+  next: { branch: nextFromPensionMore }
 
 campaign_pension_contribs:
   turn_type: delegated

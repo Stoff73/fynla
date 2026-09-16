@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -66,6 +67,7 @@ dataset('account steps', [
     'isa' => [OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS, 'isa', 'Now your ISAs.', 'Cash, Stocks & Shares'],
     'bank' => [OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS, 'savings', 'Now your bank and savings accounts.', 'interest rate'],
     'investment' => [OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'investment', 'Now your investments.', 'General Investment Accounts'],
+    'pension' => [OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, 'pension', 'Now your pensions.', 'workplace pension'],
 ]);
 
 it('emits the form with its short lead-in to a forms client and the typed prompt to any other', function (string $step, string $formName, string $leadIn, string $typedFragment): void {
@@ -259,4 +261,60 @@ it('re-opens the form on "Yes, add another" and continues on "No" exactly where 
     iterator_to_array($director->handleUserMessage($invDone, accountConversation($invDone), "No, that's everything"), false);
     expect($invDone->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
         ->and($invDone->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('investments');
+});
+
+// ── Pensions (CSJ 2026-09-16) ──────────────────────────────────────────────
+
+it('saves a workplace pension and a personal pension from the form, then asks for another', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $user->forceFill(['employment_status' => 'employed', 'annual_employment_income' => 52000, 'date_of_birth' => '1980-02-19'])->save();
+    $conversation = accountConversation($user);
+    $form = ['name' => 'pension', 'answers' => [
+        'workplace' => ['provider' => 'Aviva', 'current_value' => 42000, 'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3, 'salary_sacrifice' => 'yes'],
+        'personal' => ['provider' => 'Vanguard', 'current_value' => 15000, 'annual_contribution' => 6000],
+    ]];
+
+    $events = submitForm($user, $conversation, $form);
+
+    $work = DCPension::where('user_id', $user->id)->where('pension_type', 'occupational')->first();
+    $sipp = DCPension::where('user_id', $user->id)->where('pension_type', 'personal')->first();
+    expect($work)->not->toBeNull()
+        ->and($work->provider)->toBe('Aviva')
+        ->and((float) $work->current_fund_value)->toBe(42000.0)
+        ->and((float) $work->employee_contribution_percent)->toBe(5.0)
+        ->and((float) $work->employer_contribution_percent)->toBe(3.0)
+        ->and((bool) $work->salary_sacrifice)->toBeTrue()
+        ->and($sipp)->not->toBeNull()
+        ->and((float) $sipp->current_fund_value)->toBe(15000.0)
+        ->and((float) $sipp->monthly_contribution_amount)->toBe(500.0)
+        ->and(collect($events)->where('type', 'entity_created')->pluck('entity_type')->all())->toBe(['dc_pension', 'dc_pension'])
+        // Two pensions fill the Free cap: the loop states the limit and offers only the next section.
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain("Free plan's limit of 2 pensions")
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE);
+
+    // Continuing after both pensions (values known, personal pension on file):
+    // the pot loop and the typed personal-pension question are both skipped.
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, 'Continue to the next section'), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('pensions');
+});
+
+it('a workplace pension with no value left blank goes to the pot-value question, then the personal-pension question', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $user->forceFill(['employment_status' => 'employed', 'annual_employment_income' => 52000, 'date_of_birth' => '1980-02-19'])->save();
+    $conversation = accountConversation($user);
+    submitForm($user, $conversation, ['name' => 'pension', 'answers' => [
+        'workplace' => ['provider' => 'Aviva', 'employee_contribution_percent' => 5, 'salary_sacrifice' => 'no'],
+    ]]);
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE);
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS);
+});
+
+it('the property verify announce names the property page', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE);
+    $conversation = accountConversation($user);
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, "No, that's everything"), false);
+    expect(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain("I've saved your property. Next I'll take you to your property page");
 });

@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -249,4 +249,39 @@ it('the three account steps are form turns owned by the corpus with short lead-i
         ->and($isa['prompt_text'])->toContain('Cash, Stocks & Shares, Lifetime')
         ->and($bank['skip_if'])->toBe([OnboardingStateMachine::class, 'skipIfNoBankOrSavings'])
         ->and($bank['record_context'])->toBe('savings');
+});
+
+it('offers a workplace pension and a personal pension or SIPP, both through create_pension', function (): void {
+    $schema = CaptureForms::schema('pension');
+    expect(array_column($schema['kinds'], 'key'))->toBe(['workplace', 'personal'])
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP'])
+        ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_pension'])
+        ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice'])
+        ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'annual_contribution'])
+        ->and($schema['fields']['current_value']['required'])->toBeFalse()
+        ->and($schema['fields']['employee_contribution_percent'])->toMatchArray(['required' => true, 'min' => 0, 'max' => 100])
+        ->and(array_column($schema['fields']['salary_sacrifice']['options'], 'value'))->toBe(['yes', 'no']);
+
+    $form = ['name' => 'pension', 'answers' => [
+        'workplace' => ['provider' => 'Aviva', 'current_value' => 42000, 'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3, 'salary_sacrifice' => 'yes'],
+        'personal' => ['provider' => 'Vanguard', 'annual_contribution' => 6000],
+    ]];
+    $inputs = CaptureForms::toolInputs($form);
+    expect($inputs['workplace'])->toBe([
+        'pension_category' => 'dc', 'scheme_name' => 'Aviva workplace pension', 'scheme_type' => 'occupational', 'provider' => 'Aviva',
+        'current_fund_value' => 42000.0, 'employee_contribution_percent' => 5.0, 'employer_contribution_percent' => 3.0, 'salary_sacrifice' => true,
+    ])
+        ->and($inputs['personal'])->toBe([
+            'pension_category' => 'dc', 'scheme_name' => 'Vanguard personal pension or SIPP', 'scheme_type' => 'personal', 'provider' => 'Vanguard',
+            'monthly_contribution_amount' => 500.0,
+        ])
+        ->and(CaptureForms::summarise($form))->toBe('Workplace pension with Aviva, worth £42,000, I pay 5% and my employer 3%, salary sacrifice. Personal pension or SIPP with Vanguard, I pay in £6,000 a year.');
+});
+
+it('the pension step is a form turn with the loop question after it', function (): void {
+    OnboardingStateMachine::flushTransitionTableCache();
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    expect([$state['turn_type'], $state['form'], $state['form_prompt_text'], $state['next']])->toBe(['form', 'pension', 'Now your pensions.', 'campaign_pension_more'])
+        ->and($state['capture_focus'])->toBe('occupational')
+        ->and($state['prompt_text'])->toContain('workplace pension');
 });

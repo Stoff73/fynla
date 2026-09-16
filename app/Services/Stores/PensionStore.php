@@ -194,6 +194,14 @@ class PensionStore
      * (current_fund_value <= 0). Used to decide whether the pot-capture
      * loop should continue.
      */
+    /** A personal, SIPP or stakeholder DC pension is on file (the pension form covered it). */
+    public function hasPersonalPension(User $user): bool
+    {
+        return DCPension::where('user_id', $user->id)
+            ->whereIn('pension_type', ['personal', 'sipp', 'stakeholder'])
+            ->exists();
+    }
+
     public function hasDcPensionsMissingPotValue(User $user): bool
     {
         return $this->dcPensionsMissingPotValueQuery($user)->exists();
