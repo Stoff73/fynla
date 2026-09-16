@@ -105,6 +105,7 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
+      'X-Fynla-Forms': '1',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),

@@ -68,19 +68,24 @@ final class ConcurrentTurnQueue
     /**
      * Persist a new user turn as `queued` behind an in-flight one. Returns null
      * when the queue is already at its depth cap (the caller surfaces a "too many
-     * pending" rejection).
+     * pending" rejection). A form answer's raw payload travels in `metadata.form`
+     * so it survives to {@see AiChatController::streamQueuedMessage}, which reads
+     * it back out to pass to the director when the turn is finally streamed.
+     *
+     * @param  array<string, mixed>  $metadata
      */
-    public function enqueue(AiConversation $conversation, string $content): ?AiMessage
+    public function enqueue(AiConversation $conversation, string $content, array $metadata = []): ?AiMessage
     {
         if ($this->isFull($conversation)) {
             return null;
         }
 
-        return $conversation->messages()->create([
-            'role' => 'user',
-            'content' => $content,
-            'status' => AiMessageStatus::Queued,
-        ]);
+        $attributes = ['role' => 'user', 'content' => $content, 'status' => AiMessageStatus::Queued];
+        if ($metadata !== []) {
+            $attributes['metadata'] = $metadata;
+        }
+
+        return $conversation->messages()->create($attributes);
     }
 
     /** Mark the in-flight turn answered once its stream has completed. */

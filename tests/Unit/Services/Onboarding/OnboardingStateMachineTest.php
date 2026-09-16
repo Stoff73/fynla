@@ -80,7 +80,7 @@ describe('OnboardingStateMachine::states', function () {
 
     it('only uses known turn_types', function () {
         foreach (OnboardingStateMachine::states() as $id => $state) {
-            expect($state['turn_type'])->toBeIn(['bubbles', 'free_text', 'delegated', 'terminal', 'grouped_extract', 'advice'])
+            expect($state['turn_type'])->toBeIn(['bubbles', 'free_text', 'delegated', 'terminal', 'grouped_extract', 'advice', 'form'])
                 ->and($id)->toBeString();
         }
     });

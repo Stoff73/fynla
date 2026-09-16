@@ -187,6 +187,16 @@
             :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
             @select="b => handleQuickReplySelect(b, msg)"
           />
+          <!-- Structured capture form (Fyn onboarding form turn) -->
+          <FynCaptureForm
+            v-else-if="msg.role === 'capture_form'"
+            :schema="msg.metadata?.capture_form"
+            :errors="msg.metadata?.errors || null"
+            :disabled="streaming || loading"
+            :locked="!isCaptureFormOpen(idx)"
+            :values="captureFormValues(idx)"
+            @submit="handleCaptureFormSubmit"
+          />
           <!-- Phase 13 — capture_complete record-card row -->
           <div
             v-else-if="msg.role === 'capture_complete'"
@@ -429,6 +439,7 @@ import { mapGetters, mapActions } from 'vuex';
 import AiMessageContent from './AiMessageContent.vue';
 import AiChatPanelShell from './AiChatPanelShell.vue';
 import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
+import FynCaptureForm from '@/components/Fyn/FynCaptureForm.vue';
 
 import analyticsService from '@/services/analyticsService';
 import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
@@ -442,6 +453,7 @@ export default {
         AiChatPanelShell,
         AiMessageContent,
         FynQuickReplies,
+        FynCaptureForm,
     },
 
     props: {
@@ -593,6 +605,18 @@ export default {
         latestQuickRepliesIndex() {
             for (let i = this.messages.length - 1; i >= 0; i--) {
                 if (this.messages[i]?.role === 'quick_replies') {
+                    return i;
+                }
+            }
+            return -1;
+        },
+
+        // Index of the most recent capture_form message. A form is only
+        // ever open while it is the newest one — an earlier form re-renders
+        // locked with its saved answers once the user has moved on.
+        latestCaptureFormIndex() {
+            for (let i = this.messages.length - 1; i >= 0; i--) {
+                if (this.messages[i]?.role === 'capture_form') {
                     return i;
                 }
             }
@@ -1241,6 +1265,29 @@ export default {
             if (!await this.ensureConversation()) return;
             analyticsService.trackChatMessageSent(label.length);
             await this.sendMessage(label);
+        },
+
+        // A form is open only while it is the newest form and nothing has been
+        // answered after it; a refresh mid-step re-renders it open. A refused
+        // submission also reopens it — the errors mean nothing was saved, so
+        // the user corrects the same form in place rather than a locked one.
+        isCaptureFormOpen(idx) {
+            if (idx !== this.latestCaptureFormIndex) return false;
+            if (this.messages[idx].metadata?.errors) return true;
+            return !this.messages.slice(idx + 1).some((m) => m.role === 'user');
+        },
+
+        captureFormValues(idx) {
+            const answered = this.messages.slice(idx + 1).find((m) => m.role === 'user' && m.metadata?.form?.answers);
+            return answered ? answered.metadata.form.answers : null;
+        },
+
+        async handleCaptureFormSubmit(form) {
+            if (this.streaming || this.loading) return;
+            window.dispatchEvent(new Event('fyn-chat-interaction'));
+            if (!await this.ensureConversation()) return;
+            analyticsService.trackChatMessageSent(0);
+            await this.sendMessage({ form });
         },
 
         handleNavigation(routePath) {

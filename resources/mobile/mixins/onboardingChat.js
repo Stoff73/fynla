@@ -291,15 +291,30 @@ export default {
         if (metadata.skip_link?.label && !bubbles.some((bubble) => bubble.id === 'skip')) {
           bubbles.push({ id: 'skip', label: metadata.skip_link.label });
         }
+        const captureForm = metadata.capture_form && typeof metadata.capture_form === 'object' ? metadata.capture_form : null;
 
         return {
           role: m.role === 'user' ? 'user' : 'fyn',
           text: m.content || '',
           bubbles,
           actionBubbles: Boolean(metadata.action_bubbles),
+          ...(captureForm ? { form: { schema: captureForm, errors: null, answers: null, locked: false } } : {}),
         };
       });
       mapped.forEach((m, i) => { if (i < mapped.length - 1) m.bubbles = []; });
+      // A form turn's answers are persisted on the NEXT user row
+      // (metadata.form.answers), not the form turn itself — the raw form as
+      // sent, mirroring the web panel's lookup.
+      mapped.forEach((m, i) => {
+        if (!m.form) return;
+        for (let j = i + 1; j < msgs.length; j += 1) {
+          if (msgs[j].role === 'user' && msgs[j].metadata?.form?.answers) {
+            m.form = { ...m.form, answers: msgs[j].metadata.form.answers };
+            break;
+          }
+        }
+      });
+      mapped.forEach((m, i) => { if (m.form && i < mapped.length - 1) m.form = { ...m.form, locked: true }; });
       this.messages = mapped;
       this.transcriptLoadError = '';
       this.transcriptFallbackDestination = null;
@@ -532,6 +547,39 @@ export default {
         this.$nextTick(this.scrollFyn);
         return;
       }
+      if (ev.type === 'form_received') {
+        // The placeholder user row ("Saving your property details…") stands
+        // in for the form until the server confirms what it actually saved.
+        const placeholder = [...this.messages].reverse().find((m) => m.role === 'user' && m.formPlaceholder);
+        if (placeholder) { placeholder.text = ev.text || placeholder.text; delete placeholder.formPlaceholder; }
+        // A successful retry after a refusal must not keep the stale
+        // errors from the prior attempt — the lock send() already set
+        // stands untouched because no capture_form_errors event follows.
+        const acceptedForm = [...this.messages].reverse().find((m) => m.form);
+        if (acceptedForm) acceptedForm.form = { ...acceptedForm.form, errors: null };
+        return;
+      }
+      if (ev.type === 'capture_form') {
+        // A form turn. Like quick_replies: a fresh row if the cursor already
+        // carries streamed text; cursor.got so the empty-response trap is quiet.
+        if (cursor.reply.text) {
+          cursor.reply = { role: 'fyn', text: '', bubbles: [] };
+          this.messages.push(cursor.reply);
+        }
+        cursor.got = true;
+        if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
+        cursor.reply.form = { schema: ev.form || null, errors: null, answers: null, locked: false };
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'capture_form_errors') {
+        // A refusal reopens the form so the user can correct it in place —
+        // send() locked it before the request went out, on the assumption
+        // it would be accepted.
+        const latest = [...this.messages].reverse().find((m) => m.form);
+        if (latest) latest.form = { ...latest.form, errors: ev.errors || {}, locked: false };
+        return;
+      }
       if (ev.type === 'quick_replies') {
         // A bubbles turn. If the current bubble already carries streamed text
         // (an acknowledgement from the prior capture), open a fresh bubble for
@@ -580,14 +628,24 @@ export default {
       this.send(bubble.label || bubble.id);
     },
 
-    async send(preset) {
+    // `form` (when passed) carries a completed capture form answer — the same
+    // stream, the same conversation, but the body carries `form` instead of
+    // `message` and the placeholder user row is filled in once the server
+    // confirms what it saved (see the `form_received` handler above).
+    async send(preset, form = null) {
       const text = (preset || this.draft || '').trim();
-      if (!text || this.sending) return;
+      if ((!form && !text) || this.sending) return;
       this.sending = true;
       this.draft = '';
       // Prior bubbles are now answered — remove them so they can't be re-tapped.
-      this.messages.forEach((m) => { if (m.bubbles) m.bubbles = []; });
-      this.messages.push({ role: 'user', text });
+      // Prior forms are now answered too — lock them so they render read-only.
+      this.messages.forEach((m) => {
+        if (m.bubbles) m.bubbles = [];
+        if (m.form) m.form = { ...m.form, locked: true };
+      });
+      this.messages.push(form
+        ? { role: 'user', text: 'Saving your property details…', bubbles: [], formPlaceholder: true }
+        : { role: 'user', text, bubbles: [] });
       const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
       this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
@@ -600,9 +658,11 @@ export default {
           cursor.reply.text = 'Sorry, I could not start a conversation just now.';
           return;
         }
+        const body = { current_route: (this.$route && this.$route.path) || '/dashboard' };
+        if (form) body.form = form; else body.message = text;
         const result = await apiStream(
           `/api/ai-chat/conversations/${cid}/messages`,
-          { message: text, current_route: (this.$route && this.$route.path) || '/dashboard' },
+          body,
           store.token,
           (piece) => {
             this.appendFynText(cursor, piece);
@@ -635,6 +695,12 @@ export default {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
       }
+    },
+
+    // The renderer (Task 10) calls this on submit — same send path, a form
+    // instead of typed text.
+    submitCaptureForm(form) {
+      return this.send(null, form);
     },
 
     // Stream a queued message's reply (202 path). The stream endpoint 409s
