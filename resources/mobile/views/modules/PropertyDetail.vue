@@ -120,7 +120,7 @@ export default {
       return buildContextualConversationRequest({ action: 'edit', resourceType: 'property', resourceId: this.recordId, currentDestination: { screen: 'property_detail', params: { property_id: this.recordId }, fallback: 'net_worth' }, origin: { kind: 'surface_action' } });
     },
     rows() {
-      return [
+      const rows = [
         { key: 'Type', value: label(this.property.property_type) },
         { key: 'Ownership', value: label(this.property.ownership_type) },
         { key: 'Purchase price', value: fmt(this.property.purchase_price) },
@@ -128,6 +128,14 @@ export default {
         { key: 'Valuation date', value: date(this.property.valuation_date) },
         { key: 'Equity', value: fmt(this.property.equity) },
       ];
+      // Rule 19 parity with the web detail: a buy to let shows the rent it earns.
+      if (this.property.property_type === 'buy_to_let' && Number(this.property.monthly_rental_income) > 0) {
+        rows.splice(2, 0,
+          { key: 'Monthly rent', value: fmt(this.property.monthly_rental_income) },
+          { key: 'Annual rent', value: fmt(Number(this.property.monthly_rental_income) * 12) },
+        );
+      }
+      return rows;
     },
   },
   async created() { await this.load(); },
