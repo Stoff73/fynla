@@ -39,6 +39,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY,
+            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
             // PensionCheck-specific states (Task C3)
             OnboardingStateMachine::STATE_CAMPAIGN2_EXISTING_RECAP,
