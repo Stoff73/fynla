@@ -947,10 +947,11 @@ final class CaptureForms
     private static function workSentence(array $input): string
     {
         $parts = [];
-        if (isset($input['employer'])) {
-            $parts[] = 'I work at '.$input['employer'].(isset($input['occupation']) ? ' as a '.$input['occupation'] : '');
-        } elseif (isset($input['occupation'])) {
-            $parts[] = 'I work as a '.$input['occupation'];
+        // "My job is X at Y" avoids an article before the role ("a Operations manager").
+        if (isset($input['occupation'])) {
+            $parts[] = 'My job is '.$input['occupation'].(isset($input['employer']) ? ' at '.$input['employer'] : '');
+        } elseif (isset($input['employer'])) {
+            $parts[] = 'I work at '.$input['employer'];
         }
         if (isset($input['annual_income'])) {
             $parts[] = 'I earn '.self::pounds($input['annual_income']).' a year';

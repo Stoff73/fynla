@@ -69,6 +69,9 @@ const router = createRouter({
     { path: '/conversation-history', name: 'm-conversation-history', component: ConversationHistory, meta: { auth: true } },
     { path: '/net-worth', name: 'm-net-worth', component: MobileNetWorth, meta: { auth: true } },
     { path: '/net-worth/history', name: 'm-balance-history', component: MobileBalanceHistory, meta: { auth: true } },
+    // The web net worth page calls the pensions category "retirement" (the journey
+    // done-navigation and Fyn's "take me to my pensions" use that path); here it is "pensions".
+    { path: '/net-worth/retirement', redirect: '/net-worth/pensions' },
     { path: '/net-worth/:category', name: 'm-net-worth-category', component: MobileNetWorthCategory, props: true, meta: { auth: true } },
     { path: '/net-worth/property/:id', name: 'm-property', component: MobilePropertyDetail, meta: { auth: true } },
     { path: '/net-worth/mortgage/:id', name: 'm-mortgage', component: MobileMortgageDetail, meta: { auth: true } },
