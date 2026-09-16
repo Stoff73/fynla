@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -354,4 +354,38 @@ it('the spouse details form asks name, date of birth, email and income as lead f
     expect($state['form'])->toBe('spouse_details')
         ->and($state['form_prompt_text'])->toBe("Now your spouse or partner's details.")
         ->and($state['skip_link']['label'])->toBe('Skip this for now');
+});
+
+it('the dependants form saves one dependant per turn as a one-item list through capture_dependants, with a loop question after it', function (): void {
+    $schema = CaptureForms::schema('dependants');
+    expect($schema['tool'])->toBe('capture_dependants')
+        ->and($schema['lead_fields'])->toBe(['relationship', 'first_name', 'date_of_birth'])
+        ->and(array_column($schema['fields']['relationship']['options'], 'value'))->toBe(['child', 'parent', 'other_dependent']);
+
+    $form = ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14']]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['dependants' => [['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14']]]])
+        ->and(CaptureForms::summarise($form))->toBe('My child Alice was born on 14 September 2017.')
+        ->and(CaptureForms::summarise(['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'other_dependent', 'date_of_birth' => '1950-02-01']]]))->toBe('My dependant was born on 1 February 1950.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);
+    $more = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE);
+    expect($state['form'])->toBe('dependants')
+        ->and($state['next'])->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE)
+        ->and($more['turn_type'])->toBe('bubbles')
+        ->and(array_column($more['bubbles'], 'id'))->toBe(['yes', 'no']);
+});
+
+it('the work form writes employer, role and income once through capture_work_details', function (): void {
+    $schema = CaptureForms::schema('work');
+    expect($schema['tool'])->toBe('capture_work_details')
+        ->and($schema['lead_fields'])->toBe(['employer', 'occupation', 'annual_income'])
+        ->and(CaptureForms::rules('work')['_lead.annual_income'][0])->toBe('required_with:_lead');
+
+    $form = ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Acme Ltd', 'occupation' => 'Software engineer', 'annual_income' => 75000]]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['employer' => 'Acme Ltd', 'occupation' => 'Software engineer', 'annual_income' => 75000.0]])
+        ->and(CaptureForms::summarise($form))->toBe('I work at Acme Ltd as a Software engineer and I earn £75,000 a year.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
+    expect($state['form'])->toBe('work')
+        ->and($state['form_prompt_text'])->toBe(OnboardingStateMachine::class.'::buildWorkFormPrompt');
 });

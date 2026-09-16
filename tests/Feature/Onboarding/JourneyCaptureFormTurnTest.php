@@ -158,3 +158,84 @@ it('an email already in another household is refused on the spouse form and the 
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE)
         ->and(FamilyMember::where('user_id', $user->id)->count())->toBe(0);
 });
+
+it('saves one dependant from the form, asks for another, re-opens the form without a lead-in on yes and reviews the family on no', function (): void {
+    $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL, ['date_of_birth' => '1985-01-12', 'marital_status' => 'single']);
+    $conversation = journeyConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL)), false);
+    expect(collect($emitted)->firstWhere('type', 'capture_form')['prompt_text'])->toBe('Lovely. Tell me about them one at a time.');
+
+    $events = submitJourneyForm($user, $conversation, ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14']]]);
+    $alice = FamilyMember::where('user_id', $user->id)->where('relationship', 'child')->first();
+    expect($alice)->not->toBeNull()
+        ->and($alice->first_name)->toBe('Alice')
+        ->and($alice->date_of_birth->format('Y-m-d'))->toBe('2017-09-14')
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('1 dependant added')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE)
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toBe('Do you have another dependant to add?');
+
+    // Yes: the form again, no lead-in.
+    $yes = iterator_to_array($director->handleUserMessage($user->fresh(), $conversation, 'Yes, add another', null, true), false);
+    $reopened = collect($yes)->firstWhere('type', 'capture_form');
+    expect($reopened['form']['name'])->toBe('dependants')
+        ->and($reopened['prompt_text'])->toBe('')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);
+
+    $second = submitJourneyForm($user->fresh(), $conversation, ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'parent', 'first_name' => 'June', 'date_of_birth' => '1950-02-01']]]);
+    expect(FamilyMember::where('user_id', $user->id)->whereIn('relationship', ['child', 'parent'])->count())->toBe(2)
+        ->and(collect($second)->where('type', 'content')->pluck('text')->implode(' '))->toContain('2 dependants added');
+
+    // No: on to the family review exactly where the detail step used to go.
+    iterator_to_array($director->handleUserMessage($user->fresh(), $conversation, "No, that's everything", null, true), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY);
+});
+
+it('emits the work form with the funnel recap for a Save Tax arrival and the short lead-in on the journey path', function (): void {
+    $journey = journeyStepUser(OnboardingStateMachine::STATE_BASE_WORK, ['employment_status' => 'employed']);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $emitted = iterator_to_array($director->emitTurnForState($journey, journeyConversation($journey), OnboardingStateMachine::STATE_BASE_WORK, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK)), false);
+    $form = collect($emitted)->firstWhere('type', 'capture_form');
+    expect($form['prompt_text'])->toBe('Now your work and income.')
+        ->and($form['form']['name'])->toBe('work');
+
+    $campaign = User::factory()->create([
+        'is_preview_user' => false, 'onboarding_completed' => false, 'first_name' => 'Chris', 'employment_status' => 'employed',
+        'annual_employment_income' => null, 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_WORK,
+        'funnel_answers' => ['campaign' => 'savetax', 'employment' => 'employed', 'income' => '75000', 'assets' => ['isa']],
+    ]);
+    $conversation = journeyConversation($campaign);
+    $emitted = iterator_to_array($director->emitTurnForState($campaign, $conversation, OnboardingStateMachine::STATE_BASE_WORK, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK)), false);
+    $first = collect($emitted)->firstWhere('type', 'capture_form')['prompt_text'];
+    expect($first)->not->toBe('Now your work and income.')
+        ->and($first)->toContain('Chris');
+    // Delivered once: the resume re-emit gets the short lead-in.
+    $again = iterator_to_array($director->emitTurnForState($campaign, $conversation, OnboardingStateMachine::STATE_BASE_WORK, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK)), false);
+    expect(collect($again)->firstWhere('type', 'capture_form')['prompt_text'])->toBe('Now your work and income.');
+});
+
+it('saves employer, role and income from the work form, repeats the income back and asks about other roles', function (): void {
+    $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_WORK, ['employment_status' => 'employed', 'annual_employment_income' => null]);
+    $conversation = journeyConversation($user);
+
+    $events = submitJourneyForm($user, $conversation, ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Acme Ltd', 'occupation' => 'Software engineer', 'annual_income' => 75000]]]);
+
+    $user->refresh();
+    expect($user->employer)->toBe('Acme Ltd')
+        ->and($user->occupation)->toBe('Software engineer')
+        ->and((float) $user->annual_employment_income)->toBe(75000.0)
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('£75,000 a year, noted')
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE);
+});
+
+it('a self-employed user\'s work form income lands on self-employment income', function (): void {
+    $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_WORK, ['employment_status' => 'self_employed', 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
+    submitJourneyForm($user, journeyConversation($user), ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Self-employed', 'occupation' => 'Consultant', 'annual_income' => 52000]]]);
+    expect((float) $user->fresh()->annual_self_employment_income)->toBe(52000.0);
+});

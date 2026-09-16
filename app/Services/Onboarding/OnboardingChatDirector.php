@@ -1634,6 +1634,7 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
         ][$formStateId] ?? null;
         if ($loopState === null) {
             return false;
@@ -6364,8 +6365,9 @@ PROMPT;
 
     private function dependantsAck(User $user): string
     {
+        // A parent captured as a dependant counts too (the form offers all three).
         $count = FamilyMember::where('user_id', $user->id)
-            ->whereIn('relationship', ['child', 'other_dependent'])
+            ->whereIn('relationship', ['child', 'parent', 'other_dependent'])
             ->count();
 
         if ($count === 0) {

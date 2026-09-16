@@ -85,10 +85,21 @@ base_dependants:
 
 base_dependants_detail:
   turn_type: grouped_extract
+  form: dependants
+  form_prompt_text: 'Lovely. Tell me about them one at a time.'
   prompt_text: 'Lovely. Tell me their first names, exact dates of birth, and how they are related to you (child, parent, or other dependant). Please use day, month, and year — accurate dates help keep the plan correct. You can list several in one go.'
   extraction_tool: capture_dependants
   retry_text: 'Could you list them again with exact dates of birth and how they are related? Something like "Alice, born 14 September 2017, child".'
-  next: profile_review_family
+  next: base_dependants_more
+
+base_dependants_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another dependant to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromDependantsMore }
 
 profile_review_family:
   turn_type: bubbles
@@ -114,6 +125,7 @@ base_employment:
 
 base_work:
   turn_type: grouped_extract
+  form: work
   prompt_text: { builder: buildWorkPrompt }
   extraction_tool: capture_work_details
   retry_text: 'I just need your gross annual income in GBP — could you share that?'

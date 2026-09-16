@@ -77,6 +77,8 @@ final class OnboardingStateMachine
 
     public const STATE_BASE_DEPENDANTS_DETAIL = 'base_dependants_detail';
 
+    public const STATE_BASE_DEPENDANTS_MORE = 'base_dependants_more';
+
     public const STATE_BASE_EMPLOYMENT = 'base_employment';
 
     // base_work replaces the old base_occupation + base_income pair —
@@ -422,6 +424,12 @@ final class OnboardingStateMachine
             ],
             self::STATE_BASE_DEPENDANTS_DETAIL => [
             ],
+            // CSJ 2026-09-16: the dependants form saves one per turn; this
+            // asks for another. "Yes" re-opens the form, "No" goes where the
+            // detail step used to go.
+            self::STATE_BASE_DEPENDANTS_MORE => [
+                'next' => self::class.'::nextFromDependantsMore',
+            ],
             // Phase 10 — profile-review pause after family details. Frontend
             // shrinks the chat to w-[525px] and un-blurs the dashboard while
             // this state is active.
@@ -434,6 +442,10 @@ final class OnboardingStateMachine
             ],
             self::STATE_BASE_WORK => [
                 'prompt_text' => self::class.'::buildWorkPrompt',
+                // The form's lead-in is a builder too: a funnel arrival still
+                // opens with the "here's what you told us" recap (once), every
+                // other entry gets the short form-shaped line.
+                'form_prompt_text' => self::class.'::buildWorkFormPrompt',
             ],
             // Phase 10 — multi-job loop. After the first job is captured,
             // ask if the user has another.  Yes loops back to base_employment;
@@ -1052,6 +1064,11 @@ final class OnboardingStateMachine
         }
 
         return self::STATE_BASE_DEPENDANTS;
+    }
+
+    public static function nextFromDependantsMore(string $answer, User $user): string
+    {
+        return self::saidYes($answer) ? self::STATE_BASE_DEPENDANTS_DETAIL : self::STATE_PROFILE_REVIEW_FAMILY;
     }
 
     public static function nextFromDependants(string $answer): string
@@ -1676,6 +1693,32 @@ final class OnboardingStateMachine
      * Builds a personalised work prompt that matches the user's chosen
      * employment_status (self-employed users get "trade name" wording).
      */
+    public static function buildWorkFormPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        return self::workFunnelRecap($user, $conversation) ?? 'Now your work and income.';
+    }
+
+    /**
+     * The one-off funnel recap a Save Tax or pension check arrival gets on
+     * its first income turn, or null when this is not that turn.
+     */
+    private static function workFunnelRecap(User $user, ?AiConversation $conversation): ?string
+    {
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
+        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! $noIncomeYet
+            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)) {
+            return null;
+        }
+        $firstName = trim((string) ($user->first_name ?? '')) !== ''
+            ? trim((string) $user->first_name)
+            : 'there';
+
+        return ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
+            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
+            : self::buildFunnelRecapPrompt($firstName, $funnel);
+    }
+
     public static function buildWorkPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         $status = $user->employment_status ?? 'employed';
