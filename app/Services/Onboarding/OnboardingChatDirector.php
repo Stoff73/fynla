@@ -20,6 +20,7 @@ use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\OnboardingProgress;
+use App\Models\Property;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
@@ -48,6 +49,7 @@ use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
@@ -1082,6 +1084,20 @@ final class OnboardingChatDirector
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
 
+            // CSJ 2026-09-16: at a capture loop question ("another X?") a
+            // user who has reached their plan's cap is not offered another —
+            // Fyn says the limit is reached, that they can upgrade after
+            // onboarding, and offers the next section. One bubble; its label
+            // does not start with "yes", so the nextFrom…More branch treats
+            // it as the "no" path.
+            $cap = $this->capReachedAtLoop($user, $stateId);
+            if ($cap !== null) {
+                $promptText = "You've reached the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add another here. You can upgrade after onboarding to add more. **Would you like to continue to the next section?**";
+                $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') === 'continue'));
+            } else {
+                $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') !== 'continue'));
+            }
+
             $event = [
                 'type' => 'quick_replies',
                 'prompt_text' => $promptText,
@@ -1588,6 +1604,32 @@ final class OnboardingChatDirector
      *
      * @return list<array{id: string, label: string}>
      */
+    /**
+     * For a capture loop state, the plan cap the user has already reached
+     * (limit and the plural noun for the wording), or null when they can
+     * still add another. ISAs count towards the investments allowance
+     * (SavingsStore / InvestmentAccountStore::countForUser).
+     *
+     * @return array{limit: int, noun: string}|null
+     */
+    private function capReachedAtLoop(User $user, string $stateId): ?array
+    {
+        [$entityKey, $count, $noun] = match ($stateId) {
+            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE => [PropertyStore::ENTITY_KEY, Property::where('user_id', $user->id)->count(), 'properties'],
+            OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'],
+            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts'],
+            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'investment accounts'],
+            default => [null, 0, ''],
+        };
+        if ($entityKey === null) {
+            return null;
+        }
+
+        $limit = app(TierGate::class)->hardLimit($user, $entityKey);
+
+        return $limit !== null && $count >= $limit ? ['limit' => $limit, 'noun' => $noun] : null;
+    }
+
     private function filterBubbles(User $user, string $stateId, array $state): array
     {
         $bubbles = $state['bubbles'] ?? [];
@@ -3762,6 +3804,7 @@ PROMPT;
 
             $errors[$kind] = [
                 'message' => (string) ($result['message'] ?? 'The write failed.'),
+                'error_type' => (string) ($result['error_type'] ?? ''),
                 'fields' => is_array($result['errors'] ?? null)
                     ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])
                     : [],
@@ -3794,6 +3837,17 @@ PROMPT;
                 'capture_write_failed' => true,
                 'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ]]);
+
+            // CSJ 2026-09-16: a refusal that is only the plan cap is not
+            // something the user can fix on this form — parking here looped
+            // (prod conversation 881). Move on to the loop question, which
+            // states the limit and offers the next section.
+            if ($this->everyErrorIsTierCap($errors)) {
+                yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+
+                return;
+            }
+
             $this->recordProgress($user, $currentStateId, ['selection' => 'savetax', 'raw_message' => mb_substr($message, 0, 500)]);
             yield ['type' => 'done', 'message_id' => $saved->id];
 
@@ -3806,6 +3860,12 @@ PROMPT;
             'records_created' => $recordsCreated,
         ];
         yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+    }
+
+    /** @param  array<string, array{error_type?: string}>  $errors */
+    private function everyErrorIsTierCap(array $errors): bool
+    {
+        return $errors !== [] && count(array_filter($errors, static fn (array $e): bool => ($e['error_type'] ?? '') !== 'tier_limit_reached')) === 0;
     }
 
     // ─── Asset capture delegation ─────────────────────────────────────────
