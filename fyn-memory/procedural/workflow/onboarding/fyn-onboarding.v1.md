@@ -57,6 +57,8 @@ focus_selection:
 
 base_personal:
   turn_type: grouped_extract
+  form: personal
+  form_prompt_text: 'Let me grab a few basics first, {first_name}.'
   prompt_text: { builder: buildPersonalPrompt }
   extraction_tool: capture_personal_details
   retry_text: "Sorry, I didn't catch both pieces. Could you tell me your date of birth (something like 12 January 1985) and your marital status?"

@@ -92,6 +92,18 @@
             @input="setText(block.key, fieldKey, $event.target.value)"
           >
 
+          <input
+            v-else-if="field(fieldKey).type === 'date'"
+            :id="inputId(block.key, fieldKey)"
+            :name="block.key + '.' + fieldKey"
+            type="date"
+            autocomplete="off"
+            class="m-field"
+            :disabled="disabled || locked"
+            :value="answers[block.key][fieldKey] ?? ''"
+            @input="setText(block.key, fieldKey, $event.target.value)"
+          >
+
           <p v-if="field(fieldKey).hint" class="md-fyn__form-hint">{{ field(fieldKey).hint }}</p>
           <p v-if="errors?.[block.key]?.fields?.[fieldKey]" class="md-fyn__form-error">{{ errors[block.key].fields[fieldKey] }}</p>
         </div>

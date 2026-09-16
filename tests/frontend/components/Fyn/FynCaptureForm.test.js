@@ -167,4 +167,24 @@ describe('FynCaptureForm', () => {
     expect(share.attributes('max')).toBe('99.99');
     expect(share.attributes('step')).toBe('0.01');
   });
+
+  it('renders a date field as a native date input, requires it, and posts it as YYYY-MM-DD with no kind boxes', async () => {
+    const personal = {
+      name: 'personal', submit_label: 'Save', tool: 'capture_personal_details', lead_fields: ['date_of_birth', 'marital_status'], kinds: [],
+      fields: {
+        date_of_birth: { type: 'date', label: 'Your date of birth', required: true },
+        marital_status: { type: 'choice', label: 'Marital status', required: true, options: [{ value: 'single', label: 'Single' }, { value: 'married', label: 'Married' }] },
+      },
+    };
+    const w = mount(FynCaptureForm, { props: { schema: personal } });
+    expect(w.find('input[type="date"][name="_lead.date_of_birth"]').exists()).toBe(true);
+    expect(w.findAll('button[type="button"]').length).toBe(0);
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[name="_lead.date_of_birth"]').setValue('1985-01-12');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[type="radio"][value="married"]').setValue(true);
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'personal', answers: { _lead: { date_of_birth: '1985-01-12', marital_status: 'married' } } });
+  });
 });
