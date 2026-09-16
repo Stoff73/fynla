@@ -161,6 +161,7 @@ campaign_isa_more:
   bubbles:
     - { id: 'yes', label: 'Yes, add another' }
     - { id: 'no', label: "No, that's everything" }
+    - { id: 'continue', label: 'Continue to the next section' }
   capture_field: null
   next: { branch: nextFromIsaMore }
 
@@ -178,6 +179,7 @@ campaign_bank_accounts_more:
   bubbles:
     - { id: 'yes', label: 'Yes, add another' }
     - { id: 'no', label: "No, that's everything" }
+    - { id: 'continue', label: 'Continue to the next section' }
   capture_field: null
   next: { branch: nextFromBankAccountsMore }
 
@@ -195,6 +197,7 @@ campaign_investment_accounts_more:
   bubbles:
     - { id: 'yes', label: 'Yes, add another' }
     - { id: 'no', label: "No, that's everything" }
+    - { id: 'continue', label: 'Continue to the next section' }
   capture_field: null
   next: { branch: nextFromInvestmentAccountsMore }
 
@@ -212,6 +215,7 @@ campaign_property_more:
   bubbles:
     - { id: 'yes', label: 'Yes, add another' }
     - { id: 'no', label: "No, that's everything" }
+    - { id: 'continue', label: 'Continue to the next section' }
   capture_field: null
   next: { branch: nextFromPropertyMore }
 
