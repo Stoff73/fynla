@@ -69,6 +69,7 @@ dataset('account steps', [
     'bank' => [OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS, 'savings', 'Now your bank and savings accounts.', 'interest rate'],
     'investment' => [OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'investment', 'Now your investments.', 'General Investment Accounts'],
     'pension' => [OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, 'pension', 'Now your pensions.', 'workplace pension'],
+    'dob' => [OnboardingStateMachine::STATE_CAMPAIGN_DOB, 'dob', 'Next, your date of birth.', 'date of birth'],
 ]);
 
 it('emits the form with its short lead-in to a forms client and the typed prompt to any other', function (string $step, string $formName, string $leadIn, string $typedFragment): void {
@@ -363,4 +364,21 @@ it('a non-working spouse with nothing chosen saves as nothing in their own name'
     expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('nothing in their own name')
         ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
         ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS);
+});
+
+it('saves the date of birth from the campaign form, repeats it back and enters the pensions section when the funnel ticked pension', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_DOB);
+    $user->forceFill(['date_of_birth' => null, 'employment_status' => 'employed', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['pension']]])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_DOB, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_DOB)), false);
+    expect(collect($emitted)->firstWhere('type', 'capture_form')['prompt_text'])->toBe("Now let's look at pensions and retirement — for that I need your date of birth.");
+
+    $events = submitForm($user, $conversation, ['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]);
+
+    expect($user->fresh()->date_of_birth->format('Y-m-d'))->toBe('1981-03-14')
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('14 March 1981')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
 });

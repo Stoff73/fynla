@@ -552,6 +552,7 @@ final class OnboardingStateMachine
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
                 'prompt_text' => self::class.'::buildCampaignDobPrompt',
+                'form_prompt_text' => self::class.'::buildCampaignDobFormPrompt',
                 // Pension questions only if the user ticked "pension"; otherwise
                 // DOB is captured and we skip straight to the next section.
                 'next' => self::class.'::nextFromCampaignDob',
@@ -1986,6 +1987,13 @@ final class OnboardingStateMachine
      * pension is never asked about one they don't have. Pairs with
      * nextFromCampaignDob, which gates the pension questions that follow.
      */
+    public static function buildCampaignDobFormPrompt(string $answer, User $user): string
+    {
+        return self::funnelHasAnyAsset($user, ['pension'])
+            ? "Now let's look at pensions and retirement — for that I need your date of birth."
+            : 'Next, your date of birth.';
+    }
+
     public static function buildCampaignDobPrompt(string $answer, User $user): string
     {
         if (self::funnelHasAnyAsset($user, ['pension'])) {

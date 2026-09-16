@@ -237,6 +237,7 @@ campaign_property_more:
 
 campaign_dob:
   turn_type: grouped_extract
+  form: dob
   prompt_text: "Now let's look at pensions and retirement — for that **I need your date of birth.** Something like 12 January 1985 or 12/01/85."
   extraction_tool: capture_personal_details
   retry_text: 'Could you give me your date of birth — for example 12 January 1985 or 12/01/85?'

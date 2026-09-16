@@ -6207,7 +6207,7 @@ PROMPT;
     private function buildCaptureAck(User $user, string $stateId, array $interpretation): ?string
     {
         return match ($stateId) {
-            OnboardingStateMachine::STATE_BASE_PERSONAL => $this->personalAck($user),
+            OnboardingStateMachine::STATE_BASE_PERSONAL, OnboardingStateMachine::STATE_CAMPAIGN_DOB => $this->personalAck($user),
             OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',

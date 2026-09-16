@@ -46,6 +46,9 @@ final class CaptureForms
     /** Employer, role and gross income, ONE write through capture_work_details (journey and Save Tax income step). */
     public const WORK = 'work';
 
+    /** Save Tax and pension check: the date of birth alone, through capture_personal_details. */
+    public const DOB = 'dob';
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
@@ -56,7 +59,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB];
     }
 
     /** @return array<string, mixed>|null */
@@ -74,6 +77,7 @@ final class CaptureForms
             self::SPOUSE_DETAILS => self::spouseDetails(),
             self::DEPENDANTS => self::dependants(),
             self::WORK => self::work(),
+            self::DOB => self::dob(),
             default => null,
         };
     }
@@ -226,7 +230,7 @@ final class CaptureForms
 
         if (isset($schema['tool'])) {
             return match ($schema['name']) {
-                self::PERSONAL => self::personalSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::PERSONAL, self::DOB => self::personalSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 self::DEPENDANTS => self::dependantSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 self::WORK => self::workSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
@@ -1009,6 +1013,27 @@ final class CaptureForms
                 'employer' => ['type' => 'text', 'label' => 'Employer or trading name', 'required' => true],
                 'occupation' => ['type' => 'text', 'label' => 'Job title or role', 'required' => true],
                 'annual_income' => ['type' => 'money', 'label' => 'Gross annual income', 'required' => true, 'hint' => 'Before tax, including bonuses and commissions'],
+            ],
+        ];
+    }
+
+    /**
+     * The campaign date-of-birth step: one date, the same write as the
+     * personal form (the handler accepts either field on its own).
+     *
+     * @return array<string, mixed>
+     */
+    private static function dob(): array
+    {
+        return [
+            'name' => self::DOB,
+            'submit_label' => 'Save',
+            'tool' => 'capture_personal_details',
+            'entity_type' => 'personal',
+            'lead_fields' => ['date_of_birth'],
+            'kinds' => [],
+            'fields' => [
+                'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
             ],
         ];
     }
