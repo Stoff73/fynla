@@ -246,8 +246,9 @@ it('runs verify+confirm before the section advice, then advice → next section'
     // The carry-forward history question was removed (CSJ).
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_CONTRIBS, '', $u))->toBe('campaign_verify_announce');
 
-    // Income end (employment-more "no") → announce gate; income advice → next section.
-    expect(SM::nextFromEmploymentMore('No', $u))->toBe('campaign_verify_announce')
+    // Income end (employment-more "no") → no details page on the Save Tax walk
+    // (CSJ 2026-09-16): straight to the income advice, then the next section.
+    expect(SM::nextFromEmploymentMore('No', $u))->toBe(SM::STATE_CAMPAIGN_ADVICE_INCOME)
         ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_INCOME, '', $u))->not->toBe('campaign_verify_navigate');
 });
 
