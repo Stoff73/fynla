@@ -11,6 +11,7 @@ namespace App\Services\Onboarding;
  * of it). One schema per form-capable step; the renderers on web and /m
  * draw the form from the schema and know nothing about property.
  *
+ * Each kind names the create tool and entity type its rows go through.
  * Answer keys are the create tool's own field names so nothing is renamed
  * between the form and the store. `mortgage_outstanding_balance: null`
  * means "No mortgage".
@@ -40,13 +41,25 @@ final class CaptureForms
 
     public static function kindLabel(string $name, string $kind): string
     {
+        return self::kind($name, $kind)['label'] ?? $kind;
+    }
+
+    /**
+     * One kind's definition: key, label, fields, and the create tool and
+     * entity type its rows go through (a cash ISA is a savings row, a
+     * stocks and shares ISA an investment row, so the tool is per kind).
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function kind(string $name, string $kind): ?array
+    {
         foreach (self::schema($name)['kinds'] ?? [] as $entry) {
             if ($entry['key'] === $kind) {
-                return $entry['label'];
+                return $entry;
             }
         }
 
-        return $kind;
+        return null;
     }
 
     /**
@@ -66,13 +79,7 @@ final class CaptureForms
         $rules = [];
         foreach ($schema['kinds'] as $kind) {
             foreach ($kind['fields'] as $fieldKey) {
-                $field = $schema['fields'][$fieldKey];
-                $rules[$kind['key'].'.'.$fieldKey] = match ($field['type']) {
-                    'money' => ['required_with:'.$kind['key'], 'numeric', 'min:0', 'max:'.($fieldKey === 'monthly_rental_income' ? self::MONTHLY_MAX : self::MONEY_MAX)],
-                    'money_or_none' => ['present', 'nullable', 'numeric', 'min:0', 'max:'.self::MONEY_MAX],
-                    'choice' => ['required_with:'.$kind['key'], 'in:'.implode(',', array_column($field['options'], 'value'))],
-                    'percent' => ['nullable', 'numeric', 'min:0.01', 'max:99.99'],
-                };
+                $rules[$kind['key'].'.'.$fieldKey] = self::fieldRules($kind['key'], $fieldKey, $schema['fields'][$fieldKey]);
             }
         }
 
@@ -80,10 +87,32 @@ final class CaptureForms
     }
 
     /**
-     * One create_property input per filled kind, in the handler's own
-     * field names. Unstated optional fields are omitted, never null
-     * (PropertyNormaliser NOT NULL trap, 2026-09-15). A share travels only
-     * with a shared ownership; a shared ownership without a share is 50.
+     * The rules for one field of one kind. A required field is required
+     * only when its kind was filled; an optional one is nullable. A
+     * percent's bounds come from the field (`min`/`max`), defaulting to
+     * the ownership-share range.
+     *
+     * @param  array<string, mixed>  $field
+     * @return list<string>
+     */
+    public static function fieldRules(string $kindKey, string $fieldKey, array $field): array
+    {
+        $presence = ($field['required'] ?? false) ? 'required_with:'.$kindKey : 'nullable';
+
+        return match ($field['type']) {
+            'money' => [$presence, 'numeric', 'min:0', 'max:'.($fieldKey === 'monthly_rental_income' ? self::MONTHLY_MAX : self::MONEY_MAX)],
+            'money_or_none' => ['present', 'nullable', 'numeric', 'min:0', 'max:'.self::MONEY_MAX],
+            'choice' => [$presence, 'in:'.implode(',', array_column($field['options'], 'value'))],
+            'percent' => ['nullable', 'numeric', 'min:'.($field['min'] ?? '0.01'), 'max:'.($field['max'] ?? '99.99')],
+            'text' => [$presence, 'string', 'max:255'],
+        };
+    }
+
+    /**
+     * One create-tool input per filled kind, in the handler's own field
+     * names, keyed by kind. The shape is per schema (see the *Inputs
+     * methods); unstated optional fields are omitted, never null
+     * (PropertyNormaliser NOT NULL trap, 2026-09-15).
      *
      * @param  array{name: string, answers: array<string, array<string, mixed>>}  $form
      * @return array<string, array<string, mixed>>
@@ -102,23 +131,9 @@ final class CaptureForms
                 continue;
             }
 
-            $input = ['property_type' => $kind['key'], 'current_value' => (float) $answers['current_value']];
-            $mortgage = $answers['mortgage_outstanding_balance'] ?? null;
-            $input['has_mortgage'] = is_numeric($mortgage) && (float) $mortgage > 0;
-            if ($input['has_mortgage']) {
-                $input['mortgage_outstanding_balance'] = (float) $mortgage;
-            }
-            if (in_array('monthly_rental_income', $kind['fields'], true) && is_numeric($answers['monthly_rental_income'] ?? null)) {
-                $input['monthly_rental_income'] = (float) $answers['monthly_rental_income'];
-            }
-            $ownership = (string) ($answers['ownership_type'] ?? 'individual');
-            $input['ownership_type'] = $ownership;
-            if (in_array($ownership, ['joint', 'tenants_in_common'], true)) {
-                $share = $answers['ownership_percentage'] ?? null;
-                $input['ownership_percentage'] = is_numeric($share) ? (float) $share : 50.0;
-            }
-
-            $inputs[$kind['key']] = $input;
+            $inputs[$kind['key']] = match ($schema['name']) {
+                self::PROPERTY => self::propertyInputs($kind, $answers),
+            };
         }
 
         return $inputs;
@@ -127,7 +142,8 @@ final class CaptureForms
     /**
      * The transcript line saved as the user's message — plain words, so the
      * conversation reads naturally and the accuracy gate's text evidence
-     * names each kind and its ownership.
+     * names each kind and its ownership. One sentence per filled kind,
+     * shaped per schema (see the *Sentence methods).
      */
     public static function summarise(array $form): string
     {
@@ -138,21 +154,65 @@ final class CaptureForms
 
         $sentences = [];
         foreach (self::toolInputs($form) as $kindKey => $input) {
-            $parts = [self::kindLabel($schema['name'], $kindKey).' worth '.self::pounds($input['current_value'])];
-            $parts[] = $input['has_mortgage']
-                ? 'mortgage '.self::pounds($input['mortgage_outstanding_balance'])
-                : 'no mortgage';
-            if (isset($input['monthly_rental_income'])) {
-                $parts[] = 'rent '.self::pounds($input['monthly_rental_income']).' a month';
-            }
-            $parts[] = str_replace('_', ' ', $input['ownership_type']);
-            if (isset($input['ownership_percentage'])) {
-                $parts[] = 'my share '.rtrim(rtrim(number_format($input['ownership_percentage'], 2), '0'), '.').'%';
-            }
-            $sentences[] = implode(', ', $parts).'.';
+            $label = self::kindLabel($schema['name'], $kindKey);
+            $sentences[] = match ($schema['name']) {
+                self::PROPERTY => self::propertySentence($label, $input),
+            };
         }
 
         return implode(' ', $sentences);
+    }
+
+    /**
+     * create_property input. A share travels only with a shared ownership;
+     * a shared ownership without a share is 50.
+     *
+     * @param  array<string, mixed>  $kind
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    private static function propertyInputs(array $kind, array $answers): array
+    {
+        $input = ['property_type' => $kind['key'], 'current_value' => (float) $answers['current_value']];
+        $mortgage = $answers['mortgage_outstanding_balance'] ?? null;
+        $input['has_mortgage'] = is_numeric($mortgage) && (float) $mortgage > 0;
+        if ($input['has_mortgage']) {
+            $input['mortgage_outstanding_balance'] = (float) $mortgage;
+        }
+        if (in_array('monthly_rental_income', $kind['fields'], true) && is_numeric($answers['monthly_rental_income'] ?? null)) {
+            $input['monthly_rental_income'] = (float) $answers['monthly_rental_income'];
+        }
+        $ownership = (string) ($answers['ownership_type'] ?? 'individual');
+        $input['ownership_type'] = $ownership;
+        if (in_array($ownership, ['joint', 'tenants_in_common'], true)) {
+            $share = $answers['ownership_percentage'] ?? null;
+            $input['ownership_percentage'] = is_numeric($share) ? (float) $share : 50.0;
+        }
+
+        return $input;
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function propertySentence(string $label, array $input): string
+    {
+        $parts = [$label.' worth '.self::pounds($input['current_value'])];
+        $parts[] = $input['has_mortgage']
+            ? 'mortgage '.self::pounds($input['mortgage_outstanding_balance'])
+            : 'no mortgage';
+        if (isset($input['monthly_rental_income'])) {
+            $parts[] = 'rent '.self::pounds($input['monthly_rental_income']).' a month';
+        }
+        $parts[] = str_replace('_', ' ', $input['ownership_type']);
+        if (isset($input['ownership_percentage'])) {
+            $parts[] = 'my share '.self::percent($input['ownership_percentage']);
+        }
+
+        return implode(', ', $parts).'.';
+    }
+
+    private static function percent(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2), '0'), '.').'%';
     }
 
     private static function pounds(float $amount): string
@@ -167,11 +227,11 @@ final class CaptureForms
             'name' => self::PROPERTY,
             'submit_label' => 'Save',
             'kinds' => [
-                ['key' => 'main_residence', 'label' => 'Home',
+                ['key' => 'main_residence', 'label' => 'Home', 'tool' => 'create_property', 'entity_type' => 'property',
                     'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
-                ['key' => 'secondary_residence', 'label' => 'Second home',
+                ['key' => 'secondary_residence', 'label' => 'Second home', 'tool' => 'create_property', 'entity_type' => 'property',
                     'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
-                ['key' => 'buy_to_let', 'label' => 'Buy to let',
+                ['key' => 'buy_to_let', 'label' => 'Buy to let', 'tool' => 'create_property', 'entity_type' => 'property',
                     'fields' => ['current_value', 'mortgage_outstanding_balance', 'monthly_rental_income', 'ownership_type', 'ownership_percentage']],
             ],
             'fields' => [

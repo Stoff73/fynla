@@ -19,6 +19,27 @@ it('offers the three property kinds in order: Home, Second home, Buy to let', fu
         ->and(CaptureForms::kindLabel('property', 'secondary_residence'))->toBe('Second home');
 });
 
+it('names the create tool and entity type on every property kind', function (): void {
+    foreach (CaptureForms::schema('property')['kinds'] as $kind) {
+        expect($kind['tool'])->toBe('create_property')
+            ->and($kind['entity_type'])->toBe('property');
+    }
+    expect(CaptureForms::kind('property', 'buy_to_let')['label'])->toBe('Buy to let')
+        ->and(CaptureForms::kind('property', 'castle'))->toBeNull()
+        ->and(CaptureForms::kindLabel('property', 'castle'))->toBe('castle');
+});
+
+it('builds field rules for a text, an optional money and a bounded percent', function (): void {
+    expect(CaptureForms::fieldRules('cash_isa', 'provider', ['type' => 'text', 'required' => true]))
+        ->toBe(['required_with:cash_isa', 'string', 'max:255'])
+        ->and(CaptureForms::fieldRules('cash_isa', 'paid_in_this_year', ['type' => 'money', 'required' => false]))
+        ->toBe(['nullable', 'numeric', 'min:0', 'max:999999999.99'])
+        ->and(CaptureForms::fieldRules('cash_isa', 'interest_rate', ['type' => 'percent', 'min' => 0, 'max' => 20]))
+        ->toBe(['nullable', 'numeric', 'min:0', 'max:20'])
+        ->and(CaptureForms::fieldRules('main_residence', 'ownership_percentage', ['type' => 'percent']))
+        ->toBe(['nullable', 'numeric', 'min:0.01', 'max:99.99']);
+});
+
 it('marks the required fields and the conditional share', function (): void {
     $fields = CaptureForms::schema('property')['fields'];
     expect($fields['current_value']['required'])->toBeTrue()
