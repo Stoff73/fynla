@@ -6742,6 +6742,14 @@ PROMPT;
      */
     private function mergeUnresolvedCaptureMessage(AiConversation $conversation, string $message): string
     {
+        // "No" / "none" / "I don't have any" closes the question; it never
+        // completes the earlier attempt (csjones user 405, 2026-09-16: a
+        // cap-refused spouse pension was re-recorded on "No, they don't have
+        // any pensions of their own").
+        if (self::isCompletionDeclaration($message)) {
+            return $message;
+        }
+
         $currentUserMessage = $conversation->messages()
             ->where('role', 'user')
             ->latest('id')
