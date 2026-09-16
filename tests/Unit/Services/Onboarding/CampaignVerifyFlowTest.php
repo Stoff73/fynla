@@ -327,9 +327,11 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
 
     // Capture-ends enter the announce gate (Okay → navigate/confirm) — never the
     // (now removed) redundant "anything else?" verify gate.
+    // The bank and investment captures ask "another?" first (CSJ 2026-09-16);
+    // their _more states' "No" is the capture-end that enters the gate.
     foreach ([
-        OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
-        OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+        OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
         OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
     ] as $stateId) {
         $next = $states[$stateId]['next'];

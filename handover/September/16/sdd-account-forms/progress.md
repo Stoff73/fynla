@@ -1,0 +1,16 @@
+# Ledger — Save Tax account capture forms (ISA, bank and savings, investments)
+
+Spec: docs/superpowers/specs/2026-09-16-savetax-account-capture-forms-design.md. Predecessor ledger (Rulings 1–22): handover/September/16/sdd-property-form/progress.md — extended, not re-litigated.
+
+## 2026-09-16 session 2 (10:46 BST start)
+
+Process: built directly, no subagents (memory feedback_small_changes_direct_no_delegation). Part A its own PR (#868, branch feat/capture-forms-generalise); Parts B–D one PR stacked on it (branch feat/account-capture-forms).
+
+Ruling 23 (Part A1): kinds carry `tool` and `entity_type`; `CaptureForms::kind()` is the lookup; the director hands ownership facts to the gate only when the input carries them (an ISA has none). Cost if wrong: one lookup.
+Ruling 24 (Part A3): `CaptureForms::fieldRules()` is public so the rule mapping for a field type can be tested without a schema that uses it; a required field is `required_with:<kind>`, an optional one `nullable`. Cost if wrong: one public static.
+Ruling 25 (Part A): the empty-form guard line is "Fill in at least one before saving." (was "...one property..."). Cost if wrong: one string.
+Ruling 26 (Part F): CSJ 11:18 "the save tax campaign onboarding needs to be done in an hour" — proceeded on the spec's Part F proposals as the answers (kinds per B1–B3; joint bank 50/50 no share; rate required on savings kinds, optional on the current account; ISA asks "paid in this tax year"; bonds/VCT/share schemes stay typed). Flagged to CSJ in the same message; any correction is a schema-only change.
+Ruling 27 (B2 rate): "required on savings kinds, optional on the current account" is expressed as two field keys — `interest_rate` (required) on the savings kinds and `current_account_interest_rate` (optional) on the current account — joined to the one `interest_rate` tool input in `savingsInputs()`. Why: zero mixin/rules change; per-kind required overrides would have widened the shared contract. Cost if wrong: one extra field key.
+Ruling 28 (B1 ownership): the ISA inputs state `ownership_type: individual` outright (no field on the form) so the gate has a confirmed fact and never asks. Cost if wrong: none — ISAs are individual by law.
+Ruling 29 (C): `campaign_isa_more` "No" goes to `campaign_bank_accounts` (the old static next, skip rules apply on transition as before); bank/investment "No" call `enterCampaignVerify` as their removed closures did. Tests pinning the old capture-end → announce (`CampaignSectionFlowTest`, `CampaignVerifyFlowTest`) now pin the `_more` "No".
+Ruling 30 (D): one feature file `AccountCaptureFormTurnTest` covers the three steps (dataset for emit; one save test per step; one Free-cap refusal on bank; one `_more` yes/no test) rather than three copies of the property file.

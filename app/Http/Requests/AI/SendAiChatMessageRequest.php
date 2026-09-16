@@ -52,7 +52,7 @@ final class SendAiChatMessageRequest extends FormRequest
             $knownKinds = array_column($schema['kinds'], 'key');
             foreach (array_keys((array) ($form['answers'] ?? [])) as $kind) {
                 if (! in_array($kind, $knownKinds, true)) {
-                    $validator->errors()->add('form.answers.'.$kind, 'Unknown property kind.');
+                    $validator->errors()->add('form.answers.'.$kind, 'Unknown kind.');
                 }
             }
             $answers = (array) ($form['answers'] ?? []);

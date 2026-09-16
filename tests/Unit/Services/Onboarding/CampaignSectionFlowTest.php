@@ -234,7 +234,9 @@ it('runs verify+confirm before the section advice, then advice → next section'
     // Savings' last capture (bank accounts) → announce gate (Okay → navigate/confirm).
     // After Okay + "is this correct? yes" the savings advice fires, then advances to
     // the investments entry. (See CampaignVerifyFlowTest for the full walk.)
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe('campaign_verify_announce')
+    // CSJ 2026-09-16: the bank step asks "another account?" first; "No" enters the gate.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe(SM::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE)
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE, "No, that's everything", $u))->toBe('campaign_verify_announce')
         ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
 
     // Pensions' last capture (personal contributions) → announce gate.
