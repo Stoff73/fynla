@@ -310,6 +310,25 @@ describe('capture forms', () => {
     expect(user.text).toBe('Home worth £750,000, no mortgage, individual.');
   });
 
+  it('keeps a form row that arrives with no lead-in after "Yes, add another" (CSJ 2026-09-16)', async () => {
+    const { apiStream } = await import('../../api.js');
+    apiStream.mockImplementation(async (path, body, token, onDelta, onEvent) => {
+      onEvent({ type: 'onboarding_advance', from_step: 'campaign_isa_more', to_step: 'campaign_isa_holdings' });
+      onEvent({ type: 'capture_form', prompt_text: '', form: schema });
+      onEvent({ type: 'done' });
+      return { ok: true, status: 200, text: '' };
+    });
+    const w = mount(Host);
+    w.vm.conversationId = 7;
+
+    await w.vm.send('Yes, add another');
+
+    const formRow = w.vm.messages.find((m) => m.form && m.form.schema);
+    expect(formRow).toBeTruthy();
+    expect(formRow.text).toBe('');
+    expect(formRow.form.locked).toBe(false);
+  });
+
   it('locks every earlier form and attaches errors to the latest', () => {
     const w = mount(Host);
     const row = { role: 'fyn', text: 'x', bubbles: [], form: { schema, errors: null, answers: null, locked: false } };
