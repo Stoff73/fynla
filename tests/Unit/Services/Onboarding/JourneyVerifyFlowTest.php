@@ -15,11 +15,11 @@ use App\Services\Onboarding\OnboardingStateMachine;
  * states; only the section stamping (from the current focus) and the
  * post-confirm continuation are journey-aware. One mechanism, no copies.
  */
-it('maps the journey-only sections to routes with an asset-capture entry', function (): void {
+it('maps the journey-only sections to routes: protection to its form, the rest to asset capture', function (): void {
     $config = OnboardingStateMachine::campaignVerifyConfig();
 
     expect($config['protection']['route'])->toBe('/protection')
-        ->and($config['protection']['entry'])->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE)
+        ->and($config['protection']['entry'])->toBe(OnboardingStateMachine::STATE_JOURNEY_PROTECTION)
         ->and($config['estate']['route'])->toBe('/estate')
         ->and($config['estate']['entry'])->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE)
         ->and($config['goals']['route'])->toBe('/goals')

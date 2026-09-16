@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'protection'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -432,4 +432,24 @@ it('the expenditure forms: one box for everyone, five category groups for Premiu
         ->and(CaptureForms::summarise(['name' => 'expenditure_detailed_household', 'answers' => ['_lead' => ['expenditure_sharing_mode' => 'joint'], 'essential' => ['rent' => 900]]]))->toBe('My monthly spending: rent £900 — about £900 a month in total. These are our household figures.');
 
     expect(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_EXPENDITURE)['form'])->toBe('expenditure');
+});
+
+it('the protection form offers life, critical illness and income protection, one create_protection_policy per kind', function (): void {
+    $schema = CaptureForms::schema('protection');
+    expect(array_column($schema['kinds'], 'label'))->toBe(['Life insurance', 'Critical illness cover', 'Income protection'])
+        ->and(CaptureForms::kind('protection', 'income')['entity_type'])->toBe('income_protection_policy');
+
+    $form = ['name' => 'protection', 'answers' => [
+        'life' => ['provider' => 'Aviva', 'sum_assured' => 250000, 'premium_amount' => 25, 'policy_term_years' => 20],
+        'income' => ['provider' => 'LV', 'benefit_amount' => 1500],
+    ]];
+    expect(CaptureForms::toolInputs($form))->toBe([
+        'life' => ['policy_type' => 'level_term', 'provider' => 'Aviva', 'sum_assured' => 250000.0, 'premium_amount' => 25.0, 'premium_frequency' => 'monthly', 'policy_term_years' => 20],
+        'income' => ['policy_type' => 'income_protection', 'provider' => 'LV', 'benefit_amount' => 1500.0],
+    ])
+        ->and(CaptureForms::summarise($form))->toBe('Life insurance with Aviva, £250,000 of cover, £25 a month premium, 20 year term. Income protection with LV, £1,500 a month benefit.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_JOURNEY_PROTECTION);
+    expect($state['form'])->toBe('protection')
+        ->and($state['next'])->toBe(OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE);
 });

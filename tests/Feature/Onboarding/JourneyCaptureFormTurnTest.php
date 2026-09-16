@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AiConversation;
 use App\Models\FamilyMember;
+use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -238,4 +239,39 @@ it('a self-employed user\'s work form income lands on self-employment income', f
     $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_WORK, ['employment_status' => 'self_employed', 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
     submitJourneyForm($user, journeyConversation($user), ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Self-employed', 'occupation' => 'Consultant', 'annual_income' => 52000]]]);
     expect((float) $user->fresh()->annual_self_employment_income)->toBe(52000.0);
+});
+
+// CSJ 2026-09-16: the journey's "Anything else" focuses open on the same forms as the Save Tax walk.
+it('picking Savings on Anything else opens the ISA form, and the form states do not skip for a journey user', function (): void {
+    $user = journeyStepUser(OnboardingStateMachine::STATE_ADD_MORE, ['date_of_birth' => '1985-01-12', 'marital_status' => 'single', 'onboarding_fyn_selection' => 'protection', 'onboarding_fyn_context' => ['visited_focuses' => ['protection']]]);
+    $conversation = journeyConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+
+    $events = iterator_to_array($director->handleUserMessage($user, $conversation, 'Savings', null, true), false);
+
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS)
+        ->and($user->fresh()->onboarding_fyn_selection)->toBe('savings')
+        ->and(collect($events)->firstWhere('type', 'capture_form')['form']['name'] ?? null)->toBe('isa');
+});
+
+it('saves a life policy from the protection form, asks for another, and "No" verifies the protection page then returns to Anything else', function (): void {
+    $user = journeyStepUser(OnboardingStateMachine::STATE_JOURNEY_PROTECTION, ['date_of_birth' => '1985-01-12', 'marital_status' => 'single', 'onboarding_fyn_selection' => 'protection']);
+    $conversation = journeyConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_JOURNEY_PROTECTION, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_JOURNEY_PROTECTION)), false);
+    expect(collect($emitted)->firstWhere('type', 'capture_form')['prompt_text'])->toBe('Now your protection cover.');
+
+    $events = submitJourneyForm($user, $conversation, ['name' => 'protection', 'answers' => ['life' => ['provider' => 'Aviva', 'sum_assured' => 250000, 'premium_amount' => 25, 'policy_term_years' => 20]]]);
+    $policy = LifeInsurancePolicy::where('user_id', $user->id)->first();
+    expect($policy)->not->toBeNull()
+        ->and((float) $policy->sum_assured)->toBe(250000.0)
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE)
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toBe('Do you have another policy to add?');
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything", null, true), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+        ->and(OnboardingStateMachine::nextFromVerifyNavigate('yes', $user->fresh()->forceFill(['onboarding_fyn_step' => 'campaign_verify_navigate'])))->toBe(OnboardingStateMachine::STATE_ADD_MORE);
 });

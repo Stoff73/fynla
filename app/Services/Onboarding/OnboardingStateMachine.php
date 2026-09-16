@@ -99,6 +99,11 @@ final class OnboardingStateMachine
 
     public const STATE_ADD_MORE = 'add_more';
 
+    /** Journey path: the protection form (life, critical illness, income protection), looped by its own "another?" question. */
+    public const STATE_JOURNEY_PROTECTION = 'journey_protection';
+
+    public const STATE_JOURNEY_PROTECTION_MORE = 'journey_protection_more';
+
     public const STATE_DONE = 'done';
 
     /**
@@ -310,7 +315,7 @@ final class OnboardingStateMachine
             // to EVERY data entry). The campaign walk never stamps these; the
             // journey's module captures verify through the same machinery,
             // re-entering asset_capture on "add more".
-            'protection' => ['route' => '/protection', 'entry' => self::STATE_ASSET_CAPTURE],
+            'protection' => ['route' => '/protection', 'entry' => self::STATE_JOURNEY_PROTECTION],
             'estate' => ['route' => '/estate', 'entry' => self::STATE_ASSET_CAPTURE],
             'goals' => ['route' => '/goals', 'entry' => self::STATE_ASSET_CAPTURE],
         ];
@@ -470,7 +475,7 @@ final class OnboardingStateMachine
 
                     return self::journeySectionHasData($user, 'expenditure')
                         ? self::enterCampaignVerify($user, 'expenditure', 'journey_base')
-                        : self::STATE_ASSET_CAPTURE;
+                        : self::journeyFocusEntry($user);
                 },
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
@@ -809,6 +814,13 @@ final class OnboardingStateMachine
             ],
             self::STATE_ADD_MORE => [
                 'next' => self::class.'::nextFromAddMore',
+            ],
+            // CSJ 2026-09-16: the journey's protection capture is a form with
+            // the same loop shape as the Save Tax account steps.
+            self::STATE_JOURNEY_PROTECTION => [
+            ],
+            self::STATE_JOURNEY_PROTECTION_MORE => [
+                'next' => self::class.'::nextFromProtectionMore',
             ],
             self::STATE_FREE_CHAT => [
             ],
@@ -1246,7 +1258,7 @@ final class OnboardingStateMachine
 
         return match ($section) {
             'income' => self::STATE_BASE_EXPENDITURE,
-            'expenditure' => self::STATE_ASSET_CAPTURE,
+            'expenditure' => self::journeyFocusEntry($user),
             default => self::STATE_ADD_MORE,
         };
     }
@@ -1818,11 +1830,31 @@ final class OnboardingStateMachine
             return self::STATE_DONE;
         }
 
-        // Anything else advances back into asset_capture for the new
-        // selection. The director updates user.onboarding_fyn_selection
-        // before calling this helper, so subsequent state evaluation picks
-        // up the new focus.
-        return self::STATE_ASSET_CAPTURE;
+        // The director updates user.onboarding_fyn_selection before calling
+        // this helper; the new focus opens on its capture form.
+        return self::journeyFocusEntry($user);
+    }
+
+    /**
+     * Where a journey or focus capture opens for the current selection —
+     * the same forms the Save Tax walk uses (CSJ 2026-09-16: one process on
+     * every entry point). Focuses with no form yet stay on the model-driven
+     * asset capture.
+     */
+    public static function journeyFocusEntry(User $user): string
+    {
+        return match ($user->onboarding_fyn_selection ?? '') {
+            'savings' => self::STATE_CAMPAIGN_ISA_HOLDINGS,
+            'investment' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            'retirement' => self::skipIfNotEmployed($user) ? self::STATE_CAMPAIGN_PENSION_CONTRIBS : self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            'protection' => self::STATE_JOURNEY_PROTECTION,
+            default => self::STATE_ASSET_CAPTURE,
+        };
+    }
+
+    public static function nextFromProtectionMore(string $answer, User $user): string
+    {
+        return self::saidYes($answer) ? self::STATE_JOURNEY_PROTECTION : self::enterCampaignVerify($user, 'protection');
     }
 
     public static function buildAssetCaptureIntro(string $answer, User $user): string
@@ -1873,11 +1905,19 @@ final class OnboardingStateMachine
      */
     public static function skipSectionIfNoCash(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['savings', 'bank', 'isa']);
     }
 
     public static function skipSectionIfNoProperty(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['property']);
     }
 
@@ -1955,6 +1995,9 @@ final class OnboardingStateMachine
 
     public static function skipSectionIfNoInvestments(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
         if (self::funnelHasAnyAsset($user, ['investments'])) {
             return false;
         }
@@ -1975,13 +2018,26 @@ final class OnboardingStateMachine
      * skipSectionIfNoCash runs the section if ANY cash-like asset is held, so
      * these stop the ISA question firing for a savings-only user (and vice versa).
      */
+    private static function isJourney(User $user): bool
+    {
+        return ($user->onboarding_fyn_path ?? '') === 'journey';
+    }
+
     public static function skipIfNoIsa(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['isa']);
     }
 
     public static function skipIfNoBankOrSavings(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['bank', 'savings']);
     }
 

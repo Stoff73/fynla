@@ -56,6 +56,9 @@ final class CaptureForms
     /** Monthly spending as one figure (everyone), through capture_monthly_expenditure. */
     public const EXPENDITURE = 'expenditure';
 
+    /** Journey path: life insurance, critical illness cover, income protection — one create_protection_policy per kind. */
+    public const PROTECTION = 'protection';
+
     /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
     public const EXPENDITURE_DETAILED = 'expenditure_detailed';
 
@@ -72,7 +75,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::PROTECTION];
     }
 
     /** @return array<string, mixed>|null */
@@ -95,6 +98,7 @@ final class CaptureForms
             self::EXPENDITURE => self::expenditure(),
             self::EXPENDITURE_DETAILED => self::expenditureDetailed(false),
             self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureDetailed(true),
+            self::PROTECTION => self::protection(),
             default => null,
         };
     }
@@ -226,6 +230,7 @@ final class CaptureForms
                 self::SAVINGS => self::savingsInputs($kind, $answers),
                 self::INVESTMENT => self::investmentInputs($kind, $answers),
                 self::PENSION, self::PENSION_PERSONAL => self::pensionInputs($kind, $answers),
+                self::PROTECTION => self::protectionInputs($kind, $answers),
             };
         }
 
@@ -265,6 +270,7 @@ final class CaptureForms
                 self::SAVINGS => self::savingsSentence($label, $input),
                 self::INVESTMENT => self::investmentSentence($label, $input),
                 self::PENSION, self::PENSION_PERSONAL => self::pensionSentence($label, $input),
+                self::PROTECTION => self::protectionSentence($label, $input),
             };
         }
 
@@ -1194,5 +1200,85 @@ final class CaptureForms
         }
 
         return $schema;
+    }
+
+    /**
+     * create_protection_policy input for one kind. Income protection carries
+     * a monthly benefit, the others a sum assured; premiums are monthly.
+     *
+     * @param  array<string, mixed>  $kind
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    private static function protectionInputs(array $kind, array $answers): array
+    {
+        $input = ['policy_type' => $kind['policy_type'], 'provider' => trim((string) $answers['provider'])];
+        if ($kind['key'] === 'income') {
+            $input['benefit_amount'] = (float) $answers['benefit_amount'];
+        } else {
+            $input['sum_assured'] = (float) $answers['sum_assured'];
+        }
+        if (is_numeric($answers['premium_amount'] ?? null)) {
+            $input['premium_amount'] = (float) $answers['premium_amount'];
+            $input['premium_frequency'] = 'monthly';
+        }
+        if (is_numeric($answers['policy_term_years'] ?? null)) {
+            $input['policy_term_years'] = (int) $answers['policy_term_years'];
+        }
+
+        return $input;
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function protectionSentence(string $label, array $input): string
+    {
+        $parts = [$label.' with '.$input['provider']];
+        if (isset($input['sum_assured'])) {
+            $parts[] = self::pounds($input['sum_assured']).' of cover';
+        }
+        if (isset($input['benefit_amount'])) {
+            $parts[] = self::pounds($input['benefit_amount']).' a month benefit';
+        }
+        if (isset($input['premium_amount'])) {
+            $parts[] = self::pounds($input['premium_amount']).' a month premium';
+        }
+        if (isset($input['policy_term_years'])) {
+            $parts[] = $input['policy_term_years'].' year term';
+        }
+
+        return implode(', ', $parts).'.';
+    }
+
+    /**
+     * Journey path protection cover: one policy per kind per save through
+     * create_protection_policy; the loop question asks for another.
+     *
+     * @return array<string, mixed>
+     */
+    private static function protection(): array
+    {
+        return [
+            'name' => self::PROTECTION,
+            'submit_label' => 'Save',
+            'kinds' => [
+                ['key' => 'life', 'label' => 'Life insurance', 'policy_type' => 'level_term',
+                    'tool' => 'create_protection_policy', 'entity_type' => 'life_insurance_policy',
+                    'fields' => ['provider', 'sum_assured', 'premium_amount', 'policy_term_years']],
+                ['key' => 'critical', 'label' => 'Critical illness cover', 'policy_type' => 'standalone_ci',
+                    'tool' => 'create_protection_policy', 'entity_type' => 'critical_illness_policy',
+                    'fields' => ['provider', 'sum_assured', 'premium_amount', 'policy_term_years']],
+                ['key' => 'income', 'label' => 'Income protection', 'policy_type' => 'income_protection',
+                    'tool' => 'create_protection_policy', 'entity_type' => 'income_protection_policy',
+                    'fields' => ['provider', 'benefit_amount', 'premium_amount', 'policy_term_years']],
+            ],
+            'fields' => [
+                'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
+                'sum_assured' => ['type' => 'money', 'label' => 'Cover amount', 'required' => true, 'hint' => 'The lump sum it would pay out'],
+                'benefit_amount' => ['type' => 'money', 'label' => 'Monthly benefit', 'required' => true, 'hint' => 'What it would pay each month'],
+                'premium_amount' => ['type' => 'money', 'label' => 'Monthly premium', 'required' => false, 'hint' => "Leave blank if you don't know"],
+                'policy_term_years' => ['type' => 'percent', 'label' => 'Term in years', 'required' => false, 'min' => 1, 'max' => 50, 'step' => 1,
+                    'hint' => 'Leave blank for whole of life or if unsure'],
+            ],
+        ];
     }
 }
