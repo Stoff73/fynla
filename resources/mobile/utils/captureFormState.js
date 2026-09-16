@@ -44,7 +44,22 @@ export const captureFormMixin = {
   methods: {
     field(key) { return this.schema.fields[key]; },
     isOpen(kindKey) { return Boolean(this.open[kindKey]); },
-    toggle(kindKey) { this.open[kindKey] = !this.open[kindKey]; },
+    toggle(kindKey) {
+      this.open[kindKey] = !this.open[kindKey];
+      if (this.open[kindKey]) this.focusFirstField(kindKey);
+    },
+    // CSJ 2026-09-16: opening a kind scrolls its fields into view and puts
+    // the cursor in the first one, on both renderers.
+    focusFirstField(kindKey) {
+      this.$nextTick(() => {
+        const kind = (this.schema.kinds || []).find((k) => k.key === kindKey);
+        const first = kind && this.visibleFields(kind)[0];
+        const el = first && document.getElementById(this.inputId(kindKey, first));
+        if (!el) return;
+        if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.focus({ preventScroll: true });
+      });
+    },
     inputId(kindKey, fieldKey) { return `fyn-form-${kindKey}-${fieldKey}`; },
     isNone(kindKey, fieldKey) { return Boolean(this.none[kindKey] && this.none[kindKey][fieldKey]); },
     hasNumber(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'number' && !Number.isNaN(v); },

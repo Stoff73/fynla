@@ -111,6 +111,23 @@ describe('FynCaptureForm', () => {
     expect(w.emitted('submit')[0][0]).toEqual({ name: 'isa', answers: { cash_isa: { provider: 'Nationwide', current_value: 12000 } } });
   });
 
+  it('scrolls the opened kind into view and focuses its first field', async () => {
+    const scrolled = [];
+    const proto = window.HTMLElement.prototype;
+    const original = proto.scrollIntoView;
+    proto.scrollIntoView = function scrollIntoView() { scrolled.push(this.id); };
+    try {
+      const w = mount(FynCaptureForm, { props: { schema }, attachTo: document.body });
+      await box(w, 'Buy to let').trigger('click');
+      await w.vm.$nextTick();
+      expect(scrolled).toEqual(['fyn-form-buy_to_let-current_value']);
+      expect(document.activeElement && document.activeElement.id).toBe('fyn-form-buy_to_let-current_value');
+      w.unmount();
+    } finally {
+      proto.scrollIntoView = original;
+    }
+  });
+
   it('binds the ownership-share bounds to a percent field without its own', async () => {
     const w = mount(FynCaptureForm, { props: { schema } });
     await box(w, 'Home').trigger('click');
