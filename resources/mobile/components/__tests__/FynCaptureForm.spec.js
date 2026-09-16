@@ -128,6 +128,37 @@ describe('FynCaptureForm', () => {
     }
   });
 
+
+  it('asks the lead fields above the kind boxes, saves with only the lead filled, and posts them under _lead', async () => {
+    const spouse = {
+      name: 'spouse_household', submit_label: 'Save', tool: 'capture_spouse_household_data',
+      lead_fields: ['spouse_annual_income'], kinds_prompt: 'Do they have any of the following? You can choose more than one.',
+      kinds: [{ key: 'isa', label: 'ISAs', fields: ['spouse_isa_balance'] }],
+      fields: {
+        spouse_annual_income: { type: 'money', label: 'Their annual income', required: true },
+        spouse_isa_balance: { type: 'money', label: 'ISA balance', required: true },
+      },
+    };
+    const w = mount(FynCaptureForm, { props: { schema: spouse } });
+    const html = w.html();
+    expect(html.indexOf('Their annual income')).toBeLessThan(html.indexOf('Do they have any of the following'));
+    expect(html.indexOf('Do they have any of the following')).toBeLessThan(html.indexOf('>ISAs<'));
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[name="_lead.spouse_annual_income"]').setValue('45000');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+    await box(w, 'ISAs').trigger('click');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[name="isa.spouse_isa_balance"]').setValue('12000');
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'spouse_household', answers: { _lead: { spouse_annual_income: 45000 }, isa: { spouse_isa_balance: 12000 } } });
+  });
+
+  it('a schema that allows nothing chosen enables Save with no kind open', () => {
+    const assets = { name: 'spouse_assets', submit_label: 'Save', allow_empty: true, lead_fields: [], kinds: [{ key: 'savings', label: 'Savings', fields: ['b'] }], fields: { b: { type: 'money', label: 'Savings balance', required: true } } };
+    const w = mount(FynCaptureForm, { props: { schema: assets } });
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+  });
+
   it('binds the ownership-share bounds to a percent field without its own', async () => {
     const w = mount(FynCaptureForm, { props: { schema } });
     await box(w, 'Home').trigger('click');

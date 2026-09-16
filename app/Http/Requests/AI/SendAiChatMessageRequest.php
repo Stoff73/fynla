@@ -50,6 +50,9 @@ final class SendAiChatMessageRequest extends FormRequest
                 return;
             }
             $knownKinds = array_column($schema['kinds'], 'key');
+            if (! empty($schema['lead_fields'])) {
+                $knownKinds[] = CaptureForms::LEAD;
+            }
             foreach (array_keys((array) ($form['answers'] ?? [])) as $kind) {
                 if (! in_array($kind, $knownKinds, true)) {
                     $validator->errors()->add('form.answers.'.$kind, 'Unknown kind.');

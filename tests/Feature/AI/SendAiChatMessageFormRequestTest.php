@@ -207,3 +207,10 @@ it('rejects a provider over 255 characters, a rate over 20, an unknown kind and 
         'easy_access' => ['provider' => 'Marcus', 'current_value' => 1, 'ownership_type' => 'individual'],
     ]]])->assertStatus(422)->assertJsonValidationErrors(['form.answers.easy_access.interest_rate']);
 });
+
+it('accepts the spouse household form with its lead income under _lead', function (): void {
+    postForm($this, $this->conversation->id, ['form' => ['name' => 'spouse_household', 'answers' => [
+        '_lead' => ['spouse_annual_income' => 45000],
+        'isa' => ['spouse_isa_balance' => 12000],
+    ]]])->assertOk();
+});

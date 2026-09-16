@@ -1116,14 +1116,14 @@ final class OnboardingStateMachine
 
     /**
      * Sections whose Save Tax capture end skips the announce → navigate →
-     * confirm loop (CSJ 2026-09-16: income and spouse). Journey users and the
-     * pension check keep the page visit.
+     * confirm loop (CSJ 2026-09-16: income, spouse and expenditure). Journey
+     * users and the pension check keep the page visit.
      */
     public static function sectionSkipsVerifyPage(User $user, string $section): bool
     {
         return ($user->onboarding_fyn_path ?? '') === 'campaign'
             && ($user->onboarding_fyn_selection ?? 'savetax') === 'savetax'
-            && in_array($section, ['income', 'spouse'], true);
+            && in_array($section, ['income', 'spouse', 'expenditure'], true);
     }
 
     /**

@@ -234,7 +234,7 @@ final class OnboardingChatDirector
         }
 
         if ($form !== null) {
-            if (($state['turn_type'] ?? '') !== 'form' || ($state['form'] ?? null) !== ($form['name'] ?? null)) {
+            if (($state['form'] ?? null) !== ($form['name'] ?? null)) {
                 // A form submitted after the step moved on (a second tab, a
                 // late tap). Nothing is written; the walk carries on.
                 $line = "That form is no longer open — let's carry on from where we are.";
@@ -1048,7 +1048,7 @@ final class OnboardingChatDirector
             default => FynTurnIntent::StepPrompt,
         };
 
-        if ($turnType === 'form' && $this->clientSupportsForms) {
+        if (($turnType === 'form' || isset($state['form'])) && $this->clientSupportsForms) {
             $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
             if ($schema !== null) {
                 // A form-capable client sees the short form-shaped lead-in
@@ -3785,6 +3785,7 @@ PROMPT;
     ): \Generator {
         $recordsCreated = [];
         $errors = [];
+        $captured = false;
 
         // The clients post the form with no typed text and show a placeholder
         // user row; this is the transcript line (composed once, in
@@ -3792,6 +3793,7 @@ PROMPT;
         yield ['type' => 'form_received', 'text' => $message];
 
         $inputs = CaptureForms::toolInputs($form);
+        $schema = CaptureForms::schema($form['name']) ?? [];
 
         if ($inputs === []) {
             // Nothing recognisable was filled in. Never advance on an empty form.
@@ -3811,7 +3813,8 @@ PROMPT;
         foreach ($inputs as $kind => $input) {
             // The create tool is per kind (CaptureForms): a cash ISA is a
             // savings row, a stocks and shares ISA an investment row.
-            $definition = CaptureForms::kind($form['name'], $kind);
+            $definition = CaptureForms::kind($form['name'], $kind)
+                ?? ['tool' => $schema['tool'] ?? '', 'entity_type' => $schema['entity_type'] ?? '', 'label' => 'Details'];
             $tool = (string) $definition['tool'];
             yield ['type' => 'tool_use', 'tool' => $tool, 'status' => 'running'];
             $facts = [];
@@ -3833,6 +3836,13 @@ PROMPT;
                 $row = ['type' => 'entity_created', 'entity_type' => (string) $definition['entity_type'], 'entity_id' => $result['entity_id'], 'name' => $definition['label']];
                 $recordsCreated[] = self::recordRowFromEvent($row);
                 yield $row;
+
+                continue;
+            }
+            if (($result['onboarding_capture'] ?? false) === true) {
+                // A household-row write (the spouse forms): no entity row, the
+                // capture ack below is the recap.
+                $captured = true;
 
                 continue;
             }
@@ -3885,6 +3895,18 @@ PROMPT;
 
             $this->recordProgress($user, $currentStateId, ['selection' => 'savetax', 'raw_message' => mb_substr($message, 0, 500)]);
             yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        if ($captured && $recordsCreated === []) {
+            // Recap what was saved (the spouse acks), then move on.
+            $ack = $this->buildCaptureAck($user->refresh(), $currentStateId, []);
+            if ($ack !== null) {
+                yield ['type' => 'content', 'text' => $ack];
+                $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
+            }
+            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
 
             return;
         }
