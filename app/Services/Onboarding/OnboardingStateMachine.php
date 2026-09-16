@@ -1795,9 +1795,14 @@ final class OnboardingStateMachine
         }
 
         try {
+            // The "Welcome back … Continue" greeting is stamped with the step
+            // it resumes at; it is not a delivery of that step's turn.
             return $conversation->messages()
                 ->where('role', 'assistant')
                 ->where('metadata->onboarding_step', $stateId)
+                ->where(function ($q): void {
+                    $q->whereNull('metadata->turn_intent')->orWhere('metadata->turn_intent', '!=', 'resume_greeting');
+                })
                 ->exists();
         } catch (\Throwable $e) {
             return false;
