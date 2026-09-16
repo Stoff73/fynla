@@ -9,7 +9,7 @@ Free text into a parser has a long tail. On 2026-09-15 the live property step lo
 
 ## What the user sees
 
-At the property step Fyn's message is the existing prompt text followed by a small form inside the chat:
+At the property step Fyn's message is a short lead-in ("Now your property.") followed by a small form inside the chat — the form's own boxes and Save button carry the instructions, so the message no longer repeats them (CSJ 2026-09-16):
 
 - Three option boxes: **Home**, **Second home** and **Buy to let**. Any combination expands.
 - **Home** expands to: Value *, Mortgage outstanding * (with a "No mortgage" choice), Ownership *.

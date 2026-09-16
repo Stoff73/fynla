@@ -100,13 +100,14 @@ it('the property step is a form turn owned by the corpus', function (): void {
     $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY);
 
     // final-review C1 — prompt_text is the typed instruction a client
-    // without the forms capability (native) falls back to; the form-shaped
-    // "fill in the boxes below and tap Save" wording lives separately under
-    // form_prompt_text, read only by a form-capable client's capture_form
-    // event (OnboardingChatDirector::emitTurnForState).
+    // without the forms capability (native) falls back to; CSJ 2026-09-16:
+    // form_prompt_text is now just the short lead-in, since the form's own
+    // boxes and Save button carry the instructions, read only by a
+    // form-capable client's capture_form event
+    // (OnboardingChatDirector::emitTurnForState).
     expect($state['turn_type'])->toBe('form')
         ->and($state['form'])->toBe('property')
         ->and($state['capture_focus'])->toBe('property')
         ->and($state['prompt_text'])->toBe("Now your property. **For each one: is it your home, a second home or a buy-to-let; roughly what it's worth; whether there's a mortgage and how much is left on it; and whether you own it individually or jointly? If jointly, who owns it with you and your share.**")
-        ->and($state['form_prompt_text'])->toBe('Now your property. **Tell me about your home, any second home and any buy to let — fill in the boxes below and tap Save.**');
+        ->and($state['form_prompt_text'])->toBe('Now your property.');
 });

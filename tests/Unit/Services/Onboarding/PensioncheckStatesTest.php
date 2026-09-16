@@ -938,10 +938,11 @@ it('walks the property section after investments when the funnel ticked property
         ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['capture_focus'] ?? null)->toBe('property')
         // prompt_text is the typed instruction a client without the forms
         // capability (native) falls back to — final-review C1 — and it
-        // reads "buy-to-let" (hyphenated); the form-shaped wording lives
-        // separately under form_prompt_text ("buy to let", unhyphenated).
+        // reads "buy-to-let" (hyphenated). CSJ 2026-09-16: form_prompt_text
+        // is now just the short lead-in — the form's own boxes and Save
+        // button carry the instructions, so there is no "buy to let" here.
         ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['prompt_text'] ?? '')->toContain('buy-to-let')
-        ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['form_prompt_text'] ?? '')->toContain('buy to let');
+        ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['form_prompt_text'] ?? '')->toBe('Now your property.');
     // The capture-end enters the verify announce for the property page.
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY, 'my home is worth 450000, joint with my wife', $with))->toBe('campaign_verify_announce')
         ->and($with->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('property');

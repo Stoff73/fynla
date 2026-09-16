@@ -57,12 +57,12 @@ it('emits the property form to a client that can render forms and persists the s
     $form = collect($events)->firstWhere('type', 'capture_form');
     expect($form)->not->toBeNull()
         ->and($form['form'])->toBe(CaptureForms::schema('property'))
-        ->and($form['prompt_text'])->toContain('Now your property')
-        // The form-shaped wording lives in the corpus's form_prompt_text data
-        // key — distinct from the typed prompt_text a client without the
-        // forms capability gets (see the fallback test below). Only a form-
-        // capable client should ever see an instruction to use controls.
-        ->and($form['prompt_text'])->toContain('tap Save')
+        // CSJ 2026-09-16: the form's own boxes and Save button carry the
+        // instructions now, so a form-capable client's prompt is just the
+        // lead-in — distinct from the longer typed prompt_text a client
+        // without the forms capability gets (see the fallback test below).
+        ->and($form['prompt_text'])->toBe('Now your property.')
+        ->and($form['prompt_text'])->not->toContain('For each one')
         ->and(collect($events)->where('type', 'content'))->toHaveCount(0)
         ->and(collect($events)->last()['type'])->toBe('done');
 
@@ -86,10 +86,10 @@ it('emits the typed prompt instead when the client has not declared forms — na
     $events = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY)), false);
 
     // final-review C1 — a client without the forms capability (native today)
-    // must keep the typed instruction, not the form-shaped "fill in the
-    // boxes below and tap Save" wording. Asserting the typed wording's own
-    // words (not just the shared opening line) is what would have caught
-    // the regression: both wordings share "Now your property".
+    // must keep the typed instruction, not the short form-shaped lead-in.
+    // Asserting the typed wording's own words (not just the shared opening
+    // line) is what would have caught the regression: both wordings share
+    // "Now your property".
     expect(collect($events)->firstWhere('type', 'capture_form'))->toBeNull()
         ->and(collect($events)->firstWhere('type', 'content')['text'])
         ->toContain('Now your property')
