@@ -169,6 +169,8 @@ final class CaptureForms
             'kinds' => [
                 ['key' => 'main_residence', 'label' => 'Home',
                     'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
+                ['key' => 'secondary_residence', 'label' => 'Second home',
+                    'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
                 ['key' => 'buy_to_let', 'label' => 'Buy to let',
                     'fields' => ['current_value', 'mortgage_outstanding_balance', 'monthly_rental_income', 'ownership_type', 'ownership_percentage']],
             ],

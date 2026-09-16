@@ -63,6 +63,12 @@ it('accepts a well-formed property answer with no message', function (): void {
     ]]])->assertOk();
 });
 
+it('accepts a well-formed second home answer', function (): void {
+    postForm($this, $this->conversation->id, ['form' => ['name' => 'property', 'answers' => [
+        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
+    ]]])->assertOk();
+});
+
 it('validates only the kinds that were submitted', function (): void {
     postForm($this, $this->conversation->id, ['form' => ['name' => 'property', 'answers' => [
         'buy_to_let' => ['current_value' => 200000, 'mortgage_outstanding_balance' => null, 'monthly_rental_income' => 850, 'ownership_type' => 'individual'],

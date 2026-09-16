@@ -11,8 +11,9 @@ Free text into a parser has a long tail. On 2026-09-15 the live property step lo
 
 At the property step Fyn's message is the existing prompt text followed by a small form inside the chat:
 
-- Two option boxes: **Home** and **Buy to let**. Either or both expand.
+- Three option boxes: **Home**, **Second home** and **Buy to let**. Any combination expands.
 - **Home** expands to: Value *, Mortgage outstanding * (with a "No mortgage" choice), Ownership *.
+- **Second home** expands to: Value *, Mortgage outstanding * (with a "No mortgage" choice), Ownership * â€” the same fields as Home.
 - **Buy to let** expands to: Value *, Mortgage outstanding * (with "No mortgage"), Monthly rental income *, Ownership *.
 - **Ownership** offers Individual, Joint, Tenants in common. Joint and Tenants in common reveal **Your share %** *, pre-filled 50. Trust is not offered here (the full app form has it). No joint-owner name is asked; the spouse joint-record memory names the co-owner as it does for typed capture.
 - Required fields carry an asterisk, as the app's forms do. Save is disabled until every expanded kind's required fields are filled.
@@ -39,9 +40,11 @@ One endpoint, server-side dispatch, the same write path as every Fyn capture (Ru
 ```
 name: property
 kinds:
-  - key: main_residence   label: Home
+  - key: main_residence      label: Home
     fields: current_value, mortgage, ownership
-  - key: buy_to_let       label: Buy to let
+  - key: secondary_residence label: Second home
+    fields: current_value, mortgage, ownership
+  - key: buy_to_let          label: Buy to let
     fields: current_value, mortgage, monthly_rental_income, ownership
 fields:
   current_value          money   required
@@ -51,7 +54,7 @@ fields:
   ownership_percentage   percent required-when ownership in (joint, tenants_in_common)   default 50
 ```
 
-Labels, hints and the asterisk rule are part of the schema so both renderers show the same words. Option values are the canonical enums (`individual`, `joint`, `tenants_in_common`; `main_residence`, `buy_to_let`).
+Labels, hints and the asterisk rule are part of the schema so both renderers show the same words. Option values are the canonical enums (`individual`, `joint`, `tenants_in_common`; `main_residence`, `secondary_residence`, `buy_to_let`).
 
 ### 2. The state
 
@@ -68,8 +71,9 @@ message: string (the plain-words summary the client composes, e.g. "Home worth Â
 form:
   name: property
   answers:
-    main_residence?: { current_value, has_mortgage, mortgage_outstanding_balance?, ownership_type, ownership_percentage? }
-    buy_to_let?:     { current_value, has_mortgage, mortgage_outstanding_balance?, monthly_rental_income, ownership_type, ownership_percentage? }
+    main_residence?:      { current_value, has_mortgage, mortgage_outstanding_balance?, ownership_type, ownership_percentage? }
+    secondary_residence?: { current_value, has_mortgage, mortgage_outstanding_balance?, ownership_type, ownership_percentage? }
+    buy_to_let?:          { current_value, has_mortgage, mortgage_outstanding_balance?, monthly_rental_income, ownership_type, ownership_percentage? }
 ```
 
 `SendAiChatMessageRequest` validates the shape only: `form.name` must be a known schema, each answer block matches the schema's kinds and field types. Business rules stay in the store.

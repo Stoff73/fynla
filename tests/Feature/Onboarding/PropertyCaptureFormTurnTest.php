@@ -169,6 +169,27 @@ it('saves one kind alone', function (): void {
         ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
 });
 
+it('saves a second home alone', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+    $form = ['name' => 'property', 'answers' => [
+        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
+    ]];
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise($form), null, true, $form), false);
+
+    $home = Property::where('user_id', $user->id)->first();
+    expect(Property::where('user_id', $user->id)->count())->toBe(1)
+        ->and($home->property_type)->toBe('secondary_residence')
+        ->and((float) $home->current_value)->toBe(300000.0)
+        ->and((float) $home->outstanding_mortgage)->toBe(0.0)
+        ->and($home->ownership_type)->toBe('individual')
+        ->and(collect($events)->where('type', 'entity_created'))->toHaveCount(1)
+        ->and(collect($events)->firstWhere('type', 'capture_complete'))->not->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+});
+
 it('reports a refused kind on the form, keeps the landed one, and stays on the step', function (): void {
     // Free holds two properties; a third is refused by the tier cap.
     $user = formStepUser();

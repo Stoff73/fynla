@@ -11,6 +11,14 @@ it('lists the property form and returns null for an unknown form', function (): 
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
 
+it('offers the three property kinds in order: Home, Second home, Buy to let', function (): void {
+    $kinds = CaptureForms::schema('property')['kinds'];
+
+    expect(array_column($kinds, 'key'))->toBe(['main_residence', 'secondary_residence', 'buy_to_let'])
+        ->and(array_column($kinds, 'label'))->toBe(['Home', 'Second home', 'Buy to let'])
+        ->and(CaptureForms::kindLabel('property', 'secondary_residence'))->toBe('Second home');
+});
+
 it('marks the required fields and the conditional share', function (): void {
     $fields = CaptureForms::schema('property')['fields'];
     expect($fields['current_value']['required'])->toBeTrue()
@@ -39,6 +47,17 @@ it('builds one create_property input per filled kind with nothing unstated', fun
         ]);
 });
 
+it('builds a create_property input for a second home in the same shape as Home', function (): void {
+    $inputs = CaptureForms::toolInputs(['name' => 'property', 'answers' => [
+        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
+    ]]);
+
+    expect($inputs['secondary_residence'])->toBe([
+        'property_type' => 'secondary_residence', 'current_value' => 300000.0, 'has_mortgage' => false,
+        'ownership_type' => 'individual',
+    ]);
+});
+
 it('drops a share sent for an individual owner and defaults a missing shared one to 50', function (): void {
     $inputs = CaptureForms::toolInputs(['name' => 'property', 'answers' => [
         'main_residence' => ['current_value' => 1, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 40],
@@ -56,6 +75,14 @@ it('composes the transcript line in plain words', function (): void {
     ]]);
 
     expect($line)->toBe('Home worth £750,000, mortgage £325,000, joint, my share 50%. Buy to let worth £450,000, no mortgage, rent £1,000 a month, individual.');
+});
+
+it('composes the transcript line for a second home', function (): void {
+    $line = CaptureForms::summarise(['name' => 'property', 'answers' => [
+        'secondary_residence' => ['current_value' => 300000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual'],
+    ]]);
+
+    expect($line)->toBe('Second home worth £300,000, no mortgage, individual.');
 });
 
 it('produces validation rules per kind and field', function (): void {
@@ -81,5 +108,5 @@ it('the property step is a form turn owned by the corpus', function (): void {
         ->and($state['form'])->toBe('property')
         ->and($state['capture_focus'])->toBe('property')
         ->and($state['prompt_text'])->toBe("Now your property. **For each one: is it your home, a second home or a buy-to-let; roughly what it's worth; whether there's a mortgage and how much is left on it; and whether you own it individually or jointly? If jointly, who owns it with you and your share.**")
-        ->and($state['form_prompt_text'])->toBe('Now your property. **Tell me about your home and any buy to let — fill in the boxes below and tap Save.**');
+        ->and($state['form_prompt_text'])->toBe('Now your property. **Tell me about your home, any second home and any buy to let — fill in the boxes below and tap Save.**');
 });
