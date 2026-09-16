@@ -180,7 +180,7 @@ it('at the Free cap the loop question states the limit and offers only the next 
     $quick = collect($events)->firstWhere('type', 'quick_replies');
     expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2)
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE)
-        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 bank and savings accounts, so I can't add another here. You can upgrade after onboarding to add more. **Would you like to continue to the next section?**")
+        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 bank and savings accounts, so I can't add another here. You can upgrade after onboarding to add more.")
         ->and(array_column($quick['bubbles'], 'label'))->toBe(['Continue to the next section']);
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, 'Continue to the next section'), false);

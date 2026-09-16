@@ -309,7 +309,7 @@ it('advances to campaign_property_more with a quick_replies event after a succes
         ->and($quick)->not->toBeNull()
         // Two properties fill the Free cap (CSJ 2026-09-16): the loop question
         // states the limit and offers only the next section.
-        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 properties, so I can't add another here. You can upgrade after onboarding to add more. **Would you like to continue to the next section?**")
+        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 properties, so I can't add another here. You can upgrade after onboarding to add more.")
         ->and(array_column($quick['bubbles'] ?? [], 'label'))->toBe(['Continue to the next section'])
         ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_property_more');
 });
