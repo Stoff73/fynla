@@ -2531,12 +2531,16 @@ final class OnboardingStateMachine
     private static function afterPensionPots(User $user): string
     {
         $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
-        if ($user->onboarding_fyn_selection !== 'pensioncheck' && ($context['pension_contribs_done'] ?? false) === true) {
+        if (($context['pension_contribs_done'] ?? false) === true) {
             unset($context['pension_contribs_done']);
             $user->onboarding_fyn_context = $context === [] ? null : $context;
             $user->save();
 
-            return self::enterCampaignVerify($user, 'pensions');
+            // Pension Check carries on to Defined Benefit as the contributions
+            // step would have; Save Tax closes the section.
+            return $user->onboarding_fyn_selection === 'pensioncheck'
+                ? self::STATE_CAMPAIGN2_PENSION_DB
+                : self::enterCampaignVerify($user, 'pensions');
         }
 
         return self::STATE_CAMPAIGN_PENSION_CONTRIBS;

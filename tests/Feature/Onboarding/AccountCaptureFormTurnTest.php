@@ -436,3 +436,17 @@ it('showing the pension form marks the typed personal-pension step done, so "No"
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
     expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
 });
+
+it('on the pension check path the pension form also retires the typed personal-pension step and goes on to final salary', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $user->forceFill(['onboarding_fyn_selection' => 'pensioncheck', 'employment_status' => 'employed', 'annual_employment_income' => 58000, 'date_of_birth' => '1980-09-02', 'funnel_answers' => ['campaign' => 'pensioncheck', 'pensions' => ['workplace', 'final_salary']]])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME)), false);
+    submitForm($user->fresh(), $conversation, ['name' => 'pension', 'answers' => [
+        'workplace' => ['provider' => 'NHS Pension Scheme', 'current_value' => 71000, 'employee_contribution_percent' => 9.8, 'employer_contribution_percent' => 20.6, 'salary_sacrifice' => 'no'],
+    ]]);
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB);
+});
