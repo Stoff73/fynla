@@ -42,6 +42,11 @@
             <span class="detail-label">{{ mortgageLabel }}</span>
             <span class="detail-value mortgage">{{ formatCurrency(mortgageAmount) }}</span>
           </div>
+
+          <div v-if="monthlyRent > 0" class="detail-row">
+            <span class="detail-label">Monthly rent</span>
+            <span class="detail-value">{{ formatCurrency(monthlyRent) }}</span>
+          </div>
         </div>
 
         <!-- Equity row always at bottom -->
@@ -116,6 +121,11 @@ export default {
       return calculateUserShare(this.property, { valueField: 'current_value' });
     },
 
+    monthlyRent() {
+      // The full monthly rent on a buy to let, as entered; the detail view
+      // breaks out the owner's share.
+      return this.property.property_type === 'buy_to_let' ? (parseFloat(this.property.monthly_rental_income) || 0) : 0;
+    },
     sharePercent() {
       return userSharePercent(this.property).toFixed(2);
     },
