@@ -22,6 +22,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_BASE_SPOUSE,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL,
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
             OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY,
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT,
             OnboardingStateMachine::STATE_BASE_WORK,

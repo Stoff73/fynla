@@ -40,6 +40,12 @@ final class CaptureForms
     /** Journey path: the spouse or partner's name, date of birth and email, ONE write through capture_spouse_details (creates and links their account). */
     public const SPOUSE_DETAILS = 'spouse_details';
 
+    /** Journey path: one dependant per save through capture_dependants, looped by base_dependants_more. */
+    public const DEPENDANTS = 'dependants';
+
+    /** Employer, role and gross income, ONE write through capture_work_details (journey and Save Tax income step). */
+    public const WORK = 'work';
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
@@ -50,7 +56,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK];
     }
 
     /** @return array<string, mixed>|null */
@@ -66,6 +72,8 @@ final class CaptureForms
             self::SPOUSE_ASSETS => self::spouseAssets(),
             self::PERSONAL => self::personal(),
             self::SPOUSE_DETAILS => self::spouseDetails(),
+            self::DEPENDANTS => self::dependants(),
+            self::WORK => self::work(),
             default => null,
         };
     }
@@ -176,6 +184,11 @@ final class CaptureForms
                 }
             }
 
+            if ($input !== [] && $schema['name'] === self::DEPENDANTS) {
+                // capture_dependants takes a list; the form saves one per turn.
+                $input = ['dependants' => [$input]];
+            }
+
             return $input === [] ? [] : [self::LEAD => $input];
         }
 
@@ -215,6 +228,8 @@ final class CaptureForms
             return match ($schema['name']) {
                 self::PERSONAL => self::personalSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::DEPENDANTS => self::dependantSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::WORK => self::workSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
             };
         }
@@ -905,6 +920,94 @@ final class CaptureForms
                 'date_of_birth' => ['type' => 'date', 'label' => 'Their date of birth', 'required' => true],
                 'email' => ['type' => 'email', 'label' => 'Their email address', 'required' => true, 'hint' => "I'll create their account and link the two of you so you can plan together"],
                 'annual_income' => ['type' => 'money', 'label' => 'Their annual income', 'required' => false, 'hint' => 'Before tax. Leave blank if you are not sure'],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function dependantSentence(array $input): string
+    {
+        $noun = match ($input['relationship'] ?? '') {
+            'child' => 'child',
+            'parent' => 'parent',
+            default => 'dependant',
+        };
+        $name = trim((string) ($input['first_name'] ?? ''));
+        $who = 'My '.$noun.($name !== '' ? ' '.$name : '');
+        $born = isset($input['date_of_birth']) ? ' was born on '.Carbon::parse($input['date_of_birth'])->format('j F Y') : '';
+
+        return $who.$born.'.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function workSentence(array $input): string
+    {
+        $parts = [];
+        if (isset($input['employer'])) {
+            $parts[] = 'I work at '.$input['employer'].(isset($input['occupation']) ? ' as a '.$input['occupation'] : '');
+        } elseif (isset($input['occupation'])) {
+            $parts[] = 'I work as a '.$input['occupation'];
+        }
+        if (isset($input['annual_income'])) {
+            $parts[] = 'I earn '.self::pounds($input['annual_income']).' a year';
+        }
+
+        return $parts === [] ? '' : implode(' and ', $parts).'.';
+    }
+
+    /**
+     * Journey path dependants: ONE dependant per save (who they are, their
+     * name, their exact date of birth) through capture_dependants; the loop
+     * question after it asks for another. The handler rejects a future or
+     * over-120 date of birth.
+     *
+     * @return array<string, mixed>
+     */
+    private static function dependants(): array
+    {
+        return [
+            'name' => self::DEPENDANTS,
+            'submit_label' => 'Save',
+            'tool' => 'capture_dependants',
+            'entity_type' => 'dependant',
+            'lead_fields' => ['relationship', 'first_name', 'date_of_birth'],
+            'kinds' => [],
+            'fields' => [
+                'relationship' => ['type' => 'choice', 'label' => 'Who they are', 'required' => true, 'options' => [
+                    ['value' => 'child', 'label' => 'A child'],
+                    ['value' => 'parent', 'label' => 'A parent'],
+                    ['value' => 'other_dependent', 'label' => 'Another dependant'],
+                ]],
+                'first_name' => ['type' => 'text', 'label' => 'Their first name', 'required' => false],
+                'date_of_birth' => ['type' => 'date', 'label' => 'Their date of birth', 'required' => true, 'hint' => 'The exact date helps keep the plan correct'],
+            ],
+        ];
+    }
+
+    /**
+     * Work and income — employer or trading name, role and gross annual
+     * income, ONE write through capture_work_details. Reached on the journey
+     * path and the Save Tax and pension check income steps alike.
+     *
+     * @return array<string, mixed>
+     */
+    private static function work(): array
+    {
+        return [
+            'name' => self::WORK,
+            'submit_label' => 'Save',
+            'tool' => 'capture_work_details',
+            'entity_type' => 'work',
+            'lead_fields' => ['employer', 'occupation', 'annual_income'],
+            'kinds' => [],
+            'fields' => [
+                'employer' => ['type' => 'text', 'label' => 'Employer or trading name', 'required' => true],
+                'occupation' => ['type' => 'text', 'label' => 'Job title or role', 'required' => true],
+                'annual_income' => ['type' => 'money', 'label' => 'Gross annual income', 'required' => true, 'hint' => 'Before tax, including bonuses and commissions'],
             ],
         ];
     }
