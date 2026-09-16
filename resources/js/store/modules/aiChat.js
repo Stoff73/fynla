@@ -31,6 +31,56 @@ function entityWriteMessage(event) {
     };
 }
 
+/**
+ * One message shape for a Fyn structured capture-form turn (property, etc.),
+ * used by all four stream paths. `form` is the schema object the renderer
+ * (AiChatPanel) builds the actual form fields from. The row itself carries
+ * no prompt text — pushCaptureFormTurn() below renders that as its own
+ * assistant row first, matching the shape loadConversation's normalisation
+ * already produces for a persisted turn.
+ */
+function captureFormMessage(event) {
+    return {
+        id: 'cf_' + Date.now(),
+        role: 'capture_form',
+        content: '',
+        metadata: { capture_form: event.form || null, errors: null },
+        created_at: new Date().toISOString(),
+    };
+}
+
+/**
+ * Render a `capture_form` SSE event: flush any streaming text so far, then
+ * (if the event carries prompt text) push it as its own assistant row ahead
+ * of the form, then push the form row. One home for all four stream paths
+ * (sendMessage, streamNextQueued, postAction, startOnboardingConversation) —
+ * each used to duplicate the flush and skip the prompt-text row entirely, so
+ * the live form rendered with no "Now your property…" line above it even
+ * though history (loadConversation's normalisation) rendered it correctly.
+ */
+function pushCaptureFormTurn(commit, state, event) {
+    if (state.streamingText) {
+        commit('ADD_MESSAGE', {
+            id: 'cf_text_' + Date.now(),
+            role: 'assistant',
+            content: state.streamingText,
+            created_at: new Date().toISOString(),
+        });
+        commit('SET_STREAMING_TEXT', '');
+    }
+
+    if (event.prompt_text) {
+        commit('ADD_MESSAGE', {
+            id: 'cf_prompt_' + Date.now(),
+            role: 'assistant',
+            content: event.prompt_text,
+            created_at: new Date().toISOString(),
+        });
+    }
+
+    commit('ADD_MESSAGE', captureFormMessage(event));
+}
+
 const state = {
     isOpen: false,
     conversations: [],
@@ -115,6 +165,27 @@ const mutations = {
 
     ADD_MESSAGE(state, message) {
         state.messages.push(message);
+    },
+
+    // A form answer sends no message text, so the optimistic user bubble
+    // starts as a placeholder ("Saving your property details…") and is
+    // rewritten to the server's plain-English summary once the
+    // `form_received` SSE event arrives.
+    SET_TEMP_USER_CONTENT(state, { id, content }) {
+        const row = state.messages.find((m) => m.id === id);
+        if (row) row.content = content;
+    },
+
+    // A rejected form submission (e.g. a plan's property limit) re-renders
+    // the same form with the server's field-level errors attached, rather
+    // than adding a new row — the user corrects and resubmits in place.
+    SET_CAPTURE_FORM_ERRORS(state, errors) {
+        for (let i = state.messages.length - 1; i >= 0; i -= 1) {
+            if (state.messages[i].role === 'capture_form') {
+                state.messages[i].metadata = { ...state.messages[i].metadata, errors };
+                return;
+            }
+        }
     },
 
     // FR-M7 — flip a turn's queue status (queued / processing / answered /
@@ -420,6 +491,26 @@ const actions = {
                 const presentationActions = Array.isArray(m?.metadata?.actions) ? m.metadata.actions : [];
                 const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
 
+                // A persisted capture_form turn splits the same way as
+                // bubbles: the prompt text renders as its own assistant row,
+                // and a separate capture_form row carries the schema so
+                // AiChatPanel re-renders the form (unanswered rows show
+                // read-only past history in FynOnboardingChat/AiChatPanel).
+                const captureForm = m?.metadata?.capture_form;
+                if (m.role === 'assistant' && captureForm && typeof captureForm === 'object') {
+                    if (m.content) {
+                        normalised.push({ ...m, metadata: { ...m.metadata, capture_form: undefined } });
+                    }
+                    normalised.push({
+                        id: `cf_${m.id}`,
+                        role: 'capture_form',
+                        content: '',
+                        metadata: { capture_form: captureForm, errors: null },
+                        created_at: m.created_at,
+                    });
+                    continue;
+                }
+
                 if (m.role === 'assistant' && hasBubbles) {
                     // Split into text + quick_replies so AiChatPanel renders both.
                     if (m.content) {
@@ -470,14 +561,22 @@ const actions = {
     /**
      * Send a message and handle the streaming response.
      */
-    async sendMessage({ commit, dispatch, state, rootState }, message) {
+    async sendMessage({ commit, dispatch, state, rootState }, arg) {
         if (!state.currentConversation) return;
+
+        // One send path for both a typed message and a structured form
+        // answer: `arg` is a string (today) or `{ form }` (a capture_form
+        // submission). Only one of message/form is ever sent to the server.
+        const form = arg && typeof arg === 'object' ? (arg.form || null) : null;
+        const message = form ? null : arg;
 
         // Add user message to local state immediately. Strip HTML tags so the
         // optimistic bubble matches what SanitizeInput middleware writes to
         // the DB — otherwise the user sees their own "<script>...</script>"
         // input rendered as visible text in the bubble (escaped, but ugly).
-        const displayMessage = stripTags(message);
+        // A form answer has no typed text yet — show a placeholder until the
+        // server's `form_received` event supplies the plain-English summary.
+        const displayMessage = form ? 'Saving your property details…' : stripTags(message);
         const tempId = 'temp_' + Date.now();
 
         commit('ADD_MESSAGE', {
@@ -494,6 +593,11 @@ const actions = {
         // (see api.js handleAuthExpiry) — skip the error banner and the
         // empty-response fallback below so they don't flash behind the redirect.
         let authExpired = false;
+        // A refused form submission (capture_form_errors) rewrites the existing
+        // form row in place rather than pushing a new message, so it would
+        // otherwise be invisible to the empty-response check below — the
+        // errors ARE Fyn's reply, so mark the turn as having produced one.
+        let formErrorsReceived = false;
 
         commit('SET_STREAMING', true);
         commit('SET_STREAMING_TEXT', '');
@@ -518,7 +622,7 @@ const actions = {
                 state.currentConversation.id,
                 message,
                 currentRoute,
-                { signal: abortController.signal },
+                { signal: abortController.signal, form },
             );
 
             // FR-M7 — a turn sent while another is still streaming is QUEUED (or
@@ -650,6 +754,33 @@ const actions = {
                                 // the spouse skip) can be rendered outside the
                                 // bubble list too.
                                 commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'form_received':
+                                // A form submission carries no typed text — rewrite the
+                                // placeholder user bubble with the server's plain-English
+                                // summary of what was captured. Clear any earlier refusal's
+                                // errors too, so a successful retry locks the form cleanly
+                                // instead of re-rendering it open with stale errors.
+                                commit('SET_TEMP_USER_CONTENT', { id: tempId, content: event.text || '' });
+                                commit('SET_CAPTURE_FORM_ERRORS', null);
+                                break;
+
+                            case 'capture_form':
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
+                                break;
+
+                            case 'capture_form_errors':
+                                // A rejected form submission — re-attach the errors to the
+                                // same form row rather than adding a new one. Mark the turn
+                                // as replied so the empty-response guard in the finally
+                                // block below doesn't overwrite the errors with the
+                                // generic "Fyn couldn't generate a response" banner.
+                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
+                                formErrorsReceived = true;
                                 break;
 
                             case 'onboarding_advance':
@@ -866,8 +997,11 @@ const actions = {
             // produce no message. Without these guards the violet token-
             // limit notice and the raspberry empty-response banner both
             // render, with the banner overwriting the legitimate notice
-            // (BS-13 RED until session 89).
-            const producedNewMessages = state.messages.length > preStreamMessageCount;
+            // (BS-13 RED until session 89). A refused form submission is the
+            // same shape — capture_form_errors mutates the existing form row
+            // rather than pushing a new one, so formErrorsReceived stands in
+            // for a produced message.
+            const producedNewMessages = state.messages.length > preStreamMessageCount || formErrorsReceived;
             if (
                 !authExpired
                 && state.streaming
@@ -984,6 +1118,19 @@ const actions = {
                                 break;
                             case 'action':
                                 addPresentationAction(commit, state, event);
+                                break;
+                            case 'form_received':
+                                // No placeholder user row exists on this path (a queued
+                                // turn resumes after the fact) — nothing to rewrite.
+                                break;
+                            case 'capture_form':
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
+                                break;
+                            case 'capture_form_errors':
+                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
                                 break;
                             case 'capture_complete':
                                 if (state.streamingText) {
@@ -1223,6 +1370,22 @@ const actions = {
                                     created_at: new Date().toISOString(),
                                 });
                                 commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'form_received':
+                                // No placeholder user row exists on this path (a routed
+                                // action, not a direct form submission) — nothing to rewrite.
+                                break;
+
+                            case 'capture_form':
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
+                                break;
+
+                            case 'capture_form_errors':
+                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
                                 break;
 
                             case 'onboarding_advance':
@@ -1509,6 +1672,23 @@ const actions = {
                                     metadata: { bubbles: event.bubbles || [] },
                                     created_at: new Date().toISOString(),
                                 });
+                                break;
+
+                            case 'form_received':
+                                // No placeholder user row exists on this path (the
+                                // opening onboarding turn, before any user input) —
+                                // nothing to rewrite.
+                                break;
+
+                            case 'capture_form':
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
+                                break;
+
+                            case 'capture_form_errors':
+                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
                                 break;
 
                             case 'onboarding_advance':

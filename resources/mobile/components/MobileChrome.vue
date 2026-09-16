@@ -152,6 +152,15 @@
               @click="chooseBubble(b, m)"
             >{{ b.label }}</button>
           </div>
+          <FynCaptureForm
+            v-if="m.form && m.form.schema"
+            :schema="m.form.schema"
+            :errors="m.form.errors"
+            :disabled="sending"
+            :locked="m.form.locked"
+            :values="m.form.answers"
+            @submit="submitCaptureForm"
+          />
         </div>
       </div>
 
@@ -178,6 +187,7 @@ import { issueWebHandoff } from '../navigation/webHandoff.js';
 // Gate-2 turn (resumeOnboardingInDock). Provides send / scrollFyn / ensureConversation
 // / handleFynEvent / chooseBubble / handleOnboardingNavigation too.
 import onboardingChat from '../mixins/onboardingChat.js';
+import FynCaptureForm from './FynCaptureForm.vue';
 
 const CONTEXTUAL_ADD_LABELS = Object.freeze({
   savings: 'Add bank account',
@@ -205,6 +215,7 @@ const NAV_ICON = {
 
 export default {
   name: 'MobileChrome',
+  components: { FynCaptureForm },
   mixins: [onboardingChat],
   props: {
     // Optional page title shown on the gradient hero band at the top of the page.

@@ -126,6 +126,19 @@ final class OnboardingChatDirector
     ) {}
 
     /**
+     * Whether the client behind this request renders capture forms
+     * (`X-Fynla-Forms: 1`, sent by the web and /m bundles). Native does not
+     * yet, and keeps the typed prompt for a form turn. Set per request by
+     * AiChatController; never read from headers here.
+     */
+    private bool $clientSupportsForms = false;
+
+    public function setClientSupportsForms(bool $supports): void
+    {
+        $this->clientSupportsForms = $supports;
+    }
+
+    /**
      * Backend-initiated turn 1 — emits the path_choice bubbles with no
      * preceding user message. Called from AiChatController::startOnboarding
      * after a fresh AiConversation row has been created and the user's
@@ -160,14 +173,15 @@ final class OnboardingChatDirector
         AiConversation $conversation,
         string $message,
         ?string $currentRoute = null,
-        bool $persistUserMessage = true
+        bool $persistUserMessage = true,
+        ?array $form = null
     ): \Generator {
         // Persist the user message immediately so the conversation history
         // reflects the real interaction even if the rest of this generator
         // fails. Skipped when re-streaming an already-persisted queued turn
         // (FR-M7 concurrent-turn queue) so we don't duplicate the user row.
         if ($persistUserMessage) {
-            $this->saveMessage($conversation, 'user', $message);
+            $this->saveMessage($conversation, 'user', $message, $form !== null ? ['metadata' => ['form' => $form]] : []);
         }
 
         // Phase 11 — OnboardingFactExtractor runs speculatively on every
@@ -178,14 +192,25 @@ final class OnboardingChatDirector
         // by state handlers for gap-filling follow-ups and pause-state
         // confirmations. Extraction is best-effort — swallow any failure
         // rather than blocking the turn.
-        try {
-            $this->factExtractor->extractAndPark($conversation, $message);
-        } catch (\Throwable $e) {
-            Log::warning('[OnboardingChatDirector] Fact extractor failed', [
-                'user_id' => $user->id,
-                'conversation_id' => $conversation->id,
-                'error' => $e->getMessage(),
-            ]);
+        //
+        // A form turn's $message is CaptureForms::summarise() — a machine-
+        // composed sentence such as "Home worth £750,000, mortgage
+        // £325,000, …" — not free text from the user. The extractor has no
+        // way to tell a house value from an income figure, so it parks the
+        // first £ amount as employment.annual_income on every submission.
+        // The structured answers already went straight to Property via
+        // handleFormTurn with no model call; there is nothing left for the
+        // extractor to usefully find here, so skip it entirely for forms.
+        if ($form === null) {
+            try {
+                $this->factExtractor->extractAndPark($conversation, $message);
+            } catch (\Throwable $e) {
+                Log::warning('[OnboardingChatDirector] Fact extractor failed', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $currentStateId = $user->onboarding_fyn_step;
@@ -200,6 +225,23 @@ final class OnboardingChatDirector
         $state = OnboardingStateMachine::getState($currentStateId);
         if ($state === null) {
             yield $this->errorEvent('Unknown onboarding step. Please reload.');
+
+            return;
+        }
+
+        if ($form !== null) {
+            if (($state['turn_type'] ?? '') !== 'form' || ($state['form'] ?? null) !== ($form['name'] ?? null)) {
+                // A form submitted after the step moved on (a second tab, a
+                // late tap). Nothing is written; the walk carries on.
+                $line = "That form is no longer open — let's carry on from where we are.";
+                yield ['type' => 'content', 'text' => $line];
+                $this->saveMessage($conversation, 'assistant', $line, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::CaptureClarification->value]]);
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
+            yield from $this->handleFormTurn($user, $conversation, $message, $currentStateId, $state, $form);
 
             return;
         }
@@ -379,7 +421,10 @@ final class OnboardingChatDirector
         // state.next, which gives campaign users the linear walk through
         // OCCUPATIONAL → ISA → BANK → INVESTMENT → PENSION → SPOUSE_WORK
         // while keeping STATE_ASSET_CAPTURE → STATE_ADD_MORE unchanged.
-        if (($state['turn_type'] ?? '') === 'delegated') {
+        // A form turn answered with typed text takes the same delegated
+        // capture path as before the form existed (the extractor and the
+        // gate are the fallback, untouched).
+        if (in_array($state['turn_type'] ?? '', ['delegated', 'form'], true)) {
             yield from $this->handleAssetCaptureTurn($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
@@ -946,7 +991,7 @@ final class OnboardingChatDirector
      * that the frontend renders as a raspberry-500 inline link calling
      * POST /api/ai-chat/conversations/{id}/action {action:'skip'}.
      */
-    private function emitTurnForState(
+    public function emitTurnForState(
         User $user,
         AiConversation $conversation,
         string $stateId,
@@ -998,6 +1043,41 @@ final class OnboardingChatDirector
             str_starts_with($stateId, 'campaign_verify_') => FynTurnIntent::VerifyPrompt,
             default => FynTurnIntent::StepPrompt,
         };
+
+        if ($turnType === 'form' && $this->clientSupportsForms) {
+            $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
+            if ($schema !== null) {
+                // A form-capable client sees the short form-shaped lead-in
+                // (the form's own boxes and Save button carry the
+                // instructions now); a client without the capability falls
+                // through below and gets `prompt_text` — the typed
+                // instruction — via the same $promptText already resolved
+                // above. `form_prompt_text` is an optional corpus DATA key;
+                // states without it (none currently) fall back to the typed
+                // wording here too.
+                $formPromptState = $effectiveState;
+                if (isset($state['form_prompt_text'])) {
+                    $formPromptState['prompt_text'] = $state['form_prompt_text'];
+                }
+                $formPromptText = OnboardingStateMachine::resolvePromptText($formPromptState, $user, '', $conversation);
+
+                yield [
+                    'type' => 'capture_form',
+                    'prompt_text' => $formPromptText,
+                    'form' => $schema,
+                ];
+                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, [
+                    'metadata' => [
+                        'capture_form' => $schema,
+                        'onboarding_step' => $stateId,
+                        'turn_intent' => $turnIntent->value,
+                    ],
+                ]);
+                yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+
+                return;
+            }
+        }
 
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
@@ -3610,6 +3690,117 @@ PROMPT;
         return $prompt;
     }
 
+    /**
+     * A structured capture-form answer (CaptureForms). Every filled kind is
+     * one create call through the same handler, gate, tier cap, spouse
+     * memory and audit trail as a typed capture — with the user's answers
+     * handed to the gate as confirmed facts. No model, no extractor.
+     *
+     * @param  array{name: string, answers: array<string, array<string, mixed>>}  $form
+     */
+    private function handleFormTurn(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        string $currentStateId,
+        array $state,
+        array $form
+    ): \Generator {
+        $recordsCreated = [];
+        $errors = [];
+
+        // The clients post the form with no typed text and show a placeholder
+        // user row; this is the transcript line (composed once, in
+        // CaptureForms) they replace it with.
+        yield ['type' => 'form_received', 'text' => $message];
+
+        $inputs = CaptureForms::toolInputs($form);
+
+        if ($inputs === []) {
+            // Nothing recognisable was filled in. Never advance on an empty form.
+            $line = 'Fill in at least one property before saving.';
+            yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => ['_form' => ['message' => $line, 'fields' => []]]];
+            yield ['type' => 'content', 'text' => $line];
+            $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
+                'onboarding_step' => $currentStateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ]]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        foreach ($inputs as $kind => $input) {
+            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'running'];
+            $facts = ['ownership_type' => $input['ownership_type']];
+            if (isset($input['ownership_percentage'])) {
+                $facts['ownership_percentage'] = $input['ownership_percentage'];
+            }
+            try {
+                $result = $this->coordinatingAgent->executeTool('create_property', $input, $user, $conversation->id, confirmedFacts: $facts);
+            } catch (\Throwable $e) {
+                Log::error('[OnboardingChatDirector] Form capture write failed', ['user_id' => $user->id, 'kind' => $kind, 'error' => $e->getMessage()]);
+                $result = ['error' => true, 'message' => 'Unable to save the record. Please try again.'];
+            }
+            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'complete'];
+
+            if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
+                $row = ['type' => 'entity_created', 'entity_type' => 'property', 'entity_id' => $result['entity_id'], 'name' => CaptureForms::kindLabel($form['name'], $kind)];
+                $recordsCreated[] = self::recordRowFromEvent($row);
+                yield $row;
+
+                continue;
+            }
+
+            $errors[$kind] = [
+                'message' => (string) ($result['message'] ?? 'The write failed.'),
+                'fields' => is_array($result['errors'] ?? null)
+                    ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])
+                    : [],
+            ];
+        }
+
+        if ($errors !== []) {
+            yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => $errors];
+            $lines = [];
+            foreach ($errors as $kind => $error) {
+                // A guard's own refusal (RecaptureGuard's "...or a separate
+                // one?") already ends in terminal punctuation — gluing on
+                // another full stop produced "?." live. A period-ending
+                // reason still gets normalised to exactly one trailing
+                // period; a '?' or '!' ending is left exactly as written.
+                $reason = rtrim($error['message']);
+                if (str_ends_with($reason, '?') || str_ends_with($reason, '!')) {
+                    $fullStop = '';
+                } else {
+                    $reason = rtrim($reason, '.');
+                    $fullStop = '.';
+                }
+                $lines[] = CaptureForms::kindLabel($form['name'], $kind).': '.$reason.$fullStop;
+            }
+            $text = ($recordsCreated !== [] ? rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. ' : '')
+                ."I couldn't save ".implode(' ', $lines);
+            yield ['type' => 'content', 'text' => $text];
+            $saved = $this->saveMessage($conversation, 'assistant', $text, ['metadata' => [
+                'onboarding_step' => $currentStateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ]]);
+            $this->recordProgress($user, $currentStateId, ['selection' => 'savetax', 'raw_message' => mb_substr($message, 0, 500)]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        yield [
+            'type' => 'capture_complete',
+            'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
+            'records_created' => $recordsCreated,
+        ];
+        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+    }
+
     // ─── Asset capture delegation ─────────────────────────────────────────
 
     /**
@@ -4198,6 +4389,15 @@ PROMPT;
             ];
         }
 
+        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, $selection);
+    }
+
+    /**
+     * Record the answer, move to the next state and emit its turn — the one
+     * advance every capture path takes (typed, backstop, form).
+     */
+    private function advanceAfterCapture(User $user, AiConversation $conversation, string $currentStateId, string $message, string $selection): \Generator
+    {
         // Record the step in onboarding_progress (best-effort — tool calls
         // that actually created records already persisted their own rows).
         // Records under the actual state ID so campaign delegated states

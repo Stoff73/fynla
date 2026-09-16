@@ -51,6 +51,18 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
+## Next session starts here — property capture form (CSJ, 2026-09-15)
+
+CSJ's decision 2026-09-15 17:01: onboarding stops parsing free text for property; a structured
+form in the chat (Home / Buy to let), same property store, no model. Spec
+`docs/superpowers/specs/2026-09-15-savetax-property-capture-form-design.md`, plan
+`docs/superpowers/plans/2026-09-15-savetax-property-capture-form.md` (12 tasks), branch
+`feat/savetax-property-capture-form` at `c7216000a` — Tasks 1–5 done and reviewed, resume at
+Task 6 via subagent-driven development with the ledger in
+`handover/September/15/sdd-property-form/`. Scope: Save Tax `campaign_property` only; web + `/m`;
+native untouched (`X-Fynla-Forms` header). CSJ: verify in their Chrome, never headless; check
+every subagent's work personally. Handover: `handover/September/15/handover-2026-09-15-session-2.md`.
+
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
 - [ ] **BLOCKED ON CSJ — how the phone gets tested.** Build 10 (Production configuration,
@@ -160,13 +172,14 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 ## Deploy state
 
-- **fynla.org = main `e6d4f4a18`** (tree identical to dev `a5dd5c340`), nine releases on
-  2026-09-11/12 (#809–#827). One migration (`2026_09_12_090000_add_provider_names…`), ran on prod
-  08:44 BST 2026-09-12 with a full dump first. Web bundle `app-C-Usr4DG.js`, `/m` bundle
-  `main-B8hm8ebQ.js`, corpus validated. Backups: `~/release-backups/2026-09-11/`…`h/`,
-  `2026-09-12a/`, `b/`. Notes: memory `project_release_2026_09_11`.
-- **csjones = dev `a5dd5c340`**, both bundles from `1b22f6112`. Eleven fix PRs (#829–#839) are open
-  against dev and unmerged as of 2026-09-14 21:13 BST; nothing from them is on csjones or prod.
+- **fynla.org = main `357e44e4b`** (tree identical to dev `e4afd0d1c`), two releases on
+  2026-09-15 (#856, #858) after six PHP-only fixes (#840–#853). Migrations `2026_09_15_140000`
+  (dividend column) and `2026_09_15_170000` (Free property cap → 2) ran on prod with full dumps
+  first. No bundle change today. Backups `~/release-backups/2026-09-15/`…`h/`. Notes: memory
+  `project_release_2026_09_15`.
+- **csjones = dev `e4afd0d1c`**, bundles unchanged. Eleven mapping PRs (#829–#839) still open and
+  unmerged (rebased stack, parked on CSJ). Nothing from `feat/savetax-property-capture-form` is
+  deployed anywhere.
 - **TestFlight "Fynla" 1.0 (10)** on the `org.fynla.app.dev` record, Production
   configuration reading fynla.org, VALID 2026-09-10 08:49 BST; native tree unchanged since.
   The `org.fynla.app` record is "Fynla (legacy)" — never upload there unasked.

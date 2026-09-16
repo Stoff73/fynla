@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\Log;
  * or any output emitted by this machine.
  *
  * State record shape:
- *   turn_type:    'bubbles' | 'free_text' | 'delegated' | 'terminal'
+ *   turn_type:    'bubbles' | 'free_text' | 'delegated' | 'grouped_extract' | 'form' | 'terminal'
  *   prompt_text:  string | callable(User): string
  *                 (uses {first_name} / {selection} template tokens when string)
  *   reprompt_text: string | callable(User): string | omitted
