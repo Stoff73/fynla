@@ -31,6 +31,8 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_BASE_EXPENDITURE,
             OnboardingStateMachine::STATE_ASSET_CAPTURE,
             OnboardingStateMachine::STATE_ADD_MORE,
+            OnboardingStateMachine::STATE_JOURNEY_PROTECTION,
+            OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE,
             OnboardingStateMachine::STATE_DONE,
             // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign)
             OnboardingStateMachine::STATE_CAMPAIGN_INTRO,
@@ -289,9 +291,30 @@ describe('OnboardingStateMachine::nextFromAddMore', function () {
             ->toBe(OnboardingStateMachine::STATE_DONE);
     });
 
-    it('routes a new selection back to asset_capture', function () {
-        $user = User::factory()->create();
-        expect(OnboardingStateMachine::nextFromAddMore('Investment', $user))
+    // CSJ 2026-09-16: a chosen focus opens on its capture form; focuses with no form stay model-driven.
+    it('routes a chosen focus to its form state, and one without a form to asset_capture', function () {
+        $investment = User::factory()->create(['onboarding_fyn_selection' => 'investment']);
+        expect(OnboardingStateMachine::nextFromAddMore('Investment', $investment))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+
+        $savings = User::factory()->create(['onboarding_fyn_selection' => 'savings']);
+        expect(OnboardingStateMachine::nextFromAddMore('Savings', $savings))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS);
+
+        $retiredRetirement = User::factory()->create(['onboarding_fyn_selection' => 'retirement', 'employment_status' => 'retired']);
+        expect(OnboardingStateMachine::nextFromAddMore('Retirement', $retiredRetirement))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
+
+        $employedRetirement = User::factory()->create(['onboarding_fyn_selection' => 'retirement', 'employment_status' => 'employed']);
+        expect(OnboardingStateMachine::nextFromAddMore('Retirement', $employedRetirement))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+
+        $protection = User::factory()->create(['onboarding_fyn_selection' => 'protection']);
+        expect(OnboardingStateMachine::nextFromAddMore('Protection', $protection))
+            ->toBe(OnboardingStateMachine::STATE_JOURNEY_PROTECTION);
+
+        $estate = User::factory()->create(['onboarding_fyn_selection' => 'estate']);
+        expect(OnboardingStateMachine::nextFromAddMore('Estate', $estate))
             ->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
     });
 });

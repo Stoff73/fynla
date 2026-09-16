@@ -489,6 +489,23 @@ add_more:
   capture_field: null
   next: { branch: nextFromAddMore }
 
+journey_protection:
+  turn_type: form
+  form: protection
+  prompt_text: "Let's look at your protection cover. **Tell me about any life insurance, critical illness cover or income protection policies — the type, the provider, the cover amount and the term.** If you don't have any yet, just say so."
+  form_prompt_text: 'Now your protection cover.'
+  capture_field: null
+  next: journey_protection_more
+
+journey_protection_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another policy to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromProtectionMore }
+
 free_chat:
   turn_type: terminal
   prompt_text: 'No problem. What would you like help with?'

@@ -1653,6 +1653,7 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
+            OnboardingStateMachine::STATE_JOURNEY_PROTECTION => OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE,
         ][$formStateId] ?? null;
         if ($loopState === null) {
             return false;

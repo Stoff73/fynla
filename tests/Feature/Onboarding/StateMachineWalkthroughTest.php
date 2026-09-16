@@ -183,20 +183,21 @@ describe('state-machine walkthrough — path_choice → done', function () {
             ->and($expenditureStream)->toContain("I've noted your monthly spending")
             ->and($expenditureStream)->not->toContain('"type":"capture_complete"');
 
-        // Step 8a — Okay → navigate; "Yes, that's right" → asset_capture.
+        // Step 8a — Okay → navigate; "Yes, that's right" → the protection
+        // journey's capture opens on the protection form (CSJ 2026-09-16).
         sendOnboardingMessage($this, $this->user, $conversation->id, 'Okay');
         sendOnboardingMessage($this, $this->user, $conversation->id, "Yes, that's right");
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
-            ->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
+            ->toBe(OnboardingStateMachine::STATE_JOURNEY_PROTECTION);
 
         // Step 8b — ExpenditureProfile sync (covers bug §4 from 88018a5)
         $profile = ExpenditureProfile::where('user_id', $this->user->id)->first();
         expect($profile)->not->toBeNull()
             ->and((float) $profile->total_monthly_expenditure)->toBe(10000.0);
 
-        // Step 9 — simulate asset_capture delegation advancing to add_more
+        // Step 9 — simulate the protection form loop advancing to add_more
         jumpTo($this->user->id, OnboardingStateMachine::STATE_ADD_MORE, [
             'onboarding_fyn_context' => json_encode(['visited_focuses' => ['protection']]),
         ]);
@@ -233,7 +234,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
             ->and($this->user->employment_status)->toBe('retired');
     });
 
-    it('loops add_more back into asset_capture when a new focus is picked', function () {
+    it('opens the chosen focus on its capture form when a new focus is picked', function () {
         Sanctum::actingAs($this->user);
         $this->postJson('/api/ai-chat/onboarding/start')->streamedContent();
 
@@ -251,7 +252,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
-            ->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE)
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS)
             ->and($this->user->onboarding_fyn_selection)->toBe('savings')
             ->and($this->user->onboarding_fyn_context['visited_focuses'] ?? [])
             ->toContain('savings');
