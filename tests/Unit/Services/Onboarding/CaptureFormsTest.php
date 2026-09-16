@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -388,4 +388,22 @@ it('the work form writes employer, role and income once through capture_work_det
     $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
     expect($state['form'])->toBe('work')
         ->and($state['form_prompt_text'])->toBe(OnboardingStateMachine::class.'::buildWorkFormPrompt');
+});
+
+it('the campaign date-of-birth step is a one-field form through capture_personal_details', function (): void {
+    $schema = CaptureForms::schema('dob');
+    expect($schema['tool'])->toBe('capture_personal_details')
+        ->and($schema['lead_fields'])->toBe(['date_of_birth'])
+        ->and(CaptureForms::toolInputs(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]))->toBe(['_lead' => ['date_of_birth' => '1981-03-14']])
+        ->and(CaptureForms::summarise(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]))->toBe('I was born on 14 March 1981.')
+        ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_DOB)['form'])->toBe('dob');
+});
+
+it('the personal-only pension form is the pension form with just the SIPP kind, at the contributions step', function (): void {
+    $schema = CaptureForms::schema('pension_personal');
+    expect(array_column($schema['kinds'], 'key'))->toBe(['personal'])
+        ->and($schema['kinds'][0]['tool'])->toBe('create_pension')
+        ->and(CaptureForms::toolInputs(['name' => 'pension_personal', 'answers' => ['personal' => ['provider' => 'Vanguard', 'current_value' => 30000, 'annual_contribution' => 6000]]]))
+        ->toBe(['personal' => ['pension_category' => 'dc', 'scheme_name' => 'Vanguard personal pension or SIPP', 'scheme_type' => 'personal', 'provider' => 'Vanguard', 'current_fund_value' => 30000.0, 'monthly_contribution_amount' => 500.0]])
+        ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS)['form'])->toBe('pension_personal');
 });

@@ -237,6 +237,7 @@ campaign_property_more:
 
 campaign_dob:
   turn_type: grouped_extract
+  form: dob
   prompt_text: "Now let's look at pensions and retirement — for that **I need your date of birth.** Something like 12 January 1985 or 12/01/85."
   extraction_tool: capture_personal_details
   retry_text: 'Could you give me your date of birth — for example 12 January 1985 or 12/01/85?'
@@ -263,6 +264,8 @@ campaign_pension_more:
 
 campaign_pension_contribs:
   turn_type: delegated
+  form: pension_personal
+  form_prompt_text: 'Now your pensions.'
   prompt_text: "**Do you have a personal pension or a Self-Invested Personal Pension (SIPP)?** If you do, tell me who it's with and whether you pay into it — and roughly how much a year (gross) if you do. If you have one but don't pay in, just say so."
   capture_field: null
   next: { branch: nextFromCampaignPensionContribs }

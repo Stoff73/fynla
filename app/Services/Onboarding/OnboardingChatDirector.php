@@ -1073,6 +1073,17 @@ final class OnboardingChatDirector
                     $formPromptText = '';
                 }
 
+                // The pension form offers the personal pension or SIPP kind, so
+                // the typed "do you have a personal pension?" step after the
+                // pot loop would ask again — mark it done (the same flag a saved
+                // personal pension sets; afterPensionPots consumes it).
+                if ($schema['name'] === CaptureForms::PENSION) {
+                    $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                    $context['pension_contribs_done'] = true;
+                    $user->onboarding_fyn_context = $context;
+                    $user->save();
+                }
+
                 yield [
                     'type' => 'capture_form',
                     'prompt_text' => $formPromptText,
@@ -4549,6 +4560,12 @@ PROMPT;
             $user->refresh()
         );
 
+        // "I don't have any" at a capture step answers its own "another?"
+        // loop question too — resolve the loop as "no" instead of asking.
+        if ($nextStateId !== null && str_ends_with($nextStateId, '_more') && self::isCompletionDeclaration($message)) {
+            $nextStateId = OnboardingStateMachine::getNextStateId($nextStateId, 'no', $user);
+        }
+
         if ($nextStateId === null) {
             return;
         }
@@ -6207,7 +6224,7 @@ PROMPT;
     private function buildCaptureAck(User $user, string $stateId, array $interpretation): ?string
     {
         return match ($stateId) {
-            OnboardingStateMachine::STATE_BASE_PERSONAL => $this->personalAck($user),
+            OnboardingStateMachine::STATE_BASE_PERSONAL, OnboardingStateMachine::STATE_CAMPAIGN_DOB => $this->personalAck($user),
             OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
@@ -6910,7 +6927,12 @@ PROMPT;
      */
     private static function isCompletionDeclaration(string $message): bool
     {
-        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1;
+        // "No" / "none" / "that's everything" at the start, or the everyday
+        // "I don't have any …" / "I have no …" / "not got any …" / "nothing else"
+        // (csjones user 403, 2026-09-16: "I don't have any other investments"
+        // at the investment form fell to "Sorry, I didn't catch that").
+        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1
+            || preg_match('/^\s*(?:i\s+)?(?:don[\x{2019}\x{0027}]?t|do\s+not|haven[\x{2019}\x{0027}]?t|have\s+not)\s+(?:have|got)\s+(?:any|one|another)\b|^\s*i\s+have\s+(?:no|none)\b|^\s*(?:i[\x{2019}\x{0027}]?ve\s+)?not\s+got\s+(?:any|one)\b|\bnothing\s+else\b|\bno\s+other\b/iu', $message) === 1;
     }
 
     private function messageHasSubstantiveAnswer(string $message): bool
