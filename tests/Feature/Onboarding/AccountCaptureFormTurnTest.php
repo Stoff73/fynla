@@ -382,3 +382,21 @@ it('saves the date of birth from the campaign form, repeats it back and enters t
         ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('14 March 1981')
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
 });
+
+// csjones user 403, 2026-09-16: a user who ticked only ISA reaches the investment
+// form with nothing to add; typing so must move on, not "Sorry, I didn't catch that".
+it('a typed "I don\'t have any" at a capture form moves past the step and its loop question', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    $conversation = accountConversation($user);
+    FynStreamHarness::fake()->textTurn('Recorded — no investments.')->bind();
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, "I don't have any other investments", null, true
+    ), false);
+
+    $text = collect($events)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($text)->not->toContain("didn't catch that")
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE)
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'] ?? '')->not->toContain('another');
+});

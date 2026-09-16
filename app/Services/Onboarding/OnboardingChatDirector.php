@@ -4549,6 +4549,12 @@ PROMPT;
             $user->refresh()
         );
 
+        // "I don't have any" at a capture step answers its own "another?"
+        // loop question too — resolve the loop as "no" instead of asking.
+        if ($nextStateId !== null && str_ends_with($nextStateId, '_more') && self::isCompletionDeclaration($message)) {
+            $nextStateId = OnboardingStateMachine::getNextStateId($nextStateId, 'no', $user);
+        }
+
         if ($nextStateId === null) {
             return;
         }
@@ -6910,7 +6916,12 @@ PROMPT;
      */
     private static function isCompletionDeclaration(string $message): bool
     {
-        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1;
+        // "No" / "none" / "that's everything" at the start, or the everyday
+        // "I don't have any …" / "I have no …" / "not got any …" / "nothing else"
+        // (csjones user 403, 2026-09-16: "I don't have any other investments"
+        // at the investment form fell to "Sorry, I didn't catch that").
+        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1
+            || preg_match('/^\s*(?:i\s+)?(?:don[\x{2019}\x{0027}]?t|do\s+not|haven[\x{2019}\x{0027}]?t|have\s+not)\s+(?:have|got)\s+(?:any|one|another)\b|^\s*i\s+have\s+(?:no|none)\b|^\s*(?:i[\x{2019}\x{0027}]?ve\s+)?not\s+got\s+(?:any|one)\b|\bnothing\s+else\b|\bno\s+other\b/iu', $message) === 1;
     }
 
     private function messageHasSubstantiveAnswer(string $message): bool
