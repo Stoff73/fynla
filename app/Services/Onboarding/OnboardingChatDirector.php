@@ -1078,13 +1078,19 @@ final class OnboardingChatDirector
                     'prompt_text' => $formPromptText,
                     'form' => $schema,
                 ];
-                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, [
-                    'metadata' => [
-                        'capture_form' => $schema,
-                        'onboarding_step' => $stateId,
-                        'turn_intent' => $turnIntent->value,
-                    ],
-                ]);
+                $metadata = [
+                    'capture_form' => $schema,
+                    'onboarding_step' => $stateId,
+                    'turn_intent' => $turnIntent->value,
+                ];
+                // A state's skip link (base_spouse) travels with the form the
+                // same way it does with the typed prompt: a separate event
+                // both clients already render, and the row's metadata for resume.
+                if (is_array($skipLink) && ! empty($skipLink)) {
+                    $metadata['skip_link'] = $skipLink;
+                    yield ['type' => 'skip_link', 'skip_link' => $skipLink];
+                }
+                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, ['metadata' => $metadata]);
                 yield ['type' => 'done', 'message_id' => $assistantMessage->id];
 
                 return;

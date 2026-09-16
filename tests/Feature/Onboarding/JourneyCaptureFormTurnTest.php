@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\Support\Fyn\FynStreamHarness;
 
 /**
@@ -107,4 +109,52 @@ it('a date of birth outside the age bounds is refused on the form and the step d
     expect(collect($events)->firstWhere('type', 'capture_form_errors'))->not->toBeNull()
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL)
         ->and($user->fresh()->date_of_birth)->toBeNull();
+});
+
+it('emits the spouse details form with its skip link, both in the stream and on the saved row', function (): void {
+    $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_SPOUSE, ['date_of_birth' => '1985-01-12', 'marital_status' => 'married']);
+    $conversation = journeyConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_BASE_SPOUSE, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE)), false);
+    $formEvent = collect($emitted)->firstWhere('type', 'capture_form');
+    $skip = collect($emitted)->firstWhere('type', 'skip_link');
+    expect($formEvent['prompt_text'])->toBe("Now your spouse or partner's details.")
+        ->and($formEvent['form']['name'])->toBe('spouse_details')
+        ->and($skip['skip_link']['label'])->toBe('Skip this for now')
+        ->and($conversation->messages()->latest('id')->first()->metadata['skip_link']['label'])->toBe('Skip this for now');
+});
+
+it('saves the spouse from the form, links or invites their account, repeats it back and moves to the dependants question', function (): void {
+    Mail::fake();
+    $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_SPOUSE, ['date_of_birth' => '1985-01-12', 'marital_status' => 'married']);
+    $conversation = journeyConversation($user);
+
+    $events = submitJourneyForm($user, $conversation, ['name' => 'spouse_details', 'answers' => ['_lead' => [
+        'first_name' => 'Jamie', 'last_name' => 'Smith', 'date_of_birth' => '1986-03-03', 'email' => 'jamie-form@example.com', 'annual_income' => 40000,
+    ]]]);
+
+    $spouse = FamilyMember::where('user_id', $user->id)->where('relationship', 'spouse')->first();
+    expect($spouse)->not->toBeNull()
+        ->and($spouse->first_name)->toBe('Jamie')
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('Jamie')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
+});
+
+it('an email already in another household is refused on the spouse form and the step does not move', function (): void {
+    Mail::fake();
+    $thirdParty = User::factory()->create();
+    User::factory()->create(['email' => 'taken-spouse@example.com', 'spouse_id' => $thirdParty->id]);
+    $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_SPOUSE, ['date_of_birth' => '1985-01-12', 'marital_status' => 'married']);
+    $conversation = journeyConversation($user);
+
+    $events = submitJourneyForm($user, $conversation, ['name' => 'spouse_details', 'answers' => ['_lead' => [
+        'first_name' => 'Sam', 'date_of_birth' => '1980-01-01', 'email' => 'taken-spouse@example.com',
+    ]]]);
+
+    expect(collect($events)->firstWhere('type', 'capture_form_errors'))->not->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE)
+        ->and(FamilyMember::where('user_id', $user->id)->count())->toBe(0);
 });

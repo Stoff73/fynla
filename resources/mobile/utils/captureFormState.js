@@ -53,7 +53,7 @@ export const captureFormMixin = {
         const type = this.field(fieldKey).type;
         if (type === 'money_or_none') return this.isNone(kind.key, fieldKey) || this.hasNumber(kind.key, fieldKey);
         if (type === 'choice') return Boolean(this.answers[kind.key][fieldKey]);
-        if (type === 'text' || type === 'date') return this.hasText(kind.key, fieldKey);
+        if (type === 'text' || type === 'date' || type === 'email') return this.hasText(kind.key, fieldKey);
         return this.hasNumber(kind.key, fieldKey);
       }));
     },

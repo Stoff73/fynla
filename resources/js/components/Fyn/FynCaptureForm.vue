@@ -80,10 +80,10 @@
           >
 
           <input
-            v-else-if="field(fieldKey).type === 'text'"
+            v-else-if="field(fieldKey).type === 'text' || field(fieldKey).type === 'email'"
             :id="inputId(block.key, fieldKey)"
             :name="block.key + '.' + fieldKey"
-            type="text"
+            :type="field(fieldKey).type"
             maxlength="255"
             autocomplete="off"
             class="form-input"

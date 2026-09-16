@@ -66,6 +66,8 @@ base_personal:
 
 base_spouse:
   turn_type: grouped_extract
+  form: spouse_details
+  form_prompt_text: "Now your spouse or partner's details."
   prompt_text: { builder: buildSpousePrompt }
   extraction_tool: capture_spouse_details
   retry_text: 'I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?'

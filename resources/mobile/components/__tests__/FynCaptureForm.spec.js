@@ -209,4 +209,19 @@ describe('FynCaptureForm', () => {
     await w.find('form').trigger('submit');
     expect(w.emitted('submit')[0][0]).toEqual({ name: 'personal', answers: { _lead: { date_of_birth: '1985-01-12', marital_status: 'married' } } });
   });
+
+  it('renders an email field as a native email input and requires it', async () => {
+    const spouse = {
+      name: 'spouse_details', submit_label: 'Save', tool: 'capture_spouse_details', lead_fields: ['first_name', 'email'], kinds: [],
+      fields: { first_name: { type: 'text', label: 'Their first name', required: true }, email: { type: 'email', label: 'Their email address', required: true } },
+    };
+    const w = mount(FynCaptureForm, { props: { schema: spouse } });
+    expect(w.find('input[type="email"][name="_lead.email"]').exists()).toBe(true);
+    await w.find('input[name="_lead.first_name"]').setValue('Jamie');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await w.find('input[name="_lead.email"]').setValue(' jamie@example.com ');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'spouse_details', answers: { _lead: { first_name: 'Jamie', email: 'jamie@example.com' } } });
+  });
 });
