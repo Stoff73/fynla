@@ -412,8 +412,9 @@ final class CaptureForms
     }
 
     /**
-     * ISAs: any combination of the four kinds. No ownership field — an ISA
-     * is individual by law (the investment tool rejects a joint ISA).
+     * ISAs: Cash and Stocks and Shares (CSJ 2026-09-16: Lifetime and
+     * Innovative Finance stay on the typed path). No ownership field — an
+     * ISA is individual by law (the investment tool rejects a joint ISA).
      *
      * @return array<string, mixed>
      */
@@ -428,10 +429,6 @@ final class CaptureForms
                 ['key' => 'cash_isa', 'label' => 'Cash ISA', 'tool' => 'create_savings_account', 'entity_type' => 'savings_account',
                     'fields' => [...$fields, 'interest_rate']],
                 ['key' => 'stocks_shares_isa', 'label' => 'Stocks and Shares ISA', 'isa_type' => 'stocks_and_shares',
-                    'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => $fields],
-                ['key' => 'lifetime_isa', 'label' => 'Lifetime ISA', 'isa_type' => 'lifetime',
-                    'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => $fields],
-                ['key' => 'innovative_finance_isa', 'label' => 'Innovative Finance ISA', 'isa_type' => 'innovative_finance',
                     'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => $fields],
             ],
             'fields' => [

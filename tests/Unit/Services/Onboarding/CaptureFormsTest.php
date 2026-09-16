@@ -137,11 +137,11 @@ it('the property step is a form turn owned by the corpus', function (): void {
 
 // ── Account forms (CSJ 2026-09-16) ─────────────────────────────────────────
 
-it('offers the four ISA kinds with no ownership field, routed to the right tool', function (): void {
+it('offers the two ISA kinds with no ownership field, routed to the right tool', function (): void {
     $schema = CaptureForms::schema('isa');
-    expect(array_column($schema['kinds'], 'key'))->toBe(['cash_isa', 'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa'])
-        ->and(array_column($schema['kinds'], 'label'))->toBe(['Cash ISA', 'Stocks and Shares ISA', 'Lifetime ISA', 'Innovative Finance ISA'])
-        ->and(array_column($schema['kinds'], 'tool'))->toBe(['create_savings_account', 'create_investment_account', 'create_investment_account', 'create_investment_account'])
+    expect(array_column($schema['kinds'], 'key'))->toBe(['cash_isa', 'stocks_shares_isa'])
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['Cash ISA', 'Stocks and Shares ISA'])
+        ->and(array_column($schema['kinds'], 'tool'))->toBe(['create_savings_account', 'create_investment_account'])
         ->and($schema['fields'])->not->toHaveKey('ownership_type')
         ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'paid_in_this_year', 'interest_rate'])
         ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'paid_in_this_year'])
@@ -153,8 +153,7 @@ it('offers the four ISA kinds with no ownership field, routed to the right tool'
 it('builds the ISA inputs: a cash ISA is a savings row, the others investment rows, all individual', function (): void {
     $inputs = CaptureForms::toolInputs(['name' => 'isa', 'answers' => [
         'cash_isa' => ['provider' => ' Nationwide ', 'current_value' => 12000, 'paid_in_this_year' => 4000, 'interest_rate' => 4.5],
-        'stocks_shares_isa' => ['provider' => 'Vanguard', 'current_value' => 30000],
-        'lifetime_isa' => ['provider' => 'Moneybox', 'current_value' => 8000, 'paid_in_this_year' => 4000],
+        'stocks_shares_isa' => ['provider' => 'Vanguard', 'current_value' => 30000, 'paid_in_this_year' => 6000],
     ]]);
 
     expect($inputs['cash_isa'])->toBe([
@@ -163,10 +162,10 @@ it('builds the ISA inputs: a cash ISA is a savings row, the others investment ro
     ])
         ->and($inputs['stocks_shares_isa'])->toBe([
             'account_name' => 'Vanguard Stocks and Shares ISA', 'account_type' => 'stocks_shares_isa', 'isa_type' => 'stocks_and_shares',
-            'provider' => 'Vanguard', 'current_value' => 30000.0, 'ownership_type' => 'individual',
+            'provider' => 'Vanguard', 'current_value' => 30000.0, 'ownership_type' => 'individual', 'isa_subscription_current_year' => 6000.0,
         ])
-        ->and($inputs['lifetime_isa']['isa_type'])->toBe('lifetime')
-        ->and($inputs['lifetime_isa']['isa_subscription_current_year'])->toBe(4000.0);
+        ->and($inputs['stocks_shares_isa']['isa_subscription_current_year'])->toBe(6000.0)
+        ->and($inputs)->not->toHaveKey('lifetime_isa');
 
     expect(CaptureForms::summarise(['name' => 'isa', 'answers' => [
         'cash_isa' => ['provider' => 'Nationwide', 'current_value' => 12000, 'paid_in_this_year' => 4000],
