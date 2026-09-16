@@ -400,3 +400,39 @@ it('a typed "I don\'t have any" at a capture form moves past the step and its lo
         ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE)
         ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'] ?? '')->not->toContain('another');
 });
+
+it('a self-employed user gets the personal pension form at the contributions step and goes on to the verify page', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $user->forceFill(['employment_status' => 'self_employed', 'annual_self_employment_income' => 41000, 'date_of_birth' => '1978-06-21', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['pension']]])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS)), false);
+    $form = collect($emitted)->firstWhere('type', 'capture_form');
+    expect($form['prompt_text'])->toBe('Now your pensions.')
+        ->and(array_column($form['form']['kinds'], 'label'))->toBe(['Personal pension or SIPP']);
+
+    $events = submitForm($user, $conversation, ['name' => 'pension_personal', 'answers' => ['personal' => ['provider' => 'Vanguard', 'current_value' => 30000, 'annual_contribution' => 6000]]]);
+    $row = DCPension::where('user_id', $user->id)->first();
+    expect($row)->not->toBeNull()
+        ->and($row->pension_type)->toBe('personal')
+        ->and((float) $row->current_fund_value)->toBe(30000.0)
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+});
+
+it('showing the pension form marks the typed personal-pension step done, so "No" after the pot loop goes to the verify page', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $user->forceFill(['employment_status' => 'employed', 'annual_employment_income' => 52000, 'date_of_birth' => '1980-02-19'])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME)), false);
+    expect($user->fresh()->onboarding_fyn_context['pension_contribs_done'] ?? false)->toBeTrue();
+
+    submitForm($user->fresh(), $conversation, ['name' => 'pension', 'answers' => [
+        'workplace' => ['provider' => 'Aviva', 'current_value' => 64000, 'employee_contribution_percent' => 6, 'employer_contribution_percent' => 4, 'salary_sacrifice' => 'no'],
+    ]]);
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+});

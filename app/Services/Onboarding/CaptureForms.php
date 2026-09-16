@@ -49,6 +49,9 @@ final class CaptureForms
     /** Save Tax and pension check: the date of birth alone, through capture_personal_details. */
     public const DOB = 'dob';
 
+    /** The personal pension or SIPP alone — the pension form for users with no workplace scheme step. */
+    public const PENSION_PERSONAL = 'pension_personal';
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
@@ -59,7 +62,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL];
     }
 
     /** @return array<string, mixed>|null */
@@ -78,6 +81,7 @@ final class CaptureForms
             self::DEPENDANTS => self::dependants(),
             self::WORK => self::work(),
             self::DOB => self::dob(),
+            self::PENSION_PERSONAL => self::pensionPersonal(),
             default => null,
         };
     }
@@ -208,7 +212,7 @@ final class CaptureForms
                 self::ISA => self::isaInputs($kind, $answers),
                 self::SAVINGS => self::savingsInputs($kind, $answers),
                 self::INVESTMENT => self::investmentInputs($kind, $answers),
-                self::PENSION => self::pensionInputs($kind, $answers),
+                self::PENSION, self::PENSION_PERSONAL => self::pensionInputs($kind, $answers),
             };
         }
 
@@ -246,7 +250,7 @@ final class CaptureForms
                 self::ISA => self::isaSentence($label, $input),
                 self::SAVINGS => self::savingsSentence($label, $input),
                 self::INVESTMENT => self::investmentSentence($label, $input),
-                self::PENSION => self::pensionSentence($label, $input),
+                self::PENSION, self::PENSION_PERSONAL => self::pensionSentence($label, $input),
             };
         }
 
@@ -1036,5 +1040,21 @@ final class CaptureForms
                 'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
             ],
         ];
+    }
+
+    /**
+     * The pension form with only the personal pension or SIPP kind: what a
+     * self-employed, retired or not-working user is asked at the
+     * contributions step, since their workplace-scheme step is skipped.
+     *
+     * @return array<string, mixed>
+     */
+    private static function pensionPersonal(): array
+    {
+        $pension = self::pension();
+        $pension['name'] = self::PENSION_PERSONAL;
+        $pension['kinds'] = array_values(array_filter($pension['kinds'], static fn (array $kind): bool => $kind['key'] === 'personal'));
+
+        return $pension;
     }
 }

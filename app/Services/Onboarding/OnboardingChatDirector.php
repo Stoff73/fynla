@@ -1073,6 +1073,17 @@ final class OnboardingChatDirector
                     $formPromptText = '';
                 }
 
+                // The pension form offers the personal pension or SIPP kind, so
+                // the typed "do you have a personal pension?" step after the
+                // pot loop would ask again — mark it done (the same flag a saved
+                // personal pension sets; afterPensionPots consumes it).
+                if ($schema['name'] === CaptureForms::PENSION) {
+                    $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                    $context['pension_contribs_done'] = true;
+                    $user->onboarding_fyn_context = $context;
+                    $user->save();
+                }
+
                 yield [
                     'type' => 'capture_form',
                     'prompt_text' => $formPromptText,
