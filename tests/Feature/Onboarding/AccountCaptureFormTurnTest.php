@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -229,14 +230,25 @@ it('re-opens the form on "Yes, add another" and continues on "No" exactly where 
     $director->setClientSupportsForms(true);
 
     $isaUser = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE);
-    $events = iterator_to_array($director->handleUserMessage($isaUser, accountConversation($isaUser), 'Yes, add another'), false);
-    expect(collect($events)->firstWhere('type', 'capture_form')['form']['name'])->toBe('isa')
+    $isaConversation = accountConversation($isaUser);
+    // The loop question is the last assistant row, as it is live.
+    AiMessage::create(['conversation_id' => $isaConversation->id, 'role' => 'assistant', 'content' => 'Do you have another ISA to add?', 'metadata' => ['onboarding_step' => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE]]);
+    $events = iterator_to_array($director->handleUserMessage($isaUser, $isaConversation, 'Yes, add another'), false);
+    $reopened = collect($events)->firstWhere('type', 'capture_form');
+    expect($reopened['form']['name'])->toBe('isa')
+        // CSJ 2026-09-16: no "Now your ISAs." lead-in when re-opening after Yes.
+        ->and($reopened['prompt_text'])->toBe('')
         ->and($isaUser->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS);
 
     $isaDone = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE);
-    $events = iterator_to_array($director->handleUserMessage($isaDone, accountConversation($isaDone), "No, that's everything"), false);
+    $isaDoneConversation = accountConversation($isaDone);
+    AiMessage::create(['conversation_id' => $isaDoneConversation->id, 'role' => 'assistant', 'content' => 'Do you have another ISA to add?', 'metadata' => ['onboarding_step' => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE]]);
+    $events = iterator_to_array($director->handleUserMessage($isaDone, $isaDoneConversation, "No, that's everything"), false);
+    $bankForm = collect($events)->firstWhere('type', 'capture_form');
     expect($isaDone->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS)
-        ->and(collect($events)->firstWhere('type', 'capture_form')['form']['name'])->toBe('savings');
+        ->and($bankForm['form']['name'])->toBe('savings')
+        // A different step's loop question is a fresh entry: the lead-in stays.
+        ->and($bankForm['prompt_text'])->toBe('Now your bank and savings accounts.');
 
     $bankDone = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE);
     iterator_to_array($director->handleUserMessage($bankDone, accountConversation($bankDone), "No, that's everything"), false);

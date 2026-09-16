@@ -1063,6 +1063,14 @@ final class OnboardingChatDirector
                 }
                 $formPromptText = OnboardingStateMachine::resolvePromptText($formPromptState, $user, '', $conversation);
 
+                // CSJ 2026-09-16: after "Yes, add another" the user knows
+                // what they are adding — re-open the form with no lead-in.
+                // The previous assistant row is the loop question in that
+                // case; both clients skip an empty prompt row.
+                if ($this->reenteredFromLoopQuestion($conversation, $stateId)) {
+                    $formPromptText = '';
+                }
+
                 yield [
                     'type' => 'capture_form',
                     'prompt_text' => $formPromptText,
@@ -1604,6 +1612,29 @@ final class OnboardingChatDirector
      *
      * @return list<array{id: string, label: string}>
      */
+    /**
+     * True when the last assistant turn was THIS form step's own loop
+     * question ("another X?") — i.e. the user said "Yes, add another". A
+     * different step's loop question ("No" on ISAs leading into the bank
+     * form) is a fresh entry and keeps its lead-in.
+     */
+    private function reenteredFromLoopQuestion(AiConversation $conversation, string $formStateId): bool
+    {
+        $loopState = [
+            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE,
+            OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE,
+            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
+            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
+        ][$formStateId] ?? null;
+        if ($loopState === null) {
+            return false;
+        }
+
+        $last = $conversation->messages()->where('role', 'assistant')->latest('id')->first();
+
+        return $last !== null && (string) ($last->metadata['onboarding_step'] ?? '') === $loopState;
+    }
+
     /**
      * For a capture loop state, the plan cap the user has already reached
      * (limit and the plural noun for the wording), or null when they can
