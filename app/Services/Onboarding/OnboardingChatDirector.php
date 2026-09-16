@@ -1092,7 +1092,7 @@ final class OnboardingChatDirector
             // it as the "no" path.
             $cap = $this->capReachedAtLoop($user, $stateId);
             if ($cap !== null) {
-                $promptText = "You've reached the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add another here. You can upgrade after onboarding to add more. **Would you like to continue to the next section?**";
+                $promptText = "You've reached the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add another here. You can upgrade after onboarding to add more.";
                 $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') === 'continue'));
             } else {
                 $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') !== 'continue'));
