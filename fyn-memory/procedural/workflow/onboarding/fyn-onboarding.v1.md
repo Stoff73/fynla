@@ -338,6 +338,8 @@ campaign_spouse_work:
 
 campaign_spouse_household:
   turn_type: grouped_extract
+  form: spouse_household
+  form_prompt_text: 'Now your spouse.'
   prompt_text: 'Great. **How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?**'
   capture_field: null
   extraction_tool: capture_spouse_household_data
@@ -346,6 +348,8 @@ campaign_spouse_household:
 
 campaign_spouse_non_working_assets:
   turn_type: grouped_extract
+  form: spouse_assets
+  form_prompt_text: "Now what your spouse holds in their own name."
   prompt_text: "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. **Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?**"
   capture_field: null
   extraction_tool: capture_spouse_non_working_assets

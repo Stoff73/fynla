@@ -28,6 +28,13 @@ final class CaptureForms
 
     public const PENSION = 'pension';
 
+    public const SPOUSE_HOUSEHOLD = 'spouse_household';
+
+    public const SPOUSE_ASSETS = 'spouse_assets';
+
+    /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
+    public const LEAD = '_lead';
+
     private const MONEY_MAX = '999999999.99';
 
     private const MONTHLY_MAX = '999999.99';
@@ -35,7 +42,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS];
     }
 
     /** @return array<string, mixed>|null */
@@ -47,6 +54,8 @@ final class CaptureForms
             self::SAVINGS => self::savings(),
             self::INVESTMENT => self::investment(),
             self::PENSION => self::pension(),
+            self::SPOUSE_HOUSEHOLD => self::spouseHousehold(),
+            self::SPOUSE_ASSETS => self::spouseAssets(),
             default => null,
         };
     }
@@ -89,6 +98,9 @@ final class CaptureForms
         }
 
         $rules = [];
+        foreach ($schema['lead_fields'] ?? [] as $fieldKey) {
+            $rules[self::LEAD.'.'.$fieldKey] = self::fieldRules(self::LEAD, $fieldKey, $schema['fields'][$fieldKey]);
+        }
         foreach ($schema['kinds'] as $kind) {
             foreach ($kind['fields'] as $fieldKey) {
                 $rules[$kind['key'].'.'.$fieldKey] = self::fieldRules($kind['key'], $fieldKey, $schema['fields'][$fieldKey]);
@@ -136,6 +148,25 @@ final class CaptureForms
             return [];
         }
 
+        // A single-write schema (the spouse forms) folds every section into
+        // ONE tool input, keyed by the schema's own tool.
+        if (isset($schema['tool'])) {
+            $input = self::spouseInputs($schema, (array) ($form['answers'] ?? []));
+            if ($input === [] && ! empty($schema['allow_empty'])) {
+                // Nothing chosen is itself the answer ("nothing in their own
+                // name"): every holding is recorded as zero, not left unknown.
+                foreach ($schema['kinds'] as $kind) {
+                    foreach ($kind['fields'] as $fieldKey) {
+                        if ($schema['fields'][$fieldKey]['type'] === 'money') {
+                            $input[$fieldKey] = 0.0;
+                        }
+                    }
+                }
+            }
+
+            return $input === [] ? [] : [self::LEAD => $input];
+        }
+
         $inputs = [];
         foreach ($schema['kinds'] as $kind) {
             $answers = $form['answers'][$kind['key']] ?? null;
@@ -166,6 +197,10 @@ final class CaptureForms
         $schema = self::schema((string) ($form['name'] ?? ''));
         if ($schema === null) {
             return '';
+        }
+
+        if (isset($schema['tool'])) {
+            return self::spouseSentence($schema, (array) ($form['answers'] ?? []));
         }
 
         $sentences = [];
@@ -438,6 +473,78 @@ final class CaptureForms
         return implode(', ', $parts).'.';
     }
 
+    /**
+     * The spouse forms write ONE household row: every filled section maps
+     * its answers onto the tool's own field names (each form field is named
+     * after the tool field it feeds). Blank optional answers are omitted.
+     *
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, array<string, mixed>>  $answers
+     * @return array<string, mixed>
+     */
+    private static function spouseInputs(array $schema, array $answers): array
+    {
+        $input = [];
+        $sections = array_merge([self::LEAD => $schema['lead_fields'] ?? []], array_column($schema['kinds'], 'fields', 'key'));
+        foreach ($sections as $sectionKey => $fieldKeys) {
+            $given = $answers[$sectionKey] ?? null;
+            if (! is_array($given)) {
+                continue;
+            }
+            foreach ($fieldKeys as $fieldKey) {
+                $value = $given[$fieldKey] ?? null;
+                $type = $schema['fields'][$fieldKey]['type'];
+                if ($type === 'text') {
+                    $value = trim((string) $value);
+                    if ($value !== '') {
+                        $input[$fieldKey] = $value;
+                    }
+                } elseif (is_numeric($value)) {
+                    $input[$fieldKey] = (float) $value;
+                }
+            }
+        }
+
+        return $input;
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, array<string, mixed>>  $answers
+     */
+    private static function spouseSentence(array $schema, array $answers): string
+    {
+        $input = self::spouseInputs($schema, $answers);
+        $parts = [];
+        if (isset($input['spouse_annual_income'])) {
+            $parts[] = 'my spouse earns '.self::pounds($input['spouse_annual_income']).' a year';
+        }
+        $money = [
+            'spouse_isa_balance' => 'ISAs', 'spouse_existing_isa_balance' => 'ISAs',
+            'spouse_existing_savings_balance' => 'savings', 'spouse_existing_investment_balance' => 'investments',
+            'spouse_existing_dividend_holdings_value' => 'dividend-paying shares', 'spouse_existing_pension_balance' => 'their pension',
+        ];
+        foreach ($money as $key => $noun) {
+            if (isset($input[$key])) {
+                $parts[] = self::pounds($input[$key]).' in '.$noun.($key === 'spouse_isa_balance' && isset($input['spouse_isa_provider']) ? ' with '.$input['spouse_isa_provider'] : '');
+            }
+        }
+        if (isset($input['spouse_pension_input_annual'])) {
+            $parts[] = 'pays '.self::pounds($input['spouse_pension_input_annual']).' a year into their pension'.(isset($input['spouse_pension_provider']) ? ' with '.$input['spouse_pension_provider'] : '');
+        }
+        if (isset($input['spouse_annual_dividends'])) {
+            $parts[] = self::pounds($input['spouse_annual_dividends']).' a year in dividends';
+        }
+        if (isset($input['spouse_unrealised_gains'])) {
+            $parts[] = self::pounds($input['spouse_unrealised_gains']).' of gains not yet realised';
+        }
+        if ($parts === []) {
+            return $schema['name'] === self::SPOUSE_ASSETS ? 'My spouse has nothing in their own name.' : 'My spouse has no income or holdings to add.';
+        }
+
+        return ucfirst(implode(', ', $parts)).'.';
+    }
+
     private static function percent(float $value): string
     {
         return rtrim(rtrim(number_format($value, 2), '0'), '.').'%';
@@ -616,6 +723,73 @@ final class CaptureForms
                 ]],
                 'annual_contribution' => ['type' => 'money', 'label' => 'You pay in each year', 'required' => false,
                     'hint' => "Leave blank if you don't pay in"],
+            ],
+        ];
+    }
+
+    /**
+     * Working spouse (CSJ 2026-09-16): their income above the boxes, then
+     * "do they have any of the following" — ISAs, pension, investments —
+     * all saved in ONE write through capture_spouse_household_data.
+     *
+     * @return array<string, mixed>
+     */
+    private static function spouseHousehold(): array
+    {
+        return [
+            'name' => self::SPOUSE_HOUSEHOLD,
+            'submit_label' => 'Save',
+            'tool' => 'capture_spouse_household_data',
+            'entity_type' => 'spouse_household',
+            'lead_fields' => ['spouse_annual_income'],
+            'kinds_prompt' => 'Do they have any of the following? You can choose more than one.',
+            'kinds' => [
+                ['key' => 'isa', 'label' => 'ISAs', 'fields' => ['spouse_isa_balance', 'spouse_isa_provider']],
+                ['key' => 'pension', 'label' => 'A pension', 'fields' => ['spouse_pension_input_annual', 'spouse_existing_pension_balance', 'spouse_pension_provider']],
+                ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_annual_dividends', 'spouse_unrealised_gains']],
+            ],
+            'fields' => [
+                'spouse_annual_income' => ['type' => 'money', 'label' => 'Their annual income', 'required' => true, 'hint' => 'Before tax'],
+                'spouse_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
+                'spouse_isa_provider' => ['type' => 'text', 'label' => 'Who the ISA is with', 'required' => false],
+                'spouse_pension_input_annual' => ['type' => 'money', 'label' => 'They pay in each year', 'required' => false, 'hint' => 'Leave blank if none'],
+                'spouse_existing_pension_balance' => ['type' => 'money', 'label' => 'Pension pot value', 'required' => false, 'hint' => "Leave blank if you don't know"],
+                'spouse_pension_provider' => ['type' => 'text', 'label' => 'Who the pension is with', 'required' => false],
+                'spouse_annual_dividends' => ['type' => 'money', 'label' => 'Dividends they receive each year', 'required' => false, 'hint' => 'Leave blank if none'],
+                'spouse_unrealised_gains' => ['type' => 'money', 'label' => 'Gains on investments not yet sold', 'required' => false, 'hint' => 'Leave blank if none or unknown'],
+            ],
+        ];
+    }
+
+    /**
+     * Non-working spouse: what they hold in their own name — savings, ISAs,
+     * investments, pension — ONE write through capture_spouse_non_working_assets.
+     * Nothing chosen and saved means nothing in their own name.
+     *
+     * @return array<string, mixed>
+     */
+    private static function spouseAssets(): array
+    {
+        return [
+            'name' => self::SPOUSE_ASSETS,
+            'submit_label' => 'Save',
+            'tool' => 'capture_spouse_non_working_assets',
+            'entity_type' => 'spouse_assets',
+            'lead_fields' => [],
+            'kinds_prompt' => 'Do they have any of the following in their own name? You can choose more than one, or save with none chosen.',
+            'allow_empty' => true,
+            'kinds' => [
+                ['key' => 'savings', 'label' => 'Savings', 'fields' => ['spouse_existing_savings_balance']],
+                ['key' => 'isa', 'label' => 'ISAs', 'fields' => ['spouse_existing_isa_balance']],
+                ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value']],
+                ['key' => 'pension', 'label' => 'A pension', 'fields' => ['spouse_existing_pension_balance']],
+            ],
+            'fields' => [
+                'spouse_existing_savings_balance' => ['type' => 'money', 'label' => 'Savings balance', 'required' => true],
+                'spouse_existing_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
+                'spouse_existing_investment_balance' => ['type' => 'money', 'label' => 'Investments value', 'required' => true],
+                'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none'],
+                'spouse_existing_pension_balance' => ['type' => 'money', 'label' => 'Pension pot value', 'required' => true],
             ],
         ];
     }

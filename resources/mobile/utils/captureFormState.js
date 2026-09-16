@@ -16,6 +16,11 @@ export const captureFormMixin = {
     const open = {};
     const answers = {};
     const none = {};
+    // Lead fields (asked above the kind boxes, e.g. the spouse's income)
+    // live under the '_lead' pseudo-kind.
+    const lead = (this.values && this.values._lead) ? { ...this.values._lead } : {};
+    answers._lead = lead;
+    none._lead = {};
     (this.schema.kinds || []).forEach((kind) => {
       const given = this.values && this.values[kind.key] ? this.values[kind.key] : null;
       open[kind.key] = Boolean(given);
@@ -29,9 +34,20 @@ export const captureFormMixin = {
   },
   computed: {
     openKinds() { return (this.schema.kinds || []).filter((k) => this.open[k.key]); },
+    leadSection() {
+      const fields = this.schema.lead_fields || [];
+      return fields.length ? { key: '_lead', label: null, fields } : null;
+    },
+    // Everything rendered as a field block: the lead section (if any) then the open kinds.
+    sections() { return this.leadSection ? [this.leadSection, ...this.openKinds] : this.openKinds; },
+    // Render order: lead fields first, then the kind boxes, then each open kind.
+    blocks() {
+      const kindsRow = { key: '_kinds', type: 'kinds' };
+      return this.leadSection ? [this.leadSection, kindsRow, ...this.openKinds] : [kindsRow, ...this.openKinds];
+    },
     isValid() {
-      if (this.openKinds.length === 0) return false;
-      return this.openKinds.every((kind) => this.visibleFields(kind).every((fieldKey) => {
+      if (this.openKinds.length === 0 && !this.leadSection && !this.schema.allow_empty) return false;
+      return this.sections.every((kind) => this.visibleFields(kind).every((fieldKey) => {
         if (!this.isRequired(kind.key, fieldKey)) return true;
         const type = this.field(fieldKey).type;
         if (type === 'money_or_none') return this.isNone(kind.key, fieldKey) || this.hasNumber(kind.key, fieldKey);
@@ -102,7 +118,7 @@ export const captureFormMixin = {
     submit() {
       if (!this.isValid || this.locked || this.disabled) return;
       const answers = {};
-      this.openKinds.forEach((kind) => {
+      this.sections.forEach((kind) => {
         const out = {};
         this.visibleFields(kind).forEach((fieldKey) => {
           const v = this.answers[kind.key][fieldKey];

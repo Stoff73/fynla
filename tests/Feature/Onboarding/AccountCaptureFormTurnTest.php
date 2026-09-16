@@ -7,6 +7,7 @@ use App\Models\AiMessage;
 use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -317,4 +318,49 @@ it('the property verify announce names the property page', function (): void {
     $conversation = accountConversation($user);
     $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, "No, that's everything"), false);
     expect(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain("I've saved your property. Next I'll take you to your property page");
+});
+
+// ── Spouse (CSJ 2026-09-16) ────────────────────────────────────────────────
+
+it('a working spouse is captured in one form: income above, holdings chosen below, recapped after', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+    $user->forceFill(['household_calculation_mode' => 'dual_earner'])->save();
+    $conversation = accountConversation($user);
+
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD)), false);
+    $formEvent = collect($emitted)->firstWhere('type', 'capture_form');
+    expect($formEvent['prompt_text'])->toBe('Now your spouse.')
+        ->and($formEvent['form']['name'])->toBe('spouse_household');
+
+    $form = ['name' => 'spouse_household', 'answers' => [
+        '_lead' => ['spouse_annual_income' => 45000],
+        'isa' => ['spouse_isa_balance' => 12000, 'spouse_isa_provider' => 'Nationwide'],
+        'pension' => ['spouse_pension_input_annual' => 3000],
+    ]];
+    $events = submitForm($user, $conversation, $form);
+
+    $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+    expect($row)->not->toBeNull()
+        ->and((float) $row->spouse_annual_income)->toBe(45000.0)
+        ->and((float) $row->spouse_isa_balance)->toBe(12000.0)
+        ->and($row->spouse_isa_provider)->toBe('Nationwide')
+        ->and((float) $row->spouse_pension_input_annual)->toBe(3000.0)
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('your spouse earns £45,000 a year, has £12,000 in ISAs with Nationwide and pays £3,000 a year into their pension.')
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD)
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_announce');
+});
+
+it('a non-working spouse with nothing chosen saves as nothing in their own name', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS);
+    $user->forceFill(['household_calculation_mode' => 'single_earner_couple'])->save();
+    $conversation = accountConversation($user);
+
+    $events = submitForm($user, $conversation, ['name' => 'spouse_assets', 'answers' => []]);
+
+    expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('nothing in their own name')
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS);
 });
