@@ -926,6 +926,15 @@ final class AssetCaptureEntityExtractor
         $provider = $this->extractKnownProvider($chunk);
         $value = $this->extractAmount($chunk);
 
+        // A bare mention of "pension" with no scheme type, no provider and no
+        // figure is not a pension — "That's my only pension." after a real one
+        // used to materialise a £0 "Personal Pension" (csjones user 401,
+        // 2026-09-16). Same rule as the intent-only guard: facts, not words.
+        if ($schemeType === 'personal_pension' && $provider === null && $value === null
+            && preg_match('/\b(personal|stakeholder|private)\b/u', $lower) !== 1) {
+            return null;
+        }
+
         // Compose scheme_name from the strongest signals we found.
         $schemeNameParts = [];
         if ($provider !== null) {

@@ -500,6 +500,14 @@ describe('intent-only guard (extractForFocus)', function () {
         expect($this->extractor->extractForFocus('retirement', 'I have a workplace pension with Aviva'))
             ->toHaveCount(1);
     });
+
+    // csjones user 401, 2026-09-16: "That's my only pension." became a £0 Personal Pension.
+    it('ignores a bare "pension" mention with no type, provider or figure', function () {
+        expect($this->extractor->extractForFocus('retirement', "That's my only pension."))->toBe([])
+            ->and($this->extractor->extractForFocus('retirement', 'A Nest workplace pension worth about £22,000. I pay 5% and Boots pays 3%. That\'s my only pension.'))
+            ->toHaveCount(1)
+            ->and($this->extractor->extractForFocus('retirement', 'I have a personal pension'))->toHaveCount(1);
+    });
 });
 
 // ─── Investments ────────────────────────────────────────────────────

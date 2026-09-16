@@ -383,7 +383,7 @@ it('the work form writes employer, role and income once through capture_work_det
 
     $form = ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Acme Ltd', 'occupation' => 'Software engineer', 'annual_income' => 75000]]];
     expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['employer' => 'Acme Ltd', 'occupation' => 'Software engineer', 'annual_income' => 75000.0]])
-        ->and(CaptureForms::summarise($form))->toBe('I work at Acme Ltd as a Software engineer and I earn £75,000 a year.');
+        ->and(CaptureForms::summarise($form))->toBe('My job is Software engineer at Acme Ltd and I earn £75,000 a year.');
 
     $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
     expect($state['form'])->toBe('work')
