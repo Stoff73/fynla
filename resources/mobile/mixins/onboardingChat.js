@@ -679,9 +679,11 @@ export default {
         this.finalizeCaptureReply(cursor);
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble responding just now.';
-        } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+        } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length) && !cursor.reply.form) {
           // Trailing empty bubble (e.g. an advance opened one but the turn ended
-          // on a navigation) — drop it so no blank message lingers.
+          // on a navigation) — drop it so no blank message lingers. A form row
+          // with no lead-in (re-opened after "Yes, add another", CSJ 2026-09-16)
+          // is not empty.
           const idx = this.messages.indexOf(cursor.reply);
           if (idx !== -1) this.messages.splice(idx, 1);
         }

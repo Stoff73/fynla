@@ -139,7 +139,7 @@
           >Try again</button>
         </div>
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
-          <p v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
+          <p v-if="m.text || !(m.form && m.form.schema)" v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
           <!-- Onboarding bubble choices (quick_replies). Tapping sends the label,
                which the director matches back to the bubble. -->
           <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
