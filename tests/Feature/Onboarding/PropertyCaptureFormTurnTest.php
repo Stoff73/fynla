@@ -145,7 +145,9 @@ it('saves both kinds from a form answer with no model call and advances to verif
         ->and(collect($events)->first()['text'])->toBe(CaptureForms::summarise(propertyAnswers()))
         ->and(collect($events)->firstWhere('type', 'capture_complete'))->not->toBeNull()
         ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
-        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+        // CSJ 2026-09-16: a successful save no longer jumps straight to
+        // verify — Fyn asks whether there's another property first.
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_property_more');
 
     // ->toEqual, not ->toBe, for metadata['form'] — the same MySQL native
     // JSON column key-reordering fact documented above for capture_form.
@@ -166,7 +168,9 @@ it('saves one kind alone', function (): void {
     expect(Property::where('user_id', $user->id)->count())->toBe(1)
         ->and($btl->ownership_type)->toBe('tenants_in_common')
         ->and((float) $btl->ownership_percentage)->toBe(60.0)
-        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+        // CSJ 2026-09-16: a successful save no longer jumps straight to
+        // verify — Fyn asks whether there's another property first.
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_property_more');
 });
 
 it('saves a second home alone', function (): void {
@@ -187,7 +191,9 @@ it('saves a second home alone', function (): void {
         ->and($home->ownership_type)->toBe('individual')
         ->and(collect($events)->where('type', 'entity_created'))->toHaveCount(1)
         ->and(collect($events)->firstWhere('type', 'capture_complete'))->not->toBeNull()
-        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+        // CSJ 2026-09-16: a successful save no longer jumps straight to
+        // verify — Fyn asks whether there's another property first.
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_property_more');
 });
 
 it('reports a refused kind on the form, keeps the landed one, and stays on the step', function (): void {
@@ -281,6 +287,69 @@ it('does not glue a full stop onto a refusal reason that already ends in punctua
     $text = collect($events)->where('type', 'content')->pluck('text')->implode(' ');
     expect($text)->toContain('or a separate one?')
         ->not->toContain('?.');
+});
+
+// ── Add-another-property loop (CSJ 2026-09-16) ─────────────────────────────
+
+it('advances to campaign_property_more with a quick_replies event after a successful save', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind(); // no turns queued: any model call fails the test
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, CaptureForms::summarise(propertyAnswers()), null, true, propertyAnswers()
+    ), false);
+
+    $advance = collect($events)->firstWhere('type', 'onboarding_advance');
+    $quick = collect($events)->firstWhere('type', 'quick_replies');
+    expect($advance)->not->toBeNull()
+        ->and($advance['to_step'])->toBe('campaign_property_more')
+        ->and($quick)->not->toBeNull()
+        ->and($quick['prompt_text'])->toBe('Do you have another property to add?');
+
+    $bubbleLabels = array_column($quick['bubbles'] ?? [], 'label');
+    expect($bubbleLabels)->toContain('Yes, add another')
+        ->and($bubbleLabels)->toContain("No, that's everything")
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_property_more');
+});
+
+it('re-opens the property form on "Yes, add another" for a client that can render forms', function (): void {
+    $user = formStepUser(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE);
+    $conversation = formConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+
+    $events = iterator_to_array($director->handleUserMessage($user, $conversation, 'Yes, add another'), false);
+
+    $form = collect($events)->firstWhere('type', 'capture_form');
+    expect($form)->not->toBeNull()
+        ->and($form['form'])->toBe(CaptureForms::schema('property'))
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY);
+});
+
+it('gives the typed property prompt on "Yes, add another" when the client has not declared forms', function (): void {
+    $user = formStepUser(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE);
+    $conversation = formConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(false);
+
+    $events = iterator_to_array($director->handleUserMessage($user, $conversation, 'Yes, add another'), false);
+
+    expect(collect($events)->firstWhere('type', 'capture_form'))->toBeNull()
+        ->and(collect($events)->firstWhere('type', 'content')['text'])->toContain('Now your property')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY);
+});
+
+it('continues to the property verify announce on "No, that\'s everything"', function (): void {
+    $user = formStepUser(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE);
+    $conversation = formConversation($user);
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, "No, that's everything"
+    ), false);
+
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('property');
 });
 
 it('never advances on a form answer with no recognised kind', function (): void {

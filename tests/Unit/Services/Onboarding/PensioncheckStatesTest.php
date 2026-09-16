@@ -943,9 +943,12 @@ it('walks the property section after investments when the funnel ticked property
         // button carry the instructions, so there is no "buy to let" here.
         ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['prompt_text'] ?? '')->toContain('buy-to-let')
         ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['form_prompt_text'] ?? '')->toBe('Now your property.');
-    // The capture-end enters the verify announce for the property page.
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY, 'my home is worth 450000, joint with my wife', $with))->toBe('campaign_verify_announce')
+    // The capture-end asks whether there's another property to add (CSJ
+    // 2026-09-16) before entering the verify announce for the property page.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY, 'my home is worth 450000, joint with my wife', $with))->toBe('campaign_property_more');
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY_MORE, "No, that's everything", $with))->toBe('campaign_verify_announce')
         ->and($with->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('property');
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY_MORE, 'Yes, add another', $with))->toBe(SM::STATE_CAMPAIGN_PROPERTY);
 });
 
 it('gives no advice during onboarding — every advice state is skipped straight to the next section', function (): void {

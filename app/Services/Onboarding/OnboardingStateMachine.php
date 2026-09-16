@@ -122,6 +122,10 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_PROPERTY = 'campaign_property';
 
+    // After a property form save, ask whether there is another property to
+    // add (CSJ 2026-09-16) — mirrors the base_employment_more multi-job loop.
+    public const STATE_CAMPAIGN_PROPERTY_MORE = 'campaign_property_more';
+
     public const STATE_CAMPAIGN_PENSION_CONTRIBS = 'campaign_pension_contribs';
 
     public const STATE_CAMPAIGN_PENSION_HISTORY = 'campaign_pension_history';
@@ -501,8 +505,14 @@ final class OnboardingStateMachine
             // ── Property section (CSJ 2026-09-15) ─────────────────────────
             self::STATE_CAMPAIGN_PROPERTY => [
                 'capture_focus' => 'property',
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'property'),
+                // 'next' is corpus DATA now (static: campaign_property_more) —
+                // the multi-property loop asks first, see STATE_CAMPAIGN_PROPERTY_MORE.
                 'skip_if' => [self::class, 'skipSectionIfNoProperty'],
+            ],
+            // After a property save, loop back for another or continue to verify
+            // (CSJ 2026-09-16) — mirrors STATE_BASE_EMPLOYMENT_MORE.
+            self::STATE_CAMPAIGN_PROPERTY_MORE => [
+                'next' => self::class.'::nextFromPropertyMore',
             ],
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
@@ -1290,6 +1300,22 @@ final class OnboardingStateMachine
         return self::journeySectionHasData($user, 'income')
             ? self::enterCampaignVerify($user, 'income', 'journey_base')
             : self::STATE_BASE_EXPENDITURE;
+    }
+
+    /**
+     * After a property form save, campaign_property_more asks whether there
+     * is another property to add. "Yes" loops back to the form; anything
+     * else ends the property section and enters the verify flow — mirrors
+     * nextFromEmploymentMore (CSJ 2026-09-16).
+     */
+    public static function nextFromPropertyMore(string $answer, User $user): string
+    {
+        $normalised = mb_strtolower(trim($answer));
+        if (str_starts_with($normalised, 'yes')) {
+            return self::STATE_CAMPAIGN_PROPERTY;
+        }
+
+        return self::enterCampaignVerify($user, 'property');
     }
 
     /**

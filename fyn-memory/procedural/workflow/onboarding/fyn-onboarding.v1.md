@@ -171,7 +171,16 @@ campaign_property:
   prompt_text: "Now your property. **For each one: is it your home, a second home or a buy-to-let; roughly what it's worth; whether there's a mortgage and how much is left on it; and whether you own it individually or jointly? If jointly, who owns it with you and your share.**"
   form_prompt_text: "Now your property."
   capture_field: null
-  next: { branch: enterCampaignVerify }
+  next: campaign_property_more
+
+campaign_property_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another property to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromPropertyMore }
 
 campaign_dob:
   turn_type: grouped_extract
