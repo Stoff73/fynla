@@ -10,6 +10,7 @@
 const overviewPaths = Object.freeze({
   dashboard: '/dashboard',
   personal_information: '/settings/personal',
+  family_details: '/settings/family',
   income: '/valuable-info?section=income',
   expenditure: '/valuable-info?section=expenditure',
   protection: '/protection',
