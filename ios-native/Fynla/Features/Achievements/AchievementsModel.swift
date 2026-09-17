@@ -9,10 +9,11 @@ final class AchievementsModel {
     private(set) var isLoadingMoreActivity = false
     private(set) var isLoadingMoreMilestones = false
     private(set) var paginationMessage: String?
-    // Shell-level fireworks takeover source (mirrors /m's
-    // store.pendingCelebration): set by load()/refreshCelebration(), cleared
-    // by dismissCelebration().
-    private(set) var pendingCelebration: LevelCelebration?
+    // The banked level climb, spent on the dashboard hero wheel (mirrors /m's
+    // store.gamification.celebrateFrom/To): set by load()/refreshCelebration(),
+    // moved forward by acknowledgeCelebration(level:).
+    private(set) var celebrateFrom = 1
+    private(set) var celebrateTo = 1
     private let client: any AchievementsClient
     private var generation = 0
 
@@ -44,7 +45,8 @@ final class AchievementsModel {
                 activityNextCursor: activityPage?.nextCursor
             )
             if let gamificationStatus {
-                pendingCelebration = gamificationStatus.pendingCelebration
+                celebrateFrom = gamificationStatus.celebrateFrom ?? 1
+                celebrateTo = gamificationStatus.celebrateTo ?? 1
             }
             paginationMessage = nil
             state = .loaded
@@ -159,19 +161,22 @@ final class AchievementsModel {
         }
     }
 
-    // /m's store.fetchStatus() equivalent for the dashboard shell — missed
-    // celebrations are delivered on open, without loading the full page.
+    // /m's store.fetchStatus() equivalent for the dashboard shell — a climb
+    // banked while the user was elsewhere is delivered on open, without
+    // loading the full page.
     func refreshCelebration() async {
         guard let status = try? await client.loadStatus() else { return }
-        pendingCelebration = status.pendingCelebration
+        celebrateFrom = status.celebrateFrom ?? 1
+        celebrateTo = status.celebrateTo ?? 1
     }
 
-    // /m's store.ack(): clear locally first; the server acknowledgement is
-    // best-effort and non-fatal (an unacked flag is simply redelivered by
-    // the next status fetch).
-    func dismissCelebration() async {
-        pendingCelebration = nil
-        try? await client.acknowledgeCelebration()
+    // /m's store.ackCelebration(): settle locally first; the server
+    // acknowledgement is best-effort and non-fatal (an unacked range is simply
+    // redelivered by the next status fetch, and the ack is idempotent).
+    func acknowledgeCelebration(level: Int) async {
+        celebrateFrom = level
+        celebrateTo = max(level, celebrateTo)
+        try? await client.acknowledgeCelebration(level: level)
     }
 
     func stop() {
@@ -179,7 +184,8 @@ final class AchievementsModel {
         state = .idle
         content = nil
         paginationMessage = nil
-        pendingCelebration = nil
+        celebrateFrom = 1
+        celebrateTo = 1
     }
 
     private func optionalActivity() async -> AchievementsActivityPage? {

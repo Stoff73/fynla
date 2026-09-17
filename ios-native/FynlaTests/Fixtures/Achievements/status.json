@@ -5,9 +5,6 @@
   "progress_percent": 25,
   "next_level_name": "Planner",
   "next_actions": [],
-  "pending_celebration": {
-    "level": 3,
-    "level_name": "Builder",
-    "next_actions": []
-  }
+  "celebrate_from": 1,
+  "celebrate_to": 3
 }

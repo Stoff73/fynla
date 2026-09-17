@@ -6,7 +6,7 @@ protocol AchievementsClient: Sendable {
     func loadCompleted(page: Int) async throws -> AchievementsCompletedPage
     func loadActivity(before: Int?) async throws -> AchievementsActivityPage
     func loadStatus() async throws -> GamificationStatus
-    func acknowledgeCelebration() async throws
+    func acknowledgeCelebration(level: Int) async throws
 }
 
 struct LiveAchievementsClient: AchievementsClient {
@@ -69,11 +69,12 @@ struct LiveAchievementsClient: AchievementsClient {
         )
     }
 
-    func acknowledgeCelebration() async throws {
+    func acknowledgeCelebration(level: Int) async throws {
         let response = try await apiClient.send(
             APIRequest<CelebrationAcknowledgement>(
                 path: "api/gamification/celebration/ack",
                 method: .post,
+                body: try JSONEncoder().encode(CelebrationAcknowledgementRequest(level: level)),
                 responseDecoding: .raw
             )
         )
@@ -81,6 +82,10 @@ struct LiveAchievementsClient: AchievementsClient {
             throw APIError.decoding(requestID: nil)
         }
     }
+}
+
+private struct CelebrationAcknowledgementRequest: Encodable, Sendable {
+    let level: Int
 }
 
 private struct CelebrationAcknowledgement: Decodable, Sendable {
