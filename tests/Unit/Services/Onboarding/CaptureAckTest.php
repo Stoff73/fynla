@@ -42,9 +42,46 @@ describe('buildCaptureAck — charitable giving', function () {
             ->toBe('Got it — no Gift Aid donations.');
     });
 
+    // Was STATE_CAMPAIGN_DOB, which has since been given the personal ack — so
+    // this asserted null against a state that now acks, and sat red.
     it('still returns null for states without a deterministic ack', function () {
         $user = User::factory()->create();
 
-        expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_CAMPAIGN_DOB))->toBeNull();
+        expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_ADD_MORE))->toBeNull();
+    });
+});
+
+/**
+ * The personal ack used to glue two fragments that each carried their own
+ * leading " and ", so a partial capture produced a sentence Fyn said out loud:
+ * "Thanks — I've noted you're and single." (CSJ 2026-09-17).
+ */
+describe('buildCaptureAck — personal details', function () {
+    it('reads correctly when only the marital status was captured', function () {
+        $user = User::factory()->create(['date_of_birth' => null, 'marital_status' => 'single']);
+
+        expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_CAMPAIGN_DOB))
+            ->toBe("Thanks — I've noted you're single.");
+    });
+
+    it('reads correctly when only the date of birth was captured', function () {
+        $user = User::factory()->create(['date_of_birth' => '1985-04-12', 'marital_status' => null]);
+
+        expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_BASE_PERSONAL))
+            ->toBe("Thanks — I've noted you're born on 12 April 1985.");
+    });
+
+    it('joins both when the whole form was captured', function () {
+        $user = User::factory()->create(['date_of_birth' => '1985-04-12', 'marital_status' => 'married']);
+
+        expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_BASE_PERSONAL))
+            ->toBe("Thanks — I've noted you're born on 12 April 1985 and married.");
+    });
+
+    it('claims nothing about the user when neither field was captured', function () {
+        $user = User::factory()->create(['date_of_birth' => null, 'marital_status' => null]);
+
+        expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_BASE_PERSONAL))
+            ->toBe("Thanks — I've noted that.");
     });
 });

@@ -200,9 +200,18 @@ export default {
     dependants() {
       return (this.profile?.family_members || []).filter((member) => member.is_dependent);
     },
+    // The households column is `household_name`; reading `name` meant a married
+    // user with a household row and a spouse still read "Single-person household".
+    // The spouse is a family member until their account is linked, so an unlinked
+    // spouse (profile.spouse is null until then) still names the household.
     householdLabel() {
-      return this.profile?.household?.name
-        || (this.profile?.spouse?.name ? `Household with ${this.profile.spouse.name}` : 'Single-person household');
+      const household = this.profile?.household?.household_name;
+      if (household) return household;
+
+      const spouseName = this.profile?.spouse?.name
+        || (this.profile?.family_members || []).find((member) => member.relationship === 'spouse')?.name;
+
+      return spouseName ? `Household with ${spouseName}` : 'Single-person household';
     },
     domicileLabel() {
       const domicile = this.profile?.domicile_info || {};

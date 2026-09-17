@@ -34,7 +34,7 @@
                 inputmode="decimal"
                 min="0"
                 step="1"
-                class="form-input"
+                class="form-input min-w-0"
                 :disabled="disabled || locked || isNone(block.key, fieldKey)"
                 :value="answers[block.key][fieldKey] ?? ''"
                 @input="setNumber(block.key, fieldKey, $event.target.value)"

@@ -66,6 +66,7 @@ use App\Services\Coordination\PriorityRanker;
 use App\Services\Estate\WillDocumentService;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\Expenditure\HouseholdExpenditureWriter;
+use App\Services\Income\EmploymentIncomeService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
 use App\Services\Onboarding\HouseholdProvisioner;
@@ -2114,9 +2115,14 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
-     * capture_work_details — writes employer + occupation + income to
-     * users. For self-employed users, income lands on
-     * annual_self_employment_income instead of annual_employment_income.
+     * capture_work_details — records a job. For self-employed users it counts
+     * towards annual_self_employment_income instead of annual_employment_income.
+     *
+     * The job goes to `employments` through EmploymentIncomeService, which then
+     * rewrites the user's totals from the rows. This used to assign straight to
+     * the single users column, so the second job of onboarding's multi-job loop
+     * replaced the first and that salary was lost — £48,000 then £9,000 left the
+     * user on £9,000. Never write those columns here again.
      *
      * Accepts partial payloads: whichever non-empty fields are present get
      * written. Only annual_income is required to advance — onboarding asks for
@@ -2142,17 +2148,13 @@ class CoordinatingAgent extends BaseAgent
             ? 'annual_self_employment_income'
             : 'annual_employment_income';
 
-        if ($employer !== '') {
-            $user->employer = $employer;
-        }
-        if ($occupation !== '') {
-            $user->occupation = $occupation;
-        }
-        if ($income !== null) {
-            $user->{$incomeField} = $income;
-        }
-
-        $user->save();
+        app(EmploymentIncomeService::class)->recordJob(
+            $user,
+            $employer !== '' ? $employer : null,
+            $occupation !== '' ? $occupation : null,
+            $income,
+        );
+        $user->refresh();
 
         // Only income is required to advance — onboarding asks for income alone.
         // Employer and occupation are still written when the user volunteers them
@@ -2171,8 +2173,11 @@ class CoordinatingAgent extends BaseAgent
             'details' => [
                 'employer' => $user->employer,
                 'occupation' => $user->occupation,
+                // The TOTAL across every job, not just the one just recorded —
+                // the caller reports what the user now has on file.
                 'annual_income' => (float) ($user->{$incomeField} ?? 0),
                 'income_field' => $incomeField,
+                'jobs' => $user->employments()->where('income_type', $user->employment_status === 'self_employed' ? 'self_employment' : 'employment')->count(),
                 'missing' => $missing,
             ],
         ];

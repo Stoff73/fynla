@@ -59,6 +59,7 @@ class UserProfileService
             'household',
             'spouse',
             'familyMembers',
+            'employments',
             'properties',
             'mortgages',
             'liabilities',
@@ -409,10 +410,17 @@ class UserProfileService
         $sources['sources'] = collect($sourceDefinitions)
             ->map(function (array $labels, string $key) use ($components, $ownership, $person): array {
                 $detail = null;
-                if ($key === 'employment') {
-                    $detail = collect([$person->employer, $person->occupation])
-                        ->filter(fn ($value): bool => is_string($value) && trim($value) !== '')
-                        ->implode(' · ') ?: null;
+                if ($key === 'employment' || $key === 'self_employment') {
+                    // Every job, not just the most recent: the amount beside
+                    // this line totals them all, so naming one employer read as
+                    // if a second job's salary had come from the first.
+                    $detail = $person->employments
+                        ->where('income_type', $key)
+                        ->map(fn ($job): string => collect([$job->employer, $job->occupation])
+                            ->filter(fn ($value): bool => is_string($value) && trim($value) !== '')
+                            ->implode(' · '))
+                        ->filter()
+                        ->implode(', ') ?: null;
                 }
 
                 return [
@@ -490,6 +498,10 @@ class UserProfileService
         // W-0350/W-0530 — reciprocal AND consented; this returns the other account's
         // income sources.
         if ($spouse = $user->financiallySharedSpouse()) {
+            // incomeSources reads the jobs for the employment detail line; the
+            // lazy-load guard arms on the second model, so load it here.
+            $spouse->loadMissing('employments');
+
             return $this->incomeSources($spouse, 'spouse') + ['household' => $this->spouseHouseholdCaptured($user)];
         }
 
