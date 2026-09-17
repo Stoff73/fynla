@@ -31,6 +31,7 @@ import PersonalInformation from './views/PersonalInformation.vue';
 import Settings from './views/Settings.vue';
 import NotificationPreferences from './views/NotificationPreferences.vue';
 import SpouseSharing from './views/SpouseSharing.vue';
+import MobileActions from './views/Actions.vue';
 import Subscription from './views/Subscription.vue';
 
 // Inner SPA lives under /m/app — but on subdirectory deploys (csjones serves the
@@ -66,6 +67,8 @@ const router = createRouter({
     { path: '/income/:owner/:source', name: 'm-income-detail', component: IncomeDetail, meta: { auth: true } },
     { path: '/expenditure', name: 'm-expenditure', component: Expenditure, meta: { auth: true } },
     { path: '/achievements', name: 'm-achievements', component: Achievements, meta: { auth: true } },
+    // Rule 19 parity for the desktop /actions page — the full ranked list.
+    { path: '/actions', name: 'm-actions', component: MobileActions, meta: { auth: true } },
     { path: '/conversation-history', name: 'm-conversation-history', component: ConversationHistory, meta: { auth: true } },
     { path: '/net-worth', name: 'm-net-worth', component: MobileNetWorth, meta: { auth: true } },
     { path: '/net-worth/history', name: 'm-balance-history', component: MobileBalanceHistory, meta: { auth: true } },
