@@ -129,3 +129,37 @@ it('owes nothing to a user who existed before this feature', function (): void {
         ->assertJsonPath('celebrate_from', 7)
         ->assertJsonPath('celebrate_to', 7);
 });
+
+/**
+ * The stored `level` column and the level derived from points can drift
+ * (csjones user 399 had 825 points — level 7 — while the column still said 6).
+ * status() offers the range from the DERIVED level, so the ack must clamp
+ * against the same thing. Clamped against the stale column, the ack could
+ * never catch up and the climb replayed on every dashboard view. Found in the
+ * browser, 2026-09-17.
+ */
+it('acknowledges up to the level the points earn, even when the stored column has drifted', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    UserGamification::create([
+        'user_id' => $user->id,
+        'total_points' => 825,   // level 7 on the ladder
+        'level' => 6,            // stale column
+        'celebrated_level' => 3,
+    ]);
+    Sanctum::actingAs($user);
+
+    $this->getJson('/api/gamification/status')
+        ->assertOk()
+        ->assertJsonPath('celebrate_from', 3)
+        ->assertJsonPath('celebrate_to', 7);
+
+    $this->postJson('/api/gamification/celebration/ack', ['level' => 7])
+        ->assertOk()
+        ->assertJsonPath('celebrated_level', 7);
+
+    // The climb must now be settled — not offered again on the next view.
+    $this->getJson('/api/gamification/status')
+        ->assertOk()
+        ->assertJsonPath('celebrate_from', 7)
+        ->assertJsonPath('celebrate_to', 7);
+});

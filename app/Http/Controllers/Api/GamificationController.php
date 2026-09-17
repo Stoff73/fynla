@@ -47,7 +47,13 @@ class GamificationController extends Controller
         $user = $request->user();
         $g = UserGamification::firstOrCreate(['user_id' => $user->id]);
 
-        $real = (int) $g->level;
+        // Clamp against the SAME level status() offers — derived from points,
+        // not the stored column. They can drift (csjones user 399: 825 points
+        // = level 7, column still said 6), and when they do, an ack clamped to
+        // the stale column can never catch up to the range status() keeps
+        // offering, so the climb replays on every dashboard view. Found in the
+        // browser, 2026-09-17.
+        $real = $this->levels->levelForPoints((int) $g->total_points);
         $asked = $request->integer('level') ?: $real;
 
         // Monotonic and clamped: a double ack, an out-of-order ack, or an ack

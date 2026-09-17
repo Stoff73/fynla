@@ -693,7 +693,11 @@ export default {
       if (this.celebrating) return;
 
       if (this.celebrateTo <= this.celebrateFrom) {
-        this.displayLevel = null;
+        // Hold the level the climb settled on rather than falling back to the
+        // dashboard payload's level: the two come from different fetches and
+        // can disagree for a moment, which made the number flick 7 -> 6 after
+        // a climb (csjones, 2026-09-17).
+        this.displayLevel = this.celebrateTo > 1 ? this.celebrateTo : null;
         this.ringPercent = this.progressPercent;
         return;
       }
