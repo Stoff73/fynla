@@ -28,14 +28,17 @@
         <!-- Gradient hero + level wheel -->
         <div class="md-scroll-hero">
           <button type="button" class="md-level md-level--button" aria-labelledby="md-level-heading" @click="goToAchievements">
-            <div class="md-level__pie" :class="{ 'is-levelup': pulsing }" role="img" :aria-label="`Level ${level}, ${progressPercent} percent complete`">
+            <div class="md-level__pie" role="img" :aria-label="`Level ${shownLevel}, ${ringPercent} percent complete`">
               <svg class="md-level__pie-svg" viewBox="0 0 100 100" aria-hidden="true">
                 <circle class="md-level__pie-track" cx="50" cy="50" r="44" />
-                <circle class="md-level__pie-arc" cx="50" cy="50" r="44" :style="{ '--progress': progressPercent }" />
+                <circle class="md-level__pie-arc" cx="50" cy="50" r="44" :style="{ '--progress': ringPercent }" />
               </svg>
+              <span v-if="burst" class="md-level__burst" aria-hidden="true">
+                <i v-for="c in confetti" :key="c.id" :style="c.style"></i>
+              </span>
               <div class="md-level__pie-inner">
                 <p class="md-level__pie-label">Level</p>
-                <p class="md-level__pie-num">{{ level }}</p>
+                <p class="md-level__pie-num" :class="{ 'is-stepping': stepping }">{{ shownLevel }}</p>
               </div>
             </div>
             <div class="md-level__copy">
@@ -219,18 +222,6 @@
       </div>
     </div>
 
-    <!-- Level-up celebration — shared fireworks takeover (Rule #12 carve-out).
-         Driven by the gamification store's pendingCelebration: set after a
-         level_up SSE frame (post-reply) or a missed celebration on next open. -->
-    <GamificationCelebration
-      v-if="celebration"
-      :key="celebration.level"
-      :level="celebration.level"
-      :level-name="celebration.level_name"
-      :next-actions="celebration.next_actions"
-      @dismiss="onCelebrationDismiss"
-    />
-
     <!-- Onboarding nudge — gently points a funnel/incomplete user to finish
          their personalised tax plan with Fyn. Tapping opens Fyn; "Later"
          dismisses it for the session. Hidden once Fyn is open or onboarded. -->
@@ -365,12 +356,15 @@
 <script>
 import { apiGet, apiPost } from '../api.js';
 import { store } from '../store.js';
-// Mirrors resources/js/components/Gamification/GamificationCelebration.vue. The
-// isolated mobile build (vite.mobile.config.js) aliases only '@m' -> resources/mobile
-// (deliberately no '@' coupling to web code, for iOS-safety), so the /m bundle keeps
-// its own copy. Keep the two in sync if the celebration changes.
-import GamificationCelebration from '@m/components/GamificationCelebration.vue';
 import FynCaptureForm from '../components/FynCaptureForm.vue';
+import {
+  dashboardIsBeingViewed,
+  prefersReducedMotion,
+  runLevelSequence,
+} from '../navigation/levelCelebration.js';
+
+// Burst colours, from the palette. Never hex (Rule 11).
+const CONFETTI_COLOURS = ['var(--spring-500)', 'var(--raspberry-500)', 'var(--violet-500)'];
 // Shared Fyn onboarding-chat client (SSE event router, bubbles, send/stream,
 // cross-screen resume). Used by both the dashboard's first-run chat and the
 // docked Fyn bar (MobileChrome) so the campaign verify flow can hand the chat
@@ -421,7 +415,7 @@ const NAV_ICON = {
 
 export default {
   name: 'MobileDashboard',
-  components: { GamificationCelebration, FynCaptureForm },
+  components: { FynCaptureForm },
   mixins: [onboardingChat],
   data() {
     return {
@@ -446,8 +440,15 @@ export default {
       actionsCompleted: 0,
       actionsTotal: 0,
       percentile: 57,
-      pulsing: false,
       nextMilestone: null,
+      // The banked level climb (CSJ 2026-09-17). displayLevel is null until a
+      // climb takes it over; the circle falls back to the real level.
+      displayLevel: null,
+      ringPercent: 0,
+      stepping: false,
+      burst: false,
+      confetti: [],
+      celebrating: false,
       // drawer / fyn
       milestoneToast: null,
       drawerOpen: false,
@@ -472,6 +473,22 @@ export default {
     };
   },
   computed: {
+    // The number the circle shows. Before and after a climb this is simply the
+    // real level; during one it is whatever step we are on.
+    shownLevel() {
+      return this.displayLevel === null ? this.level : this.displayLevel;
+    },
+    celebrateFrom() {
+      return store.gamification.celebrateFrom;
+    },
+    celebrateTo() {
+      return store.gamification.celebrateTo;
+    },
+    // How many levels are owed. Watched instead of celebrateTo alone, because
+    // either end of the range can move (found in the browser, 2026-09-17).
+    levelsOwedCount() {
+      return Math.max(0, this.celebrateTo - this.celebrateFrom);
+    },
     greeting() {
       const h = new Date().getHours();
       const part = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
@@ -488,11 +505,6 @@ export default {
     },
     fynIcon() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/Fyn/Fynla-Fyn-Icon.png';
-    },
-    // Drives the shared fireworks takeover. Set from a level_up SSE frame
-    // (after Fyn's reply) or a missed celebration delivered by fetchStatus.
-    celebration() {
-      return store.pendingCelebration;
     },
     // onboardingActive comes from the onboardingChat mixin.
     showFynNudge() {
@@ -642,14 +654,89 @@ export default {
     },
   },
   watch: {
-    level(newLevel, oldLevel) {
-      // Pulse the wheel when the engine-fed level climbs (e.g. on a fresh load
-      // after a level-up). The full fireworks takeover is driven separately by
-      // the shared GamificationCelebration via store.pendingCelebration.
-      if (newLevel > oldLevel) this.pulseWheel();
+    levelsOwedCount() { this.playBankedLevels(); },
+    // The full-screen Fyn overlay covers the wheel; the climb waits until it
+    // collapses back to the dashboard (CSJ 2026-09-17). Refresh the status on
+    // the way out: the level-up usually happened DURING the conversation, so
+    // the banked range in the store is stale by the time Fyn closes. The
+    // owed-count watcher runs the climb once the fresh range lands.
+    fynOpen(open) {
+      if (open) return;
+      store.fetchStatus().finally(() => this.playBankedLevels());
     },
+    // Keep the ring honest with the payload whenever a climb is not running.
+    progressPercent(pct) { if (!this.celebrating) this.ringPercent = pct; },
   },
   methods: {
+    // 18 pieces thrown radially from the circle's edge. The takeover this
+    // replaced dropped confetti down the whole screen; here it sprays from
+    // the level circle itself.
+    buildConfetti() {
+      return Array.from({ length: 18 }, (_, i) => {
+        const angle = ((360 / 18) * i) + ((Math.random() * 12) - 6);
+        const distance = 70 + (Math.random() * 50);
+        return {
+          id: `${Date.now()}-${i}`,
+          style: {
+            '--angle': `${angle}deg`,
+            '--distance': `${distance}px`,
+            '--delay': `${Math.random() * 90}ms`,
+            background: CONFETTI_COLOURS[i % CONFETTI_COLOURS.length],
+          },
+        };
+      });
+    },
+
+    onVisibility() { if (!document.hidden) this.playBankedLevels(); },
+
+    async playBankedLevels() {
+      if (this.celebrating) return;
+
+      if (this.celebrateTo <= this.celebrateFrom) {
+        this.displayLevel = null;
+        this.ringPercent = this.progressPercent;
+        return;
+      }
+
+      if (!dashboardIsBeingViewed({
+        onDashboard: this.$route.path === '/dashboard',
+        fynOpen: this.fynOpen,
+        hidden: document.hidden,
+      })) return;
+
+      this.celebrating = true;
+      const target = this.celebrateTo;
+      this.displayLevel = this.celebrateFrom;
+
+      const acked = await runLevelSequence({
+        from: this.celebrateFrom,
+        to: target,
+        reducedMotion: prefersReducedMotion(),
+        onLevel: (lvl, { burst }) => {
+          this.displayLevel = lvl;
+          this.stepping = true;
+          window.setTimeout(() => { this.stepping = false; }, 260);
+
+          if (!burst) { this.ringPercent = this.progressPercent; return; }
+
+          this.confetti = this.buildConfetti();
+          this.burst = true;
+          window.setTimeout(() => { this.burst = false; }, 800);
+
+          // Sweep the ring full, then snap it back ready for the next level.
+          // 420ms sits just inside the 0.45s stroke-dashoffset transition the
+          // arc already carries, so each sweep lands before the next starts.
+          this.ringPercent = 100;
+          window.setTimeout(() => {
+            this.ringPercent = lvl === target ? this.progressPercent : 0;
+          }, 420);
+        },
+      });
+
+      this.celebrating = false;
+      if (acked !== null) await store.ackCelebration(acked);
+    },
+
     fmt(n) {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
     },
@@ -827,18 +914,6 @@ export default {
           .catch(() => { item.done = !item.done; });
       }
     },
-    // Brief pulse on the level wheel. The full-screen fireworks takeover is
-    // handled by the shared GamificationCelebration component (Rule #12 carve-out).
-    pulseWheel() {
-      this.pulsing = false;
-      this.$nextTick(() => { this.pulsing = true; });
-      window.setTimeout(() => { this.pulsing = false; }, 900);
-    },
-    // Dismissing the celebration acknowledges it server-side so it isn't
-    // redelivered on next open.
-    onCelebrationDismiss() {
-      store.ack();
-    },
     goto(route) {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
@@ -972,9 +1047,11 @@ export default {
     },
   },
   async mounted() {
+    this.ringPercent = this.progressPercent;
+    document.addEventListener('visibilitychange', this.onVisibility);
     this.load();
-    // Deliver any celebration missed since last open (server-persisted
-    // pending_celebration_level surfaced via GET /api/gamification/status).
+    // Deliver any climb banked since last open (celebrate_from/celebrate_to
+    // from GET /api/gamification/status).
     store.fetchStatus();
     // A Fyn turn that ends on this screen (a recommendation-driven capture's
     // "No thanks" navigates to /dashboard) bumps the shared refresh tick as it
@@ -996,6 +1073,9 @@ export default {
     if (this.onboardingActive || this.onboardingNeedsStart || this.$route.query.from) {
       this.openFyn();
     }
+  },
+  beforeUnmount() {
+    document.removeEventListener('visibilitychange', this.onVisibility);
   },
 };
 </script>

@@ -44,7 +44,6 @@ function mountDashboard() {
         $router: { push: vi.fn() },
       },
       stubs: {
-        GamificationCelebration: true,
       },
     },
   });
@@ -198,7 +197,6 @@ describe('Dashboard.vue — load() routes a 401 through handleAuthExpiry', () =>
           $route: { path: '/dashboard', query: {} },
           $router: { push },
         },
-        stubs: { GamificationCelebration: true },
       },
     });
     await flushPromises();
@@ -224,7 +222,6 @@ describe('Dashboard.vue — load() routes a 401 through handleAuthExpiry', () =>
           $route: { path: '/dashboard', query: {} },
           $router: { push },
         },
-        stubs: { GamificationCelebration: true },
       },
     });
     await flushPromises();

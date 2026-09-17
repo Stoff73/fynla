@@ -389,8 +389,16 @@ export default {
   watch: {
     levelsOwedCount() { this.playBankedLevels(); },
     // The climb waits until Fyn gives the user back, so nothing animates
-    // mid-conversation (CSJ 2026-09-17).
-    fynHasTheUser(has) { if (!has) this.playBankedLevels(); },
+    // mid-conversation (CSJ 2026-09-17). Refresh the status on the way out:
+    // the level-up usually happened DURING the conversation, so the banked
+    // range in the store is stale by the time Fyn releases the user. The
+    // owed-count watcher runs the climb once the fresh range lands.
+    fynHasTheUser(has) {
+      if (has) return;
+      this.$store.dispatch('gamification/fetchStatus')
+        .catch(() => {})
+        .finally(() => this.playBankedLevels());
+    },
     // Keep the ring honest with the payload whenever a climb is not running.
     progressPercent(pct) { if (!this.celebrating) this.ringPercent = pct; },
   },

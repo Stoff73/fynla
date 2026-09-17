@@ -1749,15 +1749,6 @@
   color: var(--horizon-600) !important;
 }
 
-/* Level-up pulse on the pie */
-.md-level__pie.is-levelup {
-  animation: levelPulse 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes levelPulse {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.18); }
-  100% { transform: scale(1); }
-}
 
 /* Confetti layer — covers the phone frame, ignores pointer events */
 .md-confetti {
@@ -2095,4 +2086,39 @@
    =================================================================== */
 .md-callout.md-callout--below-nudge {
   margin-top: 0;
+}
+
+/* Level-up burst: confetti thrown radially from the level circle. Replaces the
+   full-screen takeover removed on 2026-09-17. Selectors are unprefixed to match
+   the rest of this file. No stroke-dashoffset transition is added:
+   .md-level__pie-arc already carries one (0.45s), which the sweep reuses. */
+.md-level__burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.md-level__burst i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 11px;
+  border-radius: 1px;
+  opacity: 0;
+  animation: md-level-confetti 800ms ease-out var(--delay) forwards;
+}
+@keyframes md-level-confetti {
+  0%   { opacity: 1; transform: rotate(var(--angle)) translateY(-46px) rotate(0deg) scale(0.6); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--angle)) translateY(calc(-46px - var(--distance))) rotate(420deg) scale(1); }
+}
+.md-level__pie-num { transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.md-level__pie-num.is-stepping { transform: scale(1.28); }
+
+@media (prefers-reduced-motion: reduce) {
+  .md-level__burst { display: none; }
+  .md-level__pie-num { transition: none; }
+  .md-level__pie-num.is-stepping { transform: none; }
+  .md-level__pie-arc { transition: none; }
 }

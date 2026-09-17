@@ -7,17 +7,19 @@ export const store = reactive({
   token: localStorage.getItem(KEY) || null,
   user: null,
   subscriptionStatus: null,
-  // Gamification (shared engine — GET /api/gamification/status). pendingCelebration
-  // is the level-up to celebrate; set from a level_up SSE frame mid-chat or from a
-  // missed-celebration delivered by fetchStatus on next app open.
+  // Gamification (shared engine — GET /api/gamification/status). The banked
+  // climb is a RANGE: every level above celebrateFrom, up to celebrateTo, is
+  // owed and gets spent on the dashboard hero circle. The full-screen
+  // celebration this replaced could hold only one level (CSJ 2026-09-17).
   gamification: {
     level: 1,
     levelName: 'Starter',
     progressPercent: 0,
     nextLevelName: null,
     nextActions: [],
+    celebrateFrom: 1,
+    celebrateTo: 1,
   },
-  pendingCelebration: null, // { level, level_name, next_actions } | null
   // Same-route verify refresh: bumped when the onboarding chat applies an
   // edit and re-verifies the screen the user is already on — the module
   // screens watch this and refetch, since no remount happens without a
@@ -50,8 +52,8 @@ export const store = reactive({
     this.user = null;
     this.subscriptionStatus = null;
   },
-  // Pull the latest gamification status. A pending_celebration from a missed
-  // level-up is surfaced here so it delivers on next open.
+  // Pull the latest gamification status. A climb banked while the user was
+  // elsewhere is surfaced here so it delivers on next open.
   async fetchStatus() {
     if (!this.token) return;
     try {
@@ -63,31 +65,18 @@ export const store = reactive({
       this.gamification.progressPercent = d.progress_percent ?? 0;
       this.gamification.nextLevelName = d.next_level_name ?? null;
       this.gamification.nextActions = d.next_actions || [];
-      if (d.pending_celebration) {
-        this.pendingCelebration = {
-          level: d.pending_celebration.level,
-          level_name: d.pending_celebration.level_name,
-          next_actions: d.pending_celebration.next_actions || [],
-        };
-      }
+      this.gamification.celebrateFrom = d.celebrate_from ?? d.level ?? 1;
+      this.gamification.celebrateTo = d.celebrate_to ?? d.level ?? 1;
     } catch {
       /* non-fatal — gamification must never break the dashboard */
     }
   },
-  // Queue a celebration from an in-turn level_up SSE frame.
-  queueCelebration(frame) {
-    if (!frame) return;
-    this.pendingCelebration = {
-      level: frame.level,
-      level_name: frame.level_name,
-      next_actions: frame.next_actions || [],
-    };
-  },
-  // Dismiss + clear the server-side pending flag so it isn't redelivered.
-  async ack() {
-    this.pendingCelebration = null;
+  // Bank the climb the dashboard has just shown so it never replays.
+  async ackCelebration(level) {
+    this.gamification.celebrateFrom = level;
+    this.gamification.celebrateTo = Math.max(level, this.gamification.celebrateTo);
     try {
-      if (this.token) await apiPost('/api/gamification/celebration/ack', {}, this.token);
+      if (this.token) await apiPost('/api/gamification/celebration/ack', { level }, this.token);
     } catch {
       /* non-fatal */
     }
