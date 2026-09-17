@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Models\User;
+use Carbon\Carbon;
+
 /**
  * The ONE home for the structured capture forms Fyn shows in the chat
  * (CSJ 2026-09-15: onboarding captures data in a shape we expect, through
@@ -32,6 +35,36 @@ final class CaptureForms
 
     public const SPOUSE_ASSETS = 'spouse_assets';
 
+    /** Journey path: date of birth and marital status, ONE write through capture_personal_details. */
+    public const PERSONAL = 'personal';
+
+    /** Journey path: the spouse or partner's name, date of birth and email, ONE write through capture_spouse_details (creates and links their account). */
+    public const SPOUSE_DETAILS = 'spouse_details';
+
+    /** Journey path: one dependant per save through capture_dependants, looped by base_dependants_more. */
+    public const DEPENDANTS = 'dependants';
+
+    /** Employer, role and gross income, ONE write through capture_work_details (journey and Save Tax income step). */
+    public const WORK = 'work';
+
+    /** Save Tax and pension check: the date of birth alone, through capture_personal_details. */
+    public const DOB = 'dob';
+
+    /** The personal pension or SIPP alone — the pension form for users with no workplace scheme step. */
+    public const PENSION_PERSONAL = 'pension_personal';
+
+    /** Monthly spending as one figure (everyone), through capture_monthly_expenditure. */
+    public const EXPENDITURE = 'expenditure';
+
+    /** Journey path: life insurance, critical illness cover, income protection — one create_protection_policy per kind. */
+    public const PROTECTION = 'protection';
+
+    /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
+    public const EXPENDITURE_DETAILED = 'expenditure_detailed';
+
+    /** The category form asking first whether the figures are the household's (a spouse is on file). */
+    public const EXPENDITURE_DETAILED_HOUSEHOLD = 'expenditure_detailed_household';
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
@@ -42,7 +75,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::PROTECTION];
     }
 
     /** @return array<string, mixed>|null */
@@ -56,6 +89,16 @@ final class CaptureForms
             self::PENSION => self::pension(),
             self::SPOUSE_HOUSEHOLD => self::spouseHousehold(),
             self::SPOUSE_ASSETS => self::spouseAssets(),
+            self::PERSONAL => self::personal(),
+            self::SPOUSE_DETAILS => self::spouseDetails(),
+            self::DEPENDANTS => self::dependants(),
+            self::WORK => self::work(),
+            self::DOB => self::dob(),
+            self::PENSION_PERSONAL => self::pensionPersonal(),
+            self::EXPENDITURE => self::expenditure(),
+            self::EXPENDITURE_DETAILED => self::expenditureDetailed(false),
+            self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureDetailed(true),
+            self::PROTECTION => self::protection(),
             default => null,
         };
     }
@@ -129,6 +172,8 @@ final class CaptureForms
             'choice' => [$presence, 'in:'.implode(',', array_column($field['options'], 'value'))],
             'percent' => [$presence, 'numeric', 'min:'.($field['min'] ?? '0.01'), 'max:'.($field['max'] ?? '99.99')],
             'text' => [$presence, 'string', 'max:255'],
+            'date' => [$presence, 'date_format:Y-m-d'],
+            'email' => [$presence, 'email', 'max:255'],
         };
     }
 
@@ -164,6 +209,11 @@ final class CaptureForms
                 }
             }
 
+            if ($input !== [] && $schema['name'] === self::DEPENDANTS) {
+                // capture_dependants takes a list; the form saves one per turn.
+                $input = ['dependants' => [$input]];
+            }
+
             return $input === [] ? [] : [self::LEAD => $input];
         }
 
@@ -179,7 +229,8 @@ final class CaptureForms
                 self::ISA => self::isaInputs($kind, $answers),
                 self::SAVINGS => self::savingsInputs($kind, $answers),
                 self::INVESTMENT => self::investmentInputs($kind, $answers),
-                self::PENSION => self::pensionInputs($kind, $answers),
+                self::PENSION, self::PENSION_PERSONAL => self::pensionInputs($kind, $answers),
+                self::PROTECTION => self::protectionInputs($kind, $answers),
             };
         }
 
@@ -200,7 +251,14 @@ final class CaptureForms
         }
 
         if (isset($schema['tool'])) {
-            return self::spouseSentence($schema, (array) ($form['answers'] ?? []));
+            return match ($schema['name']) {
+                self::PERSONAL, self::DOB => self::personalSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::DEPENDANTS => self::dependantSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureSentence($schema, self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::WORK => self::workSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
+            };
         }
 
         $sentences = [];
@@ -211,7 +269,8 @@ final class CaptureForms
                 self::ISA => self::isaSentence($label, $input),
                 self::SAVINGS => self::savingsSentence($label, $input),
                 self::INVESTMENT => self::investmentSentence($label, $input),
-                self::PENSION => self::pensionSentence($label, $input),
+                self::PENSION, self::PENSION_PERSONAL => self::pensionSentence($label, $input),
+                self::PROTECTION => self::protectionSentence($label, $input),
             };
         }
 
@@ -494,7 +553,7 @@ final class CaptureForms
             foreach ($fieldKeys as $fieldKey) {
                 $value = $given[$fieldKey] ?? null;
                 $type = $schema['fields'][$fieldKey]['type'];
-                if ($type === 'text') {
+                if (in_array($type, ['text', 'choice', 'date', 'email'], true)) {
                     $value = trim((string) $value);
                     if ($value !== '') {
                         $input[$fieldKey] = $value;
@@ -790,6 +849,435 @@ final class CaptureForms
                 'spouse_existing_investment_balance' => ['type' => 'money', 'label' => 'Investments value', 'required' => true],
                 'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none'],
                 'spouse_existing_pension_balance' => ['type' => 'money', 'label' => 'Pension pot value', 'required' => true],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function personalSentence(array $input): string
+    {
+        $parts = [];
+        if (isset($input['date_of_birth'])) {
+            $parts[] = 'I was born on '.Carbon::parse($input['date_of_birth'])->format('j F Y');
+        }
+        if (isset($input['marital_status'])) {
+            $parts[] = "I'm ".self::maritalWords($input['marital_status']);
+        }
+
+        return $parts === [] ? '' : ucfirst(implode(' and ', $parts)).'.';
+    }
+
+    public static function maritalWords(string $status): string
+    {
+        return match ($status) {
+            'civil_partnership' => 'in a civil partnership',
+            default => str_replace('_', ' ', $status),
+        };
+    }
+
+    /**
+     * Journey path personal details: date of birth and marital status, both
+     * required, ONE write through capture_personal_details (the handler
+     * enforces the 18–105 age bounds).
+     *
+     * @return array<string, mixed>
+     */
+    private static function personal(): array
+    {
+        return [
+            'name' => self::PERSONAL,
+            'submit_label' => 'Save',
+            'tool' => 'capture_personal_details',
+            'entity_type' => 'personal',
+            'lead_fields' => ['date_of_birth', 'marital_status'],
+            'kinds' => [],
+            'fields' => [
+                'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
+                'marital_status' => ['type' => 'choice', 'label' => 'Marital status', 'required' => true, 'options' => [
+                    ['value' => 'single', 'label' => 'Single'],
+                    ['value' => 'married', 'label' => 'Married'],
+                    ['value' => 'civil_partnership', 'label' => 'In a civil partnership'],
+                    ['value' => 'divorced', 'label' => 'Divorced'],
+                    ['value' => 'widowed', 'label' => 'Widowed'],
+                ]],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function spouseDetailsSentence(array $input): string
+    {
+        $name = trim(($input['first_name'] ?? '').' '.($input['last_name'] ?? ''));
+        $parts = ['My spouse is '.($name === '' ? 'as follows' : $name)];
+        if (isset($input['date_of_birth'])) {
+            $parts[] = 'born on '.Carbon::parse($input['date_of_birth'])->format('j F Y');
+        }
+        if (isset($input['email'])) {
+            $parts[] = 'email '.$input['email'];
+        }
+        if (isset($input['annual_income'])) {
+            $parts[] = 'earning '.self::pounds($input['annual_income']).' a year';
+        }
+
+        return implode(', ', $parts).'.';
+    }
+
+    /**
+     * Journey path spouse or partner details — the fields
+     * capture_spouse_details needs to create and link their account (name,
+     * date of birth, email) plus their income if known. ONE write.
+     *
+     * @return array<string, mixed>
+     */
+    private static function spouseDetails(): array
+    {
+        return [
+            'name' => self::SPOUSE_DETAILS,
+            'submit_label' => 'Save',
+            'tool' => 'capture_spouse_details',
+            'entity_type' => 'spouse',
+            'lead_fields' => ['first_name', 'last_name', 'date_of_birth', 'email', 'annual_income'],
+            'kinds' => [],
+            'fields' => [
+                'first_name' => ['type' => 'text', 'label' => 'Their first name', 'required' => true],
+                'last_name' => ['type' => 'text', 'label' => 'Their last name', 'required' => false],
+                'date_of_birth' => ['type' => 'date', 'label' => 'Their date of birth', 'required' => true],
+                'email' => ['type' => 'email', 'label' => 'Their email address', 'required' => true, 'hint' => "I'll create their account and link the two of you so you can plan together"],
+                'annual_income' => ['type' => 'money', 'label' => 'Their annual income', 'required' => false, 'hint' => 'Before tax. Leave blank if you are not sure'],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function dependantSentence(array $input): string
+    {
+        $noun = match ($input['relationship'] ?? '') {
+            'child' => 'child',
+            'parent' => 'parent',
+            default => 'dependant',
+        };
+        $name = trim((string) ($input['first_name'] ?? ''));
+        $who = 'My '.$noun.($name !== '' ? ' '.$name : '');
+        $born = isset($input['date_of_birth']) ? ' was born on '.Carbon::parse($input['date_of_birth'])->format('j F Y') : '';
+
+        return $who.$born.'.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function workSentence(array $input): string
+    {
+        $parts = [];
+        // "My job is X at Y" avoids an article before the role ("a Operations manager").
+        if (isset($input['occupation'])) {
+            $parts[] = 'My job is '.$input['occupation'].(isset($input['employer']) ? ' at '.$input['employer'] : '');
+        } elseif (isset($input['employer'])) {
+            $parts[] = 'I work at '.$input['employer'];
+        }
+        if (isset($input['annual_income'])) {
+            $parts[] = 'I earn '.self::pounds($input['annual_income']).' a year';
+        }
+
+        return $parts === [] ? '' : implode(' and ', $parts).'.';
+    }
+
+    /**
+     * Journey path dependants: ONE dependant per save (who they are, their
+     * name, their exact date of birth) through capture_dependants; the loop
+     * question after it asks for another. The handler rejects a future or
+     * over-120 date of birth.
+     *
+     * @return array<string, mixed>
+     */
+    private static function dependants(): array
+    {
+        return [
+            'name' => self::DEPENDANTS,
+            'submit_label' => 'Save',
+            'tool' => 'capture_dependants',
+            'entity_type' => 'dependant',
+            'lead_fields' => ['relationship', 'first_name', 'date_of_birth'],
+            'kinds' => [],
+            'fields' => [
+                'relationship' => ['type' => 'choice', 'label' => 'Who they are', 'required' => true, 'options' => [
+                    ['value' => 'child', 'label' => 'A child'],
+                    ['value' => 'parent', 'label' => 'A parent'],
+                    ['value' => 'other_dependent', 'label' => 'Another dependant'],
+                ]],
+                'first_name' => ['type' => 'text', 'label' => 'Their first name', 'required' => false],
+                'date_of_birth' => ['type' => 'date', 'label' => 'Their date of birth', 'required' => true, 'hint' => 'The exact date helps keep the plan correct'],
+            ],
+        ];
+    }
+
+    /**
+     * Work and income — employer or trading name, role and gross annual
+     * income, ONE write through capture_work_details. Reached on the journey
+     * path and the Save Tax and pension check income steps alike.
+     *
+     * @return array<string, mixed>
+     */
+    private static function work(): array
+    {
+        return [
+            'name' => self::WORK,
+            'submit_label' => 'Save',
+            'tool' => 'capture_work_details',
+            'entity_type' => 'work',
+            'lead_fields' => ['employer', 'occupation', 'annual_income'],
+            'kinds' => [],
+            'fields' => [
+                'employer' => ['type' => 'text', 'label' => 'Employer or trading name', 'required' => true],
+                'occupation' => ['type' => 'text', 'label' => 'Job title or role', 'required' => true],
+                'annual_income' => ['type' => 'money', 'label' => 'Gross annual income', 'required' => true, 'hint' => 'Before tax, including bonuses and commissions'],
+            ],
+        ];
+    }
+
+    /**
+     * The campaign date-of-birth step: one date, the same write as the
+     * personal form (the handler accepts either field on its own).
+     *
+     * @return array<string, mixed>
+     */
+    private static function dob(): array
+    {
+        return [
+            'name' => self::DOB,
+            'submit_label' => 'Save',
+            'tool' => 'capture_personal_details',
+            'entity_type' => 'personal',
+            'lead_fields' => ['date_of_birth'],
+            'kinds' => [],
+            'fields' => [
+                'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
+            ],
+        ];
+    }
+
+    /**
+     * The pension form with only the personal pension or SIPP kind: what a
+     * self-employed, retired or not-working user is asked at the
+     * contributions step, since their workplace-scheme step is skipped.
+     *
+     * @return array<string, mixed>
+     */
+    private static function pensionPersonal(): array
+    {
+        $pension = self::pension();
+        $pension['name'] = self::PENSION_PERSONAL;
+        $pension['kinds'] = array_values(array_filter($pension['kinds'], static fn (array $kind): bool => $kind['key'] === 'personal'));
+
+        return $pension;
+    }
+
+    /**
+     * The expenditure form a user gets: one box for everyone; the category
+     * form on Premium, with the household question first when a spouse is on
+     * file and has not answered it.
+     *
+     * @return array<string, mixed>
+     */
+    public static function expenditureVariantFor(User $user, bool $detailedAllowed): array
+    {
+        if (! $detailedAllowed) {
+            return self::expenditure();
+        }
+        $askHousehold = $user->liveSpouse() !== null && $user->expenditure_sharing_mode_declared_at === null;
+
+        return $askHousehold ? self::expenditureDetailed(true) : self::expenditureDetailed(false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, mixed>  $input
+     */
+    private static function expenditureSentence(array $schema, array $input): string
+    {
+        if ($schema['name'] === self::EXPENDITURE) {
+            return isset($input['monthly_total']) ? 'About '.self::pounds($input['monthly_total']).' goes out each month.' : '';
+        }
+        $parts = [];
+        $total = 0.0;
+        foreach ($schema['fields'] as $key => $field) {
+            if ($field['type'] === 'money' && isset($input[$key])) {
+                $parts[] = lcfirst($field['label']).' '.self::pounds($input[$key]);
+                $total += $input[$key];
+            }
+        }
+        if ($parts === []) {
+            return '';
+        }
+        $household = match ($input['expenditure_sharing_mode'] ?? null) {
+            'joint' => ' These are our household figures.',
+            'separate' => ' These are just my own figures.',
+            default => '',
+        };
+
+        return 'My monthly spending: '.implode(', ', $parts).' — about '.self::pounds($total).' a month in total.'.$household;
+    }
+
+    /** @return array<string, mixed> */
+    private static function expenditure(): array
+    {
+        return [
+            'name' => self::EXPENDITURE,
+            'submit_label' => 'Save',
+            'tool' => 'capture_monthly_expenditure',
+            'entity_type' => 'expenditure',
+            'lead_fields' => ['monthly_total'],
+            'kinds' => [],
+            'fields' => [
+                'monthly_total' => ['type' => 'money', 'label' => 'What goes out each month', 'required' => true,
+                    'hint' => 'Rent or mortgage, bills, food, transport, the lot. A ballpark figure is fine'],
+            ],
+        ];
+    }
+
+    /**
+     * Category entry (Premium): the web expenditure page's groups as the kind
+     * boxes, every category optional, ONE write through set_expenditure.
+     *
+     * @return array<string, mixed>
+     */
+    private static function expenditureDetailed(bool $askHousehold): array
+    {
+        $money = static fn (string $label, ?string $hint = null): array => array_filter(['type' => 'money', 'label' => $label, 'required' => false, 'hint' => $hint]);
+
+        $schema = [
+            'name' => $askHousehold ? self::EXPENDITURE_DETAILED_HOUSEHOLD : self::EXPENDITURE_DETAILED,
+            'base' => self::EXPENDITURE,
+            'submit_label' => 'Save',
+            'tool' => 'set_expenditure',
+            'entity_type' => 'expenditure',
+            'lead_fields' => $askHousehold ? ['expenditure_sharing_mode'] : [],
+            'kinds_prompt' => 'Choose the areas you spend on and fill in what you can. Monthly figures, rough is fine.',
+            'kinds' => [
+                ['key' => 'essential', 'label' => 'Essential living', 'fields' => ['rent', 'utilities', 'food_groceries', 'transport_fuel', 'healthcare_medical', 'insurance']],
+                ['key' => 'communication', 'label' => 'Communication and technology', 'fields' => ['mobile_phones', 'internet_tv', 'subscriptions']],
+                ['key' => 'lifestyle', 'label' => 'Personal and lifestyle', 'fields' => ['clothing_personal_care', 'entertainment_dining', 'holidays_travel', 'pets']],
+                ['key' => 'children', 'label' => 'Children and dependants', 'fields' => ['childcare', 'school_fees', 'school_lunches', 'school_extras', 'university_fees', 'children_activities']],
+                ['key' => 'other', 'label' => 'Other', 'fields' => ['gifts_charity', 'charitable_donations', 'other_expenditure']],
+            ],
+            'fields' => [
+                'expenditure_sharing_mode' => ['type' => 'choice', 'label' => 'Are these figures for the whole household, or just you?', 'required' => true, 'options' => [
+                    ['value' => 'joint', 'label' => 'The whole household'],
+                    ['value' => 'separate', 'label' => 'Just me'],
+                ]],
+                'rent' => $money('Rent', 'Monthly rent if not a homeowner'),
+                'utilities' => $money('Utilities', 'Gas, electricity, water, council tax'),
+                'food_groceries' => $money('Food and groceries'),
+                'transport_fuel' => $money('Transport and fuel', 'Petrol, public transport, parking'),
+                'healthcare_medical' => $money('Healthcare and medical', 'Prescriptions, dental, optician'),
+                'insurance' => $money('Insurance (not property)', 'Car, private medical, mobile phone'),
+                'mobile_phones' => $money('Mobile phones'),
+                'internet_tv' => $money('Internet and TV', 'Broadband, TV licence'),
+                'subscriptions' => $money('Subscriptions', 'Streaming, gym memberships'),
+                'clothing_personal_care' => $money('Clothing and personal care', 'Clothes, toiletries, haircuts'),
+                'entertainment_dining' => $money('Entertainment and dining', 'Restaurants, cinema, activities'),
+                'holidays_travel' => $money('Holidays and travel', 'Monthly average for the year'),
+                'pets' => $money('Pets', 'Food, vet bills, insurance'),
+                'childcare' => $money('Childcare', 'Nursery, childminder, after school'),
+                'school_fees' => $money('School fees', 'Private education fees'),
+                'school_lunches' => $money('School lunches'),
+                'school_extras' => $money('School extras', 'Uniforms, trips, equipment'),
+                'university_fees' => $money('University fees', 'Includes accommodation and books'),
+                'children_activities' => $money("Children's activities", 'Sports, music lessons, clubs'),
+                'gifts_charity' => $money('Gifts and presents', 'Birthday and Christmas gifts'),
+                'charitable_donations' => $money('Charitable donations'),
+                'other_expenditure' => $money('Other spending', 'Any other monthly expenses'),
+            ],
+        ];
+        if (! $askHousehold) {
+            unset($schema['fields']['expenditure_sharing_mode']);
+        }
+
+        return $schema;
+    }
+
+    /**
+     * create_protection_policy input for one kind. Income protection carries
+     * a monthly benefit, the others a sum assured; premiums are monthly.
+     *
+     * @param  array<string, mixed>  $kind
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    private static function protectionInputs(array $kind, array $answers): array
+    {
+        $input = ['policy_type' => $kind['policy_type'], 'provider' => trim((string) $answers['provider'])];
+        if ($kind['key'] === 'income') {
+            $input['benefit_amount'] = (float) $answers['benefit_amount'];
+        } else {
+            $input['sum_assured'] = (float) $answers['sum_assured'];
+        }
+        if (is_numeric($answers['premium_amount'] ?? null)) {
+            $input['premium_amount'] = (float) $answers['premium_amount'];
+            $input['premium_frequency'] = 'monthly';
+        }
+        if (is_numeric($answers['policy_term_years'] ?? null)) {
+            $input['policy_term_years'] = (int) $answers['policy_term_years'];
+        }
+
+        return $input;
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function protectionSentence(string $label, array $input): string
+    {
+        $parts = [$label.' with '.$input['provider']];
+        if (isset($input['sum_assured'])) {
+            $parts[] = self::pounds($input['sum_assured']).' of cover';
+        }
+        if (isset($input['benefit_amount'])) {
+            $parts[] = self::pounds($input['benefit_amount']).' a month benefit';
+        }
+        if (isset($input['premium_amount'])) {
+            $parts[] = self::pounds($input['premium_amount']).' a month premium';
+        }
+        if (isset($input['policy_term_years'])) {
+            $parts[] = $input['policy_term_years'].' year term';
+        }
+
+        return implode(', ', $parts).'.';
+    }
+
+    /**
+     * Journey path protection cover: one policy per kind per save through
+     * create_protection_policy; the loop question asks for another.
+     *
+     * @return array<string, mixed>
+     */
+    private static function protection(): array
+    {
+        return [
+            'name' => self::PROTECTION,
+            'submit_label' => 'Save',
+            'kinds' => [
+                ['key' => 'life', 'label' => 'Life insurance', 'policy_type' => 'level_term',
+                    'tool' => 'create_protection_policy', 'entity_type' => 'life_insurance_policy',
+                    'fields' => ['provider', 'sum_assured', 'premium_amount', 'policy_term_years']],
+                ['key' => 'critical', 'label' => 'Critical illness cover', 'policy_type' => 'standalone_ci',
+                    'tool' => 'create_protection_policy', 'entity_type' => 'critical_illness_policy',
+                    'fields' => ['provider', 'sum_assured', 'premium_amount', 'policy_term_years']],
+                ['key' => 'income', 'label' => 'Income protection', 'policy_type' => 'income_protection',
+                    'tool' => 'create_protection_policy', 'entity_type' => 'income_protection_policy',
+                    'fields' => ['provider', 'benefit_amount', 'premium_amount', 'policy_term_years']],
+            ],
+            'fields' => [
+                'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
+                'sum_assured' => ['type' => 'money', 'label' => 'Cover amount', 'required' => true, 'hint' => 'The lump sum it would pay out'],
+                'benefit_amount' => ['type' => 'money', 'label' => 'Monthly benefit', 'required' => true, 'hint' => 'What it would pay each month'],
+                'premium_amount' => ['type' => 'money', 'label' => 'Monthly premium', 'required' => false, 'hint' => "Leave blank if you don't know"],
+                'policy_term_years' => ['type' => 'percent', 'label' => 'Term in years', 'required' => false, 'min' => 1, 'max' => 50, 'step' => 1,
+                    'hint' => 'Leave blank for whole of life or if unsure'],
             ],
         ];
     }

@@ -273,6 +273,18 @@ final class RecaptureGuard
      * alphanumeric form when a name is nothing BUT noise ("My Pension"), so such
      * a name matches only other all-noise names rather than everything.
      */
+    /** A normalised name with the (normalised) provider's tokens removed; the name itself if nothing is left. */
+    private static function withoutProvider(string $name, string $provider): string
+    {
+        if ($provider === '' || $name === '') {
+            return $name;
+        }
+        $stripped = trim(preg_replace('/\b'.preg_quote($provider, '/').'\b/', ' ', $name) ?? $name);
+        $stripped = trim(preg_replace('/\s+/', ' ', $stripped) ?? $stripped);
+
+        return $stripped === '' ? $name : $stripped;
+    }
+
     public static function normaliseName(string $name): string
     {
         $plain = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($name)) ?? '');
@@ -362,7 +374,15 @@ final class RecaptureGuard
             : self::normaliseName((string) ($input[$providerKey] ?? ''));
 
         foreach ($query->get() as $candidate) {
-            if (self::normaliseName(self::nameFrom($candidate, $entity['name'])) !== $target) {
+            $theirs = isset($entity['provider'])
+                ? self::normaliseName((string) ($candidate->{$entity['provider']} ?? ''))
+                : '';
+            // The provider is compared on its own column, so a provider name
+            // inside the record name is noise: the form's "Aviva personal
+            // pension or SIPP" and the model's "Personal pension or SIPP" with
+            // provider Aviva are the same pension (csjones 2026-09-16).
+            if (self::withoutProvider(self::normaliseName(self::nameFrom($candidate, $entity['name'])), $theirs)
+                !== self::withoutProvider($target, $incomingProvider)) {
                 continue;
             }
 
@@ -370,7 +390,6 @@ final class RecaptureGuard
             // Only a provider present on BOTH sides can rule a match out — an
             // absent one is missing information, not a distinction.
             if (isset($entity['provider'])) {
-                $theirs = self::normaliseName((string) ($candidate->{$entity['provider']} ?? ''));
                 if ($incomingProvider !== '' && $theirs !== '' && $incomingProvider !== $theirs) {
                     continue;
                 }

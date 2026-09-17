@@ -365,6 +365,10 @@ final class SpouseLinkingService
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($lockedRequester->id, $lockedAccepter->id);
         });
+
+        // The spouse facts given during onboarding move onto the account that
+        // just linked — once (CSJ 2026-09-16).
+        app(SpouseHoldingTransfer::class)->transfer($requester->fresh(), $accepter->fresh());
     }
 
     /**

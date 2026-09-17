@@ -1,10 +1,8 @@
-# Tech Debt Report — Session 2026-09-16 (property capture form, PRs #859–#867)
+# Tech Debt Report — Session 2026-09-16 (session 2)
 
-**Files analysed:** 20 source files changed since 2026-09-15 17:00 (all merged to dev and main)
-**Issues found:** 12
-**Severity breakdown:** 0 critical, 4 warnings, 8 suggestions
-
-Concrete checks run over every changed file: no hex colours or banned colour classes in `<style>`/templates, no `console.log`/`dd()`, no `sole`, `declare(strict_types=1)` present in every PHP file, no emoji.
+**Files analysed:** 12 (dev `3db416eb3..307210164`: CaptureForms, OnboardingChatDirector, OnboardingStateMachine, PensionStore, SendAiChatMessageRequest, captureFormState.js, both FynCaptureForm.vue, onboardingChat.js, Dashboard.vue, MobileChrome.vue, fyn-onboarding.v1.md)
+**Issues found:** 8
+**Severity breakdown:** 0 critical, 4 warnings, 4 suggestions
 
 ## Critical Issues
 
@@ -12,21 +10,17 @@ None.
 
 ## Warnings
 
-- `resources/js/store/modules/aiChat.js` (1,774 lines) — Category 4. Four SSE routers (`sendMessage`, `streamNextQueued`, `postAction`, `startOnboardingConversation`) each carry a near-identical `switch` over event types; today's work added `form_received`/`capture_form`/`capture_form_errors` to all four (the `capture_form` body is shared via `pushCaptureFormTurn`, the other two are one-liners). Suggested fix: one `routeFynEvent(commit, state, event, ctx)` used by all four; a later extraction, not a today job.
-- `app/Services/Onboarding/OnboardingChatDirector.php` (8,006 lines) — Category 4. `handleFormTurn` (~3676–3790) and `advanceAfterCapture` (~4400) were added to an already very large file; `handleFormTurn` hardcodes `create_property`/`property` at four spots (~3735, ~3741, ~3746, ~3749). Suggested fix: Part A1 of `docs/superpowers/specs/2026-09-16-savetax-account-capture-forms-design.md` (tool and entity type per schema kind).
-- `resources/mobile/views/Dashboard.vue:321` and `resources/mobile/components/MobileChrome.vue:141` — Category 1. The `/m` chat message loop is duplicated verbatim in both templates; today's work added a third insertion (`<FynCaptureForm>`) to each. Suggested fix: extract a `FynMessageList.vue` used by both (Ruling 2 deferred it).
-- `app/Services/Onboarding/CaptureForms.php` `toolInputs()`/`summarise()` — Category 6. Property-shaped bodies behind schema-generic names; a second schema cannot use them. Suggested fix: Part A2 of the same spec (dispatch by schema name).
+1. **`app/Services/Onboarding/OnboardingChatDirector.php:1105` — Convention (hardcoded plan name).** The cap statement says "the Free plan's limit" as a literal. The gate returns a limit for any capped tier; the tier name should come from the user's tier (TierGate / SubscriptionStatusService), not the copy. Fix: read the tier label alongside `hardLimit()` in `capReachedAtLoop()` and interpolate it.
+2. **`app/Services/Onboarding/OnboardingChatDirector.php:6276-6290` vs `app/Services/Onboarding/CaptureForms.php:548-556` — Duplicate code.** `pounds()` exists in both (director formats with 0 decimals, CaptureForms trims trailing zeros). Fix: one money-words helper (a small `App\Support\Words` or reuse `CaptureForms::pounds()` made public) used by the acks and the transcript sentences.
+3. **`app/Services/Onboarding/CaptureForms.php` (796 lines) — Complexity.** Seven schemas plus per-schema input/sentence builders in one class. Fix candidate: one class per form (`CaptureForms\Property`, `…\Pension`, `…\SpouseHousehold`) behind the same static facade, or at least move the schema arrays out of the facade.
+4. **`app/Services/Onboarding/OnboardingChatDirector.php:3778` — Complexity.** `handleFormTurn()` is 142 lines with four branches (empty guard, single-write capture, per-kind create, cap-only refusal). Fix candidate: extract `writeFormKind()` and `refuseForm()`.
 
 ## Suggestions
 
-- `resources/mobile/utils/captureFormState.js` `setChoice()` — hardcodes `ownership_percentage`; the mixin is property-shaped in that one method. Generalise by reading `required_when.field` from the schema when a second form needs a different revealed field.
-- `resources/mobile/utils/captureFormState.js` `data()` — seeds from `values` once; no watcher. Correct by construction today (persisted answers are the client's own payload). Note in the mixin header.
-- `resources/js/store/modules/aiChat.js` `streamNextQueued` — the `form_received` case is a no-op and never clears a prior refusal's errors; unreachable today because the form is disabled while a turn streams.
-- `resources/mobile/mixins/onboardingChat.js` `loadTranscript` — the forward scan for a form's answers is not bounded at the next form row; safe while one form is parked at a time.
-- `resources/mobile/mixins/onboardingChat.js` `capture_form_errors` — targets the latest form row and ignores `ev.form`; single-open-form invariant.
-- `app/Services/Onboarding/CaptureForms.php` — trailing-zero trimming duplicated between `pounds()` and the share formatting in `summarise()`.
-- `app/Services/Onboarding/OnboardingChatDirector.php:3697` — the form-level error key `_form` (empty-kind guard) is keyed by no kind, so neither renderer shows it; unreachable because the request rejects empty answers.
-- `resources/js/components/Fyn/FynCaptureForm.vue` / `/m` copy — the choice-field `<label for>` points at no input id (a11y nit); the `/m` kind heading now has its own class, the web heading uses utility classes.
+5. **`resources/mobile/utils/captureFormState.js:42-47` — Redundancy.** `sections()` and `blocks()` overlap (blocks = sections with the kinds row inserted). Fix: derive `sections` from `blocks` by filtering out the kinds row, or drop `sections` and filter in `isValid()`/`submit()`.
+6. **`resources/js/components/Fyn/FynCaptureForm.vue` / `resources/mobile/components/FynCaptureForm.vue` — Duplicate templates (accepted).** The field-block markup is duplicated across the two renderers by architecture (isolated bundles, Ruling 1). Not new this session; the block restructure kept them in lockstep. Any further field type must be added to both.
+7. **`app/Services/Onboarding/OnboardingStateMachine.php:2265` — Indirection.** `nextFromCampaignOccupationalScheme()` is now reached only via `nextFromPensionMore()`; inline it or rename to say what it does (enter the pot-value loop).
+8. **`app/Services/Onboarding/CaptureForms.php` spouse schemas — Naming.** Form field keys are the tool's field names (`spouse_isa_balance`), unlike the other schemas which use plain keys mapped in `*Inputs()`. Deliberate (one write, no mapping) but inconsistent; note it in the class docblock if kept.
 
 ---
 *Generated by tech-debt-session skill*

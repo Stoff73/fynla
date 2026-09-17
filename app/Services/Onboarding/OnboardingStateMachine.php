@@ -77,6 +77,8 @@ final class OnboardingStateMachine
 
     public const STATE_BASE_DEPENDANTS_DETAIL = 'base_dependants_detail';
 
+    public const STATE_BASE_DEPENDANTS_MORE = 'base_dependants_more';
+
     public const STATE_BASE_EMPLOYMENT = 'base_employment';
 
     // base_work replaces the old base_occupation + base_income pair —
@@ -96,6 +98,11 @@ final class OnboardingStateMachine
     public const STATE_ASSET_CAPTURE = 'asset_capture';
 
     public const STATE_ADD_MORE = 'add_more';
+
+    /** Journey path: the protection form (life, critical illness, income protection), looped by its own "another?" question. */
+    public const STATE_JOURNEY_PROTECTION = 'journey_protection';
+
+    public const STATE_JOURNEY_PROTECTION_MORE = 'journey_protection_more';
 
     public const STATE_DONE = 'done';
 
@@ -308,7 +315,7 @@ final class OnboardingStateMachine
             // to EVERY data entry). The campaign walk never stamps these; the
             // journey's module captures verify through the same machinery,
             // re-entering asset_capture on "add more".
-            'protection' => ['route' => '/protection', 'entry' => self::STATE_ASSET_CAPTURE],
+            'protection' => ['route' => '/protection', 'entry' => self::STATE_JOURNEY_PROTECTION],
             'estate' => ['route' => '/estate', 'entry' => self::STATE_ASSET_CAPTURE],
             'goals' => ['route' => '/goals', 'entry' => self::STATE_ASSET_CAPTURE],
         ];
@@ -422,6 +429,12 @@ final class OnboardingStateMachine
             ],
             self::STATE_BASE_DEPENDANTS_DETAIL => [
             ],
+            // CSJ 2026-09-16: the dependants form saves one per turn; this
+            // asks for another. "Yes" re-opens the form, "No" goes where the
+            // detail step used to go.
+            self::STATE_BASE_DEPENDANTS_MORE => [
+                'next' => self::class.'::nextFromDependantsMore',
+            ],
             // Phase 10 — profile-review pause after family details. Frontend
             // shrinks the chat to w-[525px] and un-blurs the dashboard while
             // this state is active.
@@ -434,6 +447,10 @@ final class OnboardingStateMachine
             ],
             self::STATE_BASE_WORK => [
                 'prompt_text' => self::class.'::buildWorkPrompt',
+                // The form's lead-in is a builder too: a funnel arrival still
+                // opens with the "here's what you told us" recap (once), every
+                // other entry gets the short form-shaped line.
+                'form_prompt_text' => self::class.'::buildWorkFormPrompt',
             ],
             // Phase 10 — multi-job loop. After the first job is captured,
             // ask if the user has another.  Yes loops back to base_employment;
@@ -442,6 +459,7 @@ final class OnboardingStateMachine
                 'next' => self::class.'::nextFromEmploymentMore',
             ],
             self::STATE_BASE_RETIREMENT_DATE => [
+                'prompt_text' => self::class.'::buildRetirementDatePrompt',
                 'next' => self::class.'::nextFromRetirementDate',
             ],
             self::STATE_BASE_EXPENDITURE => [
@@ -457,7 +475,7 @@ final class OnboardingStateMachine
 
                     return self::journeySectionHasData($user, 'expenditure')
                         ? self::enterCampaignVerify($user, 'expenditure', 'journey_base')
-                        : self::STATE_ASSET_CAPTURE;
+                        : self::journeyFocusEntry($user);
                 },
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
@@ -540,6 +558,7 @@ final class OnboardingStateMachine
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
                 'prompt_text' => self::class.'::buildCampaignDobPrompt',
+                'form_prompt_text' => self::class.'::buildCampaignDobFormPrompt',
                 // Pension questions only if the user ticked "pension"; otherwise
                 // DOB is captured and we skip straight to the next section.
                 'next' => self::class.'::nextFromCampaignDob',
@@ -795,6 +814,13 @@ final class OnboardingStateMachine
             ],
             self::STATE_ADD_MORE => [
                 'next' => self::class.'::nextFromAddMore',
+            ],
+            // CSJ 2026-09-16: the journey's protection capture is a form with
+            // the same loop shape as the Save Tax account steps.
+            self::STATE_JOURNEY_PROTECTION => [
+            ],
+            self::STATE_JOURNEY_PROTECTION_MORE => [
+                'next' => self::class.'::nextFromProtectionMore',
             ],
             self::STATE_FREE_CHAT => [
             ],
@@ -1054,6 +1080,11 @@ final class OnboardingStateMachine
         return self::STATE_BASE_DEPENDANTS;
     }
 
+    public static function nextFromDependantsMore(string $answer, User $user): string
+    {
+        return self::saidYes($answer) ? self::STATE_BASE_DEPENDANTS_DETAIL : self::STATE_PROFILE_REVIEW_FAMILY;
+    }
+
     public static function nextFromDependants(string $answer): string
     {
         $normalised = mb_strtolower(trim($answer));
@@ -1227,7 +1258,7 @@ final class OnboardingStateMachine
 
         return match ($section) {
             'income' => self::STATE_BASE_EXPENDITURE,
-            'expenditure' => self::STATE_ASSET_CAPTURE,
+            'expenditure' => self::journeyFocusEntry($user),
             default => self::STATE_ADD_MORE,
         };
     }
@@ -1328,6 +1359,8 @@ final class OnboardingStateMachine
             'property' => 'property', 'pensions' => 'pensions', 'spouse' => 'spouse details',
             'expenditure' => 'expenditure', 'protection' => 'protection cover',
             'estate' => 'estate records', 'goals' => 'goals',
+            // Pension Check sections (csjones 2026-09-16: both announced "your details page").
+            'state_pension' => 'State Pension', 'retirement_goals' => 'retirement goals',
         ][$section] ?? 'details';
     }
 
@@ -1676,6 +1709,52 @@ final class OnboardingStateMachine
      * Builds a personalised work prompt that matches the user's chosen
      * employment_status (self-employed users get "trade name" wording).
      */
+    /**
+     * The retirement-date question, opened once with the funnel recap for a
+     * retired campaign arrival (the recap's own income question is dropped).
+     */
+    public static function buildRetirementDatePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        $question = 'When did you retire? A year is fine — something like "2020".';
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! empty($user->retirement_date)
+            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_RETIREMENT_DATE)) {
+            return $question;
+        }
+        $firstName = trim((string) ($user->first_name ?? '')) !== '' ? trim((string) $user->first_name) : 'there';
+        $recap = ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
+            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
+            : self::buildFunnelRecapPrompt($firstName, $funnel);
+
+        return explode(self::BUBBLE_BREAK, $recap)[0].self::BUBBLE_BREAK.$question;
+    }
+
+    public static function buildWorkFormPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        return self::workFunnelRecap($user, $conversation) ?? 'Now your work and income.';
+    }
+
+    /**
+     * The one-off funnel recap a Save Tax or pension check arrival gets on
+     * its first income turn, or null when this is not that turn.
+     */
+    private static function workFunnelRecap(User $user, ?AiConversation $conversation): ?string
+    {
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
+        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! $noIncomeYet
+            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)) {
+            return null;
+        }
+        $firstName = trim((string) ($user->first_name ?? '')) !== ''
+            ? trim((string) $user->first_name)
+            : 'there';
+
+        return ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
+            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
+            : self::buildFunnelRecapPrompt($firstName, $funnel);
+    }
+
     public static function buildWorkPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         $status = $user->employment_status ?? 'employed';
@@ -1728,9 +1807,14 @@ final class OnboardingStateMachine
         }
 
         try {
+            // The "Welcome back … Continue" greeting is stamped with the step
+            // it resumes at; it is not a delivery of that step's turn.
             return $conversation->messages()
                 ->where('role', 'assistant')
                 ->where('metadata->onboarding_step', $stateId)
+                ->where(function ($q): void {
+                    $q->whereNull('metadata->turn_intent')->orWhere('metadata->turn_intent', '!=', 'resume_greeting');
+                })
                 ->exists();
         } catch (\Throwable $e) {
             return false;
@@ -1746,11 +1830,31 @@ final class OnboardingStateMachine
             return self::STATE_DONE;
         }
 
-        // Anything else advances back into asset_capture for the new
-        // selection. The director updates user.onboarding_fyn_selection
-        // before calling this helper, so subsequent state evaluation picks
-        // up the new focus.
-        return self::STATE_ASSET_CAPTURE;
+        // The director updates user.onboarding_fyn_selection before calling
+        // this helper; the new focus opens on its capture form.
+        return self::journeyFocusEntry($user);
+    }
+
+    /**
+     * Where a journey or focus capture opens for the current selection —
+     * the same forms the Save Tax walk uses (CSJ 2026-09-16: one process on
+     * every entry point). Focuses with no form yet stay on the model-driven
+     * asset capture.
+     */
+    public static function journeyFocusEntry(User $user): string
+    {
+        return match ($user->onboarding_fyn_selection ?? '') {
+            'savings' => self::STATE_CAMPAIGN_ISA_HOLDINGS,
+            'investment' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            'retirement' => self::skipIfNotEmployed($user) ? self::STATE_CAMPAIGN_PENSION_CONTRIBS : self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            'protection' => self::STATE_JOURNEY_PROTECTION,
+            default => self::STATE_ASSET_CAPTURE,
+        };
+    }
+
+    public static function nextFromProtectionMore(string $answer, User $user): string
+    {
+        return self::saidYes($answer) ? self::STATE_JOURNEY_PROTECTION : self::enterCampaignVerify($user, 'protection');
     }
 
     public static function buildAssetCaptureIntro(string $answer, User $user): string
@@ -1801,11 +1905,19 @@ final class OnboardingStateMachine
      */
     public static function skipSectionIfNoCash(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['savings', 'bank', 'isa']);
     }
 
     public static function skipSectionIfNoProperty(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['property']);
     }
 
@@ -1883,6 +1995,9 @@ final class OnboardingStateMachine
 
     public static function skipSectionIfNoInvestments(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
         if (self::funnelHasAnyAsset($user, ['investments'])) {
             return false;
         }
@@ -1903,13 +2018,26 @@ final class OnboardingStateMachine
      * skipSectionIfNoCash runs the section if ANY cash-like asset is held, so
      * these stop the ISA question firing for a savings-only user (and vice versa).
      */
+    private static function isJourney(User $user): bool
+    {
+        return ($user->onboarding_fyn_path ?? '') === 'journey';
+    }
+
     public static function skipIfNoIsa(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['isa']);
     }
 
     public static function skipIfNoBankOrSavings(User $user): bool
     {
+        if (self::isJourney($user)) {
+            return false; // the journey has no funnel; its focus chose the section
+        }
+
         return ! self::funnelHasAnyAsset($user, ['bank', 'savings']);
     }
 
@@ -1943,6 +2071,13 @@ final class OnboardingStateMachine
      * pension is never asked about one they don't have. Pairs with
      * nextFromCampaignDob, which gates the pension questions that follow.
      */
+    public static function buildCampaignDobFormPrompt(string $answer, User $user): string
+    {
+        return self::funnelHasAnyAsset($user, ['pension'])
+            ? "Now let's look at pensions and retirement — for that I need your date of birth."
+            : 'Next, your date of birth.';
+    }
+
     public static function buildCampaignDobPrompt(string $answer, User $user): string
     {
         if (self::funnelHasAnyAsset($user, ['pension'])) {
@@ -2087,10 +2222,9 @@ final class OnboardingStateMachine
         // earner modes route to campaign2_spouse_pensions. The savetax household-
         // tax states (campaign_spouse_household, campaign_spouse_non_working_assets,
         // campaign_advice_spouse) must never run for a pensioncheck user.
-        if ($user->onboarding_fyn_selection === 'pensioncheck') {
-            return self::STATE_CAMPAIGN2_SPOUSE_PENSIONS;
-        }
-
+        // CSJ 2026-09-16: the pension check takes the same spouse forms as
+        // Save Tax — the household holding row, never a pension on the user's
+        // own account (I4's separate spouse-pensions step is retired).
         return match ($user->household_calculation_mode) {
             'dual_earner' => self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             'single_earner_couple' => self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
@@ -2480,12 +2614,16 @@ final class OnboardingStateMachine
     private static function afterPensionPots(User $user): string
     {
         $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
-        if ($user->onboarding_fyn_selection !== 'pensioncheck' && ($context['pension_contribs_done'] ?? false) === true) {
+        if (($context['pension_contribs_done'] ?? false) === true) {
             unset($context['pension_contribs_done']);
             $user->onboarding_fyn_context = $context === [] ? null : $context;
             $user->save();
 
-            return self::enterCampaignVerify($user, 'pensions');
+            // Pension Check carries on to Defined Benefit as the contributions
+            // step would have; Save Tax closes the section.
+            return $user->onboarding_fyn_selection === 'pensioncheck'
+                ? self::STATE_CAMPAIGN2_PENSION_DB
+                : self::enterCampaignVerify($user, 'pensions');
         }
 
         return self::STATE_CAMPAIGN_PENSION_CONTRIBS;

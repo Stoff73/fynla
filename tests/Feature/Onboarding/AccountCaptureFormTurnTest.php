@@ -69,6 +69,7 @@ dataset('account steps', [
     'bank' => [OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS, 'savings', 'Now your bank and savings accounts.', 'interest rate'],
     'investment' => [OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'investment', 'Now your investments.', 'General Investment Accounts'],
     'pension' => [OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, 'pension', 'Now your pensions.', 'workplace pension'],
+    'dob' => [OnboardingStateMachine::STATE_CAMPAIGN_DOB, 'dob', 'Next, your date of birth.', 'date of birth'],
 ]);
 
 it('emits the form with its short lead-in to a forms client and the typed prompt to any other', function (string $step, string $formName, string $leadIn, string $typedFragment): void {
@@ -363,4 +364,89 @@ it('a non-working spouse with nothing chosen saves as nothing in their own name'
     expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('nothing in their own name')
         ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
         ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS);
+});
+
+it('saves the date of birth from the campaign form, repeats it back and enters the pensions section when the funnel ticked pension', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_DOB);
+    $user->forceFill(['date_of_birth' => null, 'employment_status' => 'employed', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['pension']]])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_DOB, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_DOB)), false);
+    expect(collect($emitted)->firstWhere('type', 'capture_form')['prompt_text'])->toBe("Now let's look at pensions and retirement — for that I need your date of birth.");
+
+    $events = submitForm($user, $conversation, ['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]);
+
+    expect($user->fresh()->date_of_birth->format('Y-m-d'))->toBe('1981-03-14')
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('14 March 1981')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+});
+
+// csjones user 403, 2026-09-16: a user who ticked only ISA reaches the investment
+// form with nothing to add; typing so must move on, not "Sorry, I didn't catch that".
+it('a typed "I don\'t have any" at a capture form moves past the step and its loop question', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    $conversation = accountConversation($user);
+    FynStreamHarness::fake()->textTurn('Recorded — no investments.')->bind();
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, "I don't have any other investments", null, true
+    ), false);
+
+    $text = collect($events)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($text)->not->toContain("didn't catch that")
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE)
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'] ?? '')->not->toContain('another');
+});
+
+it('a self-employed user gets the personal pension form at the contributions step and goes on to the verify page', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $user->forceFill(['employment_status' => 'self_employed', 'annual_self_employment_income' => 41000, 'date_of_birth' => '1978-06-21', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['pension']]])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS)), false);
+    $form = collect($emitted)->firstWhere('type', 'capture_form');
+    expect($form['prompt_text'])->toBe('Now your pensions.')
+        ->and(array_column($form['form']['kinds'], 'label'))->toBe(['Personal pension or SIPP']);
+
+    $events = submitForm($user, $conversation, ['name' => 'pension_personal', 'answers' => ['personal' => ['provider' => 'Vanguard', 'current_value' => 30000, 'annual_contribution' => 6000]]]);
+    $row = DCPension::where('user_id', $user->id)->first();
+    expect($row)->not->toBeNull()
+        ->and($row->pension_type)->toBe('personal')
+        ->and((float) $row->current_fund_value)->toBe(30000.0)
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+});
+
+it('showing the pension form marks the typed personal-pension step done, so "No" after the pot loop goes to the verify page', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $user->forceFill(['employment_status' => 'employed', 'annual_employment_income' => 52000, 'date_of_birth' => '1980-02-19'])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME)), false);
+    expect($user->fresh()->onboarding_fyn_context['pension_contribs_done'] ?? false)->toBeTrue();
+
+    submitForm($user->fresh(), $conversation, ['name' => 'pension', 'answers' => [
+        'workplace' => ['provider' => 'Aviva', 'current_value' => 64000, 'employee_contribution_percent' => 6, 'employer_contribution_percent' => 4, 'salary_sacrifice' => 'no'],
+    ]]);
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+});
+
+it('on the pension check path the pension form also retires the typed personal-pension step and goes on to final salary', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    $user->forceFill(['onboarding_fyn_selection' => 'pensioncheck', 'employment_status' => 'employed', 'annual_employment_income' => 58000, 'date_of_birth' => '1980-09-02', 'funnel_answers' => ['campaign' => 'pensioncheck', 'pensions' => ['workplace', 'final_salary']]])->save();
+    $conversation = accountConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME)), false);
+    submitForm($user->fresh(), $conversation, ['name' => 'pension', 'answers' => [
+        'workplace' => ['provider' => 'NHS Pension Scheme', 'current_value' => 71000, 'employee_contribution_percent' => 9.8, 'employer_contribution_percent' => 20.6, 'salary_sacrifice' => 'no'],
+    ]]);
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB);
 });

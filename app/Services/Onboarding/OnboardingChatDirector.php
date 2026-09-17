@@ -16,7 +16,6 @@ use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
-use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
@@ -53,6 +52,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -234,7 +234,8 @@ final class OnboardingChatDirector
         }
 
         if ($form !== null) {
-            if (($state['form'] ?? null) !== ($form['name'] ?? null)) {
+            $postedBase = CaptureForms::schema((string) ($form['name'] ?? ''))['base'] ?? ($form['name'] ?? null);
+            if (($state['form'] ?? null) !== $postedBase) {
                 // A form submitted after the step moved on (a second tab, a
                 // late tap). Nothing is written; the walk carries on.
                 $line = "That form is no longer open — let's carry on from where we are.";
@@ -1050,6 +1051,12 @@ final class OnboardingChatDirector
 
         if (($turnType === 'form' || isset($state['form'])) && $this->clientSupportsForms) {
             $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
+            if ($schema !== null && $schema['name'] === CaptureForms::EXPENDITURE) {
+                // CSJ 2026-09-16: one box for everyone; category entry for
+                // Premium, asking the household question first when a spouse
+                // is on file and has not been answered.
+                $schema = CaptureForms::expenditureVariantFor($user, app(TeaserGate::class)->allows($user, 'expenditure_detailed'));
+            }
             if ($schema !== null) {
                 // A form-capable client sees the short form-shaped lead-in
                 // (the form's own boxes and Save button carry the
@@ -1073,18 +1080,35 @@ final class OnboardingChatDirector
                     $formPromptText = '';
                 }
 
+                // The pension form offers the personal pension or SIPP kind, so
+                // the typed "do you have a personal pension?" step after the
+                // pot loop would ask again — mark it done (the same flag a saved
+                // personal pension sets; afterPensionPots consumes it).
+                if ($schema['name'] === CaptureForms::PENSION) {
+                    $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                    $context['pension_contribs_done'] = true;
+                    $user->onboarding_fyn_context = $context;
+                    $user->save();
+                }
+
                 yield [
                     'type' => 'capture_form',
                     'prompt_text' => $formPromptText,
                     'form' => $schema,
                 ];
-                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, [
-                    'metadata' => [
-                        'capture_form' => $schema,
-                        'onboarding_step' => $stateId,
-                        'turn_intent' => $turnIntent->value,
-                    ],
-                ]);
+                $metadata = [
+                    'capture_form' => $schema,
+                    'onboarding_step' => $stateId,
+                    'turn_intent' => $turnIntent->value,
+                ];
+                // A state's skip link (base_spouse) travels with the form the
+                // same way it does with the typed prompt: a separate event
+                // both clients already render, and the row's metadata for resume.
+                if (is_array($skipLink) && ! empty($skipLink)) {
+                    $metadata['skip_link'] = $skipLink;
+                    yield ['type' => 'skip_link', 'skip_link' => $skipLink];
+                }
+                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, ['metadata' => $metadata]);
                 yield ['type' => 'done', 'message_id' => $assistantMessage->id];
 
                 return;
@@ -1628,6 +1652,8 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
             OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
+            OnboardingStateMachine::STATE_JOURNEY_PROTECTION => OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE,
         ][$formStateId] ?? null;
         if ($loopState === null) {
             return false;
@@ -2429,20 +2455,8 @@ final class OnboardingChatDirector
         // profile mirror atomically so the desktop category view does not hide
         // a value that `/m` can display.
         if ($captureField === 'monthly_expenditure' && is_numeric($capturedValue) && (float) $capturedValue >= 0) {
-            $user->expenditure_entry_mode = 'simple';
-            DB::transaction(function () use ($user, $capturedValue): void {
-                $user->save();
-                $monthlyTotal = (float) $capturedValue;
-                if ($monthlyTotal > 0) {
-                    ExpenditureProfile::updateOrCreate(
-                        ['user_id' => $user->id],
-                        ['total_monthly_expenditure' => $monthlyTotal],
-                    );
-                } else {
-                    ExpenditureProfile::where('user_id', $user->id)
-                        ->update(['total_monthly_expenditure' => 0]);
-                }
-            });
+            // One write path with the one-box form (CSJ 2026-09-16).
+            $this->coordinatingAgent->handleCaptureMonthlyExpenditure(['monthly_total' => (float) $capturedValue], $user);
 
             return;
         }
@@ -3839,9 +3853,9 @@ PROMPT;
 
                 continue;
             }
-            if (($result['onboarding_capture'] ?? false) === true) {
-                // A household-row write (the spouse forms): no entity row, the
-                // capture ack below is the recap.
+            if (($result['onboarding_capture'] ?? false) === true || ($result['updated'] ?? false) === true) {
+                // A household-row or profile write (the spouse and expenditure
+                // forms): no entity row, the capture ack below is the recap.
                 $captured = true;
 
                 continue;
@@ -3888,12 +3902,12 @@ PROMPT;
             // (prod conversation 881). Move on to the loop question, which
             // states the limit and offers the next section.
             if ($this->everyErrorIsTierCap($errors)) {
-                yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+                yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
                 return;
             }
 
-            $this->recordProgress($user, $currentStateId, ['selection' => 'savetax', 'raw_message' => mb_substr($message, 0, 500)]);
+            $this->recordProgress($user, $currentStateId, ['selection' => (string) ($user->onboarding_fyn_selection ?? 'savetax'), 'raw_message' => mb_substr($message, 0, 500)]);
             yield ['type' => 'done', 'message_id' => $saved->id];
 
             return;
@@ -3906,7 +3920,7 @@ PROMPT;
                 yield ['type' => 'content', 'text' => $ack];
                 $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
             }
-            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
             return;
         }
@@ -3916,7 +3930,7 @@ PROMPT;
             'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
             'records_created' => $recordsCreated,
         ];
-        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
     }
 
     /** @param  array<string, array{error_type?: string}>  $errors */
@@ -4541,6 +4555,12 @@ PROMPT;
             $message,
             $user->refresh()
         );
+
+        // "I don't have any" at a capture step answers its own "another?"
+        // loop question too — resolve the loop as "no" instead of asking.
+        if ($nextStateId !== null && str_ends_with($nextStateId, '_more') && self::isCompletionDeclaration($message)) {
+            $nextStateId = OnboardingStateMachine::getNextStateId($nextStateId, 'no', $user);
+        }
 
         if ($nextStateId === null) {
             return;
@@ -6200,6 +6220,7 @@ PROMPT;
     private function buildCaptureAck(User $user, string $stateId, array $interpretation): ?string
     {
         return match ($stateId) {
+            OnboardingStateMachine::STATE_BASE_PERSONAL, OnboardingStateMachine::STATE_CAMPAIGN_DOB => $this->personalAck($user),
             OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
@@ -6212,6 +6233,15 @@ PROMPT;
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => $this->spouseAssetsAck($user),
             default => null,
         };
+    }
+
+    /** Repeats back the personal form (journey path, CSJ 2026-09-16): date of birth and marital status. */
+    private function personalAck(User $user): string
+    {
+        $dob = $user->date_of_birth ? ' born on '.$user->date_of_birth->format('j F Y') : '';
+        $marital = $user->marital_status ? ' and '.CaptureForms::maritalWords((string) $user->marital_status) : '';
+
+        return "Thanks — I've noted you're".$dob.$marital.'.';
     }
 
     /**
@@ -6348,8 +6378,9 @@ PROMPT;
 
     private function dependantsAck(User $user): string
     {
+        // A parent captured as a dependant counts too (the form offers all three).
         $count = FamilyMember::where('user_id', $user->id)
-            ->whereIn('relationship', ['child', 'other_dependent'])
+            ->whereIn('relationship', ['child', 'parent', 'other_dependent'])
             ->count();
 
         if ($count === 0) {
@@ -6707,6 +6738,14 @@ PROMPT;
      */
     private function mergeUnresolvedCaptureMessage(AiConversation $conversation, string $message): string
     {
+        // "No" / "none" / "I don't have any" closes the question; it never
+        // completes the earlier attempt (csjones user 405, 2026-09-16: a
+        // cap-refused spouse pension was re-recorded on "No, they don't have
+        // any pensions of their own").
+        if (self::isCompletionDeclaration($message)) {
+            return $message;
+        }
+
         $currentUserMessage = $conversation->messages()
             ->where('role', 'user')
             ->latest('id')
@@ -6892,7 +6931,12 @@ PROMPT;
      */
     private static function isCompletionDeclaration(string $message): bool
     {
-        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1;
+        // "No" / "none" / "that's everything" at the start, or the everyday
+        // "I don't have any …" / "I have no …" / "not got any …" / "nothing else"
+        // (csjones user 403, 2026-09-16: "I don't have any other investments"
+        // at the investment form fell to "Sorry, I didn't catch that").
+        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1
+            || preg_match('/^\s*(?:i\s+)?(?:don[\x{2019}\x{0027}]?t|do\s+not|haven[\x{2019}\x{0027}]?t|have\s+not)\s+(?:have|got)\s+(?:any|one|another|an?)\b|^\s*i\s+have\s+(?:no|none)\b|^\s*(?:i[\x{2019}\x{0027}]?ve\s+)?not\s+got\s+(?:any|one|an?)\b|\bnothing\s+else\b|\bno\s+other\b/iu', $message) === 1;
     }
 
     private function messageHasSubstantiveAnswer(string $message): bool

@@ -128,6 +128,7 @@ class AiToolDefinitions
             'onboarding.tool.capture_spouse_details',
             'onboarding.tool.capture_dependants',
             'onboarding.tool.capture_work_details',
+            'onboarding.tool.capture_monthly_expenditure',
         ],
     ];
 

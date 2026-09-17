@@ -57,6 +57,8 @@ focus_selection:
 
 base_personal:
   turn_type: grouped_extract
+  form: personal
+  form_prompt_text: 'Let me grab a few basics first, {first_name}.'
   prompt_text: { builder: buildPersonalPrompt }
   extraction_tool: capture_personal_details
   retry_text: "Sorry, I didn't catch both pieces. Could you tell me your date of birth (something like 12 January 1985) and your marital status?"
@@ -64,6 +66,8 @@ base_personal:
 
 base_spouse:
   turn_type: grouped_extract
+  form: spouse_details
+  form_prompt_text: "Now your spouse or partner's details."
   prompt_text: { builder: buildSpousePrompt }
   extraction_tool: capture_spouse_details
   retry_text: 'I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?'
@@ -81,10 +85,21 @@ base_dependants:
 
 base_dependants_detail:
   turn_type: grouped_extract
+  form: dependants
+  form_prompt_text: 'Lovely. Tell me about them one at a time.'
   prompt_text: 'Lovely. Tell me their first names, exact dates of birth, and how they are related to you (child, parent, or other dependant). Please use day, month, and year — accurate dates help keep the plan correct. You can list several in one go.'
   extraction_tool: capture_dependants
   retry_text: 'Could you list them again with exact dates of birth and how they are related? Something like "Alice, born 14 September 2017, child".'
-  next: profile_review_family
+  next: base_dependants_more
+
+base_dependants_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another dependant to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromDependantsMore }
 
 profile_review_family:
   turn_type: bubbles
@@ -110,6 +125,7 @@ base_employment:
 
 base_work:
   turn_type: grouped_extract
+  form: work
   prompt_text: { builder: buildWorkPrompt }
   extraction_tool: capture_work_details
   retry_text: 'I just need your gross annual income in GBP — could you share that?'
@@ -126,13 +142,15 @@ base_employment_more:
 
 base_retirement_date:
   turn_type: free_text
-  prompt_text: 'When did you retire? A year is fine — something like "2020".'
+  prompt_text: { builder: buildRetirementDatePrompt }
   capture_field: retirement_date
   value_parser: parseRetirementDate
   next: { branch: nextFromRetirementDate }
 
 base_expenditure:
   turn_type: free_text
+  form: expenditure
+  form_prompt_text: 'Now your spending.'
   prompt_text: "And roughly how much goes out each month — rent or mortgage, bills, food, transport, the lot? A ballpark figure is fine. I'll use it to work out your savings capacity, emergency fund target, and how much income you'll need in retirement."
   capture_field: monthly_expenditure
   value_parser: parseExpenditureAmount
@@ -221,6 +239,7 @@ campaign_property_more:
 
 campaign_dob:
   turn_type: grouped_extract
+  form: dob
   prompt_text: "Now let's look at pensions and retirement — for that **I need your date of birth.** Something like 12 January 1985 or 12/01/85."
   extraction_tool: capture_personal_details
   retry_text: 'Could you give me your date of birth — for example 12 January 1985 or 12/01/85?'
@@ -247,6 +266,8 @@ campaign_pension_more:
 
 campaign_pension_contribs:
   turn_type: delegated
+  form: pension_personal
+  form_prompt_text: 'Now your pensions.'
   prompt_text: "**Do you have a personal pension or a Self-Invested Personal Pension (SIPP)?** If you do, tell me who it's with and whether you pay into it — and roughly how much a year (gross) if you do. If you have one but don't pay in, just say so."
   capture_field: null
   next: { branch: nextFromCampaignPensionContribs }
@@ -467,6 +488,23 @@ add_more:
     - { id: done, label: "I'm done" }
   capture_field: null
   next: { branch: nextFromAddMore }
+
+journey_protection:
+  turn_type: form
+  form: protection
+  prompt_text: "Let's look at your protection cover. **Tell me about any life insurance, critical illness cover or income protection policies — the type, the provider, the cover amount and the term.** If you don't have any yet, just say so."
+  form_prompt_text: 'Now your protection cover.'
+  capture_field: null
+  next: journey_protection_more
+
+journey_protection_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another policy to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromProtectionMore }
 
 free_chat:
   turn_type: terminal

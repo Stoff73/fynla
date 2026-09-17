@@ -80,11 +80,23 @@
           >
 
           <input
-            v-else-if="field(fieldKey).type === 'text'"
+            v-else-if="field(fieldKey).type === 'text' || field(fieldKey).type === 'email'"
             :id="inputId(block.key, fieldKey)"
             :name="block.key + '.' + fieldKey"
-            type="text"
+            :type="field(fieldKey).type"
             maxlength="255"
+            autocomplete="off"
+            class="form-input"
+            :disabled="disabled || locked"
+            :value="answers[block.key][fieldKey] ?? ''"
+            @input="setText(block.key, fieldKey, $event.target.value)"
+          >
+
+          <input
+            v-else-if="field(fieldKey).type === 'date'"
+            :id="inputId(block.key, fieldKey)"
+            :name="block.key + '.' + fieldKey"
+            type="date"
             autocomplete="off"
             class="form-input"
             :disabled="disabled || locked"

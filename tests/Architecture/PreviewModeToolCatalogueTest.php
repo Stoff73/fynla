@@ -55,6 +55,7 @@ const PREVIEW_BANNED_WRITE_TOOLS = [
     'capture_spouse_details',
     'capture_dependants',
     'capture_work_details',
+    'capture_monthly_expenditure',
     'set_expenditure',
 ];
 

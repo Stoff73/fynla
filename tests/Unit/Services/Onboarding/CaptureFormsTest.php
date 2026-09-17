@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'protection'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -315,4 +315,141 @@ it('the spouse forms fold every section into one household write', function (): 
         ]])
         ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => []]))->toBe('My spouse has nothing in their own name.')
         ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => ['savings' => ['spouse_existing_savings_balance' => 8000]]]))->toBe('£8,000 in savings.');
+});
+
+it('the personal form asks date of birth and marital status as lead fields and writes once through capture_personal_details', function (): void {
+    $schema = CaptureForms::schema('personal');
+    expect($schema['tool'])->toBe('capture_personal_details')
+        ->and($schema['lead_fields'])->toBe(['date_of_birth', 'marital_status'])
+        ->and($schema['kinds'])->toBe([])
+        ->and(array_column($schema['fields']['marital_status']['options'], 'value'))->toBe(['single', 'married', 'civil_partnership', 'divorced', 'widowed'])
+        ->and(CaptureForms::rules('personal'))->toBe([
+            '_lead.date_of_birth' => ['required_with:_lead', 'date_format:Y-m-d'],
+            '_lead.marital_status' => ['required_with:_lead', 'in:single,married,civil_partnership,divorced,widowed'],
+        ])
+        ->and(CaptureForms::names())->toContain('personal');
+
+    $form = ['name' => 'personal', 'answers' => ['_lead' => ['date_of_birth' => '1985-01-12', 'marital_status' => 'civil_partnership']]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['date_of_birth' => '1985-01-12', 'marital_status' => 'civil_partnership']])
+        ->and(CaptureForms::summarise($form))->toBe("I was born on 12 January 1985 and I'm in a civil partnership.");
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+    expect($state['form'])->toBe('personal')
+        ->and($state['form_prompt_text'])->toBe('Let me grab a few basics first, {first_name}.');
+});
+
+it('the spouse details form asks name, date of birth, email and income as lead fields and writes once through capture_spouse_details', function (): void {
+    $schema = CaptureForms::schema('spouse_details');
+    expect($schema['tool'])->toBe('capture_spouse_details')
+        ->and($schema['lead_fields'])->toBe(['first_name', 'last_name', 'date_of_birth', 'email', 'annual_income'])
+        ->and($schema['kinds'])->toBe([])
+        ->and(CaptureForms::rules('spouse_details')['_lead.email'])->toBe(['required_with:_lead', 'email', 'max:255'])
+        ->and(CaptureForms::rules('spouse_details')['_lead.last_name'])->toBe(['nullable', 'string', 'max:255']);
+
+    $form = ['name' => 'spouse_details', 'answers' => ['_lead' => ['first_name' => ' Jamie ', 'date_of_birth' => '1986-03-03', 'email' => 'jamie@example.com', 'annual_income' => 40000]]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['first_name' => 'Jamie', 'date_of_birth' => '1986-03-03', 'email' => 'jamie@example.com', 'annual_income' => 40000.0]])
+        ->and(CaptureForms::summarise($form))->toBe('My spouse is Jamie, born on 3 March 1986, email jamie@example.com, earning £40,000 a year.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+    expect($state['form'])->toBe('spouse_details')
+        ->and($state['form_prompt_text'])->toBe("Now your spouse or partner's details.")
+        ->and($state['skip_link']['label'])->toBe('Skip this for now');
+});
+
+it('the dependants form saves one dependant per turn as a one-item list through capture_dependants, with a loop question after it', function (): void {
+    $schema = CaptureForms::schema('dependants');
+    expect($schema['tool'])->toBe('capture_dependants')
+        ->and($schema['lead_fields'])->toBe(['relationship', 'first_name', 'date_of_birth'])
+        ->and(array_column($schema['fields']['relationship']['options'], 'value'))->toBe(['child', 'parent', 'other_dependent']);
+
+    $form = ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14']]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['dependants' => [['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14']]]])
+        ->and(CaptureForms::summarise($form))->toBe('My child Alice was born on 14 September 2017.')
+        ->and(CaptureForms::summarise(['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'other_dependent', 'date_of_birth' => '1950-02-01']]]))->toBe('My dependant was born on 1 February 1950.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);
+    $more = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE);
+    expect($state['form'])->toBe('dependants')
+        ->and($state['next'])->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE)
+        ->and($more['turn_type'])->toBe('bubbles')
+        ->and(array_column($more['bubbles'], 'id'))->toBe(['yes', 'no']);
+});
+
+it('the work form writes employer, role and income once through capture_work_details', function (): void {
+    $schema = CaptureForms::schema('work');
+    expect($schema['tool'])->toBe('capture_work_details')
+        ->and($schema['lead_fields'])->toBe(['employer', 'occupation', 'annual_income'])
+        ->and(CaptureForms::rules('work')['_lead.annual_income'][0])->toBe('required_with:_lead');
+
+    $form = ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Acme Ltd', 'occupation' => 'Software engineer', 'annual_income' => 75000]]];
+    expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['employer' => 'Acme Ltd', 'occupation' => 'Software engineer', 'annual_income' => 75000.0]])
+        ->and(CaptureForms::summarise($form))->toBe('My job is Software engineer at Acme Ltd and I earn £75,000 a year.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
+    expect($state['form'])->toBe('work')
+        ->and($state['form_prompt_text'])->toBe(OnboardingStateMachine::class.'::buildWorkFormPrompt');
+});
+
+it('the campaign date-of-birth step is a one-field form through capture_personal_details', function (): void {
+    $schema = CaptureForms::schema('dob');
+    expect($schema['tool'])->toBe('capture_personal_details')
+        ->and($schema['lead_fields'])->toBe(['date_of_birth'])
+        ->and(CaptureForms::toolInputs(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]))->toBe(['_lead' => ['date_of_birth' => '1981-03-14']])
+        ->and(CaptureForms::summarise(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]))->toBe('I was born on 14 March 1981.')
+        ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_DOB)['form'])->toBe('dob');
+});
+
+it('the personal-only pension form is the pension form with just the SIPP kind, at the contributions step', function (): void {
+    $schema = CaptureForms::schema('pension_personal');
+    expect(array_column($schema['kinds'], 'key'))->toBe(['personal'])
+        ->and($schema['kinds'][0]['tool'])->toBe('create_pension')
+        ->and(CaptureForms::toolInputs(['name' => 'pension_personal', 'answers' => ['personal' => ['provider' => 'Vanguard', 'current_value' => 30000, 'annual_contribution' => 6000]]]))
+        ->toBe(['personal' => ['pension_category' => 'dc', 'scheme_name' => 'Vanguard personal pension or SIPP', 'scheme_type' => 'personal', 'provider' => 'Vanguard', 'current_fund_value' => 30000.0, 'monthly_contribution_amount' => 500.0]])
+        ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS)['form'])->toBe('pension_personal');
+});
+
+it('the expenditure forms: one box for everyone, five category groups for Premium, the household question first when a spouse is on file', function (): void {
+    $one = CaptureForms::schema('expenditure');
+    expect($one['tool'])->toBe('capture_monthly_expenditure')
+        ->and($one['lead_fields'])->toBe(['monthly_total'])
+        ->and(CaptureForms::toolInputs(['name' => 'expenditure', 'answers' => ['_lead' => ['monthly_total' => 2400]]]))->toBe(['_lead' => ['monthly_total' => 2400.0]])
+        ->and(CaptureForms::summarise(['name' => 'expenditure', 'answers' => ['_lead' => ['monthly_total' => 2400]]]))->toBe('About £2,400 goes out each month.');
+
+    $detailed = CaptureForms::schema('expenditure_detailed');
+    expect($detailed['base'])->toBe('expenditure')
+        ->and($detailed['tool'])->toBe('set_expenditure')
+        ->and(array_column($detailed['kinds'], 'label'))->toBe(['Essential living', 'Communication and technology', 'Personal and lifestyle', 'Children and dependants', 'Other'])
+        ->and($detailed['lead_fields'])->toBe([])
+        ->and(array_key_exists('expenditure_sharing_mode', $detailed['fields']))->toBeFalse()
+        ->and(CaptureForms::toolInputs(['name' => 'expenditure_detailed', 'answers' => ['essential' => ['rent' => 900, 'food_groceries' => 400], 'other' => ['other_expenditure' => 50]]]))
+        ->toBe(['_lead' => ['rent' => 900.0, 'food_groceries' => 400.0, 'other_expenditure' => 50.0]])
+        ->and(CaptureForms::summarise(['name' => 'expenditure_detailed', 'answers' => ['essential' => ['rent' => 900, 'food_groceries' => 400]]]))->toBe('My monthly spending: rent £900, food and groceries £400 — about £1,300 a month in total.');
+
+    $household = CaptureForms::schema('expenditure_detailed_household');
+    expect($household['base'])->toBe('expenditure')
+        ->and($household['lead_fields'])->toBe(['expenditure_sharing_mode'])
+        ->and(CaptureForms::rules('expenditure_detailed_household')['_lead.expenditure_sharing_mode'])->toBe(['required_with:_lead', 'in:joint,separate'])
+        ->and(CaptureForms::summarise(['name' => 'expenditure_detailed_household', 'answers' => ['_lead' => ['expenditure_sharing_mode' => 'joint'], 'essential' => ['rent' => 900]]]))->toBe('My monthly spending: rent £900 — about £900 a month in total. These are our household figures.');
+
+    expect(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_EXPENDITURE)['form'])->toBe('expenditure');
+});
+
+it('the protection form offers life, critical illness and income protection, one create_protection_policy per kind', function (): void {
+    $schema = CaptureForms::schema('protection');
+    expect(array_column($schema['kinds'], 'label'))->toBe(['Life insurance', 'Critical illness cover', 'Income protection'])
+        ->and(CaptureForms::kind('protection', 'income')['entity_type'])->toBe('income_protection_policy');
+
+    $form = ['name' => 'protection', 'answers' => [
+        'life' => ['provider' => 'Aviva', 'sum_assured' => 250000, 'premium_amount' => 25, 'policy_term_years' => 20],
+        'income' => ['provider' => 'LV', 'benefit_amount' => 1500],
+    ]];
+    expect(CaptureForms::toolInputs($form))->toBe([
+        'life' => ['policy_type' => 'level_term', 'provider' => 'Aviva', 'sum_assured' => 250000.0, 'premium_amount' => 25.0, 'premium_frequency' => 'monthly', 'policy_term_years' => 20],
+        'income' => ['policy_type' => 'income_protection', 'provider' => 'LV', 'benefit_amount' => 1500.0],
+    ])
+        ->and(CaptureForms::summarise($form))->toBe('Life insurance with Aviva, £250,000 of cover, £25 a month premium, 20 year term. Income protection with LV, £1,500 a month benefit.');
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_JOURNEY_PROTECTION);
+    expect($state['form'])->toBe('protection')
+        ->and($state['next'])->toBe(OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE);
 });
