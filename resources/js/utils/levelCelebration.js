@@ -80,7 +80,7 @@ export async function runLevelSequence({
 
   for (const level of levels) {
     onLevel(level, { burst: true });
-    // eslint-disable-next-line no-await-in-loop -- the pause between levels IS the animation
+    // The pause between levels IS the animation, so this await is deliberate.
     await wait(stepMs);
   }
 

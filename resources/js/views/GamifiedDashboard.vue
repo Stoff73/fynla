@@ -25,14 +25,17 @@
       <div v-if="!isEmpty" class="gd-mobile">
         <div class="md-scroll-hero">
           <section class="md-level" aria-labelledby="gdm-level-h">
-            <div class="md-level__pie" role="img" :aria-label="`Level ${level}, ${progressPercent} percent complete`">
+            <div class="md-level__pie" role="img" :aria-label="`Level ${shownLevel}, ${ringPercent} percent complete`">
               <svg class="md-level__pie-svg" viewBox="0 0 100 100" aria-hidden="true">
                 <circle class="md-level__pie-track" cx="50" cy="50" r="44" />
-                <circle class="md-level__pie-arc" cx="50" cy="50" r="44" :style="{ '--progress': progressPercent }" />
+                <circle class="md-level__pie-arc" cx="50" cy="50" r="44" :style="{ '--progress': ringPercent }" />
               </svg>
+              <span v-if="burst" class="md-level__burst" aria-hidden="true">
+                <i v-for="c in confetti" :key="c.id" :style="c.style"></i>
+              </span>
               <div class="md-level__pie-inner">
                 <p class="md-level__pie-label">Level</p>
-                <p class="md-level__pie-num">{{ level }}</p>
+                <p class="md-level__pie-num" :class="{ 'is-stepping': stepping }">{{ shownLevel }}</p>
               </div>
             </div>
             <div>
@@ -225,6 +228,14 @@ import { resolveWebDestination } from '@/utils/semanticDestinations';
 import logger from '@/utils/logger';
 import { dashboardFigures } from '@/utils/dashboardCards';
 import TrustsOverviewCard from '@/components/Trusts/TrustsOverviewCard.vue';
+import {
+  dashboardIsBeingViewed,
+  prefersReducedMotion,
+  runLevelSequence,
+} from '@/utils/levelCelebration';
+
+// Burst colours, from the palette. Never hex (Rule 11).
+const CONFETTI_COLOURS = ['var(--spring-500)', 'var(--raspberry-500)', 'var(--violet-500)'];
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -282,6 +293,17 @@ export default {
       actionsCompletedSrv: null,
       actionsTotalSrv: null,
       progressSrv: null,
+      // The banked level climb (CSJ 2026-09-17). displayLevel is null until a
+      // climb takes it over; the circle falls back to the real level.
+      displayLevel: null,
+      ringPercent: 0,
+      stepping: false,
+      burst: false,
+      confetti: [],
+      celebrating: false,
+      // Broadcast by AppLayout: the docked panel is only in the user's way
+      // while expanded, and aiChat.isOpen is true even when it is collapsed.
+      fynHasTheUser: false,
       cats: [
         { key: 'save_tax', route: '/tax-strategy', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
         { key: 'retirement', route: '/net-worth/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
@@ -323,6 +345,23 @@ export default {
       if (this.progressSrv !== null) return this.progressSrv;
       return this.actionsTotal > 0 ? Math.round((this.actionsCompleted / this.actionsTotal) * 100) : 0;
     },
+    // The number the circle shows. Before and after a climb this is simply the
+    // real level; during one it is whatever step we are on.
+    shownLevel() {
+      return this.displayLevel === null ? this.level : this.displayLevel;
+    },
+    celebrateFrom() {
+      return this.$store.state.gamification.celebrateFrom;
+    },
+    celebrateTo() {
+      return this.$store.state.gamification.celebrateTo;
+    },
+    // How many levels are owed. Watched instead of celebrateTo alone, because
+    // either end of the range can move — watching only the top missed a climb
+    // whose start moved (found in the browser, 2026-09-17).
+    levelsOwedCount() {
+      return Math.max(0, this.celebrateTo - this.celebrateFrom);
+    },
     // Empty = no recommendations and no net worth → show a focused "get started"
     // state (level bar + a single CTA into Fyn) instead of zeroed cards.
     isEmpty() {
@@ -347,7 +386,89 @@ export default {
       ];
     },
   },
+  watch: {
+    levelsOwedCount() { this.playBankedLevels(); },
+    // The climb waits until Fyn gives the user back, so nothing animates
+    // mid-conversation (CSJ 2026-09-17).
+    fynHasTheUser(has) { if (!has) this.playBankedLevels(); },
+    // Keep the ring honest with the payload whenever a climb is not running.
+    progressPercent(pct) { if (!this.celebrating) this.ringPercent = pct; },
+  },
   methods: {
+    // 18 pieces thrown radially from the circle's edge. The takeover this
+    // replaced dropped confetti down the whole screen; here it sprays from
+    // the level circle itself.
+    buildConfetti() {
+      return Array.from({ length: 18 }, (_, i) => {
+        const angle = ((360 / 18) * i) + ((Math.random() * 12) - 6);
+        const distance = 70 + (Math.random() * 50);
+        return {
+          id: `${Date.now()}-${i}`,
+          style: {
+            '--angle': `${angle}deg`,
+            '--distance': `${distance}px`,
+            '--delay': `${Math.random() * 90}ms`,
+            background: CONFETTI_COLOURS[i % CONFETTI_COLOURS.length],
+          },
+        };
+      });
+    },
+
+    onVisibility() { if (!document.hidden) this.playBankedLevels(); },
+
+    onFynAttention(e) {
+      this.fynHasTheUser = Boolean(e.detail && e.detail.has);
+    },
+
+    async playBankedLevels() {
+      if (this.celebrating) return;
+
+      if (this.celebrateTo <= this.celebrateFrom) {
+        this.displayLevel = null;
+        this.ringPercent = this.progressPercent;
+        return;
+      }
+
+      if (!dashboardIsBeingViewed({
+        onDashboard: true,
+        fynOpen: this.fynHasTheUser,
+        hidden: document.hidden,
+      })) return;
+
+      this.celebrating = true;
+      const target = this.celebrateTo;
+      // Start the climb from where they were last celebrated.
+      this.displayLevel = this.celebrateFrom;
+
+      const acked = await runLevelSequence({
+        from: this.celebrateFrom,
+        to: target,
+        reducedMotion: prefersReducedMotion(),
+        onLevel: (lvl, { burst }) => {
+          this.displayLevel = lvl;
+          this.stepping = true;
+          setTimeout(() => { this.stepping = false; }, 260);
+
+          if (!burst) { this.ringPercent = this.progressPercent; return; }
+
+          this.confetti = this.buildConfetti();
+          this.burst = true;
+          setTimeout(() => { this.burst = false; }, 800);
+
+          // Sweep the ring full, then snap it back ready for the next level.
+          // 420ms sits just inside the 0.45s stroke-dashoffset transition the
+          // arc already carries, so each sweep lands before the next starts.
+          this.ringPercent = 100;
+          setTimeout(() => {
+            this.ringPercent = lvl === target ? this.progressPercent : 0;
+          }, 420);
+        },
+      });
+
+      this.celebrating = false;
+      if (acked !== null) await this.$store.dispatch('gamification/acknowledge', acked);
+    },
+
     fmt(n) {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
     },
@@ -521,6 +642,10 @@ export default {
     },
   },
   mounted() {
+    this.ringPercent = this.progressPercent;
+    document.addEventListener('visibilitychange', this.onVisibility);
+    window.addEventListener('fyn-attention', this.onFynAttention);
+    this.playBankedLevels();
     this.load();
     // A Fyn turn that ends on this screen (the recommendation follow-up's
     // "No thanks") asks the screen to refetch so the ticked-off action is
@@ -534,6 +659,8 @@ export default {
   },
   beforeUnmount() {
     window.removeEventListener('fyn-screen-refresh', this.onFynScreenRefresh);
+    document.removeEventListener('visibilitychange', this.onVisibility);
+    window.removeEventListener('fyn-attention', this.onFynAttention);
   },
 };
 </script>
