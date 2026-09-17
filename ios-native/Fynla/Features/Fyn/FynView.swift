@@ -7,9 +7,7 @@ struct FynView: View {
     let onRoute: (AppRoute) -> Void
     let onRefreshCurrentScreen: () -> Void
     let onReportProblem: () -> Void
-    let onAckLevelUp: () -> Void
     @State private var announcedMessageID: String?
-    @State private var dismissedLevelUp: FynLevelUp?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,25 +33,10 @@ struct FynView: View {
             model.clearCloseAndRefresh()
             onClose()
         }
-        .overlay {
-            // /m: a level_up frame after Fyn's reply triggers the shared
-            // fireworks takeover over the chat (queueCelebration → z-60 over
-            // the overlay). Dismiss acks the server flag as store.ack() does.
-            if let levelUp = model.levelUp,
-               !model.phase.isBusy,
-               dismissedLevelUp != levelUp
-            {
-                GamificationCelebrationView(
-                    level: levelUp.level,
-                    levelName: levelUp.levelName,
-                    nextActions: levelUp.nextActions,
-                    onDismiss: {
-                        dismissedLevelUp = levelUp
-                        onAckLevelUp()
-                    }
-                )
-            }
-        }
+        // A level_up frame no longer shows anything here. Nothing may
+        // interrupt a Fyn conversation: the climb is banked server-side and
+        // spent on the dashboard hero wheel when the user is next looking at
+        // it (CSJ 2026-09-17).
     }
 
     // Transcribes /m's md-fyn__head: avatar + name/status left, "Report a

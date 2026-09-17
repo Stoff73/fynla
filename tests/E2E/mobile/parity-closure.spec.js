@@ -22,16 +22,10 @@ const sharedDestinations = [
   ['Settings', '/settings', 'Settings'],
 ];
 
-async function dismissCelebration(page) {
-  const celebration = page.getByRole('dialog', { name: /^Level up:/ });
-  if (await celebration.isVisible()) {
-    await celebration.getByRole('button', { name: 'Keep going' }).click();
-    await expect(celebration).toBeHidden();
-  }
-}
-
 async function openSharedDestination(page, runtimeErrors, label, path, heading) {
-  await dismissCelebration(page);
+  // Nothing to dismiss any more: the full-screen level-up celebration was
+  // removed on 2026-09-17 and the climb happens inside the dashboard hero
+  // circle, which never blocks navigation.
 
   await page.getByRole('button', { name: 'Open menu' }).click();
   const menu = page.getByRole('complementary', { name: 'Menu' });
@@ -58,7 +52,6 @@ async function openSharedDestination(page, runtimeErrors, label, path, heading) 
   await page.evaluate(() => new Promise((resolve) => {
     window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
   }));
-  await dismissCelebration(page);
   await expect.poll(async () => page.evaluate(() => ({
     viewport: window.innerWidth,
     width: document.documentElement.scrollWidth,

@@ -60,14 +60,19 @@ struct AchievementsModelTests {
         let model = AchievementsModel(client: client)
 
         await model.load()
-        #expect(model.pendingCelebration?.level == 3)
+        #expect(model.celebrateFrom == 1)
+        #expect(model.celebrateTo == 3)
 
-        await model.dismissCelebration()
-        #expect(model.pendingCelebration == nil)
+        await model.acknowledgeCelebration(level: 3)
+        #expect(model.celebrateFrom == 3)
+        #expect(model.celebrateTo == 3)
 
-        // The unacked flag comes back on the next status fetch, as /m.
+        // The unacked range comes back on the next status fetch, as /m. The
+        // server ack is best-effort; this one failed, so the climb is still
+        // owed and will simply be shown again.
         await model.refreshCelebration()
-        #expect(model.pendingCelebration?.level == 3)
+        #expect(model.celebrateFrom == 1)
+        #expect(model.celebrateTo == 3)
     }
 
     @Test @MainActor
@@ -78,7 +83,7 @@ struct AchievementsModelTests {
             activityPages: [
                 try fixture("activity-page-1", as: AchievementsActivityPage.self),
             ],
-            status: GamificationStatus(pendingCelebration: nil),
+            status: GamificationStatus(celebrateFrom: 1, celebrateTo: 1),
             activityFailure: APIError.offline
         )
         let model = AchievementsModel(client: client)
@@ -101,7 +106,7 @@ struct AchievementsModelTests {
                     as: AchievementsActivityPage.self
                 ),
             ],
-            status: GamificationStatus(pendingCelebration: nil)
+            status: GamificationStatus(celebrateFrom: 1, celebrateTo: 1)
         )
         let model = AchievementsModel(client: client)
 
@@ -131,7 +136,7 @@ struct AchievementsModelTests {
                     as: AchievementsActivityPage.self
                 ),
             ],
-            status: GamificationStatus(pendingCelebration: nil),
+            status: GamificationStatus(celebrateFrom: 1, celebrateTo: 1),
             milestoneResults: [
                 .failure(APIError.offline),
                 .success(
@@ -189,7 +194,7 @@ struct AchievementsModelTests {
                     as: AchievementsActivityPage.self
                 ),
             ],
-            status: GamificationStatus(pendingCelebration: nil),
+            status: GamificationStatus(celebrateFrom: 1, celebrateTo: 1),
             milestoneResults: [
                 .success(
                     milestoneContinuationPage(
@@ -233,7 +238,7 @@ struct AchievementsModelTests {
                     as: AchievementsActivityPage.self
                 ),
             ],
-            status: GamificationStatus(pendingCelebration: nil),
+            status: GamificationStatus(celebrateFrom: 1, celebrateTo: 1),
             milestoneResults: [
                 .success(
                     milestoneContinuationPage(
@@ -353,7 +358,7 @@ private actor AchievementsClientStub: AchievementsClient {
 
     func loadStatus() async throws -> GamificationStatus { status }
 
-    func acknowledgeCelebration() async throws {
+    func acknowledgeCelebration(level: Int) async throws {
         guard !acknowledgementResults.isEmpty else { return }
         try acknowledgementResults.removeFirst().get()
     }

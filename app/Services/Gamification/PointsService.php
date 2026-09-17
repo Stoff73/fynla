@@ -58,9 +58,10 @@ class PointsService
                 $leveledUp = $newLevel > $oldLevel;
 
                 $g->level = $newLevel;
-                if ($leveledUp) {
-                    $g->pending_celebration_level = $newLevel;
-                }
+                // No pending level is written here any more. What is owed is
+                // derived as the range above `celebrated_level`, which moves
+                // only when a client acknowledges having shown the climb
+                // (CSJ 2026-09-17).
                 $g->save();
 
                 if ($leveledUp) {

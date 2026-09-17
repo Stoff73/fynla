@@ -933,11 +933,11 @@ const actions = {
                                 break;
 
                             case 'level_up':
-                                dispatch('gamification/queueCelebration', {
-                                    level: event.level,
-                                    level_name: event.level_name,
-                                    next_actions: event.next_actions || [],
-                                }, { root: true });
+                                // Deliberately ignored. Level-ups are banked
+                                // server-side and spent on the dashboard hero
+                                // circle; nothing may interrupt a Fyn turn
+                                // (CSJ 2026-09-17). The frame stays on the
+                                // wire for older clients.
                                 break;
 
                             case 'error':
@@ -1172,11 +1172,11 @@ const actions = {
                                 commit('SET_STREAMING', false);
                                 break;
                             case 'level_up':
-                                dispatch('gamification/queueCelebration', {
-                                    level: event.level,
-                                    level_name: event.level_name,
-                                    next_actions: event.next_actions || [],
-                                }, { root: true });
+                                // Deliberately ignored. Level-ups are banked
+                                // server-side and spent on the dashboard hero
+                                // circle; nothing may interrupt a Fyn turn
+                                // (CSJ 2026-09-17). The frame stays on the
+                                // wire for older clients.
                                 break;
 
                             case 'error':
@@ -1442,11 +1442,11 @@ const actions = {
                                 break;
 
                             case 'level_up':
-                                dispatch('gamification/queueCelebration', {
-                                    level: event.level,
-                                    level_name: event.level_name,
-                                    next_actions: event.next_actions || [],
-                                }, { root: true });
+                                // Deliberately ignored. Level-ups are banked
+                                // server-side and spent on the dashboard hero
+                                // circle; nothing may interrupt a Fyn turn
+                                // (CSJ 2026-09-17). The frame stays on the
+                                // wire for older clients.
                                 break;
 
                             case 'action':
@@ -1707,11 +1707,11 @@ const actions = {
                                 break;
 
                             case 'level_up':
-                                dispatch('gamification/queueCelebration', {
-                                    level: event.level,
-                                    level_name: event.level_name,
-                                    next_actions: event.next_actions || [],
-                                }, { root: true });
+                                // Deliberately ignored. Level-ups are banked
+                                // server-side and spent on the dashboard hero
+                                // circle; nothing may interrupt a Fyn turn
+                                // (CSJ 2026-09-17). The frame stays on the
+                                // wire for older clients.
                                 break;
 
                             case 'action':

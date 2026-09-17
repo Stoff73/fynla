@@ -292,23 +292,17 @@ struct AchievementsActivityPage: Decodable, Equatable, Sendable {
     }
 }
 
-struct LevelCelebration: Decodable, Equatable, Sendable {
-    let level: Int
-    let levelName: String
-    let nextActions: [String]?
-
-    private enum CodingKeys: String, CodingKey {
-        case level
-        case levelName = "level_name"
-        case nextActions = "next_actions"
-    }
-}
-
+/// The banked level climb: every level above `celebrateFrom`, up to
+/// `celebrateTo`, is owed and gets spent on the dashboard hero wheel. It
+/// replaced a single pending level, which could only ever show the last of a
+/// multi-level crossing (CSJ 2026-09-17).
 struct GamificationStatus: Decodable, Equatable, Sendable {
-    let pendingCelebration: LevelCelebration?
+    let celebrateFrom: Int?
+    let celebrateTo: Int?
 
     private enum CodingKeys: String, CodingKey {
-        case pendingCelebration = "pending_celebration"
+        case celebrateFrom = "celebrate_from"
+        case celebrateTo = "celebrate_to"
     }
 }
 

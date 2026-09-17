@@ -10,6 +10,12 @@ struct DashboardView: View {
     let shareClient: any ShareContentClient
     let onRoute: (AppRoute) -> Void
     let onFynCapture: (DashboardAction) -> Void
+    // The banked level climb, spent on the hero wheel. Fyn presented over the
+    // dashboard holds it back (CSJ 2026-09-17).
+    var celebrateFrom: Int = 1
+    var celebrateTo: Int = 1
+    var fynOpen: Bool = false
+    var onAcknowledgeLevels: (Int) async -> Void = { _ in }
 
     @State private var dismissedMilestoneIDs: Set<String> = []
     @State private var shareContent: ShareContent?
@@ -154,7 +160,13 @@ struct DashboardView: View {
     // is present.
     private func hero(_ snapshot: DashboardSnapshot) -> some View {
         VStack(spacing: 0) {
-            LevelWheelCard(level: snapshot.level) {
+            LevelWheelCard(
+                level: snapshot.level,
+                celebrateFrom: celebrateFrom,
+                celebrateTo: celebrateTo,
+                fynOpen: fynOpen,
+                onAcknowledge: onAcknowledgeLevels
+            ) {
                 onRoute(.achievements)
             }
             .padding(.bottom, -144)
