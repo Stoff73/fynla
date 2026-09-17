@@ -23,14 +23,12 @@ class GamificationController extends Controller
         $progress = $this->levels->progress((int) $g->total_points);
         $nextActions = $this->levels->nextActions($user);
 
-        $pending = null;
-        if ($g->pending_celebration_level !== null) {
-            $pending = [
-                'level' => (int) $g->pending_celebration_level,
-                'level_name' => $this->levels->levelName((int) $g->pending_celebration_level),
-                'next_actions' => $nextActions,
-            ];
-        }
+        // The ladder starts at 1, so a user who has never celebrated anything
+        // is owed everything above 1. NEVER coalesce to the current level — a
+        // new user who reaches level 2 before acking would then have
+        // from == to and never be celebrated at all.
+        $from = (int) ($g->celebrated_level ?? 1);
+        $to = (int) $progress['level'];
 
         return response()->json([
             'level' => $progress['level'],
@@ -39,16 +37,35 @@ class GamificationController extends Controller
             'progress_percent' => $progress['progress_percent'],
             'next_level_name' => $progress['next_level_name'],
             'next_actions' => $nextActions,
-            'pending_celebration' => $pending,
+            'celebrate_from' => min($from, $to),
+            'celebrate_to' => $to,
         ]);
     }
 
     public function ackCelebration(Request $request): JsonResponse
     {
         $user = $request->user();
-        UserGamification::where('user_id', $user->id)->update(['pending_celebration_level' => null]);
+        $g = UserGamification::firstOrCreate(['user_id' => $user->id]);
 
-        return response()->json(['acknowledged' => true]);
+        // Clamp against the SAME level status() offers — derived from points,
+        // not the stored column. They can drift (csjones user 399: 825 points
+        // = level 7, column still said 6), and when they do, an ack clamped to
+        // the stale column can never catch up to the range status() keeps
+        // offering, so the climb replays on every dashboard view. Found in the
+        // browser, 2026-09-17.
+        $real = $this->levels->levelForPoints((int) $g->total_points);
+        $asked = $request->integer('level') ?: $real;
+
+        // Monotonic and clamped: a double ack, an out-of-order ack, or an ack
+        // for a level the user has not reached can never move this backwards
+        // or past the truth.
+        $g->celebrated_level = min($real, max((int) ($g->celebrated_level ?? 1), $asked));
+        $g->save();
+
+        return response()->json([
+            'acknowledged' => true,
+            'celebrated_level' => (int) $g->celebrated_level,
+        ]);
     }
 
     /**

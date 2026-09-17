@@ -4,7 +4,7 @@ export default {
   status() {
     return api.get('/gamification/status');
   },
-  ackCelebration() {
-    return api.post('/gamification/celebration/ack');
+  ackCelebration(level) {
+    return api.post('/gamification/celebration/ack', level ? { level } : {});
   },
 };

@@ -24,6 +24,7 @@ use App\Models\UserMilestone;
 use App\Services\Gamification\PointsService;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * One-time reconciliation: award points for data, income, completed
@@ -31,8 +32,8 @@ use Illuminate\Console\Command;
  * accumulated before the engine launched.
  *
  * Idempotent — every award uses the SAME dedup key as the live award path, so
- * re-running awards nothing more. Quiet — pending_celebration_level is cleared
- * per user so existing users land at their earned level without a celebration.
+ * re-running awards nothing more. Quiet — celebrated_level is set to the
+ * earned level per user, so existing users land there without a celebration.
  * Logins/streaks are intentionally NOT backfilled (can't reconstruct fairly).
  */
 class GamificationBackfill extends Command
@@ -97,8 +98,9 @@ class GamificationBackfill extends Command
                         ['threshold' => (int) $m->threshold]);
                 });
 
-                // 5. Quiet: suppress any celebration the awards queued.
-                UserGamification::where('user_id', $user->id)->update(['pending_celebration_level' => null]);
+                // 5. Quiet: mark the earned level as already celebrated, so the
+                // dashboard climb has nothing to replay for a backfilled user.
+                UserGamification::where('user_id', $user->id)->update(['celebrated_level' => DB::raw('`level`')]);
 
                 $users++;
             }

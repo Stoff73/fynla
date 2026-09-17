@@ -28,7 +28,7 @@ describe('desktop Fyn stream event parity', () => {
     vi.clearAllMocks();
   });
 
-  it('queues the desktop celebration when level_up follows done', async () => {
+  it('never queues a celebration from a level_up frame — the climb belongs to the dashboard', async () => {
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
       { type: 'content', text: 'Your savings account is recorded.' },
       { type: 'done', message_id: 42 },
@@ -53,14 +53,18 @@ describe('desktop Fyn stream event parity', () => {
       rootState: { route: { path: '/dashboard' } },
     }, 'Add my savings account');
 
-    expect(dispatch).toHaveBeenCalledWith('gamification/queueCelebration', {
-      level: 3,
-      level_name: 'Building',
-      next_actions: ['Add a goal'],
-    }, { root: true });
+    // A level-up must never interrupt a Fyn turn. The frame stays on the wire
+    // for older clients, but this one banks nothing and shows nothing; the
+    // climb is spent on the dashboard hero circle (CSJ 2026-09-17).
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.stringContaining('gamification/'),
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(localState.messages.some((m) => m.role === 'assistant')).toBe(true);
   });
 
-  it('keeps queued capture confirmation and level-up events', async () => {
+  it('keeps the queued capture confirmation, and still ignores the level-up frame', async () => {
     aiChatService.streamQueuedMessage.mockResolvedValue(streamReader([
       { type: 'entity_created', entity_type: 'savings_account', entity_id: 7, name: 'Cash ISA' },
       { type: 'content', text: 'A Cash ISA keeps the interest tax-free.' },
@@ -96,11 +100,11 @@ describe('desktop Fyn stream event parity', () => {
     ]));
     expect(localState.messages.findIndex((message) => message.role === 'assistant'))
       .toBeLessThan(localState.messages.findIndex((message) => message.role === 'capture_complete'));
-    expect(dispatch).toHaveBeenCalledWith('gamification/queueCelebration', {
-      level: 3,
-      level_name: 'Building',
-      next_actions: [],
-    }, { root: true });
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.stringContaining('gamification/'),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('carries the server-resolved page onto every entity write message', async () => {

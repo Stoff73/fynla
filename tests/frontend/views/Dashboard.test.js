@@ -19,7 +19,6 @@ describe('Dashboard', () => {
       stubs: {
         AppLayout: { template: '<main class="app-layout"><slot /></main>' },
         GamifiedDashboard: { template: '<section class="gamified-dashboard">Dashboard</section>' },
-        GamificationCelebration: true,
         RouterLink: true,
       },
     },
@@ -44,7 +43,7 @@ describe('Dashboard', () => {
         },
         gamification: {
           namespaced: true,
-          state: () => ({ pendingCelebration: null }),
+          state: () => ({ celebrateFrom: 1, celebrateTo: 1 }),
           actions: { fetchStatus: fetchGamificationStatus },
         },
         lifeStage: {

@@ -200,3 +200,30 @@
 /* W-0538 — one trusts section serving both layout blocks, so it sits outside
    them and needs the column gap they provide their own children. */
 .gamified-dash .gd-trusts { margin-top: 1.25rem; }
+
+/* Level-up burst: confetti thrown radially from the level circle. Replaces the
+   full-screen takeover removed on 2026-09-17. Every selector here is
+   .gamified-dash prefixed to match the rest of this file — an unprefixed rule
+   ties on specificity with the base styles and depends on source order.
+   No stroke-dashoffset transition is added: .md-level__pie-arc already
+   carries one (0.45s), which the sweep reuses. */
+.gamified-dash .md-level__burst { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.gamified-dash .md-level__burst i {
+  position: absolute; top: 50%; left: 50%;
+  width: 7px; height: 11px; border-radius: 1px; opacity: 0;
+  animation: md-level-confetti 800ms ease-out var(--delay) forwards;
+}
+@keyframes md-level-confetti {
+  0%   { opacity: 1; transform: rotate(var(--angle)) translateY(-46px) rotate(0deg) scale(0.6); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--angle)) translateY(calc(-46px - var(--distance))) rotate(420deg) scale(1); }
+}
+.gamified-dash .md-level__pie-num { transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.gamified-dash .md-level__pie-num.is-stepping { transform: scale(1.28); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gamified-dash .md-level__burst { display: none; }
+  .gamified-dash .md-level__pie-num { transition: none; }
+  .gamified-dash .md-level__pie-num.is-stepping { transform: none; }
+  .gamified-dash .md-level__pie-arc { transition: none; }
+}

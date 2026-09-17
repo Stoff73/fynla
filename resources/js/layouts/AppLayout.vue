@@ -232,6 +232,21 @@ export default {
     },
 
     /**
+     * Is Fyn currently occupying the user's attention?
+     *
+     * Only this layout knows: on desktop Fyn is a docked side panel that
+     * obscures nothing while collapsed, and `aiChat.isOpen` is true even then
+     * (it means the panel component is live, not that it is in front of you).
+     * On a narrow viewport there is no dock and the floating panel does cover
+     * the screen. The dashboard's banked level climb waits on this, so that
+     * nothing animates mid-conversation (CSJ 2026-09-17).
+     */
+    fynHasTheUser() {
+      if (this.showDockedChat && !this.isMobileView) return !this.chatCollapsed;
+      return this.$store.state.aiChat.isOpen;
+    },
+
+    /**
      * True while the Fyn-driven onboarding is active. Gates the wide-chat
      * wrapper width and the profile-review route push (see asideWidthClass
      * and the onboardingLayout watcher).
@@ -290,6 +305,10 @@ export default {
     },
 
     // Collapse side menu when docked chat becomes active and expanded
+    fynHasTheUser(has) {
+      window.dispatchEvent(new CustomEvent('fyn-attention', { detail: { has } }));
+    },
+
     showDockedChat(active) {
       if (active && !this.chatCollapsed && !this.sideMenuCollapsed) {
         this.sideMenuCollapsed = true;
@@ -368,6 +387,9 @@ export default {
     // Listen for explicit open-chat requests (e.g. from registration via Fyn)
     this._onFynOpen = () => this.openChat();
     window.addEventListener('fyn-open-chat', this._onFynOpen);
+    // Announce the starting state so a dashboard mounted alongside this layout
+    // does not have to guess before the first toggle.
+    window.dispatchEvent(new CustomEvent('fyn-attention', { detail: { has: this.fynHasTheUser } }));
     // A Fyn turn that ends on the screen the user is on (the recommendation
     // follow-up's "No thanks") collapses the dock — the web equivalent of the
     // /m overlay and the native cover closing on the same navigation frame.

@@ -122,20 +122,14 @@ private struct AchievementsUITestClient: AchievementsClient {
     }
 
     func loadStatus() async throws -> GamificationStatus {
-        // The fireworks capture harness opts in via launch argument so the
-        // takeover never covers the ordinary journey tests.
+        // The climb capture harness opts in via launch argument so the level
+        // wheel never animates during the ordinary journey tests.
         if ProcessInfo.processInfo.arguments.contains("-fynla-pending-celebration") {
-            return GamificationStatus(
-                pendingCelebration: LevelCelebration(
-                    level: 3,
-                    levelName: "Builder",
-                    nextActions: ["Add your first savings account"]
-                )
-            )
+            return GamificationStatus(celebrateFrom: 1, celebrateTo: 3)
         }
-        return GamificationStatus(pendingCelebration: nil)
+        return GamificationStatus(celebrateFrom: 1, celebrateTo: 1)
     }
 
-    func acknowledgeCelebration() async throws {}
+    func acknowledgeCelebration(level: Int) async throws {}
 }
 #endif

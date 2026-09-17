@@ -8,7 +8,11 @@ export default {
     progressPercent: 0,
     nextLevelName: null,
     nextActions: [],
-    pendingCelebration: null, // { level, level_name, next_actions } | null
+    // The banked climb: every level above celebrateFrom, up to celebrateTo,
+    // is owed and will be spent on the dashboard hero circle. The full-screen
+    // celebration this replaced could only ever hold one level (CSJ 2026-09-17).
+    celebrateFrom: 1,
+    celebrateTo: 1,
   }),
   mutations: {
     SET_STATUS(state, p) {
@@ -17,10 +21,13 @@ export default {
       state.progressPercent = p.progress_percent;
       state.nextLevelName = p.next_level_name;
       state.nextActions = p.next_actions || [];
-      state.pendingCelebration = p.pending_celebration || null;
+      state.celebrateFrom = p.celebrate_from ?? p.level ?? 1;
+      state.celebrateTo = p.celebrate_to ?? p.level ?? 1;
     },
-    SET_CELEBRATION(state, c) { state.pendingCelebration = c; },
-    CLEAR_CELEBRATION(state) { state.pendingCelebration = null; },
+    SETTLE_CELEBRATION(state, level) {
+      state.celebrateFrom = level;
+      state.celebrateTo = Math.max(level, state.celebrateTo);
+    },
   },
   actions: {
     async fetchStatus({ commit }) {
@@ -28,13 +35,9 @@ export default {
       commit('SET_STATUS', data);
       return data;
     },
-    // Called from the Fyn chat client when it receives a level_up SSE frame.
-    queueCelebration({ commit }, frame) {
-      commit('SET_CELEBRATION', { level: frame.level, level_name: frame.level_name, next_actions: frame.next_actions || [] });
-    },
-    async acknowledge({ commit }) {
-      commit('CLEAR_CELEBRATION');
-      try { await gamificationService.ackCelebration(); } catch (e) { /* non-fatal */ }
+    async acknowledge({ commit }, level) {
+      commit('SETTLE_CELEBRATION', level);
+      try { await gamificationService.ackCelebration(level); } catch { /* non-fatal */ }
     },
   },
 };

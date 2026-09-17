@@ -106,12 +106,17 @@ struct AchievementsModelsTests {
         #expect(activity.nextCursor == 101)
     }
 
+    /// The banked climb is a range, not a single pending level — the wheel
+    /// walks it one level at a time (CSJ 2026-09-17).
     @Test
-    func decodesPendingLevelCelebrationAsPlainTextData() throws {
+    func decodesTheBankedLevelClimbAsARange() throws {
         let status = try fixture("status", as: GamificationStatus.self)
 
-        #expect(status.pendingCelebration?.level == 3)
-        #expect(status.pendingCelebration?.levelName == "Builder")
+        #expect(status.celebrateFrom == 1)
+        #expect(status.celebrateTo == 3)
+        #expect(LevelCelebrationSequence.levelsOwed(
+            from: status.celebrateFrom, to: status.celebrateTo
+        ) == [2, 3])
     }
 
     private func fixture<Value: Decodable>(

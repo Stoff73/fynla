@@ -416,7 +416,13 @@ private struct UnlockedView: View {
         // the "Finish your personalised tax plan" pill goes with it (/m mirrors
         // the onboarding_complete frame into store.user; native asks the server).
         .onChange(of: isPresentingFyn) { _, presenting in
-            guard !presenting, settingsModel.onboardingActive else { return }
+            guard !presenting else { return }
+            // The level-up usually happened DURING the conversation, so the
+            // banked range on screen is stale by the time Fyn is dismissed.
+            // Refresh it; the wheel's owed-count task runs the climb once the
+            // fresh range lands (CSJ 2026-09-17).
+            Task { await achievementsModel.refreshCelebration() }
+            guard settingsModel.onboardingActive else { return }
             Task { await settingsModel.refreshUser() }
         }
         .sheet(item: $browserItem) { item in
@@ -434,20 +440,9 @@ private struct UnlockedView: View {
         .overlay {
             drawerOverlay
         }
-        .overlay {
-            // Level-up fireworks takeover (missed celebrations delivered by
-            // the status fetch, as /m's dashboard fetchStatus does).
-            if let celebration = achievementsModel.pendingCelebration {
-                GamificationCelebrationView(
-                    level: celebration.level,
-                    levelName: celebration.levelName,
-                    nextActions: celebration.nextActions ?? [],
-                    onDismiss: {
-                        Task { await achievementsModel.dismissCelebration() }
-                    }
-                )
-            }
-        }
+        // The banked climb is delivered by the status fetch (as /m's dashboard
+        // fetchStatus does) and spent on the dashboard hero wheel. There is no
+        // shell-level takeover any more (CSJ 2026-09-17).
         .task { await achievementsModel.refreshCelebration() }
     }
 
@@ -600,6 +595,12 @@ private struct UnlockedView: View {
                     } else {
                         presentFyn(prompt: action.action.prompt)
                     }
+                },
+                celebrateFrom: achievementsModel.celebrateFrom,
+                celebrateTo: achievementsModel.celebrateTo,
+                fynOpen: isPresentingFyn,
+                onAcknowledgeLevels: { level in
+                    await achievementsModel.acknowledgeCelebration(level: level)
                 }
             )
             .toolbar(.hidden, for: .navigationBar)
@@ -706,9 +707,6 @@ private struct UnlockedView: View {
             onReportProblem: {
                 pendingFynRoute = .bugReport
                 isPresentingFyn = false
-            },
-            onAckLevelUp: {
-                Task { await achievementsModel.dismissCelebration() }
             }
         )
         .onDisappear {

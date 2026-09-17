@@ -293,8 +293,13 @@ describe('/m Fyn stream event parity', () => {
       ]);
   });
 
-  it('queues a level-up received from an onboarding action stream', async () => {
-    const queueCelebration = vi.spyOn(store, 'queueCelebration').mockImplementation(() => {});
+  /**
+   * A level-up must never interrupt a Fyn turn. The chat used to queue a
+   * full-screen celebration and pulse the wheel from here; both are gone. The
+   * climb is banked server-side and spent on the dashboard hero circle when
+   * the user is next looking at it (CSJ 2026-09-17).
+   */
+  it('never celebrates a level-up from an onboarding action stream', async () => {
     const vm = {
       conversationId: 7,
       sending: false,
@@ -306,17 +311,12 @@ describe('/m Fyn stream event parity', () => {
       }),
       finalizeCaptureReply: vi.fn(),
       handleOnboardingNavigation: vi.fn(),
-      pulseWheel: vi.fn(),
     };
 
     await onboardingChat.methods.runFynAction.call(vm, 'skip');
 
-    expect(queueCelebration).toHaveBeenCalledWith({
-      level: 3,
-      level_name: 'Building',
-      next_actions: [],
-    });
-    expect(vm.pulseWheel).toHaveBeenCalledOnce();
+    expect(store.queueCelebration).toBeUndefined();
+    expect(store.gamification.celebrateFrom).toBe(store.gamification.celebrateTo);
   });
 
   it('restores a persisted skip link as an action bubble', async () => {

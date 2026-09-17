@@ -34,9 +34,10 @@ struct AchievementsClientTests {
         _ = try await client.loadCompleted(page: 2)
         _ = try await client.loadActivity(before: 101)
         let status = try await client.loadStatus()
-        try await client.acknowledgeCelebration()
+        try await client.acknowledgeCelebration(level: 3)
 
-        #expect(status.pendingCelebration?.level == 3)
+        #expect(status.celebrateFrom == 1)
+        #expect(status.celebrateTo == 3)
         let requests = await transport.requests()
         #expect(requests.map { $0.url?.path } == [
             "/fynla/api/v1/mobile/achievements/v2",

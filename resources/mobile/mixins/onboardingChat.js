@@ -11,9 +11,11 @@
 // the dock can pick up exactly where the dashboard left off, and vice versa.
 //
 // Components keep their own first-run entry point (`initFyn`) and any surface-
-// specific affordances (the dashboard's level wheel / `pulseWheel`); everything
-// shared lives here. `pulseWheel` is a no-op by default and overridden by the
-// dashboard, so the level-up frame is safe to handle from either surface.
+// specific affordances; everything shared lives here. A level-up used to
+// pulse the wheel and queue a full-screen celebration from here; both are
+// gone — the wheel is not visible behind the full-screen Fyn overlay, so the
+// pulse was spent unseen, and the climb now belongs to the dashboard hero
+// circle alone (CSJ 2026-09-17).
 import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
 import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
@@ -65,10 +67,6 @@ export default {
     },
   },
   methods: {
-    // Brief level-wheel pulse on a level-up. No-op here; the dashboard overrides
-    // it with the real wheel animation. The full fireworks takeover is driven
-    // separately by the shared GamificationCelebration via store.pendingCelebration.
-    pulseWheel() {},
     // Render a Fyn bubble's text: escape HTML, then turn **bold** into <strong>
     // (the SaveTax onboarding bolds the question line). Used via v-html in the
     // dock + dashboard bubble templates.
@@ -194,7 +192,6 @@ export default {
             && (cursor.got || (cursor.reply.bubbles && cursor.reply.bubbles.length))) {
           store.user.active_campaign = from;
         }
-        if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
       } catch {
         cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
       } finally {
@@ -360,7 +357,6 @@ export default {
         if (await this.streamFynAction(this.conversationId, action, cursor)) return;
         this.finalizeCaptureReply(cursor);
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
-        if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
@@ -437,14 +433,11 @@ export default {
         return;
       }
       if (ev.type === 'level_up') {
-        // A write this turn crossed a level threshold. The frame arrives AFTER
-        // `done`, so the reply is already on screen. Stash it; the caller fires
-        // the celebration once the stream settles so we never interrupt mid-reply.
-        cursor.levelUp = {
-          level: ev.level,
-          level_name: ev.level_name,
-          next_actions: ev.next_actions || [],
-        };
+        // Deliberately ignored. A write this turn crossed a level threshold,
+        // but nothing may interrupt a Fyn turn: the climb is banked
+        // server-side and spent on the dashboard hero circle when the user is
+        // next looking at it (CSJ 2026-09-17). The frame stays on the wire for
+        // older clients.
         return;
       }
       if (ev.type === 'token_limit') {
@@ -690,7 +683,6 @@ export default {
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
         // Celebrate AFTER the reply has rendered (the level_up frame arrives
         // after `done`), so the fireworks never interrupt Fyn mid-reply.
-        if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
       } catch {
         cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
