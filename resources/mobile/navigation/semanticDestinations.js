@@ -14,6 +14,7 @@ const overviewPaths = Object.freeze({
   achievements: '/achievements',
   conversation_history: '/conversation-history',
   personal_information: '/personal-information',
+  spouse_sharing: '/spouse-sharing',
   subscription: '/subscription',
   settings: '/settings',
 });

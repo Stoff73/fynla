@@ -110,6 +110,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import logger from '@/utils/logger';
+import { resolveWebDestination } from '@/utils/semanticDestinations';
 
 // Desktop route per module — where an action is taken.
 const MODULE_ROUTES = {
@@ -120,6 +121,7 @@ const MODULE_ROUTES = {
   estate: '/estate',
   goals: '/goals',
   tax: '/tax-strategy',
+  household: '/settings/family',
 };
 
 const MODULE_LABELS = {
@@ -130,6 +132,7 @@ const MODULE_LABELS = {
   estate: 'Estate Planning',
   goals: 'Goals',
   tax: 'Tax Strategy',
+  household: 'Household',
   general: 'General',
 };
 
@@ -163,8 +166,12 @@ export default {
       return MODULE_LABELS[module] || MODULE_LABELS.general;
     },
 
+    // The server decides where an action leads (RecommendationRouting — the
+    // same payload /m and native read); the module map is the fallback for
+    // rows that carry no destination.
     goToAction(action) {
-      const route = MODULE_ROUTES[action.module];
+      const route = (action.action && resolveWebDestination(action.action.destination))
+        || MODULE_ROUTES[action.module];
       if (route) this.$router.push(route);
     },
 

@@ -55,7 +55,7 @@ it('asks the inviter to link the account while a spouse is on file but not linke
         ->and($item['done'])->toBeFalse()
         ->and($item['action']['kind'])->toBe('navigate')
         ->and($item['action']['payload'])->toBe('/spouse-sharing')
-        ->and($item['action']['destination']['screen'])->toBe('family_details');
+        ->and($item['action']['destination']['screen'])->toBe('spouse_sharing');
 });
 
 it('asks the invited side to accept while a request is pending on them', function (): void {

@@ -455,7 +455,7 @@ class NextActionsService
                 // `/m` carries the sharing panel at its own path; the web
                 // destination resolves to /settings/family.
                 'payload' => '/spouse-sharing',
-                'destination' => GateRoutes::destination(GateRoutes::FAMILY_DETAILS),
+                'destination' => GateRoutes::destination(GateRoutes::SPOUSE_SHARING),
             ],
         ]];
     }
