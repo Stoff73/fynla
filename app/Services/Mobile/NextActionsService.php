@@ -118,11 +118,18 @@ class NextActionsService
     {
         $midWalk = $this->midWalk($user);
 
-        return array_merge(
+        $items = array_merge(
             $this->recommendationItems($userId),
             $midWalk ? [] : $this->unlockFamilyItems($user),
             $midWalk ? [] : $this->spouseLinkItems($user),
         );
+
+        // One module vocabulary, stamped once, for every client.
+        return array_map(function (array $item): array {
+            $item['module_label'] = self::moduleDisplayLabel((string) ($item['module'] ?? ''));
+
+            return $item;
+        }, $items);
     }
 
     private function rankAll(User $user, int $userId): array
@@ -162,7 +169,27 @@ class NextActionsService
         });
         $top = array_slice($this->applyCampaignAffinity($user, $merged), 0, self::MAX_ITEMS);
 
-        // Group real recommendations by module for the per-area cards.
+        return array_merge([[
+            'key' => 'top',
+            'label' => 'Top actions',
+            'locked' => false,
+            'stat' => count($top).' action'.(count($top) === 1 ? '' : 's'),
+            'actions' => $top,
+        ]], $this->moduleCards($recItems, $unlocks));
+    }
+
+    /**
+     * One card per module, in UNLOCK_MODULES order: the module's own
+     * recommendations when its KYC gate is open, the unlock prompt when it is
+     * closed, and the data-needed prompt when the gate is open but there is
+     * not yet enough to advise on. NEVER an "On track"/empty placeholder.
+     *
+     * @param  array<int,array<string,mixed>>  $recItems
+     * @param  array<int,array<string,mixed>>  $unlocks
+     * @return array<int,array<string,mixed>>
+     */
+    private function moduleCards(array $recItems, array $unlocks): array
+    {
         $byModule = [];
         foreach ($recItems as $item) {
             $byModule[$item['module']][] = $item;
@@ -177,20 +204,14 @@ class NextActionsService
             $unlockByModule[$unlock['module']] = $unlock;
         }
 
-        $areas = [[
-            'key' => 'top',
-            'label' => 'Top actions',
-            'locked' => false,
-            'stat' => count($top).' action'.(count($top) === 1 ? '' : 's'),
-            'actions' => $top,
-        ]];
+        $cards = [];
 
         foreach (self::UNLOCK_MODULES as $module) {
-            $label = ucfirst($this->moduleLabel($module));
+            $label = self::moduleDisplayLabel($module);
 
             if (isset($unlockByModule[$module])) {
                 $unlock = $unlockByModule[$module];
-                $areas[] = [
+                $cards[] = [
                     'key' => $module,
                     'label' => $label,
                     'locked' => true,
@@ -205,12 +226,8 @@ class NextActionsService
             $items = array_slice($byModule[$module] ?? [], 0, self::MAX_ITEMS);
 
             if ($items === []) {
-                // Gate open but no recommendations means we don't yet have enough
-                // data to advise on this module. Show the KYC prompt for what's
-                // needed — NEVER an "On track"/empty placeholder. A module says
-                // either real recommendations or the data still needed to make them.
                 $needed = $this->dataNeededItem($module);
-                $areas[] = [
+                $cards[] = [
                     'key' => $module,
                     'label' => $label,
                     'locked' => true,
@@ -221,7 +238,7 @@ class NextActionsService
                 continue;
             }
 
-            $areas[] = [
+            $cards[] = [
                 'key' => $module,
                 'label' => $label,
                 'locked' => false,
@@ -230,7 +247,7 @@ class NextActionsService
             ];
         }
 
-        return $areas;
+        return $cards;
     }
 
     /**
@@ -568,6 +585,11 @@ class NextActionsService
         };
     }
 
+    /**
+     * The in-sentence form, for copy that reads "Unlock estate planning
+     * advice". For anything that NAMES the module as a label, use
+     * moduleDisplayLabel() — the one vocabulary the clients render.
+     */
     private function moduleLabel(string $module): string
     {
         return match ($module) {
@@ -578,6 +600,30 @@ class NextActionsService
             'estate' => 'estate planning',
             'goals' => 'goals',
             default => $module,
+        };
+    }
+
+    /**
+     * The canonical module label, matching the nav vocabulary
+     * (subNavConfig/SideMenu/moduleConfigs). It used to live in three
+     * places — here, ActionsDashboard.vue and the `/m` Actions.vue — and had
+     * already drifted ("Estate Planning" vs "Estate planning"). The server
+     * now sends it on every item as `module_label` and both clients render
+     * what they are given (CSJ 2026-09-17).
+     */
+    public static function moduleDisplayLabel(string $module): string
+    {
+        return match ($module) {
+            'protection' => 'Protection',
+            'savings' => 'Savings',
+            'investment' => 'Investment',
+            'retirement' => 'Retirement',
+            'estate' => 'Estate Planning',
+            'goals' => 'Goals',
+            'tax' => 'Tax Strategy',
+            'household' => 'Household',
+            'general' => 'General',
+            default => ucfirst($module),
         };
     }
 }

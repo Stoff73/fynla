@@ -286,7 +286,12 @@ class RecommendationsController extends Controller
                 'success' => true,
                 'data' => [
                     'open' => app(NextActionsService::class)->buildAll($userId),
-                    'completed' => $completed,
+                    // The same module vocabulary the open items carry, so no
+                    // client keeps a label map of its own.
+                    'completed' => $completed->map(fn (RecommendationTracking $row): array => array_merge(
+                        $row->toArray(),
+                        ['module_label' => NextActionsService::moduleDisplayLabel((string) $row->module)],
+                    )),
                 ],
             ]);
         } catch (\Exception $e) {

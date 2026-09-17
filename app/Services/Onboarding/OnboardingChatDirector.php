@@ -6258,19 +6258,19 @@ PROMPT;
 
         $parts = [];
         if ((float) ($row->spouse_annual_income ?? 0) > 0) {
-            $parts[] = 'earns '.$this->pounds((float) $row->spouse_annual_income).' a year';
+            $parts[] = 'earns '.$this->wholePounds((float) $row->spouse_annual_income).' a year';
         }
         if ((float) ($row->spouse_isa_balance ?? 0) > 0) {
-            $parts[] = 'has '.$this->pounds((float) $row->spouse_isa_balance).' in ISAs'.($row->spouse_isa_provider ? ' with '.$row->spouse_isa_provider : '');
+            $parts[] = 'has '.$this->wholePounds((float) $row->spouse_isa_balance).' in ISAs'.($row->spouse_isa_provider ? ' with '.$row->spouse_isa_provider : '');
         }
         if ((float) ($row->spouse_pension_input_annual ?? 0) > 0) {
-            $parts[] = 'pays '.$this->pounds((float) $row->spouse_pension_input_annual).' a year into their pension'.($row->spouse_pension_provider ? ' with '.$row->spouse_pension_provider : '');
+            $parts[] = 'pays '.$this->wholePounds((float) $row->spouse_pension_input_annual).' a year into their pension'.($row->spouse_pension_provider ? ' with '.$row->spouse_pension_provider : '');
         }
         if ((float) ($row->spouse_existing_pension_balance ?? 0) > 0) {
-            $parts[] = 'has a pension pot of '.$this->pounds((float) $row->spouse_existing_pension_balance);
+            $parts[] = 'has a pension pot of '.$this->wholePounds((float) $row->spouse_existing_pension_balance);
         }
         if ((float) ($row->spouse_annual_dividends ?? 0) > 0) {
-            $parts[] = 'receives '.$this->pounds((float) $row->spouse_annual_dividends).' a year in dividends';
+            $parts[] = 'receives '.$this->wholePounds((float) $row->spouse_annual_dividends).' a year in dividends';
         }
 
         return $parts === []
@@ -6294,7 +6294,7 @@ PROMPT;
             'spouse_existing_pension_balance' => 'in pensions',
         ] as $column => $label) {
             if ($row !== null && (float) ($row->{$column} ?? 0) > 0) {
-                $parts[] = $this->pounds((float) $row->{$column}).' '.$label;
+                $parts[] = $this->wholePounds((float) $row->{$column}).' '.$label;
             }
         }
 
@@ -6303,7 +6303,13 @@ PROMPT;
             : 'Got it — your spouse has '.$this->joinClauses($parts).' in their own name.';
     }
 
-    private function pounds(float $amount): string
+    /**
+     * Whole pounds, for the conversational recaps — deliberately NOT
+     * CaptureForms::pounds(), which keeps pence for figures a user typed
+     * and is reading back on a form. Same name once, which read as a
+     * duplicate; they are two formatters (CSJ 2026-09-17).
+     */
+    private function wholePounds(float $amount): string
     {
         return '£'.number_format($amount, 0);
     }

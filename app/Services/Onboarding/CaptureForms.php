@@ -196,7 +196,7 @@ final class CaptureForms
         // A single-write schema (the spouse forms) folds every section into
         // ONE tool input, keyed by the schema's own tool.
         if (isset($schema['tool'])) {
-            $input = self::spouseInputs($schema, (array) ($form['answers'] ?? []));
+            $input = self::singleWriteInputs($schema, (array) ($form['answers'] ?? []));
             if ($input === [] && ! empty($schema['allow_empty'])) {
                 // Nothing chosen is itself the answer ("nothing in their own
                 // name"): every holding is recorded as zero, not left unknown.
@@ -252,11 +252,11 @@ final class CaptureForms
 
         if (isset($schema['tool'])) {
             return match ($schema['name']) {
-                self::PERSONAL, self::DOB => self::personalSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
-                self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
-                self::DEPENDANTS => self::dependantSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
-                self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureSentence($schema, self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
-                self::WORK => self::workSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::PERSONAL, self::DOB => self::personalSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::DEPENDANTS => self::dependantSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureSentence($schema, self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::WORK => self::workSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
             };
         }
@@ -533,15 +533,18 @@ final class CaptureForms
     }
 
     /**
-     * The spouse forms write ONE household row: every filled section maps
-     * its answers onto the tool's own field names (each form field is named
-     * after the tool field it feeds). Blank optional answers are omitted.
+     * The single-write forms — personal, spouse details, date of birth,
+     * dependants, work and both expenditure variants — write ONE row: every
+     * filled section maps its answers onto the tool's own field names (each
+     * form field is named after the tool field it feeds). Blank optional
+     * answers are omitted. Named spouseInputs() until it outgrew the spouse
+     * forms it was written for (CSJ 2026-09-17).
      *
      * @param  array<string, mixed>  $schema
      * @param  array<string, array<string, mixed>>  $answers
      * @return array<string, mixed>
      */
-    private static function spouseInputs(array $schema, array $answers): array
+    private static function singleWriteInputs(array $schema, array $answers): array
     {
         $input = [];
         $sections = array_merge([self::LEAD => $schema['lead_fields'] ?? []], array_column($schema['kinds'], 'fields', 'key'));
@@ -573,7 +576,7 @@ final class CaptureForms
      */
     private static function spouseSentence(array $schema, array $answers): string
     {
-        $input = self::spouseInputs($schema, $answers);
+        $input = self::singleWriteInputs($schema, $answers);
         $parts = [];
         if (isset($input['spouse_annual_income'])) {
             $parts[] = 'my spouse earns '.self::pounds($input['spouse_annual_income']).' a year';
@@ -609,6 +612,11 @@ final class CaptureForms
         return rtrim(rtrim(number_format($value, 2), '0'), '.').'%';
     }
 
+    /**
+     * Pence kept, trailing zeros trimmed — these figures are read back to
+     * the user on the form they typed them into. The conversational recaps
+     * round instead (OnboardingChatDirector::wholePounds()).
+     */
     private static function pounds(float $amount): string
     {
         return '£'.rtrim(rtrim(number_format($amount, 2), '0'), '.');

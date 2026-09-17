@@ -25,7 +25,7 @@
             <span class="ma-row__num">{{ index + 1 }}</span>
             <span class="ma-row__text">
               <span class="ma-row__title">{{ item.title }}</span>
-              <span class="ma-row__meta">{{ moduleLabel(item.module) }}<template v-if="item.meta"> · {{ item.meta }}</template></span>
+              <span class="ma-row__meta">{{ moduleLabel(item) }}<template v-if="item.meta"> · {{ item.meta }}</template></span>
             </span>
           </button>
           <button
@@ -48,7 +48,7 @@
         <li v-for="row in completed" :key="'done-' + row.id" class="ma-row ma-row--done">
           <span class="ma-row__text">
             <span class="ma-row__title">{{ row.recommendation_text }}</span>
-            <span class="ma-row__meta">{{ moduleLabel(row.module) }}</span>
+            <span class="ma-row__meta">{{ moduleLabel(row) }}</span>
           </span>
           <span class="ma-row__date">{{ doneDate(row) }}</span>
         </li>
@@ -63,17 +63,6 @@ import { apiGet, apiPost } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import { resolveMobileDestination, recordUnknownMobileDestination } from '../navigation/semanticDestinations.js';
 import MobileChrome from '../components/MobileChrome.vue';
-
-const MODULE_LABELS = {
-  protection: 'Protection',
-  savings: 'Savings',
-  investment: 'Investment',
-  retirement: 'Retirement',
-  estate: 'Estate planning',
-  goals: 'Goals',
-  tax: 'Tax strategy',
-  household: 'Household',
-};
 
 /**
  * Rule 19 parity for the desktop /actions page: the FULL ranked open list
@@ -105,8 +94,11 @@ export default {
       this.$router.push({ name: 'dashboard' });
     },
 
-    moduleLabel(module) {
-      return MODULE_LABELS[module] || 'General';
+    // The server sends the label (NextActionsService::moduleDisplayLabel) so
+    // the vocabulary lives in one place; the fallback only covers a row that
+    // predates it.
+    moduleLabel(row) {
+      return row.module_label || 'General';
     },
 
     doneDate(row) {

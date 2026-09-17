@@ -111,3 +111,35 @@ it('carries the action into the /m Top actions card as well as the unified list'
     expect(collect($top['actions'])->firstWhere('id', 'household:spouse_link'))->not->toBeNull()
         ->and(collect(app(NextActionsService::class)->buildAll($user->id))->firstWhere('id', 'household:spouse_link'))->not->toBeNull();
 });
+
+/**
+ * The module vocabulary used to live in three places — this service,
+ * ActionsDashboard.vue and the `/m` Actions.vue — and had already drifted
+ * ("Estate Planning" vs "Estate planning"). The server now sends it and the
+ * clients render what they are given (CSJ 2026-09-17).
+ */
+it('stamps the one module label on every open item', function (): void {
+    $user = coupledUser();
+    FamilyMember::factory()->create([
+        'user_id' => $user->id,
+        'relationship' => 'spouse',
+        'first_name' => 'Robin',
+    ]);
+
+    $items = actionsFor($user);
+
+    expect($items)->not->toBeEmpty();
+    foreach ($items as $item) {
+        expect($item)->toHaveKey('module_label');
+        expect($item['module_label'])->toBeString()->not->toBe('');
+    }
+
+    expect(spouseLinkItem($user)['module_label'])->toBe('Household');
+});
+
+it('names the modules with the nav vocabulary, not a per-client one', function (): void {
+    expect(NextActionsService::moduleDisplayLabel('estate'))->toBe('Estate Planning')
+        ->and(NextActionsService::moduleDisplayLabel('tax'))->toBe('Tax Strategy')
+        ->and(NextActionsService::moduleDisplayLabel('retirement'))->toBe('Retirement')
+        ->and(NextActionsService::moduleDisplayLabel('household'))->toBe('Household');
+});
