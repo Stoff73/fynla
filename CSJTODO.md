@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-16 session 2 — every Save Tax capture step is a structured form in the Fyn chat (property, ISA, bank/savings, investment, pension, both spouse variants), with cap-aware "another?" loops, no-lead-in re-open, first-field focus, and no details-page visit after income/spouse/expenditure. Seven releases, main `b64ec17cc`. Next: the same form shapes for the journey onboarding, spouse details, dependants, detailed expenditure. Handover: `handover/September/16/handover-2026-09-16-session-2.md`*
+*Last updated: 2026-09-17 session 1 — every capture step on every entry point (journey, Save Tax, pension check) is a structured form in the Fyn chat, plus the spouse holding transfer. Released to main `94ad79c33` and verified live. Three further pieces sit on dev unreleased: the unlinked-spouse action, its routing fixes, and the `/m` all-actions list. **Next: release dev → main.** Handover: `handover/September/17/handover-2026-09-17-session-1.md`*
 
 ## The board position
 
@@ -20,11 +20,13 @@ Every non-iOS item is closed. The rule is unchanged — **a citation is not a ve
 — and **verify the instrument before trusting the measurement**: CSJ's 2026-09-10 order to
 re-check the nine items before fixing found one already resolved and one overstated.
 
-## Capture forms in the Fyn chat (CSJ, 2026-09-15/16) — Save Tax done, journey next
+## Capture forms in the Fyn chat (CSJ, 2026-09-15/16/17) — done, on production
 
-- [x] Property, ISA (Cash / Stocks and Shares), bank and savings (joint 50/50, no share), investment (General Investment Account / Other + optional type), pension (Workplace / Personal or SIPP) and spouse (working: income above, "choose more than one" boxes, one save, recap; non-working: holdings in their own name, Save with nothing chosen) are structured forms on web and `/m`. Each multi-record step asks "another?" after Save; at the plan cap the question becomes the limit statement with one Continue bubble; re-open after "Yes" has no lead-in; opening a kind scrolls and focuses its first field. Income, spouse and expenditure ends do not visit a page. Live on fynla.org (releases #872–#885, main `b64ec17cc`). Recipe: handover 2026-09-16 session 2, "How to add a capture form".
-- [ ] **NEXT — the same form shapes for the journey onboarding**: `base_spouse` (spouse details), `base_dependants`/`base_dependants_detail`, `base_work` (income), `base_expenditure` (and detailed expenditure), `campaign_charitable_giving`, pension-check states. Survey the corpus, propose a table (tool, fields, one-write vs per-kind, loop or not) to CSJ, then one PR per step with the csjones gate on web and `/m`.
-- [ ] Adjacent, CSJ to decide: `/savings` verify page lists accounts only in preview mode (real users see the Open Banking promo); the level-up celebration overlay covers the Fyn panel after a save until tapped; on Free two ISAs use up the investment cap (a General Investment Account is then refused); the spouse extractor (typed path) attributed the ISA's provider to the pension; native (no forms header) still gets the typed questions; after a partial refusal the saved kind stays editable; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hung after opening Chat with Fyn in a phone-width desktop window (csjones, 2026-09-16 session 1).
+- [x] Every capture step is a structured form on web and `/m`, on all three entry points. Save Tax: property, ISA, bank and savings, investment, pension, date of birth, both spouse variants, expenditure. Journey: personal details, spouse details (keeping its skip link), dependants with its own loop, work and income, protection cover, and the "Anything else" focuses opening on the same forms. Pension check: the same walk plus a personal-pension-only form for the not-employed, and spouses now use the Save Tax spouse forms. Multi-record steps ask "another?"; at the plan cap the question becomes the limit statement with one Continue bubble. Released to main `94ad79c33` (PRs #886–#895) and verified live on fynla.org by a fresh Save Tax registration. Recipe: handover 2026-09-16 session 2, "How to add a capture form".
+- [x] Expenditure (CSJ 2026-09-16): one box for everyone; the web page's five category groups on Premium, asking "whole household or just you?" first when a spouse is on file.
+- [x] Spouse holding transfer (CSJ 2026-09-16): when the spouse accepts the link, the facts given during onboarding are copied onto their account once — date of birth, employment status, income, savings, a Stocks and Shares ISA with its provider, investments, and the pension pot with its contribution. Migration `2026_09_16_220000` ran on production.
+- [x] The unlinked-spouse action (CSJ 2026-09-16) and the `/m` all-actions list (CSJ 2026-09-17). **On dev, not released** — see Deploy state.
+- [ ] Adjacent, CSJ to decide: `/savings` verify page lists accounts only in preview mode (real users see the Open Banking promo); the level-up celebration overlay covers the Fyn panel after a save until tapped; on Free two ISAs use up the investment cap (a General Investment Account is then refused); native (no forms header) still gets the typed questions; after a partial refusal the saved kind stays editable; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hung after opening Chat with Fyn in a phone-width desktop window (csjones, 2026-09-16 session 1). New today: a retired user is still asked "when would you like to retire"; Fyn says "I've saved your State Pension" when the user answered that they do not know it.
 
 ## Application mapping programme (CSJ, 2026-09-14) — in progress
 
@@ -166,16 +168,11 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 ## Deploy state
 
-- 2026-09-16 session 2: prod (fynla.org) = main `b64ec17cc` == dev `307210164` (releases #872, #874, #876, #878, #881, #883, #885; PHP + corpus + both bundles); csjones on dev `307210164`. Backups `~/release-backups/2026-09-16b..f/`.
+- **2026-09-17 session 1: prod (fynla.org) = main `94ad79c33`** (release #895: the capture forms on every entry point + the spouse holding transfer; migration `2026_09_16_220000` ran; both bundles rebuilt). Backups `~/release-backups/2026-09-17a/`. Verified live by a fresh Save Tax registration; test user 735 and `c.jones` (734) purged.
+- **UNRELEASED: dev `034b593ac` is nine commits ahead of main** — PRs #896 (the unlinked-spouse action, the navigate-routing fixes, the canonical `spouse_sharing` destination) and #897 (the `/m` all-actions list). No migration in the range; both bundles need rebuilding. csjones is on this dev tip and gated.
+- 2026-09-16 session 2: main `b64ec17cc` (releases #872, #874, #876, #878, #881, #883, #885). Backups `~/release-backups/2026-09-16b..f/`.
 
-- **fynla.org = main `357e44e4b`** (tree identical to dev `e4afd0d1c`), two releases on
-  2026-09-15 (#856, #858) after six PHP-only fixes (#840–#853). Migrations `2026_09_15_140000`
-  (dividend column) and `2026_09_15_170000` (Free property cap → 2) ran on prod with full dumps
-  first. No bundle change today. Backups `~/release-backups/2026-09-15/`…`h/`. Notes: memory
-  `project_release_2026_09_15`.
-- **csjones = dev `e4afd0d1c`**, bundles unchanged. Eleven mapping PRs (#829–#839) still open and
-  unmerged (rebased stack, parked on CSJ). Nothing from `feat/savetax-property-capture-form` is
-  deployed anywhere.
+- Eleven mapping PRs (#829–#839) still open and unmerged (rebased stack, parked on CSJ).
 - **TestFlight "Fynla" 1.0 (10)** on the `org.fynla.app.dev` record, Production
   configuration reading fynla.org, VALID 2026-09-10 08:49 BST; native tree unchanged since.
   The `org.fynla.app` record is "Fynla (legacy)" — never upload there unasked.
