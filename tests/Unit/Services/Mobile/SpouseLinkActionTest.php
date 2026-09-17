@@ -98,3 +98,16 @@ it('stays quiet mid-walk, where Fyn is about to ask about the spouse', function 
 
     expect(spouseLinkItem($user))->toBeNull();
 });
+
+// The /m dashboard reads focusAreas(), not build() — both must carry the action
+// (they merged separately before; the item was missing from /m on csjones).
+it('carries the action into the /m Top actions card as well as the unified list', function (): void {
+    $user = coupledUser();
+    FamilyMember::create(['user_id' => $user->id, 'relationship' => 'spouse', 'first_name' => 'Robin', 'last_name' => 'Walk', 'date_of_birth' => '1985-08-22']);
+
+    $areas = app(NextActionsService::class)->focusAreas($user->id);
+    $top = collect($areas)->firstWhere('key', 'top');
+
+    expect(collect($top['actions'])->firstWhere('id', 'household:spouse_link'))->not->toBeNull()
+        ->and(collect(app(NextActionsService::class)->buildAll($user->id))->firstWhere('id', 'household:spouse_link'))->not->toBeNull();
+});

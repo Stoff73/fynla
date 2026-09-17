@@ -106,13 +106,28 @@ class NextActionsService
         return array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
     }
 
+    /**
+     * Every open action for the user, unranked — the ONE merge both the
+     * unified list (build/buildAll) and the `/m` focus carousel read. They
+     * each merged their own set before, so an item added to one was missing
+     * from the other (the spouse-link action, live on csjones 2026-09-16).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function openItems(User $user, int $userId): array
+    {
+        $midWalk = $this->midWalk($user);
+
+        return array_merge(
+            $this->recommendationItems($userId),
+            $midWalk ? [] : $this->unlockFamilyItems($user),
+            $midWalk ? [] : $this->spouseLinkItems($user),
+        );
+    }
+
     private function rankAll(User $user, int $userId): array
     {
-        $items = array_merge(
-            $this->recommendationItems($userId),
-            $this->midWalk($user) ? [] : $this->unlockFamilyItems($user),
-            $this->midWalk($user) ? [] : $this->spouseLinkItems($user),
-        );
+        $items = $this->openItems($user, $userId);
 
         usort($items, static function (array $a, array $b): int {
             return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
@@ -141,7 +156,7 @@ class NextActionsService
         // including the WP-6 campaign affinity (tax first for SaveTax users).
         // Affinity runs BEFORE the 4-slot cut so a lower-value tax item can
         // still be lifted into the card.
-        $merged = array_merge($recItems, $this->midWalk($user) ? [] : $unlocks);
+        $merged = $this->openItems($user, $userId);
         usort($merged, static function (array $a, array $b): int {
             return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
         });
