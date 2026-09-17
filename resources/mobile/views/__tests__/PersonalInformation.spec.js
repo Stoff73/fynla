@@ -23,7 +23,10 @@ const canonicalProfile = {
       postcode: 'BS1 1AA',
     },
   },
-  household: { name: 'Morgan household' },
+  // The households column is `household_name` — the fixture said `name`, which
+  // no API response has ever carried, so the page read "Single-person household"
+  // for a married user in production while this test stayed green.
+  household: { household_name: 'Morgan household' },
   spouse: { name: 'Sam Morgan' },
   domicile_info: {
     domicile_status: 'uk_domiciled',
@@ -57,6 +60,30 @@ describe('PersonalInformation.vue', () => {
     store.token = 'live-token';
     store.user = { id: 7, onboarding_completed: true };
     apiGet.mockResolvedValue({ ok: true, status: 200, data: { data: canonicalProfile } });
+  });
+
+  // Onboarding records a spouse as a family member and only sets `spouse` once
+  // the two accounts are linked, so a married user who has just finished the
+  // journey has neither. They were told they lived alone (CSJ 2026-09-17).
+  it('names the household for a married user whose spouse has no linked account', async () => {
+    apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        data: {
+          ...canonicalProfile,
+          household: null,
+          spouse: null,
+          family_members: [{ relationship: 'spouse', name: 'Sam Morgan', is_dependent: false }],
+        },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Household with Sam Morgan');
+    expect(wrapper.text()).not.toContain('Single-person household');
   });
 
   it('renders the canonical profile summary with an identifier-only contextual Edit action', async () => {

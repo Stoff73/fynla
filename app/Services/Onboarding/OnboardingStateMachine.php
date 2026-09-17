@@ -318,6 +318,13 @@ final class OnboardingStateMachine
             'protection' => ['route' => '/protection', 'entry' => self::STATE_JOURNEY_PROTECTION],
             'estate' => ['route' => '/estate', 'entry' => self::STATE_ASSET_CAPTURE],
             'goals' => ['route' => '/goals', 'entry' => self::STATE_ASSET_CAPTURE],
+            // Family and personal details. The journey path used to pause here
+            // in-chat instead (STATE_PROFILE_REVIEW_FAMILY), which only ever
+            // worked on web: AppLayout un-blurs the dashboard and routes to
+            // /profile behind a shrunken chat. On /m the chat is the whole
+            // screen, so Fyn asked "does this look right?" about a page the
+            // user had never been shown (CSJ 2026-09-17). One mechanism now.
+            'family' => ['route' => '/personal-information', 'entry' => self::STATE_BASE_DEPENDANTS],
         ];
 
         if ($selection !== 'pensioncheck') {
@@ -1082,18 +1089,38 @@ final class OnboardingStateMachine
 
     public static function nextFromDependantsMore(string $answer, User $user): string
     {
-        return self::saidYes($answer) ? self::STATE_BASE_DEPENDANTS_DETAIL : self::STATE_PROFILE_REVIEW_FAMILY;
+        return self::saidYes($answer) ? self::STATE_BASE_DEPENDANTS_DETAIL : self::afterFamilyDetails($user);
     }
 
-    public static function nextFromDependants(string $answer): string
+    public static function nextFromDependants(string $answer, User $user): string
     {
         $normalised = mb_strtolower(trim($answer));
         if ($normalised === 'yes' || str_starts_with($normalised, 'yes')) {
             return self::STATE_BASE_DEPENDANTS_DETAIL;
         }
 
-        // No dependants — skip _detail and go straight to profile review.
-        return self::STATE_PROFILE_REVIEW_FAMILY;
+        // No dependants — skip _detail and go straight to the family review.
+        return self::afterFamilyDetails($user);
+    }
+
+    /**
+     * Family details are captured; now show them. The journey path verifies
+     * through the same announce → navigate → confirm loop as every other
+     * section, so the user actually sees their personal information page before
+     * being asked whether it looks right. The in-chat pause it replaces was
+     * web-only — it relied on AppLayout un-blurring the dashboard, which a
+     * full-screen /m chat cannot do (CSJ 2026-09-17).
+     *
+     * The campaign walk keeps the pause: it has its own recap and section
+     * ordering, and 'family' is not one of its sections.
+     */
+    private static function afterFamilyDetails(User $user): string
+    {
+        if (($user->onboarding_fyn_path ?? '') === 'campaign') {
+            return self::STATE_PROFILE_REVIEW_FAMILY;
+        }
+
+        return self::enterCampaignVerify($user, 'family', 'journey_base');
     }
 
     /**
@@ -1257,6 +1284,9 @@ final class OnboardingStateMachine
         }
 
         return match ($section) {
+            // Confirmed family details continue into work and income, exactly
+            // where the in-chat profile-review pause used to lead.
+            'family' => self::STATE_BASE_EMPLOYMENT,
             'income' => self::STATE_BASE_EXPENDITURE,
             'expenditure' => self::journeyFocusEntry($user),
             default => self::STATE_ADD_MORE,

@@ -1912,6 +1912,11 @@
    box. Excluded there; styled plainly here. */
 .md-fyn__form-kind-title { margin: 0 0 4px; font-size: 0.8125rem; font-weight: 600; color: var(--horizon-500); }
 .md-fyn__form-money { display: flex; align-items: center; gap: 8px; }
+/* The £ sign and the input share a flex row. A flex item's min-width defaults to
+   its intrinsic width, and Safari's for a number input is wider than the space
+   left beside the £ — so the field overflowed the card to the right on a phone
+   while Chromium, whose intrinsic width is narrower, shrank it and showed nothing. */
+.md-fyn__form-money .m-field { min-width: 0; }
 .md-fyn__form-choices { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.875rem; }
 .md-fyn__form-choices label { display: flex; align-items: center; gap: 4px; }
 /* Also excluded from the bubble rules above — full margin reset (not just

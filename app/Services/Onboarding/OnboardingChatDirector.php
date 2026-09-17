@@ -6235,13 +6235,29 @@ PROMPT;
         };
     }
 
-    /** Repeats back the personal form (journey path, CSJ 2026-09-16): date of birth and marital status. */
+    /**
+     * Repeats back the personal form (journey path, CSJ 2026-09-16): date of
+     * birth and marital status.
+     *
+     * Built as clauses rather than two glued fragments: the fragments carried
+     * their own leading " and ", so a capture that wrote the marital status but
+     * not the date of birth said "Thanks — I've noted you're and single.", and
+     * one that wrote neither said "Thanks — I've noted you're." Both reachable,
+     * because the capture accepts partial payloads.
+     */
     private function personalAck(User $user): string
     {
-        $dob = $user->date_of_birth ? ' born on '.$user->date_of_birth->format('j F Y') : '';
-        $marital = $user->marital_status ? ' and '.CaptureForms::maritalWords((string) $user->marital_status) : '';
+        $parts = [];
+        if ($user->date_of_birth) {
+            $parts[] = 'born on '.$user->date_of_birth->format('j F Y');
+        }
+        if ($user->marital_status) {
+            $parts[] = CaptureForms::maritalWords((string) $user->marital_status);
+        }
 
-        return "Thanks — I've noted you're".$dob.$marital.'.';
+        return $parts === []
+            ? "Thanks — I've noted that."
+            : "Thanks — I've noted you're ".$this->joinClauses($parts).'.';
     }
 
     /**
