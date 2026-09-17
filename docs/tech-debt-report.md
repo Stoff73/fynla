@@ -1,8 +1,10 @@
-# Tech Debt Report — Session 2026-09-16 (session 2)
+# Tech Debt Report — Session 2026-09-17
 
-**Files analysed:** 12 (dev `3db416eb3..307210164`: CaptureForms, OnboardingChatDirector, OnboardingStateMachine, PensionStore, SendAiChatMessageRequest, captureFormState.js, both FynCaptureForm.vue, onboardingChat.js, Dashboard.vue, MobileChrome.vue, fyn-onboarding.v1.md)
-**Issues found:** 8
-**Severity breakdown:** 0 critical, 4 warnings, 4 suggestions
+**Files analysed:** 41 changed since `8109fb875` (12 PHP services, 1 migration, 2 corpus, 6 frontend, 20 tests)
+**Issues found:** 6
+**Severity breakdown:** 0 critical, 4 warnings, 2 suggestions
+
+Clean on: `declare(strict_types=1)` everywhere, no debug leftovers (`console.log`/`dd`/`dump`/`Log::debug`), no hex colours or banned colour classes in the new frontend, no scores, no icons added to banned surfaces, no hardcoded tax values, every new routed view wrapped in its chrome.
 
 ## Critical Issues
 
@@ -10,17 +12,31 @@ None.
 
 ## Warnings
 
-1. **`app/Services/Onboarding/OnboardingChatDirector.php:1105` — Convention (hardcoded plan name).** The cap statement says "the Free plan's limit" as a literal. The gate returns a limit for any capped tier; the tier name should come from the user's tier (TierGate / SubscriptionStatusService), not the copy. Fix: read the tier label alongside `hardLimit()` in `capReachedAtLoop()` and interpolate it.
-2. **`app/Services/Onboarding/OnboardingChatDirector.php:6276-6290` vs `app/Services/Onboarding/CaptureForms.php:548-556` — Duplicate code.** `pounds()` exists in both (director formats with 0 decimals, CaptureForms trims trailing zeros). Fix: one money-words helper (a small `App\Support\Words` or reuse `CaptureForms::pounds()` made public) used by the acks and the transcript sentences.
-3. **`app/Services/Onboarding/CaptureForms.php` (796 lines) — Complexity.** Seven schemas plus per-schema input/sentence builders in one class. Fix candidate: one class per form (`CaptureForms\Property`, `…\Pension`, `…\SpouseHousehold`) behind the same static facade, or at least move the schema arrays out of the facade.
-4. **`app/Services/Onboarding/OnboardingChatDirector.php:3778` — Complexity.** `handleFormTurn()` is 142 lines with four branches (empty guard, single-write capture, per-kind create, cap-only refusal). Fix candidate: extract `writeFormKind()` and `refuseForm()`.
+**1. `app/Services/Onboarding/CaptureForms.php` — 1,284 lines (Category 4)**
+Was 796 at the start of the session and already flagged then; eight more form schemas landed (personal, spouse_details, dependants, work, dob, pension_personal, expenditure ×3, protection). Every schema is a standalone static method, so the file is a list rather than a tangle, but it is now the largest file in the onboarding namespace.
+*Fix:* split per family — `CaptureForms\AccountForms`, `ProfileForms`, `HouseholdForms` — keeping `CaptureForms` as the registry (`names()`, `schema()`, `rules()`, `toolInputs()`, `summarise()`).
+
+**2. `pounds()` duplicated (Category 1)**
+`CaptureForms.php:612` and `OnboardingChatDirector.php:6306` hold the same money formatter. Carried over from yesterday's list; now used by more call sites on both sides.
+*Fix:* one helper (a small `Money::short()` or a shared trait), used by both.
+
+**3. Module label vocabulary in three places (Category 1, Rule 20 adjacent)**
+`NextActionsService::moduleLabel()` (PHP, lowercase), `resources/js/views/Actions/ActionsDashboard.vue:125` `MODULE_LABELS`, and the new `resources/mobile/views/Actions.vue:68` `MODULE_LABELS`. I added the third this session. The three can drift: "estate planning" vs "Estate Planning" vs "Estate planning" already differ in case, and a new module needs editing in three files.
+*Fix:* the server sends a `module_label` on each action item; both clients render what they are given.
+
+**4. `NextActionsService::focusAreas()` — 86 lines (Category 4)**
+It builds the top card, groups by module, and constructs the per-module cards in one method. The merge it shares with `rankAll()` is now extracted (`openItems()`), so the remaining length is the card assembly.
+*Fix:* extract `moduleCards(array $recItems, array $unlocks, User $user)`.
 
 ## Suggestions
 
-5. **`resources/mobile/utils/captureFormState.js:42-47` — Redundancy.** `sections()` and `blocks()` overlap (blocks = sections with the kinds row inserted). Fix: derive `sections` from `blocks` by filtering out the kinds row, or drop `sections` and filter in `isValid()`/`submit()`.
-6. **`resources/js/components/Fyn/FynCaptureForm.vue` / `resources/mobile/components/FynCaptureForm.vue` — Duplicate templates (accepted).** The field-block markup is duplicated across the two renderers by architecture (isolated bundles, Ruling 1). Not new this session; the block restructure kept them in lockstep. Any further field type must be added to both.
-7. **`app/Services/Onboarding/OnboardingStateMachine.php:2265` — Indirection.** `nextFromCampaignOccupationalScheme()` is now reached only via `nextFromPensionMore()`; inline it or rename to say what it does (enter the pot-value loop).
-8. **`app/Services/Onboarding/CaptureForms.php` spouse schemas — Naming.** Form field keys are the tool's field names (`spouse_isa_balance`), unlike the other schemas which use plain keys mapped in `*Inputs()`. Deliberate (one write, no mapping) but inconsistent; note it in the class docblock if kept.
+**5. `spouseInputs()` name no longer describes it (Category 6)**
+`CaptureForms.php` uses it for seven single-write schemas — personal, spouse details, dob, dependants, work and both expenditure variants — not just the spouse forms it was written for.
+*Fix:* rename to `singleWriteInputs()`; the spouse-specific sentence builders stay as they are.
+
+**6. `MODULE_ROUTES` in `ActionsDashboard.vue:115` is now a fallback (Category 2)**
+Since `goToAction()` prefers the server destination, the map only fires for rows that carry no destination. Worth confirming any such rows still exist before keeping it.
+*Fix:* check whether every action now carries a destination; if so, delete the map.
 
 ---
 *Generated by tech-debt-session skill*

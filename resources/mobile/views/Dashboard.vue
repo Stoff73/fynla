@@ -152,7 +152,7 @@
                   </li>
                 </ul>
                 <a v-if="activeCard.key !== 'top' && !activeCard.locked" href="#" class="md-recs__view-all" @click.prevent="goto('/' + (activeCard.key === 'estate' ? 'estate' : activeCard.key))">View all {{ activeCard.label.toLowerCase() }}</a>
-                <a href="#" class="md-recs__see-all" @click.prevent="goto('/achievements')">See all actions</a>
+                <a href="#" class="md-recs__see-all" @click.prevent="goto('/actions')">See all actions</a>
               </div>
             </section>
           </div>
