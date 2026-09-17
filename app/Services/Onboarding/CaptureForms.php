@@ -18,6 +18,17 @@ use Carbon\Carbon;
  * Answer keys are the create tool's own field names so nothing is renamed
  * between the form and the store. `mortgage_outstanding_balance: null`
  * means "No mortgage".
+ *
+ * DO NOT SPLIT THIS FILE. It is long — 1,290-odd lines, 47 methods — and a
+ * tech-debt pass will keep proposing to break it into CaptureForms\AccountForms,
+ * ProfileForms, HouseholdForms behind a registry. CSJ ruled against that on
+ * 2026-09-17 (ruling 53): every schema here is a standalone static method, so
+ * the file is a LIST, not a tangle, and length alone is not a reason to move
+ * 47 methods. Splitting also forces the shared helpers — pounds() (22 call
+ * sites), singleWriteInputs() (7), percent() (6) — into public API on a base
+ * class or trait, which is a real cost for a readability-only gain.
+ *
+ * Adding a form? Add a method here. That is the design, not the debt.
  */
 final class CaptureForms
 {
