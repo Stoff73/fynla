@@ -155,6 +155,15 @@
     @apply w-full px-3 py-2 border border-light-gray rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500;
   }
 
+  /* An answered Fyn capture form stays on screen, locked. Without an explicit
+     disabled style the browser's own wins — a solid grey the palette never chose,
+     and on WebKit the text is greyed through -webkit-text-fill-color as well, so
+     the user cannot read back what they just entered. Locked means recorded. */
+  .form-input:disabled {
+    @apply bg-horizon-100 text-horizon-500 border-horizon-200 opacity-100;
+    -webkit-text-fill-color: currentColor;
+  }
+
   .form-hint {
     @apply text-xs text-neutral-500 mt-1;
   }

@@ -241,15 +241,25 @@ describe('OnboardingStateMachine::nextFromPersonal (post base_personal branch)',
 
 describe('OnboardingStateMachine::nextFromDependants', function () {
     it('routes yes to dependants_detail', function () {
-        expect(OnboardingStateMachine::nextFromDependants('Yes'))
+        $user = User::factory()->create(['onboarding_fyn_path' => 'journey']);
+        expect(OnboardingStateMachine::nextFromDependants('Yes', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);
     });
 
-    it('routes no to profile_review_family (new Phase 10 path)', function () {
-        expect(OnboardingStateMachine::nextFromDependants('No'))
-            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY);
+    // The journey path verifies family details on the page like every other
+    // section; the in-chat pause it replaced only ever worked on web.
+    it('routes no to the family verify announce on the journey path', function () {
+        $user = User::factory()->create(['onboarding_fyn_path' => 'journey']);
+        expect(OnboardingStateMachine::nextFromDependants('No', $user))
+            ->toBe('campaign_verify_announce');
+        expect($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('family');
     });
 
+    it('keeps the in-chat review for the campaign walk', function () {
+        $user = User::factory()->create(['onboarding_fyn_path' => 'campaign']);
+        expect(OnboardingStateMachine::nextFromDependants('No', $user))
+            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY);
+    });
 });
 
 describe('OnboardingStateMachine::nextFromEmployment', function () {

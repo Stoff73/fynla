@@ -638,6 +638,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Every job this person holds. annual_employment_income and
+     * annual_self_employment_income are the maintained totals of these rows —
+     * write through EmploymentIncomeService so the two stay in step.
+     */
+    public function employments(): HasMany
+    {
+        return $this->hasMany(Employment::class);
+    }
+
+    /**
      * Get the letter to spouse for the user
      */
     public function letterToSpouse(): HasOne

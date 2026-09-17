@@ -1,10 +1,10 @@
-# Tech Debt Report — Session 2026-09-17
+# Tech Debt Report — 2026-09-17 (session 2)
 
-**Files analysed:** 41 changed since `8109fb875` (12 PHP services, 1 migration, 2 corpus, 6 frontend, 20 tests)
-**Issues found:** 6
-**Severity breakdown:** 0 critical, 4 warnings, 2 suggestions
+**Files analysed:** 45 changed today (9 PHP services/controllers, 1 migration, 1 seeder, 10 Swift, 14 frontend, 10 tests)
+**Issues found:** 3
+**Severity breakdown:** 0 critical, 2 warnings, 1 suggestion
 
-Clean on: `declare(strict_types=1)` everywhere, no debug leftovers (`console.log`/`dd`/`dump`/`Log::debug`), no hex colours or banned colour classes in the new frontend, no scores, no icons added to banned surfaces, no hardcoded tax values, every new routed view wrapped in its chrome.
+Clean on: `declare(strict_types=1)` in every changed PHP file; no debug leftovers (`console.log`/`dd`/`dump`/`Log::debug`); no banned colour classes (`amber-*`/`orange-*`/`primary-*`/`secondary-*`/`gray-*`) and no hex in the new CSS — the burst uses `--spring-500`/`--raspberry-500`/`--violet-500` only; no icons, emoji or `::before` glyphs added to the dashboard (a Rule 15 banned surface); no scores; no hardcoded tax values; Pint, ESLint and `verify-project.sh` clean.
 
 ## Critical Issues
 
@@ -12,42 +12,43 @@ None.
 
 ## Warnings
 
-**1. `app/Services/Onboarding/CaptureForms.php` — 1,284 lines (Category 4) — DECLINED, DO NOT RE-RAISE**
+**1. The level-celebration rule exists in three copies (Category 1)**
 
-> CSJ ruled on 2026-09-17 (ruling 53) that this file is **not** to be split. Every schema is a
-> standalone static method, so the file is a list rather than a tangle, and splitting forces the
-> shared helpers (`pounds()` ×22, `singleWriteInputs()` ×7, `percent()` ×6) into public API on a
-> base class or trait — a real cost for a readability-only gain. The ruling is repeated in the
-> class docblock. **A future audit must not flag this file for length.**
+`resources/js/utils/levelCelebration.js`, `resources/mobile/navigation/levelCelebration.js`, `ios-native/Fynla/Features/Gamification/LevelCelebrationSequence.swift`.
 
-Was 796 at the start of the session and already flagged then; eight more form schemas landed (personal, spouse_details, dependants, work, dob, pension_personal, expenditure ×3, protection). Every schema is a standalone static method, so the file is a list rather than a tangle, but it is now the largest file in the onboarding namespace.
-*Fix:* none. See the ruling above.
+**Deliberate and documented, not an oversight**: web and `/m` are separate Vite bundles that cannot import each other, and native is Swift. Verified today that the two JS copies are byte-identical once comments are stripped, and all three are driven by the same 13 test vectors.
 
-**2. `pounds()` duplicated (Category 1) — RESOLVED, and the finding was wrong**
-`CaptureForms.php:612` and `OnboardingChatDirector.php:6306` hold the same money formatter. Carried over from yesterday's list; now used by more call sites on both sides.
-*Outcome:* they are two formatters, not one — `CaptureForms::pounds()` keeps pence for figures a user typed and is reading back on a form; the director's rounds for the conversational recaps. Merging them would have changed money on screen. The director's is now `wholePounds()` and both say why they differ.
+*The risk is drift, not duplication.* Each file's docblock names the other two and says to change them in the same commit. **Do not "fix" this by making one import another — it is not possible across the bundles.** If a fourth surface appears, or the copies drift in review, the answer is a shared build-time source, not a runtime import.
 
-**3. Module label vocabulary in three places (Category 1, Rule 20 adjacent) — RESOLVED**
-`NextActionsService::moduleLabel()` (PHP, lowercase), `resources/js/views/Actions/ActionsDashboard.vue:125` `MODULE_LABELS`, and the new `resources/mobile/views/Actions.vue:68` `MODULE_LABELS`. I added the third this session. The three can drift: "estate planning" vs "Estate Planning" vs "Estate planning" already differ in case, and a new module needs editing in three files.
-*Outcome:* done — the server stamps `module_label` in `openItems()` and on the completed rows the actions endpoint returns; both client maps are deleted. The vocabulary is the nav's.
+*Fix:* none now. Re-check the three stay in step whenever the rule changes.
 
-**4. `NextActionsService::focusAreas()` — 86 lines (Category 4) — RESOLVED (now 25)**
-It builds the top card, groups by module, and constructs the per-module cards in one method. The merge it shares with `rankAll()` is now extracted (`openItems()`), so the remaining length is the card assembly.
-*Outcome:* done — `moduleCards(array $recItems, array $unlocks)`; focusAreas is 25 lines.
+**2. `playBankedLevels()` is ~52 lines duplicated across the two Vue dashboards (Category 1/4)**
+
+`resources/js/views/GamifiedDashboard.vue` and `resources/mobile/views/Dashboard.vue` each carry the animation driver — confetti builder, step timing, ring sweep, ack.
+
+Unlike warning 1 this duplication is *within one language*, so it is more avoidable — but it still spans two bundles that cannot share an import. The pure rule is already extracted; what is duplicated is the glue binding it to component state.
+
+*Fix:* if it needs changing twice more, extract a `mixins/levelClimb.js` per bundle leaving only the state binding inline. Not worth it for a single change.
 
 ## Suggestions
 
-**5. `spouseInputs()` name no longer describes it (Category 6) — RESOLVED**
-`CaptureForms.php` uses it for seven single-write schemas — personal, spouse details, dob, dependants, work and both expenditure variants — not just the spouse forms it was written for.
-*Outcome:* done — renamed `singleWriteInputs()`; the spouse-specific sentence builders are unchanged.
+**3. `resources/mobile/views/Dashboard.vue` is 1,087 lines (Category 4)**
 
-**6. `MODULE_ROUTES` in `ActionsDashboard.vue:115` is now a fallback (Category 2) — CHECKED, KEPT**
-Since `goToAction()` prefers the server destination, the map only fires for rows that carry no destination. Worth confirming any such rows still exist before keeping it.
-*Outcome:* checked — not every action carries a destination. The `fyn_capture` unlock rows (`NextActionsService` 261/506/552) carry a prompt, not a destination, so the map is still the path they take. Documented in place rather than deleted.
+It grew ~90 lines today and now carries the dashboard payload, the Fyn overlay, the onboarding nudges and the level climb.
+
+*Fix:* if it grows again, lift the Fyn overlay into its own component — the most self-contained block. **Not** the same situation as `CaptureForms.php` (see below): that file is a flat catalogue, this is a genuine multi-responsibility view.
+
+---
+
+## Standing items — read before re-flagging
+
+- **`app/Services/Onboarding/CaptureForms.php` — DECLINED, DO NOT RE-RAISE.** CSJ ruled on 2026-09-17 (ruling 53) that this file is **not** to be split: every schema is a standalone static method, so the file is a list rather than a tangle, and splitting forces the shared helpers (`pounds()` ×22, `singleWriteInputs()` ×7, `percent()` ×6) into public API on a base class or trait — a real cost for a readability-only gain. The ruling is repeated in the class docblock. **A future audit must not flag this file for length.**
+- `resources/mobile/views/HolisticPlan.vue:90` — a fourth `MODULE_LABELS` map on a different endpoint; raised when the actions vocabulary was consolidated, not fixed.
+- "Free plan" hardcoded in the cap statement (`OnboardingChatDirector.php:1105`); `handleFormTurn` at 142 lines; `sections()`/`blocks()` overlap in the capture-form mixin.
+
+## Resolved earlier today (PR #899, released)
+
+Module label vocabulary consolidated to the server; `pounds()` shown **not** to be a duplicate and the director's renamed `wholePounds()`; `spouseInputs()` → `singleWriteInputs()`; `focusAreas()` 86 lines → 25 via `moduleCards()`; `MODULE_ROUTES` checked and kept (the `fyn_capture` unlock rows carry a prompt, not a destination).
 
 ---
 *Generated by tech-debt-session skill*
-
----
-
-*Resolved 2026-09-17 in PR #899, except item 1 which CSJ declined (ruling 53).*

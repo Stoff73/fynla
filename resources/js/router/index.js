@@ -677,6 +677,9 @@ const routes = [
   // page" while the dashboard stays put (live 2026-07-23).
   { path: '/income', redirect: { path: '/valuable-info', query: { section: 'income' } } },
   { path: '/expenditure', redirect: { path: '/valuable-info', query: { section: 'expenditure' } } },
+  // The family verify step navigates here; /m has this path natively, web
+  // reaches the same screen at /settings/personal.
+  { path: '/personal-information', redirect: '/settings/personal' },
   {
     path: '/profile',
     name: 'UserProfile',

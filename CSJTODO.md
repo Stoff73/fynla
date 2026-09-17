@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-17 session 1 — every capture step on every entry point (journey, Save Tax, pension check) is a structured form in the Fyn chat, plus the spouse holding transfer. Released to main `94ad79c33` and verified live. Three further pieces sit on dev unreleased: the unlinked-spouse action, its routing fixes, and the `/m` all-actions list. **Next: release dev → main.** Handover: `handover/September/17/handover-2026-09-17-session-1.md`*
+*Last updated: 2026-09-17 session 2 — three releases today, all on production and verified live. The last redesigns the level-up celebration: the full-screen takeover is gone from web, `/m` and native, and level-ups are banked and spent on the dashboard hero circle. Production = main `0988f6d31`. **Next: CSJ's own iOS check — the native climb has never run on a device.** Handover: `handover/September/17/handover-2026-09-17-session-2.md`*
 
 ## The board position
 
@@ -25,8 +25,8 @@ re-check the nine items before fixing found one already resolved and one oversta
 - [x] Every capture step is a structured form on web and `/m`, on all three entry points. Save Tax: property, ISA, bank and savings, investment, pension, date of birth, both spouse variants, expenditure. Journey: personal details, spouse details (keeping its skip link), dependants with its own loop, work and income, protection cover, and the "Anything else" focuses opening on the same forms. Pension check: the same walk plus a personal-pension-only form for the not-employed, and spouses now use the Save Tax spouse forms. Multi-record steps ask "another?"; at the plan cap the question becomes the limit statement with one Continue bubble. Released to main `94ad79c33` (PRs #886–#895) and verified live on fynla.org by a fresh Save Tax registration. Recipe: handover 2026-09-16 session 2, "How to add a capture form".
 - [x] Expenditure (CSJ 2026-09-16): one box for everyone; the web page's five category groups on Premium, asking "whole household or just you?" first when a spouse is on file.
 - [x] Spouse holding transfer (CSJ 2026-09-16): when the spouse accepts the link, the facts given during onboarding are copied onto their account once — date of birth, employment status, income, savings, a Stocks and Shares ISA with its provider, investments, and the pension pot with its contribution. Migration `2026_09_16_220000` ran on production.
-- [x] The unlinked-spouse action (CSJ 2026-09-16) and the `/m` all-actions list (CSJ 2026-09-17). **On dev, not released** — see Deploy state.
-- [ ] Adjacent, CSJ to decide: `/savings` verify page lists accounts only in preview mode (real users see the Open Banking promo); the level-up celebration overlay covers the Fyn panel after a save until tapped; on Free two ISAs use up the investment cap (a General Investment Account is then refused); native (no forms header) still gets the typed questions; after a partial refusal the saved kind stays editable; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hung after opening Chat with Fyn in a phone-width desktop window (csjones, 2026-09-16 session 1). New today: a retired user is still asked "when would you like to retire"; Fyn says "I've saved your State Pension" when the user answered that they do not know it.
+- [x] The unlinked-spouse action (CSJ 2026-09-16) and the `/m` all-actions list (CSJ 2026-09-17). Released to main `07f772d8b` and verified live on fynla.org.
+- [ ] Adjacent, CSJ to decide: `/savings` verify page lists accounts only in preview mode (real users see the Open Banking promo); on Free two ISAs use up the investment cap (a General Investment Account is then refused); native (no forms header) still gets the typed questions; after a partial refusal the saved kind stays editable; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hung after opening Chat with Fyn in a phone-width desktop window (csjones, 2026-09-16 session 1). New today: a retired user is still asked "when would you like to retire"; Fyn says "I've saved your State Pension" when the user answered that they do not know it.
 
 ## Application mapping programme (CSJ, 2026-09-14) — in progress
 
@@ -168,8 +168,12 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 ## Deploy state
 
-- **2026-09-17 session 1: prod (fynla.org) = main `94ad79c33`** (release #895: the capture forms on every entry point + the spouse holding transfer; migration `2026_09_16_220000` ran; both bundles rebuilt). Backups `~/release-backups/2026-09-17a/`. Verified live by a fresh Save Tax registration; test user 735 and `c.jones` (734) purged.
-- **UNRELEASED: dev `034b593ac` is nine commits ahead of main** — PRs #896 (the unlinked-spouse action, the navigate-routing fixes, the canonical `spouse_sharing` destination) and #897 (the `/m` all-actions list). No migration in the range; both bundles need rebuilding. csjones is on this dev tip and gated.
+- **2026-09-17: prod (fynla.org) = main `0988f6d31`.** Three releases today, all verified live on web and `/m`; nothing unreleased. Backups `~/release-backups/2026-09-17{a,c,d}/`. `c.jones` purged after the last one.
+  - `94ad79c33` (#895) — capture forms on every entry point + the spouse holding transfer; migration `2026_09_16_220000`.
+  - `07f772d8b` (#898) — the unlinked-spouse action and the `/m` all-actions list. No migration.
+  - `e2368a982` (#900) — the module label comes from the server; both client maps deleted. No migration.
+  - `0988f6d31` (#902) — the level-up redesign. **Migration `2026_09_17_120000` ran**: it backfills `celebrated_level = level` for every row, verified on all 43 production users (zero owed a climb) and on 95 csjones users.
+- **Native iOS is on `main` but has never been run on a device.** It ships via TestFlight, not the web deploy, so nothing reached users unverified. CSJ is taking the check.
 - 2026-09-16 session 2: main `b64ec17cc` (releases #872, #874, #876, #878, #881, #883, #885). Backups `~/release-backups/2026-09-16b..f/`.
 
 - Eleven mapping PRs (#829–#839) still open and unmerged (rebased stack, parked on CSJ).
