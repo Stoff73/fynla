@@ -33,15 +33,22 @@ it('keeps total_points monotonic and recomputes level', function () {
     expect($g->level)->toBe(2);
 });
 
-it('flags a level-up, sets pending celebration, and records on the collector', function () {
+/**
+ * The award path no longer writes a pending celebration. What is owed is the
+ * range above `celebrated_level`, which moves only when a client has actually
+ * shown the climb and acknowledged it (CSJ 2026-09-17).
+ */
+it('flags a level-up and records it on the collector, without banking a celebration', function () {
     $collector = app(LevelUpCollector::class);
     $r = $this->svc->award($this->user, 'data', 'big', 60); // 0 -> 60 = L1 -> L2
 
     expect($r->leveledUp)->toBeTrue();
     expect($r->newLevel)->toBe(2);
     expect($r->newLevelName)->toBe('Saver');
-    expect(UserGamification::where('user_id', $this->user->id)->value('pending_celebration_level'))->toBe(2);
     expect($collector->highest())->toMatchArray(['level' => 2]);
+
+    // Untouched by the award — so the dashboard sees a range of 1 -> 2 owed.
+    expect(UserGamification::where('user_id', $this->user->id)->value('celebrated_level'))->toBeNull();
 });
 
 it('persists every level crossed against the immutable award in the same transaction', function () {

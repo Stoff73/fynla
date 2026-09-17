@@ -26,8 +26,9 @@ it('backfills data + completed recommendations quietly and idempotently', functi
     $g = UserGamification::where('user_id', $user->id)->first();
     // savings first-in-category (20) + recommendation (25) = 45
     expect($g->total_points)->toBe(45);
-    // Quiet: no celebration queued.
-    expect($g->pending_celebration_level)->toBeNull();
+    // Quiet: the earned level is marked as already celebrated, so a
+    // backfilled user has no climb to replay on the dashboard.
+    expect($g->celebrated_level)->toBe($g->level);
 
     // Re-run awards nothing more.
     $this->artisan('gamification:backfill')->assertExitCode(0);
