@@ -42,7 +42,7 @@
                 <div class="order-num">{{ index + 1 }}</div>
                 <div class="min-w-0">
                   <div class="text-[15px] font-semibold text-horizon-500">{{ action.title }}</div>
-                  <div class="text-xs text-neutral-500 mt-0.5">{{ moduleLabel(action.module) }}<span v-if="action.meta"> · {{ action.meta }}</span></div>
+                  <div class="text-xs text-neutral-500 mt-0.5">{{ moduleLabel(action) }}<span v-if="action.meta"> · {{ action.meta }}</span></div>
                 </div>
               </div>
               <div class="flex items-center gap-2.5 flex-shrink-0">
@@ -78,7 +78,7 @@
             >
               <div class="min-w-0">
                 <div class="text-[15px] font-semibold text-horizon-500">{{ row.recommendation_text }}</div>
-                <div class="text-xs text-neutral-500 mt-0.5">{{ moduleLabel(row.module) }}</div>
+                <div class="text-xs text-neutral-500 mt-0.5">{{ moduleLabel(row) }}</div>
               </div>
               <span class="text-xs font-bold text-spring-700 whitespace-nowrap flex-shrink-0">Done {{ doneDate(row) }}</span>
             </div>
@@ -112,7 +112,10 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import logger from '@/utils/logger';
 import { resolveWebDestination } from '@/utils/semanticDestinations';
 
-// Desktop route per module — where an action is taken.
+// Desktop route per module, the fallback behind the server destination.
+// Still reachable: the fyn_capture unlock rows (NextActionsService
+// lines 261/506/552) carry a prompt, not a destination, so a click on
+// one lands here (verified 2026-09-17).
 const MODULE_ROUTES = {
   protection: '/protection',
   savings: '/savings',
@@ -122,18 +125,6 @@ const MODULE_ROUTES = {
   goals: '/goals',
   tax: '/tax-strategy',
   household: '/settings/family',
-};
-
-const MODULE_LABELS = {
-  protection: 'Protection',
-  savings: 'Savings',
-  investment: 'Investment',
-  retirement: 'Retirement',
-  estate: 'Estate Planning',
-  goals: 'Goals',
-  tax: 'Tax Strategy',
-  household: 'Household',
-  general: 'General',
 };
 
 export default {
@@ -162,8 +153,11 @@ export default {
   },
 
   methods: {
-    moduleLabel(module) {
-      return MODULE_LABELS[module] || MODULE_LABELS.general;
+    // The server sends the label (NextActionsService::moduleDisplayLabel) so
+    // the vocabulary lives in one place; the fallback only covers a row that
+    // predates it.
+    moduleLabel(row) {
+      return row.module_label || 'General';
     },
 
     // The server decides where an action leads (RecommendationRouting — the
