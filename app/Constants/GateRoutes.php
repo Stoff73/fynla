@@ -18,6 +18,9 @@ final class GateRoutes
 
     public const FAMILY_DETAILS = 'family_details';
 
+    /** The sharing/link panel: web /settings/family, `/m` /spouse-sharing (CSJ 2026-09-16). */
+    public const SPOUSE_SHARING = 'spouse_sharing';
+
     public const INCOME = 'income';
 
     public const EXPENDITURE = 'expenditure';
@@ -68,6 +71,7 @@ final class GateRoutes
     public const MAP = [
         self::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => '/personal-information'],
         self::FAMILY_DETAILS => ['label' => 'Family Details', 'web' => '/settings/family', 'mobile' => '/personal-information'],
+        self::SPOUSE_SHARING => ['label' => 'Spouse Data Sharing', 'web' => '/settings/family', 'mobile' => '/spouse-sharing'],
         self::INCOME => ['label' => 'Income', 'web' => '/valuable-info?section=income', 'mobile' => '/income'],
         self::EXPENDITURE => ['label' => 'Expenditure', 'web' => '/valuable-info?section=expenditure', 'mobile' => '/expenditure'],
         self::PROTECTION => ['label' => 'Protection', 'web' => '/protection', 'mobile' => '/protection'],

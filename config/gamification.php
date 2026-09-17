@@ -34,6 +34,10 @@ return [
     // recommendations in the mobile next-actions list (tunable).
     'unlock_action_weight' => 65,
 
+    // The "link your spouse" action (CSJ 2026-09-16): above a generic unlock
+    // prompt, below a protection recommendation.
+    'spouse_link_action_weight' => 70,
+
     // WP-5c-iii — push notification on newly-earned milestones. Flag-gated
     // (CSJ decision 2026-07-03): OFF by default, one send per mint when on.
     'push_enabled' => env('GAMIFICATION_PUSH_ENABLED', false),

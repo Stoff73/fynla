@@ -385,7 +385,10 @@ export default {
         this.openFynContextual(action.contextual);
         return;
       }
-      if (rec.type === 'unlock' || (action && action.kind === 'fyn_capture')) {
+      // An action the server routes (kind=navigate) deep-links even when it
+      // is an unlock-styled row — the spouse-link action is both.
+      const navigates = action && action.kind === 'navigate';
+      if (!navigates && (rec.type === 'unlock' || (action && action.kind === 'fyn_capture'))) {
         this.openFynForCapture(action);
         return;
       }

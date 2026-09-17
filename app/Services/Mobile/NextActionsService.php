@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Mobile;
 
 use App\Constants\GateRoutes;
+use App\Models\FamilyMember;
+use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -104,12 +106,28 @@ class NextActionsService
         return array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
     }
 
+    /**
+     * Every open action for the user, unranked — the ONE merge both the
+     * unified list (build/buildAll) and the `/m` focus carousel read. They
+     * each merged their own set before, so an item added to one was missing
+     * from the other (the spouse-link action, live on csjones 2026-09-16).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function openItems(User $user, int $userId): array
+    {
+        $midWalk = $this->midWalk($user);
+
+        return array_merge(
+            $this->recommendationItems($userId),
+            $midWalk ? [] : $this->unlockFamilyItems($user),
+            $midWalk ? [] : $this->spouseLinkItems($user),
+        );
+    }
+
     private function rankAll(User $user, int $userId): array
     {
-        $items = array_merge(
-            $this->recommendationItems($userId),
-            $this->midWalk($user) ? [] : $this->unlockFamilyItems($user),
-        );
+        $items = $this->openItems($user, $userId);
 
         usort($items, static function (array $a, array $b): int {
             return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
@@ -138,7 +156,7 @@ class NextActionsService
         // including the WP-6 campaign affinity (tax first for SaveTax users).
         // Affinity runs BEFORE the 4-slot cut so a lower-value tax item can
         // still be lifted into the card.
-        $merged = array_merge($recItems, $this->midWalk($user) ? [] : $unlocks);
+        $merged = $this->openItems($user, $userId);
         usort($merged, static function (array $a, array $b): int {
             return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
         });
@@ -396,6 +414,67 @@ class NextActionsService
     /**
      * @return array<int,array<string,mixed>>
      */
+    /**
+     * CSJ 2026-09-16: an action while the two accounts are NOT linked. Until
+     * they are, the plan runs on the figures the user typed about their
+     * spouse rather than the spouse's real allowances and tax position, and
+     * nothing else on the dashboard says so. One item at a time, in the one
+     * actions model, so it reaches web and `/m` alike:
+     *   - a request waiting on THIS user to accept (they were invited),
+     *   - a spouse on file whose account has not linked yet (they invited),
+     *   - married with no spouse on file at all.
+     * It disappears the moment the link exists; there is nothing to mark done.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function spouseLinkItems(User $user): array
+    {
+        if ($user->liveSpouseId() !== null) {
+            return [];
+        }
+
+        $isCoupled = in_array($user->marital_status, ['married', 'civil_partnership'], true);
+        $card = FamilyMember::where('user_id', $user->id)->where('relationship', 'spouse')->latest('id')->first();
+        if (! $isCoupled && $card === null) {
+            return [];
+        }
+
+        $partnerWord = $user->marital_status === 'civil_partnership' ? 'partner' : 'spouse';
+        $name = trim((string) ($card->first_name ?? ''));
+        $named = $name !== '' ? $name : 'your '.$partnerWord;
+
+        $pending = SpousePermission::where('spouse_id', $user->id)->where('status', 'pending')->latest('id')->first();
+        if ($pending !== null) {
+            $requester = User::find($pending->user_id);
+            $requesterName = trim((string) ($requester->first_name ?? ''));
+            $title = 'Accept '.($requesterName !== '' ? $requesterName."'s" : "your {$partnerWord}'s").' request to link your accounts';
+            $meta = "You'll each see the other's assets, income and allowances, and your plan uses their real figures.";
+        } elseif ($card !== null) {
+            $title = 'Link '.$named."'s Fynla account";
+            $meta = 'Until it is linked your plan uses the figures you gave us, not their real allowances and tax position.';
+        } else {
+            $title = 'Add your '.$partnerWord;
+            $meta = 'Joint planning needs their details — allowance transfers and the joint tax picture depend on it.';
+        }
+
+        return [[
+            'id' => 'household:spouse_link',
+            'type' => 'unlock',
+            'module' => 'household',
+            'title' => $title,
+            'meta' => $meta,
+            'value' => (float) config('gamification.spouse_link_action_weight', 70),
+            'done' => false,
+            'action' => [
+                'kind' => 'navigate',
+                // `/m` carries the sharing panel at its own path; the web
+                // destination resolves to /settings/family.
+                'payload' => '/spouse-sharing',
+                'destination' => GateRoutes::destination(GateRoutes::SPOUSE_SHARING),
+            ],
+        ]];
+    }
+
     private function unlockItems(User $user): array
     {
         $weight = (float) config('gamification.unlock_action_weight', 65);
