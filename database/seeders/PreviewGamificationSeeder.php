@@ -105,7 +105,10 @@ class PreviewGamificationSeeder extends Seeder
                     'total_points' => $points,
                     'level' => $levels->levelForPoints($points),
                     'login_streak_days' => $points >= 150 ? 7 : ($points >= 80 ? 3 : 1),
-                    'pending_celebration_level' => null,
+                    // Seeded personas land at their earned level already
+                    // celebrated, so the dashboard climb has nothing to
+                    // replay for them (CSJ 2026-09-17).
+                    'celebrated_level' => $levels->levelForPoints($points),
                 ],
             );
         });
