@@ -39,6 +39,8 @@
 
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/mobile-dashboard-mockup.css?v=49" />
+  <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body>
   <a href="#main-content" class="skip-nav">Skip to main content</a>

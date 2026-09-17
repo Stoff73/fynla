@@ -13,6 +13,8 @@
         .m-frame-wrap { position: fixed; inset: 0; height: 100vh; height: 100svh; }
         iframe { border: 0; width: 100%; height: 100%; min-height: 100svh; display: block; background: #F7F6F4; }
     </style>
+    <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+    <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body>
     {{-- The mobile view hosts the real, responsive public funnel (homepage →
