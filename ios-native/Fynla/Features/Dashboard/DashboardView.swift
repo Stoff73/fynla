@@ -114,9 +114,10 @@ struct DashboardView: View {
                         completingActionIDs: model.completingActionIDs
                     )
                     // /m's md-callout margin-top clears the level card's
-                    // downward overflow past the hero box — needed only when
-                    // no milestone nudge already provides that clearance.
-                    .padding(.top, snapshot.nextMilestone == nil ? 128 : 0)
+                    // downward overflow past the hero box. Always applied now
+                    // the milestone nudge that used to provide that clearance
+                    // is gone (CSJ 2026-09-18).
+                    .padding(.top, 128)
 
                     if let actionMessage = model.actionMessage {
                         Text(actionMessage)
@@ -125,9 +126,9 @@ struct DashboardView: View {
                             .accessibilityIdentifier("dashboard.action-error")
                     }
 
-                    if let insight = snapshot.fynInsight, !insight.isEmpty {
-                        insightCard(insight)
-                    }
+                    // The "Today's insight" card was removed on 2026-09-18 (CSJ).
+                    // snapshot.fynInsight still decodes and insightCard(_:) is
+                    // still here — only the card is gone.
 
                     FinancePanelsView(
                         panels: FinancePanel.panels(from: snapshot),
@@ -144,11 +145,9 @@ struct DashboardView: View {
         // Screen identifier on the scroll container — the pattern that keeps
         // sibling header buttons' identifiers resolvable.
         .accessibilityIdentifier("dashboard.screen")
-        .overlay(alignment: .top) {
-            if let milestone = activeMilestoneToast(snapshot) {
-                milestoneToast(milestone)
-            }
-        }
+        // The milestone celebration toast was removed on 2026-09-18 (CSJ).
+        // activeMilestoneToast(_:) and milestoneToast(_:) are still here —
+        // only the card is gone.
     }
 
     // Gradient hero (md-scroll-hero): transcribes /m's box model — the level
@@ -171,12 +170,9 @@ struct DashboardView: View {
             }
             .padding(.bottom, -144)
 
-            if let milestone = snapshot.nextMilestone {
-                NextMilestoneView(milestone: milestone) {
-                    onRoute(route(forMilestone: milestone.route))
-                }
-                .padding(.top, 152)
-            }
+            // The next-milestone nudge card was removed on 2026-09-18 (CSJ).
+            // snapshot.nextMilestone still decodes and route(forMilestone:) is
+            // still here — only the card is gone.
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
