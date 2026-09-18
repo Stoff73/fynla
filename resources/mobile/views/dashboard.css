@@ -251,7 +251,12 @@
 }
 .md-level__sub strong { color: var(--raspberry-600); font-weight: 700; }
 
-/* WP-5c-iii — one persistent milestone nudge BELOW the level card. The card
+/* UNUSED since 2026-09-18 — the card was removed from the dashboard (CSJ), on
+   /m and iOS alike. Kept, with its logic, so reinstating it is putting the
+   template block back rather than rewriting the styling. Nothing renders
+   .md-next-milestone today; do not delete it as "dead CSS" without asking.
+
+   WP-5c-iii — one persistent milestone nudge BELOW the level card. The card
    carries margin-bottom -9rem (its lower half overflows the layout cursor),
    so the nudge needs a 9rem top margin to clear the card's visual bottom —
    it must never obscure the level hero (CSJ direction 2026-07-20). */
@@ -2032,7 +2037,12 @@
 }
 @keyframes md-loader-spin { to { transform: rotate(360deg); } }
 
-/* Today's insight — Fyn's daily insight surfaced from the dashboard payload
+/* UNUSED since 2026-09-18 — the card was removed from the dashboard (CSJ), on
+   /m and iOS alike. The payload still carries fyn_insight and the computed
+   still reads it; only the card is gone. Kept so reinstating it is putting the
+   template block back. Do not delete as "dead CSS" without asking.
+
+   Today's insight — Fyn's daily insight surfaced from the dashboard payload
    (fyn_insight). Plain-text card; sits between the level callout and the
    finance grid as a direct child of .md-main (inherits its column gap). */
 .md-insight {
@@ -2049,7 +2059,12 @@
   margin: 0.25rem 0 0;
 }
 
-/* Milestone celebration toast — a financial milestone just crossed, with a
+/* UNUSED since 2026-09-18 — the pop-up was removed from the dashboard (CSJ),
+   on /m and iOS alike. milestoneToast is still populated and shareMilestone
+   still exists; only the card is gone. Kept so reinstating it is putting the
+   template block back. Do not delete as "dead CSS" without asking.
+
+   Milestone celebration toast — a financial milestone just crossed, with a
    Share action. Floats at the top of the phone frame (absolute, like the Fyn
    nudge), dismissable, plain text (no icons). */
 .md-milestone {
@@ -2084,6 +2099,16 @@
 .md-milestone__dismiss { background: none; border: 0; color: rgba(255, 255, 255, 0.85); font-family: var(--font-primary); font-size: 0.6875rem; cursor: pointer; padding: 0.125rem; }
 
 /* ===================================================================
+   UNREACHABLE since 2026-09-18 — the next-milestone card was removed
+   (CSJ), so nothing sets this class any more and .md-callout always
+   takes its own 8rem clearance.
+
+   Removing the CARD meant removing this BINDING too: `nextMilestone` is
+   still populated from the payload, so a binding left on that value
+   would have zeroed the callout's clearance with no nudge present and
+   ridden it up under the level wheel. If the nudge is ever reinstated,
+   restore the :class binding at the same time as the template block.
+
    2026-07-20 — milestone banners never obscure the level hero (CSJ).
    With the next-milestone nudge now flowing BELOW the card (9rem top
    margin clears the card's -9rem overflow), the callout no longer needs

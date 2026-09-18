@@ -1,5 +1,12 @@
 import SwiftUI
 
+// UNUSED since 2026-09-18 — the card was removed from the dashboard (CSJ), on
+// iOS and /m alike. DashboardView no longer constructs this view; the snapshot
+// still decodes `nextMilestone` and route(forMilestone:) still exists, so
+// reinstating the card is restoring the block in DashboardView.hero(_:) — with
+// its .padding(.top, 152), and changing the callout's .padding(.top, 128) back
+// to being conditional on the nudge. Do not delete as dead code without asking.
+//
 // Transcribes /m's md-next-milestone: horizon-100 nudge under the level wheel
 // with title + steps, tappable through to the surface where the user acts.
 struct NextMilestoneView: View {
