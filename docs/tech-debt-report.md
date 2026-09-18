@@ -1,10 +1,12 @@
-# Tech Debt Report — 2026-09-17 (session 2)
+# Tech Debt Report — Session 2026-09-18
 
-**Files analysed:** 45 changed today (9 PHP services/controllers, 1 migration, 1 seeder, 10 Swift, 14 frontend, 10 tests)
-**Issues found:** 3
-**Severity breakdown:** 0 critical, 2 warnings, 1 suggestion
+**Files analysed:** 21 (the /m onboarding fixes and the dashboard card removal)
+**Issues found:** 0 critical, 2 warnings, 2 suggestions
 
-Clean on: `declare(strict_types=1)` in every changed PHP file; no debug leftovers (`console.log`/`dd`/`dump`/`Log::debug`); no banned colour classes (`amber-*`/`orange-*`/`primary-*`/`secondary-*`/`gray-*`) and no hex in the new CSS — the burst uses `--spring-500`/`--raspberry-500`/`--violet-500` only; no icons, emoji or `::before` glyphs added to the dashboard (a Rule 15 banned surface); no scores; no hardcoded tax values; Pint, ESLint and `verify-project.sh` clean.
+The new code is clean: every new PHP file carries `declare(strict_types=1)`, no
+debug leftovers, no banned colours or hex in the changed style blocks, no
+hardcoded tax values, no re-implemented currency or ownership helpers.
+`EmploymentIncomeService` is 110 lines with a 29-line longest method.
 
 ## Critical Issues
 
@@ -12,43 +14,48 @@ None.
 
 ## Warnings
 
-**1. The level-celebration rule exists in three copies (Category 1)**
+**1. `app/Services/UserProfile/UserProfileService.php:413` — the employment
+detail line reads a relation per person.**
+`incomeSources()` now maps `$person->employments` for the "employer · role"
+detail. It is eager-loaded for the user (`getCompleteProfile`) and explicitly
+loaded for the spouse (`spouseIncomeSources`), so there is no N+1 today — but
+the guard is two `load`/`loadMissing` calls in separate methods rather than
+anything structural. A third caller of `incomeSources()` would lazy-load.
+*Fix when it bites:* have `incomeSources()` itself `loadMissing('employments')`
+rather than trusting each caller.
 
-`resources/js/utils/levelCelebration.js`, `resources/mobile/navigation/levelCelebration.js`, `ios-native/Fynla/Features/Gamification/LevelCelebrationSequence.swift`.
-
-**Deliberate and documented, not an oversight**: web and `/m` are separate Vite bundles that cannot import each other, and native is Swift. Verified today that the two JS copies are byte-identical once comments are stripped, and all three are driven by the same 13 test vectors.
-
-*The risk is drift, not duplication.* Each file's docblock names the other two and says to change them in the same commit. **Do not "fix" this by making one import another — it is not possible across the bundles.** If a fourth surface appears, or the copies drift in review, the answer is a shared build-time source, not a runtime import.
-
-*Fix:* none now. Re-check the three stay in step whenever the rule changes.
-
-**2. `playBankedLevels()` is ~52 lines duplicated across the two Vue dashboards (Category 1/4)**
-
-`resources/js/views/GamifiedDashboard.vue` and `resources/mobile/views/Dashboard.vue` each carry the animation driver — confetti builder, step timing, ring sweep, ack.
-
-Unlike warning 1 this duplication is *within one language*, so it is more avoidable — but it still spans two bundles that cannot share an import. The pure rule is already extracted; what is duplicated is the glue binding it to component state.
-
-*Fix:* if it needs changing twice more, extract a `mixins/levelClimb.js` per bundle leaving only the state binding inline. Not worth it for a single change.
+**2. `resources/mobile/views/Dashboard.vue` — 1,065 lines.**
+Down from 1,087 (the card removal took 22 lines out), so it moved the right way,
+but still the largest view in the mobile bundle. Standing item from 2026-09-17.
+*Fix when it grows again:* lift the Fyn overlay out.
 
 ## Suggestions
 
-**3. `resources/mobile/views/Dashboard.vue` is 1,087 lines (Category 4)**
+**1. Deliberately unused code, kept on CSJ's instruction (2026-09-18).**
+`.md-next-milestone`, `.md-insight`, `.md-milestone` and
+`.md-callout--below-nudge` in `resources/mobile/views/dashboard.css`, plus
+`ios-native/Fynla/Features/Dashboard/NextMilestoneView.swift`. All are commented
+with why they are there and what to restore alongside them. **Not debt to
+action** — an audit flagging these for deletion is declined, not actioned.
 
-It grew ~90 lines today and now carries the dashboard payload, the Fyn overlay, the onboarding nudges and the level climb.
+**2. `app/Agents/CoordinatingAgent.php:2178` — the job-count query.**
+`handleCaptureWorkDetails` returns a `jobs` count with an inline ternary
+repeating the employment/self-employment branch that `EmploymentIncomeService`
+already owns in `incomeTypeFor()`. Harmless, but it is the same decision
+expressed twice.
+*Fix:* expose the resolved type from the service and read it here.
 
-*Fix:* if it grows again, lift the Fyn overlay into its own component — the most self-contained block. **Not** the same situation as `CaptureForms.php` (see below): that file is a flat catalogue, this is a genuine multi-responsibility view.
+## Standing — do not re-raise
 
----
-
-## Standing items — read before re-flagging
-
-- **`app/Services/Onboarding/CaptureForms.php` — DECLINED, DO NOT RE-RAISE.** CSJ ruled on 2026-09-17 (ruling 53) that this file is **not** to be split: every schema is a standalone static method, so the file is a list rather than a tangle, and splitting forces the shared helpers (`pounds()` ×22, `singleWriteInputs()` ×7, `percent()` ×6) into public API on a base class or trait — a real cost for a readability-only gain. The ruling is repeated in the class docblock. **A future audit must not flag this file for length.**
-- `resources/mobile/views/HolisticPlan.vue:90` — a fourth `MODULE_LABELS` map on a different endpoint; raised when the actions vocabulary was consolidated, not fixed.
-- "Free plan" hardcoded in the cap statement (`OnboardingChatDirector.php:1105`); `handleFormTurn` at 142 lines; `sections()`/`blocks()` overlap in the capture-form mixin.
-
-## Resolved earlier today (PR #899, released)
-
-Module label vocabulary consolidated to the server; `pounds()` shown **not** to be a duplicate and the director's renamed `wholePounds()`; `spouseInputs()` → `singleWriteInputs()`; `focusAreas()` 86 lines → 25 via `moduleCards()`; `MODULE_ROUTES` checked and kept (the `fyn_capture` unlock rows carry a prompt, not a destination).
+- **`CaptureForms.php` is never to be split** (CSJ ruling 53). An audit flagging
+  it for length is declined.
+- The level-celebration rule in three copies (JS ×2, Swift) — deliberate, guarded
+  by shared test vectors. Do not "fix" by importing across bundles.
+- `playBankedLevels()` duplicated across the two Vue dashboards — extract only if
+  it needs changing twice more.
+- `HolisticPlan.vue:90`'s fourth `MODULE_LABELS` map.
+- "Free plan" hardcoded at `OnboardingChatDirector.php:1105`.
+- `handleFormTurn` at 142 lines.
 
 ---
 *Generated by tech-debt-session skill*
