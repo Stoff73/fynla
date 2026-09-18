@@ -46,23 +46,15 @@
               <p class="md-level__sub">Complete actions to reach <strong>Level {{ level + 1 }}</strong>.</p>
             </div>
           </button>
-          <!-- WP-5c-iii — one persistent milestone nudge, tappable through to
-               the surface where the user acts on it. -->
-          <button
-            v-if="nextMilestone"
-            type="button"
-            class="md-next-milestone"
-            @click="goToMilestone"
-          >
-            <span class="md-next-milestone__title">Next milestone: {{ nextMilestone.title }}</span>
-            <span class="md-next-milestone__steps">{{ nextMilestone.steps }}</span>
-          </button>
+          <!-- The next-milestone nudge card was removed on 2026-09-18 (CSJ).
+               `nextMilestone` is still fetched and `goToMilestone` still works —
+               only the card is gone, so reinstating it is this block alone. -->
         </div>
 
-        <!-- Callout: rank statement + focus-area carousel + actions. When the
-             next-milestone nudge is present it already clears the level
-             card's overflow, so the callout drops its clearance margin. -->
-        <div class="md-callout" :class="{ 'md-callout--below-nudge': nextMilestone }" role="note">
+        <!-- Callout: rank statement + focus-area carousel + actions. It keeps
+             its own clearance margin now the nudge that used to do that job is
+             gone (hence no md-callout--below-nudge binding). -->
+        <div class="md-callout" role="note">
           <div class="md-callout__top">
             <p class="md-callout__levelup">LEVEL<br>UP</p>
             <div class="md-callout__top-copy">
@@ -161,14 +153,9 @@
           </div>
         </div>
 
-        <!-- Today's insight (Fyn) — surfaced from the dashboard payload's
-             fyn_insight (no extra request). Plain text, no icons. -->
-        <section v-if="fynInsight" class="md-insight" aria-labelledby="md-insight-heading">
-          <div class="md-section-head">
-            <h3 class="md-section-head__title" id="md-insight-heading">Today's insight</h3>
-          </div>
-          <p class="md-insight__text">{{ fynInsight }}</p>
-        </section>
+        <!-- The "Today's insight" card was removed on 2026-09-18 (CSJ). The
+             payload still carries fyn_insight and the `fynInsight` computed
+             still reads it — only the card is gone. -->
 
         <!-- 4-panel finance grid -->
         <section class="md-panels" aria-labelledby="md-panels-heading">
@@ -209,18 +196,9 @@
       </template>
     </main>
 
-    <!-- Milestone celebration — a financial milestone the user just crossed,
-         with a Share action. Plain text, dismissable, one at a time. -->
-    <div v-if="milestoneToast" class="md-milestone" role="status" aria-live="polite">
-      <div class="md-milestone__body">
-        <p class="md-milestone__title">Milestone reached</p>
-        <p class="md-milestone__label">{{ milestoneToast.label }}</p>
-      </div>
-      <div class="md-milestone__actions">
-        <button type="button" class="md-milestone__share" @click="shareMilestone">Share</button>
-        <button type="button" class="md-milestone__dismiss" aria-label="Dismiss" @click="milestoneToast = null">Dismiss</button>
-      </div>
-    </div>
+    <!-- The milestone celebration pop-up was removed on 2026-09-18 (CSJ).
+         `milestoneToast` is still populated and `shareMilestone` still exists —
+         only the card is gone. -->
 
     <!-- Onboarding nudge — gently points a funnel/incomplete user to finish
          their personalised tax plan with Fyn. Tapping opens Fyn; "Later"
