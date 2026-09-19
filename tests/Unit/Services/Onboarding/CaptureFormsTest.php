@@ -454,3 +454,14 @@ it('the protection form offers life, critical illness and income protection, one
     expect($state['form'])->toBe('protection')
         ->and($state['next'])->toBe(OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE);
 });
+
+it('reads back an unknown spouse income as unknown, not as nothing to add', function (): void {
+    $unknownOnly = CaptureForms::summarise(['name' => 'spouse_household', 'answers' => ['_lead' => ['spouse_annual_income' => null]]]);
+    $unknownWithIsa = CaptureForms::summarise(['name' => 'spouse_household', 'answers' => [
+        '_lead' => ['spouse_annual_income' => null],
+        'isa' => ['spouse_isa_balance' => 7500, 'spouse_isa_provider' => 'Vanguard'],
+    ]]);
+
+    expect($unknownOnly)->toBe("I don't know what my spouse earns, and they have no holdings to add.")
+        ->and($unknownWithIsa)->toBe("I don't know what my spouse earns, £7,500 in ISAs with Vanguard.");
+});
