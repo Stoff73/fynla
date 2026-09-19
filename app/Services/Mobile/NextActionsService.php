@@ -226,12 +226,14 @@ class NextActionsService
             $items = array_slice($byModule[$module] ?? [], 0, self::MAX_ITEMS);
 
             if ($items === []) {
+                // Gate open, nothing to recommend: not locked (Laura,
+                // 2026-09-18, read "Locked" on a module she had completed).
                 $needed = $this->dataNeededItem($module);
                 $cards[] = [
                     'key' => $module,
                     'label' => $label,
-                    'locked' => true,
-                    'stat' => (string) $needed['meta'],
+                    'locked' => false,
+                    'stat' => 'Nothing to action right now',
                     'actions' => [$needed],
                 ];
 

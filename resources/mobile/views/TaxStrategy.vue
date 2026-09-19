@@ -179,9 +179,11 @@ export default {
       if (!store.user || !store.user.onboarding_completed) return '';
       const name = store.user.first_name || 'there';
       const saving = Number(this.dashboard?.composed_plan?.combined_annual_saving) || 0;
-      return saving > 0
+      // "Landed on tax strategy — didn't know what to do next" (Azlan, 2026-09-18).
+      const next = ' Open any strategy to see the steps, or ask Fyn about it.';
+      return (saving > 0
         ? `Here's your personal tax strategy, ${name}. From what you told us, we've found around ${this.fmt(Math.round(saving))} a year you could keep.`
-        : `Here's your personal tax strategy, ${name}. From what you told us, here's how to make the most of your allowances.`;
+        : `Here's your personal tax strategy, ${name}. From what you told us, here's how to make the most of your allowances.`) + next;
     },
     // Open (not completed) items only — completed ones move to the Done group
     // below so the page keeps the overview while the dashboard replaces them.

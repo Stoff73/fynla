@@ -7391,7 +7391,7 @@ PROMPT;
         yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, 'no', (string) ($user->onboarding_fyn_selection ?? 'savings'));
     }
 
-    private static function isCompletionDeclaration(string $message): bool
+    public static function isCompletionDeclaration(string $message): bool
     {
         // "No" / "none" / "that's everything" at the start, or the everyday
         // "I don't have any …" / "I have no …" / "not got any …" / "nothing else"

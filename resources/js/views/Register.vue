@@ -524,9 +524,14 @@ export default {
       const fromParam = handoffSource.value || route.query.from;
       const stageParam = route.query.stage;
 
+      // A registrant with a campaign on file (a funnel arrival, or a spouse
+      // registering from an invitation) opens on Fyn's campaign walk, not the
+      // wizard welcome — /onboarding/start keys the campaign off funnel_answers.
+      const campaign = store.getters['auth/currentUser']?.onboarding_campaign || null;
+
       if (data.checkout_intent) {
         router.push(`/checkout?plan=${encodeURIComponent(data.checkout_intent.tier)}&cycle=${encodeURIComponent(data.checkout_intent.billing_cycle)}`);
-      } else if (fromParam) {
+      } else if (fromParam || campaign) {
         router.push({
           name: 'Dashboard',
           query: { openFyn: 'journey', newUser: '1', from: fromParam },

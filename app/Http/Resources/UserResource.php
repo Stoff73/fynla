@@ -54,6 +54,9 @@ class UserResource extends JsonResource
             // so the verify pills + dock-resume work for a completed user mid
             // campaign re-entry (audit fix P3).
             'active_campaign' => $this->active_campaign,
+            // The campaign a registrant carries (funnel arrival or spouse
+            // invitation): the web registration page opens Fyn on it.
+            'onboarding_campaign' => data_get($this->resource->funnel_answers, 'campaign'),
             'journey_state' => $this->journey_state,
             // `spouse_id` is the historical link and survives the partner
             // deleting their account — everything is retained for regulatory
