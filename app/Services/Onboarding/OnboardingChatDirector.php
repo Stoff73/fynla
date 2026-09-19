@@ -246,8 +246,10 @@ final class OnboardingChatDirector
         $currentStateId = $user->onboarding_fyn_step;
         if ($currentStateId === null) {
             // Shouldn't happen — controller delegation checks this. Fall
-            // back to a safe terminal event.
+            // back to a safe terminal event, and END the stream: without the
+            // done frame the web panel waited forever (2026-09-19).
             yield $this->errorEvent('Onboarding state lost. Please reload and try again.');
+            yield ['type' => 'done'];
 
             return;
         }
