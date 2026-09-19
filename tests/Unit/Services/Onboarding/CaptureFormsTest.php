@@ -290,10 +290,11 @@ it('the spouse forms fold every section into one household write', function (): 
     $schema = CaptureForms::schema('spouse_household');
     expect($schema['tool'])->toBe('capture_spouse_household_data')
         ->and($schema['lead_fields'])->toBe(['spouse_annual_income'])
-        ->and($schema['kinds_prompt'])->toBe('Do they have any of the following? You can choose more than one.')
+        ->and($schema['kinds_prompt'])->toBe('Do they have any of the following? You can choose more than one, or save with none chosen.')
         ->and(array_column($schema['kinds'], 'label'))->toBe(['ISAs', 'A pension', 'Investments'])
         ->and(CaptureForms::rules('spouse_household'))->toHaveKey('_lead.spouse_annual_income')
-        ->and(CaptureForms::rules('spouse_household')['_lead.spouse_annual_income'][0])->toBe('required_with:_lead');
+        // money_or_none since Batch 1 (2026-09-19): "I don't know" posts null.
+        ->and(CaptureForms::rules('spouse_household')['_lead.spouse_annual_income'][0])->toBe('present');
 
     $form = ['name' => 'spouse_household', 'answers' => [
         '_lead' => ['spouse_annual_income' => 45000],
