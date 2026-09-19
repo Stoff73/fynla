@@ -252,3 +252,40 @@ describe('FynCaptureForm text fields', () => {
     expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
   });
 });
+
+// Batch 4 (CSJ 2026-09-19): an edit form opens with the record's values,
+// submits with the record it changes, and can remove it.
+describe('FynCaptureForm as an edit form', () => {
+  const editSchema = {
+    name: 'savings', submit_label: 'Save changes', edit: true, record: { type: 'savings_account', id: 7 },
+    kinds: [{ key: 'current_account', label: 'Current account', fields: ['provider', 'current_value'] }],
+    fields: {
+      provider: { type: 'text', label: 'Who is it with', required: true },
+      current_value: { type: 'money', label: 'Balance', required: true },
+    },
+  };
+  const record = { type: 'savings_account', id: 7 };
+  const values = { current_account: { provider: 'HSBC', current_value: 150 } };
+
+  it('opens with the values filled in and submits them with the record', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: editSchema, values, record } });
+    expect(w.find('input[name="current_account.provider"]').element.value).toBe('HSBC');
+    expect(w.find('input[name="current_account.current_value"]').element.value).toBe('150');
+    await w.find('input[name="current_account.current_value"]').setValue('1500');
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'savings', answers: { current_account: { provider: 'HSBC', current_value: 1500 } }, record });
+  });
+
+  it('offers Remove and emits the record to delete', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: editSchema, values, record } });
+    const remove = w.findAll('button').find((b) => b.text() === 'Remove');
+    expect(remove).toBeTruthy();
+    await remove.trigger('click');
+    expect(w.emitted('remove')[0][0]).toEqual({ name: 'savings', answers: {}, record, delete: true });
+  });
+
+  it('shows no Remove on a capture form', () => {
+    const w = mount(FynCaptureForm, { props: { schema } });
+    expect(w.findAll('button').some((b) => b.text() === 'Remove')).toBe(false);
+  });
+});

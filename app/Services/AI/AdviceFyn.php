@@ -502,7 +502,13 @@ final class AdviceFyn
         // as "yes I added it" instead of "it was already on file"
         // (gaslighting). Build a deterministic acknowledgement from the
         // matching DB rows and yield it as plain content.
-        if ($intent !== null && $this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+        // A "change / update / remove my …" names a record that exists on
+        // purpose: that is the edit pathway's door (Batch 4, CSJ 2026-09-19),
+        // never a duplicate to acknowledge.
+        $editVerbs = ['change', 'update', 'edit', 'correct', 'amend', 'delete', 'remove'];
+        if ($intent !== null
+            && ! in_array($intent['matched_verb'] ?? '', $editVerbs, true)
+            && $this->duplicateChecker->alreadyExists($user, $intent, $message)) {
             $ack = $this->duplicateAcknowledgement->build($user, $intent, $message);
 
             if ($persistUserMessage) {

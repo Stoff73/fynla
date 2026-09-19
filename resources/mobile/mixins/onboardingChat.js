@@ -297,7 +297,7 @@ export default {
           text: m.content || '',
           bubbles,
           actionBubbles: Boolean(metadata.action_bubbles),
-          ...(captureForm ? { form: { schema: captureForm, errors: null, answers: null, locked: false } } : {}),
+          ...(captureForm ? { form: { schema: captureForm, errors: null, answers: metadata.capture_form_values || null, record: metadata.capture_form_record || null, locked: false } } : {}),
         };
       });
       mapped.forEach((m, i) => { if (i < mapped.length - 1) m.bubbles = []; });
@@ -566,7 +566,9 @@ export default {
         }
         cursor.got = true;
         if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
-        cursor.reply.form = { schema: ev.form || null, errors: null, answers: null, locked: false };
+        // An edit form arrives with the record's values and the record it
+        // changes; a capture form arrives with neither.
+        cursor.reply.form = { schema: ev.form || null, errors: null, answers: ev.values || null, record: ev.record || null, locked: false };
         this.$nextTick(this.scrollFyn);
         return;
       }

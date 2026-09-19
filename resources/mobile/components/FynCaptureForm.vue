@@ -112,6 +112,7 @@
 
     <div v-if="!locked" class="md-fyn__form-actions">
       <button type="submit" class="m-btn" :disabled="disabled || !isValid">{{ schema.submit_label || 'Save' }}</button>
+      <button v-if="record && schema.edit" type="button" class="m-btn-ghost" :disabled="disabled" @click="remove">Remove</button>
     </div>
   </form>
 </template>

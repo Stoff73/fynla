@@ -10,8 +10,10 @@ export const captureFormMixin = {
     disabled: { type: Boolean, default: false },
     locked: { type: Boolean, default: false },
     values: { type: Object, default: null },
+    // The record an edit form changes ({ type, id }); null on a capture form.
+    record: { type: Object, default: null },
   },
-  emits: ['submit'],
+  emits: ['submit', 'remove'],
   data() {
     const open = {};
     const answers = {};
@@ -137,7 +139,12 @@ export const captureFormMixin = {
         });
         answers[kind.key] = out;
       });
-      this.$emit('submit', { name: this.schema.name, answers });
+      this.$emit('submit', { name: this.schema.name, answers, ...(this.record ? { record: this.record } : {}) });
+    },
+    // Remove the record an edit form is showing. The server confirms in words.
+    remove() {
+      if (!this.record || this.locked || this.disabled) return;
+      this.$emit('remove', { name: this.schema.name, answers: {}, record: this.record, delete: true });
     },
   },
 };
