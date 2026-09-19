@@ -7113,12 +7113,18 @@ PROMPT;
         if ($desc === '') {
             return $title.'.';
         }
-        // The first sentence is the fact; a caveat clause opens with "but only
-        // if" or a "Confirm … before acting" sentence.
-        $first = preg_split('/(?<=[.!?])\s+/u', $desc, 2)[0] ?? $desc;
-        $first = preg_replace('/,?\s+but only if\b.*$/iu', '', $first) ?? $first;
+        // A caveat is a ", but only if …" tail on a sentence, or a whole
+        // sentence that opens "Confirm …", "Check …", "Make sure …" or
+        // "Speak to …". Everything else in the description is the user's own
+        // figures and stays.
+        $desc = preg_replace('/,?\s+but only if\b[^.!?\n]*/iu', '', $desc) ?? $desc;
+        $desc = preg_replace('/(?:(?<=^)|(?<=[.!?]\s)|(?<=\n))(?:Confirm|Check|Make sure|Speak to)\b[^.!?\n]*[.!?]?\s*/u', '', $desc) ?? $desc;
+        $desc = trim(preg_replace('/[ \t]+\n/u', "\n", $desc) ?? $desc);
+        if ($desc === '') {
+            return $title.'.';
+        }
 
-        return $title.'. '.rtrim(trim($first), '.').'.';
+        return $title.'. '.rtrim($desc, '.').'.';
     }
 
     // ─── Record edits through the form (Batch 4, CSJ 2026-09-19) ───────────

@@ -98,7 +98,7 @@ it('voices a strategy as its title and fact sentence, without the hedge or the c
 
     $line = OnboardingChatDirector::voiceStrategyItem($item);
 
-    expect($line)->toBe('Bed & ISA — potentially shelter £3,000 of gains this year. You hold £12,000 of unrealised gains outside your ISA.')
+    expect($line)->toBe('Bed & ISA — potentially shelter £3,000 of gains this year. You hold £12,000 of unrealised gains outside your ISA. Selling around £20,000 of holdings and rebuying them inside an ISA could crystallise up to £3,000 within the annual exempt amount.')
         ->and($line)->not->toContain('You may want to consider')
         ->and($line)->not->toContain('before acting');
 });
