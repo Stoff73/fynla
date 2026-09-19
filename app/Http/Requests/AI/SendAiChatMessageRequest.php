@@ -34,7 +34,11 @@ final class SendAiChatMessageRequest extends FormRequest
             // business rules live in the store the director writes through.
             'form' => ['sometimes', 'array'],
             'form.name' => ['required_with:form', 'string', 'in:'.implode(',', CaptureForms::names())],
-            'form.answers' => ['required_with:form', 'array'],
+            // Not `required`: an allow_empty form saved with nothing chosen posts
+            // `answers: {}` and that IS the answer (Laura, 2026-09-18: the
+            // investments form). `required` treats an empty array as missing;
+            // the key's presence is checked in withValidator instead.
+            'form.answers' => ['array'],
         ];
     }
 
@@ -43,6 +47,11 @@ final class SendAiChatMessageRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             $form = $this->input('form');
             if (! is_array($form) || $validator->errors()->has('form.name')) {
+                return;
+            }
+            if (! array_key_exists('answers', $form)) {
+                $validator->errors()->add('form.answers', 'The form answers are required.');
+
                 return;
             }
             $schema = CaptureForms::schema((string) ($form['name'] ?? ''));

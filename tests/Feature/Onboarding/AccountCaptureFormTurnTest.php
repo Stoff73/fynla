@@ -477,8 +477,12 @@ it('an investments form saved with nothing chosen is the answer none', function 
 
     expect(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
         ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('Noted — nothing to add here.')
+        ->and(CaptureForms::summarise(['name' => 'investment', 'answers' => []]))->toBe('I have none of these.')
         ->and(InvestmentAccount::where('user_id', $user->id)->count())->toBe(0)
-        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        // Nothing to check on an empty investments page: no verify loop, no
+        // section advice — straight on to the next section.
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_step)->not->toStartWith('campaign_investment')
         ->and($user->fresh()->onboarding_fyn_context['declared_none'] ?? [])->toContain('investment');
 });
 

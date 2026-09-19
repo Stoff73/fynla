@@ -285,6 +285,12 @@ final class CaptureForms
             };
         }
 
+        // Nothing chosen on a form that allows it is the answer "none" — the
+        // transcript line says so in the user's own voice.
+        if ($sentences === [] && ! empty($schema['allow_empty'])) {
+            return 'I have none of these.';
+        }
+
         return implode(' ', $sentences);
     }
 
