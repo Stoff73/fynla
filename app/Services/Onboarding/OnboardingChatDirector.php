@@ -137,9 +137,25 @@ final class OnboardingChatDirector
      */
     private bool $clientSupportsForms = false;
 
+    /**
+     * The controller sets this once per request. It is also bound on the
+     * container because the advice side reaches this director through its own
+     * injected instance (AdviceFyn → handleInlineCapture), and an edit form
+     * opened from chat must know the client can render it.
+     */
     public function setClientSupportsForms(bool $supports): void
     {
         $this->clientSupportsForms = $supports;
+        app()->instance('fyn.client_supports_forms', $supports);
+    }
+
+    private function formsSupported(): bool
+    {
+        if ($this->clientSupportsForms) {
+            return true;
+        }
+
+        return app()->bound('fyn.client_supports_forms') && (bool) app('fyn.client_supports_forms');
     }
 
     /**
@@ -215,6 +231,16 @@ final class OnboardingChatDirector
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+
+        // A form that names the record it edits is the edit pathway (Batch 4,
+        // CSJ 2026-09-19) — inside the walk (the verify page's Edit, a
+        // mid-walk correction) and after it (a "change my …" in chat). No
+        // state is needed to write it; the continuation depends on the state.
+        if ($form !== null && is_array($form['record'] ?? null)) {
+            yield from $this->handleEditFormTurn($user, $conversation, $form, $user->onboarding_fyn_step);
+
+            return;
         }
 
         $currentStateId = $user->onboarding_fyn_step;
@@ -415,6 +441,15 @@ final class OnboardingChatDirector
         // Fyn falsely advances claiming "I've added that". Route it to a dedicated
         // update-only handler before the generic delegated branch below.
         if ($currentStateId === 'campaign_verify_edit') {
+            // "Yes, that's right" / "Continue" / "It's all correct" leave the
+            // edit state (Brett, 2026-09-18, conversation 896: every one of
+            // those was fed to the edit model and failed, four turns running).
+            // A tapped record opens its form. Anything else is the typed edit.
+            $handled = yield from $this->handleVerifyEditReply($user, $conversation, $message, $currentStateId);
+            if ($handled) {
+                return;
+            }
+
             yield from $this->handleCampaignVerifyEdit($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
@@ -663,6 +698,38 @@ final class OnboardingChatDirector
     public function handleAction(User $user, AiConversation $conversation, string $action): \Generator
     {
         $currentStateId = $user->onboarding_fyn_step;
+
+        // A record chosen from the edit chooser ("edit:<type>:<id>") opens its
+        // form; a section chosen after "Can I change that answer?"
+        // ("edit_section:<section>") opens that section's chooser.
+        if (str_starts_with($action, 'edit:')) {
+            [, $type, $id] = array_pad(explode(':', $action, 3), 3, '');
+            $emitted = yield from $this->emitEditForm($user, $conversation, $type, (int) $id, $currentStateId);
+            if (! $emitted) {
+                $line = "I couldn't open that record. Tell me what should change and I'll do it.";
+                yield ['type' => 'content', 'text' => $line];
+                $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => array_filter(['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::VerifyPrompt->value])]);
+                yield ['type' => 'done', 'message_id' => $saved->id];
+            }
+
+            return;
+        }
+        if (str_starts_with($action, 'edit_section:')) {
+            $section = substr($action, strlen('edit_section:'));
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['verify_section'] = $section;
+            $context['verify_origin'] = 'interrupt';
+            $context['return_to_step'] = $context['return_to_step'] ?? $currentStateId;
+            $user->onboarding_fyn_context = $context;
+            $user->onboarding_fyn_step = 'campaign_verify_edit';
+            $user->save();
+            $handled = yield from $this->emitEditChooser($user, $conversation, $section, 'campaign_verify_edit');
+            if (! $handled) {
+                yield from $this->emitTurnForState($user, $conversation, 'campaign_verify_edit', OnboardingStateMachine::getState('campaign_verify_edit') ?? []);
+            }
+
+            return;
+        }
 
         switch ($action) {
             case 'resume':
@@ -1005,6 +1072,18 @@ final class OnboardingChatDirector
         int $adviceDepth = 0
     ): \Generator {
         $turnType = $state['turn_type'] ?? 'free_text';
+
+        // The verify page's "No, change something" opens the section's
+        // records to change — one record straight into its form with the
+        // values filled in, several as a choice (CSJ 2026-09-19). A section
+        // with nothing saved falls through to the typed prompt.
+        if ($stateId === 'campaign_verify_edit') {
+            $section = (string) (($user->onboarding_fyn_context['verify_section'] ?? '') ?: '');
+            $handled = yield from $this->emitEditChooser($user, $conversation, $section, $stateId);
+            if ($handled) {
+                return;
+            }
+        }
 
         // Advice turns are read-only and auto-advancing: Fyn relays the relevant
         // tax-engine recommendation for the section just completed, then we
@@ -1823,6 +1902,14 @@ final class OnboardingChatDirector
         string $message,
         ?string $currentRoute = null
     ): ?\Generator {
+        // "Can I change that answer?" is a request, not a question to answer
+        // (Laura, 2026-09-18, conversation 897: read-only Fyn said "Yes, you
+        // can" and the walk carried on). Offer the sections completed so far;
+        // the chosen one opens through the same edit pathway as the verify page.
+        if (self::isCorrectionRequest($message)) {
+            return $this->emitSectionChooser($user, $conversation, $currentStateId);
+        }
+
         if ($this->writeIntentClassifier->isQuestion($message)) {
             $primary = $this->queryClassifier->classify($message, $currentRoute)['primary'] ?? null;
 
@@ -5294,6 +5381,16 @@ PROMPT;
                 'type' => 'income_protection', 'id' => (int) $record->id,
                 'labels' => [$record->provider, 'income protection'],
             ]));
+        } elseif ($section === 'property') {
+            // Brett, 2026-09-18 (conversation 896): the property section had
+            // no scope at all, so "Mortgage is 300000" could never land.
+            $candidates = app(PropertyStore::class)->forUserWithJointOwner($user)->flatMap(fn ($record) => collect([[
+                'type' => 'property', 'id' => (int) $record->id,
+                'labels' => [$record->address_line_1, $record->property_type, 'property', 'home', 'house', 'value'],
+            ]])->concat($record->mortgages->map(fn ($mortgage): array => [
+                'type' => 'mortgage', 'id' => (int) $mortgage->id,
+                'labels' => [$mortgage->lender_name, 'mortgage', 'balance', 'loan'],
+            ])));
         } elseif ($section === 'goals') {
             $candidates = Goal::forUserOrJoint($user->id)->get()->map(fn ($record): array => [
                 'type' => 'goal', 'id' => (int) $record->id,
@@ -7009,6 +7106,259 @@ PROMPT;
      * writes nothing and completes the step (live 2026-07-23); the zero-output
      * guard lets it through and the refusal re-run leaves it alone.
      */
+    // ─── Record edits through the form (Batch 4, CSJ 2026-09-19) ───────────
+
+    /** "Can I change that answer?", "I made a mistake", "that was wrong". */
+    private static function isCorrectionRequest(string $message): bool
+    {
+        return preg_match('/\b(?:can|could|may)\s+i\s+(?:change|edit|correct|amend|fix|go\s+back)\b|\bchange\s+(?:that|my|the|an?|one|a\s+previous|an\s+earlier)\s+(?:answer|reply|entry|figure|number|value|detail)|\bi\s+(?:made|got)\s+(?:a|that|it)\s+(?:mistake|wrong)|\b(?:that|this|it)\s+(?:was|is)\s+(?:wrong|a\s+mistake|incorrect)|\bi\s+need\s+to\s+(?:change|correct|fix|amend)\b|\bgo\s+back\s+(?:and|to)\s+(?:change|fix|correct)\b/iu', $message) === 1;
+    }
+
+    /** "Change / update / correct / remove my …" — never "add another". */
+    private static function isEditRequest(string $message): bool
+    {
+        return preg_match('/\b(?:change|update|edit|correct|amend|fix|alter|adjust|delete|remove)\b/iu', $message) === 1
+            && preg_match('/\badd\s+(?:another|a\s+new|new|one\s+more)\b/iu', $message) !== 1;
+    }
+
+    /** "Yes, that's right", "continue", "it's all correct": leave the edit state. */
+    private static function isEditExit(string $message): bool
+    {
+        return self::isBareAffirmative($message)
+            || self::isCompletionDeclaration($message)
+            || preg_match('/^\s*(?:it(?:[\x{2019}\x{0027}]?s|\s+is)?\s+)?(?:all\s+)?(?:correct|fine|right|good|ok(?:ay)?)(?:\s+now)?[.!]?\s*$/iu', $message) === 1;
+    }
+
+    /**
+     * Offer the section's records to change. One record opens its form with
+     * the values filled in; several are offered as a choice. Returns false
+     * when the section holds nothing, so the caller can fall back.
+     *
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function emitEditChooser(User $user, AiConversation $conversation, string $section, ?string $stateId): \Generator
+    {
+        $candidates = app(RecordEditForms::class)->candidates($user, $section);
+        if ($candidates === []) {
+            return false;
+        }
+
+        if (count($candidates) === 1) {
+            $one = $candidates[0];
+            $emitted = yield from $this->emitEditForm($user, $conversation, $one['type'], (int) $one['id'], $stateId);
+            if ($emitted) {
+                return true;
+            }
+            // No form for this record type (a defined benefit pension): ask in
+            // words — the typed edit handles the reply.
+            $line = "What should change on {$one['label']}?";
+            yield ['type' => 'content', 'text' => $line];
+            $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => array_filter(['onboarding_step' => $stateId, 'turn_intent' => FynTurnIntent::VerifyPrompt->value])]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return true;
+        }
+
+        $bubbles = [];
+        foreach ($candidates as $candidate) {
+            $bubbles[] = ['id' => 'edit:'.$candidate['type'].':'.$candidate['id'], 'label' => $candidate['label']];
+        }
+        $prompt = 'Which one needs changing?';
+        $metadata = array_filter([
+            'onboarding_step' => $stateId,
+            'turn_intent' => FynTurnIntent::VerifyPrompt->value,
+            'bubbles' => $bubbles,
+            'action_bubbles' => true,
+        ]);
+        $saved = $this->saveMessage($conversation, 'assistant', $prompt, ['metadata' => $metadata]);
+        yield ['type' => 'quick_replies', 'prompt_text' => $prompt, 'bubbles' => $bubbles, 'action_bubbles' => true];
+        yield ['type' => 'done', 'message_id' => $saved->id];
+
+        return true;
+    }
+
+    /**
+     * The record's capture form, values filled in, the record named so the
+     * submit is an update. Returns false when the type has no form.
+     *
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function emitEditForm(User $user, AiConversation $conversation, string $type, int $id, ?string $stateId): \Generator
+    {
+        if (! $this->formsSupported()) {
+            return false;
+        }
+        $form = app(RecordEditForms::class)->formFor($user, $type, $id);
+        if ($form === null) {
+            return false;
+        }
+
+        $prompt = "Here's your {$form['label']} — change what needs changing and save.";
+        $metadata = array_filter([
+            'onboarding_step' => $stateId,
+            'turn_intent' => FynTurnIntent::VerifyPrompt->value,
+            'capture_form' => $form['schema'],
+            'capture_form_values' => $form['answers'],
+            'capture_form_record' => $form['record'],
+        ]);
+        $saved = $this->saveMessage($conversation, 'assistant', $prompt, ['metadata' => $metadata]);
+        yield [
+            'type' => 'capture_form',
+            'prompt_text' => $prompt,
+            'form' => $form['schema'],
+            'values' => $form['answers'],
+            'record' => $form['record'],
+        ];
+        yield ['type' => 'done', 'message_id' => $saved->id];
+
+        return true;
+    }
+
+    /**
+     * Mid-walk "Can I change that answer?": offer the sections with something
+     * saved, and remember where to come back to.
+     */
+    private function emitSectionChooser(User $user, AiConversation $conversation, string $currentStateId): \Generator
+    {
+        $forms = app(RecordEditForms::class);
+        $bubbles = [];
+        foreach (RecordEditForms::sections() as $section) {
+            if ($forms->candidates($user, $section) !== []) {
+                $bubbles[] = ['id' => 'edit_section:'.$section, 'label' => ucfirst(RecordEditForms::sectionLabel($section))];
+            }
+        }
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['return_to_step'] = $currentStateId;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        if ($bubbles === []) {
+            $line = 'Of course — nothing is saved yet, so just give me the right answer here.';
+            yield ['type' => 'content', 'text' => $line];
+            $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::InterruptionAnswer->value]]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        $prompt = 'Of course. What would you like to change?';
+        $saved = $this->saveMessage($conversation, 'assistant', $prompt, ['metadata' => [
+            'onboarding_step' => $currentStateId,
+            'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
+            'bubbles' => $bubbles,
+            'action_bubbles' => true,
+        ]]);
+        yield ['type' => 'quick_replies', 'prompt_text' => $prompt, 'bubbles' => $bubbles, 'action_bubbles' => true];
+        yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
+    /**
+     * A typed reply on the verify-edit state: an exit leaves it, a record's
+     * name opens its form. Returns false for anything else (the typed edit).
+     *
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function handleVerifyEditReply(User $user, AiConversation $conversation, string $message, string $currentStateId): \Generator
+    {
+        if (self::isEditExit($message)) {
+            yield from $this->leaveVerifyEdit($user, $conversation, $currentStateId);
+
+            return true;
+        }
+
+        $section = (string) (($user->onboarding_fyn_context['verify_section'] ?? '') ?: '');
+        $needle = mb_strtolower(trim($message));
+        foreach (app(RecordEditForms::class)->candidates($user, $section) as $candidate) {
+            if (mb_strtolower(trim($candidate['label'])) === $needle) {
+                $emitted = yield from $this->emitEditForm($user, $conversation, $candidate['type'], (int) $candidate['id'], $currentStateId);
+                if ($emitted) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Where the walk goes when the edit is done or declined: back to the
+     * interrupted step for a mid-walk correction, otherwise on as if the
+     * verify page had been confirmed.
+     */
+    private function leaveVerifyEdit(User $user, AiConversation $conversation, string $currentStateId): \Generator
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $returnTo = $context['return_to_step'] ?? null;
+        if (($context['verify_origin'] ?? '') === 'interrupt' && is_string($returnTo) && OnboardingStateMachine::getState($returnTo) !== null) {
+            unset($context['verify_origin'], $context['return_to_step']);
+            $user->onboarding_fyn_context = $context;
+            $user->onboarding_fyn_step = $returnTo;
+            $user->save();
+            yield ['type' => 'onboarding_advance', 'from_step' => $currentStateId, 'to_step' => $returnTo];
+            yield from $this->emitTurnForState($user, $conversation, $returnTo, OnboardingStateMachine::getState($returnTo));
+
+            return;
+        }
+
+        $this->recordProgress($user, $currentStateId, ['verify_section' => $context['verify_section'] ?? null, 'raw_message' => 'confirmed']);
+        yield from $this->advanceAfterCapture($user, $conversation, 'campaign_verify_navigate', "Yes, that's right", (string) ($user->onboarding_fyn_selection ?? 'savetax'));
+    }
+
+    /**
+     * A submitted edit form: write the change (or remove the record), read it
+     * back, then continue — re-show the verify page on the walk, return to the
+     * interrupted step after a correction, or simply stop after onboarding.
+     */
+    private function handleEditFormTurn(User $user, AiConversation $conversation, array $form, ?string $currentStateId): \Generator
+    {
+        $forms = app(RecordEditForms::class);
+        $record = (array) $form['record'];
+        yield ['type' => 'form_received', 'text' => ($form['delete'] ?? false) ? 'Remove this record.' : CaptureForms::summarise($form)];
+
+        $result = ($form['delete'] ?? false) === true
+            ? $forms->delete($user, (string) ($record['type'] ?? ''), (int) ($record['id'] ?? 0), $conversation->id)
+            : $forms->update($user, $form, $conversation->id);
+
+        if (! $result['success']) {
+            yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => ['_form' => ['message' => $result['message'], 'fields' => []]]];
+            yield ['type' => 'content', 'text' => $result['message']];
+            $saved = $this->saveMessage($conversation, 'assistant', $result['message'], ['metadata' => array_filter([
+                'onboarding_step' => $currentStateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ])]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        $this->coordinatingAgent->invalidateUserCache($user->id);
+        yield ['type' => 'content', 'text' => $result['message']];
+        $this->saveMessage($conversation, 'assistant', $result['message'], ['metadata' => array_filter([
+            'onboarding_step' => $currentStateId,
+            'turn_intent' => FynTurnIntent::CaptureAck->value,
+            'capture_record_id' => $record['id'] ?? null,
+        ])]);
+
+        if ($currentStateId === 'campaign_verify_edit') {
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            if (($context['verify_origin'] ?? '') === 'interrupt') {
+                yield from $this->leaveVerifyEdit($user, $conversation, $currentStateId);
+
+                return;
+            }
+            // Back to the page so the change can be seen, then Gate 2 again.
+            $user->onboarding_fyn_step = 'campaign_verify_navigate';
+            $user->save();
+            yield ['type' => 'onboarding_advance', 'from_step' => $currentStateId, 'to_step' => 'campaign_verify_navigate'];
+            yield from $this->emitTurnForState($user, $conversation, 'campaign_verify_navigate', OnboardingStateMachine::getState('campaign_verify_navigate'));
+
+            return;
+        }
+
+        yield ['type' => 'done'];
+    }
+
     /**
      * "Yes", "ok", "continue", "that's right" on its own: an acknowledgement
      * with nothing in it to capture. Only meaningful at a form state, where
@@ -7543,6 +7893,23 @@ PROMPT;
         ?array $confirmedFacts = null,
     ): \Generator {
         $allowedTools = $this->captureToolSet($context);
+
+        // The advice-side door of the edit pathway (Batch 4): "change my
+        // Halifax balance" opens the record's form rather than an LLM turn
+        // that has no record id to work with. A section with nothing saved
+        // says so and offers to add it.
+        $editSection = RecordEditForms::sectionForEntityType((string) ($context->entityTypes[0] ?? ''));
+        if ($editSection !== null && ! $context->isContinuation && self::isEditRequest($message)) {
+            $handled = yield from $this->emitEditChooser($user, $conversation, $editSection, null);
+            if (! $handled) {
+                $line = "You don't have any ".RecordEditForms::sectionLabel($editSection).' saved yet — tell me about it and I\'ll add it.';
+                yield ['type' => 'content', 'text' => $line];
+                $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => ['turn_intent' => FynTurnIntent::CaptureClarification->value]]);
+                yield ['type' => 'done', 'message_id' => $saved->id];
+            }
+
+            return;
+        }
 
         // Unified prompt seam: handleInlineCapture IS an asset-capture turn
         // (the advice-mode write handoff target — both the deterministic

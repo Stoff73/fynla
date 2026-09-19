@@ -195,7 +195,9 @@
             :disabled="streaming || loading"
             :locked="!isCaptureFormOpen(idx)"
             :values="captureFormValues(idx)"
+            :record="msg.metadata?.capture_form_record || null"
             @submit="handleCaptureFormSubmit"
+            @remove="handleCaptureFormSubmit"
           />
           <!-- Phase 13 — capture_complete record-card row -->
           <div
@@ -1283,7 +1285,9 @@ export default {
 
         captureFormValues(idx) {
             const answered = this.messages.slice(idx + 1).find((m) => m.role === 'user' && m.metadata?.form?.answers);
-            return answered ? answered.metadata.form.answers : null;
+            if (answered) return answered.metadata.form.answers;
+            // An edit form opens with the record's current values.
+            return this.messages[idx]?.metadata?.capture_form_values || null;
         },
 
         async handleCaptureFormSubmit(form) {

@@ -473,3 +473,18 @@ describe('onboardingChat mixin — skip id collision at the front door (MB-24)',
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+// Batch 4 (CSJ 2026-09-19): an edit form's values and record travel with the
+// live event and the restored transcript.
+describe('edit forms', () => {
+  const schema = { name: 'savings', submit_label: 'Save changes', edit: true, kinds: [{ key: 'current_account', label: 'Current account', fields: ['current_value'] }], fields: { current_value: { type: 'money', label: 'Balance', required: true } } };
+
+  it('keeps the values and record from a capture_form event', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.messages = [cursor.reply];
+    w.vm.handleFynEvent(cursor, { type: 'capture_form', prompt_text: 'Here it is.', form: schema, values: { current_account: { current_value: 150 } }, record: { type: 'savings_account', id: 7 } });
+    expect(cursor.reply.form.answers).toEqual({ current_account: { current_value: 150 } });
+    expect(cursor.reply.form.record).toEqual({ type: 'savings_account', id: 7 });
+  });
+});

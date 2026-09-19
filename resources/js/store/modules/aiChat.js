@@ -44,7 +44,13 @@ function captureFormMessage(event) {
         id: 'cf_' + Date.now(),
         role: 'capture_form',
         content: '',
-        metadata: { capture_form: event.form || null, errors: null },
+        metadata: {
+            capture_form: event.form || null,
+            // An edit form: the record's values and the record it changes.
+            capture_form_values: event.values || null,
+            capture_form_record: event.record || null,
+            errors: null,
+        },
         created_at: new Date().toISOString(),
     };
 }
@@ -516,7 +522,7 @@ const actions = {
                         id: `cf_${m.id}`,
                         role: 'capture_form',
                         content: '',
-                        metadata: { capture_form: captureForm, errors: null },
+                        metadata: { capture_form: captureForm, capture_form_values: m.metadata?.capture_form_values || null, capture_form_record: m.metadata?.capture_form_record || null, errors: null },
                         created_at: m.created_at,
                     });
                     continue;

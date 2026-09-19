@@ -39,6 +39,11 @@ final class SendAiChatMessageRequest extends FormRequest
             // investments form). `required` treats an empty array as missing;
             // the key's presence is checked in withValidator instead.
             'form.answers' => ['array'],
+            // An edit form names the record it changes; `delete` removes it.
+            'form.record' => ['sometimes', 'array'],
+            'form.record.type' => ['required_with:form.record', 'string', 'max:40'],
+            'form.record.id' => ['required_with:form.record', 'integer', 'min:1'],
+            'form.delete' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -68,9 +73,13 @@ final class SendAiChatMessageRequest extends FormRequest
                 }
             }
             $answers = (array) ($form['answers'] ?? []);
+            // An edit form (one naming its record) carries no ownership
+            // fields: ownership is not editable on a form.
+            $isEdit = is_array($form['record'] ?? null);
             $rules = array_filter(
                 CaptureForms::rules((string) $form['name']),
-                static fn (string $key): bool => array_key_exists(strtok($key, '.'), $answers),
+                static fn (string $key): bool => array_key_exists(strtok($key, '.'), $answers)
+                    && ! ($isEdit && in_array(substr($key, strpos($key, '.') + 1), ['ownership_type', 'ownership_percentage'], true)),
                 ARRAY_FILTER_USE_KEY,
             );
             $nested = ValidatorFacade::make($answers, $rules);

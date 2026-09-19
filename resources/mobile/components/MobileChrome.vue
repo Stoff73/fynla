@@ -166,7 +166,9 @@
             :disabled="sending"
             :locked="m.form.locked"
             :values="m.form.answers"
+            :record="m.form.record || null"
             @submit="submitCaptureForm"
+            @remove="submitCaptureForm"
           />
         </div>
       </div>
