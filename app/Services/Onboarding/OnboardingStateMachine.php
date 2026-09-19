@@ -1206,6 +1206,19 @@ final class OnboardingStateMachine
                 ?? self::nextCampaignSection($section, $user->refresh());
         }
 
+        // The user declared they have none of these ("I don't have
+        // investments", or the form saved with nothing chosen) and nothing was
+        // captured: there is no page to check and no section advice to give,
+        // so carry straight on. Laura, 2026-09-18 (conversation 897) was walked
+        // to an empty investments page and asked whether it looked right.
+        // Keyed on the declaration, not on emptiness alone — every other data
+        // entry still verifies (CSJ 2026-07-24).
+        if (self::sectionDeclaredNone($user, $section) && ! self::journeySectionHasData($user->refresh(), $section)) {
+            return ($user->onboarding_fyn_path ?? '') === 'campaign'
+                ? self::nextCampaignSection($section, $user)
+                : self::journeyAfterVerify($section, $user);
+        }
+
         // Announce first: Fyn states it's taking the user to the section page and
         // waits for an "Okay" tap before navigating (campaign_verify_announce →
         // campaign_verify_navigate). The section's own capture "anything else?"
@@ -1332,6 +1345,26 @@ final class OnboardingStateMachine
             'expenditure' => self::journeyFocusEntry($user),
             default => self::STATE_ADD_MORE,
         };
+    }
+
+    /**
+     * Did the user declare "none" for this section's capture form during this
+     * walk? OnboardingChatDirector::emitNothingToAdd records the form name in
+     * onboarding_fyn_context.declared_none.
+     */
+    private static function sectionDeclaredNone(User $user, string $section): bool
+    {
+        $declared = (array) ($user->onboarding_fyn_context['declared_none'] ?? []);
+        $forms = match ($section) {
+            'savings' => [CaptureForms::SAVINGS, CaptureForms::ISA],
+            'investments' => [CaptureForms::INVESTMENT],
+            'pensions' => [CaptureForms::PENSION, CaptureForms::PENSION_PERSONAL],
+            'protection' => [CaptureForms::PROTECTION],
+            'estate' => [CaptureForms::PROPERTY],
+            default => [],
+        };
+
+        return array_intersect($forms, $declared) !== [];
     }
 
     /**

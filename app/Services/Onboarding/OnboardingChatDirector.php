@@ -3809,6 +3809,14 @@ PROMPT;
         $inputs = CaptureForms::toolInputs($form);
         $schema = CaptureForms::schema($form['name']) ?? [];
 
+        if ($inputs === [] && ! empty($schema['allow_empty'])) {
+            // Nothing chosen on a form that allows it IS the answer: the user
+            // has none of these (Laura, 2026-09-18, investments).
+            yield from $this->emitNothingToAdd($user, $conversation, $currentStateId, $message, (string) $form['name']);
+
+            return;
+        }
+
         if ($inputs === []) {
             // Nothing recognisable was filled in. Never advance on an empty form.
             $line = 'Fill in at least one before saving.';
@@ -3963,6 +3971,18 @@ PROMPT;
         array $state = []
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
+
+        // A form state answered in words with "none" — or a bare "yes" /
+        // "continue" while the form sits on screen — writes nothing and
+        // completes the step. No model call: live 2026-09-18 (Laura,
+        // conversation 897) the model acknowledged "I don't have investment"
+        // and the zero-output guard still re-asked, four turns running.
+        if (isset($state['form'])
+            && (self::isCompletionDeclaration($message) || self::isBareAffirmative($message))) {
+            yield from $this->emitNothingToAdd($user, $conversation, $currentStateId, $message, (string) $state['form']);
+
+            return;
+        }
         // The state's true capture focus for the deterministic gap-fill.
         // Campaign users carry selection 'savetax'/'pensioncheck', which maps
         // to NO gap-fill tool — so the rescue mechanism never ran on any
@@ -6989,14 +7009,52 @@ PROMPT;
      * writes nothing and completes the step (live 2026-07-23); the zero-output
      * guard lets it through and the refusal re-run leaves it alone.
      */
+    /**
+     * "Yes", "ok", "continue", "that's right" on its own: an acknowledgement
+     * with nothing in it to capture. Only meaningful at a form state, where
+     * the form on screen is the way to add something.
+     */
+    private static function isBareAffirmative(string $message): bool
+    {
+        return preg_match('/^\s*(?:yes|yep|yeah|ok|okay|sure|fine|continue|next|carry\s+on|correct|all\s+good|looks\s+good|(?:yes,?\s+)?that[\x{2019}\x{0027}]?s\s+(?:right|fine|correct))[.!]?\s*$/iu', $message) === 1;
+    }
+
+    /**
+     * Nothing to add at this step: say so once, remember the declaration
+     * (the tax strategy's data-availability check reads it), and advance.
+     */
+    private function emitNothingToAdd(User $user, AiConversation $conversation, string $currentStateId, string $message, string $formName): \Generator
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $declared = array_values(array_unique(array_merge((array) ($context['declared_none'] ?? []), [$formName])));
+        $context['declared_none'] = $declared;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        $line = 'Noted — nothing to add here.';
+        yield ['type' => 'content', 'text' => $line];
+        $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
+            'onboarding_step' => $currentStateId,
+            'turn_intent' => FynTurnIntent::CaptureAck->value,
+        ]]);
+
+        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, 'no', (string) ($user->onboarding_fyn_selection ?? 'savings'));
+    }
+
     private static function isCompletionDeclaration(string $message): bool
     {
         // "No" / "none" / "that's everything" at the start, or the everyday
         // "I don't have any …" / "I have no …" / "not got any …" / "nothing else"
         // (csjones user 403, 2026-09-16: "I don't have any other investments"
         // at the investment form fell to "Sorry, I didn't catch that").
+        // …and the bare-noun form, "I don't have investments" (Laura,
+        // 2026-09-18, conversation 897: acknowledged, then re-asked). The noun
+        // list keeps "I don't have the exact figure, about 20k" as an answer.
+        $nouns = 'investments?|accounts?|savings|pensions?|isas?|propert(?:y|ies)|polic(?:y|ies)|cover|insurance|goals?|debts?|loans?|mortgages?|dependants?|children|kids|gifts?|trusts?|shares|funds?|holdings?';
+
         return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1
-            || preg_match('/^\s*(?:i\s+)?(?:don[\x{2019}\x{0027}]?t|do\s+not|haven[\x{2019}\x{0027}]?t|have\s+not)\s+(?:have|got)\s+(?:any|one|another|an?)\b|^\s*i\s+have\s+(?:no|none)\b|^\s*(?:i[\x{2019}\x{0027}]?ve\s+)?not\s+got\s+(?:any|one|an?)\b|\bnothing\s+else\b|\bno\s+other\b/iu', $message) === 1;
+            || preg_match('/^\s*(?:i\s+)?(?:don[\x{2019}\x{0027}]?t|do\s+not|haven[\x{2019}\x{0027}]?t|have\s+not)\s+(?:have|got)\s+(?:any|one|another|an?)\b|^\s*i\s+have\s+(?:no|none)\b|^\s*(?:i[\x{2019}\x{0027}]?ve\s+)?not\s+got\s+(?:any|one|an?)\b|\bnothing\s+else\b|\bno\s+other\b/iu', $message) === 1
+            || preg_match('/^\s*(?:i\s+)?(?:don[\x{2019}\x{0027}]?t|do\s+not|haven[\x{2019}\x{0027}]?t|have\s+not)\s+(?:have|got)\s+(?:any\s+|other\s+)?(?:'.$nouns.')\b/iu', $message) === 1;
     }
 
     private function messageHasSubstantiveAnswer(string $message): bool

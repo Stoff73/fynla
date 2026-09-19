@@ -214,3 +214,23 @@ it('accepts the spouse household form with its lead income under _lead', functio
         'isa' => ['spouse_isa_balance' => 12000],
     ]]])->assertOk();
 });
+
+// Laura, 2026-09-18: an allow_empty form saved with nothing chosen posts
+// `answers: {}`. `required` treats an empty array as missing, so the request
+// was refused with 422 before the director could read it as "none" — a gap
+// the director-level tests could not see.
+it('accepts an allow_empty form saved with nothing chosen and records the declaration', function (): void {
+    $user = formStepHttpUser();
+    $user->forceFill(['onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS])->save();
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding']);
+    Sanctum::actingAs($user);
+    FynStreamHarness::fake()->bind();
+
+    $body = $this->withHeader('X-Fynla-Forms', '1')
+        ->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['form' => ['name' => 'investment', 'answers' => []]])
+        ->assertOk()->streamedContent();
+
+    expect($body)->toContain('Noted')
+        ->and($body)->toContain('"type":"onboarding_advance"')
+        ->and($user->fresh()->onboarding_fyn_context['declared_none'] ?? [])->toContain('investment');
+});

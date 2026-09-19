@@ -225,3 +225,30 @@ describe('FynCaptureForm', () => {
     expect(w.emitted('submit')[0][0]).toEqual({ name: 'spouse_details', answers: { _lead: { first_name: 'Jamie', email: 'jamie@example.com' } } });
   });
 });
+
+// Laura, 2026-09-18: "Employer and trading name doesn't allow spaces". The
+// input is :value-bound, so trimming on every keystroke wrote the trimmed
+// value back over the space just typed. Trimming belongs to submit.
+describe('FynCaptureForm text fields', () => {
+  const textSchema = {
+    name: 'work', submit_label: 'Save', lead_fields: ['employer'], kinds: [],
+    fields: { employer: { type: 'text', label: 'Employer or trading name', required: true } },
+  };
+
+  it('keeps a space typed mid-word in the field and trims only on submit', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: textSchema } });
+    const input = w.find('input[name="_lead.employer"]');
+    await input.setValue('Acme ');
+    expect(input.element.value).toBe('Acme ');
+    await input.setValue('Acme Widgets ');
+    expect(input.element.value).toBe('Acme Widgets ');
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'work', answers: { _lead: { employer: 'Acme Widgets' } } });
+  });
+
+  it('a field holding only spaces does not satisfy required', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: textSchema } });
+    await w.find('input[name="_lead.employer"]').setValue('   ');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+  });
+});

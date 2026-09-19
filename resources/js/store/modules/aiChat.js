@@ -175,7 +175,7 @@ const mutations = {
     },
 
     // A form answer sends no message text, so the optimistic user bubble
-    // starts as a placeholder ("Saving your property details…") and is
+    // starts as a placeholder ("Saving your details…") and is
     // rewritten to the server's plain-English summary once the
     // `form_received` SSE event arrives.
     SET_TEMP_USER_CONTENT(state, { id, content }) {
@@ -587,7 +587,7 @@ const actions = {
         // input rendered as visible text in the bubble (escaped, but ugly).
         // A form answer has no typed text yet — show a placeholder until the
         // server's `form_received` event supplies the plain-English summary.
-        const displayMessage = form ? 'Saving your property details…' : stripTags(message);
+        const displayMessage = form ? 'Saving your details…' : stripTags(message);
         const tempId = 'temp_' + Date.now();
 
         commit('ADD_MESSAGE', {

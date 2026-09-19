@@ -379,6 +379,9 @@ export default {
         return;
       }
       if (ev.type === 'onboarding_advance') {
+        // Keep the user snapshot's step current so MobileChrome shows the
+        // verify Continue/Edit only on a verify step.
+        if (store.user && ev.to_step) store.user.onboarding_fyn_step = ev.to_step;
         // New onboarding turn — open a fresh bubble so the just-streamed
         // acknowledgement and the upcoming prompt render as separate messages.
         if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -543,7 +546,7 @@ export default {
         return;
       }
       if (ev.type === 'form_received') {
-        // The placeholder user row ("Saving your property details…") stands
+        // The placeholder user row ("Saving your details…") stands
         // in for the form until the server confirms what it actually saved.
         const placeholder = [...this.messages].reverse().find((m) => m.role === 'user' && m.formPlaceholder);
         if (placeholder) { placeholder.text = ev.text || placeholder.text; delete placeholder.formPlaceholder; }
@@ -642,7 +645,7 @@ export default {
         if (m.form) m.form = { ...m.form, locked: true };
       });
       this.messages.push(form
-        ? { role: 'user', text: 'Saving your property details…', bubbles: [], formPlaceholder: true }
+        ? { role: 'user', text: 'Saving your details…', bubbles: [], formPlaceholder: true }
         : { role: 'user', text, bubbles: [] });
       const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
       this.messages.push(cursor.reply);
