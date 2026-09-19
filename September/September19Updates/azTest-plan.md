@@ -227,3 +227,37 @@ both surfaces. Purge the test accounts afterwards.
 **Not in scope, reported only:** the Free plan cap of two accounts and two
 properties stopped Laura mid-walk (897: 2387, 2418); four copies of the
 `capture_form` event switch in `aiChat.js`; the dead `SaveTaxCampaignPage.vue`.
+
+---
+
+## Status — 2026-09-19, end of build
+
+All eight batches are built, tested and pushed as a **stacked** set of PRs into `dev`.
+Merge in this order (each contains the ones before it until they land):
+
+| Order | PR | Branch | Verified live locally |
+|---|---|---|---|
+| 1 | #907 | `merge/docs-bugs-fixed-log` | /m two-factor login step (Batch 2) |
+| 2 | #908 | `fix/az-batch1-forms` | spaces in text fields, "none" at investments, empty save, verify pills, registration wrap — on /m |
+| 3 | #909 | `fix/az-batch4-fyn-edit-forms` | Brett's sequence on /m AND web: prefilled property form, mortgage £400,000 → £300,000, read-back, page refreshed |
+| 4 | #910 | `fix/az-batch3-spouse-invitation` | web: invitation link prefills registration, registering links both accounts, £230,000 handed over, campaign copied. **Carries a migration.** |
+| 5 | #911 | `fix/az-batch5-tax-strategy` | tests only (declared none, locked semantics, copy) |
+| 6 | #912 | `fix/az-batch6-tone-landing` | web: landing page single and with a partner (14 cards, Yours / Your partner's, "10 of 14") |
+| 7 | #913 | `fix/az-batch7-8-m-login-verify` | /m login shows "Forgotten your password?" |
+
+**Blocked:** the csjones deploy and browser pass, and therefore every admin-merge,
+wait on the `fynlaDev` SSH key being unlocked in the session (`! ssh-add ~/.ssh/fynlaDev`).
+
+**Not done, on evidence:** 5.4 (the byte-identical repeated reply) needs a model run
+against Laura's transcript before a fix; only the tool-narration leak was addressed.
+
+**Found on the way, fixed inside the batches:** the HTTP layer refused an empty form
+with 422 (the director-level test was green over it); the property and protection
+pages on both surfaces did not refetch after an edit on the same screen; the advice
+side held a different director instance so the forms flag never reached it; two tests
+had been red on `dev` since 2026-09-17 asserting the old family-review routing.
+
+**Reported, not in scope:** the Free plan cap of two accounts and two properties
+stopped Laura mid-walk; four copies of the `capture_form` switch in `aiChat.js`;
+the dead `SaveTaxCampaignPage.vue`; `/m` Playwright clicks inside the host iframe
+do not reach Vue handlers in this session (DOM `.click()` does), a tooling quirk.
