@@ -250,3 +250,32 @@ describe('MobileChrome.vue', () => {
     });
   });
 });
+
+// Laura, 2026-09-18 (production conversation 897): the on-page Continue/Edit
+// pills sent "Yes, that's right" and "No, change something" from the
+// investments FORM step, where neither is an answer. They are verify answers,
+// so they show only on a verify step; every other step gets one way back in.
+describe('on-page onboarding actions by step', () => {
+  it('shows Continue and Edit on a verify step', async () => {
+    store.token = 'live-token';
+    store.user = { id: 1, onboarding_completed: false, onboarding_fyn_step: 'campaign_verify_navigate', active_campaign: null };
+    const wrapper = mountChrome();
+    await flushPromises();
+    const labels = wrapper.findAll('.md-verify-actions button').map((b) => b.text());
+    expect(labels).toEqual(['Continue', 'Edit']);
+  });
+
+  it('shows only Continue with Fyn on a form step', async () => {
+    store.token = 'live-token';
+    store.user = { id: 1, onboarding_completed: false, onboarding_fyn_step: 'campaign_investment_accounts', active_campaign: null };
+    const wrapper = mountChrome();
+    await flushPromises();
+    const openSpy = vi.spyOn(wrapper.vm, 'openFyn').mockResolvedValue();
+    const sendSpy = vi.spyOn(wrapper.vm, 'send').mockImplementation(() => {});
+    const buttons = wrapper.findAll('.md-verify-actions button');
+    expect(buttons.map((b) => b.text())).toEqual(['Continue with Fyn']);
+    await buttons[0].trigger('click');
+    expect(openSpy).toHaveBeenCalled();
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+});

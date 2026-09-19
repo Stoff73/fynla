@@ -450,3 +450,50 @@ it('on the pension check path the pension form also retires the typed personal-p
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
     expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB);
 });
+
+// Laura, 2026-09-18 (production conversation 897): at the investments form
+// she typed "I don't have investment", was told "Recorded — no investments."
+// and then "Sorry, I didn't catch that" four times running. Nothing to add
+// is an answer, given in words or by saving the form with nothing chosen.
+it('advances the investments form on a typed "none", a bare "yes" and an empty save, with no model call', function (string $typed): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    $conversation = accountConversation($user);
+    FynStreamHarness::fake()->bind();
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, $typed, null, true, null), false);
+
+    expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('Noted — nothing to add here.')
+        ->and(collect($events)->firstWhere('type', 'onboarding_advance'))->not->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE)
+        ->and($user->fresh()->onboarding_fyn_context['declared_none'] ?? [])->toContain('investment');
+})->with(["I don't have investment", "I don't have investment accounts", "Yes, that's right", 'ok']);
+
+it('an investments form saved with nothing chosen is the answer none', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    $conversation = accountConversation($user);
+
+    $events = submitForm($user, $conversation, ['name' => 'investment', 'answers' => []]);
+
+    expect(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('Noted — nothing to add here.')
+        ->and(InvestmentAccount::where('user_id', $user->id)->count())->toBe(0)
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        ->and($user->fresh()->onboarding_fyn_context['declared_none'] ?? [])->toContain('investment');
+});
+
+it('a spouse whose income the user does not know is saved without an income, not as zero', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+    $conversation = accountConversation($user);
+
+    $events = submitForm($user, $conversation, ['name' => 'spouse_household', 'answers' => [
+        '_lead' => ['spouse_annual_income' => null],
+        'isa' => ['spouse_isa_balance' => 12000],
+    ]]);
+
+    $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+    expect(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and($row)->not->toBeNull()
+        ->and($row->spouse_annual_income)->toBeNull()
+        ->and((float) $row->spouse_isa_balance)->toBe(12000.0);
+});

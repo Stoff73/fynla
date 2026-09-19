@@ -26,9 +26,14 @@ export const captureFormMixin = {
       open[kind.key] = Boolean(given);
       answers[kind.key] = given ? { ...given } : {};
       none[kind.key] = {};
-      if (given && Object.prototype.hasOwnProperty.call(given, 'mortgage_outstanding_balance') && given.mortgage_outstanding_balance === null) {
-        none[kind.key].mortgage_outstanding_balance = true;
-      }
+      // A null on a money_or_none field is the "none" answer, restored as the
+      // ticked box (the mortgage's "No mortgage", the spouse income's "I don't know").
+      kind.fields.forEach((fieldKey) => {
+        if (given && this.schema.fields[fieldKey]?.type === 'money_or_none' && given[fieldKey] === null) none[kind.key][fieldKey] = true;
+      });
+    });
+    (this.schema.lead_fields || []).forEach((fieldKey) => {
+      if (this.schema.fields[fieldKey]?.type === 'money_or_none' && lead[fieldKey] === null) none._lead[fieldKey] = true;
     });
     return { open, answers, none };
   },
@@ -80,7 +85,7 @@ export const captureFormMixin = {
     inputId(kindKey, fieldKey) { return `fyn-form-${kindKey}-${fieldKey}`; },
     isNone(kindKey, fieldKey) { return Boolean(this.none[kindKey] && this.none[kindKey][fieldKey]); },
     hasNumber(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'number' && !Number.isNaN(v); },
-    hasText(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'string' && v !== ''; },
+    hasText(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'string' && v.trim() !== ''; },
     // A percent field's bounds come from the schema; the defaults are the ownership-share range.
     percentAttrs(fieldKey) { const f = this.field(fieldKey); return { min: f.min ?? 0.01, max: f.max ?? 99.99, step: f.step ?? 0.01 }; },
     conditionMet(kindKey, fieldKey) {
@@ -98,8 +103,12 @@ export const captureFormMixin = {
       const n = raw === '' ? null : Number(raw);
       this.answers[kindKey] = { ...this.answers[kindKey], [fieldKey]: n === null || Number.isNaN(n) ? undefined : n };
     },
+    // Never trim here: the input is :value-bound, so a trimmed model value is
+    // written straight back over the space the user just typed and no text
+    // field can ever hold a space (Laura, 2026-09-18: "Employer and trading
+    // name doesn't allow spaces"). Trimming happens on submit.
     setText(kindKey, fieldKey, raw) {
-      const t = String(raw ?? '').trim();
+      const t = String(raw ?? '');
       this.answers[kindKey] = { ...this.answers[kindKey], [fieldKey]: t === '' ? undefined : t };
     },
     setNone(kindKey, fieldKey, checked) {
@@ -122,7 +131,8 @@ export const captureFormMixin = {
       this.sections.forEach((kind) => {
         const out = {};
         this.visibleFields(kind).forEach((fieldKey) => {
-          const v = this.answers[kind.key][fieldKey];
+          let v = this.answers[kind.key][fieldKey];
+          if (typeof v === 'string') { v = v.trim(); if (v === '') return; }
           if (v !== undefined) out[fieldKey] = v;
         });
         answers[kind.key] = out;

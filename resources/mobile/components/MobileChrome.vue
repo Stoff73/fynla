@@ -51,9 +51,16 @@
          mid-onboarding user here to check a section, these replace the old nudge
          banner. Continue confirms and carries the onboarding on; Edit opens Fyn
          to change the details. Styled as the chat quick-reply pills. -->
-    <div v-if="showOnboardingNudge" class="md-verify-actions">
+    <div v-if="showVerifyActions" class="md-verify-actions">
       <button type="button" class="md-fyn__bubble" :disabled="sending" @click="verifyContinue">Continue</button>
       <button type="button" class="md-fyn__bubble" :disabled="sending" @click="verifyEdit">Edit</button>
+    </div>
+    <!-- Any other mid-onboarding step: one way back into the chat. The verify
+         answers above are only answers on a verify step — sent at a form step
+         they landed "Yes, that's right" in the investments form (Laura,
+         2026-09-18, conversation 897). -->
+    <div v-else-if="showOnboardingNudge" class="md-verify-actions">
+      <button type="button" class="md-fyn__bubble" :disabled="sending" @click="openFyn">Continue with Fyn</button>
     </div>
 
     <!-- Docked Fyn bar -->
@@ -262,6 +269,9 @@ export default {
     // onboardingActive comes from the onboardingChat mixin.
     showOnboardingNudge() {
       return this.onboardingActive && !this.fynOpen;
+    },
+    showVerifyActions() {
+      return this.showOnboardingNudge && String(store.user?.onboarding_fyn_step || '').startsWith('campaign_verify_');
     },
     fynIcon() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/Fyn/Fynla-Fyn-Icon.png';

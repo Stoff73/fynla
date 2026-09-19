@@ -1188,7 +1188,9 @@
 .md-drawer__nav {
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  /* Inside the /m iframe the safe-area inset resolves to zero, so a static
+     pad keeps Sign out clear of the home-indicator strip (iPhone mini, 2026-09-18). */
+  padding: 0.5rem 0.75rem calc(3rem + env(safe-area-inset-bottom, 0px));
 }
 .md-drawer__section { padding: 0.25rem 0; }
 .md-drawer__section + .md-drawer__section {

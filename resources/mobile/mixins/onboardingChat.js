@@ -379,6 +379,9 @@ export default {
         return;
       }
       if (ev.type === 'onboarding_advance') {
+        // Keep the user snapshot's step current so MobileChrome shows the
+        // verify Continue/Edit only on a verify step.
+        if (store.user && ev.to_step) store.user.onboarding_fyn_step = ev.to_step;
         // New onboarding turn — open a fresh bubble so the just-streamed
         // acknowledgement and the upcoming prompt render as separate messages.
         if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {

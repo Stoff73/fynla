@@ -212,7 +212,7 @@
           </button>
         </div>
 
-        <p class="text-center text-xs text-neutral-500 whitespace-nowrap">
+        <p class="text-center text-xs text-neutral-500">
           By creating an account, you agree to our <router-link to="/terms" class="text-raspberry-500 hover:text-raspberry-600 underline">Terms of Service</router-link> and <router-link to="/privacy" class="text-raspberry-500 hover:text-raspberry-600 underline">Privacy Policy</router-link>
         </p>
       </form>

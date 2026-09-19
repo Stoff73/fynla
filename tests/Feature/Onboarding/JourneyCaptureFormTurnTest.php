@@ -190,9 +190,11 @@ it('saves one dependant from the form, asks for another, re-opens the form witho
     expect(FamilyMember::where('user_id', $user->id)->whereIn('relationship', ['child', 'parent'])->count())->toBe(2)
         ->and(collect($second)->where('type', 'content')->pluck('text')->implode(' '))->toContain('2 dependants added');
 
-    // No: on to the family review exactly where the detail step used to go.
+    // No: on to the family verify loop (PR #903, 2026-09-17), which continues
+    // into work and income exactly where the in-chat review used to lead.
     iterator_to_array($director->handleUserMessage($user->fresh(), $conversation, "No, that's everything", null, true), false);
-    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY);
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('family');
 });
 
 it('emits the work form with the funnel recap for a Save Tax arrival and the short lead-in on the journey path', function (): void {
