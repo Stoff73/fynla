@@ -39,6 +39,7 @@ class PendingRegistration extends Model
         'referral_code',
         'signup_source',
         'funnel_answers',
+        'spouse_invitation_token',
         'expires_at',
     ];
 
@@ -88,6 +89,9 @@ class PendingRegistration extends Model
                 'referral_code' => $data['referral_code'] ?? null,
                 'signup_source' => $data['signup_source'] ?? $existing?->signup_source,
                 'funnel_answers' => $data['funnel_answers'] ?? $existing?->funnel_answers,
+                // The spouse invitation the registrant arrived from, consumed
+                // when the account is created (verifyCode).
+                'spouse_invitation_token' => $data['spouse_invitation_token'] ?? $existing?->spouse_invitation_token,
                 'expires_at' => now()->addHours(self::EXPIRY_HOURS),
             ]
         );

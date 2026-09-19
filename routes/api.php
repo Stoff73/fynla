@@ -156,6 +156,8 @@ Route::prefix('auth')->group(function () {
     // limiter definitions + rationale in RouteServiceProvider::boot().
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-5');
     Route::post('/registration-handoff/resolve', [AuthController::class, 'resolveRegistrationHandoff'])->middleware('throttle:auth-5');
+    // A spouse invitation link's prefill for the registration page.
+    Route::get('/spouse-invitation/{token}', [AuthController::class, 'spouseInvitation'])->middleware('throttle:auth-10');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-5');
     Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:auth-10');
     Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:auth-5');

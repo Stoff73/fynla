@@ -108,7 +108,14 @@
             <section class="md-recs is-open" :aria-label="activeCard.label + ' actions'">
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
-                  <li v-if="!visibleActions.length" class="md-rec md-rec--empty">
+                  <li v-if="!visibleActions.length && onboardingActive" class="md-rec md-rec--empty">
+                    <!-- Mid-walk the list is empty by design; say what fills it
+                         (Azlan, 2026-09-18: "an empty list of actions"). -->
+                    <button type="button" class="md-rec__action" @click="openFyn">
+                      <span class="md-rec__text"><span class="md-rec__title">Finish setting up with Fyn to unlock your actions.</span></span>
+                    </button>
+                  </li>
+                  <li v-else-if="!visibleActions.length" class="md-rec md-rec--empty">
                     <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">Nothing to action right now — add more details to unlock your next actions.</span></span></span>
                   </li>
                   <li

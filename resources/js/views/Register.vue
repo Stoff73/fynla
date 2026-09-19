@@ -95,6 +95,10 @@
           </div>
         </div>
 
+        <p v-if="invitation" class="mb-4 text-body-sm text-horizon-700 text-center">
+          {{ invitation.inviter_first_name }} has invited you to plan together. Your details are filled in — set a password to get started.
+        </p>
+
         <div class="space-y-4">
           <!-- First Name -->
           <div>
@@ -255,6 +259,10 @@ export default {
     const router = useRouter();
     const route = router.currentRoute.value;
     const initialHandoff = typeof route.query.handoff === 'string' ? route.query.handoff : '';
+    // A spouse invitation link (?invite=<token>): the page opens with the
+    // invitee's details filled in and the accounts link on sign-up.
+    const inviteToken = typeof route.query.invite === 'string' ? route.query.invite : '';
+    const invitation = ref(null);
     if (initialHandoff) {
       const cleanUrl = new URL(window.location.href);
       cleanUrl.searchParams.delete('handoff');
@@ -308,6 +316,17 @@ export default {
     const referralCode = route.query.ref || null;
 
     onMounted(async () => {
+      if (inviteToken) {
+        try {
+          const response = await api.get(`/auth/spouse-invitation/${encodeURIComponent(inviteToken)}`);
+          invitation.value = response.data;
+          if (response.data.first_name && !form.value.first_name) form.value.first_name = response.data.first_name;
+          if (response.data.email && !form.value.email) form.value.email = response.data.email;
+        } catch {
+          invitation.value = null;
+        }
+      }
+
       const handoff = initialHandoff;
       if (handoff.length === 0) return;
 
@@ -391,6 +410,7 @@ export default {
         const payload = {
           ...form.value,
           surname: form.value.last_name,
+          ...(inviteToken ? { invite_token: inviteToken } : {}),
         };
         delete payload.last_name;
 
@@ -570,6 +590,7 @@ export default {
     };
 
     return {
+      invitation,
       form,
       errors,
       errorMessage,

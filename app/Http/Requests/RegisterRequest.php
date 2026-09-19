@@ -128,6 +128,8 @@ class RegisterRequest extends FormRequest
             'signup_source' => ['nullable', 'string', Rule::in(self::ALLOWED_SIGNUP_SOURCES)],
             // /savetax acquisition-funnel answers (coarse hints carried from the
             // public funnel via localStorage). Validated loosely at the boundary.
+            // The spouse invitation the registrant arrived from (email link).
+            'invite_token' => ['nullable', 'string', 'max:80'],
             'funnel_answers' => ['nullable', 'array'],
             'funnel_answers.campaign' => ['nullable', 'string', 'max:40'],
             'funnel_answers.employment' => ['nullable', 'string', Rule::in(self::EMPLOYMENT_VALUES)],

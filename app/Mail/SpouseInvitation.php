@@ -26,6 +26,7 @@ class SpouseInvitation extends Mailable
     public function __construct(
         public string $invitedEmail,
         public string $inviterName,
+        public ?string $token = null,
     ) {}
 
     public function envelope(): Envelope
@@ -43,10 +44,11 @@ class SpouseInvitation extends Mailable
             with: [
                 'invitedEmail' => $this->invitedEmail,
                 'inviterName' => $this->inviterName,
-                // No prefill parameter: nothing on the register screen reads one
-                // today, so a query string here would be decoration. The body
-                // names the address instead.
-                'registerUrl' => rtrim((string) config('app.url'), '/').'/register',
+                // The token opens the registration page with the invitee's
+                // details filled in and links the accounts on sign-up
+                // (CSJ 2026-09-19).
+                'registerUrl' => rtrim((string) config('app.url'), '/').'/register'
+                    .($this->token !== null ? '?invite='.urlencode($this->token) : ''),
             ],
         );
     }
