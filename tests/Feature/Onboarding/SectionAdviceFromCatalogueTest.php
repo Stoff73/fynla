@@ -85,3 +85,20 @@ it('returns null for unmapped sections (giving, expenditure)', function () {
     expect(invokeSectionAdvice($user->fresh(), 'giving'))->toBeNull();
     expect(invokeSectionAdvice($user->fresh(), 'expenditure'))->toBeNull();
 });
+
+// Azlan, 2026-09-18: "sounds a little sulky/negative when making
+// recommendations". Fyn voices the title and the fact sentence; the caveats
+// stay on the tax strategy page, and there is no hedge prefix at any tier.
+it('voices a strategy as its title and fact sentence, without the hedge or the caveats', function () {
+    $item = [
+        'claim_tier' => 'judgement',
+        'title' => 'Bed & ISA — potentially shelter £3,000 of gains this year',
+        'description' => 'You hold £12,000 of unrealised gains outside your ISA. Selling around £20,000 of holdings and rebuying them inside an ISA could crystallise up to £3,000 within the annual exempt amount, but only if you have not already used the allowance. Confirm gains and losses elsewhere this tax year, ISA subscriptions, dealing costs and market risk before acting.',
+    ];
+
+    $line = OnboardingChatDirector::voiceStrategyItem($item);
+
+    expect($line)->toBe('Bed & ISA — potentially shelter £3,000 of gains this year. You hold £12,000 of unrealised gains outside your ISA.')
+        ->and($line)->not->toContain('You may want to consider')
+        ->and($line)->not->toContain('before acting');
+});

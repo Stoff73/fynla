@@ -66,13 +66,16 @@
     var mark = state === 'available' ? '&#10003;' : '&#8211;';
     var saving = state === 'available' || a.key === 'personal_allowance'
       ? savingByKey(SAVING_FOR[a.key]) : null;
-    var reasonHtml = a.explanation
-      ? '<p class="sp4-alw__reason">' + esc(a.explanation) + '</p>'
-      : '';
+    // The saving line stays visible; the explanation sits behind "Why?"
+    // so fourteen cards do not read as fourteen paragraphs.
+    var reasonHtml = '';
     if (saving && saving.amount > 0) {
       reasonHtml += '<p class="sp4-alw__reason"><strong>Could save ' + fmt(saving.amount) + '/yr.</strong> ' + esc(saving.reason) + '</p>';
     } else if (saving && saving.reason) {
       reasonHtml += '<p class="sp4-alw__reason">' + esc(saving.reason) + '</p>';
+    }
+    if (a.explanation) {
+      reasonHtml += '<details class="sp4-alw__why"><summary class="sp4-alw__why-summary">Why?</summary><p class="sp4-alw__reason">' + esc(a.explanation) + '</p></details>';
     }
     return (
       '<div class="' + cls + '">' +
@@ -94,21 +97,31 @@
 
     var host = document.getElementById('allowances-render');
     if (host) {
-      var incomeHtml = items.filter(function (a) { return INCOME_KEYS.indexOf(a.key) !== -1; }).map(allowanceItem).join('');
-      var investHtml = items.filter(function (a) { return INCOME_KEYS.indexOf(a.key) === -1; }).map(allowanceItem).join('');
+      var isPartner = function (a) { return String(a.key).indexOf('spouse_') === 0; };
+      var withPartner = items.some(isPartner);
+      // With a partner the columns are yours and theirs (the household is
+      // why the picture is bigger); alone they stay Income and Investment & Cash.
+      var leftItems = withPartner ? items.filter(function (a) { return !isPartner(a); })
+        : items.filter(function (a) { return INCOME_KEYS.indexOf(a.key) !== -1; });
+      var rightItems = withPartner ? items.filter(isPartner)
+        : items.filter(function (a) { return INCOME_KEYS.indexOf(a.key) === -1; });
       host.innerHTML =
         '<div class="sp4-alw-col sp4-alw-col--horizon">' +
-          '<p class="sp4-alw-col__title">Income</p>' +
-          '<div class="sp4-alw-list">' + incomeHtml + '</div>' +
+          '<p class="sp4-alw-col__title">' + (withPartner ? 'Yours' : 'Income') + '</p>' +
+          '<div class="sp4-alw-list">' + leftItems.map(allowanceItem).join('') + '</div>' +
         '</div>' +
         '<div class="sp4-alw-col sp4-alw-col--raspberry">' +
-          '<p class="sp4-alw-col__title">Investment &amp; Cash</p>' +
-          '<div class="sp4-alw-list">' + investHtml + '</div>' +
+          '<p class="sp4-alw-col__title">' + (withPartner ? 'Your partner&#39;s' : 'Investment &amp; Cash') + '</p>' +
+          '<div class="sp4-alw-list">' + rightItems.map(allowanceItem).join('') + '</div>' +
         '</div>';
     }
 
     var totalEl = document.getElementById('allowances-total');
-    if (totalEl && EST && EST.allowances) totalEl.textContent = fmt(EST.allowances.total || 0);
+    if (totalEl && EST && EST.allowances) {
+      var available = typeof EST.allowances.available_count === 'number' ? EST.allowances.available_count
+        : items.filter(function (a) { return a.state === 'available'; }).length;
+      totalEl.textContent = available + ' of ' + items.length;
+    }
 
     var figure = document.getElementById('savings-figure');
     if (figure) figure.textContent = fmt(estimatedSaving());

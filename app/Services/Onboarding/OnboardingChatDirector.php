@@ -1486,12 +1486,7 @@ final class OnboardingChatDirector
             if (! in_array($item['type'] ?? '', $wanted, true)) {
                 continue;
             }
-            // Tiered voicing: mechanical strategies stated directly; judgement
-            // strategies hedged so Fyn does not over-promise uncertain outcomes.
-            $prefix = ($item['claim_tier'] ?? 'judgement') === 'mechanical' ? '' : 'You may want to consider: ';
-            $title = trim((string) ($item['title'] ?? ''));
-            $desc = trim((string) ($item['description'] ?? ''));
-            $lines[] = $prefix.$title.'.'.($desc !== '' ? ' '.$desc : '');
+            $lines[] = self::voiceStrategyItem($item);
             if (count($lines) >= 2) {
                 break;
             }
@@ -1544,10 +1539,7 @@ final class OnboardingChatDirector
             if (! in_array($item['type'] ?? '', $wanted, true)) {
                 continue;
             }
-            $prefix = ($item['claim_tier'] ?? 'judgement') === 'mechanical' ? '' : 'You may want to consider: ';
-            $title = trim((string) ($item['title'] ?? ''));
-            $desc = trim((string) ($item['description'] ?? ''));
-            $lines[] = $prefix.$title.'.'.($desc !== '' ? ' '.$desc : '');
+            $lines[] = self::voiceStrategyItem($item);
             if (count($lines) >= 2) {
                 break;
             }
@@ -7106,6 +7098,29 @@ PROMPT;
      * writes nothing and completes the step (live 2026-07-23); the zero-output
      * guard lets it through and the refusal re-run leaves it alone.
      */
+    /**
+     * How Fyn says a strategy out loud: its title, then the fact sentence of
+     * its description. The caveats ("but only if…", "confirm … before acting")
+     * stay on the tax strategy page, where the full text is. Azlan, 2026-09-18:
+     * the recommendations read "sulky", and the hedge prefix "You may want to
+     * consider:" was part of it — the page's claim tier still governs the
+     * wording of the description itself.
+     */
+    public static function voiceStrategyItem(array $item): string
+    {
+        $title = rtrim(trim((string) ($item['title'] ?? '')), '.');
+        $desc = trim((string) ($item['description'] ?? ''));
+        if ($desc === '') {
+            return $title.'.';
+        }
+        // The first sentence is the fact; a caveat clause opens with "but only
+        // if" or a "Confirm … before acting" sentence.
+        $first = preg_split('/(?<=[.!?])\s+/u', $desc, 2)[0] ?? $desc;
+        $first = preg_replace('/,?\s+but only if\b.*$/iu', '', $first) ?? $first;
+
+        return $title.'. '.rtrim(trim($first), '.').'.';
+    }
+
     // ─── Record edits through the form (Batch 4, CSJ 2026-09-19) ───────────
 
     /** "Can I change that answer?", "I made a mistake", "that was wrong". */
