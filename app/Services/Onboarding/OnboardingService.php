@@ -149,6 +149,27 @@ class OnboardingService
     /**
      * Process step-specific data and save to proper database tables
      */
+    /**
+     * The users.* columns the personal and income steps write — the fields
+     * SaveStepProgressRequest validates (MB-33). processPersonalInfo() and
+     * processIncomeInfo() below assign exactly these; keep the three in step.
+     *
+     * @var list<string>
+     */
+    public const PERSONAL_INFO_FIELDS = [
+        'date_of_birth', 'gender', 'marital_status', 'national_insurance_number',
+        'address_line_1', 'address_line_2', 'city', 'county', 'postcode', 'phone',
+        'health_status', 'smoking_status', 'education_level',
+    ];
+
+    /** @var list<string> */
+    public const INCOME_FIELDS = [
+        'occupation', 'employer', 'industry', 'employment_status', 'target_retirement_age',
+        'retirement_date', 'annual_employment_income', 'annual_self_employment_income',
+        'annual_dividend_income', 'annual_interest_income', 'annual_other_income',
+        'is_registered_blind',
+    ];
+
     protected function processStepData(int $userId, string $stepName, array $data): void
     {
         switch ($stepName) {

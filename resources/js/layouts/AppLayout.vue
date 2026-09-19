@@ -205,14 +205,13 @@ export default {
       isMobileView: window.innerWidth < 1024,
       // Route the user was on before the director pushed us to /profile for a
       // profile-review pause. Null when we are not currently displacing a route.
-      preProfileRoute: null,
     };
   },
 
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('auth', ['isAuthenticated', 'currentUser']),
-    ...mapGetters('aiChat', { onboardingLayout: 'onboardingLayout', isOnboardingActive: 'isOnboardingActive' }),
+    ...mapGetters('aiChat', { onboardingLayout: 'onboardingLayout', isOnboardingActive: 'isOnboardingActive', preProfileRoute: 'preProfileRoute' }),
 
     isImpersonating() {
       return this.$store.state.advisor?.impersonating === true;
@@ -346,20 +345,27 @@ export default {
     // <router-view> change; Vuex state (`aiChat`) persists across routes.
     onboardingLayout(newLayout) {
       if (!this.isOnboardingRoute) return;
+      // The pre-pause route lives in the aiChat store, not here: every routed
+      // view wraps its own <AppLayout>, so the instance that stores it on
+      // entering the pause is destroyed by the pause's route change and a
+      // fresh instance handles the return (MB-28).
       if (newLayout === 'standard') {
-        if (this.$route.path !== '/profile') {
-          this.preProfileRoute = this.$route.fullPath;
+        // A pause in progress is not re-entered. The /profile push redirects
+        // to /settings/..., so the path is never '/profile' and cannot be the
+        // guard.
+        if (this.preProfileRoute === null) {
+          this.$store.commit('aiChat/SET_PRE_PROFILE_ROUTE', this.$route.fullPath);
           this.$router.push('/profile').catch(() => {});
         }
       } else if (newLayout === 'wide') {
-        // Returning from a profile-review pause. Prefer the stored pre-pause
-        // route; fall back to /dashboard (where onboarding is always driven
-        // from) if nothing was stored. Only navigate if we're currently on
-        // /profile — on the very first wide event of a session we'd already
-        // be on /dashboard and a spurious push would no-op-or-worse.
-        if (this.$route.path === '/profile') {
-          const target = this.preProfileRoute || '/dashboard';
-          this.preProfileRoute = null;
+        // Returning from a profile-review pause: go back to the stored
+        // pre-pause route. Comparing the path against '/profile' never matched
+        // because the router redirects it to Settings, so the user finished
+        // the walk on the Settings page. On the very first wide event of a
+        // session nothing is stored and nothing moves.
+        if (this.preProfileRoute !== null) {
+          const target = this.preProfileRoute;
+          this.$store.commit('aiChat/SET_PRE_PROFILE_ROUTE', null);
           this.$router.push(target).catch(() => {});
         }
       }

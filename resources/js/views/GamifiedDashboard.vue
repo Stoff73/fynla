@@ -236,6 +236,7 @@ import {
 
 // Burst colours, from the palette. Never hex (Rule 11).
 const CONFETTI_COLOURS = ['var(--spring-500)', 'var(--raspberry-500)', 'var(--violet-500)'];
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -275,6 +276,7 @@ const MODULE_ORDER = ['retirement', 'protection', 'savings', 'investment', 'esta
 
 export default {
   name: 'GamifiedDashboard',
+  mixins: [fynScreenRefreshMixin],
   components: { TrustsOverviewCard },
   data() {
     return {
@@ -481,6 +483,13 @@ export default {
       if (acked !== null) await this.$store.dispatch('gamification/acknowledge', acked);
     },
 
+    // A Fyn turn that ends on this screen (the recommendation follow-up's
+    // "No thanks") asks the screen to refetch so the ticked-off action is
+    // replaced and the wheel's tally moves.
+    fynScreenRefresh() {
+      this.$store.dispatch('gamification/fetchStatus').catch(() => {});
+      this.load({ silent: true });
+    },
     fmt(n) {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
     },
@@ -659,18 +668,8 @@ export default {
     window.addEventListener('fyn-attention', this.onFynAttention);
     this.playBankedLevels();
     this.load();
-    // A Fyn turn that ends on this screen (the recommendation follow-up's
-    // "No thanks") asks the screen to refetch so the ticked-off action is
-    // replaced and the wheel's tally moves — the /m dashboard watches the
-    // shared refresh tick for the same reason.
-    this.onFynScreenRefresh = () => {
-      this.$store.dispatch('gamification/fetchStatus').catch(() => {});
-      this.load({ silent: true });
-    };
-    window.addEventListener('fyn-screen-refresh', this.onFynScreenRefresh);
   },
   beforeUnmount() {
-    window.removeEventListener('fyn-screen-refresh', this.onFynScreenRefresh);
     document.removeEventListener('visibilitychange', this.onVisibility);
     window.removeEventListener('fyn-attention', this.onFynAttention);
   },

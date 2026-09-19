@@ -4046,6 +4046,9 @@ PROMPT;
                 allowedTools: $allowedTools,
                 persistUserMessage: false, // already saved at top of handleUserMessage
                 unifiedFocus: $unifiedFocus,
+                // MB-57: on a walk step update_profile is for retracting a
+                // personal fact; a bare figure must never land on the income row.
+                onboardingProfileScope: OnboardingPromptBuilder::WALK_PROFILE_SCOPE,
             );
 
             // FR-M14 — buffered sentence-level content filter.
@@ -4066,6 +4069,8 @@ PROMPT;
             $sawFailedWrite = false;
             $pendingWriteFailures = [];
             $failedWriteTools = [];
+            /** @var array<string, int> \$landedWriteTools */
+            $landedWriteTools = [];
             $ackShown = false;
             $contentBuffer = '';
             $visibleResponse = '';
@@ -4198,6 +4203,10 @@ PROMPT;
                     $retryOfToolCallId = (string) ($event['retry_of_tool_call_id'] ?? '');
                     if (($event['landed'] ?? false) === true) {
                         $toolWritesLanded++;
+                        $landedTool = trim((string) ($event['tool'] ?? ''));
+                        if ($landedTool !== '') {
+                            $landedWriteTools[$landedTool] = ($landedWriteTools[$landedTool] ?? 0) + 1;
+                        }
                         if ($retryOfToolCallId !== '') {
                             unset($pendingWriteFailures[$retryOfToolCallId]);
                         }
@@ -4260,7 +4269,7 @@ PROMPT;
                     // B-1 — synthesize tool calls for entities the LLM
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
-                    foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
+                    foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools, $landedWriteTools) as $gapFillEvent) {
                         if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                             $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                         }
@@ -4287,7 +4296,7 @@ PROMPT;
                     $ackShown = true;
                     yield $flushEvent;
                 }
-                foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
+                foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools, $landedWriteTools) as $gapFillEvent) {
                     if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                         $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                     }
@@ -4513,7 +4522,12 @@ PROMPT;
             // …and so does "I don't know" on a step that advances on an
             // answered question (the pot-value loop; CSJ 2026-09-15: not
             // knowing the value is fine). The retry would ask again forever.
-            && ! $advanceOnAnsweredQuestion) {
+            && ! $advanceOnAnsweredQuestion
+            // …and "not sure" / "skip" on such a step (MB-56, live conversation
+            // 201): the state's own resolver decides where a no-figure answer
+            // goes; re-asking here meant it never got the chance.
+            && ! (($state['advance_on_answered_question'] ?? false) === true
+                && OnboardingStateMachine::isDontKnowAnswer($message))) {
             yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
@@ -6434,6 +6448,8 @@ PROMPT;
      *
      * @param  list<array<string, mixed>>  $llmEmittedFills  fields[] from each
      *                                                       LLM-emitted fill_form
+     * @param  array<string, int>  $landedWriteTools  direct writes the LLM landed
+     *                                                this turn, counted per tool
      * @return \Generator<array{type: string}>
      */
     private function emitGapFillToolCalls(
@@ -6442,7 +6458,8 @@ PROMPT;
         string $selection,
         string $message,
         array $llmEmittedFills,
-        array $failedAttemptTools = []
+        array $failedAttemptTools = [],
+        array $landedWriteTools = []
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($selection);
         if ($tool === null) {
@@ -6480,6 +6497,27 @@ PROMPT;
         }
 
         if ($missing === []) {
+            return;
+        }
+
+        // The gap-fill exists for entities the model DROPPED. $llmEmittedFills
+        // only ever counted fill_form events, so a direct write the model
+        // landed was invisible here, and the persisted-key dedupe above could
+        // not save it when the model's own name for the record differed from
+        // the extractor's (live 2026-09-14, user 92: "Bramble Ltd workplace
+        // pension" plus a second "Scottish Workplace Pension" row, MB-58).
+        // When the model landed at least as many writes with this tool as the
+        // extractor found entities, nothing was dropped.
+        $landed = (int) ($landedWriteTools[$tool] ?? 0);
+        if ($landed >= count($extracted)) {
+            Log::info('[OnboardingChatDirector] Gap-fill suppressed — model landed the writes', [
+                'user_id' => $user->id,
+                'selection' => $selection,
+                'tool' => $tool,
+                'landed' => $landed,
+                'extractor_found' => count($extracted),
+            ]);
+
             return;
         }
 
@@ -6989,13 +7027,11 @@ PROMPT;
             "don't have", 'do not have', 'not got', "haven't got",
             "it's matched", 'is matched', 'and matched', 'employer matches',
             'i contribute', 'i pay', 'i put in',
-            // Explicit "I don't know" signals — a user who cannot provide a
-            // value IS giving a substantive answer to the scripted prompt.
-            // Required for advance_on_answered_question on campaign2_state_pension
-            // and campaign2_pension_pots so "not sure" advances rather than loops.
-            'not sure', "don't know", 'do not know', 'unsure', 'no idea',
-            'not certain', 'uncertain',
         ];
+        // Explicit "I don't know" signals — a user who cannot provide a
+        // value IS giving a substantive answer to the scripted prompt. One
+        // vocabulary, shared with the state machine (MB-56).
+        $answerTokens = array_merge($answerTokens, OnboardingStateMachine::DONT_KNOW_TOKENS);
         foreach ($answerTokens as $token) {
             if (str_contains($lower, $token)) {
                 return true;

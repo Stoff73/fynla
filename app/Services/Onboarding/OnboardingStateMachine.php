@@ -214,6 +214,47 @@ final class OnboardingStateMachine
     public const BUBBLE_BREAK = "\x1E";
 
     /**
+     * The one vocabulary for a reply that gives no figure — "not sure", "don't
+     * know", "skip". Used by nextFromPensionPots to leave the pot loop, by the
+     * director's substantive-answer check, and by its zero-output guard so a
+     * turn that legitimately writes nothing is not re-asked (MB-56). Three
+     * copies of this list used to disagree, and the live path only ever hit
+     * the one that did not know "skip".
+     *
+     * @var list<string>
+     */
+    public const DONT_KNOW_TOKENS = [
+        'not sure', "don't know", 'do not know', 'dont know', 'unsure', 'no idea',
+        'not certain', 'uncertain', 'skip',
+    ];
+
+    public static function isDontKnowAnswer(string $message): bool
+    {
+        $lower = mb_strtolower(str_replace("\u{2019}", "'", trim($message)));
+        foreach (self::DONT_KNOW_TOKENS as $token) {
+            if (str_contains($lower, $token)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * "£0", "0", "nothing in it", "empty" — the user has answered the pot
+     * question with a zero. current_fund_value is NOT NULL DEFAULT 0, so the
+     * row cannot tell a stated zero from "never asked"; the loop exit has to.
+     * ponytail: the row still reads 0 afterwards, so a re-entry recap can ask
+     * again (MB-53) — a confirmed-zero flag on dc_pensions is the upgrade path.
+     */
+    public static function statesZeroPot(string $message): bool
+    {
+        $lower = mb_strtolower(trim($message));
+
+        return preg_match('/(?:^|[^\d,.£])£?\s*0(?:\.0+)?(?!\d|[,.]\d|%)|\b(?:zero|nothing in it|nothing (?:in there|yet)|empty|nil)\b/u', $lower) === 1;
+    }
+
+    /**
      * Per-campaign section walk orders — the single source of truth for each
      * campaign's question sequence. To reorder a journey, reorder its entry;
      * nothing else needs to change. Each section id maps to an entry state and
@@ -2595,7 +2636,9 @@ final class OnboardingStateMachine
         // Not knowing is fine (CSJ 2026-09-15): the pension keeps its unfilled
         // value and the Retirement actions ask for it later. Advance rather
         // than loop the capture walk forever.
-        if (self::saysValueUnknown($answer)) {
+        // A "don't know"/"not sure"/"skip" reply, or a stated £0 (MB-56), is
+        // the user's answer to this pension — same exit.
+        if (self::saysValueUnknown($answer) || self::isDontKnowAnswer($answer) || self::statesZeroPot($answer)) {
             // Remember which pension was declined so the loop never asks it
             // twice; any OTHER pension still missing a value is asked next.
             $asked = app(PensionStore::class)->firstDcPensionMissingPotValue($user);
