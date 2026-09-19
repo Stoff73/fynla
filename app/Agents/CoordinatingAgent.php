@@ -1013,6 +1013,13 @@ class CoordinatingAgent extends BaseAgent
             return $verifyEditScopeError;
         }
 
+        $walkScopeError = $this->onboardingProfileScopeError($toolName, $input);
+        if ($walkScopeError !== null) {
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $walkScopeError);
+
+            return $walkScopeError;
+        }
+
         // The primary-question matrix is the effective advice gate. Do not
         // reapply broader module readiness after question-specific KYC passes.
         $questionScopedAnalysis = $this->isQuestionScopedModuleTool(

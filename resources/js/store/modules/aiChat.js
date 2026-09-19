@@ -99,6 +99,12 @@ const state = {
     prefilledPrompt: null,
     abortController: null,
     onboardingLayout: 'wide',    // 'wide' | 'standard' — driven by onboarding_layout_change SSE
+    // The route the user was on when a profile-review pause pushed them to
+    // /profile, so the return leg can go back there. Lives here, not in
+    // AppLayout data: every routed view wraps its own <AppLayout>, so the
+    // layout that stored the route is destroyed by the pause's own route
+    // change and a fresh instance handles the return (MB-28).
+    preProfileRoute: null,
     skipLink: null,              // { label, color } when a state exposes a skip link
     previewCta: null,            // { label, route } when advice emits a signup CTA
     // True while the current conversation is a Fyn-driven onboarding
@@ -138,6 +144,7 @@ const getters = {
     prefilledPrompt: (state) => state.prefilledPrompt,
     hasConversation: (state) => state.currentConversation !== null,
     onboardingLayout: (state) => state.onboardingLayout,
+    preProfileRoute: (state) => state.preProfileRoute,
     skipLink: (state) => state.skipLink,
     previewCta: (state) => state.previewCta,
     isOnboardingActive: (state) => state.isOnboardingActive,
@@ -257,6 +264,9 @@ const mutations = {
         state.abortController = controller;
     },
 
+    SET_PRE_PROFILE_ROUTE(state, route) {
+        state.preProfileRoute = typeof route === 'string' && route !== '' ? route : null;
+    },
     SET_ONBOARDING_LAYOUT(state, mode) {
         state.onboardingLayout = mode === 'standard' ? 'standard' : 'wide';
     },
@@ -313,6 +323,7 @@ const mutations = {
         state.prefilledPrompt = null;
         state.abortController = null;
         state.onboardingLayout = 'wide';
+        state.preProfileRoute = null;
         state.skipLink = null;
         state.previewCta = null;
         state.isOnboardingActive = false;

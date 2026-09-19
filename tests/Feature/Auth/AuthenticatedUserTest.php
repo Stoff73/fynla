@@ -100,3 +100,46 @@ it('tells the mobile client a deliberately parked onboarding state is paused', f
         ->assertOk()
         ->assertJsonPath('data.user.onboarding_fyn_paused', true);
 });
+
+/**
+ * MB-26. Whether a signed-in user should be started on Fyn's onboarding is one
+ * decision, made once, here — web and /m both read it. Before this flag the
+ * /m mixin computed it from three fields and the web panel computed something
+ * different (step set only), so a user who registered but never took the first
+ * turn was onboarded on /m and given the advice chat on web.
+ */
+it('tells every client a fresh incomplete user needs onboarding to start', function () {
+    $freshUser = User::factory()->create([
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_context' => null,
+    ]);
+
+    $this->withToken($freshUser->createToken('auth_token')->plainTextToken)
+        ->getJson('/api/auth/user')
+        ->assertOk()
+        ->assertJsonPath('data.user.onboarding_fyn_needs_start', true);
+});
+
+it('does not ask a client to start onboarding for a paused, mid-walk or completed user', function () {
+    $paused = User::factory()->create([
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_context' => ['paused_at_step' => 'campaign_income'],
+    ]);
+    $midWalk = User::factory()->create([
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => 'base_work',
+    ]);
+    $completed = User::factory()->create([
+        'onboarding_completed' => true,
+        'onboarding_fyn_step' => null,
+    ]);
+
+    foreach ([$paused, $midWalk, $completed] as $user) {
+        $this->withToken($user->createToken('auth_token')->plainTextToken)
+            ->getJson('/api/auth/user')
+            ->assertOk()
+            ->assertJsonPath('data.user.onboarding_fyn_needs_start', false);
+    }
+});

@@ -58,12 +58,11 @@ export default {
     },
     // A newly registered user has no step until the first /onboarding/start
     // request assigns one. That is distinct from "Something else", which also
-    // nulls the step but is deliberately parked and exposed as paused by the
-    // user resource. Only the fresh state should auto-start on the dashboard.
+    // nulls the step but is deliberately parked. The server decides
+    // (UserResource onboarding_fyn_needs_start, MB-26) so web and /m cannot
+    // disagree about who gets started.
     onboardingNeedsStart() {
-      return store.user?.onboarding_completed === false
-        && store.user?.onboarding_fyn_step === null
-        && store.user?.onboarding_fyn_paused !== true;
+      return store.user?.onboarding_fyn_needs_start === true;
     },
   },
   methods: {
@@ -285,8 +284,11 @@ export default {
             && actions.some((action) => action?.action === 'subscription_options')) {
           bubbles.push({ id: 'subscription_options', label: 'Compare plans' });
         }
-        if (metadata.skip_link?.label && !bubbles.some((bubble) => bubble.id === 'skip')) {
-          bubbles.push({ id: 'skip', label: metadata.skip_link.label });
+        // A restored skip link is the same director action as the live one
+        // (MB-24): flag it, or a reload turns it into a typed "Skip this for
+        // now" message that the step cannot answer.
+        if (metadata.skip_link?.label && !bubbles.some((bubble) => bubble.action)) {
+          bubbles.push({ id: 'skip', label: metadata.skip_link.label, action: true });
         }
         const captureForm = metadata.capture_form && typeof metadata.capture_form === 'object' ? metadata.capture_form : null;
 
@@ -584,8 +586,11 @@ export default {
         cursor.got = true;
         if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
         cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles.slice() : [];
-        if (ev.skip_link?.label && !cursor.reply.bubbles.some((bubble) => bubble.id === 'skip')) {
-          cursor.reply.bubbles.push({ id: 'skip', label: ev.skip_link.label });
+        // The synthesised skip link is a director action; flag it on the bubble
+        // itself, because the corpus reuses the id `skip` for the front door's
+        // "Something else" (path_choice), which is an ordinary answer (MB-24).
+        if (ev.skip_link?.label && !cursor.reply.bubbles.some((bubble) => bubble.action)) {
+          cursor.reply.bubbles.push({ id: 'skip', label: ev.skip_link.label, action: true });
         }
         // Resume re-engagement bubbles (Continue / Something else) are director
         // actions, not onboarding answers — flag them so chooseBubble routes
@@ -613,7 +618,7 @@ export default {
       // Resume re-engagement bubbles (Continue / Something else) are director
       // actions — route to the action endpoint and consume the bubbles so they
       // can't be re-tapped. Regular onboarding bubbles send their label.
-      if (message && (message.actionBubbles || bubble.id === 'skip')) {
+      if (message && (message.actionBubbles || bubble.action)) {
         message.bubbles = [];
         this.runFynAction(bubble.id);
         return;

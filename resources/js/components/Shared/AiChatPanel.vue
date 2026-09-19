@@ -1069,14 +1069,18 @@ export default {
 
             // If the user is mid-onboarding from a previous tab/session,
             // resume the director flow instead of starting a blank chat.
+            // A user who never took the first turn starts it here too
+            // (MB-26; the server decides via onboarding_fyn_needs_start, the
+            // same flag the /m dashboard reads).
             const user = this.$store.getters['auth/user'];
             const isMidOnboarding = !!(
                 user
                 && user.onboarding_completed === false
                 && user.onboarding_fyn_step
             );
+            const needsStart = user?.onboarding_fyn_needs_start === true;
 
-            if (isMidOnboarding) {
+            if (isMidOnboarding || needsStart) {
                 // startOnboardingConversation detects in_progress via the
                 // /status endpoint and loads the existing conversation.
                 await this.$store.dispatch('aiChat/startOnboardingConversation');
@@ -1290,28 +1294,37 @@ export default {
             await this.sendMessage({ form });
         },
 
-        handleNavigation(routePath) {
-            // A navigation to the screen the user is already on (the
-            // recommendation follow-up's "No thanks" routes to /dashboard from
-            // the dashboard): close the dock and tell the screen to refetch —
-            // what /m's handleOnboardingNavigation and native's
-            // settleNavigation do for the same frame.
-            if (routePath && routePath.split('?')[0] === this.$route?.path) {
+        async handleNavigation(routePath) {
+            if (!routePath) return;
+            // Fyn navigates after a write, and the page it sends the user to
+            // must show what was just written (MB-27, MB-47). Profile-backed
+            // pages (income, expenditure, personal) render from auth/currentUser
+            // and userProfile/profile, both loaded at sign-in — refresh them
+            // first, as the record-card View button already did. Navigation
+            // must not depend on either succeeding.
+            await Promise.allSettled([
+                this.$store.dispatch('auth/fetchUser'),
+                this.$store.dispatch('userProfile/fetchProfile'),
+            ]);
+            const before = this.$route?.fullPath;
+            const [path, queryString] = routePath.split('?');
+            const query = {};
+            new URLSearchParams(queryString || '').forEach((value, key) => {
+                query[key] = value;
+            });
+            await this.$router.push({ path, query });
+            // A route that resolves to the screen already shown (a verify edit
+            // re-sending /investment while on /net-worth/investments; the
+            // recommendation follow-up's "No thanks" routing to /dashboard from
+            // the dashboard) never remounts, so a module page would keep its
+            // pre-write figures. Close the dock and tell the page to refetch —
+            // what /m's handleOnboardingNavigation and native's settleNavigation
+            // do for the same frame. Compared after the push so redirect
+            // aliases resolve the way the router resolves them.
+            if (this.$route?.fullPath === before) {
                 this.$store.dispatch('aiChat/close');
                 window.dispatchEvent(new Event('fyn-close-chat'));
                 window.dispatchEvent(new Event('fyn-screen-refresh'));
-                return;
-            }
-            // Parse query strings properly for Vue Router
-            if (routePath && routePath.includes('?')) {
-                const [path, queryString] = routePath.split('?');
-                const query = {};
-                new URLSearchParams(queryString).forEach((value, key) => {
-                    query[key] = value;
-                });
-                this.$router.push({ path, query });
-            } else {
-                this.$router.push(routePath);
             }
         },
 
