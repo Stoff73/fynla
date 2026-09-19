@@ -166,3 +166,40 @@ it('treats "my wife" as who the co-owner is, not a name — remembered and repla
         ->and(SharedOwnership::isRelationshipPlaceholder('My Husband'))->toBeTrue()
         ->and(SharedOwnership::isRelationshipPlaceholder('Jane'))->toBeFalse();
 });
+
+it('carries only the waiting records through the clearing of the onboarding scratch', function (): void {
+    expect(SpouseJointRecords::carry(null))->toBeNull()
+        ->and(SpouseJointRecords::carry(['verify_section' => 'savings']))->toBeNull()
+        ->and(SpouseJointRecords::carry([SpouseJointRecords::CONTEXT_KEY => []]))->toBeNull()
+        ->and(SpouseJointRecords::carry([
+            'verify_section' => 'savings',
+            'paused_at_step' => 'campaign_bank_accounts',
+            SpouseJointRecords::CONTEXT_KEY => [['type' => 'savings_account', 'id' => 7]],
+        ]))->toBe([SpouseJointRecords::CONTEXT_KEY => [['type' => 'savings_account', 'id' => 7]]]);
+});
+
+it('fills the co-owner id when the invitee registers after the plan was delivered', function (): void {
+    // The invitation goes out on the terminal turn and the plan is delivered
+    // before the spouse ever opens the link, so the onboarding scratch has
+    // been cleared by the time the accounts link (found live 2026-09-19).
+    $this->seed(TierConfigurationSeeder::class);
+    $user = onboardingCoupleUser();
+    saveJointHalifax($user);
+    $user = $user->fresh();
+
+    $user->onboarding_completed = true;
+    $user->onboarding_fyn_step = null;
+    $user->onboarding_fyn_context = SpouseJointRecords::carry($user->onboarding_fyn_context);
+    $user->save();
+    expect($user->fresh()->onboarding_fyn_context)->toEqual([
+        SpouseJointRecords::CONTEXT_KEY => [['type' => 'savings_account', 'id' => SavingsAccount::sole()->id]],
+    ]);
+
+    $spouse = User::factory()->create(['is_preview_user' => false, 'first_name' => 'Jane']);
+    app(SpouseLinkingService::class)->establishAcceptedLink($user->fresh(), $spouse);
+
+    $account = SavingsAccount::where('user_id', $user->id)->sole();
+    expect($account->joint_owner_id)->toBe($spouse->id)
+        ->and($account->joint_owner_name)->toBe('Jane')
+        ->and($user->fresh()->onboarding_fyn_context)->toBeNull();
+});
