@@ -110,8 +110,9 @@
       </div>
     </template>
 
-    <div v-if="!locked" class="mt-3">
+    <div v-if="!locked" class="mt-3 flex gap-2">
       <button type="submit" class="btn-primary btn-sm" :disabled="disabled || !isValid">{{ schema.submit_label || 'Save' }}</button>
+      <button v-if="record && schema.edit" type="button" class="btn-secondary btn-sm" :disabled="disabled" @click="remove">Remove</button>
     </div>
   </form>
 </template>

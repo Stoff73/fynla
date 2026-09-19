@@ -29,6 +29,9 @@ final class WriteIntentClassifier
      */
     private const WRITE_VERB_PATTERNS = [
         'add', 'create', 'save', 'record', 'log', 'register',
+        // Edits reach the same door (Batch 4, CSJ 2026-09-19): the capture
+        // side opens the record's form rather than an LLM turn with no id.
+        'change', 'update', 'edit', 'correct', 'amend', 'delete', 'remove',
         'i have', 'we have', "i've got", 'we\'ve got', "i've added",
         'i bought', 'we bought', "i've bought", "we've bought",
         'i opened', 'we opened', "i've opened", "we've opened",

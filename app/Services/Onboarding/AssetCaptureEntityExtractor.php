@@ -856,9 +856,23 @@ final class AssetCaptureEntityExtractor
         $negatedSacrifice = preg_match('/\b(?:not|no|isn[\x{2019}\x{0027}]t|without)\b[^.!?]{0,40}\bsalary\s+sacrifice\b/u', $lower) === 1;
         $salarySacrifice = $mentionsSacrifice && ! $negatedSacrifice;
 
+        // The whole capitalised name after "with" — "Scottish Widows", "Legal &
+        // General" — not its first word. A one-word capture keyed the backstop's
+        // row to "scottish" while the model's landed row keyed to
+        // "scottishwidows", so the dedupe could not see they were one pension
+        // (MB-58).
         $provider = null;
-        if (preg_match('/\bwith\s+([A-Z][A-Za-z&]+)\b/u', $message, $providerMatch) === 1) {
-            $provider = $providerMatch[1];
+        if (preg_match('/\bwith\s+([A-Z][A-Za-z&]*(?:\s+(?:&\s+)?[A-Z][A-Za-z&]*)*)/u', $message, $providerMatch) === 1) {
+            $provider = trim($providerMatch[1]);
+        }
+
+        // "the pot is £48,000", "worth about 22k" — the backstop row used to
+        // land with a £0 pot whenever the model refused, which then drove the
+        // Pension Check pot loop (MB-54, MB-58). A contribution amount
+        // ("£200 a month") is not a pot.
+        $potValue = null;
+        if (preg_match('/\b(?:pot|worth|valued?|balance|fund)\b[^£\d]{0,25}(£?\s*[\d,]+(?:\.\d+)?\s*(?:k|m|thousand|million)?)/iu', $message, $potMatch) === 1) {
+            $potValue = $this->extractAmount($potMatch[1]);
         }
 
         $input = [
@@ -868,6 +882,9 @@ final class AssetCaptureEntityExtractor
             'employee_contribution_percent' => $employeePercent,
             'salary_sacrifice' => $salarySacrifice,
         ];
+        if ($potValue !== null && $potValue > 0) {
+            $input['current_fund_value'] = $potValue;
+        }
         if ($employerPercent !== null) {
             $input['employer_contribution_percent'] = $employerPercent;
         }

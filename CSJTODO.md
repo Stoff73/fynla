@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-17 session 2 — three releases today, all on production and verified live. The last redesigns the level-up celebration: the full-screen takeover is gone from web, `/m` and native, and level-ups are banked and spent on the dashboard hero circle. Production = main `0988f6d31`. **Next: CSJ's own iOS check — the native climb has never run on a device.** Handover: `handover/September/17/handover-2026-09-17-session-2.md`*
+*Last updated: 2026-09-18 session 1 — two releases today, both on production and verified live. (1) Four `/m` journey-onboarding bugs, including real data loss: a second job used to overwrite the first. Employment income now lives in an `employments` table, one row per job, with the two `users` columns kept as maintained totals written only through `EmploymentIncomeService`. (2) The milestone cards and Today's insight removed from the `/m` and iOS dashboards — cards only, all logic kept. Production = main `d6abfdaf0`; `dev` level with it. **Next: decide what happens to `docs-bugs-fixed-log` / PRs #829–#839 — 10 fixes from 2026-09-14 that still merge cleanly and have never landed.** Handover: `handover/September/18/handover-2026-09-18-session-1.md`*
 
 ## The board position
 
@@ -51,8 +51,16 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       #829) → #830 → #831 → #834 → #835 → #836 → #837 → #838 → #839 → #833 (the `bugsFixed.md`
       ledger — after merging, flip its rows from "Fixed, PR open" to "Fixed" with SHAs and make sure
       it is on dev, main and in the local root). Handover session 4 has the detail.
-- [x] Fixed 2026-09-14, PRs open: MB-27+47 (#829), MB-48 (#830), MB-24 (#831), MB-56/57/58 (#832),
-      MB-18/19/20 (#834), MB-50 (#835), MB-26 (#836), MB-28 (#837), MB-33 (#838), MB-35 (#839).
+- [ ] **BLOCKED ON CSJ — these 10 fixes have never landed.** Fixed 2026-09-14, PRs still open:
+      MB-27+47 (#829), MB-48 (#830), MB-24 (#831), MB-56/57/58 (#832), MB-18/19/20 (#834),
+      MB-50 (#835), MB-26 (#836), MB-28 (#837), MB-33 (#838), MB-35 (#839).
+      They are stacked on the `docs-bugs-fixed-log` branch: 12 commits, 66 files, +1,754 lines,
+      with tests. **Re-checked 2026-09-18 — tree clean, pushed, still merges into current `dev`
+      with 17 files overlapping and ZERO conflict hunks.** The 10 `mb-*` local branches are its
+      constituent parts; its worktree was removed (clean), the branch deliberately kept.
+      Land it, rebase it, or abandon it. MB-35 (wizard copy British + civil partnership) is a live
+      user-facing wording bug; MB-28 touches the web profile-review pause, which the 2026-09-18
+      release rerouted for the journey path — read that before merging.
       MB-54's cause corrected (deterministic backstop after a model refusal; decision still open).
 - [ ] **Remaining no-decision MBs** after the release, one per branch, test red first, live on web
       and `/m`: MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55 (subject to MB-44). Unskip
@@ -61,6 +69,12 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
+- [ ] **Two native changes are on `main` but have never been seen on screen.** Both compile-verified
+      only (`BUILD SUCCEEDED`) and both ship via TestFlight rather than the web deploy, so nothing
+      reached users unverified — but the cards and the climb are still on any installed build until
+      a build is cut. (a) The level-climb in the wheel (2026-09-17): `LevelProgressView.swift`,
+      `LevelCelebrationSequence.swift`. (b) The milestone/insight card removal (2026-09-18):
+      `DashboardView.swift`, `NextMilestoneView.swift`. The JS twins are the reference behaviour.
 - [ ] **BLOCKED ON CSJ — how the phone gets tested.** Build 10 (Production configuration,
       "Fynla" record, VALID 2026-09-10 08:49 BST) carries #773 and all of build 9. On-screen
       checks owed: headline rows; an information-request row opens Fyn with "I can help you

@@ -127,9 +127,10 @@ final class FynLoop
         ?string $explicitEditEntityType = null,
         ?int $explicitEditRecordId = null,
         ?array $classification = null,
+        ?array $onboardingProfileScope = null,
     ): \Generator {
-        if ($unifiedFocus !== null) {
-            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        if ($unifiedFocus !== null || $onboardingProfileScope !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus, $onboardingProfileScope);
         }
         if ($verifyEditScope !== null) {
             $this->coordinatingAgent->setVerifyEditScope($verifyEditScope);
@@ -162,7 +163,7 @@ final class FynLoop
                 classificationOverride: $classification,
             );
         } finally {
-            if ($unifiedFocus !== null) {
+            if ($unifiedFocus !== null || $onboardingProfileScope !== null) {
                 $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
             }
             if ($verifyEditScope !== null) {

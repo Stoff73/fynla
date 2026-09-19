@@ -15,6 +15,7 @@ use App\Models\EmailVerificationCode;
 use App\Models\LoginAttempt;
 use App\Models\PendingRegistration;
 use App\Models\Role;
+use App\Models\SpouseInvitation;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Models\UserSession;
@@ -29,6 +30,7 @@ use App\Services\Gamification\PointsService;
 use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\Onboarding\FunnelIncomeBand;
+use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Payment\ReferralService;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
@@ -65,6 +67,26 @@ class AuthController extends Controller
      * If email already has a pending registration, it gets overwritten.
      * This allows users to cancel and start fresh.
      */
+    /**
+     * The details a spouse invitation link fills into the registration page:
+     * who invited them, the name they were invited as, and the address the
+     * link recognises. Unknown, expired and used tokens all read the same.
+     */
+    public function spouseInvitation(string $token): JsonResponse
+    {
+        $invitation = SpouseInvitation::where('token', $token)->open()->with('inviter')->first();
+        if ($invitation === null || $invitation->inviter === null) {
+            return response()->json(['success' => false, 'message' => 'This invitation is no longer valid.'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'first_name' => $invitation->first_name,
+            'email' => $invitation->email,
+            'inviter_first_name' => $invitation->inviter->first_name,
+        ]);
+    }
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $campaignSource = $request->validated('funnel_answers.campaign');
@@ -125,6 +147,7 @@ class AuthController extends Controller
             'referral_code' => $request->referral_code ?? null,
             'signup_source' => $request->validated('signup_source'),
             'funnel_answers' => $funnelAnswers,
+            'spouse_invitation_token' => $request->validated('invite_token'),
         ]);
 
         Log::info('Pending registration created', [
@@ -626,6 +649,19 @@ class AuthController extends Controller
             // onboarding starts from what the user already told us (employment
             // + marital status); the income band is confirmed conversationally.
             app(FunnelAnswersMapper::class)->mapToProfile($user);
+
+            // Registered from a spouse invitation link: link the accounts and
+            // hand over the household facts the inviter gave (CSJ 2026-09-19).
+            if (is_string($pending->spouse_invitation_token) && $pending->spouse_invitation_token !== '') {
+                try {
+                    app(SpouseLinkingService::class)->acceptInvitation($user, $pending->spouse_invitation_token);
+                } catch (\Throwable $e) {
+                    Log::error('[AuthController] Spouse invitation could not be accepted at registration', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             Log::info('User created from pending registration', [
                 'user_id' => $user->id,

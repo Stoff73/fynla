@@ -112,16 +112,20 @@ describe('state-machine walkthrough — path_choice → done', function () {
             'marital_status' => 'single',
         ]);
 
-        // Step 5 — base_dependants bubble: "No" → profile_review_family (Phase 10)
+        // Step 5 — base_dependants bubble: "No" → the family verify loop
+        // (PR #903, 2026-09-17: the journey path confirms family details on
+        // the personal-information page, not in a chat pause).
         sendOnboardingMessage($this, $this->user, $conversation->id, 'No');
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
-            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY)
+            ->toBe('campaign_verify_announce')
+            ->and($this->user->onboarding_fyn_context['verify_section'] ?? null)->toBe('family')
             ->and($this->user->onboarding_fyn_context['has_dependants'] ?? null)->toBeFalse();
 
-        // Step 5b — profile_review_family bubble: "Looks correct" → base_employment
-        sendOnboardingMessage($this, $this->user, $conversation->id, 'Looks correct');
+        // Step 5b — Okay → the page, "Yes, that's right" → base_employment
+        sendOnboardingMessage($this, $this->user, $conversation->id, 'Okay');
+        sendOnboardingMessage($this, $this->user, $conversation->id, "Yes, that's right");
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)

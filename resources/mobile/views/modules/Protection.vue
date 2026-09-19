@@ -201,7 +201,13 @@ export default {
 
     openGaps() { return this.gaps.filter((gap) => gap.status === 'gap' && Number(gap.shortfall) > 0); },
   },
-  async created() { await this.load(); },
+  async created() {
+    await this.load();
+    // A Fyn edit that lands on this very screen (the verify page's Edit,
+    // Batch 4) changes the figures without a route change — refetch on the
+    // shared refresh tick, as the savings and investment screens do.
+    this.$watch(() => store.screenRefreshTick, () => { this.load(); });
+  },
   methods: {
     fmt(v) { return formatCurrency(v); },
     // One sentence, two provenances: a name the owner recorded is stated, a name

@@ -44,7 +44,13 @@ function captureFormMessage(event) {
         id: 'cf_' + Date.now(),
         role: 'capture_form',
         content: '',
-        metadata: { capture_form: event.form || null, errors: null },
+        metadata: {
+            capture_form: event.form || null,
+            // An edit form: the record's values and the record it changes.
+            capture_form_values: event.values || null,
+            capture_form_record: event.record || null,
+            errors: null,
+        },
         created_at: new Date().toISOString(),
     };
 }
@@ -99,6 +105,12 @@ const state = {
     prefilledPrompt: null,
     abortController: null,
     onboardingLayout: 'wide',    // 'wide' | 'standard' — driven by onboarding_layout_change SSE
+    // The route the user was on when a profile-review pause pushed them to
+    // /profile, so the return leg can go back there. Lives here, not in
+    // AppLayout data: every routed view wraps its own <AppLayout>, so the
+    // layout that stored the route is destroyed by the pause's own route
+    // change and a fresh instance handles the return (MB-28).
+    preProfileRoute: null,
     skipLink: null,              // { label, color } when a state exposes a skip link
     previewCta: null,            // { label, route } when advice emits a signup CTA
     // True while the current conversation is a Fyn-driven onboarding
@@ -138,6 +150,7 @@ const getters = {
     prefilledPrompt: (state) => state.prefilledPrompt,
     hasConversation: (state) => state.currentConversation !== null,
     onboardingLayout: (state) => state.onboardingLayout,
+    preProfileRoute: (state) => state.preProfileRoute,
     skipLink: (state) => state.skipLink,
     previewCta: (state) => state.previewCta,
     isOnboardingActive: (state) => state.isOnboardingActive,
@@ -168,7 +181,7 @@ const mutations = {
     },
 
     // A form answer sends no message text, so the optimistic user bubble
-    // starts as a placeholder ("Saving your property details…") and is
+    // starts as a placeholder ("Saving your details…") and is
     // rewritten to the server's plain-English summary once the
     // `form_received` SSE event arrives.
     SET_TEMP_USER_CONTENT(state, { id, content }) {
@@ -257,6 +270,9 @@ const mutations = {
         state.abortController = controller;
     },
 
+    SET_PRE_PROFILE_ROUTE(state, route) {
+        state.preProfileRoute = typeof route === 'string' && route !== '' ? route : null;
+    },
     SET_ONBOARDING_LAYOUT(state, mode) {
         state.onboardingLayout = mode === 'standard' ? 'standard' : 'wide';
     },
@@ -313,6 +329,7 @@ const mutations = {
         state.prefilledPrompt = null;
         state.abortController = null;
         state.onboardingLayout = 'wide';
+        state.preProfileRoute = null;
         state.skipLink = null;
         state.previewCta = null;
         state.isOnboardingActive = false;
@@ -505,7 +522,7 @@ const actions = {
                         id: `cf_${m.id}`,
                         role: 'capture_form',
                         content: '',
-                        metadata: { capture_form: captureForm, errors: null },
+                        metadata: { capture_form: captureForm, capture_form_values: m.metadata?.capture_form_values || null, capture_form_record: m.metadata?.capture_form_record || null, errors: null },
                         created_at: m.created_at,
                     });
                     continue;
@@ -576,7 +593,7 @@ const actions = {
         // input rendered as visible text in the bubble (escaped, but ugly).
         // A form answer has no typed text yet — show a placeholder until the
         // server's `form_received` event supplies the plain-English summary.
-        const displayMessage = form ? 'Saving your property details…' : stripTags(message);
+        const displayMessage = form ? 'Saving your details…' : stripTags(message);
         const tempId = 'temp_' + Date.now();
 
         commit('ADD_MESSAGE', {

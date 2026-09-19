@@ -214,6 +214,47 @@ final class OnboardingStateMachine
     public const BUBBLE_BREAK = "\x1E";
 
     /**
+     * The one vocabulary for a reply that gives no figure — "not sure", "don't
+     * know", "skip". Used by nextFromPensionPots to leave the pot loop, by the
+     * director's substantive-answer check, and by its zero-output guard so a
+     * turn that legitimately writes nothing is not re-asked (MB-56). Three
+     * copies of this list used to disagree, and the live path only ever hit
+     * the one that did not know "skip".
+     *
+     * @var list<string>
+     */
+    public const DONT_KNOW_TOKENS = [
+        'not sure', "don't know", 'do not know', 'dont know', 'unsure', 'no idea',
+        'not certain', 'uncertain', 'skip',
+    ];
+
+    public static function isDontKnowAnswer(string $message): bool
+    {
+        $lower = mb_strtolower(str_replace("\u{2019}", "'", trim($message)));
+        foreach (self::DONT_KNOW_TOKENS as $token) {
+            if (str_contains($lower, $token)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * "£0", "0", "nothing in it", "empty" — the user has answered the pot
+     * question with a zero. current_fund_value is NOT NULL DEFAULT 0, so the
+     * row cannot tell a stated zero from "never asked"; the loop exit has to.
+     * ponytail: the row still reads 0 afterwards, so a re-entry recap can ask
+     * again (MB-53) — a confirmed-zero flag on dc_pensions is the upgrade path.
+     */
+    public static function statesZeroPot(string $message): bool
+    {
+        $lower = mb_strtolower(trim($message));
+
+        return preg_match('/(?:^|[^\d,.£])£?\s*0(?:\.0+)?(?!\d|[,.]\d|%)|\b(?:zero|nothing in it|nothing (?:in there|yet)|empty|nil)\b/u', $lower) === 1;
+    }
+
+    /**
      * Per-campaign section walk orders — the single source of truth for each
      * campaign's question sequence. To reorder a journey, reorder its entry;
      * nothing else needs to change. Each section id maps to an entry state and
@@ -1165,6 +1206,19 @@ final class OnboardingStateMachine
                 ?? self::nextCampaignSection($section, $user->refresh());
         }
 
+        // The user declared they have none of these ("I don't have
+        // investments", or the form saved with nothing chosen) and nothing was
+        // captured: there is no page to check and no section advice to give,
+        // so carry straight on. Laura, 2026-09-18 (conversation 897) was walked
+        // to an empty investments page and asked whether it looked right.
+        // Keyed on the declaration, not on emptiness alone — every other data
+        // entry still verifies (CSJ 2026-07-24).
+        if (self::sectionDeclaredNone($user, $section) && ! self::journeySectionHasData($user->refresh(), $section)) {
+            return ($user->onboarding_fyn_path ?? '') === 'campaign'
+                ? self::nextCampaignSection($section, $user)
+                : self::journeyAfterVerify($section, $user);
+        }
+
         // Announce first: Fyn states it's taking the user to the section page and
         // waits for an "Okay" tap before navigating (campaign_verify_announce →
         // campaign_verify_navigate). The section's own capture "anything else?"
@@ -1291,6 +1345,26 @@ final class OnboardingStateMachine
             'expenditure' => self::journeyFocusEntry($user),
             default => self::STATE_ADD_MORE,
         };
+    }
+
+    /**
+     * Did the user declare "none" for this section's capture form during this
+     * walk? OnboardingChatDirector::emitNothingToAdd records the form name in
+     * onboarding_fyn_context.declared_none.
+     */
+    private static function sectionDeclaredNone(User $user, string $section): bool
+    {
+        $declared = (array) ($user->onboarding_fyn_context['declared_none'] ?? []);
+        $forms = match ($section) {
+            'savings' => [CaptureForms::SAVINGS, CaptureForms::ISA],
+            'investments' => [CaptureForms::INVESTMENT],
+            'pensions' => [CaptureForms::PENSION, CaptureForms::PENSION_PERSONAL],
+            'protection' => [CaptureForms::PROTECTION],
+            'estate' => [CaptureForms::PROPERTY],
+            default => [],
+        };
+
+        return array_intersect($forms, $declared) !== [];
     }
 
     /**
@@ -2595,7 +2669,9 @@ final class OnboardingStateMachine
         // Not knowing is fine (CSJ 2026-09-15): the pension keeps its unfilled
         // value and the Retirement actions ask for it later. Advance rather
         // than loop the capture walk forever.
-        if (self::saysValueUnknown($answer)) {
+        // A "don't know"/"not sure"/"skip" reply, or a stated £0 (MB-56), is
+        // the user's answer to this pension — same exit.
+        if (self::saysValueUnknown($answer) || self::isDontKnowAnswer($answer) || self::statesZeroPot($answer)) {
             // Remember which pension was declined so the loop never asks it
             // twice; any OTHER pension still missing a value is asked next.
             $asked = app(PensionStore::class)->firstDcPensionMissingPotValue($user);

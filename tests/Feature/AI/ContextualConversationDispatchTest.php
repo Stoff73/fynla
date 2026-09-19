@@ -162,8 +162,11 @@ it('uses immutable typed metadata before the legacy user-state fallback', functi
         'metadata' => null,
     ]);
 
+    // A typed onboarding conversation routes to the director only while the
+    // user has a step to run; a completed user typing into it gets advice
+    // (2026-09-19: the director with no step hung the web panel).
     expect($resolver->routesToOnboarding($surface, $activeUser))->toBeFalse()
-        ->and($resolver->routesToOnboarding($onboarding, $completedUser))->toBeTrue()
+        ->and($resolver->routesToOnboarding($onboarding, $completedUser))->toBeFalse()
         ->and($resolver->routesToOnboarding($legacyActive, $activeUser))->toBeTrue()
         ->and($resolver->routesToOnboarding($legacyCompleted, $completedUser))->toBeFalse();
 });

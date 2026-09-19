@@ -225,3 +225,67 @@ describe('FynCaptureForm', () => {
     expect(w.emitted('submit')[0][0]).toEqual({ name: 'spouse_details', answers: { _lead: { first_name: 'Jamie', email: 'jamie@example.com' } } });
   });
 });
+
+// Laura, 2026-09-18: "Employer and trading name doesn't allow spaces". The
+// input is :value-bound, so trimming on every keystroke wrote the trimmed
+// value back over the space just typed. Trimming belongs to submit.
+describe('FynCaptureForm text fields', () => {
+  const textSchema = {
+    name: 'work', submit_label: 'Save', lead_fields: ['employer'], kinds: [],
+    fields: { employer: { type: 'text', label: 'Employer or trading name', required: true } },
+  };
+
+  it('keeps a space typed mid-word in the field and trims only on submit', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: textSchema } });
+    const input = w.find('input[name="_lead.employer"]');
+    await input.setValue('Acme ');
+    expect(input.element.value).toBe('Acme ');
+    await input.setValue('Acme Widgets ');
+    expect(input.element.value).toBe('Acme Widgets ');
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'work', answers: { _lead: { employer: 'Acme Widgets' } } });
+  });
+
+  it('a field holding only spaces does not satisfy required', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: textSchema } });
+    await w.find('input[name="_lead.employer"]').setValue('   ');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+  });
+});
+
+// Batch 4 (CSJ 2026-09-19): an edit form opens with the record's values,
+// submits with the record it changes, and can remove it.
+describe('FynCaptureForm as an edit form', () => {
+  const editSchema = {
+    name: 'savings', submit_label: 'Save changes', edit: true, record: { type: 'savings_account', id: 7 },
+    kinds: [{ key: 'current_account', label: 'Current account', fields: ['provider', 'current_value'] }],
+    fields: {
+      provider: { type: 'text', label: 'Who is it with', required: true },
+      current_value: { type: 'money', label: 'Balance', required: true },
+    },
+  };
+  const record = { type: 'savings_account', id: 7 };
+  const values = { current_account: { provider: 'HSBC', current_value: 150 } };
+
+  it('opens with the values filled in and submits them with the record', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: editSchema, values, record } });
+    expect(w.find('input[name="current_account.provider"]').element.value).toBe('HSBC');
+    expect(w.find('input[name="current_account.current_value"]').element.value).toBe('150');
+    await w.find('input[name="current_account.current_value"]').setValue('1500');
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'savings', answers: { current_account: { provider: 'HSBC', current_value: 1500 } }, record });
+  });
+
+  it('offers Remove and emits the record to delete', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: editSchema, values, record } });
+    const remove = w.findAll('button').find((b) => b.text() === 'Remove');
+    expect(remove).toBeTruthy();
+    await remove.trigger('click');
+    expect(w.emitted('remove')[0][0]).toEqual({ name: 'savings', answers: {}, record, delete: true });
+  });
+
+  it('shows no Remove on a capture form', () => {
+    const w = mount(FynCaptureForm, { props: { schema } });
+    expect(w.findAll('button').some((b) => b.text() === 'Remove')).toBe(false);
+  });
+});

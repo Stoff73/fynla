@@ -86,10 +86,12 @@ import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import protectionService from '@/services/protectionService';
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'ProtectionDashboard',
+  mixins: [fynScreenRefreshMixin],
 
   components: {
     AppLayout,
@@ -148,6 +150,12 @@ export default {
 
   methods: {
     ...mapActions('protection', ['fetchProtectionData']),
+
+    // A Fyn edit that lands on this very screen changes the figures without
+    // a route change (Batch 4).
+    fynScreenRefresh() {
+      this.loadProtectionData();
+    },
 
     async loadProtectionData() {
       try {

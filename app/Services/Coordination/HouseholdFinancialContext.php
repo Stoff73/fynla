@@ -40,7 +40,13 @@ final class HouseholdFinancialContext
     {
         $hasDcPension = $this->hasDcPension($user);
 
-        return [
+        // A declaration of none answers the question as well as a record
+        // does (Laura, 2026-09-18: "I have none of those" and the strategies
+        // stayed locked). Fyn records them in onboarding_fyn_context —
+        // declared_none holds capture form names, declared_none_keys holds
+        // these vocabulary keys directly.
+        $declared = self::declaredKeys($user);
+        $availability = [
             'annual_income' => $this->hasAnnualIncome($user),
             'charitable_giving' => $user->annual_charitable_donations !== null,
             'date_of_birth' => $user->date_of_birth !== null,
@@ -55,6 +61,34 @@ final class HouseholdFinancialContext
             'spouse_income' => $this->spouseIncomeKnown($user),
             'workplace_pension' => $hasDcPension,
         ];
+        foreach ($declared as $key) {
+            if (array_key_exists($key, $availability)) {
+                $availability[$key] = true;
+            }
+        }
+
+        return $availability;
+    }
+
+    /**
+     * The vocabulary keys the user has declared they have nothing for.
+     *
+     * @return list<string>
+     */
+    public static function declaredKeys(User $user): array
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $keys = array_values(array_filter((array) ($context['declared_none_keys'] ?? []), 'is_string'));
+        foreach ((array) ($context['declared_none'] ?? []) as $form) {
+            $keys = array_merge($keys, match ($form) {
+                'investment' => ['gia_holdings'],
+                'savings', 'isa' => ['savings_balances', 'isa_subscriptions_ytd'],
+                'pension', 'pension_personal' => ['pension_contributions', 'workplace_pension', 'pension_input_history'],
+                default => [],
+            });
+        }
+
+        return array_values(array_unique($keys));
     }
 
     /**

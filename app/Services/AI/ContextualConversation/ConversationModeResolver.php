@@ -21,7 +21,13 @@ final class ConversationModeResolver
         }
 
         if ($source === 'fyn_onboarding') {
-            return true;
+            // The conversation was onboarding, but the director only has a
+            // walk to run while the user has a step. A completed user (step
+            // null, walk done) or a paused one (step nulled, MB-23) typing into
+            // it gets advice Fyn. Live 2026-09-19 (csjones, conversation 245):
+            // a message into a finished walk reached the director with no
+            // step and the web panel hung on "Onboarding state lost".
+            return $user->onboarding_fyn_step !== null;
         }
 
         return ($user->onboarding_completed === false || $user->active_campaign !== null)

@@ -43,10 +43,20 @@ class UserResource extends JsonResource
             'onboarding_fyn_path' => $this->onboarding_fyn_path,
             'onboarding_fyn_selection' => $this->onboarding_fyn_selection,
             'onboarding_fyn_paused' => is_string(data_get($this->resource->onboarding_fyn_context, 'paused_at_step')),
+            // MB-26 — ONE decision for every client: a signed-in user who never
+            // took Fyn's first turn (incomplete, no step, not deliberately
+            // parked) is started on onboarding. /m and web both read this;
+            // each used to derive its own answer and they disagreed.
+            'onboarding_fyn_needs_start' => $this->onboarding_completed === false
+                && $this->onboarding_fyn_step === null
+                && ! is_string(data_get($this->resource->onboarding_fyn_context, 'paused_at_step')),
             // Campaign re-entry marker — the /m onboardingActive gate needs it
             // so the verify pills + dock-resume work for a completed user mid
             // campaign re-entry (audit fix P3).
             'active_campaign' => $this->active_campaign,
+            // The campaign a registrant carries (funnel arrival or spouse
+            // invitation): the web registration page opens Fyn on it.
+            'onboarding_campaign' => data_get($this->resource->funnel_answers, 'campaign'),
             'journey_state' => $this->journey_state,
             // `spouse_id` is the historical link and survives the partner
             // deleting their account — everything is retained for regulatory

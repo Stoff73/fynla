@@ -63,6 +63,28 @@ class EmploymentIncomeService
     }
 
     /**
+     * Change one job the user already told us about (the Fyn edit form,
+     * CSJ 2026-09-19). Only the fields given change; the totals follow.
+     */
+    public function updateJob(User $user, Employment $job, ?string $employer, ?string $occupation, ?float $income): Employment
+    {
+        if ($employer !== null && $employer !== '') {
+            $job->employer = $employer;
+        }
+        if ($occupation !== null && $occupation !== '') {
+            $job->occupation = $occupation;
+        }
+        if ($income !== null) {
+            $job->annual_income = $income;
+        }
+        $job->save();
+
+        $this->syncTotals($user);
+
+        return $job;
+    }
+
+    /**
      * Rewrite the user's two income totals from the jobs on file. Call after any
      * change to `employments` — this is what keeps the columns every other
      * service reads equal to the rows the income page shows.

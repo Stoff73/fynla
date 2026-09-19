@@ -285,6 +285,12 @@ final class CaptureForms
             };
         }
 
+        // Nothing chosen on a form that allows it is the answer "none" — the
+        // transcript line says so in the user's own voice.
+        if ($sentences === [] && ! empty($schema['allow_empty'])) {
+            return 'I have none of these.';
+        }
+
         return implode(' ', $sentences);
     }
 
@@ -709,6 +715,7 @@ final class CaptureForms
         return [
             'name' => self::SAVINGS,
             'submit_label' => 'Save',
+            'kinds_prompt' => 'A current account is for day-to-day money. Easy access, fixed rate and notice accounts are savings that pay interest.',
             'kinds' => [
                 ['key' => 'current_account', 'label' => 'Current account', 'tool' => 'create_savings_account', 'entity_type' => 'savings_account',
                     'fields' => ['provider', 'current_value', 'current_account_interest_rate', 'ownership_type']],
@@ -725,10 +732,11 @@ final class CaptureForms
                 'interest_rate' => ['type' => 'percent', 'label' => 'Interest rate %', 'required' => true, 'min' => 0, 'max' => 20, 'step' => 0.01],
                 'current_account_interest_rate' => ['type' => 'percent', 'label' => 'Interest rate %', 'required' => false, 'min' => 0, 'max' => 20, 'step' => 0.01,
                     'hint' => 'Leave blank if it pays none'],
-                'ownership_type' => ['type' => 'choice', 'label' => 'Ownership', 'required' => true, 'options' => [
-                    ['value' => 'individual', 'label' => 'Individual'],
-                    ['value' => 'joint', 'label' => 'Joint'],
-                ]],
+                'ownership_type' => ['type' => 'choice', 'label' => 'Ownership', 'required' => true,
+                    'hint' => 'Joint means held 50/50 with your spouse or partner', 'options' => [
+                        ['value' => 'individual', 'label' => 'Individual'],
+                        ['value' => 'joint', 'label' => 'Joint'],
+                    ]],
             ],
         ];
     }
@@ -746,6 +754,10 @@ final class CaptureForms
         return [
             'name' => self::INVESTMENT,
             'submit_label' => 'Save',
+            // Laura, 2026-09-18: no way to say she had none. Nothing chosen
+            // and saved is the answer.
+            'allow_empty' => true,
+            'kinds_prompt' => 'Choose any you have. If you have no investments, save with none chosen.',
             'kinds' => [
                 ['key' => 'gia', 'label' => 'General Investment Account', 'account_type' => 'personal_investment_account',
                     'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => $fields],
@@ -820,14 +832,17 @@ final class CaptureForms
             'tool' => 'capture_spouse_household_data',
             'entity_type' => 'spouse_household',
             'lead_fields' => ['spouse_annual_income'],
-            'kinds_prompt' => 'Do they have any of the following? You can choose more than one.',
+            'allow_empty' => true,
+            'kinds_prompt' => 'Do they have any of the following? You can choose more than one, or save with none chosen.',
             'kinds' => [
                 ['key' => 'isa', 'label' => 'ISAs', 'fields' => ['spouse_isa_balance', 'spouse_isa_provider']],
                 ['key' => 'pension', 'label' => 'A pension', 'fields' => ['spouse_pension_input_annual', 'spouse_existing_pension_balance', 'spouse_pension_provider']],
                 ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_annual_dividends', 'spouse_unrealised_gains']],
             ],
             'fields' => [
-                'spouse_annual_income' => ['type' => 'money', 'label' => 'Their annual income', 'required' => true, 'hint' => 'Before tax'],
+                // Laura, 2026-09-18: she did not know it and had no way to say so.
+                'spouse_annual_income' => ['type' => 'money_or_none', 'label' => 'Their annual income', 'required' => true, 'hint' => 'Before tax',
+                    'none_label' => "I don't know"],
                 'spouse_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
                 'spouse_isa_provider' => ['type' => 'text', 'label' => 'Who the ISA is with', 'required' => false],
                 'spouse_pension_input_annual' => ['type' => 'money', 'label' => 'They pay in each year', 'required' => false, 'hint' => 'Leave blank if none'],

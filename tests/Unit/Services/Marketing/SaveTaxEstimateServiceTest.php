@@ -510,3 +510,13 @@ it('highlights the correct allowances and keeps the math consistent for every po
 
     expect($combos)->toBe(4 * 6 * 64); // 1,536 combinations exercised
 });
+
+// Azlan, 2026-09-18: the landing page shows how many allowances are available,
+// not a sum of amounts with different tax meanings.
+it('counts the allowances available beside the total', function () {
+    $result = app(SaveTaxEstimateService::class)->estimate(['income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => 'basic', 'assets' => ['savings', 'pension', 'isa']]);
+
+    expect($result['allowances']['count'])->toBe(count($result['allowances']['items']))
+        ->and($result['allowances']['available_count'])->toBe(collect($result['allowances']['items'])->where('state', 'available')->count())
+        ->and($result['allowances']['available_count'])->toBeGreaterThan(0);
+});

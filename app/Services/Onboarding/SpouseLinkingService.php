@@ -7,6 +7,7 @@ namespace App\Services\Onboarding;
 use App\Exceptions\SpouseCollisionException;
 use App\Mail\SpouseInvitation;
 use App\Models\FamilyMember;
+use App\Models\SpouseInvitation as SpouseInvitationRecord;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Notifications\SpousePermissionRequest;
@@ -445,7 +446,20 @@ final class SpouseLinkingService
             return $row;
         });
 
-        $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser);
+        // Remember the invitation (CSJ 2026-09-19): the token on the email
+        // link fills the registration page and links the accounts on sign-up.
+        // One open invitation per inviter and address; re-inviting refreshes it.
+        $invitation = SpouseInvitationRecord::where('inviter_id', $currentUser->id)
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($spouseEmail)])
+            ->whereNull('accepted_at')
+            ->first() ?? new SpouseInvitationRecord(['inviter_id' => $currentUser->id, 'email' => $spouseEmail]);
+        $invitation->fill([
+            'first_name' => isset($data['first_name']) && trim((string) $data['first_name']) !== '' ? trim((string) $data['first_name']) : $invitation->first_name,
+            'token' => SpouseInvitationRecord::newToken(),
+            'expires_at' => now()->addDays(SpouseInvitationRecord::VALID_DAYS),
+        ])->save();
+
+        $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser, $invitation->token);
 
         return [
             'family_member' => $familyMember,
@@ -650,10 +664,57 @@ final class SpouseLinkingService
      * record of their partner is theirs, and losing it would make them re-enter
      * the details with no explanation.
      */
-    private function sendRegistrationInvitation(string $spouseEmail, User $currentUser): bool
+    /**
+     * The invitee registered from the email link: link the two accounts and
+     * hand over what the inviter already told us. Registering from the link
+     * IS the invitee's consent, as inviting was the inviter's (CSJ 2026-09-19).
+     * Returns the inviter, or null when the token is unknown, expired, used,
+     * for a different address, or either side is already linked elsewhere.
+     */
+    public function acceptInvitation(User $newUser, string $token): ?User
+    {
+        $invitation = SpouseInvitationRecord::where('token', $token)->open()->first();
+        if ($invitation === null) {
+            return null;
+        }
+        if (strcasecmp(trim($invitation->email), trim((string) $newUser->email)) !== 0) {
+            return null;
+        }
+        $inviter = User::find($invitation->inviter_id);
+        if ($inviter === null || $inviter->id === $newUser->id) {
+            return null;
+        }
+        if ($newUser->liveSpouseId() !== null) {
+            return null;
+        }
+        $inviterSpouse = $inviter->liveSpouseId();
+        if ($inviterSpouse !== null && $inviterSpouse !== $newUser->id) {
+            return null;
+        }
+
+        $this->establishAcceptedLink($inviter, $newUser);
+        $invitation->forceFill(['accepted_at' => now(), 'accepted_user_id' => $newUser->id])->save();
+
+        // The invitee walks the inviter's campaign: no front door, Fyn asks
+        // only for what is missing. The campaign is keyed off funnel_answers
+        // (AiChatController::startOnboarding funnel fallback).
+        $newUser->refresh();
+        if (empty($newUser->funnel_answers['campaign'] ?? null)) {
+            $campaign = $inviter->funnel_answers['campaign'] ?? 'savetax';
+            $newUser->funnel_answers = array_merge((array) ($newUser->funnel_answers ?? []), ['campaign' => is_string($campaign) ? $campaign : 'savetax']);
+        }
+        $context = is_array($newUser->onboarding_fyn_context) ? $newUser->onboarding_fyn_context : [];
+        $context['invited_by'] = $inviter->id;
+        $newUser->onboarding_fyn_context = $context;
+        $newUser->save();
+
+        return $inviter;
+    }
+
+    private function sendRegistrationInvitation(string $spouseEmail, User $currentUser, ?string $token = null): bool
     {
         try {
-            Mail::to($spouseEmail)->send(new SpouseInvitation($spouseEmail, $currentUser->name));
+            Mail::to($spouseEmail)->send(new SpouseInvitation($spouseEmail, $currentUser->name, $token));
 
             return true;
         } catch (\Throwable $e) {

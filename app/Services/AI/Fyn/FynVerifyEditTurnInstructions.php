@@ -13,7 +13,7 @@ final class FynVerifyEditTurnInstructions
             // protection/estate/goals are journey-path sections (CSJ
             // 2026-07-24: every data entry verifies) — record-backed, so
             // they edit through update_record like the campaign trio.
-            'savings', 'investments', 'pensions', 'protection', 'estate', 'goals' => ['update_record'],
+            'savings', 'investments', 'pensions', 'protection', 'estate', 'goals', 'property' => ['update_record'],
             'income', 'spouse', 'expenditure' => ['update_profile'],
             'giving' => ['capture_charitable_giving'],
             'state_pension' => ['capture_state_pension'],
@@ -43,6 +43,7 @@ final class FynVerifyEditTurnInstructions
             'pensions' => 'pensions',
             'protection' => 'protection policies',
             'estate' => 'estate records',
+            'property' => 'property and mortgage',
             'goals' => 'goals',
             'income' => 'income',
             'spouse' => 'spouse details',

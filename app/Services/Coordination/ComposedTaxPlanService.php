@@ -51,6 +51,12 @@ final class ComposedTaxPlanService
         return $this->memo[$user->id] ?? null;
     }
 
+    /** Drop the memoised plan after something that changes it mid-request. */
+    public function forget(User $user): void
+    {
+        unset($this->memo[$user->id]);
+    }
+
     /**
      * The shared home for strategy-id derivation — delegated to the
      * module-agnostic ComposedModulePlanService so the two provenance paths

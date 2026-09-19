@@ -408,3 +408,83 @@ describe('capture forms', () => {
     expect(formRow.form.errors).toBeNull();
   });
 });
+
+/**
+ * MB-24. The front door's "Something else" bubble has the corpus id `skip`
+ * (path_choice.bubbles), and so does the spouse step's synthesised skip link.
+ * chooseBubble routed every `skip` id to the action endpoint, so "Something
+ * else" answered "This step cannot be skipped." Only the synthesised skip link
+ * is a director action; a regular bubble sends its label, as web does.
+ */
+describe('onboardingChat mixin — skip id collision at the front door (MB-24)', () => {
+  let wrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.token = 'tok';
+    store.subscriptionStatus = { tier: 'free', payment_enabled: false };
+    wrapper = mount(Host, {
+      global: { mocks: { $router: { push: vi.fn() }, $route: { path: '/dashboard', query: {} } } },
+    });
+    wrapper.vm.messages = [];
+  });
+
+  const bubblesTurn = (cursor, extra = {}) => wrapper.vm.handleFynEvent(cursor, {
+    type: 'quick_replies',
+    prompt_text: 'How would you like to start?',
+    bubbles: [
+      { id: 'journey', label: 'Follow a journey' },
+      { id: 'focus', label: 'Pick a focus' },
+      { id: 'skip', label: 'Something else' },
+    ],
+    ...extra,
+  });
+
+  it('sends "Something else" as a message at the front door', () => {
+    const send = vi.spyOn(wrapper.vm, 'send').mockResolvedValue();
+    const runFynAction = vi.spyOn(wrapper.vm, 'runFynAction').mockResolvedValue();
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    wrapper.vm.messages.push(cursor.reply);
+    bubblesTurn(cursor);
+
+    const somethingElse = cursor.reply.bubbles.find((b) => b.id === 'skip');
+    wrapper.vm.chooseBubble(somethingElse, cursor.reply);
+
+    expect(send).toHaveBeenCalledWith('Something else');
+    expect(runFynAction).not.toHaveBeenCalled();
+  });
+
+  it('still runs the skip action for the spouse step skip link', () => {
+    const send = vi.spyOn(wrapper.vm, 'send').mockResolvedValue();
+    const runFynAction = vi.spyOn(wrapper.vm, 'runFynAction').mockResolvedValue();
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    wrapper.vm.messages.push(cursor.reply);
+    wrapper.vm.handleFynEvent(cursor, {
+      type: 'quick_replies',
+      prompt_text: 'Tell me about your partner',
+      bubbles: [{ id: 'yes', label: 'Yes' }],
+      skip_link: { label: 'Skip this for now' },
+    });
+
+    const skipLink = cursor.reply.bubbles.find((b) => b.label === 'Skip this for now');
+    wrapper.vm.chooseBubble(skipLink, cursor.reply);
+
+    expect(runFynAction).toHaveBeenCalledWith('skip');
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+
+// Batch 4 (CSJ 2026-09-19): an edit form's values and record travel with the
+// live event and the restored transcript.
+describe('edit forms', () => {
+  const schema = { name: 'savings', submit_label: 'Save changes', edit: true, kinds: [{ key: 'current_account', label: 'Current account', fields: ['current_value'] }], fields: { current_value: { type: 'money', label: 'Balance', required: true } } };
+
+  it('keeps the values and record from a capture_form event', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.messages = [cursor.reply];
+    w.vm.handleFynEvent(cursor, { type: 'capture_form', prompt_text: 'Here it is.', form: schema, values: { current_account: { current_value: 150 } }, record: { type: 'savings_account', id: 7 } });
+    expect(cursor.reply.form.answers).toEqual({ current_account: { current_value: 150 } });
+    expect(cursor.reply.form.record).toEqual({ type: 'savings_account', id: 7 });
+  });
+});

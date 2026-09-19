@@ -274,7 +274,10 @@ class AiChatController extends Controller
         //   paused user can still get answers without their step being lost.
         //   ConversationModeResolver keeps typed conversation modes immutable
         //   and is shared by streamQueuedMessage and action.
-        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user)
+            // A form naming the record it edits is the director's edit pathway
+            // whether or not the user is onboarding (Batch 4, CSJ 2026-09-19).
+            || ($form !== null && is_array($form['record'] ?? null));
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form) {
             try {
@@ -447,9 +450,10 @@ class AiChatController extends Controller
         $message = $queued->content;
         $queuedMetadata = is_array($queued->metadata) ? $queued->metadata : [];
         $form = is_array($queuedMetadata['form'] ?? null) ? $queuedMetadata['form'] : null;
+        $formEditsRecord = $form !== null && is_array($form['record'] ?? null);
         $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
         $currentRoute = $request->input('current_route');
-        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user) || $formEditsRecord;
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form) {
             try {
@@ -923,7 +927,7 @@ class AiChatController extends Controller
     public function action(Request $request, int $id): StreamedResponse|JsonResponse
     {
         $request->validate([
-            'action' => 'required|string|in:resume,continue,restart,skip,something_else',
+            'action' => ['required', 'string', 'regex:/^(?:resume|continue|restart|skip|something_else|edit:[a-z_]+:\d+|edit_section:[a-z_]+)$/'],
         ]);
 
         $user = $request->user();
@@ -940,7 +944,11 @@ class AiChatController extends Controller
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
         $action = $request->input('action');
 
-        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user)
+            // The edit chooser's bubbles are director actions on every surface,
+            // during and after onboarding.
+            || str_starts_with((string) $action, 'edit:')
+            || str_starts_with((string) $action, 'edit_section:');
         $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
