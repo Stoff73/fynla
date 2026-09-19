@@ -595,8 +595,14 @@ final class CaptureForms
     {
         $input = self::singleWriteInputs($schema, $answers);
         $parts = [];
+        // "I don't know" posts the income as null (money_or_none); it is an
+        // answer, not an omission, and the read-back says so.
+        $lead = is_array($answers[self::LEAD] ?? null) ? $answers[self::LEAD] : [];
+        $incomeUnknown = array_key_exists('spouse_annual_income', $lead) && $lead['spouse_annual_income'] === null;
         if (isset($input['spouse_annual_income'])) {
             $parts[] = 'my spouse earns '.self::pounds($input['spouse_annual_income']).' a year';
+        } elseif ($incomeUnknown) {
+            $parts[] = "I don't know what my spouse earns";
         }
         $money = [
             'spouse_isa_balance' => 'ISAs', 'spouse_existing_isa_balance' => 'ISAs',
@@ -619,6 +625,9 @@ final class CaptureForms
         }
         if ($parts === []) {
             return $schema['name'] === self::SPOUSE_ASSETS ? 'My spouse has nothing in their own name.' : 'My spouse has no income or holdings to add.';
+        }
+        if ($incomeUnknown && count($parts) === 1) {
+            return "I don't know what my spouse earns, and they have no holdings to add.";
         }
 
         return ucfirst(implode(', ', $parts)).'.';

@@ -70,7 +70,15 @@ class SavingsAgent extends BaseAgent
                     return [
                         'can_proceed' => false,
                         'readiness_checks' => $readiness,
-                        'summary' => null,
+                        // What the cash is worth needs no date of birth, income or
+                        // expenditure. The dashboard card reads this beside the net
+                        // worth block, which never waited for the gate, so a spouse
+                        // who has just registered from an invitation saw £0 here and
+                        // their share of the joint account there (2026-09-19).
+                        'summary' => [
+                            'total_savings' => $this->roundToPenny($this->assetAggregator->calculateCashTotal($userId)),
+                            'total_accounts' => $this->savingsStore->forUser($user)->count(),
+                        ],
                         'emergency_fund' => null,
                         'isa_allowance' => null,
                         'liquidity' => null,

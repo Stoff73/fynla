@@ -862,7 +862,9 @@ final class OnboardingChatDirector
             : OnboardingStateMachine::STATE_PATH_CHOICE;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
-        $user->onboarding_fyn_context = null;
+        // The remembered joint records outlive the onboarding scratch: the
+        // invitee usually registers after the plan is delivered.
+        $user->onboarding_fyn_context = SpouseJointRecords::carry($user->onboarding_fyn_context);
         $user->active_campaign = null;
         $user->save();
 
@@ -6315,7 +6317,9 @@ PROMPT;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
-        $user->onboarding_fyn_context = null;
+        // The remembered joint records outlive the onboarding scratch: the
+        // invitee usually registers after the plan is delivered.
+        $user->onboarding_fyn_context = SpouseJointRecords::carry($user->onboarding_fyn_context);
 
         if (! $wasAlreadyCompleted) {
             $user->onboarding_completed = true;
@@ -7663,7 +7667,9 @@ PROMPT;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
-        $user->onboarding_fyn_context = null;
+        // The remembered joint records outlive the onboarding scratch: the
+        // invitee usually registers after the plan is delivered.
+        $user->onboarding_fyn_context = SpouseJointRecords::carry($user->onboarding_fyn_context);
         $user->save();
 
         $this->recordProgress($user, OnboardingStateMachine::STATE_DONE, ['next_route' => $nextRoute]);
