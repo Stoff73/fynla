@@ -44,6 +44,16 @@ class RedirectPhoneToMobile
         'savetax', 'pensioncheck', 'biggerpension', 'paymortgage', 'managedebt', 'wealth',
     ];
 
+    /**
+     * Account pages whose path and query are likewise preserved through /m. A
+     * phone opening the spouse invitation's /register?invite=… link used to
+     * land on the bare /m homepage with the invitation lost (Azlan,
+     * 2026-09-18). The /m login's "Create an account" link builds the same URL.
+     *
+     * @var array<int, string>
+     */
+    private const PRESERVED_ACCOUNT_PATHS = ['register', 'login'];
+
     public function handle(Request $request, Closure $next): Response
     {
         // Escape hatch: ?full=1 pins the visitor to the full web app via cookie.
@@ -69,7 +79,7 @@ class RedirectPhoneToMobile
     {
         $path = $request->path();
 
-        foreach (self::CAMPAIGN_PREFIXES as $campaign) {
+        foreach (array_merge(self::CAMPAIGN_PREFIXES, self::PRESERVED_ACCOUNT_PATHS) as $campaign) {
             if ($path === $campaign || str_starts_with($path, $campaign.'/')) {
                 $to = '/'.$path;
                 $query = $request->getQueryString();
@@ -96,6 +106,10 @@ class RedirectPhoneToMobile
         }
 
         $path = ltrim((string) parse_url($to, PHP_URL_PATH), '/');
+
+        if (in_array($path, self::PRESERVED_ACCOUNT_PATHS, true)) {
+            return true;
+        }
 
         foreach (self::CAMPAIGN_PREFIXES as $campaign) {
             if ($path === $campaign || str_starts_with($path, $campaign.'/')) {
