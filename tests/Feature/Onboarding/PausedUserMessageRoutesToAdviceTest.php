@@ -39,4 +39,33 @@ it('routes a paused user typing into the onboarding conversation to advice Fyn',
     ]);
 
     expect(app(ConversationModeResolver::class)->routesToOnboarding($conversation, $user))->toBeFalse();
-})->skip('MB-23: a paused user typing into the onboarding conversation is routed to the director, which has no step. Unskip with the fix.');
+});
+
+// 2026-09-19 (csjones, conversation 245): a completed user's message into the
+// finished onboarding conversation reached the director with no step and the
+// web panel hung. Advice answers it.
+it('routes a completed user typing into their finished onboarding conversation to advice Fyn', function (): void {
+    $user = User::factory()->create([
+        'onboarding_completed' => true,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_selection' => 'savetax',
+        'active_campaign' => null,
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+        'metadata' => ['source' => 'fyn_onboarding'],
+    ]);
+
+    expect(app(ConversationModeResolver::class)->routesToOnboarding($conversation, $user))->toBeFalse();
+});
+
+it('still routes a user mid-walk into the director', function (): void {
+    $user = User::factory()->create(['onboarding_completed' => false, 'onboarding_fyn_step' => 'campaign_bank_accounts', 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax']);
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding', 'metadata' => ['source' => 'fyn_onboarding']]);
+
+    expect(app(ConversationModeResolver::class)->routesToOnboarding($conversation, $user))->toBeTrue();
+});
