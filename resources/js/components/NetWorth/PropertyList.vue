@@ -98,6 +98,7 @@ import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailI
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 import api from '@/services/api';
 
 import logger from '@/utils/logger';
@@ -112,7 +113,7 @@ export default {
     LimitReachedModal,
   },
 
-  mixins: [tierLimitMixin],
+  mixins: [tierLimitMixin, fynScreenRefreshMixin],
 
   data() {
     return {
@@ -348,6 +349,12 @@ export default {
     clearMessages() {
       this.successMessage = null;
       this.errorMessage = null;
+    },
+
+    // A Fyn edit that lands on this very screen (the verify page's Edit,
+    // Batch 4) changes the figures without a route change.
+    fynScreenRefresh() {
+      this.fetchProperties();
     },
 
     async fetchProperties() {
