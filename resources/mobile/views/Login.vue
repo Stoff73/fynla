@@ -24,6 +24,9 @@
 
         <button type="submit" class="ml-btn" :disabled="loading">{{ loading ? 'Signing in…' : 'Sign in' }}</button>
 
+        <!-- Laura, 2026-09-18: no way back in from this screen. The reset flow
+             lives on the web login, which the /m host frames. -->
+        <p class="ml-foot"><a :href="forgotUrl" class="ml-link">Forgotten your password?</a></p>
         <p class="ml-foot">New to Fynla? <a :href="registerUrl" class="ml-link">Create an account</a></p>
       </form>
 
@@ -169,6 +172,9 @@ export default {
     mfaReady() {
       return this.useRecovery ? this.recoveryCode.trim().length > 0 : this.code.length === 6;
     },
+    forgotUrl() {
+      return (import.meta.env.VITE_ROUTER_BASE || '/') + 'login?forgot=1';
+    },
     registerUrl() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'register';
     },
@@ -216,6 +222,10 @@ export default {
           this.maskedEmail = d.data?.email || this.maskEmail(this.email);
           this.step = 'verify';
           this.$nextTick(() => { const f = this.$refs.codeInputs; if (f && f[0]) f[0].focus(); });
+        } else if (res.status === 423 || d.locked) {
+          // Three wrong passwords lock the account for a minute; say so
+          // rather than "invalid" a fourth time.
+          this.error = d.message || 'Too many attempts. Please wait a minute and try again.';
         } else if (res.status === 401) {
           this.error = 'Invalid email or password.';
         } else {

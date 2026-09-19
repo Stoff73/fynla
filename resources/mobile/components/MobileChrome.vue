@@ -410,10 +410,16 @@ export default {
     // so the dock is fully open before we resume + send.
     async verifyAnswer(answer) {
       this.fynStarted = true;
+      // Show the answer the moment it is tapped. The resume that follows
+      // (start stream, then the transcript) replaces this row with the real
+      // one; until then the dock is not a blank box (Laura, 2026-09-18:
+      // "slight delay after pressing continue to go back to Fyn").
+      this.messages.push({ role: 'user', text: answer, bubbles: [], provisional: true });
       await this.openFyn();
       if (this.onboardingActive && !this.conversationId) {
         await this.resumeOnboardingInDock();
       }
+      this.messages = this.messages.filter((m) => !m.provisional);
       this.send(answer);
     },
     reportFynProblem() {

@@ -239,6 +239,10 @@ export default {
 
     // Check for inactivity logout reason on mount
     onMounted(() => {
+      // The /m login links here with ?forgot=1: open the reset flow straight away.
+      if (route.query.forgot === '1') {
+        showForgotPasswordModal.value = true;
+      }
       document.title = 'Fynla';
       const meta = document.querySelector('meta[name="description"]');
       if (meta) meta.setAttribute('content', 'Sign in to your Fynla account to manage your financial plan, track investments, and monitor your net worth.');

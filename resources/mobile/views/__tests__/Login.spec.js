@@ -122,3 +122,22 @@ describe('MobileLogin — two-factor and restore branches', () => {
     expect(store.token).toBe('tok');
   });
 });
+
+// Batch 7 (CSJ 2026-09-19): Laura "wouldn't be let in and no forgotten password option".
+describe('MobileLogin — a way back in', () => {
+  it('offers the forgotten-password link and names a lockout plainly', async () => {
+    store.setToken(null);
+    store.user = null;
+    const wrapper = mount(Login, { global: { mocks: { $router: { push: vi.fn(), replace: vi.fn() } } } });
+    const forgot = wrapper.findAll('a').find((a) => a.text() === 'Forgotten your password?');
+    expect(forgot).toBeTruthy();
+    expect(forgot.attributes('href')).toContain('login?forgot=1');
+
+    apiPost.mockResolvedValueOnce({ ok: false, status: 423, data: { success: false, locked: true, message: 'Too many failed attempts. Try again in 1 minute.' } });
+    await wrapper.find('input[type=email]').setValue('ada@example.com');
+    await wrapper.find('input[type=password]').setValue('Password1!');
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Too many failed attempts. Try again in 1 minute.');
+  });
+});
