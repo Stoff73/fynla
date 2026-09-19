@@ -379,7 +379,7 @@ campaign_spouse_non_working_assets:
 
 campaign_terminal:
   turn_type: terminal
-  prompt_text: "We've created your personal tax strategy, {first_name}."
+  prompt_text: "We've created your personal tax strategy, {first_name}. Open any strategy on the next screen to see the steps, or ask me about it here."
   capture_field: null
   navigate_to: /tax-strategy
   next: done

@@ -11,6 +11,8 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\Loop\FynLoop;
 use App\Services\AI\Loop\SessionMode;
+use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\RecommendationCompletionService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\ValueObjects\CaptureContext;
@@ -466,6 +468,16 @@ final class AdviceFyn
         // tool API, which made BS-11/14/17 flaky on the LLM-mediated path.
         // The classifier is conservative: ambiguous messages fall through
         // to the normal LLM advice flow.
+        // "I have none of those" while strategies sit locked on missing data
+        // answers every ask at once (Laura, 2026-09-18, prod conversation 898:
+        // said it, and the same three asks came back). Recorded on the user so
+        // HouseholdFinancialContext::availability treats them as answered;
+        // deterministic, no model turn.
+        $declared = yield from $this->recordDeclaredNone($user, $conversation, $message, $persistUserMessage);
+        if ($declared) {
+            return;
+        }
+
         $intent = $this->writeIntentClassifier->classify($message);
 
         // WP-1 — capture-continuation. When the previous assistant turn was a
@@ -600,6 +612,57 @@ final class AdviceFyn
             $persistUserMessage,
             classification: $classification,
         );
+    }
+
+    /**
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function recordDeclaredNone(User $user, AiConversation $conversation, string $message, bool $persistUserMessage): \Generator
+    {
+        if (! OnboardingChatDirector::isCompletionDeclaration($message)) {
+            return false;
+        }
+        $plan = app(ComposedTaxPlanService::class)->forUser($user);
+        $missing = [];
+        foreach ((array) ($plan['locked'] ?? []) as $locked) {
+            foreach ((array) ($locked['missing'] ?? []) as $key) {
+                $missing[] = (string) $key;
+            }
+        }
+        $missing = array_values(array_unique($missing));
+        if ($missing === []) {
+            return false;
+        }
+
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['declared_none_keys'] = array_values(array_unique(array_merge((array) ($context['declared_none_keys'] ?? []), $missing)));
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+        app(ComposedTaxPlanService::class)->forget($user);
+
+        $labels = array_map(static fn (string $key): string => HouseholdFinancialContext::labelFor($key), $missing);
+        $text = "Noted — I won't ask about ".self::joinLabels($labels).' again. Your tax strategy now works from what you do have.';
+
+        if ($persistUserMessage) {
+            $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
+        }
+        $conversation->messages()->create(['role' => 'assistant', 'content' => $text, 'persona' => 'advice']);
+
+        yield ['type' => 'content', 'text' => $text];
+        yield ['type' => 'done'];
+
+        return true;
+    }
+
+    /** @param  list<string>  $labels */
+    private static function joinLabels(array $labels): string
+    {
+        if (count($labels) <= 1) {
+            return (string) ($labels[0] ?? 'those');
+        }
+        $last = array_pop($labels);
+
+        return implode(', ', $labels).' or '.$last;
     }
 
     /**

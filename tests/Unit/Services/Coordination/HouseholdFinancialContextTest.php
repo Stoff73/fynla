@@ -163,3 +163,16 @@ it('marks pension_input_history available when input history rows exist', functi
 
     expect($this->svc->availability($user)['pension_input_history'])->toBeTrue();
 });
+
+// Batch 5 (CSJ 2026-09-19): "I have none of those" answers the question.
+it('treats a declared none as available data', function () {
+    $user = User::factory()->create(['onboarding_fyn_context' => ['declared_none' => ['investment', 'pension'], 'declared_none_keys' => ['dividend_income']]]);
+
+    $availability = $this->svc->availability($user);
+
+    expect($availability['gia_holdings'])->toBeTrue()
+        ->and($availability['pension_contributions'])->toBeTrue()
+        ->and($availability['pension_input_history'])->toBeTrue()
+        ->and($availability['dividend_income'])->toBeTrue()
+        ->and($availability['savings_balances'])->toBeFalse();
+});
