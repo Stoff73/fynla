@@ -6,15 +6,10 @@ namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Employment;
 use App\Models\IncomeProtectionPolicy;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
-use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Income\EmploymentIncomeService;
@@ -292,7 +287,7 @@ final class RecordEditForms
     // ─── record → answers ────────────────────────────────────────────────
 
     /** @return array{0: string, 1: string, 2: array<string, mixed>, 3: string} */
-    private function savingsAnswers(SavingsAccount $account): array
+    private function savingsAnswers(Model $account): array
     {
         $label = self::accountLabel($account->account_name, $account->institution);
         if ($account->account_type === 'cash_isa') {
@@ -314,7 +309,7 @@ final class RecordEditForms
     }
 
     /** @return array{0: string, 1: string, 2: array<string, mixed>, 3: string} */
-    private function investmentAnswers(InvestmentAccount $account): array
+    private function investmentAnswers(Model $account): array
     {
         $label = self::accountLabel($account->account_name, $account->provider);
         if ($account->isa_type !== null || $account->account_type === 'isa') {
@@ -337,7 +332,7 @@ final class RecordEditForms
     }
 
     /** @return array{0: string, 1: string, 2: array<string, mixed>, 3: string} */
-    private function pensionAnswers(DCPension $pension): array
+    private function pensionAnswers(Model $pension): array
     {
         $label = self::accountLabel($pension->scheme_name, $pension->provider);
         $workplace = ($pension->scheme_type ?? '') === 'occupational';
@@ -359,7 +354,7 @@ final class RecordEditForms
     }
 
     /** @return array{0: string, 1: string, 2: array<string, mixed>, 3: string} */
-    private function propertyAnswers(Property $property): array
+    private function propertyAnswers(Model $property): array
     {
         $kind = in_array($property->property_type, ['main_residence', 'secondary_residence', 'buy_to_let'], true) ? $property->property_type : 'main_residence';
         $mortgage = $property->mortgages()->orderBy('id')->first();
@@ -481,7 +476,7 @@ final class RecordEditForms
      *
      * @return array<string, mixed>
      */
-    private function updateProperty(User $user, Property $property, array $form, int $conversationId): array
+    private function updateProperty(User $user, Model $property, array $form, int $conversationId): array
     {
         $inputs = CaptureForms::toolInputs($form);
         $input = reset($inputs) ?: [];
@@ -541,11 +536,11 @@ final class RecordEditForms
     private function find(User $user, string $type, int $id): ?Model
     {
         return match ($type) {
-            'savings_account' => SavingsAccount::where('id', $id)->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))->first(),
-            'investment_account' => InvestmentAccount::where('id', $id)->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))->first(),
-            'dc_pension' => DCPension::where('id', $id)->where('user_id', $user->id)->first(),
-            'db_pension' => DBPension::where('id', $id)->where('user_id', $user->id)->first(),
-            'property' => Property::where('id', $id)->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))->first(),
+            'savings_account' => app(SavingsStore::class)->find($id, $user),
+            'investment_account' => app(InvestmentAccountStore::class)->find($id, $user),
+            'dc_pension' => app(PensionStore::class)->find($id, 'dc', $user),
+            'db_pension' => app(PensionStore::class)->find($id, 'db', $user),
+            'property' => app(PropertyStore::class)->find($id, $user),
             'mortgage' => Mortgage::where('id', $id)->where('user_id', $user->id)->first(),
             'life_insurance' => LifeInsurancePolicy::where('id', $id)->where('user_id', $user->id)->first(),
             'critical_illness' => CriticalIllnessPolicy::where('id', $id)->where('user_id', $user->id)->first(),
@@ -581,7 +576,7 @@ final class RecordEditForms
         return trim((string) $provider) !== '' ? trim((string) $provider) : 'Unnamed account';
     }
 
-    private static function propertyLabel(Property $property): string
+    private static function propertyLabel(Model $property): string
     {
         $address = trim((string) ($property->address_line_1 ?? ''));
         $type = match ($property->property_type) {
