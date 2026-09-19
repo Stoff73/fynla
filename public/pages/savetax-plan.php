@@ -30,6 +30,10 @@ try {
     $savetaxEstimate = null;
 }
 $savetaxEstimateAvailable = is_array($savetaxEstimate);
+$savetaxWithPartner = ($savetaxAnswers['spouse'] ?? null) === 'yes';
+$savetaxAllowanceCount = $savetaxEstimateAvailable
+    ? (int) ($savetaxEstimate['allowances']['available_count'] ?? 0).' of '.(int) ($savetaxEstimate['allowances']['count'] ?? 0)
+    : 'Unavailable';
 try {
     $savetaxTaxYear = (string) ($savetaxEstimate['tax_year'] ?? app(TaxConfigService::class)->getTaxYear());
 } catch (Throwable $e) {
@@ -68,7 +72,7 @@ try {
   <!-- Blocking CSS — same-server files, no FOUC risk -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=4" />
-  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=11" />
+  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=12" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -119,7 +123,7 @@ try {
           </div>
 
           <p class="campaign-hero__subtext" id="hero-subtext">
-            This is an average based on your answers — not your personal potential savings per year. Register for free and get your personalised tax strategy.
+            <?php if ($savetaxWithPartner) { ?>This is an average based on your answers, and it is bigger because of you and your partner — you each have your own allowances. <?php } else { ?>This is an average based on your answers — not your personal potential savings per year. <?php } ?>Register for free and get your personalised tax strategy.
           </p>
           <p class="campaign-hero__subtext">This is an illustrative estimate, not personal financial advice.</p>
         </div>
@@ -164,16 +168,17 @@ try {
         <!-- Meaning intro -->
         <div class="sp4-combined__intro">
           <span class="allowances-section__label">Tax year <span id="tax-year"><?= htmlspecialchars($savetaxTaxYear, ENT_QUOTES) ?></span></span>
-          <h2 id="allowances-heading" class="sp4-combined__heading">Your allowances</h2>
+          <h2 id="allowances-heading" class="sp4-combined__heading"><?= $savetaxWithPartner ? 'Your allowances, and your partner\'s' : 'Your allowances' ?></h2>
           <div class="sp4-combined__meaning">
             <div class="sp4-combined__total">
-              <p class="sp4-combined__total-label">Total of allowances marked available</p>
-              <p class="sp4-combined__total-figure" id="allowances-total"><?= $savetaxEstimateAvailable ? '£'.number_format((int) ($savetaxEstimate['allowances']['total'] ?? 0)) : 'Unavailable' ?></p>
+              <p class="sp4-combined__total-label">Allowances available to you<?= $savetaxWithPartner ? ' and your partner' : '' ?></p>
+              <p class="sp4-combined__total-figure" id="allowances-total"><?= htmlspecialchars($savetaxAllowanceCount, ENT_QUOTES) ?></p>
+              <p class="sp4-combined__body">The amounts have different tax meanings and are not added together.</p>
             </div>
             <details class="sp4-combined__meaning-detail">
               <summary class="sp4-combined__meaning-summary">What does this mean?</summary>
               <p class="sp4-combined__body" id="meaning-body">
-                Each allowance below says whether it is available to act on, used automatically, or not applicable to the answers supplied. The explanation under each amount tells you why. Fyn can turn the relevant opportunities into a personalised tax strategy.
+                Each allowance below says whether it is available to act on, used automatically, or not applicable to the answers supplied. Open one to see why. Fyn can turn the relevant opportunities into a personalised tax strategy.
               </p>
             </details>
           </div>
@@ -202,7 +207,7 @@ try {
 
   <script>window.SAVETAX_ESTIMATE = <?= json_encode($savetaxEstimate, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/savetax-plan-v4.js?v=14" defer></script>
+  <script src="/pages/js/savetax-plan-v4.js?v=15" defer></script>
   <!-- Cookie consent — persisted via localStorage; the SPA register step reuses it. -->
   <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 

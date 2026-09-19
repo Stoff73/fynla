@@ -349,6 +349,10 @@
 .sp4-alw--not-applicable .sp4-alw__label,
 .sp4-alw--not-applicable .sp4-alw__amount { color: var(--neutral-500); }
 .sp4-alw--not-applicable .sp4-alw__reason { background: var(--white); color: var(--neutral-500); }
+.sp4-alw__why { margin-top: 6px; }
+.sp4-alw__why-summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--horizon-500); list-style: none; }
+.sp4-alw__why-summary::-webkit-details-marker { display: none; }
+.sp4-alw__why[open] .sp4-alw__why-summary { margin-bottom: 4px; }
 
 /* ===================================================================
    SOCIAL PROOF — replaces the old example panels

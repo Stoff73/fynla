@@ -330,13 +330,19 @@ class SaveTaxEstimateService
         }
 
         $total = 0;
+        $available = 0;
         foreach ($items as $item) {
             if ($item['state'] === 'available') {
                 $total += $item['amount'];
+                $available++;
             }
         }
 
-        return ['items' => $items, 'total' => $total];
+        // `total` adds allowances with different tax meanings together and is
+        // not shown any more (Azlan, 2026-09-18: "don't understand the
+        // allowances"); the page shows the count. Kept for the tests and any
+        // caller reading it.
+        return ['items' => $items, 'total' => $total, 'available_count' => $available, 'count' => count($items)];
     }
 
     /**
