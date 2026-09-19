@@ -30,6 +30,23 @@ final class SpouseJointRecords
     public const CONTEXT_KEY = 'spouse_joint_records';
 
     /**
+     * What survives when the onboarding scratch is cleared: only the records
+     * still waiting for their co-owner's id. The scratch is wiped on
+     * completion and on restart, and an invited spouse registers after the
+     * plan is delivered, so a memory that died with the scratch would never
+     * see the link it was kept for.
+     *
+     * @param  array<string, mixed>|null  $context
+     * @return array<string, mixed>|null
+     */
+    public static function carry(?array $context): ?array
+    {
+        $entries = $context[self::CONTEXT_KEY] ?? [];
+
+        return $entries === [] ? null : [self::CONTEXT_KEY => $entries];
+    }
+
+    /**
      * The canonical store for each record type — every read and write of a
      * record goes through its store (the store-boundary architecture tests).
      *
