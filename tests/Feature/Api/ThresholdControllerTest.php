@@ -26,6 +26,7 @@ it('returns nothing for a user no line applies to', function () {
     $this->getJson('/api/thresholds')
         ->assertOk()
         ->assertJsonPath('data.strip', null)
+        ->assertJsonPath('data.suppressed', 9)
         ->assertJsonPath('data.lines', []);
 });
 

@@ -21,13 +21,15 @@ final class ThresholdPositionService
         private readonly iterable $lines,
     ) {}
 
-    /** @return array{strip: ?string, lines: list<array<string, mixed>>} */
+    /** @return array{strip: ?string, suppressed: int, lines: list<array<string, mixed>>} */
     public function evaluate(User $user): array
     {
         $context = new ThresholdContext($user, $this->definitions->calculate($user->id));
 
         $results = [];
+        $catalogue = 0;
         foreach ($this->lines as $line) {
+            $catalogue++;
             $result = $line->evaluate($context);
             if ($result !== null) {
                 $results[] = $result;
@@ -50,6 +52,10 @@ final class ThresholdPositionService
             }
         }
 
-        return ['strip' => $strip, 'lines' => array_map(fn (ThresholdResult $r): array => $r->toArray(), $results)];
+        // How many catalogue lines the user is nowhere near, so the expanded view can
+        // say so instead of listing a line they cannot cross.
+        $suppressed = $catalogue - count($results);
+
+        return ['strip' => $strip, 'suppressed' => $suppressed, 'lines' => array_map(fn (ThresholdResult $r): array => $r->toArray(), $results)];
     }
 }

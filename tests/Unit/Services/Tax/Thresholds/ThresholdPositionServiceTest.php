@@ -70,7 +70,7 @@ it('returns an empty list and no strip when nothing applies', function () {
 
     $out = (new ThresholdPositionService(app(IncomeDefinitionsService::class), [$none]))->evaluate($user);
 
-    expect($out)->toBe(['strip' => null, 'lines' => []]);
+    expect($out)->toBe(['strip' => null, 'suppressed' => 1, 'lines' => []]);
 });
 
 it('is resolvable from the container with the catalogue tagged', function () {
@@ -86,5 +86,5 @@ it('is resolvable from the container with the catalogue tagged', function () {
     // the fake-line tests above and return nothing.
     $user = User::factory()->create(['annual_employment_income' => 30000]);
 
-    expect($service->evaluate($user))->toBe(['strip' => null, 'lines' => []]);
+    expect($service->evaluate($user))->toBe(['strip' => null, 'suppressed' => 9, 'lines' => []]);
 });

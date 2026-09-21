@@ -1,16 +1,22 @@
 <template>
-  <section v-if="strip" class="strip" aria-labelledby="threshold-strip-title">
+  <section v-if="strip" class="card mb-5" aria-labelledby="threshold-strip-title">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
         <h3 id="threshold-strip-title" class="text-lg font-bold text-horizon-500">{{ strip.headline }}</h3>
         <p class="text-body-sm text-neutral-500 mt-1">{{ strip.body }}</p>
       </div>
-      <button type="button" class="strip-toggle" @click="expanded = !expanded">
+      <button
+        type="button"
+        class="strip-toggle"
+        :aria-expanded="expanded"
+        aria-controls="threshold-strip-detail"
+        @click="expanded = !expanded"
+      >
         {{ expanded ? 'Hide' : 'See what this costs' }}
       </button>
     </div>
 
-    <div v-if="strip.range" class="ribbon" role="img" :aria-label="ribbonLabel">
+    <div v-if="strip.range && strip.range.to" class="ribbon" role="img" :aria-label="ribbonLabel">
       <div class="ribbon-track">
         <div class="ribbon-marker" :style="{ left: markerLeft }"></div>
       </div>
@@ -21,7 +27,7 @@
       </div>
     </div>
 
-    <div v-if="expanded" class="mt-6 space-y-6">
+    <div v-if="expanded" id="threshold-strip-detail" class="mt-6 space-y-6">
       <div>
         <h4 class="text-body-sm font-bold text-horizon-500">{{ strip.title }}</h4>
         <p class="text-body-sm text-neutral-500 mt-1">{{ strip.explanation }}</p>
@@ -58,6 +64,7 @@
           </li>
         </ul>
       </div>
+      <p v-if="suppressedSentence" class="text-caption text-neutral-500">{{ suppressedSentence }}</p>
     </div>
   </section>
 </template>
@@ -97,7 +104,7 @@ export default {
       return [...named, ...(c.benefits || []).filter((b) => b.amount > 0)];
     },
     mixRows() {
-      const labels = { employment: 'employment', self_employment: 'self-employment', rental: 'rental profit', dividend: 'dividends', interest: 'interest', other: 'pension and other income' };
+      const labels = { employment: 'employment income', self_employment: 'self-employment', rental: 'rental profit', dividend: 'dividends', interest: 'interest', vesting: 'share scheme vests', other: 'pension and other income' };
       return Object.entries(this.strip?.income_mix ?? {}).filter(([, v]) => v > 0).map(([k, v]) => `${this.formatCurrency(v)} ${labels[k] || k}`);
     },
     markerLeft() {
@@ -109,12 +116,18 @@ export default {
     ribbonLabel() {
       return `${this.strip.title}: ${this.strip.headline}`;
     },
+    suppressedSentence() {
+      const n = Number(this.data?.suppressed ?? 0);
+      if (n <= 0) return '';
+      return n === 1
+        ? 'One more line exists in the tax system that you are nowhere near. It is not listed.'
+        : `${n} more lines exist in the tax system that you are nowhere near. They are not listed.`;
+    },
   },
 };
 </script>
 
 <style scoped>
-.strip { @apply bg-white rounded-card border border-light-gray p-6 mb-5; }
 .strip-toggle { @apply flex-shrink-0 text-xs font-semibold text-horizon-500 border border-horizon-300 rounded-full px-3 py-1 hover:bg-eggshell-500 transition-colors; }
 .ribbon { @apply mt-4; }
 .ribbon-track { @apply relative h-2 rounded-full bg-violet-100; }

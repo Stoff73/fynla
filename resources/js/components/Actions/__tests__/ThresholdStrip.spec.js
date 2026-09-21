@@ -16,6 +16,19 @@ const line = {
   lever: { title: 'Pay £12,400 into your pension', amount: 12400, recovers: 4480, downside: 'The money is locked until you are 55.', action: { route: '/tax-strategy' } },
 };
 const dateLine = { key: 'ni_cap', title: 'Salary sacrifice National Insurance cap', range: null, position: { value: 197, distance: 197, unit: 'days', over: false }, headline: '6 April 2027 · 197 days', body: '', explanation: '', income_mix: {}, cost: null, cost_total: 160, lever: null };
+const openEndedLine = {
+  key: 'higher_rate',
+  title: 'Higher rate band',
+  range: { from: 50270, to: null },
+  position: { value: 60000, distance: 9730, unit: 'gbp', over: true },
+  headline: 'You are in the higher rate band',
+  body: '',
+  explanation: '',
+  income_mix: {},
+  cost: null,
+  cost_total: 0,
+  lever: null,
+};
 
 const mountWith = (data) => mount(ThresholdStrip, {
   props: { data },
@@ -28,7 +41,7 @@ describe('ThresholdStrip', () => {
   });
 
   it('shows the strip line collapsed, then the cost and lever on expand', async () => {
-    const w = mountWith({ strip: 'pa_taper', lines: [line, dateLine] });
+    const w = mountWith({ strip: 'pa_taper', lines: [line, dateLine], suppressed: 2 });
     expect(w.text()).toContain('You are £12,400 into the 60% band');
     expect(w.text()).not.toContain('Tax-Free Childcare');
     await w.get('button').trigger('click');
@@ -36,5 +49,11 @@ describe('ThresholdStrip', () => {
     expect(w.text()).toContain('£4,480');
     expect(w.text()).toContain('Pay £12,400 into your pension');
     expect(w.text()).toContain('Salary sacrifice National Insurance cap');
+    expect(w.text()).toContain('2 more lines exist in the tax system that you are nowhere near. They are not listed.');
+  });
+
+  it('does not render a ribbon for an open-ended range', () => {
+    const w = mountWith({ strip: 'higher_rate', lines: [openEndedLine] });
+    expect(w.find('.ribbon').exists()).toBe(false);
   });
 });
