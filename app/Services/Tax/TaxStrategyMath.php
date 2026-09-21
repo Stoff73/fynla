@@ -85,9 +85,10 @@ final class TaxStrategyMath
 
     /**
      * The band limits as they apply to THIS user: extended by the grossed-up Gift
-     * Aid under ITA 2007 s414, the way `UKTaxCalculator` already extends them.
-     * Without this the strategy engine valued a slice at 45% that the calculator
-     * taxed at 40% (2026-09-17).
+     * Aid, the same extension `UKTaxCalculator` applies (ITA 2007 s414); the
+     * Personal Allowance taper is not modelled here because it only bites above
+     * £100,000 where both limits are already exceeded. Without this the strategy
+     * engine valued a slice at 45% that the calculator taxed at 40% (2026-09-17).
      *
      * @return array{higher: float, additional: float}
      */
@@ -102,6 +103,13 @@ final class TaxStrategyMath
         ];
     }
 
+    /**
+     * Raw (non-Gift-Aid-aware) band lookup for an arbitrary income figure.
+     * Stays raw deliberately for `QuerySchemas` and for `CoordinatingAgent`'s two
+     * spouse-income calls — none of those callers have a `User` model in hand to
+     * look up Gift Aid for, so `bandFromIncomeFor()` is not available to them.
+     * Every caller that DOES hold a `User` should use `bandFromIncomeFor()` instead.
+     */
     public function bandFromIncome(float $income): string
     {
         $thresholds = $this->bandThresholds();
@@ -175,6 +183,17 @@ final class TaxStrategyMath
     public function personalSavingsAllowanceFor(float $income): float
     {
         return $this->psaForBand($this->bandFromIncome($income));
+    }
+
+    /**
+     * Personal Savings Allowance for THIS user, banded on their Gift-Aid-extended
+     * thresholds via `bandFromIncomeFor()`. Use this over `personalSavingsAllowanceFor()`
+     * whenever a `User` is in hand; the float-only variant stays for the spouse grids,
+     * which price off a household income figure rather than a `User` model.
+     */
+    public function personalSavingsAllowanceForUser(User $user): float
+    {
+        return $this->psaForBand($this->bandFromIncomeFor($user, $this->taxableIncomeFor($user)));
     }
 
     /**

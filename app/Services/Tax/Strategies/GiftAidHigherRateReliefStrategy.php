@@ -39,7 +39,7 @@ final class GiftAidHigherRateReliefStrategy implements TaxStrategy
             return [];
         }
 
-        $band = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+        $band = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
         $factor = match ($band) {
             'higher' => self::HIGHER_RATE_FACTOR,
             'additional' => self::ADDITIONAL_RATE_FACTOR,

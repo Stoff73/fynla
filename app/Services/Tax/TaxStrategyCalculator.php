@@ -147,7 +147,7 @@ final class TaxStrategyCalculator
         $personalAllowanceAmount = $this->math->personalAllowanceFor($user);
         $personalAllowanceUsed = min($totalIncome, $personalAllowanceAmount);
 
-        $personalSavingsAllowanceAmount = $this->math->personalSavingsAllowanceFor($totalIncome);
+        $personalSavingsAllowanceAmount = $this->math->personalSavingsAllowanceForUser($user);
         $estimatedAnnualInterest = $this->math->estimateAnnualInterest($user);
 
         $startingRateForSavingsAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);

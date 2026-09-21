@@ -44,7 +44,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         // M11 — HMRC band uses TOTAL taxable income (employment + dividends +
         // savings interest), not employment alone. Computed once because
         // taxableIncomeFor() runs a SavingsAccount query.
-        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
 
         // 1. Marriage Allowance transfer (basic-rate recipients only). A £45k
         // employee with £10k of dividend income is a higher-rate taxpayer for

@@ -29,7 +29,7 @@ final class DividendAllowanceHarvestStrategy implements TaxStrategy
     {
         $user = $context->user;
         $div = $this->taxConfig->getDividendTax();
-        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
 
         $dividendAllowanceRaw = $div['allowance'] ?? 500;
         $dividendAllowance = is_array($dividendAllowanceRaw)
