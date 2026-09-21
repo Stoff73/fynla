@@ -933,7 +933,7 @@ git commit -m "feat(tax-config): hourly funding rates for the income-tested earl
 **Interfaces:**
 - Produces:
   - `interface ThresholdLine { public function key(): string; public function evaluate(ThresholdContext $context): ?ThresholdResult; }`
-  - `final class ThresholdContext { public readonly User $user; public readonly array $definitions; public function iht(): array; public function strategies(): array<string, StrategyRecommendation>; public function vests(): array; }`
+  - `final class ThresholdContext { public readonly User $user; public readonly array $definitions; public function iht(): array; public function strategies(): array<string, array<string, mixed>> keyed by type (the calculator publishes arrays; `extra` is merged flat, so `suggested_contribution` is a top-level key); public function strategy(string $type): ?array; public function vests(): array; }`
   - `final class ThresholdResult` with readonly `key, title, range (?array{from: float, to: ?float}), position (array{value: float, distance: float, unit: 'gbp'|'days', over: bool}), headline, body, explanation, cost (?ThresholdCost), lever (?array{title: string, amount: float, recovers: float, downside: string, action: array{route: string}}), incomeMix (array<string,float>)` and `toArray(): array`.
   - `final class ThresholdCost { incomeTax, niClass1, niClass4, dividendTax, interestTax, benefits (list<array{label, detail, amount}>), total }` with `withBenefit(string $label, string $detail, float $amount): self` and `toArray()`.
   - `ThresholdCostCalculator::delta(ThresholdContext $context, float $reduceBy, string $mechanism = 'pension'): ThresholdCost`.
@@ -1052,7 +1052,6 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Thresholds;
 
-use App\DataTransferObjects\StrategyRecommendation;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Tax\TaxStrategyCalculator;
@@ -1067,7 +1066,7 @@ final class ThresholdContext
 {
     private ?array $iht = null;
 
-    /** @var array<string, StrategyRecommendation>|null */
+    /** @var array<string, array<string, mixed>>|null */
     private ?array $strategies = null;
 
     private ?array $vests = null;
@@ -1107,20 +1106,26 @@ final class ThresholdContext
         );
     }
 
-    /** Strategy recommendations keyed by type, from the one calculator every surface uses. */
+    /**
+     * Strategy recommendations keyed by type, from the one calculator every surface
+     * uses. The calculator publishes arrays (StrategyRecommendation::toArray), with
+     * `extra` merged flat, so `suggested_contribution` is a top-level key.
+     *
+     * @return array<string, array<string, mixed>>
+     */
     public function strategies(): array
     {
         if ($this->strategies === null) {
             $this->strategies = [];
             foreach (app(TaxStrategyCalculator::class)->calculate($this->user)->recommendations as $rec) {
-                $this->strategies[$rec->type] = $rec;
+                $this->strategies[(string) ($rec['type'] ?? '')] = $rec;
             }
         }
 
         return $this->strategies;
     }
 
-    public function strategy(string $type): ?StrategyRecommendation
+    public function strategy(string $type): ?array
     {
         return $this->strategies()[$type] ?? null;
     }
@@ -1876,7 +1881,7 @@ final class PersonalAllowanceTaperLine extends MoneyLine
         if ($excess > 0) {
             // The one calculator every surface uses sizes the contribution; the
             // excess is the fallback when the strategy has not fired (no AA headroom).
-            $suggested = (float) ($context->strategy('pa_taper_rescue')?->extra['suggested_contribution'] ?? $excess);
+            $suggested = (float) ($context->strategy('pa_taper_rescue')['suggested_contribution'] ?? $excess);
             $lever = $this->incomeLever($context, $suggested > 0 ? min($excess, $suggested) : $excess, $cost);
         }
 
@@ -2023,7 +2028,7 @@ final class HigherRateLine extends MoneyLine
 }
 ```
 
-`AdditionalRateLine` is the same file shape with six changes: key `additional_rate`; threshold `bandThresholdsFor($context->user)['additional']`; title `Additional-rate threshold`; body `sprintf('Above %s income tax is %d%% and the Savings Allowance is nil.', ThresholdCopy::pounds($threshold), $pct)`; rate `bandRateForBand('additional')`; lever amount `min($excess, (float) ($context->strategy('additional_rate_avoidance')?->extra['suggested_contribution'] ?? $excess))` guarded so a zero suggestion falls back to `$excess`. Copy the class and change those six things.
+`AdditionalRateLine` is the same file shape with six changes: key `additional_rate`; threshold `bandThresholdsFor($context->user)['additional']`; title `Additional-rate threshold`; body `sprintf('Above %s income tax is %d%% and the Savings Allowance is nil.', ThresholdCopy::pounds($threshold), $pct)`; rate `bandRateForBand('additional')`; lever amount `min($excess, (float) ($context->strategy('additional_rate_avoidance')['suggested_contribution'] ?? $excess))` guarded so a zero suggestion falls back to `$excess`. Copy the class and change those six things.
 
 - [ ] **Step 8: Tapered Annual Allowance**
 
@@ -2084,9 +2089,9 @@ final class TaperedAnnualAllowanceLine extends MoneyLine
             explanation: sprintf('Your allowance this year is %s against the full %s.', ThresholdCopy::pounds($full - $lost), ThresholdCopy::pounds($full)),
             cost: $cost,
             lever: $strategy === null ? null : [
-                'title' => $strategy->title,
-                'amount' => (float) ($strategy->extra['suggested_contribution'] ?? 0),
-                'recovers' => (float) ($strategy->estimatedAnnualTaxSaved ?? 0),
+                'title' => (string) ($strategy['title'] ?? 'Reduce your adjusted income'),
+                'amount' => (float) ($strategy['suggested_contribution'] ?? 0),
+                'recovers' => (float) ($strategy['estimated_annual_tax_saved'] ?? 0),
                 'downside' => '',
                 'action' => ['route' => '/tax-strategy'],
                 'mechanism' => 'pension',
