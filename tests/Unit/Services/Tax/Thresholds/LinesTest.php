@@ -186,6 +186,31 @@ describe('HighIncomeChildBenefitLine', function () {
             ->and($result->lever['recovers'])->toBe($result->cost->total());
     });
 
+    it('prices only the part of the charge the lever actually wins back', function () {
+        $user = User::factory()->create(['annual_employment_income' => 75000]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2018-01-01', 'receives_child_benefit' => true]);
+        // Flexibly accessed, so the £10,000 money purchase allowance caps the lever at
+        // two thirds of the £15,000 excess. It cannot repay the whole charge.
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'SIPP', 'pension_type' => 'personal', 'current_fund_value' => 250000, 'has_flexibly_accessed' => true]);
+
+        $result = app(HighIncomeChildBenefitLine::class)->evaluate(thresholdLineContext($user));
+
+        $service = app(ChildBenefitService::class);
+        $benefit = (float) $service->calculateChildBenefitPosition($user, 75000.0)['benefit']['annual_amount'];
+        $recovered = round(
+            (float) $service->calculateHICBC(75000.0, $benefit)['charge']
+            - (float) $service->calculateHICBC(65000.0, $benefit)['charge'],
+            2
+        );
+        $fullCharge = round((float) $service->calculateHICBC(75000.0, $benefit)['charge'], 2);
+
+        expect($result->lever['amount'])->toBe(10000.0)
+            ->and(collect($result->cost->benefits)->firstWhere('label', 'Child Benefit charge')['amount'])->toBe($recovered)
+            // The whole charge would be a promise a £10,000 contribution cannot keep.
+            ->and($recovered)->toBeLessThan($fullCharge)
+            ->and($result->lever['recovers'])->toBe($result->cost->total());
+    });
+
     it('says the benefit is all repaid once past the top of the band', function () {
         $user = User::factory()->create(['annual_employment_income' => 200000]);
         FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2018-01-01', 'receives_child_benefit' => true]);

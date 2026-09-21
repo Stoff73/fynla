@@ -8,6 +8,7 @@ use App\Constants\TaxDefaults;
 use App\Models\DCPension;
 use App\Models\User;
 use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator;
 use Illuminate\Support\Collection;
 
 /**
@@ -24,7 +25,8 @@ use Illuminate\Support\Collection;
 class SalarySacrificeAnalyzer
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly UKTaxCalculator $calculator,
     ) {}
 
     /**
@@ -152,7 +154,7 @@ class SalarySacrificeAnalyzer
 
         $contribution = $this->calculateAnnualEmployeeContribution($pension, $salary);
         $postSacrificeSalary = $salary - $contribution;
-        $niSavings = $this->calculateNISavings($contribution);
+        $niSavings = $this->calculateNISavings($contribution, $salary);
         $warnings = $this->generateWarnings($salary, $contribution, $postSacrificeSalary);
 
         // Add NIC exemption cap warning if sacrifice exceeds £2,000
@@ -209,7 +211,7 @@ class SalarySacrificeAnalyzer
 
         foreach ($workplacePensions as $pension) {
             $contribution = $this->calculateAnnualEmployeeContribution($pension, $salary);
-            $niSavings = $this->calculateNISavings($contribution);
+            $niSavings = $this->calculateNISavings($contribution, $salary);
 
             $totalContribution += $contribution;
             $totalEmployeeNISaving += $niSavings['employee'];
@@ -229,7 +231,7 @@ class SalarySacrificeAnalyzer
         $totalNISaving = $totalEmployeeNISaving + $totalEmployerNISaving;
 
         // Calculate aggregate post-cap NI savings (cap applies to total sacrifice, not per pension)
-        $aggregateNI = $this->calculateNISavings($totalContribution);
+        $aggregateNI = $this->calculateNISavings($totalContribution, $salary);
 
         // Add NIC exemption cap warning if total sacrifice exceeds £2,000
         if ($aggregateNI['exceeds_nic_cap']) {
@@ -303,12 +305,8 @@ class SalarySacrificeAnalyzer
      *
      * @return array{employee: float, employer: float, total: float, post_cap_employee: float, post_cap_employer: float, post_cap_total: float, nic_exemption_cap: float, exceeds_nic_cap: bool, nic_cap_effective_year: int}
      */
-    private function calculateNISavings(float $sacrificeAmount): array
+    private function calculateNISavings(float $sacrificeAmount, float $preSacrificePay): array
     {
-        $employeeMainRate = (float) $this->taxConfig->get(
-            'national_insurance.class_1.employee.main_rate',
-            0.08
-        );
         $employerRate = (float) $this->taxConfig->get(
             'national_insurance.class_1.employer.rate',
             0.138
@@ -323,13 +321,18 @@ class SalarySacrificeAnalyzer
             4,
         );
 
-        // Current rules: full NIC exemption
-        $employeeSaving = $sacrificeAmount * $employeeMainRate;
+        // Employee National Insurance comes from the calculator, never from a rate
+        // (Rule 20 — `SalarySacrificeNiCapLine` prices the same thing the same way).
+        // A flat main rate is wrong for anyone whose sacrifice sits above the upper
+        // earnings limit, where the employee rate is 2%: a £145,000 earner sacrificing
+        // £30,000 was told £2,240 here and £560 on the threshold strip, for one fact.
+        // Employer National Insurance is a flat rate above one threshold, so it stays.
+        $employeeSaving = $this->classOne($preSacrificePay) - $this->classOne($preSacrificePay - $sacrificeAmount);
         $employerSaving = $sacrificeAmount * $employerRate;
 
         // Post-cap rules: only first £2,000 exempt from employee NICs
         $exemptAmount = min($sacrificeAmount, $nicExemptionCap);
-        $postCapEmployeeSaving = $exemptAmount * $employeeMainRate;
+        $postCapEmployeeSaving = $this->classOne($preSacrificePay) - $this->classOne($preSacrificePay - $exemptAmount);
         // Employer NI savings unaffected — all employer contributions remain NIC-exempt
         $postCapEmployerSaving = $employerSaving;
 
@@ -344,6 +347,12 @@ class SalarySacrificeAnalyzer
             'exceeds_nic_cap' => $sacrificeAmount > $nicExemptionCap,
             'nic_cap_effective_year' => $effectiveYear,
         ];
+    }
+
+    /** Employee Class 1 National Insurance on a year's pay, from the one calculator. */
+    private function classOne(float $pay): float
+    {
+        return (float) ($this->calculator->calculateNetIncome(max(0.0, $pay))['breakdown']['class_1_ni'] ?? 0);
     }
 
     /**

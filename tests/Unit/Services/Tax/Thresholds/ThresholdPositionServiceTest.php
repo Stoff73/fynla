@@ -53,6 +53,22 @@ it('orders money lines by proximity, dates after money, and leads with the neare
         ->and($out['strip'])->toBe('near');
 });
 
+it('leads with the nearest line even when nothing carries a lever', function () {
+    $user = User::factory()->create();
+    // A retired household: the nil rate band and pensions entering the estate both
+    // apply and neither has anything to pull. Suppressing the strip told them nothing
+    // at all, which is worse than telling them where they stand.
+    $service = new ThresholdPositionService(app(IncomeDefinitionsService::class), [
+        fakeLine('nil_rate_band', 80000.0, 'gbp', false),
+        fakeLine('rnrb_taper', -4000.0, 'gbp', false),
+    ]);
+
+    $out = $service->evaluate($user);
+
+    expect($out['strip'])->toBe('rnrb_taper')
+        ->and(array_column($out['lines'], 'key'))->toBe(['rnrb_taper', 'nil_rate_band']);
+});
+
 it('returns an empty list and no strip when nothing applies', function () {
     $user = User::factory()->create();
     $none = new class implements ThresholdLine

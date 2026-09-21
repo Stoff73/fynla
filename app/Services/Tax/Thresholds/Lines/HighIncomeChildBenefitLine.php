@@ -57,13 +57,34 @@ final class HighIncomeChildBenefitLine extends MoneyLine
         $excess = max(0.0, $ani - $threshold);
         $mechanism = $this->mechanismFor($context, $excess);
         $amount0 = $this->affordableAmount($context, $mechanism, $excess);
-        $cost = ($amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost)
-            ->withBenefit('Child Benefit charge', sprintf('%d%% of your %s Child Benefit repaid', (int) $charge['clawback_percentage'], ThresholdCopy::pounds($benefit)), (float) $charge['charge']);
+        $cost = $amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost;
 
         $lever = null;
+        $moved = 0.0;
         if ($excess > 0 && $cost->applied > 0) {
-            $lever = $this->incomeLever($context, min($amount0, $cost->applied), $cost, $mechanism);
+            $moved = min($amount0, $cost->applied);
+            $lever = $this->incomeLever($context, $moved, $cost, $mechanism);
             $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $amount0, $cost);
+        }
+
+        // The charge the lever actually gets back, not the whole charge. A lever held
+        // to £10,000 by the Annual Allowance moves the income £10,000, which repays
+        // part of the clawback; attaching the full charge to that move made `recovers`
+        // promise a benefit the contribution does not buy. With no lever at all there
+        // is nothing to net off and the item is the whole charge, as before.
+        $recovered = $moved > 0
+            ? (float) $charge['charge'] - (float) $this->childBenefit->calculateHICBC($ani - $moved, $benefit)['charge']
+            : (float) $charge['charge'];
+
+        $cost = $cost->withBenefit(
+            'Child Benefit charge',
+            $moved > 0 && $moved < $excess
+                ? sprintf('The part of your %s Child Benefit this contribution wins back', ThresholdCopy::pounds($benefit))
+                : sprintf('%d%% of your %s Child Benefit repaid', (int) $charge['clawback_percentage'], ThresholdCopy::pounds($benefit)),
+            $recovered,
+        );
+        if ($lever !== null) {
+            $lever['recovers'] = $cost->total();
         }
 
         // Past the top of the band there is no "how far in" left to state: the whole

@@ -10,8 +10,13 @@ use App\Services\Tax\IncomeDefinitionsService;
 /**
  * Runs every catalogue line against one user and orders what applies by how
  * near it is. Money lines first, by absolute distance; date lines after, by
- * days. The strip is the nearest line the user can still act on (has a lever);
- * a line with no lever never leads. Empty output means the strip does not render.
+ * days.
+ *
+ * The strip is the nearest line the user can still act on, so a line with a lever
+ * leads over one without. But a leverless line DOES lead when nothing else applies:
+ * a retired user whose only lines are the nil rate band and pensions entering the
+ * estate has nothing to pull, and telling them nothing at all is worse than telling
+ * them where they stand. Only an empty result list means the strip does not render.
  */
 final class ThresholdPositionService
 {
@@ -50,6 +55,12 @@ final class ThresholdPositionService
                 $strip = $result->key;
                 break;
             }
+        }
+
+        // Nothing actionable, but something applies: lead with the nearest line anyway.
+        // Where they stand is worth saying even when there is nothing to pull.
+        if ($strip === null && $results !== []) {
+            $strip = $results[0]->key;
         }
 
         // How many catalogue lines the user is nowhere near, so the expanded view can

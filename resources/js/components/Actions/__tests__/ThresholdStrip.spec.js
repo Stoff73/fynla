@@ -52,6 +52,31 @@ describe('ThresholdStrip', () => {
     expect(w.text()).toContain('2 more lines exist in the tax system that you are nowhere near. They are not listed.');
   });
 
+  it('renders a leverless strip line without offering an action', async () => {
+    // A retired household's only lines carry nothing to pull. The strip still has to
+    // say where they stand; it must not show an empty lever block or a dead link.
+    const estateLine = {
+      key: 'nil_rate_band',
+      title: 'Inheritance tax nil rate band',
+      range: { from: 325000, to: null },
+      position: { value: 800000, distance: 475000, unit: 'gbp', over: true },
+      headline: 'Your estate is £475,000 over the nil rate band',
+      body: 'Everything above your allowances of £325,000 is taxed at 40%.',
+      explanation: '',
+      income_mix: {},
+      cost: { income_tax: 0, ni_class_1: 0, ni_class_4: 0, dividend_tax: 0, interest_tax: 0, benefits: [{ label: 'Inheritance tax', detail: '40% on £475,000', amount: 190000 }], total: 190000 },
+      cost_total: 190000,
+      lever: null,
+    };
+    const w = mountWith({ strip: 'nil_rate_band', lines: [estateLine], suppressed: 7 });
+
+    expect(w.text()).toContain('Your estate is £475,000 over the nil rate band');
+    await w.get('button').trigger('click');
+    expect(w.text()).toContain('Inheritance tax');
+    expect(w.text()).not.toContain('Model this change');
+    expect(w.text()).not.toContain('The one lever that moves it');
+  });
+
   it('does not render a ribbon for an open-ended range', () => {
     const w = mountWith({ strip: 'higher_rate', lines: [openEndedLine] });
     expect(w.find('.ribbon').exists()).toBe(false);
