@@ -817,7 +817,7 @@ class TaxConfigurationSeeder extends Seeder
                         'income_test' => true,
                         'min_weekly_earnings' => 183.04,         // NMW × 16 hours
                         'max_income_threshold' => 100000,        // Neither parent over £100k adjusted net income
-                        'hourly_rate' => 6.12,   // DfE 2025/26 national average funding rate, 3 and 4 year olds
+                        'hourly_rate' => 6.12,   // DfE 2025/26 national average hourly funding rate (early years operational guide)
                     ],
                     // Working parents of 2 year olds
                     'working_parents_2yr' => [
@@ -828,7 +828,7 @@ class TaxConfigurationSeeder extends Seeder
                         'income_test' => true,
                         'min_weekly_earnings' => 183.04,
                         'max_income_threshold' => 100000,
-                        'hourly_rate' => 8.28,   // DfE 2025/26 national average, 2 year olds
+                        'hourly_rate' => 8.53,   // DfE 2025/26 national average hourly funding rate (early years operational guide)
                     ],
                     // Working parents of 9 months to 2 years
                     'working_parents_under_2' => [
@@ -839,7 +839,7 @@ class TaxConfigurationSeeder extends Seeder
                         'eligible_age_to' => 2,
                         'income_test' => true,
                         'min_weekly_earnings' => 183.04,
-                        'hourly_rate' => 11.22,  // DfE 2025/26 national average, under 2s
+                        'hourly_rate' => 11.54,  // DfE 2025/26 national average hourly funding rate (early years operational guide)
                         'max_income_threshold' => 100000,
                     ],
                     // Disadvantaged 2 year olds (income-based)
@@ -1464,9 +1464,9 @@ class TaxConfigurationSeeder extends Seeder
         $config['benefits']['early_years_funding']['working_parents_under_2']['hours_per_week'] = 30;
         $config['benefits']['early_years_funding']['working_parents_under_2']['total_hours_per_year'] = 1140;
         $config['benefits']['early_years_funding']['working_parents_under_2']['min_weekly_earnings'] = 203.36;
-        $config['benefits']['early_years_funding']['working_parents_30hrs']['hourly_rate'] = 6.12;   // confirm against the DfE 2026/27 publication
-        $config['benefits']['early_years_funding']['working_parents_2yr']['hourly_rate'] = 8.28;   // confirm against the DfE 2026/27 publication
-        $config['benefits']['early_years_funding']['working_parents_under_2']['hourly_rate'] = 11.22;  // confirm against the DfE 2026/27 publication
+        $config['benefits']['early_years_funding']['working_parents_30hrs']['hourly_rate'] = 6.42;   // DfE 2026/27 national average hourly funding rate (early years operational guide 2026 to 2027)
+        $config['benefits']['early_years_funding']['working_parents_2yr']['hourly_rate'] = 8.90;   // DfE 2026/27 national average hourly funding rate (early years operational guide 2026 to 2027)
+        $config['benefits']['early_years_funding']['working_parents_under_2']['hourly_rate'] = 12.04;  // DfE 2026/27 national average hourly funding rate (early years operational guide 2026 to 2027)
 
         // Statutory Sick Pay - rate up, LEL abolished, waiting days abolished
         $config['benefits']['ssp']['weekly_rate'] = 123.25;
