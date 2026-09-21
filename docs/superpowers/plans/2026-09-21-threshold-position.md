@@ -1482,12 +1482,10 @@ final class ChildcareEntitlements
         $names = [];
         foreach ($children as $child) {
             $months = (int) Carbon::parse($child->date_of_birth)->diffInMonths(Carbon::today());
-            $band = match (true) {
-                $months >= 36 && $months < 60 => 'working_parents_30hrs',
-                $months >= 24 && $months < 36 => 'working_parents_2yr',
-                $months >= (int) ($funding['working_parents_under_2']['eligible_age_from_months'] ?? 9) && $months < 24 => 'working_parents_under_2',
-                default => null,
-            };
+            // Band membership comes from the seeded ages, never from literal month counts
+            // (Rule 2): `eligible_age_from` / `eligible_age_to` are whole years, and the
+            // under-2 band starts at `eligible_age_from_months`.
+            $band = $this->bandFor($months, $funding);
             if ($band === null || empty($funding[$band]['hourly_rate'])) {
                 continue;
             }
@@ -1504,6 +1502,41 @@ final class ChildcareEntitlements
         }
 
         return $items;
+    }
+
+    /**
+     * The income-tested band a child of `$months` falls in, from the config's own
+     * age keys. Each band starts at `eligible_age_from_months` if present, else
+     * `eligible_age_from` years; it ends where the next band starts, and the top
+     * band ends the day the child turns `eligible_age_to` + 1 (a 4 year old stays
+     * in the 3-4 band until their fifth birthday). The seeder's `eligible_age_to`
+     * is not uniform across bands, which is why the end is taken from the next start.
+     */
+    private function bandFor(int $months, array $funding): ?string
+    {
+        $starts = [];
+        foreach (['working_parents_under_2', 'working_parents_2yr', 'working_parents_30hrs'] as $band) {
+            $cfg = $funding[$band] ?? [];
+            if ($cfg === []) {
+                continue;
+            }
+            $starts[$band] = isset($cfg['eligible_age_from_months'])
+                ? (int) $cfg['eligible_age_from_months']
+                : (int) ($cfg['eligible_age_from'] ?? 0) * 12;
+        }
+        asort($starts);
+        $bands = array_keys($starts);
+        foreach ($bands as $i => $band) {
+            $from = $starts[$band];
+            $to = isset($bands[$i + 1])
+                ? $starts[$bands[$i + 1]]
+                : ((int) ($funding[$band]['eligible_age_to'] ?? 4) + 1) * 12;
+            if ($months >= $from && $months < $to) {
+                return $band;
+            }
+        }
+
+        return null;
     }
 
     private function count(int $n, string $one, string $many): string
