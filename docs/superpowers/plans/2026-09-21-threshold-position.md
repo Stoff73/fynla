@@ -1842,7 +1842,7 @@ abstract class MoneyLine implements ThresholdLine
         }
 
         return [
-            'title' => sprintf('Salary sacrifice %s into your pension', ThresholdCopy::pounds($amount)),
+            'title' => sprintf('Pay %s into your pension', ThresholdCopy::pounds($amount)),
             'amount' => round($amount, 2),
             'recovers' => $cost->total(),
             'downside' => ThresholdCopy::lockedUntil($this->minimumPensionAge(), $context->vests()[0] ?? null),
@@ -2128,14 +2128,10 @@ final class TaperedAnnualAllowanceLine extends MoneyLine
             body: sprintf('For every £2 of adjusted income above %s you lose £1 of pension Annual Allowance, down to %s.', ThresholdCopy::pounds($adjustedLimit), ThresholdCopy::pounds($minimum)),
             explanation: sprintf('Your allowance this year is %s against the full %s.', ThresholdCopy::pounds($full - $lost), ThresholdCopy::pounds($full)),
             cost: $cost,
-            lever: $strategy === null ? null : [
-                'title' => (string) ($strategy['title'] ?? 'Reduce your adjusted income'),
-                'amount' => (float) ($strategy['suggested_contribution'] ?? 0),
-                'recovers' => (float) ($strategy['estimated_annual_tax_saved'] ?? 0),
-                'downside' => '',
-                'action' => ['route' => '/tax-strategy'],
-                'mechanism' => 'pension',
-            ],
+            // No lever in this slice: a pension contribution does not reduce adjusted
+            // income (FA 2004 s228ZA adds it back), and the strategy's own adjusted-income
+            // figure is under review. The line sits behind the click.
+            lever: null,
             incomeMix: $this->costs->mix($context),
         );
     }
@@ -2205,7 +2201,7 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
 
 `NilRateBandLine` extends `MoneyLine`. Guard before touching the estate: `if (! $context->user->properties()->exists() && ! $context->user->investmentAccounts()->exists() && ! $context->user->savingsAccounts()->exists()) return null;`. Then `$iht = $context->iht(); $net = (float) $iht['total_net_estate']; $allowances = (float) $iht['total_allowances'];` and `if (! $this->within($net, $allowances)) return null;`. Cost: `(new ThresholdCost())->withBenefit('Inheritance tax', sprintf('%d%% on %s', (int) round($iht['iht_rate'] * 100), pounds($iht['taxable_estate'])), (float) $iht['iht_liability'])`. Key `nil_rate_band`, title `Inheritance tax nil rate band`, range `['from' => $allowances, 'to' => null]`, position `$this->position($net, $allowances)`, headline `ThresholdCopy::estate($net - $allowances)`, body `sprintf('Everything above your allowances of %s is taxed at %d%%.', pounds($allowances), (int) round($iht['iht_rate'] * 100))`, explanation `sprintf('Your allowances combine the nil rate band of %s and the residence nil rate band of %s.', pounds($iht['nrb_available']), pounds($iht['rnrb_available']))`, lever null, `incomeMix: []`.
 
-`ResidenceBandTaperLine` extends `MoneyLine`, same guard, `$threshold = (float) ($this->taxConfig->getInheritanceTax()['rnrb_taper_threshold'] ?? 2000000)`, applies when `within($net, $threshold)`. Cost benefit `'Residence nil rate band lost'`, detail `sprintf('Reduced by £1 for every £2 over %s', pounds($threshold))`, amount `(float) $iht['rnrb_taper_reduction'] * (float) $iht['iht_rate']`. Key `rnrb_taper`, title `Residence nil rate band taper`, range `['from' => $threshold, 'to' => null]`, headline `ThresholdCopy::into($net - $threshold, 'residence band taper')`, body `sprintf('Above %s the residence nil rate band tapers away.', pounds($threshold))`, explanation `sprintf('You lose %s of residence nil rate band at this estate value.', pounds($iht['rnrb_taper_reduction']))`, lever null.
+`ResidenceBandTaperLine` extends `MoneyLine`, same guard, `$threshold = (float) ($this->taxConfig->getInheritanceTax()['rnrb_taper_threshold'] ?? 2000000)`, applies when `within($net, $threshold)` AND there is something to lose: `rnrb_taper_reduction > 0`, or `rnrb_available > 0` (a household whose residence band is already nil never sees a £0 headline). Cost benefit `'Residence nil rate band lost'`, detail `sprintf('Reduced by £1 for every £2 over %s', pounds($threshold))`, amount `(float) $iht['rnrb_taper_reduction'] * (float) $iht['iht_rate']`. Key `rnrb_taper`, title `Residence nil rate band taper`, range `['from' => $threshold, 'to' => null]`, headline `ThresholdCopy::into($net - $threshold, 'residence band taper')`, body `sprintf('Above %s the residence nil rate band tapers away.', pounds($threshold))`, explanation `sprintf('You lose %s of residence nil rate band at this estate value.', pounds($iht['rnrb_taper_reduction']))`, lever null.
 
 - [ ] **Step 10: Run**
 
@@ -2565,7 +2561,7 @@ const line = {
   income_mix: { employment: 112400 },
   cost: { income_tax: 2480, ni_class_1: 0, ni_class_4: 0, dividend_tax: 0, interest_tax: 0, benefits: [{ label: 'Tax-Free Childcare', detail: 'One child under 12', amount: 2000 }], total: 4480 },
   cost_total: 4480,
-  lever: { title: 'Salary sacrifice £12,400 into your pension', amount: 12400, recovers: 4480, downside: 'The money is locked until you are 57.', action: { route: '/tax-strategy' } },
+  lever: { title: 'Pay £12,400 into your pension', amount: 12400, recovers: 4480, downside: 'The money is locked until you are 57.', action: { route: '/tax-strategy' } },
 };
 const dateLine = { key: 'ni_cap', title: 'Salary sacrifice National Insurance cap', range: null, position: { value: 197, distance: 197, unit: 'days', over: false }, headline: '6 April 2027 · 197 days', body: '', explanation: '', income_mix: {}, cost: null, cost_total: 160, lever: null };
 
@@ -2586,7 +2582,7 @@ describe('ThresholdStrip', () => {
     await w.get('button').trigger('click');
     expect(w.text()).toContain('Tax-Free Childcare');
     expect(w.text()).toContain('£4,480');
-    expect(w.text()).toContain('Salary sacrifice £12,400 into your pension');
+    expect(w.text()).toContain('Pay £12,400 into your pension');
     expect(w.text()).toContain('Salary sacrifice National Insurance cap');
   });
 });
@@ -2766,7 +2762,7 @@ import { apiGet } from '../../api.js';
 import { store } from '../../store.js';
 import Actions from '../Actions.vue';
 
-const line = { key: 'pa_taper', title: 'Personal Allowance taper', headline: 'You are £12,400 into the 60% band', body: 'The next £12,400 you earn costs 60p in the pound.', cost_total: 12620, lever: { title: 'Salary sacrifice £12,400 into your pension', recovers: 12620, downside: 'The money is locked until you are 57.', action: { route: '/tax-strategy' } }, position: { unit: 'gbp' } };
+const line = { key: 'pa_taper', title: 'Personal Allowance taper', headline: 'You are £12,400 into the 60% band', body: 'The next £12,400 you earn costs 60p in the pound.', cost_total: 12620, lever: { title: 'Pay £12,400 into your pension', recovers: 12620, downside: 'The money is locked until you are 57.', action: { route: '/tax-strategy' } }, position: { unit: 'gbp' } };
 
 const stubs = { MobileChrome: { template: '<div><slot /></div>' }, 'router-link': { template: '<a><slot /></a>' } };
 
@@ -2787,9 +2783,9 @@ describe('/m actions threshold strip', () => {
     await flushPromises();
     expect(w.text()).toContain('You are £12,400 into the 60% band');
     expect(w.text()).toContain('£12,620');
-    expect(w.text()).not.toContain('Salary sacrifice £12,400');
+    expect(w.text()).not.toContain('Pay £12,400');
     await w.get('.mt-toggle').trigger('click');
-    expect(w.text()).toContain('Salary sacrifice £12,400 into your pension');
+    expect(w.text()).toContain('Pay £12,400 into your pension');
   });
 
   it('renders nothing when no line applies', async () => {
@@ -2922,7 +2918,7 @@ git commit -m "feat(m): the threshold strip on /m actions, end figures only"
 `Fixtures/Thresholds/taper.json`:
 
 ```json
-{"success":true,"data":{"strip":"pa_taper","lines":[{"key":"pa_taper","title":"Personal Allowance taper","headline":"You are £12,400 into the 60% band","body":"The next £12,400 you earn costs 60p in the pound.","cost_total":12620,"position":{"value":112400,"distance":12400,"unit":"gbp","over":true},"lever":{"title":"Salary sacrifice £12,400 into your pension","amount":12400,"recovers":12620,"downside":"The money is locked until you are 57.","action":{"route":"/tax-strategy"}}}]}}
+{"success":true,"data":{"strip":"pa_taper","lines":[{"key":"pa_taper","title":"Personal Allowance taper","headline":"You are £12,400 into the 60% band","body":"The next £12,400 you earn costs 60p in the pound.","cost_total":12620,"position":{"value":112400,"distance":12400,"unit":"gbp","over":true},"lever":{"title":"Pay £12,400 into your pension","amount":12400,"recovers":12620,"downside":"The money is locked until you are 57.","action":{"route":"/tax-strategy"}}}]}}
 ```
 
 ```swift
