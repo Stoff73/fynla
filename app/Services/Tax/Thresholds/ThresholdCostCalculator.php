@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Thresholds;
 
+use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
 /**
@@ -20,7 +21,10 @@ use App\Services\UKTaxCalculator;
  */
 final class ThresholdCostCalculator
 {
-    public function __construct(private readonly UKTaxCalculator $calculator) {}
+    public function __construct(
+        private readonly UKTaxCalculator $calculator,
+        private readonly TaxConfigService $taxConfig,
+    ) {}
 
     public function delta(ThresholdContext $context, float $reduceBy, string $mechanism = 'pension'): ThresholdCost
     {
@@ -31,11 +35,15 @@ final class ThresholdCostCalculator
         $extraPension = 0.0;
         if ($mechanism === 'isa') {
             // Move interest first, then dividends, out of the computation entirely.
+            // Only what is actually held can move, so a request beyond the balance
+            // prices what the move would really achieve.
             $fromInterest = min($after['interest'], $reduceBy);
             $after['interest'] -= $fromInterest;
-            $after['dividend'] -= min($after['dividend'], $reduceBy - $fromInterest);
+            $fromDividend = min($after['dividend'], $reduceBy - $fromInterest);
+            $after['dividend'] -= $fromDividend;
+            $applied = $fromInterest + $fromDividend;
         } else {
-            $extraPension = $reduceBy;
+            $applied = $extraPension = min($reduceBy, $this->pensionCeiling($mix));
         }
         $afterRun = $this->run($after, $context, $extraPension);
 
@@ -45,6 +53,31 @@ final class ThresholdCostCalculator
             niClass4: round($before['class_4'] - $afterRun['class_4'], 2),
             dividendTax: round($before['dividend_tax'] - $afterRun['dividend_tax'], 2),
             interestTax: round($before['interest_tax'] - $afterRun['interest_tax'], 2),
+            requested: round($reduceBy, 2),
+            applied: round($applied, 2),
+        );
+    }
+
+    /**
+     * The most a pension contribution can attract relief on (FA 2004 s190): relevant
+     * UK earnings, or the basic amount when those are lower.
+     *
+     * Earnings from work only. Rental, pension income in payment and other income are
+     * not relevant earnings, so a director on £12,570 of salary and £120,000 of
+     * dividends cannot pension their way under £100,000 however much they hold.
+     * `UKTaxCalculator` deducts a contribution from non-savings income alone, which
+     * silently floors the deduction rather than reporting it, so the limit is applied
+     * here where the shortfall can be published as `requested` against `applied`.
+     *
+     * @param  array<string, float>  $mix
+     */
+    private function pensionCeiling(array $mix): float
+    {
+        $relevantEarnings = (float) $mix['employment'] + (float) $mix['self_employment'];
+
+        return max(
+            $relevantEarnings,
+            (float) $this->taxConfig->get('pension.relevant_earnings_minimum', 0),
         );
     }
 
@@ -54,7 +87,7 @@ final class ThresholdCostCalculator
         $c = $context->components();
 
         return [
-            'employment' => ($c['employment'] ?? 0) + ($c['vesting'] ?? 0),
+            'employment' => $this->employment($context, $c),
             'self_employment' => $c['self_employment'] ?? 0,
             'rental' => $c['rental'] ?? 0,
             'dividend' => $c['dividend'] ?? 0,
@@ -63,6 +96,35 @@ final class ThresholdCostCalculator
             // bands and carry no NI, which is exactly the calculator's `otherIncome`.
             'other' => ($c['pension_income'] ?? 0) + ($c['trust'] ?? 0) + ($c['other'] ?? 0),
         ];
+    }
+
+    /**
+     * Employment income as the definitions actually count it, plus share-scheme vests.
+     *
+     * `components.employment` is the recorded figure, untouched. Where the user records
+     * pay BEFORE salary sacrifice, `IncomeDefinitionsService` takes the sacrificed
+     * amount off total income on the way to every definition, but leaves the component
+     * as recorded — so running the calculator over the raw component puts its internal
+     * adjusted net income above `$context->adjustedNetIncome()` by the sacrificed
+     * amount, and prices the excess against a personal allowance the user does not have.
+     * Sacrificed pay is never the employee's income (W-0204), so it comes off here too.
+     *
+     * `post_sacrifice` means the recorded figure already excludes it, and `null` means
+     * the question does not arise because nothing is sacrificed. Only `gross` and the
+     * stated-assumption `assumed_gross` need the correction.
+     *
+     * @param  array<string, float>  $components
+     */
+    private function employment(ThresholdContext $context, array $components): float
+    {
+        $employment = ($components['employment'] ?? 0) + ($components['vesting'] ?? 0);
+
+        $basis = $context->definitions['employment_income_basis'] ?? null;
+        if ($basis === 'gross' || $basis === 'assumed_gross') {
+            $employment -= (float) ($context->definitions['deductions']['salary_sacrificed'] ?? 0);
+        }
+
+        return max(0.0, $employment);
     }
 
     /** @return array{non_savings_tax: float, dividend_tax: float, interest_tax: float, class_1: float, class_4: float} */

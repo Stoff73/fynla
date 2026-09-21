@@ -6,7 +6,16 @@ namespace App\Services\Tax\Thresholds;
 
 final class ThresholdCost
 {
-    /** @param list<array{label: string, detail: string, amount: float}> $benefits */
+    /**
+     * `$requested` is the excess the caller asked to price; `$applied` is how much of
+     * it the mechanism could actually absorb. They differ when a lever runs out of
+     * room — a pension contribution beyond relevant UK earnings, or an ISA move with
+     * less interest and dividends to shift than asked for — and the figures below are
+     * the price of `$applied`, never of `$requested`. A caller that shows the cost
+     * without reading both is quoting a smaller number than the one it asked for.
+     *
+     * @param  list<array{label: string, detail: string, amount: float}>  $benefits
+     */
     public function __construct(
         public readonly float $incomeTax = 0.0,
         public readonly float $niClass1 = 0.0,
@@ -14,6 +23,8 @@ final class ThresholdCost
         public readonly float $dividendTax = 0.0,
         public readonly float $interestTax = 0.0,
         public readonly array $benefits = [],
+        public readonly float $requested = 0.0,
+        public readonly float $applied = 0.0,
     ) {}
 
     public function withBenefit(string $label, string $detail, float $amount): self
@@ -23,7 +34,8 @@ final class ThresholdCost
         }
 
         return new self($this->incomeTax, $this->niClass1, $this->niClass4, $this->dividendTax, $this->interestTax,
-            [...$this->benefits, ['label' => $label, 'detail' => $detail, 'amount' => round($amount, 2)]]);
+            [...$this->benefits, ['label' => $label, 'detail' => $detail, 'amount' => round($amount, 2)]],
+            $this->requested, $this->applied);
     }
 
     public function total(): float
@@ -41,6 +53,8 @@ final class ThresholdCost
             'dividend_tax' => round($this->dividendTax, 2),
             'interest_tax' => round($this->interestTax, 2),
             'benefits' => $this->benefits,
+            'requested' => round($this->requested, 2),
+            'applied' => round($this->applied, 2),
             'total' => $this->total(),
         ];
     }

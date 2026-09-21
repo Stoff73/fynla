@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\DBPension;
+use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\Tax\Thresholds\ThresholdContext;
 use App\Services\Tax\Thresholds\ThresholdCost;
 use App\Services\Tax\Thresholds\ThresholdCostCalculator;
@@ -35,13 +37,16 @@ it('prices a salary excess with Class 1 NI and the taper, as a delta of two full
         ->and($cost->total())->toBe($cost->incomeTax);
 });
 
-it('prices a self-employed excess without Class 1', function () {
+it('routes a self-employed excess to self-employment, never to employment', function () {
     $user = User::factory()->create(['annual_employment_income' => 0, 'annual_self_employment_income' => 108000]);
+    $context = contextFor($user);
 
-    $cost = $this->calc->delta(contextFor($user), 8000.0);
-
-    expect($cost->niClass1)->toBe(0.0)
-        ->and($cost->incomeTax)->toBeGreaterThan(8000 * 0.40);
+    // The NI figures cannot move under a pension contribution, so asserting they are
+    // zero proves nothing about routing. What matters is that the income reaches the
+    // calculator on the self-employment leg, which is the one that carries Class 4.
+    expect($this->calc->mix($context)['self_employment'])->toBe(108000.0)
+        ->and($this->calc->mix($context)['employment'])->toBe(0.0)
+        ->and($this->calc->delta($context, 8000.0)->incomeTax)->toBeGreaterThan(8000 * 0.40);
 });
 
 it('attributes the dividend part of the delta to dividend tax', function () {
@@ -61,7 +66,7 @@ it('removes interest from the mix when the mechanism is an ISA move', function (
     expect($cost->interestTax)->toBeGreaterThan(0.0)->and($cost->total())->toBeGreaterThan(0.0);
 });
 
-it('prices a pensioner with no NI at all', function () {
+it('routes a pension in payment to other income, which carries no NI', function () {
     $user = User::factory()->create(['annual_employment_income' => 0]);
     DBPension::factory()->create([
         'user_id' => $user->id,
@@ -69,10 +74,74 @@ it('prices a pensioner with no NI at all', function () {
         'accrued_annual_pension' => 104000,
         'scheme_status' => 'in_payment',
     ]);
+    $context = contextFor($user);
 
-    $cost = $this->calc->delta(contextFor($user), 4000.0);
+    // `otherIncome` is the leg the calculator charges no NI on, so routing the pension
+    // there is what makes the pensioner NI-free — not an assertion that a pension
+    // contribution failed to move a figure it cannot reach.
+    $cost = $this->calc->delta($context, 4000.0);
 
-    expect($cost->niClass1)->toBe(0.0)->and($cost->niClass4)->toBe(0.0)->and($cost->incomeTax)->toBeGreaterThan(0.0);
+    expect($this->calc->mix($context)['other'])->toBe(104000.0)
+        ->and($this->calc->mix($context)['employment'])->toBe(0.0)
+        ->and($cost->incomeTax)->toBeGreaterThan(0.0)
+        // With no relevant earnings at all, the basic amount is the whole ceiling, so
+        // £3,600 of the £4,000 applies. Without it the cost of this line would be nil
+        // and the pensioner would be told a contribution they cannot make is free.
+        ->and($cost->applied)->toBe(3600.0);
+});
+
+it('caps a pension contribution at relevant UK earnings and says how much it applied', function () {
+    // A director paying themselves at the allowance and taking the rest as dividends.
+    // Relief is limited to earnings from work (FA 2004 s190), so £32,570 cannot be
+    // pensioned however much the dividends are worth.
+    $user = User::factory()->create(['annual_employment_income' => 12570, 'annual_dividend_income' => 120000]);
+
+    $cost = $this->calc->delta(contextFor($user), 32570.0);
+
+    expect($cost->applied)->toBe(12570.0)
+        ->and($cost->requested)->toBe(32570.0)
+        ->and($cost->toArray()['applied'])->toBe(12570.0)
+        ->and($cost->toArray()['requested'])->toBe(32570.0);
+});
+
+it('keeps requested and applied when a benefit is added', function () {
+    $cost = new ThresholdCost(incomeTax: 500.0, requested: 9000.0, applied: 4000.0);
+
+    $withBenefit = $cost->withBenefit('Child Benefit', 'Withdrawn at 1% per £200', 1000.0);
+
+    expect($withBenefit->requested)->toBe(9000.0)
+        ->and($withBenefit->applied)->toBe(4000.0)
+        ->and($withBenefit->total())->toBe(1500.0);
+});
+
+it('takes sacrificed pay out of the employment figure when the recorded pay is gross', function () {
+    $user = User::factory()->create([
+        'annual_employment_income' => 145000,
+        'employment_income_basis' => 'gross',
+    ]);
+    DCPension::factory()->create([
+        'user_id' => $user->id,
+        'annual_salary' => 145000,
+        'employee_contribution_percent' => 20,
+        'employer_contribution_percent' => 0,
+        'salary_sacrifice' => true,
+    ]);
+
+    $context = contextFor($user);
+    $mix = $this->calc->mix($context);
+
+    expect($mix['employment'])->toBe(116000.0);
+
+    // The point of the correction: the calculator's own view of adjusted net income
+    // now agrees with the definitions service. Compared through the personal allowance
+    // each figure earns, which is where a disagreement would cost the user money.
+    $math = app(TaxStrategyMath::class);
+    $published = $math->personalAllowanceForIncome($context->adjustedNetIncome());
+    $fromMix = $math->personalAllowanceForIncome(
+        $mix['employment'] + $mix['self_employment'] + $mix['rental'] + $mix['dividend'] + $mix['interest'] + $mix['other']
+    );
+
+    expect($fromMix)->toBe($published);
 });
 
 it('keys strategy recommendations by type, as the arrays the calculator publishes', function () {
