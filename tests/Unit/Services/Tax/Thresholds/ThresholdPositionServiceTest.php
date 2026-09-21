@@ -9,9 +9,16 @@ use App\Services\Tax\Thresholds\ThresholdCost;
 use App\Services\Tax\Thresholds\ThresholdLine;
 use App\Services\Tax\Thresholds\ThresholdPositionService;
 use App\Services\Tax\Thresholds\ThresholdResult;
+use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
+});
 
 function fakeLine(string $key, float $distance, string $unit, bool $lever): ThresholdLine
 {
@@ -67,5 +74,17 @@ it('returns an empty list and no strip when nothing applies', function () {
 });
 
 it('is resolvable from the container with the catalogue tagged', function () {
-    expect(app(ThresholdPositionService::class))->toBeInstanceOf(ThresholdPositionService::class);
+    $service = app(ThresholdPositionService::class);
+    expect($service)->toBeInstanceOf(ThresholdPositionService::class);
+
+    // Resolving the service alone proves nothing about the catalogue: `tagged()`
+    // returns a lazy RewindableGenerator, so a misspelt or unresolvable line class
+    // in AppServiceProvider would still pass a bare instanceof check. Calling
+    // evaluate() iterates the generator and constructs every one of the nine real
+    // line classes through the container — a plain earner with no estate, pensions
+    // or children clears every line's guard, so the real catalogue should agree with
+    // the fake-line tests above and return nothing.
+    $user = User::factory()->create(['annual_employment_income' => 30000]);
+
+    expect($service->evaluate($user))->toBe(['strip' => null, 'lines' => []]);
 });
