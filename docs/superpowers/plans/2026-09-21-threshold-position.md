@@ -899,16 +899,16 @@ Expected: FAIL.
 In each of the three income-tested bands add:
 
 ```php
-                        'hourly_rate' => 6.12,   // DfE 2025/26 national average funding rate, 3 and 4 year olds
+                        'hourly_rate' => 6.12,   // DfE 2025/26 national average hourly funding rate (early years operational guide), 3 and 4 year olds
 ```
 ```php
-                        'hourly_rate' => 8.28,   // DfE 2025/26 national average, 2 year olds
+                        'hourly_rate' => 8.53,   // DfE 2025/26 national average, 2 year olds
 ```
 ```php
-                        'hourly_rate' => 11.22,  // DfE 2025/26 national average, under 2s
+                        'hourly_rate' => 11.54,  // DfE 2025/26 national average, under 2s
 ```
 
-Add the same three keys to the 2026/27 override block near line 1459 with a `// confirm against the DfE 2026/27 publication` comment, same values.
+Add the same three keys to the 2026/27 override block near line 1459 with the 2026/27 figures: 6.42, 8.90 and 12.04 (DfE early years operational guide 2026 to 2027; verified 2026-09-21).
 
 - [ ] **Step 4: Reseed and run**
 
@@ -1403,8 +1403,9 @@ it('caps Tax-Free Childcare per child and prices the extended hours by age', fun
     // 25% of £12,000 = £3,000, under the £4,000 cap for two children.
     expect($tfc['amount'])->toBe(3000.0);
     $hours = collect($items)->firstWhere('label', 'Funded childcare hours');
-    // The three-year-old's extra 15 hours × 38 weeks × the seeded rate.
-    expect($hours['amount'])->toBe(round(15 * 38 * 6.12, 2));
+    // The three-year-old's extra 15 hours × 38 weeks × the seeded rate for the active year.
+    $rate = (float) app(\App\Services\TaxConfigService::class)->getEarlyYearsFunding()['working_parents_30hrs']['hourly_rate'];
+    expect($hours['amount'])->toBe(round(15 * 38 * $rate, 2));
 });
 
 it('gives no Tax-Free Childcare when no spend is recorded', function () {
