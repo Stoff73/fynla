@@ -935,7 +935,7 @@ git commit -m "feat(tax-config): hourly funding rates for the income-tested earl
   - `interface ThresholdLine { public function key(): string; public function evaluate(ThresholdContext $context): ?ThresholdResult; }`
   - `final class ThresholdContext { public readonly User $user; public readonly array $definitions; public function iht(): array; public function strategies(): array<string, array<string, mixed>> keyed by type (the calculator publishes arrays; `extra` is merged flat, so `suggested_contribution` is a top-level key); public function strategy(string $type): ?array; public function vests(): array; }`
   - `final class ThresholdResult` with readonly `key, title, range (?array{from: float, to: ?float}), position (array{value: float, distance: float, unit: 'gbp'|'days', over: bool}), headline, body, explanation, cost (?ThresholdCost), lever (?array{title: string, amount: float, recovers: float, downside: string, action: array{route: string}}), incomeMix (array<string,float>)` and `toArray(): array`.
-  - `final class ThresholdCost { incomeTax, niClass1, niClass4, dividendTax, interestTax, benefits (list<array{label, detail, amount}>), total }` with `withBenefit(string $label, string $detail, float $amount): self` and `toArray()`.
+  - `final class ThresholdCost { incomeTax, niClass1, niClass4, dividendTax, interestTax, benefits (list<array{label, detail, amount}>), requested, applied }` with `withBenefit(string $label, string $detail, float $amount): self`, `total()` and `toArray()` (publishes `requested` and `applied`; `applied` is the amount the mechanism could actually remove — the pension branch caps at relevant UK earnings, employment plus self-employment).
   - `ThresholdCostCalculator::delta(ThresholdContext $context, float $reduceBy, string $mechanism = 'pension'): ThresholdCost`.
 
 - [ ] **Step 1: Failing tests**
@@ -1544,7 +1544,7 @@ git commit -m "feat(tax): childcare entitlements from the config that nothing re
 - Test: `tests/Unit/Services/Tax/Thresholds/LinesTest.php`
 
 **Interfaces:**
-- Consumes: `ThresholdContext`, `ThresholdCostCalculator::delta`, `ThresholdCostCalculator::mix`, `ChildcareEntitlements::for`, `ThresholdCost`, `ThresholdResult` from Tasks 8 and 9; config getters on `TaxConfigService`.
+- Consumes: `ThresholdContext`, `ThresholdCostCalculator::delta`, `ThresholdCostCalculator::mix`, `ChildcareEntitlements::for`, `ThresholdCost` (including `applied`), `ThresholdResult` from Tasks 8 and 9; config getters on `TaxConfigService`. Under top-slicing, an ISA-mechanism delta on an interest-only excess lands in `interest_tax`, not `income_tax`; copy must speak of "tax" not "income tax" on that path.
 - Produces: nine `ThresholdLine` implementations with keys `pa_taper`, `hicbc`, `higher_rate`, `additional_rate`, `tapered_aa`, `ni_cap`, `nil_rate_band`, `rnrb_taper`, `pensions_in_estate`. `ThresholdCopy` static methods used only by the lines.
 
 - [ ] **Step 1: Failing tests**
@@ -1881,8 +1881,15 @@ final class PersonalAllowanceTaperLine extends MoneyLine
         if ($excess > 0) {
             // The one calculator every surface uses sizes the contribution; the
             // excess is the fallback when the strategy has not fired (no AA headroom).
+            // `applied` is what the cost delta could actually take out: relief is
+            // limited to relevant UK earnings, so a dividend-heavy user's lever is
+            // smaller than their excess and the copy says why.
             $suggested = (float) ($context->strategy('pa_taper_rescue')['suggested_contribution'] ?? $excess);
-            $lever = $this->incomeLever($context, $suggested > 0 ? min($excess, $suggested) : $excess, $cost);
+            $amount = min($suggested > 0 ? min($excess, $suggested) : $excess, $cost->applied);
+            $lever = $this->incomeLever($context, $amount, $cost);
+            if ($cost->applied < $excess) {
+                $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
+            }
         }
 
         $effectivePct = (int) round($higherRate * 150);
