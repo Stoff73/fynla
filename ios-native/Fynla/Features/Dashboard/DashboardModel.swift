@@ -6,12 +6,15 @@ final class DashboardModel {
     private(set) var state: DashboardViewState = .idle
     private(set) var completingActionIDs: Set<String> = []
     private(set) var actionMessage: String?
+    private(set) var thresholds: ThresholdPosition?
     private let client: any DashboardClient
+    private let thresholdClient: any ThresholdClient
     private var lastSnapshot: DashboardSnapshot?
     private var generation = 0
 
-    init(client: any DashboardClient) {
+    init(client: any DashboardClient, thresholdClient: any ThresholdClient) {
         self.client = client
+        self.thresholdClient = thresholdClient
     }
 
     var snapshot: DashboardSnapshot? {
@@ -35,6 +38,13 @@ final class DashboardModel {
             guard activeGeneration == generation, !Task.isCancelled else { return }
             lastSnapshot = snapshot
             state = .loaded(snapshot)
+            // Best effort: the threshold strip is an addition to the dashboard,
+            // never a reason to blank it, and a failed refresh keeps the strip
+            // that is already on screen rather than making it disappear.
+            if let position = try? await thresholdClient.load() {
+                guard activeGeneration == generation, !Task.isCancelled else { return }
+                thresholds = position
+            }
         } catch is CancellationError {
             guard activeGeneration == generation, let previous else { return }
             state = .loaded(previous)
@@ -73,6 +83,7 @@ final class DashboardModel {
     func stop() {
         generation &+= 1
         lastSnapshot = nil
+        thresholds = nil
         state = .idle
         completingActionIDs = []
         actionMessage = nil

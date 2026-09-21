@@ -8,7 +8,7 @@ struct DashboardModelTests {
     func loadsAndRefreshesTheCanonicalSnapshot() async throws {
         let snapshot = try fixture("populated")
         let client = DashboardClientStub([.success(snapshot), .success(snapshot)])
-        let model = DashboardModel(client: client)
+        let model = DashboardModel(client: client, thresholdClient: ThresholdClientStub())
 
         await model.load()
         #expect(model.state == .loaded(snapshot))
@@ -24,7 +24,7 @@ struct DashboardModelTests {
             .success(snapshot),
             .failure(APIError.offline),
         ])
-        let model = DashboardModel(client: client)
+        let model = DashboardModel(client: client, thresholdClient: ThresholdClientStub())
 
         await model.load()
         await model.refresh()
@@ -38,7 +38,8 @@ struct DashboardModelTests {
         let authModel = DashboardModel(
             client: DashboardClientStub([
                 .failure(APIError.unauthenticated),
-            ])
+            ]),
+            thresholdClient: ThresholdClientStub()
         )
         await authModel.load()
         #expect(authModel.state == DashboardViewState.unauthenticated)
@@ -46,7 +47,8 @@ struct DashboardModelTests {
         let failedModel = DashboardModel(
             client: DashboardClientStub([
                 .failure(APIError.server(status: 503, requestID: "request-503")),
-            ])
+            ]),
+            thresholdClient: ThresholdClientStub()
         )
         await failedModel.load()
         #expect(
@@ -62,7 +64,7 @@ struct DashboardModelTests {
             .success(snapshot),
             .failure(CancellationError()),
         ])
-        let model = DashboardModel(client: client)
+        let model = DashboardModel(client: client, thresholdClient: ThresholdClientStub())
 
         await model.load()
         await model.refresh()
@@ -74,7 +76,7 @@ struct DashboardModelTests {
     func completingAnActionAcknowledgesTheBackendThenReloadsTheDashboard() async throws {
         let snapshot = try fixture("populated")
         let client = DashboardClientStub([.success(snapshot), .success(snapshot)])
-        let model = DashboardModel(client: client)
+        let model = DashboardModel(client: client, thresholdClient: ThresholdClientStub())
         let action = try #require(snapshot.nextActions.first)
 
         await model.load()
@@ -89,7 +91,8 @@ struct DashboardModelTests {
     func signOutClearsThePreviouslyLoadedFinancialSnapshot() async throws {
         let snapshot = try fixture("populated")
         let model = DashboardModel(
-            client: DashboardClientStub([.success(snapshot)])
+            client: DashboardClientStub([.success(snapshot)]),
+            thresholdClient: ThresholdClientStub()
         )
 
         await model.load()
@@ -97,6 +100,50 @@ struct DashboardModelTests {
 
         #expect(model.state == .idle)
         #expect(model.snapshot == nil)
+        #expect(model.thresholds == nil)
+    }
+
+    @Test @MainActor
+    func loadsTheThresholdStripAlongsideTheSnapshot() async throws {
+        let snapshot = try fixture("populated")
+        let position = ThresholdPosition(
+            strip: "pa_taper",
+            lines: [
+                ThresholdLine(
+                    key: "pa_taper",
+                    title: "Personal Allowance taper",
+                    headline: "You are £12,400 into the 60% band",
+                    body: "The next £12,400 you earn costs 60p in the pound.",
+                    costTotal: 12620,
+                    lever: nil
+                ),
+            ]
+        )
+        let model = DashboardModel(
+            client: DashboardClientStub([.success(snapshot)]),
+            thresholdClient: ThresholdClientStub([.success(position)])
+        )
+
+        await model.load()
+
+        #expect(model.state == .loaded(snapshot))
+        #expect(model.thresholds?.stripLine?.key == "pa_taper")
+    }
+
+    @Test @MainActor
+    func aFailedThresholdLoadStillLeavesTheDashboardLoaded() async throws {
+        let snapshot = try fixture("populated")
+        let model = DashboardModel(
+            client: DashboardClientStub([.success(snapshot)]),
+            thresholdClient: ThresholdClientStub([
+                .failure(APIError.server(status: 500, requestID: nil)),
+            ])
+        )
+
+        await model.load()
+
+        #expect(model.state == .loaded(snapshot))
+        #expect(model.thresholds == nil)
     }
 
     private func fixture(_ name: String) throws -> DashboardSnapshot {
@@ -131,4 +178,19 @@ private actor DashboardClientStub: DashboardClient {
     }
 
     func completedActionIDs() -> [String] { completed }
+}
+
+private actor ThresholdClientStub: ThresholdClient {
+    private var results: [Result<ThresholdPosition, Error>]
+
+    init(_ results: [Result<ThresholdPosition, Error>] = []) {
+        self.results = results
+    }
+
+    func load() async throws -> ThresholdPosition {
+        guard !results.isEmpty else {
+            return ThresholdPosition(strip: nil, lines: [])
+        }
+        return try results.removeFirst().get()
+    }
 }

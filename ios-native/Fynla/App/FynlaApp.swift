@@ -469,12 +469,18 @@ struct FynlaApp: App {
             ? DashboardModel(
                 client: LiveDashboardClient(
                     apiClient: authenticatedDependencies.makeAPIClient()
+                ),
+                thresholdClient: LiveThresholdClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
                 )
             )
             : DashboardUITestComposition.model()
         #else
         let dashboardModel = DashboardModel(
             client: LiveDashboardClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            ),
+            thresholdClient: LiveThresholdClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
