@@ -17,8 +17,9 @@ use App\Services\TaxConfigService;
  * Fires when BOTH HMRC tapered-AA gates are breached:
  *   - threshold income > £200,000  (employment + bonus + other taxable
  *     income, no pension addback)
- *   - adjusted income  > £260,000  (threshold income + employer pension
- *     contributions added back)
+ *   - adjusted income  > £260,000  (FA 2004 s228ZA: total income plus
+ *     employer contributions, which puts the employee's own contributions
+ *     back on top of threshold income — IncomeDefinitionsService owns it)
  *
  * Either gate alone returns []. The dual-gate is HMRC's actual rule —
  * users above £260k adjusted but below £200k threshold (rare, e.g. heavy
@@ -53,14 +54,12 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
         $taperRate = (float) ($taper['taper_rate'] ?? 0.5);
         $annualAllowance = (float) ($pension['annual_allowance'] ?? 60000);
 
-        // Short-circuit on threshold first to avoid the employer-pension
-        // DB query for users who can't possibly breach the dual gate.
         $threshold = $this->math->thresholdIncomeFor($user);
         if ($threshold <= $thresholdGate) {
             return [];
         }
 
-        $adjusted = $threshold + $this->math->employerPensionContributionsFor($user);
+        $adjusted = $this->math->adjustedIncomeFor($user);
         if ($adjusted <= $adjustedGate) {
             return [];
         }

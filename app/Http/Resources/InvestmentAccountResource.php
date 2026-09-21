@@ -78,6 +78,10 @@ class InvestmentAccountResource extends JsonResource
                 $this->isEmployeeShareScheme(),
                 $this->units_vested
             ),
+            'units_unvested' => $this->when(
+                $this->isEmployeeShareScheme(),
+                $this->units_unvested
+            ),
             'exercise_price' => $this->when(
                 $this->isEmployeeShareScheme(),
                 $this->exercise_price

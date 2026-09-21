@@ -52,6 +52,24 @@ describe('GET /api/investment', function () {
         expect($response->json('data.accounts'))->toHaveCount(1);
     });
 
+    it('carries the unvested units of a share scheme', function () {
+        InvestmentAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'account_name' => 'RSU grant',
+            'account_type' => 'rsu',
+            'current_value' => 10000,
+            'units_granted' => 1000,
+            'units_vested' => 200,
+            'units_unvested' => 800,
+        ]);
+
+        $response = $this->getJson('/api/investment');
+
+        $response->assertStatus(200);
+        expect($response->json('data.accounts.0.units_vested'))->toBe(200)
+            ->and($response->json('data.accounts.0.units_unvested'))->toBe(800);
+    });
+
     it('returns empty accounts array when no investments exist', function () {
         $response = $this->getJson('/api/investment');
 

@@ -13,8 +13,10 @@ use App\Services\Tax\TaxStrategyMath;
 /**
  * Strategy #13 — Gift Aid Higher-Rate Relief.
  *
- * Fires when the user is in the higher or additional band AND has captured
- * a positive annual_charitable_donations figure. Personal saving is the
+ * Fires when the user is in the higher or additional band AND gives under
+ * Gift Aid (is_gift_aid) AND has captured a positive annual_charitable_donations
+ * figure. Without the declaration the charity reclaims nothing, so there is no
+ * higher-rate relief to extend — the same gate IncomeDefinitionsService applies. Personal saving is the
  * extra relief they can reclaim via Self Assessment on top of basic-rate
  * Gift Aid the charity already reclaims:
  *   - higher band:     donations × 0.25
@@ -35,7 +37,7 @@ final class GiftAidHigherRateReliefStrategy implements TaxStrategy
         $user = $context->user;
 
         $donations = (float) ($user->annual_charitable_donations ?? 0);
-        if ($donations <= 0) {
+        if (! $user->is_gift_aid || $donations <= 0) {
             return [];
         }
 
