@@ -138,8 +138,11 @@ describe('PersonalAllowanceTaperLine', function () {
         // Adjusted net income £132,570, so £32,570 over the taper threshold, but pension
         // relief reaches only the £12,570 of earnings from work (FA 2004 s190).
         $user = User::factory()->create(['annual_employment_income' => 12570, 'annual_dividend_income' => 120000]);
-        // The excess is larger than the whole annual ISA allowance, so the ISA move
-        // cannot reach it and the lever is the pension one.
+        // The ISA path is closed explicitly rather than left to the arithmetic. The
+        // £32,570 excess happens to exceed the current £20,000 allowance, but that is a
+        // seeded figure: subscribing it in full leaves nothing remaining whatever the
+        // allowance becomes, so this test keeps testing the pension lever after a Budget.
+        thresholdSubscribeIsa($user, (float) app(TaxConfigService::class)->getISAAllowances()['annual_allowance']);
 
         $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
 
