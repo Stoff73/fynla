@@ -40,8 +40,20 @@ final class HighIncomeChildBenefitLine extends MoneyLine
             return null;
         }
 
-        $benefit = (float) $this->childBenefit->calculateAnnualChildBenefit($context->user)['annual_amount'];
-        $charge = $this->childBenefit->calculateHICBC($ani, $benefit);
+        // `calculateChildBenefitPosition` is the ONE gated entry to this figure
+        // (`benefits_child`, W-0532). Calling `calculateAnnualChildBenefit` and
+        // `calculateHICBC` separately would reach round the gate and make a second
+        // decision about tiers here; Rule 20 says the gate stays in one place.
+        // Adjusted net income is passed rather than recomputed, so the charge is
+        // priced against the same figure the position on the line uses.
+        $position = $this->childBenefit->calculateChildBenefitPosition($context->user, $ani);
+        $benefit = (float) ($position['benefit']['annual_amount'] ?? 0);
+        if ($benefit <= 0) {
+            // Eligible children exist, so a nil benefit here is the tier withholding
+            // the figure. A line with no amount is a row the user cannot act on.
+            return null;
+        }
+        $charge = $position['hicbc'];
         $excess = max(0.0, $ani - $threshold);
         $mechanism = $this->mechanismFor($context, $excess);
         $cost = ($excess > 0 ? $this->costs->delta($context, $excess, $mechanism) : new ThresholdCost)

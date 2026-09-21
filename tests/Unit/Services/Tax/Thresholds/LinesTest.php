@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\Thresholds\Lines\AdditionalRateLine;
@@ -85,6 +86,21 @@ describe('HighIncomeChildBenefitLine', function () {
 
     it('does not apply without a child receiving child benefit', function () {
         $user = User::factory()->create(['annual_employment_income' => 66000]);
+        expect(app(HighIncomeChildBenefitLine::class)->evaluate(ctx($user)))->toBeNull();
+    });
+
+    it('does not apply when the tier does not carry the Child Benefit figure', function () {
+        $user = User::factory()->create(['annual_employment_income' => 66000, 'tier' => 'free', 'is_admin' => false, 'is_preview_user' => false]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2018-01-01', 'receives_child_benefit' => true]);
+
+        // Withhold the capability on the resolved tier rather than stubbing the
+        // gate, the way SoldCapabilitiesAreEnforcedTest does: a stubbed gate would
+        // pass whether or not the line actually consults it.
+        $config = TierConfiguration::where('tier', 'free')->firstOrFail();
+        $matrix = $config->capability_matrix;
+        $matrix['benefits_child'] = 'none';
+        $config->update(['capability_matrix' => $matrix]);
+
         expect(app(HighIncomeChildBenefitLine::class)->evaluate(ctx($user)))->toBeNull();
     });
 });
