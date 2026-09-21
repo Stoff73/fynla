@@ -539,6 +539,19 @@ describe('DC drawdown income', function () {
             ->and($result['total_income'])->toBe(18000.00);
     });
 
+    it('counts drawdown income even when has_flexibly_accessed is not set — the figure is the fact, not the flag', function () {
+        $user = User::factory()->create(['annual_employment_income' => 0]);
+        DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Aviva SIPP',
+            'pension_type' => 'personal',
+            'current_fund_value' => 200000,
+            'annual_drawdown_income' => 18000,
+        ]);
+
+        expect($this->service->calculate($user->id)['components']['pension_income'])->toBe(18000.00);
+    });
+
     it('treats a null drawdown income as not asked, contributing nothing', function () {
         $user = User::factory()->create(['annual_employment_income' => 0]);
         DCPension::create([
