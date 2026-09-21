@@ -251,7 +251,7 @@
             </div>
 
             <div class="card-content">
-              <h4 class="account-institution">{{ investment.provider }}</h4>
+              <h4 class="account-institution">{{ investment.provider || investment.employer_name || '' }}</h4>
               <p class="account-type">{{ investment.account_name || investment.platform || '' }}</p>
 
               <div class="account-details">
