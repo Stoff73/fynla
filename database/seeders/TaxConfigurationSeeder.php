@@ -261,8 +261,8 @@ class TaxConfigurationSeeder extends Seeder
                 'relevant_earnings_minimum' => 3600,
                 'money_purchase_annual_allowance' => 10000,
                 'mpaa' => 10000,
-                // 57 from 6 April 2028 (FA 2022 s10); the downside copy names the age money is locked until
-                'normal_minimum_pension_age' => 57,
+                // 55 until 5 April 2028, 57 from 6 April 2028 (FA 2022 s10)
+                'normal_minimum_pension_age' => 55,
                 'lifetime_allowance_abolished' => true,
                 // Lump Sum Allowance (LSA) — caps tax-free PCLS at £268,275 since 6 April 2024
                 // when the LTA was abolished. Frozen until April 2031.

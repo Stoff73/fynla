@@ -46,35 +46,60 @@ final class PersonalAllowanceTaperLine extends MoneyLine
         $excess = max(0.0, $ani - $threshold);
 
         $mechanism = $this->mechanismFor($context, $excess);
-        $cost = $excess > 0 ? $this->costs->delta($context, $excess, $mechanism) : new ThresholdCost;
-        foreach ($this->childcare->for($context->user) as $item) {
-            $cost = $cost->withBenefit($item['label'], $item['detail'], $item['amount']);
+        $effectivePct = (int) round($higherRate * 150);
+
+        // The move is sized FIRST, then priced, so `amount` and `recovers` describe
+        // the same contribution. Pricing the whole excess and then capping the amount
+        // quoted a saving from a bigger move than the one on the button.
+        $amount0 = 0.0;
+        if ($excess > 0) {
+            // The one calculator every surface uses sizes the contribution; the
+            // excess is the fallback when the strategy has not fired (no Annual
+            // Allowance headroom).
+            $suggested = (float) ($context->strategy('pa_taper_rescue')['suggested_contribution'] ?? $excess);
+            $amount0 = $suggested > 0 ? min($excess, $suggested) : $excess;
+        }
+        $cost = $amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost;
+
+        // `applied` is what the priced move could actually take out: pension relief is
+        // limited to relevant UK earnings, an ISA move to what is actually held.
+        $amount = min($amount0, $cost->applied);
+        $fullyUnder = $excess > 0 && $cost->applied >= $excess;
+
+        // Childcare returns only when the contribution reaches back under the line. A
+        // move that stops short restores nothing, so listing the entitlements as
+        // recovered would be a promise the lever cannot keep.
+        if ($fullyUnder) {
+            foreach ($this->childcare->for($context->user) as $item) {
+                $cost = $cost->withBenefit($item['label'], $item['detail'], $item['amount']);
+            }
         }
 
         $lever = null;
-        if ($excess > 0) {
-            // The one calculator every surface uses sizes the contribution; the
-            // excess is the fallback when the strategy has not fired (no AA headroom).
-            // `applied` is what the cost delta could actually take out: relief is
-            // limited to relevant UK earnings, so a dividend-heavy user's lever is
-            // smaller than their excess and the copy says why.
-            $suggested = (float) ($context->strategy('pa_taper_rescue')['suggested_contribution'] ?? $excess);
-            $amount = min($suggested > 0 ? min($excess, $suggested) : $excess, $cost->applied);
+        if ($amount > 0) {
             $lever = $this->incomeLever($context, $amount, $cost, $mechanism);
             if ($mechanism === 'pension' && $cost->applied < $excess) {
                 $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
             }
         }
 
-        $effectivePct = (int) round($higherRate * 150);
+        $past = $ani >= $bandTop;
+        $body = $past
+            ? sprintf('Above %s your Personal Allowance is gone entirely; income there is taxed at %d%%.', ThresholdCopy::pounds($bandTop), (int) round($this->math->bandRateForBand('additional') * 100))
+            : ThresholdCopy::taperBody($ani - $threshold, $effectivePct, $threshold);
+        if ($excess > 0 && ! $fullyUnder && $amount > 0) {
+            $body .= sprintf(' A contribution of %s gets you part of the way; the childcare entitlements return only once you are under %s.', ThresholdCopy::pounds($amount), ThresholdCopy::pounds($threshold));
+        }
 
         return new ThresholdResult(
             key: $this->key(),
             title: 'Personal Allowance taper',
             range: ['from' => $threshold, 'to' => $bandTop],
             position: $this->position($ani, $threshold),
-            headline: ThresholdCopy::into($ani - $threshold, sprintf('%d%% band', $effectivePct)),
-            body: ThresholdCopy::taperBody($ani - $threshold, $effectivePct, $threshold),
+            headline: $past
+                ? ThresholdCopy::past($bandTop, sprintf('%d%% band', $effectivePct))
+                : ThresholdCopy::into($ani - $threshold, sprintf('%d%% band', $effectivePct)),
+            body: $body,
             explanation: ThresholdCopy::taperExplanation($threshold, (int) round($higherRate * 100), (int) round($higherRate * 50), $taperRate),
             cost: $cost,
             lever: $lever,

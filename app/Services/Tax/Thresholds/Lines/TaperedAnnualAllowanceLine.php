@@ -31,12 +31,23 @@ final class TaperedAnnualAllowanceLine extends MoneyLine
         $thresholdLimit = (float) ($taper['threshold_income'] ?? 200000);
         $adjustedLimit = (float) ($taper['adjusted_income_threshold'] ?? $taper['adjusted_income'] ?? 260000);
         $minimum = (float) ($taper['minimum_allowance'] ?? 10000);
+
+        // One source for all three figures. The position, the gate and the allowance
+        // all come from `IncomeDefinitionsService`, which computes adjusted income and
+        // the tapered allowance together from the same basis. Mixing its adjusted
+        // income with a second service's allowance put two different answers to
+        // "what is my allowance" on one card.
+        $allowances = $context->definitions['adjusted_allowances'] ?? [];
         $adjusted = (float) ($context->definitions['adjusted_income'] ?? 0);
-        if ($context->thresholdIncome() <= $thresholdLimit || ! $this->within($adjusted, $adjustedLimit)) {
+        $full = (float) ($allowances['pension_annual_allowance_full'] ?? $pension['annual_allowance'] ?? 60000);
+        $lost = max(0.0, $full - (float) ($allowances['pension_annual_allowance'] ?? $full));
+
+        // No approach window: this line has nothing to show until the allowance is
+        // actually reduced. Both statutory gates must bite, and the second is exactly
+        // "the allowance came out lower than the full one".
+        if ($context->thresholdIncome() <= $thresholdLimit || $lost <= 0) {
             return null;
         }
-        $full = (float) ($pension['annual_allowance'] ?? 60000);
-        $lost = max(0.0, $full - $this->math->effectiveAnnualAllowanceFor($context->user));
         $cost = (new ThresholdCost)->withBenefit(
             'Pension Annual Allowance lost',
             sprintf('%s of your %s allowance, at your marginal rate', ThresholdCopy::pounds($lost), ThresholdCopy::pounds($full)),

@@ -20,7 +20,7 @@ beforeEach(function () {
     $this->calc = app(ThresholdCostCalculator::class);
 });
 
-function contextFor(User $user): ThresholdContext
+function thresholdContextFor(User $user): ThresholdContext
 {
     return new ThresholdContext($user, app(IncomeDefinitionsService::class)->calculate($user->id));
 }
@@ -28,7 +28,7 @@ function contextFor(User $user): ThresholdContext
 it('prices a salary excess with Class 1 NI and the taper, as a delta of two full computations', function () {
     $user = User::factory()->create(['annual_employment_income' => 112400]);
 
-    $cost = $this->calc->delta(contextFor($user), 12400.0);
+    $cost = $this->calc->delta(thresholdContextFor($user), 12400.0);
 
     // £12,400 back under £100,000 by pension: 40% relief plus half the PA restored at 40%.
     expect($cost->incomeTax)->toBe(12400 * 0.40 + 6200 * 0.40)
@@ -39,7 +39,7 @@ it('prices a salary excess with Class 1 NI and the taper, as a delta of two full
 
 it('routes a self-employed excess to self-employment, never to employment', function () {
     $user = User::factory()->create(['annual_employment_income' => 0, 'annual_self_employment_income' => 108000]);
-    $context = contextFor($user);
+    $context = thresholdContextFor($user);
 
     // The NI figures cannot move under a pension contribution, so asserting they are
     // zero proves nothing about routing. What matters is that the income reaches the
@@ -52,7 +52,7 @@ it('routes a self-employed excess to self-employment, never to employment', func
 it('attributes the dividend part of the delta to dividend tax', function () {
     $user = User::factory()->create(['annual_employment_income' => 90000, 'annual_dividend_income' => 20000]);
 
-    $cost = $this->calc->delta(contextFor($user), 10000.0);
+    $cost = $this->calc->delta(thresholdContextFor($user), 10000.0);
 
     expect($cost->dividendTax)->toBeGreaterThan(0.0)
         ->and($cost->total())->toBe(round($cost->incomeTax + $cost->dividendTax + $cost->interestTax + $cost->niClass1 + $cost->niClass4, 2));
@@ -61,7 +61,7 @@ it('attributes the dividend part of the delta to dividend tax', function () {
 it('removes interest from the mix when the mechanism is an ISA move', function () {
     $user = User::factory()->create(['annual_employment_income' => 98000, 'annual_interest_income' => 6000]);
 
-    $cost = $this->calc->delta(contextFor($user), 4000.0, 'isa');
+    $cost = $this->calc->delta(thresholdContextFor($user), 4000.0, 'isa');
 
     expect($cost->interestTax)->toBeGreaterThan(0.0)->and($cost->total())->toBeGreaterThan(0.0);
 });
@@ -74,7 +74,7 @@ it('routes a pension in payment to other income, which carries no NI', function 
         'accrued_annual_pension' => 104000,
         'scheme_status' => 'in_payment',
     ]);
-    $context = contextFor($user);
+    $context = thresholdContextFor($user);
 
     // `otherIncome` is the leg the calculator charges no NI on, so routing the pension
     // there is what makes the pensioner NI-free — not an assertion that a pension
@@ -96,7 +96,7 @@ it('caps a pension contribution at relevant UK earnings and says how much it app
     // pensioned however much the dividends are worth.
     $user = User::factory()->create(['annual_employment_income' => 12570, 'annual_dividend_income' => 120000]);
 
-    $cost = $this->calc->delta(contextFor($user), 32570.0);
+    $cost = $this->calc->delta(thresholdContextFor($user), 32570.0);
 
     expect($cost->applied)->toBe(12570.0)
         ->and($cost->requested)->toBe(32570.0)
@@ -127,7 +127,7 @@ it('takes sacrificed pay out of the employment figure when the recorded pay is g
         'salary_sacrifice' => true,
     ]);
 
-    $context = contextFor($user);
+    $context = thresholdContextFor($user);
     $mix = $this->calc->mix($context);
 
     expect($mix['employment'])->toBe(116000.0);
@@ -146,7 +146,7 @@ it('takes sacrificed pay out of the employment figure when the recorded pay is g
 
 it('keys strategy recommendations by type, as the arrays the calculator publishes', function () {
     $user = User::factory()->create(['annual_employment_income' => 112400]);
-    $context = contextFor($user);
+    $context = thresholdContextFor($user);
 
     $strategies = $context->strategies();
 

@@ -20,7 +20,7 @@ beforeEach(function () {
 
 afterEach(fn () => Carbon::setTestNow());
 
-function child(User $user, string $dob): FamilyMember
+function thresholdChild(User $user, string $dob): FamilyMember
 {
     return FamilyMember::create(['user_id' => $user->id, 'first_name' => 'Kid', 'last_name' => 'Test', 'relationship' => 'child', 'date_of_birth' => $dob]);
 }
@@ -32,8 +32,8 @@ it('returns nothing for a household with no children', function () {
 
 it('caps Tax-Free Childcare per child and prices the extended hours by age', function () {
     $user = User::factory()->create(['childcare' => 1000]); // monthly
-    child($user, '2023-03-01'); // three
-    child($user, '2018-01-01'); // eight
+    thresholdChild($user, '2023-03-01'); // three
+    thresholdChild($user, '2018-01-01'); // eight
 
     $items = $this->entitlements->for($user);
     $labels = array_column($items, 'label');
@@ -59,28 +59,28 @@ it('bands children at the exact month boundaries using the configured ages, not 
     );
 
     $u30 = User::factory()->create(['childcare' => null]);
-    child($u30, Carbon::today()->subMonths(36)->toDateString());
+    thresholdChild($u30, Carbon::today()->subMonths(36)->toDateString());
     $item30 = collect($this->entitlements->for($u30))->firstWhere('label', 'Funded childcare hours');
     expect($item30['amount'])->toBe($priced('working_parents_30hrs', extensionOnly: true));
 
     $u2 = User::factory()->create(['childcare' => null]);
-    child($u2, Carbon::today()->subMonths(24)->toDateString());
+    thresholdChild($u2, Carbon::today()->subMonths(24)->toDateString());
     $item2 = collect($this->entitlements->for($u2))->firstWhere('label', 'Funded childcare hours');
     expect($item2['amount'])->toBe($priced('working_parents_2yr'));
 
     $uUnder2 = User::factory()->create(['childcare' => null]);
-    child($uUnder2, Carbon::today()->subMonths(9)->toDateString());
+    thresholdChild($uUnder2, Carbon::today()->subMonths(9)->toDateString());
     $itemUnder2 = collect($this->entitlements->for($uUnder2))->firstWhere('label', 'Funded childcare hours');
     expect($itemUnder2['amount'])->toBe($priced('working_parents_under_2'));
 
     $uNone = User::factory()->create(['childcare' => null]);
-    child($uNone, Carbon::today()->subMonths(60)->toDateString());
+    thresholdChild($uNone, Carbon::today()->subMonths(60)->toDateString());
     expect(collect($this->entitlements->for($uNone))->firstWhere('label', 'Funded childcare hours'))->toBeNull();
 });
 
 it('gives no Tax-Free Childcare when no spend is recorded', function () {
     $user = User::factory()->create(['childcare' => null]);
-    child($user, '2020-01-01');
+    thresholdChild($user, '2020-01-01');
 
     expect(collect($this->entitlements->for($user))->firstWhere('label', 'Tax-Free Childcare'))->toBeNull();
 });

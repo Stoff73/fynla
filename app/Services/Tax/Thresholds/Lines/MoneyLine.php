@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Thresholds\Lines;
 
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\Tax\Thresholds\ThresholdContext;
 use App\Services\Tax\Thresholds\ThresholdCopy;
 use App\Services\Tax\Thresholds\ThresholdCost;
@@ -32,12 +33,49 @@ abstract class MoneyLine implements ThresholdLine
         return ['value' => round($value, 2), 'distance' => round($value - $threshold, 2), 'unit' => 'gbp', 'over' => $value > $threshold];
     }
 
-    /** The ISA move applies when savings income alone covers the excess. */
+    /**
+     * The ISA move applies when savings income alone covers the excess AND there is
+     * ISA allowance left to receive it. Someone who has already used this year's
+     * allowance cannot move anything, so offering the move would be offering nothing.
+     *
+     * ponytail: the ceiling is the allowance, not the capital. Whether the user holds
+     * enough outside an ISA to generate that income is a question about their balances
+     * that nothing here asks, and converting capital to income is not this lever's job.
+     */
     protected function mechanismFor(ThresholdContext $context, float $excess): string
     {
         $c = $context->components();
+        $savingsIncome = ($c['interest'] ?? 0) + ($c['dividend'] ?? 0);
 
-        return $excess > 0 && (($c['interest'] ?? 0) + ($c['dividend'] ?? 0)) >= $excess ? 'isa' : 'pension';
+        return $excess > 0 && $savingsIncome >= $excess && $this->isaAllowanceRemaining($context) > 0
+            ? 'isa'
+            : 'pension';
+    }
+
+    protected function isaAllowanceRemaining(ThresholdContext $context): float
+    {
+        $allowance = (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 0);
+
+        return max(0.0, $allowance - $this->math()->estimateIsaSubscriptionsThisYear($context->user));
+    }
+
+    protected function math(): TaxStrategyMath
+    {
+        return app(TaxStrategyMath::class);
+    }
+
+    /**
+     * The explanation depends on the mechanism, because the two move different money.
+     * A pension contribution takes non-savings income out; an ISA move takes savings
+     * income out of the calculation entirely, where "income tax" is the wrong name for
+     * what was being charged (under top-slicing an interest-only excess lands in
+     * interest tax with income tax nil).
+     */
+    protected function bandExplanation(string $mechanism, int $pct): string
+    {
+        return $mechanism === 'isa'
+            ? 'The savings income above this line is taxed at the higher rates. Moving it into an ISA takes it out of the calculation.'
+            : sprintf('Income tax is %d%% on this slice, and the allowances that go with basic rate go with it.', $pct);
     }
 
     /**
@@ -61,7 +99,7 @@ abstract class MoneyLine implements ThresholdLine
                 'title' => sprintf('Move %s of savings income into an ISA', ThresholdCopy::pounds($amount)),
                 'amount' => round($amount, 2),
                 'recovers' => $cost->total(),
-                'downside' => "Uses this year's ISA allowance.",
+                'downside' => sprintf("Uses this year's ISA allowance; you have %s of it left.", ThresholdCopy::pounds($this->isaAllowanceRemaining($context))),
                 'action' => ['route' => '/tax-strategy'],
                 'mechanism' => 'isa',
             ];
@@ -75,14 +113,27 @@ abstract class MoneyLine implements ThresholdLine
             'title' => sprintf('Pay %s into your pension', ThresholdCopy::pounds($amount)),
             'amount' => round($amount, 2),
             'recovers' => $cost->total(),
-            'downside' => ThresholdCopy::lockedUntil($this->minimumPensionAge(), $context->vests()[0] ?? null),
+            'downside' => ThresholdCopy::lockedUntil($this->lockedUntilAge($context), $context->vests()[0] ?? null),
             'action' => ['route' => '/tax-strategy'],
             'mechanism' => 'pension',
         ];
     }
 
+    /**
+     * The age the money is locked until, or null when the user has already reached it
+     * and nothing is locked. Someone of 60 told their pension is "locked until you are
+     * 55" would rightly stop trusting the rest of the card.
+     */
+    protected function lockedUntilAge(ThresholdContext $context): ?int
+    {
+        $minimum = $this->minimumPensionAge();
+        $age = $this->math()->ageOf($context->user->date_of_birth);
+
+        return $age !== null && $age >= $minimum ? null : $minimum;
+    }
+
     protected function minimumPensionAge(): int
     {
-        return (int) $this->taxConfig->get('pension.normal_minimum_pension_age', 57);
+        return (int) $this->taxConfig->get('pension.normal_minimum_pension_age', 55);
     }
 }

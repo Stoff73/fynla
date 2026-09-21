@@ -36,8 +36,11 @@ final class HigherRateLine extends MoneyLine
         $cost = $excess > 0 ? $this->costs->delta($context, $excess, $mechanism) : new ThresholdCost;
         $pct = (int) round($this->math->bandRateForBand('higher') * 100);
 
+        // No strategy sizes this line, so the move is the whole excess and the cost
+        // already prices exactly that; `applied` only trims it where the mechanism
+        // ran out of room, and the cost was priced on the same ceiling.
         $lever = null;
-        if ($excess > 0) {
+        if ($excess > 0 && $cost->applied > 0) {
             $lever = $this->incomeLever($context, min($excess, $cost->applied), $cost, $mechanism);
             if ($mechanism === 'pension' && $cost->applied < $excess) {
                 $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
@@ -51,7 +54,7 @@ final class HigherRateLine extends MoneyLine
             position: $this->position($income, $threshold),
             headline: ThresholdCopy::into($income - $threshold, sprintf('%d%% band', $pct)),
             body: sprintf('Above %s your Savings Allowance halves, dividends and gains are taxed at the higher rates, and Marriage Allowance is lost.', ThresholdCopy::pounds($threshold)),
-            explanation: sprintf('Income tax is %d%% on this slice, and the allowances that go with basic rate go with it.', $pct),
+            explanation: $this->bandExplanation($mechanism, $pct),
             cost: $cost,
             lever: $lever,
             incomeMix: $this->costs->mix($context),

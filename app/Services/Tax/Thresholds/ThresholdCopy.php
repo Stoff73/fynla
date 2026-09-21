@@ -24,6 +24,12 @@ final class ThresholdCopy
             : sprintf('You are %s under the %s', self::pounds(-$distance), $bandName);
     }
 
+    /** Above the top of a banded line, where the distance into it has stopped meaning anything. */
+    public static function past(float $top, string $bandName): string
+    {
+        return sprintf('You are past the %s', $bandName);
+    }
+
     public static function estate(float $distance): string
     {
         return $distance > 0
@@ -54,14 +60,23 @@ final class ThresholdCopy
         return $taperRate > 0 ? self::pounds(1 / $taperRate) : '£0';
     }
 
-    /** @param  array{date: Carbon, value: float}|null  $nextVest */
-    public static function lockedUntil(int $age, ?array $nextVest): string
+    /**
+     * `$age` is null for someone already at or above the minimum pension age: the
+     * money is not locked for them, and telling them it is until an age they have
+     * passed is simply wrong.
+     *
+     * @param  array{date: Carbon, value: float}|null  $nextVest
+     */
+    public static function lockedUntil(?int $age, ?array $nextVest): string
     {
-        $text = sprintf('The money is locked until you are %d.', $age);
+        $parts = [];
+        if ($age !== null) {
+            $parts[] = sprintf('The money is locked until you are %d.', $age);
+        }
         if ($nextVest !== null) {
-            $text .= sprintf(' Your %s share vest of %s cannot be sacrificed and will push you back over.', $nextVest['date']->format('F'), self::pounds($nextVest['value']));
+            $parts[] = sprintf('Your %s share vest of %s cannot be sacrificed and will push you back over.', $nextVest['date']->format('F'), self::pounds($nextVest['value']));
         }
 
-        return $text;
+        return implode(' ', $parts);
     }
 }

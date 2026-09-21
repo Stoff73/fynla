@@ -60,20 +60,28 @@ final class HighIncomeChildBenefitLine extends MoneyLine
             ->withBenefit('Child Benefit charge', sprintf('%d%% of your %s Child Benefit repaid', (int) $charge['clawback_percentage'], ThresholdCopy::pounds($benefit)), (float) $charge['charge']);
 
         $lever = null;
-        if ($excess > 0) {
+        if ($excess > 0 && $cost->applied > 0) {
             $lever = $this->incomeLever($context, min($excess, $cost->applied), $cost, $mechanism);
             if ($mechanism === 'pension' && $cost->applied < $excess) {
                 $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
             }
         }
 
+        // Past the top of the band there is no "how far in" left to state: the whole
+        // benefit is already repaid and the distance stops meaning anything.
+        $past = $ani >= $top;
+
         return new ThresholdResult(
             key: $this->key(),
             title: 'High Income Child Benefit Charge',
             range: ['from' => $threshold, 'to' => $top],
             position: $this->position($ani, $threshold),
-            headline: ThresholdCopy::into($ani - $threshold, 'Child Benefit charge band'),
-            body: sprintf('Between %s and %s you repay 1%% of your Child Benefit for every %s of income. A pension contribution brings you back under.', ThresholdCopy::pounds($threshold), ThresholdCopy::pounds($top), ThresholdCopy::pounds((float) ($config['clawback_increment'] ?? 200))),
+            headline: $past
+                ? ThresholdCopy::past($top, 'Child Benefit charge band')
+                : ThresholdCopy::into($ani - $threshold, 'Child Benefit charge band'),
+            body: $past
+                ? sprintf('Above %s all of your Child Benefit is repaid.', ThresholdCopy::pounds($top))
+                : sprintf('Between %s and %s you repay 1%% of your Child Benefit for every %s of income. A pension contribution brings you back under.', ThresholdCopy::pounds($threshold), ThresholdCopy::pounds($top), ThresholdCopy::pounds((float) ($config['clawback_increment'] ?? 200))),
             explanation: sprintf('The charge is collected through your tax return. At %s it is %s of the %s you receive.', ThresholdCopy::pounds($ani), ThresholdCopy::pounds((float) $charge['charge']), ThresholdCopy::pounds($benefit)),
             cost: $cost,
             lever: $lever,

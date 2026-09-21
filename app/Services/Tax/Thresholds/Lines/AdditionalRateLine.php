@@ -33,15 +33,22 @@ final class AdditionalRateLine extends MoneyLine
         }
         $excess = max(0.0, $income - $threshold);
         $mechanism = $this->mechanismFor($context, $excess);
-        $cost = $excess > 0 ? $this->costs->delta($context, $excess, $mechanism) : new ThresholdCost;
         $pct = (int) round($this->math->bandRateForBand('additional') * 100);
 
-        $lever = null;
+        // Size the move, then price that move: `amount` and `recovers` must describe
+        // the same contribution.
+        $amount0 = 0.0;
         if ($excess > 0) {
             // The one calculator every surface uses sizes the contribution; a zero or
             // absent suggestion falls back to the excess itself.
             $suggested = (float) ($context->strategy('additional_rate_avoidance')['suggested_contribution'] ?? $excess);
-            $amount = min($suggested > 0 ? min($excess, $suggested) : $excess, $cost->applied);
+            $amount0 = $suggested > 0 ? min($excess, $suggested) : $excess;
+        }
+        $cost = $amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost;
+        $amount = min($amount0, $cost->applied);
+
+        $lever = null;
+        if ($amount > 0) {
             $lever = $this->incomeLever($context, $amount, $cost, $mechanism);
             if ($mechanism === 'pension' && $cost->applied < $excess) {
                 $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
@@ -55,7 +62,7 @@ final class AdditionalRateLine extends MoneyLine
             position: $this->position($income, $threshold),
             headline: ThresholdCopy::into($income - $threshold, sprintf('%d%% band', $pct)),
             body: sprintf('Above %s income tax is %d%% and the Savings Allowance is nil.', ThresholdCopy::pounds($threshold), $pct),
-            explanation: sprintf('Income tax is %d%% on this slice, and the allowances that go with basic rate go with it.', $pct),
+            explanation: $this->bandExplanation($mechanism, $pct),
             cost: $cost,
             lever: $lever,
             incomeMix: $this->costs->mix($context),

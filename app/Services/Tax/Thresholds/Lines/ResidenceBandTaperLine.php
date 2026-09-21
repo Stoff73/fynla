@@ -29,10 +29,12 @@ final class ResidenceBandTaperLine extends MoneyLine
         $iht = $context->iht();
         $net = (float) $iht['total_net_estate'];
         $reduction = (float) $iht['rnrb_taper_reduction'];
-        // Over the line AND with something to lose. A household whose residence band
-        // is already nil — no home left to direct descendants — would otherwise get
-        // a card reading "You lose £0 of residence nil rate band".
-        if (! $this->within($net, $threshold) || ($reduction <= 0 && (float) $iht['rnrb_available'] <= 0)) {
+        // No approach window here, and no "over the threshold" test either: the only
+        // thing that makes this line worth showing is that residence band has actually
+        // been taken away. Below the threshold nothing is lost, and above it a
+        // household with no residence band to start with loses nothing either — both
+        // rendered a card reading "You lose £0 of residence nil rate band".
+        if ($reduction <= 0) {
             return null;
         }
         $cost = (new ThresholdCost)->withBenefit(
