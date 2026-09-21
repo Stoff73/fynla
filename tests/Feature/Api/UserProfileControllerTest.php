@@ -166,6 +166,38 @@ describe('PUT /api/user/profile/personal', function () {
     });
 
     /**
+     * The expenditure form's Gift Aid toggle posts `is_gift_aid` to this
+     * endpoint. `UpdatePersonalInfoRequest::rules()` had no rule for it — the
+     * only rule for the field lived in `UpdateIncomeOccupationRequest`, a
+     * different endpoint this form never calls — so `validated()` silently
+     * stripped it: the request answered 200 and the flag never persisted.
+     * Same shape as W-0006 above, one field over.
+     */
+    it('persists is_gift_aid from the expenditure form, which posts to the personal endpoint', function () {
+        $this->putJson('/api/user/profile/personal', [
+            'is_gift_aid' => true,
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $this->user->id,
+            'is_gift_aid' => true,
+        ]);
+    });
+
+    it('persists is_gift_aid false, not just a default that was never flipped', function () {
+        $this->user->update(['is_gift_aid' => true]);
+
+        $this->putJson('/api/user/profile/personal', [
+            'is_gift_aid' => false,
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $this->user->id,
+            'is_gift_aid' => false,
+        ]);
+    });
+
+    /**
      * W-0031. The rule allowed `doctorate`, `foundation` and `hnd`; the column
      * enum holds none of them, so validation passed and the write died as a
      * QueryException — HTTP 500, not 422. Not latent either: PersonalInformation.vue
