@@ -793,6 +793,14 @@
                     "type": "number",
                     "description": "Employer contribution as percentage of salary (e.g. 3 for 3%). Workplace pensions only."
                 },
+                "annual_drawdown_income": {
+                    "type": "number",
+                    "description": "Taxable income drawn from this pension each year in pounds, personal and Self-Invested Personal Pension arrangements the user has started drawing from. Send null if not stated — never 0."
+                },
+                "pcls_taken": {
+                    "type": "number",
+                    "description": "Tax-free lump sum already taken from this pension in pounds. Send null if not stated — never 0."
+                },
                 "accrued_annual_pension": {
                     "type": "number",
                     "description": "Accrued annual pension in pounds. Guaranteed-income pensions only."

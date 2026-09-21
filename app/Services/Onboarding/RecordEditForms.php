@@ -349,6 +349,12 @@ final class RecordEditForms
         } elseif (self::floatOrNull($pension->monthly_contribution_amount) !== null) {
             $answers['annual_contribution'] = round(((float) $pension->monthly_contribution_amount) * 12, 2);
         }
+        if (! $workplace) {
+            $answers += array_filter([
+                'annual_drawdown_income' => self::floatOrNull($pension->annual_drawdown_income),
+                'pcls_taken' => self::floatOrNull($pension->pcls_taken),
+            ], static fn ($v): bool => $v !== null);
+        }
 
         return [CaptureForms::PENSION, $workplace ? 'workplace' : 'personal', $answers, $label];
     }

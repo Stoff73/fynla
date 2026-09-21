@@ -257,7 +257,7 @@ it('offers a workplace pension and a personal pension or SIPP, both through crea
         ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP'])
         ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_pension'])
         ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice'])
-        ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'annual_contribution'])
+        ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken'])
         ->and($schema['fields']['current_value']['required'])->toBeFalse()
         ->and($schema['fields']['employee_contribution_percent'])->toMatchArray(['required' => true, 'min' => 0, 'max' => 100])
         ->and(array_column($schema['fields']['salary_sacrifice']['options'], 'value'))->toBe(['yes', 'no']);
@@ -407,6 +407,18 @@ it('the personal-only pension form is the pension form with just the SIPP kind, 
         ->and(CaptureForms::toolInputs(['name' => 'pension_personal', 'answers' => ['personal' => ['provider' => 'Vanguard', 'current_value' => 30000, 'annual_contribution' => 6000]]]))
         ->toBe(['personal' => ['pension_category' => 'dc', 'scheme_name' => 'Vanguard personal pension or SIPP', 'scheme_type' => 'personal', 'provider' => 'Vanguard', 'current_fund_value' => 30000.0, 'monthly_contribution_amount' => 500.0]])
         ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS)['form'])->toBe('pension_personal');
+});
+
+it('carries drawdown income and the lump sum taken on a personal pension', function (): void {
+    $input = CaptureForms::toolInputs(['name' => 'pension_personal', 'answers' => ['personal' => [
+        'provider' => 'Aviva',
+        'current_value' => 200000,
+        'annual_drawdown_income' => 18000,
+        'pcls_taken' => 50000,
+    ]]])['personal'];
+
+    expect($input['annual_drawdown_income'])->toBe(18000.0)
+        ->and($input['pcls_taken'])->toBe(50000.0);
 });
 
 it('the expenditure forms: one box for everyone, five category groups for Premium, the household question first when a spouse is on file', function (): void {
