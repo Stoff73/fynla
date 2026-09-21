@@ -1369,11 +1369,8 @@ class RetirementActionDefinitionService
             $nicCap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap', 2000);
             $exceedsCap = $annualContribution > $nicCap;
             $year = (int) ($analysis['nic_cap_effective_year'] ?? 2027);
-            // The analyser publishes this, priced through UKTaxCalculator. The old
-            // fallback multiplied the cap by a literal 0.08, which is the wrong rate
-            // for anyone above the upper earnings limit and a second answer to a
-            // question the analyser already answers (Rule 20). No rate literal here.
-            $postCapEmployeeSaving = (float) ($analysis['post_cap_employee_ni_saving'] ?? $employeeNISaving);
+            // The analyser publishes this, priced through UKTaxCalculator (Rule 20).
+            $postCapEmployeeSaving = (float) $analysis['post_cap_employee_ni_saving'];
             $niReduction = $employeeNISaving - $postCapEmployeeSaving;
 
             $trace[] = [

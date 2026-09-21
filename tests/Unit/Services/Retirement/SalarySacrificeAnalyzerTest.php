@@ -107,3 +107,28 @@ it('agrees with the threshold line on what the cap costs a £145,000 sacrificer'
 
     Carbon::setTestNow();
 });
+
+it('reads a post-sacrifice recorded income back to gross pay, and a gross one down to pay after sacrifice', function () {
+    $pension = [
+        'scheme_type' => 'workplace',
+        'annual_salary' => 50000,
+        'employee_contribution_percent' => 10,   // £5,000 sacrificed
+        'monthly_contribution_amount' => 0,
+        'salary_sacrifice' => true,
+    ];
+    $net = User::factory()->create(['annual_employment_income' => 50000, 'employment_income_basis' => 'post_sacrifice']);
+    DCPension::factory()->for($net)->create($pension);
+    $gross = User::factory()->create(['annual_employment_income' => 55000, 'employment_income_basis' => 'gross']);
+    DCPension::factory()->for($gross)->create($pension);
+
+    $analyser = app(SalarySacrificeAnalyzer::class);
+    $classOne = fn (float $pay) => (float) app(UKTaxCalculator::class)->calculateNetIncome($pay)['breakdown']['class_1_ni'];
+
+    // One household fact recorded two ways lands on one pair of figures.
+    foreach ([$net, $gross] as $user) {
+        expect($analyser->payBeforeSacrifice($user))->toBe(55000.0)
+            ->and($analyser->payAfterSacrifice($user))->toBe(50000.0)
+            ->and($analyser->analyzeForPension($user, $user->dcPensions()->first())['employee_ni_saving'])
+            ->toBe(round($classOne(55000.0) - $classOne(50000.0), 2));
+    }
+});
