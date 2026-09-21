@@ -46,7 +46,10 @@ final class PersonalAllowanceTaperLine extends MoneyLine
         $excess = max(0.0, $ani - $threshold);
 
         $mechanism = $this->mechanismFor($context, $excess);
-        $effectivePct = (int) round($higherRate * 150);
+        // The effective rate in the band: the pound earned is taxed at the higher rate,
+        // and the allowance it withdraws was being taxed at the same rate. So one plus
+        // the taper rate, both from config — never the 1.5 the current rates make.
+        $effectivePct = (int) round($higherRate * 100 * (1 + $taperRate));
 
         // The move is sized FIRST, then priced, so `amount` and `recovers` describe
         // the same contribution. Pricing the whole excess and then capping the amount
@@ -99,7 +102,7 @@ final class PersonalAllowanceTaperLine extends MoneyLine
                 ? ThresholdCopy::past(sprintf('%d%% band', $effectivePct))
                 : ThresholdCopy::into($ani - $threshold, sprintf('%d%% band', $effectivePct)),
             body: $body,
-            explanation: ThresholdCopy::taperExplanation($threshold, (int) round($higherRate * 100), (int) round($higherRate * 50), $taperRate),
+            explanation: ThresholdCopy::taperExplanation($threshold, (int) round($higherRate * 100), (int) round($higherRate * 100 * $taperRate), $taperRate),
             cost: $cost,
             lever: $lever,
             incomeMix: $this->costs->mix($context),

@@ -7,6 +7,7 @@ use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\TaxConfiguration;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
@@ -22,11 +23,14 @@ use App\Services\Tax\Thresholds\Lines\SalarySacrificeNiCapLine;
 use App\Services\Tax\Thresholds\Lines\TaperedAnnualAllowanceLine;
 use App\Services\Tax\Thresholds\ThresholdContext;
 use App\Services\Tax\Thresholds\ThresholdCopy;
+use App\Services\Tax\VestScheduleResolver;
 use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator;
 use Carbon\Carbon;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -111,6 +115,31 @@ describe('PersonalAllowanceTaperLine', function () {
             ->and($result->position['over'])->toBeTrue()
             ->and($result->position['distance'])->toBe(100000.0)
             ->and($result->lever)->not->toBeNull();
+    });
+
+    it('follows the seeded taper rate into the copy rather than the rate today implies', function () {
+        // Rule 2. At the seeded rate of 0.5 the band is 60% and the lost allowance
+        // costs 20p, which the tests above pin. Those numbers also fall out of the
+        // literals 150 and 50, so they could not tell a derived figure from a written
+        // one. Driving a different rate can.
+        $config = TaxConfiguration::where('is_active', true)->firstOrFail();
+        $data = $config->config_data;
+        $data['income_tax']['personal_allowance_taper_rate'] = 0.25;
+        $config->update(['config_data' => $data]);
+        app()->forgetInstance(TaxConfigService::class);
+        Cache::flush();
+
+        $user = User::factory()->create(['annual_employment_income' => 112400]);
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        // £1 of allowance per £4 earned: 40% on the pound plus a quarter of 40% on the
+        // allowance is a 50% band, and the allowance costs 10p.
+        expect($result->headline)->toBe('You are £12,400 into the 50% band')
+            ->and($result->explanation)->toContain('For every £4 you earn above £100,000')
+            ->and($result->explanation)->toContain('the allowance costs another 10p')
+            // The band now runs to £100,000 + £12,570 / 0.25.
+            ->and($result->range['to'])->toBe(150280.0);
     });
 
     it('sizes the lever by the money purchase allowance and withholds childcare when it stops short', function () {
@@ -428,6 +457,31 @@ describe('date lines', function () {
             ->and($result->cost->total())->toBe($expected)
             ->and($result->cost->total())->not->toBe($ifMainRateWereUsed)
             ->and($result->cost->benefits[0]['detail'])->toBe('National Insurance on the £28,001 above the £2,000 cap');
+    });
+
+    it('counts share vests towards where the sacrifice sits in the National Insurance bands', function () {
+        // £45,000 of salary is below the upper earnings limit on its own, but £20,000
+        // of vests carries the pay above it. Vests are employment income and carry
+        // Class 1, so the sacrifice is priced at 2%, not the 8% main rate.
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'employment_income_basis' => 'gross']);
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Work', 'pension_type' => 'occupational', 'current_fund_value' => 100000, 'annual_salary' => 50000, 'employee_contribution_percent' => 10, 'salary_sacrifice' => true]);
+        InvestmentAccount::create(['user_id' => $user->id, 'account_type' => 'rsu', 'account_name' => 'Acme RSUs', 'provider' => 'Acme', 'current_value' => 0, 'scheme_status' => 'active', 'vesting_type' => 'quarterly', 'full_vest_date' => '2027-03-15', 'units_unvested' => 1000, 'current_share_price' => 20]);
+
+        $result = app(SalarySacrificeNiCapLine::class)->evaluate(thresholdLineContext($user));
+
+        $vests = app(VestScheduleResolver::class)->annualVestIncome($user);
+        $calculator = app(UKTaxCalculator::class);
+        $classOne = fn (float $pay): float => (float) $calculator->calculateNetIncome($pay)['breakdown']['class_1_ni'];
+        // Pre-sacrifice pay is the recorded salary plus the vests; £5,000 is sacrificed
+        // and £2,000 of it stays exempt.
+        $prePay = 45000.0 + $vests;
+        $expected = round($classOne($prePay - 2000.0) - $classOne($prePay - 5000.0), 2);
+
+        expect($vests)->toBeGreaterThan(0.0)
+            ->and($result)->not->toBeNull()
+            ->and($result->cost->total())->toBe($expected)
+            // The main rate on the £3,000 above the cap would be £240.
+            ->and($result->cost->total())->not->toBe(240.0);
     });
 
     it('applies the pensions-in-estate date to a DC holder', function () {

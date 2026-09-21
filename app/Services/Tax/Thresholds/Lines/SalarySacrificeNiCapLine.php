@@ -69,7 +69,11 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
     private function extraNationalInsurance(ThresholdContext $context, float $sacrificed, float $cap): float
     {
         $mix = $this->costs->mix($context);
-        $prePay = (float) $mix['employment'] + $sacrificed;
+        // Vests are employment income and carry Class 1, so they count towards where
+        // the sacrifice sits in the bands, exactly as `ThresholdCostCalculator::run()`
+        // sums them. Leaving them out priced a £45,000 salary with £20,000 of vests
+        // as though it were below the upper earnings limit, at four times the rate.
+        $prePay = (float) $mix['employment'] + (float) ($mix['vesting'] ?? 0) + $sacrificed;
 
         return round($this->classOne($prePay - $cap) - $this->classOne($prePay - $sacrificed), 2);
     }
