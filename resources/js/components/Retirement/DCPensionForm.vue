@@ -1140,7 +1140,7 @@ export default {
         if (allowedResponse.data?.allowed_levels) {
           this.allowedRiskLevels = allowedResponse.data.allowed_levels;
         }
-      } catch (error) {
+      } catch {
         // Silently fail - risk profile is optional
       }
     },
@@ -1329,15 +1329,12 @@ export default {
     // Strips DB/State scratch fields and renames policy_number -> member_number
     // (the column the backend expects for dc_pensions).
     buildDCPayload() {
-      const {
-        db_scheme_status, db_scheme_type, db_annual_income, db_service_years, db_final_salary,
-        db_normal_retirement_age, db_spouse_pension_percent, db_accrual_rate,
-        db_inflation_protection, db_revaluation_rate, db_pcls_available,
-        state_forecast_weekly_amount, state_qualifying_years, state_forecast_date,
-        state_has_ni_gaps, state_gaps_years, state_estimated_gap_cost,
-        policy_number,
-        ...dcFields
-      } = this.formData;
+      // ponytail: every DB/State scratch field shares a prefix, so strip by prefix rather than by name
+      const scratch = /^(db_|state_)/;
+      const dcFields = Object.fromEntries(
+        Object.entries(this.formData).filter(([key]) => !scratch.test(key) && key !== 'policy_number'),
+      );
+      const { policy_number } = this.formData;
 
       const payload = { ...dcFields };
       if (policy_number !== undefined && policy_number !== null && policy_number !== '') {
