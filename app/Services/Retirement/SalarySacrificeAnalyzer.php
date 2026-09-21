@@ -155,22 +155,24 @@ class SalarySacrificeAnalyzer
         $niSavings = $this->calculateNISavings($contribution);
         $warnings = $this->generateWarnings($salary, $contribution, $postSacrificeSalary);
 
-        // Add 2029 NIC exemption cap warning if sacrifice exceeds £2,000
-        if ($niSavings['exceeds_2029_cap']) {
+        // Add NIC exemption cap warning if sacrifice exceeds £2,000
+        if ($niSavings['exceeds_nic_cap']) {
             $currentSaving = $niSavings['employee'];
-            $post2029Saving = $niSavings['post_2029_employee'];
-            $reduction = $currentSaving - $post2029Saving;
+            $postCapSaving = $niSavings['post_cap_employee'];
+            $reduction = $currentSaving - $postCapSaving;
             $warnings[] = [
                 'type' => 'info',
                 'message' => sprintf(
-                    'From April 2029, only the first £%s of employee salary sacrifice will be exempt from National Insurance. '
+                    'From April %d, only the first £%s of employee salary sacrifice will be exempt from National Insurance. '
                     .'Your sacrifice of £%s exceeds this cap. Current National Insurance saving: £%s per year. '
-                    .'Post-2029 National Insurance saving: £%s per year (a reduction of £%s). '
+                    .'Post-%d National Insurance saving: £%s per year (a reduction of £%s). '
                     .'Employer contributions remain fully exempt. Income Tax relief is unaffected.',
+                    $niSavings['nic_cap_effective_year'],
                     number_format($niSavings['nic_exemption_cap'], 0),
                     number_format($contribution, 0),
                     number_format($currentSaving, 0),
-                    number_format($post2029Saving, 0),
+                    $niSavings['nic_cap_effective_year'],
+                    number_format($postCapSaving, 0),
                     number_format($reduction, 0)
                 ),
             ];
@@ -186,9 +188,10 @@ class SalarySacrificeAnalyzer
             'total_ni_saving' => round($niSavings['total'], 2),
             'net_cost_to_employee' => round(max(0, $contribution - $niSavings['employee']), 2),
             'post_sacrifice_salary' => round($postSacrificeSalary, 2),
-            'post_2029_employee_ni_saving' => round($niSavings['post_2029_employee'], 2),
-            'post_2029_total_ni_saving' => round($niSavings['post_2029_total'], 2),
-            'exceeds_2029_nic_cap' => $niSavings['exceeds_2029_cap'],
+            'post_cap_employee_ni_saving' => round($niSavings['post_cap_employee'], 2),
+            'post_cap_total_ni_saving' => round($niSavings['post_cap_total'], 2),
+            'exceeds_nic_cap' => $niSavings['exceeds_nic_cap'],
+            'nic_cap_effective_year' => $niSavings['nic_cap_effective_year'],
             'warnings' => $warnings,
         ];
     }
@@ -225,23 +228,25 @@ class SalarySacrificeAnalyzer
         $allWarnings = $this->generateWarnings($salary, $totalContribution, $postSacrificeSalary);
         $totalNISaving = $totalEmployeeNISaving + $totalEmployerNISaving;
 
-        // Calculate aggregate post-2029 NI savings (cap applies to total sacrifice, not per pension)
+        // Calculate aggregate post-cap NI savings (cap applies to total sacrifice, not per pension)
         $aggregateNI = $this->calculateNISavings($totalContribution);
 
-        // Add 2029 NIC exemption cap warning if total sacrifice exceeds £2,000
-        if ($aggregateNI['exceeds_2029_cap']) {
-            $reduction = $totalEmployeeNISaving - $aggregateNI['post_2029_employee'];
+        // Add NIC exemption cap warning if total sacrifice exceeds £2,000
+        if ($aggregateNI['exceeds_nic_cap']) {
+            $reduction = $totalEmployeeNISaving - $aggregateNI['post_cap_employee'];
             $allWarnings[] = [
                 'type' => 'info',
                 'message' => sprintf(
-                    'From April 2029, only the first £%s of employee salary sacrifice will be exempt from National Insurance. '
+                    'From April %d, only the first £%s of employee salary sacrifice will be exempt from National Insurance. '
                     .'Your total sacrifice of £%s exceeds this cap. Current National Insurance saving: £%s per year. '
-                    .'Post-2029 National Insurance saving: £%s per year (a reduction of £%s). '
+                    .'Post-%d National Insurance saving: £%s per year (a reduction of £%s). '
                     .'Employer contributions remain fully exempt. Income Tax relief is unaffected.',
+                    $aggregateNI['nic_cap_effective_year'],
                     number_format($aggregateNI['nic_exemption_cap'], 0),
                     number_format($totalContribution, 0),
                     number_format($totalEmployeeNISaving, 0),
-                    number_format($aggregateNI['post_2029_employee'], 0),
+                    $aggregateNI['nic_cap_effective_year'],
+                    number_format($aggregateNI['post_cap_employee'], 0),
                     number_format($reduction, 0)
                 ),
             ];
@@ -257,9 +262,10 @@ class SalarySacrificeAnalyzer
             'net_cost_to_employee' => round(max(0, $totalContribution - $totalEmployeeNISaving), 2),
             'warnings' => $allWarnings,
             'post_sacrifice_salary' => round($postSacrificeSalary, 2),
-            'post_2029_employee_ni_saving' => round($aggregateNI['post_2029_employee'], 2),
-            'post_2029_total_ni_saving' => round($aggregateNI['post_2029_total'], 2),
-            'exceeds_2029_nic_cap' => $aggregateNI['exceeds_2029_cap'],
+            'post_cap_employee_ni_saving' => round($aggregateNI['post_cap_employee'], 2),
+            'post_cap_total_ni_saving' => round($aggregateNI['post_cap_total'], 2),
+            'exceeds_nic_cap' => $aggregateNI['exceeds_nic_cap'],
+            'nic_cap_effective_year' => $aggregateNI['nic_cap_effective_year'],
             'pensions' => $pensionResults,
         ];
     }
@@ -290,11 +296,12 @@ class SalarySacrificeAnalyzer
      * Calculate National Insurance savings from salary sacrifice.
      *
      * Current rules: Full NIC exemption on the entire sacrificed amount.
-     * From April 2029: Only the first £2,000 of employee salary sacrifice
-     * is exempt from NICs. Amounts above £2,000 are subject to NICs.
-     * Employer contributions remain fully NIC-exempt regardless.
+     * From the cap's effective date, in config: Only the first £2,000 of
+     * employee salary sacrifice is exempt from NICs. Amounts above £2,000
+     * are subject to NICs. Employer contributions remain fully NIC-exempt
+     * regardless.
      *
-     * @return array{employee: float, employer: float, total: float, post_2029_employee: float, post_2029_employer: float, post_2029_total: float, nic_exemption_cap: float, exceeds_2029_cap: bool}
+     * @return array{employee: float, employer: float, total: float, post_cap_employee: float, post_cap_employer: float, post_cap_total: float, nic_exemption_cap: float, exceeds_nic_cap: bool, nic_cap_effective_year: int}
      */
     private function calculateNISavings(float $sacrificeAmount): array
     {
@@ -310,26 +317,32 @@ class SalarySacrificeAnalyzer
             'pension.salary_sacrifice.nic_exemption_cap',
             2000
         );
+        $effectiveYear = (int) substr(
+            (string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date', '2027-04-06'),
+            0,
+            4,
+        );
 
         // Current rules: full NIC exemption
         $employeeSaving = $sacrificeAmount * $employeeMainRate;
         $employerSaving = $sacrificeAmount * $employerRate;
 
-        // Post-2029 rules: only first £2,000 exempt from employee NICs
+        // Post-cap rules: only first £2,000 exempt from employee NICs
         $exemptAmount = min($sacrificeAmount, $nicExemptionCap);
-        $post2029EmployeeSaving = $exemptAmount * $employeeMainRate;
+        $postCapEmployeeSaving = $exemptAmount * $employeeMainRate;
         // Employer NI savings unaffected — all employer contributions remain NIC-exempt
-        $post2029EmployerSaving = $employerSaving;
+        $postCapEmployerSaving = $employerSaving;
 
         return [
             'employee' => $employeeSaving,
             'employer' => $employerSaving,
             'total' => $employeeSaving + $employerSaving,
-            'post_2029_employee' => $post2029EmployeeSaving,
-            'post_2029_employer' => $post2029EmployerSaving,
-            'post_2029_total' => $post2029EmployeeSaving + $post2029EmployerSaving,
+            'post_cap_employee' => $postCapEmployeeSaving,
+            'post_cap_employer' => $postCapEmployerSaving,
+            'post_cap_total' => $postCapEmployeeSaving + $postCapEmployerSaving,
             'nic_exemption_cap' => $nicExemptionCap,
-            'exceeds_2029_cap' => $sacrificeAmount > $nicExemptionCap,
+            'exceeds_nic_cap' => $sacrificeAmount > $nicExemptionCap,
+            'nic_cap_effective_year' => $effectiveYear,
         ];
     }
 
