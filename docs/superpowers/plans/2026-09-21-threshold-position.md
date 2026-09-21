@@ -1573,7 +1573,7 @@ git commit -m "feat(tax): childcare entitlements from the config that nothing re
 **Files:**
 - Create: `app/Services/Tax/Thresholds/ThresholdCopy.php`
 - Create: `app/Services/Tax/Thresholds/Lines/MoneyLine.php` (abstract helper), `PersonalAllowanceTaperLine.php`, `HighIncomeChildBenefitLine.php`, `HigherRateLine.php`, `AdditionalRateLine.php`, `TaperedAnnualAllowanceLine.php`, `SalarySacrificeNiCapLine.php`, `NilRateBandLine.php`, `ResidenceBandTaperLine.php`, `PensionsEnterEstateLine.php`
-- Modify: `database/seeders/TaxConfigurationSeeder.php` (add `'normal_minimum_pension_age' => 57` under `pension`, with `// 57 from 6 April 2028 (FA 2022 s10); the downside copy names the age money is locked until`)
+- Modify: `database/seeders/TaxConfigurationSeeder.php` (add `'normal_minimum_pension_age' => 55` under `pension`, with `// 55 until 5 April 2028, 57 from 6 April 2028 (FA 2022 s10); the downside copy names the age money is locked until`)
 - Test: `tests/Unit/Services/Tax/Thresholds/LinesTest.php`
 
 **Interfaces:**
@@ -1632,7 +1632,7 @@ describe('PersonalAllowanceTaperLine', function () {
             ->and($result->headline)->toBe('You are £12,400 into the 60% band')
             ->and(array_column($result->cost->benefits, 'label'))->toContain('Tax-Free Childcare')
             ->and($result->lever['amount'])->toBe(12400.0)
-            ->and($result->lever['downside'])->toContain('locked until you are 57');
+            ->and($result->lever['downside'])->toContain('locked until you are 55');
     });
 
     it('does not apply to a £70,000 earner', function () {
@@ -2561,7 +2561,7 @@ const line = {
   income_mix: { employment: 112400 },
   cost: { income_tax: 2480, ni_class_1: 0, ni_class_4: 0, dividend_tax: 0, interest_tax: 0, benefits: [{ label: 'Tax-Free Childcare', detail: 'One child under 12', amount: 2000 }], total: 4480 },
   cost_total: 4480,
-  lever: { title: 'Pay £12,400 into your pension', amount: 12400, recovers: 4480, downside: 'The money is locked until you are 57.', action: { route: '/tax-strategy' } },
+  lever: { title: 'Pay £12,400 into your pension', amount: 12400, recovers: 4480, downside: 'The money is locked until you are 55.', action: { route: '/tax-strategy' } },
 };
 const dateLine = { key: 'ni_cap', title: 'Salary sacrifice National Insurance cap', range: null, position: { value: 197, distance: 197, unit: 'days', over: false }, headline: '6 April 2027 · 197 days', body: '', explanation: '', income_mix: {}, cost: null, cost_total: 160, lever: null };
 
@@ -2762,7 +2762,7 @@ import { apiGet } from '../../api.js';
 import { store } from '../../store.js';
 import Actions from '../Actions.vue';
 
-const line = { key: 'pa_taper', title: 'Personal Allowance taper', headline: 'You are £12,400 into the 60% band', body: 'The next £12,400 you earn costs 60p in the pound.', cost_total: 12620, lever: { title: 'Pay £12,400 into your pension', recovers: 12620, downside: 'The money is locked until you are 57.', action: { route: '/tax-strategy' } }, position: { unit: 'gbp' } };
+const line = { key: 'pa_taper', title: 'Personal Allowance taper', headline: 'You are £12,400 into the 60% band', body: 'The next £12,400 you earn costs 60p in the pound.', cost_total: 12620, lever: { title: 'Pay £12,400 into your pension', recovers: 12620, downside: 'The money is locked until you are 55.', action: { route: '/tax-strategy' } }, position: { unit: 'gbp' } };
 
 const stubs = { MobileChrome: { template: '<div><slot /></div>' }, 'router-link': { template: '<a><slot /></a>' } };
 
@@ -2918,7 +2918,7 @@ git commit -m "feat(m): the threshold strip on /m actions, end figures only"
 `Fixtures/Thresholds/taper.json`:
 
 ```json
-{"success":true,"data":{"strip":"pa_taper","lines":[{"key":"pa_taper","title":"Personal Allowance taper","headline":"You are £12,400 into the 60% band","body":"The next £12,400 you earn costs 60p in the pound.","cost_total":12620,"position":{"value":112400,"distance":12400,"unit":"gbp","over":true},"lever":{"title":"Pay £12,400 into your pension","amount":12400,"recovers":12620,"downside":"The money is locked until you are 57.","action":{"route":"/tax-strategy"}}}]}}
+{"success":true,"data":{"strip":"pa_taper","lines":[{"key":"pa_taper","title":"Personal Allowance taper","headline":"You are £12,400 into the 60% band","body":"The next £12,400 you earn costs 60p in the pound.","cost_total":12620,"position":{"value":112400,"distance":12400,"unit":"gbp","over":true},"lever":{"title":"Pay £12,400 into your pension","amount":12400,"recovers":12620,"downside":"The money is locked until you are 55.","action":{"route":"/tax-strategy"}}}]}}
 ```
 
 ```swift

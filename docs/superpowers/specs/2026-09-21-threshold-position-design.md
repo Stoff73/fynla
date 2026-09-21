@@ -150,7 +150,7 @@ Date lines carry `position.unit: "days"` and no `lever`. Copy strings are built 
 
 ## Configuration added
 
-Two seeded keys, both in `TaxConfigurationSeeder`, never in code: `benefits.early_years_funding.<band>.hourly_rate` for the three income-tested bands (DfE national average funding rates), and `pension.normal_minimum_pension_age` (57 from 6 April 2028) for the lever's "locked until" line.
+Two seeded keys, both in `TaxConfigurationSeeder`, never in code: `benefits.early_years_funding.<band>.hourly_rate` for the three income-tested bands (DfE national average funding rates), and `pension.normal_minimum_pension_age` (55 for the active years, 57 from 6 April 2028) for the lever's "locked until" line.
 
 ## Out of scope for this slice
 
