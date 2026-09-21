@@ -6,6 +6,7 @@ use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Property\PropertyService;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\VestScheduleResolver;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->taxConfig = app(TaxConfigService::class);
-    $this->service = new IncomeDefinitionsService($this->taxConfig, app(PropertyService::class));
+    $this->service = new IncomeDefinitionsService($this->taxConfig, app(PropertyService::class), app(VestScheduleResolver::class));
 
     // These tests verify income-definition math only. Mute model events so the
     // RecommendationCacheObserver (agent cache invalidation) does not fire when
