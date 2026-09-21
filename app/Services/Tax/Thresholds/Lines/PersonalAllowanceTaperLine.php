@@ -59,6 +59,7 @@ final class PersonalAllowanceTaperLine extends MoneyLine
             $suggested = (float) ($context->strategy('pa_taper_rescue')['suggested_contribution'] ?? $excess);
             $amount0 = $suggested > 0 ? min($excess, $suggested) : $excess;
         }
+        $amount0 = $this->affordableAmount($context, $mechanism, $amount0);
         $cost = $amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost;
 
         // `applied` is what the priced move could actually take out: pension relief is

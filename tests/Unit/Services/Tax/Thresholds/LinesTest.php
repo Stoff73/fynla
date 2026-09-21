@@ -273,6 +273,36 @@ describe('band lines', function () {
             ->and($result->explanation)->toContain('Income tax is');
     });
 
+    it('caps the higher-rate lever at the pension Annual Allowance', function () {
+        // £92,130 over the higher-rate line. Offering that as a contribution would be
+        // offering an Annual Allowance charge, not a saving.
+        $user = User::factory()->create(['annual_employment_income' => 142400]);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->position['distance'])->toBe(92130.0)
+            ->and($result->lever['amount'])->toBe(60000.0)
+            ->and($result->lever['title'])->toBe('Pay £60,000 into your pension')
+            ->and($result->lever['downside'])->toContain('Annual Allowance limits')
+            ->and($result->lever['downside'])->toContain('£60,000');
+    });
+
+    it('counts contributions already made against the lever', function () {
+        $user = User::factory()->create(['annual_employment_income' => 142400]);
+        // £50,000 of the allowance already used: 25% employee and 25% employer on a
+        // £100,000 scheme salary, chosen so the figure is exact rather than rounded.
+        DCPension::create([
+            'user_id' => $user->id, 'scheme_name' => 'Work', 'pension_type' => 'occupational',
+            'current_fund_value' => 300000, 'annual_salary' => 100000,
+            'employee_contribution_percent' => 25, 'employer_contribution_percent' => 25,
+        ]);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->lever['amount'])->toBe(10000.0)
+            ->and($result->lever['downside'])->toContain('Annual Allowance limits');
+    });
+
     it('uses the Gift Aid extended limit for the additional-rate line', function () {
         $user = User::factory()->create(['annual_employment_income' => 135000, 'is_gift_aid' => true, 'annual_charitable_donations' => 12000]);
         $result = app(AdditionalRateLine::class)->evaluate(thresholdLineContext($user));

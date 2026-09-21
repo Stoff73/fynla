@@ -33,7 +33,8 @@ final class HigherRateLine extends MoneyLine
         }
         $excess = max(0.0, $income - $threshold);
         $mechanism = $this->mechanismFor($context, $excess);
-        $cost = $excess > 0 ? $this->costs->delta($context, $excess, $mechanism) : new ThresholdCost;
+        $amount0 = $this->affordableAmount($context, $mechanism, $excess);
+        $cost = $amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost;
         $pct = (int) round($this->math->bandRateForBand('higher') * 100);
 
         // No strategy sizes this line, so the move is the whole excess and the cost
@@ -41,8 +42,8 @@ final class HigherRateLine extends MoneyLine
         // ran out of room, and the cost was priced on the same ceiling.
         $lever = null;
         if ($excess > 0 && $cost->applied > 0) {
-            $lever = $this->incomeLever($context, min($excess, $cost->applied), $cost, $mechanism);
-            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $excess, $cost);
+            $lever = $this->incomeLever($context, min($amount0, $cost->applied), $cost, $mechanism);
+            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $amount0, $cost);
         }
 
         return new ThresholdResult(

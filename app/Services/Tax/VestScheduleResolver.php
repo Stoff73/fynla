@@ -130,7 +130,11 @@ final class VestScheduleResolver
             return [$anchor->toDateString() => $unvested];
         }
 
-        $frequency = max(1, (int) ($account->vesting_frequency_months ?? 12));
+        $frequency = $this->ladderFrequency($account);
+        if ($frequency === null) {
+            return [$this->singleVestDate($account)->toDateString() => $unvested];
+        }
+
         $tranches = [];
         $floor = $this->ladderFloor($account, $yearStart);
 
@@ -165,6 +169,52 @@ final class VestScheduleResolver
         }
 
         return $tranches;
+    }
+
+    /** Ladder step in months per `vesting_type`, for schemes that vest repeatedly. */
+    private const MONTHS_BY_TYPE = ['monthly' => 1, 'quarterly' => 3, 'annual' => 12];
+
+    /** Types that vest in one go, however many units are outstanding. */
+    private const SINGLE_EVENT_TYPES = ['immediate', 'performance'];
+
+    /**
+     * How many months apart the tranches sit, or null when the scheme vests once.
+     *
+     * The investment form captures `vesting_type` but never renders
+     * `vesting_frequency_months`, so the column is null for everything a user enters
+     * through the UI and the ladder fell back to twelve months. A quarterly RSU was
+     * therefore reported at a quarter of its real pace: £12,000 of income in the year
+     * where £16,000 actually vests.
+     *
+     * An explicit `vesting_frequency_months` always wins, because a scheme captured
+     * with a real cadence knows better than its label.
+     */
+    private function ladderFrequency(InvestmentAccount $account): ?int
+    {
+        if ($account->vesting_frequency_months !== null) {
+            return max(1, (int) $account->vesting_frequency_months);
+        }
+
+        $type = (string) ($account->vesting_type ?? '');
+        if (in_array($type, self::SINGLE_EVENT_TYPES, true)) {
+            return null;
+        }
+
+        return self::MONTHS_BY_TYPE[$type] ?? 12;
+    }
+
+    /**
+     * The one date a single-event scheme vests on. A performance award lands when its
+     * performance period closes, where that is recorded; otherwise the full vest date
+     * is the only date the schedule holds.
+     */
+    private function singleVestDate(InvestmentAccount $account): Carbon
+    {
+        $date = $account->vesting_type === 'performance' && $account->performance_period_end
+            ? $account->performance_period_end
+            : $account->full_vest_date;
+
+        return Carbon::parse($date)->startOfDay();
     }
 
     /**

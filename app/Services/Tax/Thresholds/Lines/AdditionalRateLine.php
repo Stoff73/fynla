@@ -44,6 +44,7 @@ final class AdditionalRateLine extends MoneyLine
             $suggested = (float) ($context->strategy('additional_rate_avoidance')['suggested_contribution'] ?? $excess);
             $amount0 = $suggested > 0 ? min($excess, $suggested) : $excess;
         }
+        $amount0 = $this->affordableAmount($context, $mechanism, $amount0);
         $cost = $amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost;
         $amount = min($amount0, $cost->applied);
 

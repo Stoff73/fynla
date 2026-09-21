@@ -145,6 +145,28 @@ abstract class MoneyLine implements ThresholdLine
     }
 
     /**
+     * The most this mechanism can actually move, applied BEFORE pricing so the cost
+     * prices the move the button offers.
+     *
+     * A pension contribution is bounded by the Annual Allowance the user has left this
+     * year. Without this the higher-rate lever told a £142,400 earner to "Pay £92,130
+     * into your pension" — their whole excess, more than any allowance permits, and a
+     * contribution that would trigger a charge rather than avoid one. The taper lines
+     * were already sized by the strategy, which applies the same ceiling; these two
+     * asked for the raw excess.
+     *
+     * The ISA path has its own ceiling in `mechanismFor()`, so it passes through.
+     */
+    protected function affordableAmount(ThresholdContext $context, string $mechanism, float $amount): float
+    {
+        if ($mechanism !== 'pension' || $amount <= 0) {
+            return max(0.0, $amount);
+        }
+
+        return max(0.0, min($amount, $this->math()->availableAnnualAllowance($context->user, null)));
+    }
+
+    /**
      * Why the lever stops short of the excess, appended to the downside.
      *
      * Two different things can cut the move, and saying the wrong one is worse than

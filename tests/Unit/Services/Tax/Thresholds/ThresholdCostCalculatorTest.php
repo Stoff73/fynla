@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\Tax\Thresholds\ThresholdContext;
 use App\Services\Tax\Thresholds\ThresholdCost;
 use App\Services\Tax\Thresholds\ThresholdCostCalculator;
+use App\Services\Tax\VestScheduleResolver;
+use Carbon\Carbon;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -175,4 +178,43 @@ it('adds a benefit to a cost and counts it in the total', function () {
         ->and($withBenefit->benefits)->toBe([['label' => 'Child Benefit', 'detail' => 'Withdrawn at 1% per £200', 'amount' => 1331.20]])
         ->and($cost->withBenefit('Nothing', 'Zero is not a cost', 0.0))->toBe($cost)
         ->and($withBenefit->toArray()['total'])->toBe(2531.20);
+});
+
+it('publishes share vests beside the salary, not folded into it', function () {
+    Carbon::setTestNow('2026-09-21');
+    $user = User::factory()->create(['annual_employment_income' => 112400]);
+    InvestmentAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_type' => 'rsu',
+        'account_name' => 'Acme RSUs',
+        'provider' => 'Acme',
+        'current_value' => 0,
+        'scheme_status' => 'active',
+        'vesting_type' => 'quarterly',
+        'cliff_date' => null,
+        'vesting_frequency_months' => null,
+        'full_vest_date' => '2028-03-15',
+        'units_unvested' => 800,
+        'current_share_price' => 30,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $context = thresholdContextFor($user);
+    $mix = $this->calc->mix($context);
+    $vests = app(VestScheduleResolver::class)->annualVestIncome($user);
+
+    // The strip has to be able to say "£112,400 salary" and name the vest separately;
+    // one combined figure appears on no payslip the user has ever seen.
+    expect($mix['employment'])->toBe(112400.0)
+        ->and($mix['vesting'])->toBe($vests)
+        ->and($vests)->toBeGreaterThan(0.0);
+
+    // Splitting the key changes what the mix says, never what the tax comes to: the
+    // calculator still sees one employment stream, Class 1 and all.
+    $cost = $this->calc->delta($context, 12400.0);
+    expect($cost->applied)->toBe(12400.0)
+        ->and($cost->incomeTax)->toBeGreaterThan(0.0);
+
+    Carbon::setTestNow();
 });

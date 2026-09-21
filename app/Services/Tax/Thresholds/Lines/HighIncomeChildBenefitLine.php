@@ -56,13 +56,14 @@ final class HighIncomeChildBenefitLine extends MoneyLine
         $charge = $position['hicbc'];
         $excess = max(0.0, $ani - $threshold);
         $mechanism = $this->mechanismFor($context, $excess);
-        $cost = ($excess > 0 ? $this->costs->delta($context, $excess, $mechanism) : new ThresholdCost)
+        $amount0 = $this->affordableAmount($context, $mechanism, $excess);
+        $cost = ($amount0 > 0 ? $this->costs->delta($context, $amount0, $mechanism) : new ThresholdCost)
             ->withBenefit('Child Benefit charge', sprintf('%d%% of your %s Child Benefit repaid', (int) $charge['clawback_percentage'], ThresholdCopy::pounds($benefit)), (float) $charge['charge']);
 
         $lever = null;
         if ($excess > 0 && $cost->applied > 0) {
-            $lever = $this->incomeLever($context, min($excess, $cost->applied), $cost, $mechanism);
-            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $excess, $cost);
+            $lever = $this->incomeLever($context, min($amount0, $cost->applied), $cost, $mechanism);
+            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $amount0, $cost);
         }
 
         // Past the top of the band there is no "how far in" left to state: the whole

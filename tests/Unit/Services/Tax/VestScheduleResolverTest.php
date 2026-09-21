@@ -154,3 +154,56 @@ it('reaches adjusted net income through the income definitions', function () {
     expect($definitions['components']['vesting'])->toBe(round(800 / 6 * 30 * 4, 2))
         ->and($definitions['adjusted_net_income'])->toBe(round(90000 + 800 / 6 * 30 * 4, 2));
 });
+
+describe('vesting cadence from the type when the column is null', function () {
+    it('reads a quarterly type exactly as an explicit three-month frequency', function () {
+        $explicit = User::factory()->create();
+        rsuAccount($explicit, ['vesting_frequency_months' => 3, 'vesting_type' => 'quarterly']);
+
+        $derived = User::factory()->create();
+        // The investment form captures the type but never renders the frequency, so
+        // this is the shape every user-entered scheme actually has.
+        rsuAccount($derived, ['vesting_frequency_months' => null, 'vesting_type' => 'quarterly']);
+
+        $asDates = fn (array $events): array => array_map(fn ($e) => [$e['date']->toDateString(), $e['value']], $events);
+
+        expect($asDates($this->resolver->schedule($derived)))
+            ->toBe($asDates($this->resolver->schedule($explicit)))
+            ->and($this->resolver->annualVestIncome($derived))
+            ->toBe($this->resolver->annualVestIncome($explicit));
+    });
+
+    it('ladders an annual type once a year', function () {
+        $user = User::factory()->create();
+        rsuAccount($user, ['vesting_frequency_months' => null, 'vesting_type' => 'annual']);
+
+        $dates = array_map(fn ($e) => $e['date']->toDateString(), $this->resolver->schedule($user));
+
+        // Annually back from 2028-03-15 puts one date inside 2026/27.
+        expect($dates)->toBe(['2027-03-15']);
+    });
+
+    it('vests a performance award once, when its performance period closes', function () {
+        $user = User::factory()->create();
+        rsuAccount($user, [
+            'vesting_frequency_months' => null,
+            'vesting_type' => 'performance',
+            'performance_period_end' => '2027-01-31',
+        ]);
+
+        $events = $this->resolver->schedule($user);
+
+        expect($events)->toHaveCount(1)
+            ->and($events[0]['date']->toDateString())->toBe('2027-01-31')
+            // One event, so the whole unvested holding lands on it.
+            ->and($events[0]['value'])->toBe(round(800 * 30, 2));
+    });
+
+    it('lets an explicit frequency win over the type', function () {
+        $user = User::factory()->create();
+        rsuAccount($user, ['vesting_frequency_months' => 1, 'vesting_type' => 'annual']);
+
+        // Monthly, so far more than the single annual date the type would give.
+        expect(count($this->resolver->schedule($user)))->toBeGreaterThan(1);
+    });
+});
