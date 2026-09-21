@@ -18,9 +18,7 @@ final class ResidenceBandTaperLine extends MoneyLine
 
     public function evaluate(ThresholdContext $context): ?ThresholdResult
     {
-        if (! $context->user->properties()->exists()
-            && ! $context->user->investmentAccounts()->exists()
-            && ! $context->user->savingsAccounts()->exists()) {
+        if (! $this->hasEstate($context)) {
             return null;
         }
 

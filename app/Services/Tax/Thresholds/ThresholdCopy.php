@@ -17,8 +17,19 @@ final class ThresholdCopy
         return '£'.number_format(round($n));
     }
 
+    /**
+     * A distance small enough to round away is not "£0 under the line", it is ON the
+     * line — and the reader standing exactly there is the one the strip most needs to
+     * be straight with.
+     */
+    private const ON_THE_LINE = 0.5;
+
     public static function into(float $distance, string $bandName): string
     {
+        if (abs($distance) < self::ON_THE_LINE) {
+            return sprintf('You are on the %s line', $bandName);
+        }
+
         return $distance > 0
             ? sprintf('You are %s into the %s', self::pounds($distance), $bandName)
             : sprintf('You are %s under the %s', self::pounds(-$distance), $bandName);
@@ -32,6 +43,10 @@ final class ThresholdCopy
 
     public static function estate(float $distance): string
     {
+        if (abs($distance) < self::ON_THE_LINE) {
+            return 'Your estate is on the nil rate band line';
+        }
+
         return $distance > 0
             ? sprintf('Your estate is %s over the nil rate band', self::pounds($distance))
             : sprintf('Your estate is %s under the nil rate band', self::pounds(-$distance));

@@ -21,9 +21,7 @@ final class NilRateBandLine extends MoneyLine
         // A household with nothing recorded has no estate to place, and the guard
         // keeps the IHT computation off the hot path for everyone who has not
         // reached the estate module yet.
-        if (! $context->user->properties()->exists()
-            && ! $context->user->investmentAccounts()->exists()
-            && ! $context->user->savingsAccounts()->exists()) {
+        if (! $this->hasEstate($context)) {
             return null;
         }
 

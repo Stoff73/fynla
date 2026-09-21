@@ -59,6 +59,25 @@ abstract class MoneyLine implements ThresholdLine
         return max(0.0, $allowance - $this->math()->estimateIsaSubscriptionsThisYear($context->user));
     }
 
+    /**
+     * Whether there is an estate worth computing. One home for the test, because both
+     * estate lines ask it and two copies is how they drift apart.
+     *
+     * Pensions count: from the date in `inheritance_tax.pension_iht_inclusion` unused
+     * pots fall into the estate, so a household holding nothing but a pension has an
+     * estate that the property-and-accounts test would have missed entirely.
+     */
+    protected function hasEstate(ThresholdContext $context): bool
+    {
+        $user = $context->user;
+
+        return $user->properties()->exists()
+            || $user->investmentAccounts()->exists()
+            || $user->savingsAccounts()->exists()
+            || $user->dcPensions()->exists()
+            || $user->dbPensions()->exists();
+    }
+
     protected function math(): TaxStrategyMath
     {
         return app(TaxStrategyMath::class);

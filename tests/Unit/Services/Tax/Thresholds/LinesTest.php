@@ -21,6 +21,7 @@ use App\Services\Tax\Thresholds\Lines\ResidenceBandTaperLine;
 use App\Services\Tax\Thresholds\Lines\SalarySacrificeNiCapLine;
 use App\Services\Tax\Thresholds\Lines\TaperedAnnualAllowanceLine;
 use App\Services\Tax\Thresholds\ThresholdContext;
+use App\Services\Tax\Thresholds\ThresholdCopy;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -219,6 +220,22 @@ describe('band lines', function () {
         $user = User::factory()->create(['annual_employment_income' => 135000, 'is_gift_aid' => true, 'annual_charitable_donations' => 12000]);
         $result = app(AdditionalRateLine::class)->evaluate(thresholdLineContext($user));
         expect($result->range['from'])->toBe(125140.0 + 15000.0);
+    });
+});
+
+describe('ThresholdCopy', function () {
+    it('says you are on the line rather than £0 under it', function () {
+        // 40p either side of the line rounds to £0, and "You are £0 under the 60%
+        // band" reads as a bug to the one reader standing exactly on it.
+        expect(ThresholdCopy::into(0.4, '60% band'))->toBe('You are on the 60% band line')
+            ->and(ThresholdCopy::into(-0.4, '60% band'))->toBe('You are on the 60% band line')
+            ->and(ThresholdCopy::into(-600.0, '60% band'))->toBe('You are £600 under the 60% band');
+    });
+
+    it('says the estate is on the nil rate band line rather than £0 under it', function () {
+        expect(ThresholdCopy::estate(0.4))->toBe('Your estate is on the nil rate band line')
+            ->and(ThresholdCopy::estate(-0.4))->toBe('Your estate is on the nil rate band line')
+            ->and(ThresholdCopy::estate(5000.0))->toBe('Your estate is £5,000 over the nil rate band');
     });
 });
 
