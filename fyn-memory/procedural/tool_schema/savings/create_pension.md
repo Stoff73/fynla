@@ -57,11 +57,11 @@ effective_from: 2026-09-21
             },
             "annual_drawdown_income": {
                 "type": "number",
-                "description": "Taxable income drawn from this pension each year in pounds, personal and Self-Invested Personal Pension arrangements the user has started drawing from. Send null if not stated — never 0."
+                "description": "Taxable income drawn from this pension each year in pounds, personal and Self-Invested Personal Pension arrangements the user has started drawing from."
             },
             "pcls_taken": {
                 "type": "number",
-                "description": "Tax-free lump sum already taken from this pension in pounds. Send null if not stated — never 0."
+                "description": "Tax-free lump sum already taken from this pension in pounds."
             },
             "accrued_annual_pension": {
                 "type": "number",
