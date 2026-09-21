@@ -2227,7 +2227,7 @@ git commit -m "feat(tax): the nine catalogue lines and their copy"
 
 **Interfaces:**
 - Consumes: every `ThresholdLine` tagged `threshold.lines`.
-- Produces: `ThresholdPositionService::evaluate(User $user): array{strip: ?string, lines: list<array>}`.
+- Produces: `ThresholdPositionService::evaluate(User $user): array{strip: ?string, suppressed: int, lines: list<array>}` — `suppressed` is the count of catalogue lines that do not apply to this user.
 
 - [ ] **Step 1: Failing test with fake lines**
 
@@ -2297,7 +2297,7 @@ it('returns an empty list and no strip when nothing applies', function () {
 
     $out = (new ThresholdPositionService(app(IncomeDefinitionsService::class), [$none]))->evaluate($user);
 
-    expect($out)->toBe(['strip' => null, 'lines' => []]);
+    expect($out)->toBe(['strip' => null, 'suppressed' => 1, 'lines' => []]);
 });
 
 it('is resolvable from the container with the catalogue tagged', function () {
@@ -2342,7 +2342,9 @@ final class ThresholdPositionService
         $context = new ThresholdContext($user, $this->definitions->calculate($user->id));
 
         $results = [];
+        $catalogue = 0;
         foreach ($this->lines as $line) {
+            $catalogue++;
             $result = $line->evaluate($context);
             if ($result !== null) {
                 $results[] = $result;
@@ -2365,7 +2367,11 @@ final class ThresholdPositionService
             }
         }
 
-        return ['strip' => $strip, 'lines' => array_map(fn (ThresholdResult $r): array => $r->toArray(), $results)];
+        // How many catalogue lines the user is nowhere near, so the expanded view can
+        // say so instead of listing a line they cannot cross.
+        $suppressed = $catalogue - count($results);
+
+        return ['strip' => $strip, 'suppressed' => $suppressed, 'lines' => array_map(fn (ThresholdResult $r): array => $r->toArray(), $results)];
     }
 }
 ```
@@ -2608,7 +2614,7 @@ Expected: FAIL.
       </button>
     </div>
 
-    <div v-if="strip.range" class="ribbon" role="img" :aria-label="ribbonLabel">
+    <div v-if="strip.range && strip.range.to" class="ribbon" role="img" :aria-label="ribbonLabel">
       <div class="ribbon-track">
         <div class="ribbon-marker" :style="{ left: markerLeft }"></div>
       </div>
@@ -2656,6 +2662,7 @@ Expected: FAIL.
           </li>
         </ul>
       </div>
+      <p v-if="suppressedSentence" class="text-caption text-neutral-500">{{ suppressedSentence }}</p>
     </div>
   </section>
 </template>
@@ -2706,6 +2713,13 @@ export default {
     },
     ribbonLabel() {
       return `${this.strip.title}: ${this.strip.headline}`;
+    },
+    suppressedSentence() {
+      const n = Number(this.data?.suppressed ?? 0);
+      if (n <= 0) return '';
+      return n === 1
+        ? 'One more line exists in the tax system that you are nowhere near. It is not listed.'
+        : `${n} more lines exist in the tax system that you are nowhere near. They are not listed.`;
     },
   },
 };
