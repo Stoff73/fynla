@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\DBPension;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
-use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\Thresholds\ThresholdContext;
 use App\Services\Tax\Thresholds\ThresholdCost;
 use App\Services\Tax\Thresholds\ThresholdCostCalculator;
@@ -78,8 +77,9 @@ it('prices a pensioner with no NI at all', function () {
 
 it('keys strategy recommendations by type, as the arrays the calculator publishes', function () {
     $user = User::factory()->create(['annual_employment_income' => 112400]);
+    $context = contextFor($user);
 
-    $strategies = contextFor($user)->strategies();
+    $strategies = $context->strategies();
 
     expect($strategies)->not->toBeEmpty();
 
@@ -87,20 +87,10 @@ it('keys strategy recommendations by type, as the arrays the calculator publishe
         expect($recommendation)->toBeArray()
             ->and($recommendation['type'])->toBe($type)
             ->and($type)->not->toBe('')
-            ->and($recommendation)->toHaveKeys(['title', 'category', 'priority', 'estimated_annual_tax_saved']);
-    }
-});
-
-it('hands a line the published recommendation untouched, extras and all', function () {
-    $user = User::factory()->create(['annual_employment_income' => 112400]);
-    $context = contextFor($user);
-
-    $published = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
-        ->keyBy('type');
-
-    foreach ($context->strategies() as $type => $recommendation) {
-        expect($recommendation)->toBe($published[$type])
-            ->and($context->strategy($type))->toBe($published[$type]);
+            // The keys a line reads. `toArray()` merges `extra` in flat, so a
+            // strategy-specific field sits beside these rather than under them.
+            ->and($recommendation)->toHaveKeys(['title', 'category', 'priority', 'estimated_annual_tax_saved'])
+            ->and($context->strategy($type))->toBe($recommendation);
     }
 
     expect($context->strategy('nothing_is_registered_under_this_type'))->toBeNull();
