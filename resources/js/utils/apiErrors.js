@@ -56,6 +56,12 @@ export function tierLimitFrom(error) {
  * @returns {string}
  */
 export function apiErrorMessage(error, fallback) {
+  // A 422 carries the field's own message under `errors`; "The given data was
+  // invalid." tells the user nothing about which field or why.
+  const fieldMessage = Object.values(error?.response?.data?.errors || {}).flat().find((m) => typeof m === 'string' && m.trim() !== '');
+  if (fieldMessage) {
+    return fieldMessage;
+  }
   const message = error?.response?.data?.message;
   return typeof message === 'string' && message.trim() !== '' ? message : fallback;
 }

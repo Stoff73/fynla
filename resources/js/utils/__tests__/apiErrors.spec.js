@@ -52,6 +52,20 @@ describe('apiErrorMessage', () => {
       .toBe('Property limit reached for your current plan.');
   });
 
+  it("prefers a field's own validation message to the generic 422 message", () => {
+    const invalid422 = {
+      response: {
+        status: 422,
+        data: {
+          message: 'The given data was invalid.',
+          errors: { 'data.phone': ['Please enter a valid UK phone number (e.g., 07700 900123 or +44 7700 900123).'] },
+        },
+      },
+    };
+    expect(apiErrorMessage(invalid422, 'fallback'))
+      .toBe('Please enter a valid UK phone number (e.g., 07700 900123 or +44 7700 900123).');
+  });
+
   it('falls back when the server sent no message', () => {
     expect(apiErrorMessage(new Error('Request failed with status code 500'), 'Failed to save. Please try again.'))
       .toBe('Failed to save. Please try again.');

@@ -255,8 +255,21 @@
               <p class="account-type">{{ investment.account_name || investment.platform || '' }}</p>
 
               <div class="account-details">
+                <!-- Share scheme: the record's current_value is not the figure; the
+                     vested and unvested unit values from the API are -->
+                <div v-if="isShareScheme(investment)">
+                  <div class="detail-row">
+                    <span class="detail-label">Vested value</span>
+                    <span class="detail-value">{{ formatCurrency(investment.vested_value || 0) }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Unvested value</span>
+                    <span class="detail-value text-violet-600">{{ formatCurrency(investment.unvested_value || 0) }}</span>
+                  </div>
+                </div>
+
                 <!-- Joint account: current_value IS the full value -->
-                <div v-if="investment.ownership_type === 'joint'">
+                <div v-else-if="investment.ownership_type === 'joint'">
                   <div class="detail-row">
                     <span class="detail-label">Full Value</span>
                     <span class="detail-value">{{ formatCurrency(investment.current_value) }}</span>
@@ -1185,10 +1198,17 @@ export default {
         'offshore_bond': 'Offshore Bond',
         'vct': 'Venture Capital Trust',
         'eis': 'Enterprise Investment Scheme',
+        'saye': 'Save As You Earn',
+        'csop': 'Company Share Option Plan',
+        'emi': 'Enterprise Management Incentive',
+        'unapproved_options': 'Options',
+        'rsu': 'Restricted Stock Units',
         'other': 'Other',
       };
       return types[type] || type;
     };
+
+    const isShareScheme = (investment) => ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'].includes(investment.account_type);
 
     const getInvestmentTypeBadgeClass = (type) => {
       const classes = {
@@ -1321,6 +1341,7 @@ export default {
       getPensionMonthlyContribution,
       // Investment helpers
       formatInvestmentAccountType,
+      isShareScheme,
       getInvestmentTypeBadgeClass,
       // Savings helpers
       formatSavingsAccountType,
