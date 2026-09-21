@@ -72,6 +72,8 @@ class StoreDCPensionRequest extends FormRequest
             'projected_value_at_retirement' => ['nullable', 'numeric', 'min:0'],
             'has_flexibly_accessed' => ['nullable', 'boolean'],
             'flexible_access_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'annual_drawdown_income' => ['nullable', 'numeric', 'min:0'],
+            'pcls_taken' => ['nullable', 'numeric', 'min:0'],
             // Six fields the form binds, the client sends, the model declares
             // fillable, PensionStore::validateDcCanonical explicitly accepts and
             // the app reads downstream — and that had no rule here, so

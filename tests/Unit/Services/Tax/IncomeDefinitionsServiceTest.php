@@ -519,3 +519,36 @@ describe('W-0205 — Gift Aid is deducted at adjusted net income, not at net inc
             ->and($result['adjusted_allowances']['personal_allowance_tapered'])->toBeFalse();
     });
 });
+
+describe('DC drawdown income', function () {
+    it('adds annual drawdown income to pension income in payment and never the lump sum', function () {
+        $user = User::factory()->create(['annual_employment_income' => 0]);
+        DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Aviva SIPP',
+            'pension_type' => 'personal',
+            'current_fund_value' => 200000,
+            'has_flexibly_accessed' => true,
+            'annual_drawdown_income' => 18000,
+            'pcls_taken' => 50000,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+
+        expect($result['components']['pension_income'])->toBe(18000.00)
+            ->and($result['total_income'])->toBe(18000.00);
+    });
+
+    it('treats a null drawdown income as not asked, contributing nothing', function () {
+        $user = User::factory()->create(['annual_employment_income' => 0]);
+        DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Aviva SIPP',
+            'pension_type' => 'personal',
+            'current_fund_value' => 200000,
+            'has_flexibly_accessed' => true,
+        ]);
+
+        expect($this->service->calculate($user->id)['components']['pension_income'])->toBe(0.00);
+    });
+});
