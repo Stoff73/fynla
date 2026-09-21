@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Thresholds;
 
-use App\DataTransferObjects\StrategyRecommendation;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Tax\TaxStrategyCalculator;
@@ -20,7 +19,7 @@ final class ThresholdContext
 {
     private ?array $iht = null;
 
-    /** @var array<string, StrategyRecommendation>|null */
+    /** @var array<string, array<string, mixed>>|null */
     private ?array $strategies = null;
 
     private ?array $vests = null;
@@ -63,50 +62,31 @@ final class ThresholdContext
     /**
      * Strategy recommendations keyed by type, from the one calculator every surface uses.
      *
-     * `TaxStrategyCalculator` serialises its recommendations before publishing them —
-     * `TaxStrategyOutputDTO::$recommendations` is a list of arrays, not a list of
-     * `StrategyRecommendation`, and no accessor exposes the objects it built. Reading
-     * `->type` off those arrays would not throw; PHP 8 warns and yields null, so every
-     * entry would key silently under the empty string. They are rebuilt here instead,
-     * so a line asks for a strategy by type and gets a typed object back.
+     * These are arrays, not `StrategyRecommendation` objects: `TaxStrategyCalculator`
+     * serialises each recommendation with `toArray()` before constructing its output
+     * DTO, and nothing exposes the objects it built. `toArray()` merges the `extra`
+     * payload in flat, so a strategy-specific field sits at the top level beside the
+     * named ones:
      *
-     * @return array<string, StrategyRecommendation>
+     *     $context->strategy('pa_taper_rescue')['suggested_contribution'] ?? null
+     *     $context->strategy('pa_taper_rescue')['estimated_annual_tax_saved'] ?? null
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function strategies(): array
     {
         if ($this->strategies === null) {
             $this->strategies = [];
             foreach (app(TaxStrategyCalculator::class)->calculate($this->user)->recommendations as $rec) {
-                $this->strategies[(string) ($rec['type'] ?? '')] = $this->hydrate($rec);
+                $this->strategies[(string) ($rec['type'] ?? '')] = $rec;
             }
         }
 
         return $this->strategies;
     }
 
-    /** @param array<string, mixed> $rec */
-    private function hydrate(array $rec): StrategyRecommendation
-    {
-        // Everything not named by the constructor was merged in from `extra` by
-        // `StrategyRecommendation::toArray()`, so it goes back there.
-        $named = ['type', 'category', 'priority', 'title', 'description',
-            'estimated_annual_tax_saved', 'requires_advice', 'required_monthly_cost', 'required_lump_sum'];
-
-        return new StrategyRecommendation(
-            type: (string) ($rec['type'] ?? ''),
-            category: (string) ($rec['category'] ?? ''),
-            priority: (string) ($rec['priority'] ?? ''),
-            title: (string) ($rec['title'] ?? ''),
-            description: (string) ($rec['description'] ?? ''),
-            estimatedAnnualTaxSaved: isset($rec['estimated_annual_tax_saved']) ? (float) $rec['estimated_annual_tax_saved'] : null,
-            requiresAdvice: (bool) ($rec['requires_advice'] ?? false),
-            extra: array_diff_key($rec, array_flip($named)),
-            requiredMonthlyCost: isset($rec['required_monthly_cost']) ? (float) $rec['required_monthly_cost'] : null,
-            requiredLumpSum: isset($rec['required_lump_sum']) ? (float) $rec['required_lump_sum'] : null,
-        );
-    }
-
-    public function strategy(string $type): ?StrategyRecommendation
+    /** @return array<string, mixed>|null */
+    public function strategy(string $type): ?array
     {
         return $this->strategies()[$type] ?? null;
     }

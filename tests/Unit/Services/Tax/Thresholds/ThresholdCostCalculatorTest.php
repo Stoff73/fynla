@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\DataTransferObjects\StrategyRecommendation;
 use App\Models\DBPension;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
@@ -77,7 +76,7 @@ it('prices a pensioner with no NI at all', function () {
     expect($cost->niClass1)->toBe(0.0)->and($cost->niClass4)->toBe(0.0)->and($cost->incomeTax)->toBeGreaterThan(0.0);
 });
 
-it('keys strategy recommendations by type as typed objects', function () {
+it('keys strategy recommendations by type, as the arrays the calculator publishes', function () {
     $user = User::factory()->create(['annual_employment_income' => 112400]);
 
     $strategies = contextFor($user)->strategies();
@@ -85,13 +84,14 @@ it('keys strategy recommendations by type as typed objects', function () {
     expect($strategies)->not->toBeEmpty();
 
     foreach ($strategies as $type => $recommendation) {
-        expect($recommendation)->toBeInstanceOf(StrategyRecommendation::class)
-            ->and($recommendation->type)->toBe($type)
-            ->and($type)->not->toBe('');
+        expect($recommendation)->toBeArray()
+            ->and($recommendation['type'])->toBe($type)
+            ->and($type)->not->toBe('')
+            ->and($recommendation)->toHaveKeys(['title', 'category', 'priority', 'estimated_annual_tax_saved']);
     }
 });
 
-it('round-trips a recommendation through the context without losing its extras', function () {
+it('hands a line the published recommendation untouched, extras and all', function () {
     $user = User::factory()->create(['annual_employment_income' => 112400]);
     $context = contextFor($user);
 
@@ -99,7 +99,8 @@ it('round-trips a recommendation through the context without losing its extras',
         ->keyBy('type');
 
     foreach ($context->strategies() as $type => $recommendation) {
-        expect($recommendation->toArray())->toBe($published[$type]);
+        expect($recommendation)->toBe($published[$type])
+            ->and($context->strategy($type))->toBe($published[$type]);
     }
 
     expect($context->strategy('nothing_is_registered_under_this_type'))->toBeNull();
