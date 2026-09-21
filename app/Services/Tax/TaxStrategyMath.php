@@ -83,9 +83,39 @@ final class TaxStrategyMath
         return ['higher' => $higher, 'additional' => $additional];
     }
 
+    /**
+     * The band limits as they apply to THIS user: extended by the grossed-up Gift
+     * Aid under ITA 2007 s414, the way `UKTaxCalculator` already extends them.
+     * Without this the strategy engine valued a slice at 45% that the calculator
+     * taxed at 40% (2026-09-17).
+     *
+     * @return array{higher: float, additional: float}
+     */
+    public function bandThresholdsFor(User $user): array
+    {
+        $extension = (float) ($this->incomeDefinitionsFor($user)['deductions']['gift_aid_gross'] ?? 0);
+        $raw = $this->bandThresholds();
+
+        return [
+            'higher' => $raw['higher'] > 0 ? $raw['higher'] + $extension : 0.0,
+            'additional' => $raw['additional'] > 0 ? $raw['additional'] + $extension : 0.0,
+        ];
+    }
+
     public function bandFromIncome(float $income): string
     {
         $thresholds = $this->bandThresholds();
+
+        return match (true) {
+            $income >= $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
+            $income >= $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
+            default => 'basic',
+        };
+    }
+
+    public function bandFromIncomeFor(User $user, float $income): string
+    {
+        $thresholds = $this->bandThresholdsFor($user);
 
         return match (true) {
             $income >= $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
@@ -103,7 +133,7 @@ final class TaxStrategyMath
      */
     public function bandRateFor(User $user): float
     {
-        return $this->bandRateForBand($this->bandFromIncome($this->taxableIncomeFor($user)));
+        return $this->bandRateForBand($this->bandFromIncomeFor($user, $this->taxableIncomeFor($user)));
     }
 
     /**
