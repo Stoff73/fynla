@@ -78,9 +78,7 @@ final class PersonalAllowanceTaperLine extends MoneyLine
         $lever = null;
         if ($amount > 0) {
             $lever = $this->incomeLever($context, $amount, $cost, $mechanism);
-            if ($mechanism === 'pension' && $cost->applied < $excess) {
-                $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
-            }
+            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $amount0, $cost);
         }
 
         $past = $ani >= $bandTop;
@@ -97,7 +95,7 @@ final class PersonalAllowanceTaperLine extends MoneyLine
             range: ['from' => $threshold, 'to' => $bandTop],
             position: $this->position($ani, $threshold),
             headline: $past
-                ? ThresholdCopy::past($bandTop, sprintf('%d%% band', $effectivePct))
+                ? ThresholdCopy::past(sprintf('%d%% band', $effectivePct))
                 : ThresholdCopy::into($ani - $threshold, sprintf('%d%% band', $effectivePct)),
             body: $body,
             explanation: ThresholdCopy::taperExplanation($threshold, (int) round($higherRate * 100), (int) round($higherRate * 50), $taperRate),

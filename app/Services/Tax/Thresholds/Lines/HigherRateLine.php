@@ -42,9 +42,7 @@ final class HigherRateLine extends MoneyLine
         $lever = null;
         if ($excess > 0 && $cost->applied > 0) {
             $lever = $this->incomeLever($context, min($excess, $cost->applied), $cost, $mechanism);
-            if ($mechanism === 'pension' && $cost->applied < $excess) {
-                $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
-            }
+            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $excess, $cost);
         }
 
         return new ThresholdResult(

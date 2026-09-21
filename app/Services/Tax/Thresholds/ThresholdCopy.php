@@ -36,7 +36,7 @@ final class ThresholdCopy
     }
 
     /** Above the top of a banded line, where the distance into it has stopped meaning anything. */
-    public static function past(float $top, string $bandName): string
+    public static function past(string $bandName): string
     {
         return sprintf('You are past the %s', $bandName);
     }

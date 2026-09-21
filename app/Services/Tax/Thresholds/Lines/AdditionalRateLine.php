@@ -50,9 +50,7 @@ final class AdditionalRateLine extends MoneyLine
         $lever = null;
         if ($amount > 0) {
             $lever = $this->incomeLever($context, $amount, $cost, $mechanism);
-            if ($mechanism === 'pension' && $cost->applied < $excess) {
-                $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
-            }
+            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $amount0, $cost);
         }
 
         return new ThresholdResult(

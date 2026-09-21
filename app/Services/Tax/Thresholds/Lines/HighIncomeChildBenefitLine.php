@@ -62,9 +62,7 @@ final class HighIncomeChildBenefitLine extends MoneyLine
         $lever = null;
         if ($excess > 0 && $cost->applied > 0) {
             $lever = $this->incomeLever($context, min($excess, $cost->applied), $cost, $mechanism);
-            if ($mechanism === 'pension' && $cost->applied < $excess) {
-                $lever['downside'] .= sprintf(' A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
-            }
+            $lever['downside'] .= $this->constraintNote($context, $mechanism, $excess, $excess, $cost);
         }
 
         // Past the top of the band there is no "how far in" left to state: the whole
@@ -77,7 +75,7 @@ final class HighIncomeChildBenefitLine extends MoneyLine
             range: ['from' => $threshold, 'to' => $top],
             position: $this->position($ani, $threshold),
             headline: $past
-                ? ThresholdCopy::past($top, 'Child Benefit charge band')
+                ? ThresholdCopy::past('Child Benefit charge band')
                 : ThresholdCopy::into($ani - $threshold, 'Child Benefit charge band'),
             body: $past
                 ? sprintf('Above %s all of your Child Benefit is repaid.', ThresholdCopy::pounds($top))

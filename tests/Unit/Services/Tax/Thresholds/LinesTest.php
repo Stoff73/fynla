@@ -49,6 +49,19 @@ function thresholdLineContext(User $user): ThresholdContext
     return new ThresholdContext($user, app(IncomeDefinitionsService::class)->calculate($user->id));
 }
 
+/** Record `$amount` of ISA subscription in the current tax year, to eat the allowance. */
+function thresholdSubscribeIsa(User $user, float $amount): SavingsAccount
+{
+    $taxConfig = app(TaxConfigService::class);
+
+    return SavingsAccount::create([
+        'user_id' => $user->id, 'account_name' => 'Cash ISA', 'provider' => 'Bank',
+        'account_type' => 'cash_isa', 'is_isa' => true, 'current_balance' => $amount,
+        'isa_subscription_year' => $taxConfig->getTaxYear(),
+        'isa_subscription_amount' => $amount,
+    ]);
+}
+
 describe('PersonalAllowanceTaperLine', function () {
     it('places a £112,400 parent inside the band with childcare in the cost and a pension lever', function () {
         $user = User::factory()->create(['annual_employment_income' => 112400, 'childcare' => 1000]);
@@ -112,7 +125,30 @@ describe('PersonalAllowanceTaperLine', function () {
         expect($result->lever['amount'])->toBe(10000.0)
             ->and($result->lever['recovers'])->toBe($result->cost->total())
             ->and(array_column($result->cost->benefits, 'label'))->not->toContain('Tax-Free Childcare')
-            ->and($result->body)->toContain('gets you part of the way');
+            ->and($result->body)->toContain('gets you part of the way')
+            // The allowance is what cut this move, not their earnings: this earner has
+            // £120,000 of relevant earnings and could pension far more than £10,000.
+            ->and($result->lever['downside'])->toContain('Annual Allowance limits')
+            ->and($result->lever['downside'])->toContain('money purchase')
+            ->and($result->lever['downside'])->not->toContain('limited to your earnings');
+    });
+
+    it('blames earnings, not the allowance, when relevant earnings are what cut the move', function () {
+        // A director paying themselves a small salary and taking the rest as dividends.
+        // Adjusted net income £132,570, so £32,570 over the taper threshold, but pension
+        // relief reaches only the £12,570 of earnings from work (FA 2004 s190).
+        $user = User::factory()->create(['annual_employment_income' => 12570, 'annual_dividend_income' => 120000]);
+        // The excess is larger than the whole annual ISA allowance, so the ISA move
+        // cannot reach it and the lever is the pension one.
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->lever['mechanism'])->toBe('pension')
+            ->and($result->lever['amount'])->toBe(12570.0)
+            ->and($result->lever['downside'])->toContain('limited to your earnings from work')
+            ->and($result->lever['downside'])->toContain('£12,570')
+            // Nothing cut this before pricing, so the allowance sentence must not appear.
+            ->and($result->lever['downside'])->not->toContain('Annual Allowance limits');
     });
 
     it('names an upcoming vest in the lever downside', function () {
@@ -198,15 +234,33 @@ describe('band lines', function () {
             ->and($result->explanation)->toContain('Moving it into an ISA');
     });
 
+    it('falls back to the pension when the remaining ISA allowance is smaller than the excess', function () {
+        // £2,730 over the higher-rate line, covered several times over by the dividends,
+        // but only £2,000 of ISA allowance left. Income moved out can never exceed the
+        // capital sheltered, so this move cannot be made.
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
+        thresholdSubscribeIsa($user, 18000.0);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->position['distance'])->toBe(2730.0)
+            ->and($result->lever['mechanism'])->toBe('pension');
+    });
+
+    it('keeps the ISA lever when the remaining allowance covers the excess', function () {
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
+        thresholdSubscribeIsa($user, 15000.0);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        // £5,000 left against a £2,730 excess.
+        expect($result->lever['mechanism'])->toBe('isa')
+            ->and($result->lever['downside'])->toContain('£5,000 of it left');
+    });
+
     it('falls back to the pension when this year\'s ISA allowance is already used', function () {
         $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
-        $allowance = (float) app(TaxConfigService::class)->getISAAllowances()['annual_allowance'];
-        SavingsAccount::create([
-            'user_id' => $user->id, 'account_name' => 'Cash ISA', 'provider' => 'Bank',
-            'account_type' => 'cash_isa', 'is_isa' => true, 'current_balance' => $allowance,
-            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
-            'isa_subscription_amount' => $allowance,
-        ]);
+        thresholdSubscribeIsa($user, (float) app(TaxConfigService::class)->getISAAllowances()['annual_allowance']);
 
         $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
 

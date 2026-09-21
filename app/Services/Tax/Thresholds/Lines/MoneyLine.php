@@ -34,20 +34,26 @@ abstract class MoneyLine implements ThresholdLine
     }
 
     /**
-     * The ISA move applies when savings income alone covers the excess AND there is
-     * ISA allowance left to receive it. Someone who has already used this year's
-     * allowance cannot move anything, so offering the move would be offering nothing.
+     * The ISA move applies when savings income alone covers the excess AND the
+     * remaining ISA allowance is at least as large as the excess.
+     *
+     * The allowance bound is what stops the lever quoting a move it cannot make: the
+     * income taken out of the calculation can never exceed the capital sheltered, so
+     * £500 of allowance left cannot remove a £19,000 dividend excess however much the
+     * user holds.
      *
      * ponytail: the ceiling is the allowance, not the capital. Whether the user holds
      * enough outside an ISA to generate that income is a question about their balances
      * that nothing here asks, and converting capital to income is not this lever's job.
+     * That makes the bound conservative rather than exact — a yield above 100% is the
+     * only case it would wave through, and there is no such case.
      */
     protected function mechanismFor(ThresholdContext $context, float $excess): string
     {
         $c = $context->components();
         $savingsIncome = ($c['interest'] ?? 0) + ($c['dividend'] ?? 0);
 
-        return $excess > 0 && $savingsIncome >= $excess && $this->isaAllowanceRemaining($context) > 0
+        return $excess > 0 && $savingsIncome >= $excess && $this->isaAllowanceRemaining($context) >= $excess
             ? 'isa'
             : 'pension';
     }
@@ -136,6 +142,44 @@ abstract class MoneyLine implements ThresholdLine
             'action' => ['route' => '/tax-strategy'],
             'mechanism' => 'pension',
         ];
+    }
+
+    /**
+     * Why the lever stops short of the excess, appended to the downside.
+     *
+     * Two different things can cut the move, and saying the wrong one is worse than
+     * saying nothing:
+     *
+     *  - The **Annual Allowance** cuts it before pricing. The strategy sizes the
+     *    contribution from the headroom the user actually has, so `$amount0` comes
+     *    back below the excess. Someone who has flexibly accessed a pension is held
+     *    to the money purchase allowance, and the copy names that instead.
+     *  - **Relevant earnings** cut it during pricing. `ThresholdCostCalculator` caps
+     *    relief at earnings from work (FA 2004 s190), which is the only thing that can
+     *    make `applied` fall below the amount that was asked for.
+     *
+     * Before this split the earnings sentence fired on `applied < excess`, which after
+     * the move was sized first meant a user limited by their Annual Allowance was told
+     * their earnings were the problem. Both causes can hold at once, and then both
+     * sentences appear, in the order the constraints bite.
+     */
+    protected function constraintNote(ThresholdContext $context, string $mechanism, float $excess, float $amount0, ThresholdCost $cost): string
+    {
+        if ($mechanism !== 'pension') {
+            return '';
+        }
+
+        $notes = [];
+        if ($amount0 < $excess && $amount0 > 0) {
+            $notes[] = $this->math()->moneyPurchaseAnnualAllowanceApplies($context->user)
+                ? sprintf("Your money purchase Annual Allowance limits this year's contribution to %s.", ThresholdCopy::pounds($amount0))
+                : sprintf("Your pension Annual Allowance limits this year's contribution to %s.", ThresholdCopy::pounds($amount0));
+        }
+        if ($cost->applied < $amount0) {
+            $notes[] = sprintf('A pension contribution can only take %s off this year: tax relief is limited to your earnings from work.', ThresholdCopy::pounds($cost->applied));
+        }
+
+        return $notes === [] ? '' : ' '.implode(' ', $notes);
     }
 
     /**
