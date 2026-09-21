@@ -46,6 +46,36 @@ it('caps Tax-Free Childcare per child and prices the extended hours by age', fun
     // The three-year-old's extra 15 hours × 38 weeks × the seeded rate for the active year.
     $rate = (float) app(TaxConfigService::class)->getEarlyYearsFunding()['working_parents_30hrs']['hourly_rate'];
     expect($hours['amount'])->toBe(round(15 * 38 * $rate, 2));
+    expect($hours['detail'])->toContain('30 hours drops to 15 for your 3-year-old');
+});
+
+it('bands children at the exact month boundaries using the configured ages, not literal cutoffs', function () {
+    $funding = app(TaxConfigService::class)->getEarlyYearsFunding();
+    $priced = fn (string $band, bool $extensionOnly = false): float => round(
+        ((float) $funding[$band]['hours_per_week'] - ($extensionOnly ? (float) $funding['universal_15hrs']['hours_per_week'] : 0))
+            * (float) $funding[$band]['weeks_per_year']
+            * (float) $funding[$band]['hourly_rate'],
+        2
+    );
+
+    $u30 = User::factory()->create(['childcare' => null]);
+    child($u30, Carbon::today()->subMonths(36)->toDateString());
+    $item30 = collect($this->entitlements->for($u30))->firstWhere('label', 'Funded childcare hours');
+    expect($item30['amount'])->toBe($priced('working_parents_30hrs', extensionOnly: true));
+
+    $u2 = User::factory()->create(['childcare' => null]);
+    child($u2, Carbon::today()->subMonths(24)->toDateString());
+    $item2 = collect($this->entitlements->for($u2))->firstWhere('label', 'Funded childcare hours');
+    expect($item2['amount'])->toBe($priced('working_parents_2yr'));
+
+    $uUnder2 = User::factory()->create(['childcare' => null]);
+    child($uUnder2, Carbon::today()->subMonths(9)->toDateString());
+    $itemUnder2 = collect($this->entitlements->for($uUnder2))->firstWhere('label', 'Funded childcare hours');
+    expect($itemUnder2['amount'])->toBe($priced('working_parents_under_2'));
+
+    $uNone = User::factory()->create(['childcare' => null]);
+    child($uNone, Carbon::today()->subMonths(60)->toDateString());
+    expect(collect($this->entitlements->for($uNone))->firstWhere('label', 'Funded childcare hours'))->toBeNull();
 });
 
 it('gives no Tax-Free Childcare when no spend is recorded', function () {
