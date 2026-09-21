@@ -105,14 +105,28 @@ class EmployeeSchemeCalculationService
 
         $unvestedUnits = (int) ($account->units_unvested ?? 0);
 
-        if ($account->isOptionsScheme()) {
-            $spreadPerShare = max(0, (float) $account->current_share_price - (float) $account->exercise_price);
+        return $this->taxableValuePerUnit($account) * $unvestedUnits;
+    }
 
-            return $spreadPerShare * $unvestedUnits;
+    /**
+     * What one unit is worth to the holder at vest or exercise.
+     *
+     * For an option the holder pays the exercise price to acquire the share, so
+     * only the spread is theirs — market value less exercise price, floored at
+     * nil for an underwater option. For an RSU nothing is paid, so the whole
+     * market value is the value received.
+     *
+     * The one home for this branch: `calculateUnvestedValue()` and
+     * `VestScheduleResolver` both read it, so the tax layer and the investment
+     * screens cannot disagree about what a unit is worth.
+     */
+    public function taxableValuePerUnit(InvestmentAccount $account): float
+    {
+        if ($account->isOptionsScheme()) {
+            return max(0, (float) $account->current_share_price - (float) $account->exercise_price);
         }
 
-        // RSUs: direct share value
-        return (float) $account->current_share_price * $unvestedUnits;
+        return (float) $account->current_share_price;
     }
 
     /**
