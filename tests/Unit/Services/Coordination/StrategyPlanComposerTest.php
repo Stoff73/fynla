@@ -241,7 +241,8 @@ it('never sums pa_taper_rescue with additional_rate_avoidance once the seeder de
         ->map(fn ($row) => ['claim_tier' => $row->claim_tier, 'sequencing' => $row->sequencing])
         ->all();
 
-    // The spec's profile: £135,000 employment, £12,000 Gift Aid → both fire.
+    // A non-donor at £150,000 taxable with £30,000 of pension relief: adjusted
+    // net income £120,000, both strategies fire.
     $recs = [
         new StrategyRecommendation('pa_taper_rescue', StrategyCategory::IncomeBand, StrategyPriority::High, 'PA', 'd', 12000.0),
         new StrategyRecommendation('additional_rate_avoidance', StrategyCategory::IncomeBand, StrategyPriority::High, 'AR', 'd', 29521.0),
