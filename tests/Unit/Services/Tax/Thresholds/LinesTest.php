@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Property;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
@@ -13,6 +14,7 @@ use App\Services\Tax\Thresholds\Lines\HigherRateLine;
 use App\Services\Tax\Thresholds\Lines\HighIncomeChildBenefitLine;
 use App\Services\Tax\Thresholds\Lines\PensionsEnterEstateLine;
 use App\Services\Tax\Thresholds\Lines\PersonalAllowanceTaperLine;
+use App\Services\Tax\Thresholds\Lines\ResidenceBandTaperLine;
 use App\Services\Tax\Thresholds\Lines\SalarySacrificeNiCapLine;
 use App\Services\Tax\Thresholds\ThresholdContext;
 use Carbon\Carbon;
@@ -54,6 +56,9 @@ describe('PersonalAllowanceTaperLine', function () {
             ->and($result->headline)->toBe('You are £12,400 into the 60% band')
             ->and(array_column($result->cost->benefits, 'label'))->toContain('Tax-Free Childcare')
             ->and($result->lever['amount'])->toBe(12400.0)
+            // "Pay into", not "salary sacrifice": the cost carries no National
+            // Insurance saving, so the title must not promise one.
+            ->and($result->lever['title'])->toBe('Pay £12,400 into your pension')
             ->and($result->lever['downside'])->toContain('locked until you are 57');
     });
 
@@ -122,6 +127,21 @@ describe('band lines', function () {
         $user = User::factory()->create(['annual_employment_income' => 135000, 'is_gift_aid' => true, 'annual_charitable_donations' => 12000]);
         $result = app(AdditionalRateLine::class)->evaluate(ctx($user));
         expect($result->range['from'])->toBe(125140.0 + 15000.0);
+    });
+});
+
+describe('estate lines', function () {
+    // The money figures on the estate lines are exercised in the Task 12 feature
+    // test with a constructed estate. This one pins the guard only, which needs no
+    // estate figures: it asserts the line withholds.
+    it('withholds the residence band taper when there is no residence band to lose', function () {
+        $user = User::factory()->create(['date_of_birth' => '1965-01-01']);
+        Property::create(['user_id' => $user->id, 'property_type' => 'main_residence', 'ownership_type' => 'individual', 'current_value' => 2400000, 'address_line_1' => '1 High St', 'city' => 'London', 'postcode' => 'N1 1AA']);
+
+        // A £2.4m estate is over the £2m taper threshold, but nothing is left to a
+        // direct descendant, so the residence band is already nil and there is
+        // nothing for the taper to take. The card would read "You lose £0".
+        expect(app(ResidenceBandTaperLine::class)->evaluate(ctx($user)))->toBeNull();
     });
 });
 

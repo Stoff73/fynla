@@ -42,7 +42,6 @@ final class TaperedAnnualAllowanceLine extends MoneyLine
             sprintf('%s of your %s allowance, at your marginal rate', ThresholdCopy::pounds($lost), ThresholdCopy::pounds($full)),
             $lost * $this->math->bandRateFor($context->user),
         );
-        $strategy = $context->strategy('tapered_annual_allowance');
 
         return new ThresholdResult(
             key: $this->key(),
@@ -55,14 +54,10 @@ final class TaperedAnnualAllowanceLine extends MoneyLine
             body: sprintf('For every %s of adjusted income above %s you lose £1 of pension Annual Allowance, down to %s.', ThresholdCopy::perPoundLost((float) ($taper['taper_rate'] ?? 0.5)), ThresholdCopy::pounds($adjustedLimit), ThresholdCopy::pounds($minimum)),
             explanation: sprintf('Your allowance this year is %s against the full %s.', ThresholdCopy::pounds($full - $lost), ThresholdCopy::pounds($full)),
             cost: $cost,
-            lever: $strategy === null ? null : [
-                'title' => (string) ($strategy['title'] ?? 'Reduce your adjusted income'),
-                'amount' => (float) ($strategy['suggested_contribution'] ?? 0),
-                'recovers' => (float) ($strategy['estimated_annual_tax_saved'] ?? 0),
-                'downside' => '',
-                'action' => ['route' => '/tax-strategy'],
-                'mechanism' => 'pension',
-            ],
+            // No lever in this slice: a pension contribution does not reduce adjusted
+            // income (FA 2004 s228ZA adds it back), and the strategy's own adjusted-income
+            // figure is under review. The line sits behind the click.
+            lever: null,
             incomeMix: $this->costs->mix($context),
         );
     }

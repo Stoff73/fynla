@@ -68,7 +68,11 @@ abstract class MoneyLine implements ThresholdLine
         }
 
         return [
-            'title' => sprintf('Salary sacrifice %s into your pension', ThresholdCopy::pounds($amount)),
+            // "Pay into", never "salary sacrifice": the cost is priced as an ordinary
+            // pension contribution, which relieves income tax but not National
+            // Insurance. Naming sacrifice would promise a saving this figure does
+            // not contain (plan amendment, 2026-09-21).
+            'title' => sprintf('Pay %s into your pension', ThresholdCopy::pounds($amount)),
             'amount' => round($amount, 2),
             'recovers' => $cost->total(),
             'downside' => ThresholdCopy::lockedUntil($this->minimumPensionAge(), $context->vests()[0] ?? null),

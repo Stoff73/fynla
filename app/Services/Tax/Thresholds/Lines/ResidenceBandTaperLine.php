@@ -28,11 +28,13 @@ final class ResidenceBandTaperLine extends MoneyLine
         $threshold = (float) ($ihtConfig['rnrb_taper_threshold'] ?? 2000000);
         $iht = $context->iht();
         $net = (float) $iht['total_net_estate'];
-        if (! $this->within($net, $threshold)) {
+        $reduction = (float) $iht['rnrb_taper_reduction'];
+        // Over the line AND with something to lose. A household whose residence band
+        // is already nil — no home left to direct descendants — would otherwise get
+        // a card reading "You lose £0 of residence nil rate band".
+        if (! $this->within($net, $threshold) || ($reduction <= 0 && (float) $iht['rnrb_available'] <= 0)) {
             return null;
         }
-
-        $reduction = (float) $iht['rnrb_taper_reduction'];
         $cost = (new ThresholdCost)->withBenefit(
             'Residence nil rate band lost',
             sprintf('Reduced by £1 for every %s over %s', ThresholdCopy::perPoundLost((float) ($ihtConfig['rnrb_taper_rate'] ?? 0.5)), ThresholdCopy::pounds($threshold)),
