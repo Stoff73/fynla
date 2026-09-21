@@ -64,13 +64,16 @@ class TaxActionDefinitionSeeder extends Seeder
         return [
             // ── A. Income-band driven (single-user) ──────────────────────
 
+            // Both draw on the same Annual Allowance for the same user; the plan
+            // summed them and overstated the saving by 41% (2026-09-17). The composer's
+            // conflict resolution keeps the higher-saving member.
             [
                 'strategy_type' => 'pa_taper_rescue',
                 'category' => 'income_band',
                 'priority' => 'high',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['annual_income'],
-                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['additional_rate_avoidance']],
             ],
 
             [
@@ -79,7 +82,7 @@ class TaxActionDefinitionSeeder extends Seeder
                 'priority' => 'high',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['annual_income'],
-                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['pa_taper_rescue']],
             ],
 
             [

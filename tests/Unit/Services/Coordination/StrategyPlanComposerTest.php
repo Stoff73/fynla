@@ -5,7 +5,12 @@ declare(strict_types=1);
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
+use App\Models\TaxActionDefinition;
 use App\Services\Coordination\StrategyPlanComposer;
+use Database\Seeders\TaxActionDefinitionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 it('orders by sequencing, sums savings, and marks conflicts', function () {
     $recs = [
@@ -226,4 +231,23 @@ it('handles null savings and keeps ordering stable', function () {
     expect($plan['combined_annual_saving'])->toBe(100.0);
     // Positions contiguous 1-based.
     expect(array_column($plan['items'], 'sequence_position'))->toBe([1, 2, 3]);
+});
+
+it('never sums pa_taper_rescue with additional_rate_avoidance once the seeder declares the pair', function () {
+    $this->seed(TaxActionDefinitionSeeder::class);
+    $metadata = TaxActionDefinition::whereNotNull('strategy_type')
+        ->get()
+        ->keyBy('strategy_type')
+        ->map(fn ($row) => ['claim_tier' => $row->claim_tier, 'sequencing' => $row->sequencing])
+        ->all();
+
+    // The spec's profile: £135,000 employment, £12,000 Gift Aid → both fire.
+    $recs = [
+        new StrategyRecommendation('pa_taper_rescue', StrategyCategory::IncomeBand, StrategyPriority::High, 'PA', 'd', 12000.0),
+        new StrategyRecommendation('additional_rate_avoidance', StrategyCategory::IncomeBand, StrategyPriority::High, 'AR', 'd', 29521.0),
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
+
+    expect($plan['combined_annual_saving'])->toBe(29521.0);
 });
