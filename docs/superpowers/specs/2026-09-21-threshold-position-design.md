@@ -148,6 +148,10 @@ Date lines carry `position.unit: "days"` and no `lever`. Copy strings are built 
 - Vitest on both strip components.
 - Playwright on csjones, web and `/m`, two personas: one over £100,000 with two under-fives and an RSU schedule, one with nothing applying. Every figure on screen checked against the API and the tax config.
 
+## Configuration added
+
+Two seeded keys, both in `TaxConfigurationSeeder`, never in code: `benefits.early_years_funding.<band>.hourly_rate` for the three income-tested bands (DfE national average funding rates), and `pension.normal_minimum_pension_age` (57 from 6 April 2028) for the lever's "locked until" line.
+
 ## Out of scope for this slice
 
 B lanes and C cards. The mobile push trigger on a forecast crossing. Model-this-change flow beyond linking to `/tax-strategy`. The Autumn Budget rail.
