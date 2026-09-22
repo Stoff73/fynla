@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\User;
+use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
 /**
@@ -441,6 +442,9 @@ final class CaptureForms
             'current_value' => (float) $answers['current_value'],
             'ownership_type' => (string) ($answers['ownership_type'] ?? 'individual'),
         ];
+        if (is_numeric($answers['annual_dividend_income'] ?? null)) {
+            $input['annual_dividend_income'] = (float) $answers['annual_dividend_income'];
+        }
         if ($input['ownership_type'] === 'joint') {
             $share = $answers['ownership_percentage'] ?? null;
             $input['ownership_percentage'] = is_numeric($share) ? (float) $share : 50.0;
@@ -484,7 +488,11 @@ final class CaptureForms
         $what = str_starts_with($input['account_name'], $input['provider'].' ') && ! str_ends_with($input['account_name'], $label)
             ? ucfirst(substr($input['account_name'], strlen($input['provider']) + 1))
             : $label;
-        $parts = [$what.' with '.$input['provider'].' worth '.self::pounds($input['current_value']), $input['ownership_type']];
+        $parts = [$what.' with '.$input['provider'].' worth '.self::pounds($input['current_value'])];
+        if (isset($input['annual_dividend_income'])) {
+            $parts[] = 'paying '.self::pounds($input['annual_dividend_income']).' a year in dividends';
+        }
+        $parts[] = $input['ownership_type'];
         if (isset($input['ownership_percentage'])) {
             $parts[] = 'my share '.self::percent($input['ownership_percentage']);
         }
@@ -621,6 +629,9 @@ final class CaptureForms
         }
         if (isset($input['spouse_pension_input_annual'])) {
             $parts[] = 'pays '.self::pounds($input['spouse_pension_input_annual']).' a year into their pension'.(isset($input['spouse_pension_provider']) ? ' with '.$input['spouse_pension_provider'] : '');
+        }
+        if (($input['spouse_pays_non_earner_maximum'] ?? null) === 'yes') {
+            $parts[] = 'pays '.self::pounds(self::nonEarnerNetContribution()).' a year into their pension';
         }
         if (isset($input['spouse_annual_dividends'])) {
             $parts[] = self::pounds($input['spouse_annual_dividends']).' a year in dividends';
@@ -763,7 +774,8 @@ final class CaptureForms
      */
     private static function investment(): array
     {
-        $fields = ['provider', 'current_value', 'ownership_type', 'ownership_percentage'];
+        // CSJ 2026-09-22: shares pay dividends, so the form asks for them here.
+        $fields = ['provider', 'current_value', 'annual_dividend_income', 'ownership_type', 'ownership_percentage'];
 
         return [
             'name' => self::INVESTMENT,
@@ -784,6 +796,8 @@ final class CaptureForms
                 'investment_type' => ['type' => 'text', 'label' => 'What type of investment is it', 'required' => false,
                     'hint' => 'For example shares, a fund or crowdfunding'],
                 'current_value' => ['type' => 'money', 'label' => 'Current value', 'required' => true],
+                'annual_dividend_income' => ['type' => 'money', 'label' => 'Dividends it pays you each year', 'required' => false,
+                    'hint' => 'Leave blank if none'],
                 'ownership_type' => ['type' => 'choice', 'label' => 'Ownership', 'required' => true, 'options' => [
                     ['value' => 'individual', 'label' => 'Individual'],
                     ['value' => 'joint', 'label' => 'Joint'],
@@ -892,17 +906,39 @@ final class CaptureForms
             'kinds' => [
                 ['key' => 'savings', 'label' => 'Savings', 'fields' => ['spouse_existing_savings_balance']],
                 ['key' => 'isa', 'label' => 'ISAs', 'fields' => ['spouse_existing_isa_balance']],
-                ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value']],
-                ['key' => 'pension', 'label' => 'A pension', 'fields' => ['spouse_existing_pension_balance']],
+                ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value', 'spouse_annual_dividends']],
+                ['key' => 'pension', 'label' => 'A pension', 'fields' => ['spouse_existing_pension_balance', 'spouse_pays_non_earner_maximum']],
             ],
             'fields' => [
                 'spouse_existing_savings_balance' => ['type' => 'money', 'label' => 'Savings balance', 'required' => true],
                 'spouse_existing_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
                 'spouse_existing_investment_balance' => ['type' => 'money', 'label' => 'Investments value', 'required' => true],
-                'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none'],
+                'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none or unknown'],
+                'spouse_annual_dividends' => ['type' => 'money', 'label' => 'Dividends they receive each year', 'required' => false, 'hint' => 'Leave blank if none'],
                 'spouse_existing_pension_balance' => ['type' => 'money', 'label' => 'Pension pot value', 'required' => true],
+                // CSJ 2026-09-22: a non-earner has one contribution that makes
+                // sense, the relief-at-source maximum, so it is a yes/no rather
+                // than an amount. The figure comes from the tax configuration.
+                'spouse_pays_non_earner_maximum' => ['type' => 'choice', 'required' => false,
+                    'label' => 'They pay the non-earner maximum into it ('.self::pounds(self::nonEarnerNetContribution()).' a year)', 'options' => [
+                        ['value' => 'yes', 'label' => 'Yes'],
+                        ['value' => 'no', 'label' => 'No'],
+                    ]],
             ],
         ];
+    }
+
+    /**
+     * The most a non-earner can pay into a pension each year net of the
+     * basic-rate relief added at source: the gross limit less that relief.
+     * Read by the non-working spouse form label and by the write that turns
+     * its yes into a contribution, so the figure exists once.
+     */
+    public static function nonEarnerNetContribution(): float
+    {
+        $pension = app(TaxConfigService::class)->getPensionAllowances();
+
+        return round((float) ($pension['relevant_earnings_minimum'] ?? 0) * (1 - (float) ($pension['tax_relief']['basic_rate'] ?? 0)), 2);
     }
 
     /**
@@ -1094,7 +1130,8 @@ final class CaptureForms
             'kinds' => [],
             'fields' => [
                 'employer' => ['type' => 'text', 'label' => 'Employer or trading name', 'required' => true],
-                'occupation' => ['type' => 'text', 'label' => 'Job title or role', 'required' => true],
+                // CSJ 2026-09-22: optional; the employer names the job.
+                'occupation' => ['type' => 'text', 'label' => 'Job title or role', 'required' => false],
                 'annual_income' => ['type' => 'money', 'label' => 'Gross annual income', 'required' => true, 'hint' => 'Before tax, including bonuses and commissions'],
             ],
         ];
@@ -1196,7 +1233,7 @@ final class CaptureForms
             'lead_fields' => ['monthly_total', 'childcare', 'charitable_donations', 'is_gift_aid'],
             'kinds' => [],
             'fields' => [
-                'monthly_total' => ['type' => 'money', 'label' => 'What goes out each month', 'required' => true,
+                'monthly_total' => ['type' => 'money', 'label' => 'What your household spends each month', 'required' => true,
                     'hint' => 'Rent or mortgage, bills, food, transport, the lot. A ballpark figure is fine'],
                 'childcare' => ['type' => 'money', 'label' => 'Of that, childcare', 'required' => false,
                     'hint' => 'Nursery, childminder, after school. Leave blank if none'],

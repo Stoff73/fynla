@@ -121,7 +121,7 @@
                 },
                 "occupation": {
                     "type": "string",
-                    "description": "The user's job title or role. e.g. \"Software engineer\", \"Sole trader\", \"Consultant\"."
+                    "description": "The user's job title or role, if they gave one. e.g. \"Software engineer\", \"Sole trader\", \"Consultant\"."
                 },
                 "annual_income": {
                     "type": "number",
@@ -130,7 +130,6 @@
             },
             "required": [
                 "employer",
-                "occupation",
                 "annual_income"
             ],
             "additionalProperties": false
@@ -302,6 +301,14 @@
                 "spouse_existing_pension_balance": {
                     "type": "number",
                     "description": "Spouse's existing personal-pension pot value (used to size the non-earner pension top-up suggestion)."
+                },
+                "spouse_annual_dividends": {
+                    "type": "number",
+                    "description": "Dividends the spouse receives each year from their own holdings, in pounds."
+                },
+                "spouse_pays_non_earner_maximum": {
+                    "type": "boolean",
+                    "description": "True when the non-working spouse pays the non-earner maximum into their pension each year (the relief-at-source limit; the figure is applied server-side, never supplied here)."
                 }
             },
             "required": [],

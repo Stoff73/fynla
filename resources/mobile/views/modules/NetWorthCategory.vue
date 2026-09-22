@@ -54,6 +54,12 @@
           <span v-if="item.outstandingMortgage > 0" class="mnwc-item__mortgage mnwc-item__mortgage--debt">
             Mortgage {{ fmt(item.outstandingMortgage) }}
           </span>
+          <!-- Both figures are the viewer's share (NetWorthService), so this is
+               their equity, the same subtraction as the web PropertyCard
+               (Brett, 2026-09-22). No mortgage = equity is the value shown. -->
+          <span v-if="item.outstandingMortgage > 0" class="mnwc-item__mortgage">
+            Equity {{ fmt(item.value - item.outstandingMortgage) }}
+          </span>
         </component>
       </div>
     </template>

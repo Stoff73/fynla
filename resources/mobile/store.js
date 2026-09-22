@@ -3,6 +3,16 @@ import { apiGet, apiPost } from './api.js';
 
 const KEY = 'm_scaffold_token';
 
+/**
+ * True while Fyn's onboarding verify flow has sent the user to a module
+ * screen to check a section. Module screens hide their planning cards for
+ * that visit (risk profile, retirement projection: CSJ 2026-09-22) and
+ * MobileChrome shows Continue/Edit instead of the edit-details button.
+ */
+export function inOnboardingVerify() {
+  return String(store.user?.onboarding_fyn_step || '').startsWith('campaign_verify_');
+}
+
 export const store = reactive({
   token: localStorage.getItem(KEY) || null,
   user: null,
