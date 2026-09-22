@@ -30,14 +30,14 @@ afterEach(function (): void {
     Mockery::close();
 });
 
-function expenditureUser(bool $premium): User
+function expenditureUser(bool $premium, string $selection = 'pensioncheck'): User
 {
     $factory = $premium ? User::factory()->withActivePremiumSubscription() : User::factory();
 
     return $factory->create([
         'is_preview_user' => false, 'onboarding_completed' => false, 'first_name' => 'Chris', 'marital_status' => 'single',
-        'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax', 'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_EXPENDITURE,
-        'monthly_expenditure' => null, 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank']],
+        'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => $selection, 'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_EXPENDITURE,
+        'monthly_expenditure' => null, 'funnel_answers' => ['campaign' => $selection, 'assets' => ['bank']],
     ]);
 }
 
@@ -54,6 +54,33 @@ function emitExpenditureForm(User $user, AiConversation $conversation): array
 
     return collect($emitted)->firstWhere('type', 'capture_form');
 }
+
+// CSJ 2026-09-22 (Brett item 11): on the Save Tax walk the step asks only
+// childcare, donations and Gift Aid — no monthly total — on every plan.
+it('a Save Tax user gets the three tax fields, which land on the user without touching the monthly total', function (): void {
+    foreach ([false, true] as $premium) {
+        $user = expenditureUser($premium, 'savetax');
+        $conversation = expenditureConversation($user);
+        $form = emitExpenditureForm($user, $conversation);
+        expect($form['prompt_text'])->toBe('Two things that change your tax.')
+            ->and($form['form']['name'])->toBe('expenditure_tax')
+            ->and(array_keys($form['form']['fields']))->toBe(['childcare', 'charitable_donations', 'is_gift_aid']);
+
+        FynStreamHarness::fake()->bind();
+        $posted = ['name' => 'expenditure_tax', 'answers' => ['_lead' => ['childcare' => 600, 'charitable_donations' => 40, 'is_gift_aid' => 'yes']]];
+        $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise($posted), null, true, $posted), false);
+
+        $user->refresh();
+        expect((float) $user->childcare)->toBe(600.0)
+            ->and((float) $user->charitable_donations)->toBe(40.0)
+            ->and($user->is_gift_aid)->toBeTrue()
+            ->and($user->monthly_expenditure)->toBeNull()
+            ->and(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse()
+            ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+            ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('childcare of £600 a month and charitable donations of £40 a month under Gift Aid')
+            ->and($user->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+    }
+});
 
 it('a Free user gets the one-box form and its figure lands on the user, the profile and simple entry mode', function (): void {
     $user = expenditureUser(false);

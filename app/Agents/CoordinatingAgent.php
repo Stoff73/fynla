@@ -2102,11 +2102,16 @@ class CoordinatingAgent extends BaseAgent
      */
     public function handleCaptureMonthlyExpenditure(array $input, User $user): array
     {
+        // The Save Tax form asks no total (CSJ 2026-09-22); the one-box form
+        // and the typed step always send one. Absent = leave it alone.
         $raw = $input['monthly_total'] ?? null;
-        if (! is_numeric($raw) || (float) $raw < 0 || (float) $raw > 999999) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly spending must be a figure of zero or more.'];
+        $monthlyTotal = null;
+        if ($raw !== null && $raw !== '') {
+            if (! is_numeric($raw) || (float) $raw < 0 || (float) $raw > 999999) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly spending must be a figure of zero or more.'];
+            }
+            $monthlyTotal = round((float) $raw, 2);
         }
-        $monthlyTotal = round((float) $raw, 2);
 
         // Childcare, charitable donations and Gift Aid ride with the total on the
         // free plan (CSJ, 2026-09-22): the first two are the categories the tax
@@ -2126,12 +2131,17 @@ class CoordinatingAgent extends BaseAgent
         }
 
         DB::transaction(function () use ($user, $monthlyTotal, $extras): void {
-            $user->monthly_expenditure = $monthlyTotal;
-            $user->expenditure_entry_mode = 'simple';
+            if ($monthlyTotal !== null) {
+                $user->monthly_expenditure = $monthlyTotal;
+                $user->expenditure_entry_mode = 'simple';
+            }
             foreach ($extras as $field => $value) {
                 $user->{$field} = $value;
             }
             $user->save();
+            if ($monthlyTotal === null) {
+                return;
+            }
             if ($monthlyTotal > 0) {
                 ExpenditureProfile::updateOrCreate(['user_id' => $user->id], ['total_monthly_expenditure' => $monthlyTotal]);
             } else {
@@ -2142,8 +2152,8 @@ class CoordinatingAgent extends BaseAgent
         return [
             'onboarding_capture' => true,
             'field_group' => 'expenditure',
-            'summary' => 'Monthly spending saved',
-            'details' => ['monthly_total' => $monthlyTotal] + $extras,
+            'summary' => $monthlyTotal === null ? 'Childcare and donations saved' : 'Monthly spending saved',
+            'details' => ($monthlyTotal === null ? [] : ['monthly_total' => $monthlyTotal]) + $extras,
         ];
     }
 

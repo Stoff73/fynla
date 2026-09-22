@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -75,4 +76,23 @@ it('tells a single-earner couple what the spouse holds in their own name, or tha
     expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))
         ->toContain('your spouse has £8,000 in savings in their own name.')
         ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_navigate');
+});
+
+// CSJ 2026-09-22: the form asks what the spouse receives and pays in, so the
+// acknowledgement repeats both rather than only the balances.
+it('repeats a non-working spouse\'s dividends and non-earner contribution back', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $user = spouseStepUser(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS, 'single_earner_couple');
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])->fresh();
+    FynStreamHarness::fake()
+        ->toolTurn('capture_spouse_non_working_assets', ['spouse_existing_investment_balance' => 50000, 'spouse_annual_dividends' => 1500, 'spouse_pays_non_earner_maximum' => true], 'toolu_sb')
+        ->bind();
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, '50k invested paying 1500 in dividends, and they pay the max into a pension'
+    ), false);
+
+    $net = number_format(CaptureForms::nonEarnerNetContribution());
+    expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))
+        ->toContain('your spouse has £50,000 in investments in their own name, and receives £1,500 a year in dividends and pays £'.$net.' a year into their pension.');
 });
