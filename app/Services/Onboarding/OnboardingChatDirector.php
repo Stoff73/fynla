@@ -1156,9 +1156,17 @@ final class OnboardingChatDirector
                 // what they are adding — re-open the form with no lead-in.
                 // The previous assistant row is the loop question in that
                 // case; both clients skip an empty prompt row.
+                // A form may own its lead-in (the Save Tax expenditure form
+                // asks two tax questions, not "your spending").
+                $formPromptText = (string) ($schema['lead_in'] ?? $formPromptText);
                 if ($this->reenteredFromLoopQuestion($conversation, $stateId)) {
                     $formPromptText = '';
                 }
+                // A form turn is one bubble above the form, so a BUBBLE_BREAK in
+                // its lead-in (the funnel recap) becomes a paragraph break here.
+                // Left in, the control character rendered as a box on iOS
+                // (Brett, 2026-09-22) and was saved into the transcript.
+                $formPromptText = str_replace(OnboardingStateMachine::BUBBLE_BREAK, "\n\n", $formPromptText);
 
                 // The pension form offers the personal pension or SIPP kind, so
                 // the typed "do you have a personal pension?" step after the
@@ -6351,7 +6359,7 @@ PROMPT;
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
             OnboardingStateMachine::STATE_BASE_WORK => $this->incomeAck($user),
-            OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'Thanks — I\'ve noted your monthly spending.',
+            OnboardingStateMachine::STATE_BASE_EXPENDITURE => $this->expenditureAck($user),
             OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING => $this->charitableGivingAck($user),
             // CSJ 2026-09-16: the spouse section no longer visits a details
             // page, so Fyn repeats back what was saved here instead.
@@ -6421,6 +6429,30 @@ PROMPT;
     }
 
     /**
+     * The expenditure step's acknowledgement. On the Save Tax walk the form
+     * asks childcare, donations and Gift Aid only (CSJ 2026-09-22), so the
+     * ack repeats those; every other path recorded a monthly total.
+     */
+    private function expenditureAck(User $user): string
+    {
+        if (($user->onboarding_fyn_selection ?? null) !== 'savetax') {
+            return 'Thanks — I\'ve noted your monthly spending.';
+        }
+        $parts = [];
+        if ((float) ($user->childcare ?? 0) > 0) {
+            $parts[] = 'childcare of '.$this->wholePounds((float) $user->childcare).' a month';
+        }
+        if ((float) ($user->charitable_donations ?? 0) > 0) {
+            $parts[] = 'charitable donations of '.$this->wholePounds((float) $user->charitable_donations).' a month'
+                .($user->is_gift_aid ? ' under Gift Aid' : '');
+        }
+
+        return $parts === []
+            ? 'Thanks — no childcare or charitable donations to note.'
+            : 'Thanks — I\'ve noted '.$this->joinClauses($parts).'.';
+    }
+
+    /**
      * Repeats back a non-working spouse's own holdings
      * (capture_spouse_non_working_assets), or that they hold nothing.
      */
@@ -6440,9 +6472,22 @@ PROMPT;
             }
         }
 
+        // What they receive and pay in (2026-09-22): the form asks for both,
+        // so the acknowledgement repeats both.
+        $flows = [];
+        if ($row !== null && (float) ($row->spouse_annual_dividends ?? 0) > 0) {
+            $flows[] = 'receives '.$this->wholePounds((float) $row->spouse_annual_dividends).' a year in dividends';
+        }
+        if ($row !== null && (float) ($row->spouse_pension_input_annual ?? 0) > 0) {
+            $flows[] = 'pays '.$this->wholePounds((float) $row->spouse_pension_input_annual).' a year into their pension';
+        }
+        $tail = $flows === [] ? '' : ', and '.$this->joinClauses($flows);
+
         return $parts === []
-            ? 'Got it — your spouse has nothing in their own name, so their allowances are all free to use.'
-            : 'Got it — your spouse has '.$this->joinClauses($parts).' in their own name.';
+            ? ($flows === []
+                ? 'Got it — your spouse has nothing in their own name, so their allowances are all free to use.'
+                : 'Got it — your spouse '.$this->joinClauses($flows).'.')
+            : 'Got it — your spouse has '.$this->joinClauses($parts).' in their own name'.$tail.'.';
     }
 
     /**

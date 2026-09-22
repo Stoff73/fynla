@@ -189,7 +189,7 @@ it('at the Free cap the loop question states the limit and offers only the next 
         ->and(array_column($quick['bubbles'], 'label'))->toBe(['Continue to the next section']);
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, 'Continue to the next section'), false);
-    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('savings');
 });
 
@@ -256,12 +256,12 @@ it('re-opens the form on "Yes, add another" and continues on "No" exactly where 
 
     $bankDone = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE);
     iterator_to_array($director->handleUserMessage($bankDone, accountConversation($bankDone), "No, that's everything"), false);
-    expect($bankDone->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+    expect($bankDone->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate')
         ->and($bankDone->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('savings');
 
     $invDone = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE);
     iterator_to_array($director->handleUserMessage($invDone, accountConversation($invDone), "No, that's everything"), false);
-    expect($invDone->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+    expect($invDone->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate')
         ->and($invDone->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('investments');
 });
 
@@ -297,7 +297,7 @@ it('saves a workplace pension and a personal pension from the form, then asks fo
     // Continuing after both pensions (values known, personal pension on file):
     // the pot loop and the typed personal-pension question are both skipped.
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, 'Continue to the next section'), false);
-    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('pensions');
 });
 
@@ -314,11 +314,15 @@ it('a workplace pension with no value left blank goes to the pot-value question,
     expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS);
 });
 
-it('the property verify announce names the property page', function (): void {
+// CSJ 2026-09-22: no Okay gate — the capture end's "No" carries the user to
+// the property page in the same turn, with the confirm waiting for them there.
+it('the property verify names the property page and navigates to it in the same turn', function (): void {
     $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE);
     $conversation = accountConversation($user);
     $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, "No, that's everything"), false);
-    expect(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain("I've saved your property. Next I'll take you to your property page");
+    expect(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain("Here's your property page")
+        ->and(collect($events)->firstWhere('type', 'navigation')['route_path'] ?? null)->toContain('property')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate');
 });
 
 // ── Spouse (CSJ 2026-09-16) ────────────────────────────────────────────────
@@ -351,7 +355,7 @@ it('a working spouse is captured in one form: income above, holdings chosen belo
         ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('your spouse earns £45,000 a year, has £12,000 in ISAs with Nationwide and pays £3,000 a year into their pension.')
         ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
         ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD)
-        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_announce');
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_navigate');
 });
 
 it('a non-working spouse with nothing chosen saves as nothing in their own name', function (): void {
@@ -418,7 +422,7 @@ it('a self-employed user gets the personal pension form at the contributions ste
         ->and($row->pension_type)->toBe('personal')
         ->and((float) $row->current_fund_value)->toBe(30000.0)
         ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
-        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate');
 });
 
 it('showing the pension form marks the typed personal-pension step done, so "No" after the pot loop goes to the verify page', function (): void {
@@ -434,7 +438,7 @@ it('showing the pension form marks the typed personal-pension step done, so "No"
         'workplace' => ['provider' => 'Aviva', 'current_value' => 64000, 'employee_contribution_percent' => 6, 'employer_contribution_percent' => 4, 'salary_sacrifice' => 'no'],
     ]]);
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything"), false);
-    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate');
 });
 
 it('on the pension check path the pension form also retires the typed personal-pension step and goes on to final salary', function (): void {
@@ -481,7 +485,7 @@ it('an investments form saved with nothing chosen is the answer none', function 
         ->and(InvestmentAccount::where('user_id', $user->id)->count())->toBe(0)
         // Nothing to check on an empty investments page: no verify loop, no
         // section advice — straight on to the next section.
-        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_step)->not->toStartWith('campaign_investment')
         ->and($user->fresh()->onboarding_fyn_context['declared_none'] ?? [])->toContain('investment');
 });

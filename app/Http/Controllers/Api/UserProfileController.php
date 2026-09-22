@@ -36,9 +36,6 @@ class UserProfileController extends Controller
      * categories in this payload", so gating on it made a Simple View save
      * indistinguishable from a detailed one (W-0011).
      */
-    /** Categories a free user may record and read back (CSJ, 2026-09-22); mirrored by CoordinatingAgent. */
-    private const FREE_EXPENDITURE_CATEGORIES = ['childcare', 'charitable_donations'];
-
     private const DETAILED_EXPENDITURE_FIELDS = [
         'food_groceries',
         'transport_fuel',
@@ -88,7 +85,7 @@ class UserProfileController extends Controller
             // 2026-09-22); the rest of the breakdown stays Premium.
             $profile['expenditure']['categories'] = array_intersect_key(
                 $profile['expenditure']['categories'] ?? [],
-                array_flip(self::FREE_EXPENDITURE_CATEGORIES),
+                array_flip(SharedExpenditure::FREE_CATEGORIES),
             );
             $profile['expenditure']['presentation']['detail_available'] = false;
             if (($profile['expenditure']['presentation']['entry_mode'] ?? null) === 'category') {

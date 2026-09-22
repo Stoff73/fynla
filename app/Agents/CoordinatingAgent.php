@@ -69,6 +69,7 @@ use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\HouseholdProvisioner;
 use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Onboarding\SpouseLinkingService;
@@ -2101,17 +2102,22 @@ class CoordinatingAgent extends BaseAgent
      */
     public function handleCaptureMonthlyExpenditure(array $input, User $user): array
     {
+        // The Save Tax form asks no total (CSJ 2026-09-22); the one-box form
+        // and the typed step always send one. Absent = leave it alone.
         $raw = $input['monthly_total'] ?? null;
-        if (! is_numeric($raw) || (float) $raw < 0 || (float) $raw > 999999) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly spending must be a figure of zero or more.'];
+        $monthlyTotal = null;
+        if ($raw !== null && $raw !== '') {
+            if (! is_numeric($raw) || (float) $raw < 0 || (float) $raw > 999999) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly spending must be a figure of zero or more.'];
+            }
+            $monthlyTotal = round((float) $raw, 2);
         }
-        $monthlyTotal = round((float) $raw, 2);
 
         // Childcare, charitable donations and Gift Aid ride with the total on the
         // free plan (CSJ, 2026-09-22): the first two are the categories the tax
         // lines read, the third is a fact about the donor.
         $extras = [];
-        foreach (self::FREE_EXPENDITURE_CATEGORIES as $field) {
+        foreach (SharedExpenditure::FREE_CATEGORIES as $field) {
             if (! array_key_exists($field, $input) || $input[$field] === null || $input[$field] === '') {
                 continue;
             }
@@ -2125,12 +2131,17 @@ class CoordinatingAgent extends BaseAgent
         }
 
         DB::transaction(function () use ($user, $monthlyTotal, $extras): void {
-            $user->monthly_expenditure = $monthlyTotal;
-            $user->expenditure_entry_mode = 'simple';
+            if ($monthlyTotal !== null) {
+                $user->monthly_expenditure = $monthlyTotal;
+                $user->expenditure_entry_mode = 'simple';
+            }
             foreach ($extras as $field => $value) {
                 $user->{$field} = $value;
             }
             $user->save();
+            if ($monthlyTotal === null) {
+                return;
+            }
             if ($monthlyTotal > 0) {
                 ExpenditureProfile::updateOrCreate(['user_id' => $user->id], ['total_monthly_expenditure' => $monthlyTotal]);
             } else {
@@ -2141,8 +2152,8 @@ class CoordinatingAgent extends BaseAgent
         return [
             'onboarding_capture' => true,
             'field_group' => 'expenditure',
-            'summary' => 'Monthly spending saved',
-            'details' => ['monthly_total' => $monthlyTotal] + $extras,
+            'summary' => $monthlyTotal === null ? 'Childcare and donations saved' : 'Monthly spending saved',
+            'details' => ($monthlyTotal === null ? [] : ['monthly_total' => $monthlyTotal]) + $extras,
         ];
     }
 
@@ -5376,9 +5387,6 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    /** Categories a free user may record (CSJ, 2026-09-22); mirrored by UserProfileController. */
-    private const FREE_EXPENDITURE_CATEGORIES = ['childcare', 'charitable_donations'];
-
     private function handleSetExpenditure(array $input, User $user, bool $isPreview): array
     {
         if ($isPreview) {
@@ -5402,7 +5410,7 @@ class CoordinatingAgent extends BaseAgent
         // are free-tier fields (CSJ, 2026-09-22: they feed tax lines a free user
         // sees), so only the other categories trip the gate — the same carve-out
         // as UserProfileController::DETAILED_EXPENDITURE_FIELDS.
-        $premiumOnly = array_diff(array_intersect(array_keys($input), $categoryFields), self::FREE_EXPENDITURE_CATEGORIES);
+        $premiumOnly = array_diff(array_intersect(array_keys($input), $categoryFields), SharedExpenditure::FREE_CATEGORIES);
         if ($premiumOnly !== [] && ! $this->teaserGate->allows($user, 'expenditure_detailed')) {
             return [
                 'blocked' => true,
@@ -5783,19 +5791,30 @@ class CoordinatingAgent extends BaseAgent
             'spouse_existing_savings_balance',
             'spouse_existing_investment_balance',
             'spouse_existing_dividend_holdings_value',
+            'spouse_annual_dividends',
             'spouse_existing_pension_balance',
         ];
+        // A yes/no rather than an amount (CSJ 2026-09-22): a non-earner's one
+        // sensible contribution is the relief-at-source maximum, whose figure
+        // lives in the tax configuration, not in the caller's input.
+        $paysMaximum = $input['spouse_pays_non_earner_maximum'] ?? null;
+        unset($input['spouse_pays_non_earner_maximum']);
         if (array_diff(array_keys($input), $allowedFields) !== []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse asset fields are not supported.'];
         }
 
         $allowed = array_intersect_key($input, array_flip($allowedFields));
+        if ($paysMaximum !== null && $paysMaximum !== '') {
+            $allowed['spouse_pension_input_annual'] = filter_var($paysMaximum, FILTER_VALIDATE_BOOLEAN)
+                ? CaptureForms::nonEarnerNetContribution()
+                : 0.0;
+        }
         if ($allowed === []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No spouse asset details were provided.'];
         }
 
         $rules = [];
-        foreach ($allowedFields as $field) {
+        foreach ([...$allowedFields, 'spouse_pension_input_annual'] as $field) {
             $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
         }
         $validator = Validator::make($allowed, $rules);

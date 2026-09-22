@@ -472,29 +472,8 @@ class OnboardingService
 
         // Check if this is separate mode data (has userData and spouseData keys)
         if (isset($data['userData']) && isset($data['spouseData'])) {
-            // Separate mode: Update current user with userData
-            $userData = $data['userData'];
-            $user->update([
-                'food_groceries' => $userData['food_groceries'] ?? 0,
-                'transport_fuel' => $userData['transport_fuel'] ?? 0,
-                'healthcare_medical' => $userData['healthcare_medical'] ?? 0,
-                'insurance' => $userData['insurance'] ?? 0,
-                'mobile_phones' => $userData['mobile_phones'] ?? 0,
-                'internet_tv' => $userData['internet_tv'] ?? 0,
-                'subscriptions' => $userData['subscriptions'] ?? 0,
-                'clothing_personal_care' => $userData['clothing_personal_care'] ?? 0,
-                'entertainment_dining' => $userData['entertainment_dining'] ?? 0,
-                'holidays_travel' => $userData['holidays_travel'] ?? 0,
-                'pets' => $userData['pets'] ?? 0,
-                'childcare' => $userData['childcare'] ?? 0,
-                'charitable_donations' => $userData['charitable_donations'] ?? 0,
-                'school_fees' => $userData['school_fees'] ?? 0,
-                'children_activities' => $userData['children_activities'] ?? 0,
-                'other_expenditure' => $userData['other_expenditure'] ?? 0,
-                'monthly_expenditure' => $userData['monthly_expenditure'] ?? 0,
-                'annual_expenditure' => $userData['annual_expenditure'] ?? 0,
-                'expenditure_entry_mode' => $userData['expenditure_entry_mode'] ?? 'category',
-            ]);
+            // Separate mode: each account gets its own figures, unshared.
+            $user->update(self::expenditureColumns($data['userData']));
 
             // Update spouse with spouseData
             // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED,
@@ -502,28 +481,7 @@ class OnboardingService
             // write authorised by the writer.
             $spouse = $user->reciprocalLiveSpouse();
             if ($spouse !== null) {
-                $spouseData = $data['spouseData'];
-                $spouse->update([
-                    'food_groceries' => $spouseData['food_groceries'] ?? 0,
-                    'transport_fuel' => $spouseData['transport_fuel'] ?? 0,
-                    'healthcare_medical' => $spouseData['healthcare_medical'] ?? 0,
-                    'insurance' => $spouseData['insurance'] ?? 0,
-                    'mobile_phones' => $spouseData['mobile_phones'] ?? 0,
-                    'internet_tv' => $spouseData['internet_tv'] ?? 0,
-                    'subscriptions' => $spouseData['subscriptions'] ?? 0,
-                    'clothing_personal_care' => $spouseData['clothing_personal_care'] ?? 0,
-                    'entertainment_dining' => $spouseData['entertainment_dining'] ?? 0,
-                    'holidays_travel' => $spouseData['holidays_travel'] ?? 0,
-                    'pets' => $spouseData['pets'] ?? 0,
-                    'childcare' => $spouseData['childcare'] ?? 0,
-                    'charitable_donations' => $spouseData['charitable_donations'] ?? 0,
-                    'school_fees' => $spouseData['school_fees'] ?? 0,
-                    'children_activities' => $spouseData['children_activities'] ?? 0,
-                    'other_expenditure' => $spouseData['other_expenditure'] ?? 0,
-                    'monthly_expenditure' => $spouseData['monthly_expenditure'] ?? 0,
-                    'annual_expenditure' => $spouseData['annual_expenditure'] ?? 0,
-                    'expenditure_entry_mode' => $spouseData['expenditure_entry_mode'] ?? 'category',
-                ]);
+                $spouse->update(self::expenditureColumns($data['spouseData']));
             }
         } else {
             // Joint mode or single user.
@@ -537,35 +495,10 @@ class OnboardingService
             // other nothing (W-0190). One home now — App\Support\SharedExpenditure.
             $isJointMode = $user->spouse_id !== null;
 
-            $expenditureData = SharedExpenditure::shareOf([
-                'food_groceries' => $data['food_groceries'] ?? 0,
-                'transport_fuel' => $data['transport_fuel'] ?? 0,
-                'healthcare_medical' => $data['healthcare_medical'] ?? 0,
-                'insurance' => $data['insurance'] ?? 0,
-                'mobile_phones' => $data['mobile_phones'] ?? 0,
-                'internet_tv' => $data['internet_tv'] ?? 0,
-                'subscriptions' => $data['subscriptions'] ?? 0,
-                'clothing_personal_care' => $data['clothing_personal_care'] ?? 0,
-                'entertainment_dining' => $data['entertainment_dining'] ?? 0,
-                'holidays_travel' => $data['holidays_travel'] ?? 0,
-                'pets' => $data['pets'] ?? 0,
-                'childcare' => $data['childcare'] ?? 0,
-                'school_fees' => $data['school_fees'] ?? 0,
-                'school_lunches' => $data['school_lunches'] ?? 0,
-                'school_extras' => $data['school_extras'] ?? 0,
-                'university_fees' => $data['university_fees'] ?? 0,
-                'children_activities' => $data['children_activities'] ?? 0,
-                'gifts_charity' => $data['gifts_charity'] ?? 0,
-                // Was never written here, so an onboarding donor's Gift Aid flag
-                // had no figure behind it (2026-09-22).
-                'charitable_donations' => $data['charitable_donations'] ?? 0,
-                'regular_savings' => $data['regular_savings'] ?? 0,
-                'other_expenditure' => $data['other_expenditure'] ?? 0,
-                'monthly_expenditure' => $data['monthly_expenditure'] ?? 0,
-                'annual_expenditure' => $data['annual_expenditure'] ?? 0,
-                'expenditure_entry_mode' => $data['expenditure_entry_mode'] ?? 'category',
-                'expenditure_sharing_mode' => SharedExpenditure::MODE_JOINT,
-            ], $isJointMode);
+            $expenditureData = SharedExpenditure::shareOf(
+                self::expenditureColumns($data) + ['expenditure_sharing_mode' => SharedExpenditure::MODE_JOINT],
+                $isJointMode,
+            );
 
             $user->update($expenditureData);
 
@@ -576,6 +509,51 @@ class OnboardingService
                 $jointSpouse->update($expenditureData);
             }
         }
+    }
+
+    /**
+     * A user's stored expenditure as the wizard's step data, or null when
+     * nothing is recorded. Same column list as expenditureColumns(), plus the
+     * Gift Aid fact and the entry and sharing modes.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function expenditureColumnsOf(User $user): ?array
+    {
+        $columns = [];
+        $any = false;
+        foreach ([...SharedExpenditure::SHARED_FIELDS, 'charitable_donations'] as $field) {
+            $columns[$field] = (float) ($user->{$field} ?? 0);
+            $any = $any || $columns[$field] > 0;
+        }
+        if (! $any) {
+            return null;
+        }
+        $columns['is_gift_aid'] = (bool) $user->is_gift_aid;
+        $columns['expenditure_entry_mode'] = $user->expenditure_entry_mode ?? 'category';
+        $columns['expenditure_sharing_mode'] = $user->expenditure_sharing_mode ?? 'joint';
+
+        return $columns;
+    }
+
+    /**
+     * Every expenditure column an onboarding payload can carry, read from one
+     * source with 0 for anything absent. One list for both entry modes — the
+     * separate branch used to hand-write a shorter one and silently drop seven
+     * categories (2026-09-23).
+     *
+     * @param  array<string, mixed>  $src
+     * @return array<string, mixed>
+     */
+    private static function expenditureColumns(array $src): array
+    {
+        $columns = [];
+        foreach ([...SharedExpenditure::SHARED_FIELDS, 'charitable_donations'] as $field) {
+            $columns[$field] = $src[$field] ?? 0;
+        }
+        $columns['expenditure_entry_mode'] = $src['expenditure_entry_mode'] ?? 'category';
+
+        return $columns;
     }
 
     /**
@@ -1279,94 +1257,27 @@ class OnboardingService
     {
         switch ($stepName) {
             case 'expenditure':
-                // Return user's expenditure fields if any exist
-                $hasExpenditureData = $user->monthly_expenditure > 0 ||
-                                     $user->annual_expenditure > 0 ||
-                                     $user->food_groceries > 0 ||
-                                     $user->transport_fuel > 0;
-
-                if (! $hasExpenditureData) {
+                // The user's stored expenditure, when any of it exists. One
+                // column list (expenditureColumnsOf); the two hand-written
+                // ones here had no charitable_donations or Gift Aid, and the
+                // "any exists" test read only the total and two categories,
+                // so a Save Tax user's childcare came back as nothing.
+                $userData = self::expenditureColumnsOf($user);
+                if ($userData === null) {
                     return null;
                 }
 
-                $userData = [
-                    'food_groceries' => $user->food_groceries ?? 0,
-                    'transport_fuel' => $user->transport_fuel ?? 0,
-                    'healthcare_medical' => $user->healthcare_medical ?? 0,
-                    'insurance' => $user->insurance ?? 0,
-                    'mobile_phones' => $user->mobile_phones ?? 0,
-                    'internet_tv' => $user->internet_tv ?? 0,
-                    'subscriptions' => $user->subscriptions ?? 0,
-                    'clothing_personal_care' => $user->clothing_personal_care ?? 0,
-                    'entertainment_dining' => $user->entertainment_dining ?? 0,
-                    'holidays_travel' => $user->holidays_travel ?? 0,
-                    'pets' => $user->pets ?? 0,
-                    'childcare' => $user->childcare ?? 0,
-                    'school_fees' => $user->school_fees ?? 0,
-                    'school_lunches' => $user->school_lunches ?? 0,
-                    'school_extras' => $user->school_extras ?? 0,
-                    'university_fees' => $user->university_fees ?? 0,
-                    'children_activities' => $user->children_activities ?? 0,
-                    'gifts_charity' => $user->gifts_charity ?? 0,
-                    'regular_savings' => $user->regular_savings ?? 0,
-                    'other_expenditure' => $user->other_expenditure ?? 0,
-                    'monthly_expenditure' => $user->monthly_expenditure ?? 0,
-                    'annual_expenditure' => $user->annual_expenditure ?? 0,
-                    'expenditure_entry_mode' => $user->expenditure_entry_mode ?? 'category',
-                    'expenditure_sharing_mode' => $user->expenditure_sharing_mode ?? 'joint',
-                ];
+                // A spouse with their own figures means separate mode.
+                $spouse = $user->spouse_id ? $user->spouse : null;
+                $spouseData = $spouse !== null ? self::expenditureColumnsOf($spouse) : null;
+                if ($spouseData !== null) {
+                    $userData['expenditure_sharing_mode'] = 'separate';
+                    $spouseData['expenditure_sharing_mode'] = 'separate';
+                    $spouseData['name'] = $spouse->name;
 
-                // If user is married and has spouse, check if spouse also has expenditure data
-                if ($user->spouse_id && $user->spouse) {
-                    $spouse = $user->spouse;
-                    if ($spouse !== null) {
-                        $hasSpouseExpenditureData = ($spouse->monthly_expenditure ?? 0) > 0 ||
-                                                   ($spouse->annual_expenditure ?? 0) > 0 ||
-                                                   ($spouse->food_groceries ?? 0) > 0 ||
-                                                   ($spouse->transport_fuel ?? 0) > 0;
-
-                        if ($hasSpouseExpenditureData) {
-                            // Both user and spouse have separate expenditure - return in separate mode format
-                            // Override sharing mode to 'separate' since both have data
-                            $userData['expenditure_sharing_mode'] = 'separate';
-
-                            $spouseData = [
-                                'food_groceries' => $spouse->food_groceries ?? 0,
-                                'transport_fuel' => $spouse->transport_fuel ?? 0,
-                                'healthcare_medical' => $spouse->healthcare_medical ?? 0,
-                                'insurance' => $spouse->insurance ?? 0,
-                                'mobile_phones' => $spouse->mobile_phones ?? 0,
-                                'internet_tv' => $spouse->internet_tv ?? 0,
-                                'subscriptions' => $spouse->subscriptions ?? 0,
-                                'clothing_personal_care' => $spouse->clothing_personal_care ?? 0,
-                                'entertainment_dining' => $spouse->entertainment_dining ?? 0,
-                                'holidays_travel' => $spouse->holidays_travel ?? 0,
-                                'pets' => $spouse->pets ?? 0,
-                                'childcare' => $spouse->childcare ?? 0,
-                                'school_fees' => $spouse->school_fees ?? 0,
-                                'school_lunches' => $spouse->school_lunches ?? 0,
-                                'school_extras' => $spouse->school_extras ?? 0,
-                                'university_fees' => $spouse->university_fees ?? 0,
-                                'children_activities' => $spouse->children_activities ?? 0,
-                                'gifts_charity' => $spouse->gifts_charity ?? 0,
-                                'regular_savings' => $spouse->regular_savings ?? 0,
-                                'other_expenditure' => $spouse->other_expenditure ?? 0,
-                                'monthly_expenditure' => $spouse->monthly_expenditure ?? 0,
-                                'annual_expenditure' => $spouse->annual_expenditure ?? 0,
-                                'expenditure_entry_mode' => $spouse->expenditure_entry_mode ?? 'category',
-                                'expenditure_sharing_mode' => 'separate',
-                                'name' => $spouse->name,
-                            ];
-
-                            return [
-                                'userData' => $userData,
-                                'spouseData' => $spouseData,
-                            ];
-                        }
-                    }
+                    return ['userData' => $userData, 'spouseData' => $spouseData];
                 }
 
-                // No spouse data or spouse has no expenditure - return just user data
                 return $userData;
 
                 // Add other step fallbacks as needed

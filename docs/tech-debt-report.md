@@ -1,36 +1,21 @@
-# Tech Debt Report — Session 2026-09-19
+# Tech Debt Report — Session 2026-09-22
 
-**Files analysed:** 7 (the diff of PRs #916 and #917: `app/Agents/SavingsAgent.php`, `app/Services/Onboarding/CaptureForms.php`, `app/Services/Onboarding/OnboardingChatDirector.php`, `app/Services/Onboarding/SpouseJointRecords.php`, `tests/Feature/Api/SpouseDashboardSavingsTileTest.php`, `tests/Feature/Onboarding/SpouseJointRecordsTest.php`, `tests/Unit/Services/Onboarding/CaptureFormsTest.php`)
-**Issues found:** 4
-**Severity breakdown:** 0 critical, 1 warning, 3 suggestions
-
-## Critical Issues
-
-None.
+**Files analysed:** 26 (PRs #919 CI fix, #920–#925)
+**Issues found:** 7
+**Severity breakdown:** 0 critical, 4 warnings, 3 suggestions
 
 ## Warnings
 
-### 1. The onboarding scratch is cleared in three copies — `app/Services/Onboarding/OnboardingChatDirector.php:862-867`, `:6317-6322`, `:7667-7672`
-**Category:** Duplicate code (within-file)
-Each site resets the same five columns (`onboarding_fyn_step`, `onboarding_fyn_path`, `onboarding_fyn_selection`, `onboarding_fyn_context`, `active_campaign`) and now carries the same two-line comment and the same `SpouseJointRecords::carry()` call. The duplication predates today; today's fix added a fourth line to each copy. A future column added to one site and not the others is the same class of bug as the one fixed today.
-**Suggested fix:** one private `clearOnboardingScratch(User $user): void` in the director that the three sites call; the restart site keeps its own `onboarding_fyn_step` rule beside it.
+- **`app/Agents/CoordinatingAgent.php:5380` and `app/Http/Controllers/Api/UserProfileController.php:40`** — Category 1. `FREE_EXPENDITURE_CATEGORIES` (`childcare`, `charitable_donations`) is declared twice with a comment on each saying it mirrors the other. One home (a constant on `App\Support\SharedExpenditure` or a `TierConfiguration` capability) so a third free field is added once.
+- **`app/Services/Onboarding/OnboardingService.php:470–560`** — Category 1. `processExpenditureInfo` maps a hand-written list of category keys in each of its two branches (the separate branch still omits `school_lunches`, `school_extras`, `university_fees`, `gifts_charity`, `regular_savings`, `rent`, `utilities`); today only `charitable_donations` was added. Derive both from the controller's validated list or `SharedExpenditure::shareOf()`'s field set.
+- **`resources/js/mixins/currencyMixin.js:92–100`, `resources/mobile/views/modules/investmentFormat.js:22–26`, `resources/js/components/Retirement/RequiredCapitalDetail.vue:546`, `ios-native/.../InvestmentModels.swift:92–107`** — Category 1. Account-type label maps kept as fallbacks after `account_type_label` moved to the server. `RequiredCapitalDetail.vue` was not switched to the server label at all. Switch it and consider dropping the fallbacks once every payload carries the field.
+- **`app/Agents/CoordinatingAgent.php:5382`** — Category 4. `handleSetExpenditure` is 203 lines and now also writes `is_gift_aid`; the file is 6,960 lines. The Gift Aid write, the free-tier gate and the household split are three extractable steps.
 
 ## Suggestions
 
-### 2. Two extra queries on the gated savings return — `app/Agents/SavingsAgent.php:79-80`
-**Category:** Complexity & maintainability
-`calculateCashTotal($userId)` does `User::findOrFail` and `savingsStore->forUser` internally, then line 80 calls `forUser($user)` again for the count, so the gated branch loads the user once more and the accounts twice. Cheap, but the un-gated branch below (line 108) already has the loaded `$accounts` collection and the same total.
-**Suggested fix:** compute `$accounts = $this->savingsStore->forUser($user)` once above the gate and derive both the count and, via `atUserShare`, the total from it — or give `CrossModuleAssetAggregator` a `calculateCashTotalFor(User $user)` overload that skips the re-fetch.
-
-### 3. The unknown-income sentence lives in two places — `app/Services/Onboarding/CaptureForms.php:605` and `:629-631`
-**Category:** Duplicate code (within-file)
-"I don't know what my spouse earns" is pushed as a part at line 605 and repeated verbatim inside the special-case return at line 630. A wording change has to be made twice.
-**Suggested fix:** build the special case from the part: `return $parts[0].', and they have no holdings to add.';`.
-
-### 4. The test hedges over the response envelope — `tests/Feature/Api/SpouseDashboardSavingsTileTest.php:27`
-**Category:** Inconsistency with existing patterns (test discipline)
-`$data = $res['data'] ?? $res;` accepts either envelope shape, so the test cannot notice the endpoint changing its envelope. The other mobile dashboard tests read `$response->json('data.modules.savings')` directly.
-**Suggested fix:** assert the envelope: `$data = $this->getJson('/api/v1/mobile/dashboard')->assertOk()->json('data');` and `expect($data)->not->toBeNull()`.
+- **`resources/js/components/Investment/EmployeeShareSchemeFields.vue:1`** — Category 3. File-level `eslint-disable vue/no-mutating-props` added today to cover 37 pre-existing direct mutations of `modelValue`; the new vesting-frequency input is the 38th. Convert to `update:modelValue` emits when the form is next reworked (noted in the file).
+- **`resources/js/components/Retirement/DCPensionForm.vue:1143`, `resources/js/components/UserProfile/FamilyMemberFormModal.vue:393`** — Category 2. Empty `catch {}` blocks (pre-existing; today only dropped the unused binding). Both intentionally swallow (optional risk profile fetch, date parse); a one-line comment on each would stop the next reader asking.
+- **Servers, not repo** — a `public/.user.ini` with `serialize_precision = -1` was left on fynla.org and csjones; harmless and superseded by `AppServiceProvider::boot`. Remove on the next deploy or leave.
 
 ---
 *Generated by tech-debt-session skill*

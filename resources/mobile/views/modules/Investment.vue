@@ -28,13 +28,13 @@
         off to it rather than rendering a subset of it — the same shape as the estate
         screen's Inheritance Tax handoff (W-0469).
       -->
-      <div v-if="riskLabel" class="m-card">
+      <div v-if="riskLabel && !verifying" class="m-card">
         <p class="m-section-label" style="margin-top:0">Risk profile</p>
         <div class="mi-row">
           <span class="mi-row__label">Attitude to risk</span>
           <span class="mi-row__value">{{ riskLabel }}</span>
         </div>
-        <p class="m-sub" style="margin-top:12px">The nine factors behind this — and how to change any that are wrong — are on the web app.</p>
+        <p class="m-sub" style="margin-top:12px">The nine factors behind this — and how to change any you don't agree with — are on the web app.</p>
         <button type="button" class="m-btn" style="margin-top:16px" @click="openRiskProfileOnWeb">See how this was worked out</button>
         <p v-if="handoffError" class="m-err" style="margin-top:12px">{{ handoffError }}</p>
       </div>
@@ -81,7 +81,7 @@
 </template>
 
 <script>
-import { store } from '../../store.js';
+import { store, inOnboardingVerify } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentFormat.js';
@@ -99,6 +99,8 @@ export default {
   mixins: [upgradeMixin],
   data: () => ({ loading: true, error: '', payload: null, handoffError: '' }),
   computed: {
+    // Hidden on the onboarding verify visit (CSJ 2026-09-22): it is an action for later.
+    verifying() { return inOnboardingVerify(); },
     accounts() { return this.payload?.accounts || []; },
     // Free-tier cap nudge (5.1). account_limit null = unlimited tier → hide nudge.
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
