@@ -10,8 +10,9 @@
     </div>
 
     <template v-else>
-      <!-- Projected income vs target hero -->
-      <div class="m-card m-hero">
+      <!-- Projected income vs target hero. Hidden on the onboarding verify
+           visit (CSJ 2026-09-22): that visit checks the pensions entered. -->
+      <div v-if="!verifying" class="m-card m-hero">
         <p class="m-sub m-label">{{ heroHeadline.label }}</p>
         <p class="m-metric">{{ fmt(heroHeadline.value) }}<span class="mr-hero-per">a year</span></p>
         <p class="m-hero-sub">{{ gapNarrative }}</p>
@@ -29,7 +30,7 @@
 
       <!-- Retirement target (W-0035). Same endpoint as the web card, same store
            behind it — /m does not get its own write path (Rule 20). -->
-      <section class="m-card mr-target">
+      <section v-if="!verifying" class="m-card mr-target">
         <div class="mr-target__head">
           <p class="m-section-label" style="margin-top:0">Your retirement target</p>
           <button
@@ -210,7 +211,7 @@
 </template>
 
 <script>
-import { store } from '../../store.js';
+import { store, inOnboardingVerify } from '../../store.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { apiGet, apiPost, apiPut } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
@@ -248,6 +249,7 @@ export default {
     targetForm: { target_retirement_income: null, target_retirement_age: null },
   }),
   computed: {
+    verifying() { return inOnboardingVerify(); },
     profile() { return this.data?.profile || null; },
     dcPensions() { return this.data?.dc_pensions || []; },
     dbPensions() { return this.data?.db_pensions || []; },

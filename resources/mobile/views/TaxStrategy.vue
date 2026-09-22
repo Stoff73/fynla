@@ -227,7 +227,8 @@ export default {
       const step = this.nextStep(rec);
       if (step) this.$router.push(step.route);
     },
-    goBack() { this.$router.push({ name: 'dashboard' }); },
+    // "See all your actions" means the ranked list, not the dashboard (Brett, 2026-09-22).
+    goBack() { this.$router.push({ name: 'm-actions' }); },
     doneDate(rec) {
       if (!rec.completed_at) return '';
       const d = new Date(rec.completed_at);

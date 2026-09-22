@@ -20,7 +20,7 @@ effective_from: 2026-06-02
             },
             "occupation": {
                 "type": "string",
-                "description": "The user's job title or role. e.g. \"Software engineer\", \"Sole trader\", \"Consultant\"."
+                "description": "The user's job title or role, if they gave one. e.g. \"Software engineer\", \"Sole trader\", \"Consultant\"."
             },
             "annual_income": {
                 "type": "number",
@@ -29,7 +29,6 @@ effective_from: 2026-06-02
         },
         "required": [
             "employer",
-            "occupation",
             "annual_income"
         ],
         "additionalProperties": false

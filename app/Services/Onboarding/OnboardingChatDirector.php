@@ -1159,6 +1159,11 @@ final class OnboardingChatDirector
                 if ($this->reenteredFromLoopQuestion($conversation, $stateId)) {
                     $formPromptText = '';
                 }
+                // A form turn is one bubble above the form, so a BUBBLE_BREAK in
+                // its lead-in (the funnel recap) becomes a paragraph break here.
+                // Left in, the control character rendered as a box on iOS
+                // (Brett, 2026-09-22) and was saved into the transcript.
+                $formPromptText = str_replace(OnboardingStateMachine::BUBBLE_BREAK, "\n\n", $formPromptText);
 
                 // The pension form offers the personal pension or SIPP kind, so
                 // the typed "do you have a personal pension?" step after the
