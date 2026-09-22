@@ -209,6 +209,26 @@
               </div>
             </div>
 
+            <!-- Disability (for children): Tax-Free Childcare pays more, for longer -->
+            <div v-if="['child', 'step_child'].includes(form.relationship)" class="flex items-start">
+              <div class="flex items-center h-5">
+                <input
+                  id="is_disabled"
+                  v-model="form.is_disabled"
+                  type="checkbox"
+                  class="form-checkbox"
+                />
+              </div>
+              <div class="ml-3 text-sm">
+                <label for="is_disabled" class="font-medium text-neutral-500">
+                  Has a disability
+                </label>
+                <p class="text-neutral-500">
+                  For example they receive Disability Living Allowance or have an Education, Health and Care plan. Tax-Free Childcare pays more, for longer, for a disabled child.
+                </p>
+              </div>
+            </div>
+
             <!-- Notes -->
             <div>
               <label for="notes" class="block text-body-sm font-medium text-neutral-500 mb-1">
@@ -356,6 +376,7 @@ export default {
       is_dependent: false,
       education_status: '',
       receives_child_benefit: false,
+      is_disabled: false,
       notes: '',
     });
 
@@ -369,7 +390,7 @@ export default {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     };
@@ -388,6 +409,7 @@ export default {
           is_dependent: member.is_dependent || false,
           education_status: member.education_status || '',
           receives_child_benefit: member.receives_child_benefit || false,
+          is_disabled: member.is_disabled || false,
           notes: member.notes || '',
         };
       } else {
@@ -403,6 +425,7 @@ export default {
           is_dependent: false,
           education_status: '',
           receives_child_benefit: false,
+          is_disabled: false,
           notes: '',
         };
       }

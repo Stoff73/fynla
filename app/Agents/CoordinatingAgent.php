@@ -2024,6 +2024,10 @@ class CoordinatingAgent extends BaseAgent
                 'date' => $date,
                 'relationship' => $relationship,
                 'first_name' => $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant'),
+                // Null means not mentioned, never "no".
+                'is_disabled' => array_key_exists('is_disabled', $dep) && $dep['is_disabled'] !== null && $dep['is_disabled'] !== ''
+                    ? filter_var($dep['is_disabled'], FILTER_VALIDATE_BOOLEAN)
+                    : null,
             ];
         }
 
@@ -2053,6 +2057,7 @@ class CoordinatingAgent extends BaseAgent
                 'user_id' => $user->id,
                 'household_id' => $user->household_id,
                 'relationship' => $dep['relationship'],
+                'is_disabled' => $dep['is_disabled'],
                 'first_name' => $dep['first_name'],
                 // Same surname default create_family_member applies, so the two
                 // tools that write this table produce the same row for the same
@@ -4990,6 +4995,7 @@ class CoordinatingAgent extends BaseAgent
             'is_dependent' => 'nullable|boolean',
             'education_status' => ['nullable', Rule::in(['pre_school', 'primary', 'secondary', 'further_education', 'higher_education', 'graduated', 'not_applicable'])],
             'receives_child_benefit' => 'nullable|boolean',
+            'is_disabled' => 'nullable|boolean',
             'notes' => 'nullable|string|max:1000',
         ]);
         if ($validationError) {
@@ -5068,6 +5074,9 @@ class CoordinatingAgent extends BaseAgent
             }
             if (isset($input['receives_child_benefit'])) {
                 $payload['receives_child_benefit'] = (bool) $input['receives_child_benefit'];
+            }
+            if (isset($input['is_disabled'])) {
+                $payload['is_disabled'] = (bool) $input['is_disabled'];
             }
         }
 

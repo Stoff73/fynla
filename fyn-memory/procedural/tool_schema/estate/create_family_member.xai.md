@@ -103,6 +103,13 @@ effective_from: 2026-06-02
                 ],
                 "description": "Whether child benefit is claimed for this child. Only for child/step_child."
             },
+            "is_disabled": {
+                "type": [
+                    "boolean",
+                    "null"
+                ],
+                "description": "True when the family member has a disability (for example receives Disability Living Allowance or has an Education, Health and Care plan). Null when not mentioned."
+            },
             "notes": {
                 "type": [
                     "string",
@@ -121,7 +128,8 @@ effective_from: 2026-06-02
             "is_dependent",
             "education_status",
             "receives_child_benefit",
-            "notes"
+            "notes",
+            "is_disabled"
         ],
         "additionalProperties": false
     },

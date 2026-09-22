@@ -31,6 +31,11 @@ final class IncomeBandStrategy implements TaxStrategy
         $income = $this->taxConfig->getIncomeTax();
         $taperThreshold = (float) ($income['personal_allowance_taper_threshold'] ?? 100000);
         $additionalRateThreshold = $this->math->bandThresholdsFor($user)['additional'] ?: 125140;
+        // Where the 60% band ends: the allowance is gone £1 for every £2 over the
+        // threshold, so at threshold + 2 × allowance. Adjusted net income is
+        // already net of Gift Aid, so the band top is NOT extended by it the way
+        // the additional-rate threshold is; the strip says the same figure.
+        $taperEnd = $taperThreshold + 2 * (float) ($income['personal_allowance'] ?? 12570);
 
         $taxableIncome = $this->math->taxableIncomeFor($user);
         $adjustedNetIncome = $this->math->adjustedNetIncomeFor($user);
@@ -93,7 +98,7 @@ final class IncomeBandStrategy implements TaxStrategy
                         number_format($directRelief),
                         number_format($totalSaving),
                         number_format((int) $taperThreshold),
-                        number_format((int) $additionalRateThreshold),
+                        number_format((int) $taperEnd),
                         $effectivePct,
                     ),
                     estimatedAnnualTaxSaved: (float) $totalSaving,

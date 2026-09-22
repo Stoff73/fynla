@@ -360,12 +360,17 @@ it('the spouse details form asks name, date of birth, email and income as lead f
 it('the dependants form saves one dependant per turn as a one-item list through capture_dependants, with a loop question after it', function (): void {
     $schema = CaptureForms::schema('dependants');
     expect($schema['tool'])->toBe('capture_dependants')
-        ->and($schema['lead_fields'])->toBe(['relationship', 'first_name', 'date_of_birth'])
+        ->and($schema['lead_fields'])->toBe(['relationship', 'first_name', 'date_of_birth', 'is_disabled'])
         ->and(array_column($schema['fields']['relationship']['options'], 'value'))->toBe(['child', 'parent', 'other_dependent']);
 
     $form = ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14']]];
     expect(CaptureForms::toolInputs($form))->toBe(['_lead' => ['dependants' => [['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14']]]])
-        ->and(CaptureForms::summarise($form))->toBe('My child Alice was born on 14 September 2017.')
+        ->and(CaptureForms::summarise($form))->toBe('My child Alice was born on 14 September 2017.');
+
+    // The disability answer rides with the dependant (CSJ, 2026-09-22).
+    $disabled = ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'child', 'first_name' => 'Alice', 'date_of_birth' => '2017-09-14', 'is_disabled' => 'yes']]];
+    expect(CaptureForms::toolInputs($disabled)['_lead']['dependants'][0]['is_disabled'])->toBe('yes')
+        ->and(CaptureForms::summarise($disabled))->toBe('My child Alice was born on 14 September 2017 and has a disability.')
         ->and(CaptureForms::summarise(['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'other_dependent', 'date_of_birth' => '1950-02-01']]]))->toBe('My dependant was born on 1 February 1950.');
 
     $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);

@@ -34,15 +34,23 @@ final class ChildcareEntitlements
 
         $items = [];
         $tfc = $this->taxConfig->getTaxFreeChildcare();
+        // A disabled child qualifies to a later age and for a higher cap
+        // (`disabled_child_age_limit`, `max_disabled_contribution`), both seeded.
         $ageLimit = (int) ($tfc['child_age_limit'] ?? 11);
-        $underLimit = $children->filter(fn (FamilyMember $m): bool => (int) $m->age <= $ageLimit);
+        $disabledAgeLimit = (int) ($tfc['disabled_child_age_limit'] ?? 16);
+        $capPerChild = (float) ($tfc['max_government_contribution'] ?? 2000);
+        $capPerDisabledChild = (float) ($tfc['max_disabled_contribution'] ?? 4000);
+        $eligible = $children->filter(fn (FamilyMember $m): bool => (int) $m->age <= ($m->is_disabled ? $disabledAgeLimit : $ageLimit));
         $annualSpend = (float) ($user->childcare ?? 0) * 12;
-        if ($underLimit->isNotEmpty() && $annualSpend > 0) {
+        if ($eligible->isNotEmpty() && $annualSpend > 0) {
             $rate = (float) ($tfc['government_top_up_rate'] ?? 0.25);
-            $cap = (float) ($tfc['max_government_contribution'] ?? 2000) * $underLimit->count();
+            $cap = (float) $eligible->sum(fn (FamilyMember $m): float => $m->is_disabled ? $capPerDisabledChild : $capPerChild);
+            $disabledCount = $eligible->filter(fn (FamilyMember $m): bool => (bool) $m->is_disabled)->count();
             $items[] = [
                 'label' => 'Tax-Free Childcare',
-                'detail' => sprintf('%s under %d, up to £%s each', $this->count($underLimit->count(), 'child', 'children'), $ageLimit + 1, number_format($cap / $underLimit->count())),
+                'detail' => $disabledCount > 0
+                    ? sprintf('%s eligible, up to £%s each and £%s for a disabled child (to age %d)', $this->count($eligible->count(), 'child', 'children'), number_format($capPerChild), number_format($capPerDisabledChild), $disabledAgeLimit)
+                    : sprintf('%s under %d, up to £%s each', $this->count($eligible->count(), 'child', 'children'), $ageLimit + 1, number_format($capPerChild)),
                 'amount' => round(min($annualSpend * $rate, $cap), 2),
             ];
         }
