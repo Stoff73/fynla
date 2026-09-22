@@ -76,3 +76,5 @@ See `docs/tech-debt-report.md` (4 warnings, 3 suggestions): duplicated `FREE_EXP
 - Branch: dev at 54afface1 (tree == main f2f880fc7), clean apart from untracked `chrisMapping/`
 - Unpushed commits: none (this handover commit follows)
 - Deploy status: fynla.org and csjones both run the dev tip; backups `~/release-backups/2026-09-22a/` and `2026-09-22b/` on production
+
+Back to [[September Index]]
