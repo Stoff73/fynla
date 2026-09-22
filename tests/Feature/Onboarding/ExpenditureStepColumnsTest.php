@@ -38,3 +38,18 @@ it('halves the shared categories but not charitable donations for a linked house
     expect((float) $user->food_groceries)->toBe(600 * SharedExpenditure::JOINT_SHARE)
         ->and((float) $user->charitable_donations)->toBe(40.0);
 });
+
+// The wizard prefills from the user's columns when no step progress exists.
+// A Save Tax user has childcare and donations but no total, and the old
+// "any exists" test (total or two categories) returned nothing for them.
+it('returns the stored tax categories as step data when only those are set', function () {
+    $user = User::factory()->create(['life_stage' => 'accumulation', 'childcare' => 600, 'charitable_donations' => 40, 'is_gift_aid' => true, 'monthly_expenditure' => null]);
+
+    $data = app(OnboardingService::class)->getStepData($user->id, 'expenditure');
+
+    expect($data)->not->toBeNull()
+        ->and($data['childcare'])->toBe(600.0)
+        ->and($data['charitable_donations'])->toBe(40.0)
+        ->and($data['is_gift_aid'])->toBeTrue()
+        ->and(app(OnboardingService::class)->getStepData(User::factory()->create(['life_stage' => 'accumulation'])->id, 'expenditure'))->toBeNull();
+});
