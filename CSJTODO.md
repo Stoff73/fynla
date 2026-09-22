@@ -169,10 +169,15 @@ PR #919 (`feature/threshold-position` → dev) is open, walked green on csjones,
 - **A preview persona's `/m` token is rotated by the app's refresh flow** — mint a fresh
   one (`POST /api/preview/login/{persona}`) per browser session.
 - The iOS `test-and-build` CI job is **not a release gate and must never be re-run
-  unasked** (CSJ 2026-09-07). dev's Quality Gate's three long-standing reds
-  (`AccountDeletionService`, `AuditTierCollapse`, the admin action-definition count)
-  were fixed on 2026-09-22: two tests wrote enum values migrations had removed, one
-  pinned a seeder count; the collapse audit command went with its test.
+  unasked** (CSJ 2026-09-07). dev's Quality Gate is fully green since #923 (2026-09-22);
+  the reds were tests writing enum values migrations had removed, a pinned seeder count,
+  a Vite manifest the CI test job never has, and one real bug (legacy paid plan slugs not
+  canonicalised at settlement). Keep it green: a red is a bug, not weather.
+- **Never run two Pest processes at once** — they share `laravel_testing` and both fail
+  with QueryExceptions that look like real failures (2026-09-22, twice).
+- **fynla.org's page cache serves a stale response for a repeated URL** — a diagnostic
+  probe re-read under the same filename returned the old body for 20 minutes. Use a
+  fresh filename (or query string) per probe before concluding a change "did not take".
 - **Before any release, check what prod actually runs** (bundle hash, `migrate:status`,
   vendor mtime). Prod deploys rsync `app config database routes resources/views public/pages
   public/build` (+ `fyn-memory/` and `resources/js/data/` when they change) and `rm` any
