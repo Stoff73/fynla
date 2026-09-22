@@ -49,6 +49,20 @@ effective_from: 2026-06-02
                     "null"
                 ],
                 "description": "Spouse's existing personal-pension pot value."
+            },
+            "spouse_annual_dividends": {
+                "type": [
+                    "number",
+                    "null"
+                ],
+                "description": "Dividends the spouse receives each year from their own holdings, in pounds."
+            },
+            "spouse_pays_non_earner_maximum": {
+                "type": [
+                    "boolean",
+                    "null"
+                ],
+                "description": "True when the non-working spouse pays the non-earner maximum into their pension each year (the relief-at-source limit; the figure is applied server-side, never supplied here)."
             }
         },
         "required": [
