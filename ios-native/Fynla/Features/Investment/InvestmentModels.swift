@@ -45,6 +45,8 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
     let accountName: String?
     let accountType: String?
     let accountTypeOther: String?
+    /// Named by the server (InvestmentAccountTypes), the one label for every surface.
+    let accountTypeLabelFromServer: String?
     let provider: String?
     let platform: String?
     let currentValue: Decimal
@@ -65,6 +67,7 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
         case accountName = "account_name"
         case accountType = "account_type"
         case accountTypeOther = "account_type_other"
+        case accountTypeLabelFromServer = "account_type_label"
         case provider
         case platform
         case currentValue = "current_value"
@@ -86,6 +89,9 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
     }
     var isISA: Bool { accountType?.contains("isa") == true || isaType != nil }
     var accountTypeLabel: String {
+        if let accountTypeLabelFromServer, !accountTypeLabelFromServer.isEmpty {
+            return accountTypeLabelFromServer
+        }
         if accountType == "other", let accountTypeOther, !accountTypeOther.isEmpty {
             return accountTypeOther
         }

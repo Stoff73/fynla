@@ -70,7 +70,7 @@
               </span>
               <div class="card-header">
                 <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
-                  {{ formatAccountType(account.account_type) }}
+                  {{ accountTypeLabel(account) }}
                 </span>
               </div>
               <div class="card-content">
@@ -587,27 +587,11 @@ export default {
       return `${sign}${value.toFixed(2)}%`;
     },
 
-    formatAccountType(type) {
-      const types = {
-        'isa': 'Stocks & Shares ISA',
-        'sipp': 'Self-Invested Personal Pension',
-        'gia': 'General Investment Account',
-        'pension': 'Pension',
-        'nsi': 'National Savings & Investments',
-        'onshore_bond': 'Onshore Bond',
-        'offshore_bond': 'Offshore Bond',
-        'vct': 'Venture Capital Trust',
-        'eis': 'Enterprise Investment Scheme',
-        'private_company': 'Private Co',
-        'crowdfunding': 'Crowdfunding',
-        'saye': 'Save As You Earn',
-        'csop': 'Company Share Option Plan',
-        'emi': 'Enterprise Management Incentive',
-        'unapproved_options': 'Options',
-        'rsu': 'Restricted Stock Units',
-        'other': 'Other',
-      };
-      return types[type] || type;
+    // The label comes from the API (InvestmentAccountTypes on the server), so
+    // every surface calls the type the same thing; the mixin only covers a
+    // payload that predates the field.
+    accountTypeLabel(account) {
+      return account.account_type_label || this.formatAccountType(account.account_type);
     },
 
     getAccountDisplayName(account) {

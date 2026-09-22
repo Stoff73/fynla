@@ -86,7 +86,11 @@ describe('ExpenditureForm simple entry', () => {
     expect(payload.monthly_expenditure).toBe(2500);
     expect(payload.annual_expenditure).toBe(30000);
     expect(payload.expenditure_entry_mode).toBe('simple');
-    DETAILED_KEYS.forEach((key) => expect(payload).not.toHaveProperty(key));
+    // Childcare and charitable donations are free-tier fields the Simple View
+    // captures (CSJ, 2026-09-22); every other category stays out of the payload.
+    const FREE_KEYS = ['childcare', 'charitable_donations'];
+    DETAILED_KEYS.filter((key) => !FREE_KEYS.includes(key)).forEach((key) => expect(payload).not.toHaveProperty(key));
+    FREE_KEYS.forEach((key) => expect(payload).toHaveProperty(key));
   });
 
   it('still sends the categories from Detailed View', async () => {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Constants\InvestmentAccountTypes;
 use App\Models\Investment\InvestmentAccount;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -24,6 +25,8 @@ class InvestmentAccountResource extends JsonResource
             'id' => $this->id,
             'account_name' => $this->account_name,
             'account_type' => $this->account_type,
+            // One label for every surface (InvestmentAccountTypes).
+            'account_type_label' => InvestmentAccountTypes::label($this->account_type, $this->account_type_other),
             'account_type_other' => $this->when(
                 $this->account_type === 'other',
                 $this->account_type_other

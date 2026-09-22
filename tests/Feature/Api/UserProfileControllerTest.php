@@ -173,6 +173,24 @@ describe('PUT /api/user/profile/personal', function () {
      * stripped it: the request answered 200 and the flag never persisted.
      * Same shape as W-0006 above, one field over.
      */
+    it('keeps a free user\'s childcare and charitable donations from a Simple View save, and reads them back', function () {
+        $this->putJson('/api/user/profile/expenditure', [
+            'use_simple_entry' => true,
+            'monthly_expenditure' => 2500,
+            'childcare' => 700,
+            'charitable_donations' => 40,
+        ])->assertOk();
+
+        $fresh = $this->user->fresh();
+        expect((float) $fresh->childcare)->toBe(700.0)
+            ->and((float) $fresh->charitable_donations)->toBe(40.0)
+            ->and($fresh->expenditure_entry_mode)->toBe('simple');
+
+        $profile = $this->getJson('/api/user/profile')->assertOk()->json('data');
+        expect((float) data_get($profile, 'expenditure.categories.childcare'))->toBe(700.0)
+            ->and((float) data_get($profile, 'expenditure.categories.charitable_donations'))->toBe(40.0);
+    });
+
     it('persists is_gift_aid from the expenditure form, which posts to the personal endpoint', function () {
         $this->putJson('/api/user/profile/personal', [
             'is_gift_aid' => true,

@@ -118,6 +118,7 @@ class InvestmentAccountStore
         $this->enforceTierCap($user);
         $this->enforceExoticCapability($canonical, $user);
 
+        $canonical = $this->withSchemeValue($canonical);
         $account = AuditLog::withContext(
             ['ingest_source' => $source->value],
             fn () => DB::transaction(function () use ($canonical, $source) {
@@ -147,6 +148,7 @@ class InvestmentAccountStore
             fn () => DB::transaction(function () use ($account, $canonical, $source) {
                 $oldValue = $account->current_value === null ? null : (float) $account->current_value;
                 $account->fill($canonical);
+                $account->fill($this->withSchemeValue($account->getAttributes()));
                 $changes = [];
                 foreach ($account->getDirty() as $field => $newValue) {
                     $changes[$field] = [$account->getOriginal($field), $newValue];
@@ -177,6 +179,30 @@ class InvestmentAccountStore
      * @param  array<string, mixed>  $match  Scoping keys (user_id is always added)
      * @param  array<string, mixed>  $data  Values to set on match or create
      */
+    /**
+     * An employee share scheme has no value of its own to type in; it is worth its
+     * vested units at today's share price (EmployeeSchemeCalculationService, the one
+     * pricing). Written to current_value here so every total, card and snapshot
+     * that reads current_value agrees with the scheme detail. Left alone when the
+     * price is unknown.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function withSchemeValue(array $attributes): array
+    {
+        $probe = new InvestmentAccount($attributes);
+        if (! $probe->isEmployeeShareScheme()) {
+            return $attributes;
+        }
+        $value = $probe->scheme_current_value;
+        if ($value !== null) {
+            $attributes['current_value'] = round($value, 2);
+        }
+
+        return $attributes;
+    }
+
     public function updateOrCreate(array $match, array $data, User $user, IngestSource $source): InvestmentAccount
     {
         $existing = InvestmentAccount::where('user_id', $user->id)

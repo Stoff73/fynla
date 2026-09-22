@@ -2102,9 +2102,29 @@ class CoordinatingAgent extends BaseAgent
         }
         $monthlyTotal = round((float) $raw, 2);
 
-        DB::transaction(function () use ($user, $monthlyTotal): void {
+        // Childcare, charitable donations and Gift Aid ride with the total on the
+        // free plan (CSJ, 2026-09-22): the first two are the categories the tax
+        // lines read, the third is a fact about the donor.
+        $extras = [];
+        foreach (self::FREE_EXPENDITURE_CATEGORIES as $field) {
+            if (! array_key_exists($field, $input) || $input[$field] === null || $input[$field] === '') {
+                continue;
+            }
+            if (! is_numeric($input[$field]) || (float) $input[$field] < 0) {
+                return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Expenditure amounts must be zero or more.'];
+            }
+            $extras[$field] = round((float) $input[$field], 2);
+        }
+        if (array_key_exists('is_gift_aid', $input) && $input['is_gift_aid'] !== null && $input['is_gift_aid'] !== '') {
+            $extras['is_gift_aid'] = filter_var($input['is_gift_aid'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        DB::transaction(function () use ($user, $monthlyTotal, $extras): void {
             $user->monthly_expenditure = $monthlyTotal;
             $user->expenditure_entry_mode = 'simple';
+            foreach ($extras as $field => $value) {
+                $user->{$field} = $value;
+            }
             $user->save();
             if ($monthlyTotal > 0) {
                 ExpenditureProfile::updateOrCreate(['user_id' => $user->id], ['total_monthly_expenditure' => $monthlyTotal]);
@@ -2117,7 +2137,7 @@ class CoordinatingAgent extends BaseAgent
             'onboarding_capture' => true,
             'field_group' => 'expenditure',
             'summary' => 'Monthly spending saved',
-            'details' => ['monthly_total' => $monthlyTotal],
+            'details' => ['monthly_total' => $monthlyTotal] + $extras,
         ];
     }
 
@@ -5347,23 +5367,13 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
+    /** Categories a free user may record (CSJ, 2026-09-22); mirrored by UserProfileController. */
+    private const FREE_EXPENDITURE_CATEGORIES = ['childcare', 'charitable_donations'];
+
     private function handleSetExpenditure(array $input, User $user, bool $isPreview): array
     {
         if ($isPreview) {
             return $this->previewBlocked('expenditure');
-        }
-
-        // The per-category breakdown is Premium. Fyn used to write it straight
-        // through the model for anyone, while UserProfileController refused the
-        // same fields to the same user — so a Free user's categories were saved
-        // and then hidden from them on the page that owns them. One predicate,
-        // both paths (CSJ decision 2026-08-19).
-        if (! $this->teaserGate->allows($user, 'expenditure_detailed')) {
-            return [
-                'blocked' => true,
-                'reason' => 'Recording spending category by category is part of Premium. '
-                    .'Their total monthly spending can still be recorded on the free plan.',
-            ];
         }
 
         // All expenditure category fields (monthly amounts)
@@ -5374,6 +5384,30 @@ class CoordinatingAgent extends BaseAgent
             'childcare', 'school_fees', 'school_lunches', 'school_extras', 'university_fees', 'children_activities',
             'gifts_charity', 'charitable_donations', 'other_expenditure',
         ];
+
+        // The per-category breakdown is Premium. Fyn used to write it straight
+        // through the model for anyone, while UserProfileController refused the
+        // same fields to the same user — so a Free user's categories were saved
+        // and then hidden from them on the page that owns them. One predicate,
+        // both paths (CSJ decision 2026-08-19). Childcare and charitable donations
+        // are free-tier fields (CSJ, 2026-09-22: they feed tax lines a free user
+        // sees), so only the other categories trip the gate — the same carve-out
+        // as UserProfileController::DETAILED_EXPENDITURE_FIELDS.
+        $premiumOnly = array_diff(array_intersect(array_keys($input), $categoryFields), self::FREE_EXPENDITURE_CATEGORIES);
+        if ($premiumOnly !== [] && ! $this->teaserGate->allows($user, 'expenditure_detailed')) {
+            return [
+                'blocked' => true,
+                'reason' => 'Recording spending category by category is part of Premium. '
+                    .'Their total monthly spending, childcare and charitable donations can still be recorded on the free plan.',
+            ];
+        }
+
+        // Gift Aid travels with the donations figure; it is a fact about the
+        // donor, not a category, so it is written on the user directly.
+        if (array_key_exists('is_gift_aid', $input) && $input['is_gift_aid'] !== null) {
+            $user->is_gift_aid = filter_var($input['is_gift_aid'], FILTER_VALIDATE_BOOLEAN);
+            $user->save();
+        }
 
         $updateData = [];
         $resolvedAmounts = [];

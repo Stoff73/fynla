@@ -101,6 +101,10 @@ effective_from: 2026-06-02
             "other_expenditure": {
                 "type": "number",
                 "description": "Other monthly expenses in pounds."
+            },
+            "is_gift_aid": {
+                "type": "boolean",
+                "description": "True when the user says their charitable donations are made under Gift Aid, false when they say they are not. Omit when not mentioned."
             }
         },
         "required": [],

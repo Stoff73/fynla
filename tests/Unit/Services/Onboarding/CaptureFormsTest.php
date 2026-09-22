@@ -424,7 +424,7 @@ it('carries drawdown income and the lump sum taken on a personal pension', funct
 it('the expenditure forms: one box for everyone, five category groups for Premium, the household question first when a spouse is on file', function (): void {
     $one = CaptureForms::schema('expenditure');
     expect($one['tool'])->toBe('capture_monthly_expenditure')
-        ->and($one['lead_fields'])->toBe(['monthly_total'])
+        ->and($one['lead_fields'])->toBe(['monthly_total', 'childcare', 'charitable_donations', 'is_gift_aid'])
         ->and(CaptureForms::toolInputs(['name' => 'expenditure', 'answers' => ['_lead' => ['monthly_total' => 2400]]]))->toBe(['_lead' => ['monthly_total' => 2400.0]])
         ->and(CaptureForms::summarise(['name' => 'expenditure', 'answers' => ['_lead' => ['monthly_total' => 2400]]]))->toBe('About £2,400 goes out each month.');
 

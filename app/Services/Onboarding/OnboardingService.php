@@ -480,6 +480,7 @@ class OnboardingService
                 'holidays_travel' => $userData['holidays_travel'] ?? 0,
                 'pets' => $userData['pets'] ?? 0,
                 'childcare' => $userData['childcare'] ?? 0,
+                'charitable_donations' => $userData['charitable_donations'] ?? 0,
                 'school_fees' => $userData['school_fees'] ?? 0,
                 'children_activities' => $userData['children_activities'] ?? 0,
                 'other_expenditure' => $userData['other_expenditure'] ?? 0,
@@ -508,6 +509,7 @@ class OnboardingService
                     'holidays_travel' => $spouseData['holidays_travel'] ?? 0,
                     'pets' => $spouseData['pets'] ?? 0,
                     'childcare' => $spouseData['childcare'] ?? 0,
+                    'charitable_donations' => $spouseData['charitable_donations'] ?? 0,
                     'school_fees' => $spouseData['school_fees'] ?? 0,
                     'children_activities' => $spouseData['children_activities'] ?? 0,
                     'other_expenditure' => $spouseData['other_expenditure'] ?? 0,
@@ -547,6 +549,9 @@ class OnboardingService
                 'university_fees' => $data['university_fees'] ?? 0,
                 'children_activities' => $data['children_activities'] ?? 0,
                 'gifts_charity' => $data['gifts_charity'] ?? 0,
+                // Was never written here, so an onboarding donor's Gift Aid flag
+                // had no figure behind it (2026-09-22).
+                'charitable_donations' => $data['charitable_donations'] ?? 0,
                 'regular_savings' => $data['regular_savings'] ?? 0,
                 'other_expenditure' => $data['other_expenditure'] ?? 0,
                 'monthly_expenditure' => $data['monthly_expenditure'] ?? 0,

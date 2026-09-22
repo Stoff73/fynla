@@ -48,14 +48,15 @@ class UserProfileController extends Controller
         'entertainment_dining',
         'holidays_travel',
         'pets',
-        'childcare',
+        // `childcare` and `charitable_donations` are NOT here (CSJ, 2026-09-22):
+        // they feed the Tax-Free Childcare line and the Gift Aid band extension,
+        // which a free user sees, so a free user must be able to record them.
         'school_fees',
         'school_lunches',
         'school_extras',
         'university_fees',
         'children_activities',
         'gifts_charity',
-        'charitable_donations',
         'regular_savings',
         'other_expenditure',
         'retired_budget_overrides',

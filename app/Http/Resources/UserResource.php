@@ -105,14 +105,15 @@ class UserResource extends JsonResource
             'entertainment_dining' => $this->when($canViewDetailedExpenditure, $this->entertainment_dining),
             'holidays_travel' => $this->when($canViewDetailedExpenditure, $this->holidays_travel),
             'pets' => $this->when($canViewDetailedExpenditure, $this->pets),
-            'childcare' => $this->when($canViewDetailedExpenditure, $this->childcare),
+            // Free-tier capturable, like rent and utilities (CSJ, 2026-09-22).
+            'childcare' => $this->childcare,
             'school_fees' => $this->when($canViewDetailedExpenditure, $this->school_fees),
             'school_lunches' => $this->when($canViewDetailedExpenditure, $this->school_lunches),
             'school_extras' => $this->when($canViewDetailedExpenditure, $this->school_extras),
             'university_fees' => $this->when($canViewDetailedExpenditure, $this->university_fees),
             'children_activities' => $this->when($canViewDetailedExpenditure, $this->children_activities),
             'gifts_charity' => $this->when($canViewDetailedExpenditure, $this->gifts_charity),
-            'charitable_donations' => $this->when($canViewDetailedExpenditure, $this->charitable_donations),
+            'charitable_donations' => $this->charitable_donations,
             'regular_savings' => $this->when($canViewDetailedExpenditure, $this->regular_savings),
             'other_expenditure' => $this->when($canViewDetailedExpenditure, $this->other_expenditure),
             // Income fields (needed by IncomeOccupation and tax calculations)
