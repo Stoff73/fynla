@@ -7,6 +7,7 @@ namespace App\Services\Retirement;
 use App\Constants\TaxDefaults;
 use App\Models\DCPension;
 use App\Models\User;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use Illuminate\Support\Collection;
@@ -27,7 +28,49 @@ class SalarySacrificeAnalyzer
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly UKTaxCalculator $calculator,
+        private readonly IncomeDefinitionsService $definitions,
     ) {}
+
+    /**
+     * Employee Class 1 National Insurance saved by sacrificing £sacrifice out of
+     * £pay: the calculator's charge on the pay less its charge on what is left.
+     * The one pricing of that fact for the analyser, SalarySacrificeNiStrategy
+     * and the threshold line (Rule 20).
+     */
+    public function employeeNiSaving(float $pay, float $sacrifice): float
+    {
+        return $this->classOne($pay) - $this->classOne($pay - $sacrifice);
+    }
+
+    /** Employer Class 1 National Insurance saved on £sacrifice: a flat rate above one threshold. */
+    public function employerNiSaving(float $sacrifice): float
+    {
+        return $sacrifice * (float) $this->taxConfig->get('national_insurance.class_1.employer.rate', 0.138);
+    }
+
+    /**
+     * Pay before any salary sacrifice. The recorded employment income is the
+     * pre-sacrifice figure unless the user said they recorded it net of
+     * sacrifice (employment_income_basis = post_sacrifice), in which case the
+     * sacrificed pay goes back on. IncomeDefinitionsService owns that reading.
+     */
+    public function payBeforeSacrifice(User $user): float
+    {
+        $definitions = $this->definitions->calculate((int) $user->id);
+        $income = (float) ($user->annual_employment_income ?? 0);
+
+        return ($definitions['employment_income_basis'] ?? null) === 'post_sacrifice'
+            ? $income + (float) ($definitions['deductions']['salary_sacrificed'] ?? 0)
+            : $income;
+    }
+
+    /** Pay after the sacrifice already in place: what National Insurance is charged on today. */
+    public function payAfterSacrifice(User $user): float
+    {
+        $definitions = $this->definitions->calculate((int) $user->id);
+
+        return max(0.0, $this->payBeforeSacrifice($user) - (float) ($definitions['deductions']['salary_sacrificed'] ?? 0));
+    }
 
     /**
      * Analyse salary sacrifice opportunities for the user.
@@ -70,7 +113,7 @@ class SalarySacrificeAnalyzer
             ];
         }
 
-        $salary = (float) ($user->annual_employment_income ?? 0);
+        $salary = $this->payBeforeSacrifice($user);
 
         if ($salary <= 0) {
             return [
@@ -135,7 +178,7 @@ class SalarySacrificeAnalyzer
      */
     public function analyzeForPension(User $user, DCPension $pension): array
     {
-        $salary = (float) ($user->annual_employment_income ?? 0);
+        $salary = $this->payBeforeSacrifice($user);
 
         if ($salary <= 0 || $pension->scheme_type !== 'workplace') {
             return [
@@ -307,10 +350,6 @@ class SalarySacrificeAnalyzer
      */
     private function calculateNISavings(float $sacrificeAmount, float $preSacrificePay): array
     {
-        $employerRate = (float) $this->taxConfig->get(
-            'national_insurance.class_1.employer.rate',
-            0.138
-        );
         $nicExemptionCap = (float) $this->taxConfig->get(
             'pension.salary_sacrifice.nic_exemption_cap',
             2000
@@ -327,12 +366,12 @@ class SalarySacrificeAnalyzer
         // earnings limit, where the employee rate is 2%: a £145,000 earner sacrificing
         // £30,000 was told £2,240 here and £560 on the threshold strip, for one fact.
         // Employer National Insurance is a flat rate above one threshold, so it stays.
-        $employeeSaving = $this->classOne($preSacrificePay) - $this->classOne($preSacrificePay - $sacrificeAmount);
-        $employerSaving = $sacrificeAmount * $employerRate;
+        $employeeSaving = $this->employeeNiSaving($preSacrificePay, $sacrificeAmount);
+        $employerSaving = $this->employerNiSaving($sacrificeAmount);
 
         // Post-cap rules: only first £2,000 exempt from employee NICs
         $exemptAmount = min($sacrificeAmount, $nicExemptionCap);
-        $postCapEmployeeSaving = $this->classOne($preSacrificePay) - $this->classOne($preSacrificePay - $exemptAmount);
+        $postCapEmployeeSaving = $this->employeeNiSaving($preSacrificePay, $exemptAmount);
         // Employer NI savings unaffected — all employer contributions remain NIC-exempt
         $postCapEmployerSaving = $employerSaving;
 

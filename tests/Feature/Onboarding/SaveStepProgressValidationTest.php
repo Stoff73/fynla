@@ -93,3 +93,21 @@ it('still accepts a valid income step', function () {
 
     expect((float) $this->user->fresh()->annual_employment_income)->toBe(46000.0);
 });
+
+it('accepts a phone number typed with spaces and stores the digits, as the profile endpoint does', function () {
+    $this->postJson('/api/onboarding/step', [
+        'step_name' => 'personal_info',
+        'data' => ['phone' => '07700 900123'],
+    ])->assertOk();
+
+    expect($this->user->fresh()->phone)->toBe('07700900123');
+});
+
+it("names the field's own message for a bad phone number, not the data.phone attribute", function () {
+    $this->postJson('/api/onboarding/step', [
+        'step_name' => 'personal_info',
+        'data' => ['phone' => '12345'],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['data.phone' => 'Please enter a valid UK phone number']);
+});
+

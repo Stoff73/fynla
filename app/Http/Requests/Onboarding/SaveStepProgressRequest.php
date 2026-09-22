@@ -41,7 +41,29 @@ class SaveStepProgressRequest extends FormRequest
                 unset($data[$field]);
             }
         }
+        // The profile request strips the spaces and dashes people type into a
+        // phone number before its regex runs; the same number must pass here.
+        if (isset($data['phone']) && is_string($data['phone'])) {
+            $data['phone'] = UpdatePersonalInfoRequest::normalisePhone($data['phone']);
+        }
         $this->merge(['data' => $data]);
+    }
+
+    /**
+     * The profile request's own messages, under the data. prefix, so a bad
+     * phone number reads "Please enter a valid UK phone number" here too and
+     * not "The data.phone field format is invalid".
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        $messages = [];
+        foreach ($this->profileRequestForStep((string) $this->input('step_name'))?->messages() ?? [] as $key => $message) {
+            $messages['data.'.$key] = $message;
+        }
+
+        return $messages;
     }
 
     /**
@@ -71,16 +93,23 @@ class SaveStepProgressRequest extends FormRequest
         // email uniqueness rule cannot run under the data. prefix — Laravel
         // reads the attribute name as the column (live 2026-09-14: 500,
         // "Unknown column 'data.email'").
+        $request = $this->profileRequestForStep($step);
+        if ($request === null) {
+            return [];
+        }
+
+        return array_intersect_key($this->rulesOf($request), array_flip(match ($step) {
+            'personal_info' => OnboardingService::PERSONAL_INFO_FIELDS,
+            'income' => OnboardingService::INCOME_FIELDS,
+        }));
+    }
+
+    private function profileRequestForStep(string $step): ?FormRequest
+    {
         return match ($step) {
-            'personal_info' => array_intersect_key(
-                $this->rulesOf(new UpdatePersonalInfoRequest),
-                array_flip(OnboardingService::PERSONAL_INFO_FIELDS),
-            ),
-            'income' => array_intersect_key(
-                $this->rulesOf(new UpdateIncomeOccupationRequest),
-                array_flip(OnboardingService::INCOME_FIELDS),
-            ),
-            default => [],
+            'personal_info' => new UpdatePersonalInfoRequest,
+            'income' => new UpdateIncomeOccupationRequest,
+            default => null,
         };
     }
 

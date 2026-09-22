@@ -473,27 +473,6 @@ final class TaxStrategyMath
     }
 
     /**
-     * Total annual employer pension contributions across all DC pensions,
-     * estimated as (annual_salary ?? user employment income) × employer_pct.
-     * Pensions with null employer_contribution_percent contribute 0.
-     */
-    public function employerPensionContributionsFor(User $user): float
-    {
-        $userIncome = (float) ($user->annual_employment_income ?? 0);
-
-        return (float) app(PensionStore::class)
-            ->forUserByType($user, 'dc')
-            ->whereNotNull('employer_contribution_percent')
-            ->sum(function ($p) use ($userIncome) {
-                $base = (float) ($p->annual_salary ?? 0) > 0
-                    ? (float) $p->annual_salary
-                    : $userIncome;
-
-                return $base * ((float) $p->employer_contribution_percent / 100);
-            });
-    }
-
-    /**
      * Dividend tax rate for a given band, sourced from
      * TaxConfigService['dividend_tax']. Centralises the match block previously
      * duplicated across DividendAllowanceHarvestStrategy, AssetShiftingBundle-

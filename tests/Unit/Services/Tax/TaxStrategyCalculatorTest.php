@@ -1803,10 +1803,24 @@ describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
         expect(collect($outputNull->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief'))->toBeNull();
     });
 
+    it('does not fire when the donations are not made under Gift Aid', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+            'is_gift_aid' => false,
+            'annual_charitable_donations' => 1000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief'))->toBeNull();
+    });
+
     it('fires for higher-rate user with correct 25% factor', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
+            'is_gift_aid' => true,
             'annual_charitable_donations' => 1000,
         ]);
 
@@ -1826,6 +1840,7 @@ describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 200000,
+            'is_gift_aid' => true,
             'annual_charitable_donations' => 1000,
         ]);
 
@@ -1842,6 +1857,7 @@ describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
+            'is_gift_aid' => true,
             'annual_charitable_donations' => 2.0, // 2 × 0.25 = 0.50 — below £1
         ]);
 
@@ -1939,6 +1955,31 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             ->and($rec['marginal_rate'])->toBe(0.45);
     });
 
+    it('adds the employee contributions back into adjusted income (FA 2004 s228ZA)', function () {
+        // salary 300k, employee 5% (15k), employer 10% (30k)
+        // threshold = 300k - 15k = 285k; adjusted = 300k + 30k = 330k (not 285k + 30k)
+        // taper = max(60k - 0.5 × (330k - 260k), 10k) = 25k
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 300000,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 300000,
+            'employer_contribution_percent' => 10,
+            'employee_contribution_percent' => 5,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'tapered_annual_allowance');
+        expect($rec)->not->toBeNull()
+            ->and((float) $rec['threshold_income'])->toBe(285000.0)
+            ->and((float) $rec['adjusted_income'])->toBe(330000.0)
+            ->and((float) $rec['tapered_annual_allowance'])->toBe(25000.0);
+    });
+
     it('floors at the £10k minimum allowance for very high adjusted income', function () {
         // adjusted = 600k → untapered AA reduction = 0.5 × (600k - 260k) = 170k
         // 60k - 170k would go negative — floor at 10k minimum_allowance.
@@ -1968,6 +2009,7 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 220000,
+            'is_gift_aid' => true,
             'annual_charitable_donations' => 1000, // also fires gift_aid_higher_rate_relief
         ]);
         DCPension::factory()->create([

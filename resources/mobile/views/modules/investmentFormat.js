@@ -19,6 +19,11 @@ const ACCOUNT_TYPE_LABELS = {
   eis: 'Enterprise Investment Scheme',
   seis: 'Seed Enterprise Investment Scheme',
   employee_share_scheme: 'Employee Share Scheme',
+  saye: 'Save As You Earn',
+  csop: 'Company Share Option Plan',
+  emi: 'Enterprise Management Incentive',
+  unapproved_options: 'Options',
+  rsu: 'Restricted Stock Units',
 };
 
 export function accountTypeLabel(account) {

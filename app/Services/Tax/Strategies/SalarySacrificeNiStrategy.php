@@ -7,23 +7,24 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
+use App\Services\Retirement\SalarySacrificeAnalyzer;
 use App\Services\Stores\PensionStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
-use App\Services\TaxConfigService;
 
 /**
  * Strategy #4 — Salary Sacrifice for National Insurance Relief.
  *
  * Fires for an employed user who has a workplace DC pension where
- * salary_sacrifice is null or false. Saving = annual_contribution × the
- * employee's marginal NI rate, plus (if the employer rebates a share of
- * their NI saving) annual_contribution × employer_NI_rate × rebate_pct.
- * NI rates and the upper-earnings-limit are read from TaxConfigService.
+ * salary_sacrifice is null or false. Saving = the employee National
+ * Insurance the calculator charges on today's pay less what it charges once
+ * the contribution is sacrificed, plus (if the employer rebates a share of
+ * their NI saving) the employer NI on the contribution × rebate_pct. Both
+ * are priced by SalarySacrificeAnalyzer, the one place that does (Rule 20).
  */
 final class SalarySacrificeNiStrategy implements TaxStrategy
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig,
+        private readonly SalarySacrificeAnalyzer $analyzer,
     ) {}
 
     public function generate(TaxStrategyContext $context): array
@@ -53,33 +54,15 @@ final class SalarySacrificeNiStrategy implements TaxStrategy
             return [];
         }
 
-        $ni = $this->taxConfig->getNationalInsurance();
-        $employee = $ni['class_1']['employee'] ?? [];
-        $employer = $ni['class_1']['employer'] ?? [];
-        $uel = (float) ($employee['upper_earnings_limit'] ?? 50270);
-        $mainRate = (float) ($employee['main_rate'] ?? 0.08);
-        $additionalRate = (float) ($employee['additional_rate'] ?? 0.02);
-        $employerRate = (float) ($employer['rate'] ?? 0.15);
-
-        $income = (float) ($user->annual_employment_income ?? 0);
-        $afterSacrifice = $income - $annualContribution;
-
-        // NI saving applies on the slice between (income − contribution) and income.
-        if ($income <= $uel) {
-            $employeeSaving = $annualContribution * $mainRate;
-        } elseif ($afterSacrifice >= $uel) {
-            $employeeSaving = $annualContribution * $additionalRate;
-        } else {
-            $belowUelSlice = $uel - $afterSacrifice;
-            $aboveUelSlice = $income - $uel;
-            $employeeSaving = $belowUelSlice * $mainRate + $aboveUelSlice * $additionalRate;
-        }
+        // National Insurance is charged on pay after the sacrifice already in
+        // place; the saving is what the calculator stops charging once this
+        // contribution joins it.
+        $employeeSaving = $this->analyzer->employeeNiSaving($this->analyzer->payAfterSacrifice($user), $annualContribution);
 
         $rebatePct = (float) $eligiblePensions->max('employer_ni_rebate_pct');
-        $employerSaving = 0.0;
-        if ($rebatePct > 0) {
-            $employerSaving = $annualContribution * $employerRate * $rebatePct;
-        }
+        $employerSaving = $rebatePct > 0
+            ? $this->analyzer->employerNiSaving($annualContribution) * $rebatePct
+            : 0.0;
 
         $totalSaving = $employeeSaving + $employerSaving;
         if ($totalSaving < 1) {

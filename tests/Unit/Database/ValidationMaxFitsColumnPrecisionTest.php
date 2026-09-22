@@ -40,6 +40,10 @@ use Illuminate\Support\Facades\DB;
  * request, not by matching names.
  */
 const RULE_COLUMN_MAP = [
+    // --- A name collision: ProtectionController::storeProfile writes
+    // --- protection_profiles.annual_income (decimal 15,2), not employments.
+    'App\Http\Requests\Protection\StoreProtectionProfileRequest::annual_income' => ['protection_profiles', 'annual_income'],
+
     // --- The rows W-0263 widened. Percentages, every one verified against live
     // --- rows before the migration: mortgage rates stored as 4.5000 meaning
     // --- 4.5%, platform fees as 0.4500 meaning 0.45%.

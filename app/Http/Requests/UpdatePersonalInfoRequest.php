@@ -22,11 +22,17 @@ class UpdatePersonalInfoRequest extends FormRequest
     /**
      * Prepare the data for validation.
      */
+    /** A phone number as typed ("07700 900123", "+44-7700-900123") to the digits the rule reads. */
+    public static function normalisePhone(string $phone): string
+    {
+        return preg_replace('/[\s\-]/', '', $phone);
+    }
+
     protected function prepareForValidation(): void
     {
         if ($this->has('phone') && $this->phone) {
             $this->merge([
-                'phone' => preg_replace('/[\s\-]/', '', $this->phone),
+                'phone' => self::normalisePhone($this->phone),
             ]);
         }
 

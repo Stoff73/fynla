@@ -78,6 +78,10 @@ class InvestmentAccountResource extends JsonResource
                 $this->isEmployeeShareScheme(),
                 $this->units_vested
             ),
+            'units_unvested' => $this->when(
+                $this->isEmployeeShareScheme(),
+                $this->units_unvested
+            ),
             'exercise_price' => $this->when(
                 $this->isEmployeeShareScheme(),
                 $this->exercise_price
@@ -89,6 +93,16 @@ class InvestmentAccountResource extends JsonResource
             'intrinsic_value' => $this->when(
                 $this->isEmployeeShareScheme(),
                 $this->intrinsic_value
+            ),
+            // What the scheme is worth today, vested and still to vest (the model's
+            // accessors, priced by EmployeeSchemeCalculationService).
+            'vested_value' => $this->when(
+                $this->isEmployeeShareScheme(),
+                $this->scheme_current_value
+            ),
+            'unvested_value' => $this->when(
+                $this->isEmployeeShareScheme(),
+                $this->unvested_value
             ),
 
             'created_at' => $this->created_at?->toIso8601String(),
