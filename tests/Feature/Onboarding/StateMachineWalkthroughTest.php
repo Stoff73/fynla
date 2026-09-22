@@ -119,7 +119,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
-            ->toBe('campaign_verify_announce')
+            ->toBe('campaign_verify_navigate')
             ->and($this->user->onboarding_fyn_context['verify_section'] ?? null)->toBe('family')
             ->and($this->user->onboarding_fyn_context['has_dependants'] ?? null)->toBeFalse();
 
@@ -157,7 +157,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
         sendOnboardingMessage($this, $this->user, $conversation->id, "No, that's everything");
 
         $this->user->refresh();
-        expect($this->user->onboarding_fyn_step)->toBe('campaign_verify_announce')
+        expect($this->user->onboarding_fyn_step)->toBe('campaign_verify_navigate')
             ->and($this->user->onboarding_fyn_context['verify_section'])->toBe('income');
 
         // Step 7c — Okay → navigate to /income with the Gate-2 confirm.
@@ -178,7 +178,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
         $expenditureStream = sendOnboardingMessage($this, $this->user, $conversation->id, '10000');
 
         $this->user->refresh();
-        expect($this->user->onboarding_fyn_step)->toBe('campaign_verify_announce')
+        expect($this->user->onboarding_fyn_step)->toBe('campaign_verify_navigate')
             ->and($this->user->onboarding_fyn_context['verify_section'])->toBe('expenditure')
             ->and((float) $this->user->monthly_expenditure)->toBe(10000.0)
             ->and($this->user->expenditure_entry_mode)->toBe('simple')

@@ -251,7 +251,7 @@ describe('OnboardingStateMachine::nextFromDependants', function () {
     it('routes no to the family verify announce on the journey path', function () {
         $user = User::factory()->create(['onboarding_fyn_path' => 'journey']);
         expect(OnboardingStateMachine::nextFromDependants('No', $user))
-            ->toBe('campaign_verify_announce');
+            ->toBe('campaign_verify_navigate');
         expect($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('family');
     });
 

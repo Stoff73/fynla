@@ -37,7 +37,7 @@ it('stamps the verify section into context and goes straight to navigate/confirm
     // Announce-before-navigate: enter the Okay gate first, not navigate directly.
     $next = OnboardingStateMachine::enterCampaignVerify($user, 'savings');
 
-    expect($next)->toBe('campaign_verify_announce')
+    expect($next)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('savings');
 });
 
@@ -335,7 +335,7 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
     ] as $stateId) {
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
-        expect($resolved)->toBe('campaign_verify_announce', "state {$stateId} should enter the announce gate");
+        expect($resolved)->toBe('campaign_verify_navigate', "state {$stateId} should go straight to the verify page");
     }
 
     // CSJ 2026-09-16: the spouse section end repeats the figures back in chat
@@ -348,7 +348,7 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
     // missing the loop enters the same announce gate — still no extra gate.
     $next = $states[OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS]['next'];
     expect(is_callable($next) ? $next('', $user) : $next)->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS)
-        ->and(OnboardingStateMachine::nextFromPensionPots('', $user->fresh()))->toBe('campaign_verify_announce');
+        ->and(OnboardingStateMachine::nextFromPensionPots('', $user->fresh()))->toBe('campaign_verify_navigate');
 
     // Advice now fires AFTER the confirm and continues to the next section —
     // never back into the verify flow.
@@ -420,13 +420,13 @@ it('the Save Tax income and spouse ends skip the details page; everything else a
     expect(OnboardingStateMachine::enterCampaignVerify($savetax, 'income'))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME)
         ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'spouse'))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE)
         // Expenditure has no advice turn: it goes straight to the next section (CSJ 2026-09-16 15:47).
-        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'expenditure'))->not->toBe('campaign_verify_announce')
-        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'savings'))->toBe('campaign_verify_announce')
-        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'property'))->toBe('campaign_verify_announce');
+        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'expenditure'))->not->toBe('campaign_verify_navigate')
+        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'savings'))->toBe('campaign_verify_navigate')
+        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'property'))->toBe('campaign_verify_navigate');
 
     $pensioncheck = User::factory()->create(['onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'pensioncheck', 'onboarding_fyn_context' => []]);
-    expect(OnboardingStateMachine::enterCampaignVerify($pensioncheck, 'spouse'))->toBe('campaign_verify_announce');
+    expect(OnboardingStateMachine::enterCampaignVerify($pensioncheck, 'spouse'))->toBe('campaign_verify_navigate');
 
     $journey = User::factory()->create(['onboarding_fyn_path' => 'journey', 'onboarding_fyn_context' => []]);
-    expect(OnboardingStateMachine::enterCampaignVerify($journey, 'income', 'journey_base'))->toBe('campaign_verify_announce');
+    expect(OnboardingStateMachine::enterCampaignVerify($journey, 'income', 'journey_base'))->toBe('campaign_verify_navigate');
 });

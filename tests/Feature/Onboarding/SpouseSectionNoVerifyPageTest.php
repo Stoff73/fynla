@@ -57,7 +57,7 @@ it('repeats a working spouse\'s figures back and moves on without a details page
     expect($text)->toContain('your spouse earns £45,000 a year, has £12,000 in ISAs and pays £3,000 a year into their pension.')
         ->not->toContain('take you to')
         ->and(collect($events)->firstWhere('type', 'navigate'))->toBeNull()
-        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
 });
 
@@ -74,5 +74,5 @@ it('tells a single-earner couple what the spouse holds in their own name, or tha
 
     expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))
         ->toContain('your spouse has £8,000 in savings in their own name.')
-        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_announce');
+        ->and($user->fresh()->onboarding_fyn_step)->not->toBe('campaign_verify_navigate');
 });

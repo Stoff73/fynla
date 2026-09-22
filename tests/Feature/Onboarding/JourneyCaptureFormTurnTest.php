@@ -193,7 +193,7 @@ it('saves one dependant from the form, asks for another, re-opens the form witho
     // No: on to the family verify loop (PR #903, 2026-09-17), which continues
     // into work and income exactly where the in-chat review used to lead.
     iterator_to_array($director->handleUserMessage($user->fresh(), $conversation, "No, that's everything", null, true), false);
-    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('family');
 });
 
@@ -274,6 +274,6 @@ it('saves a life policy from the protection form, asks for another, and "No" ver
         ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toBe('Do you have another policy to add?');
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, "No, that's everything", null, true), false);
-    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate')
         ->and(OnboardingStateMachine::nextFromVerifyNavigate('yes', $user->fresh()->forceFill(['onboarding_fyn_step' => 'campaign_verify_navigate'])))->toBe(OnboardingStateMachine::STATE_ADD_MORE);
 });

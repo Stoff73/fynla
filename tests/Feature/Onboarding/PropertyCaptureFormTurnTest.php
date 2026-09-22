@@ -362,7 +362,7 @@ it('continues to the property verify announce on "No, that\'s everything"', func
         $user, $conversation, "No, that's everything"
     ), false);
 
-    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('property');
 });
 
