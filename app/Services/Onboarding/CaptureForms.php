@@ -74,6 +74,9 @@ final class CaptureForms
     /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
     public const EXPENDITURE_DETAILED = 'expenditure_detailed';
 
+    /** Save Tax only (CSJ 2026-09-22): childcare, donations and Gift Aid, no monthly total. */
+    public const EXPENDITURE_TAX = 'expenditure_tax';
+
     /** The category form asking first whether the figures are the household's (a spouse is on file). */
     public const EXPENDITURE_DETAILED_HOUSEHOLD = 'expenditure_detailed_household';
 
@@ -87,7 +90,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::PROTECTION];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION];
     }
 
     /** @return array<string, mixed>|null */
@@ -110,6 +113,7 @@ final class CaptureForms
             self::EXPENDITURE => self::expenditure(),
             self::EXPENDITURE_DETAILED => self::expenditureDetailed(false),
             self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureDetailed(true),
+            self::EXPENDITURE_TAX => self::expenditureTax(),
             self::PROTECTION => self::protection(),
             default => null,
         };
@@ -267,7 +271,7 @@ final class CaptureForms
                 self::PERSONAL, self::DOB => self::personalSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::DEPENDANTS => self::dependantSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
-                self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureSentence($schema, self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX => self::expenditureSentence($schema, self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::WORK => self::workSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
             };
@@ -1183,6 +1187,11 @@ final class CaptureForms
      */
     public static function expenditureVariantFor(User $user, bool $detailedAllowed): array
     {
+        // CSJ 2026-09-22: the Save Tax walk asks only what its tax lines read;
+        // spending in full is an action for later, whatever the plan.
+        if (($user->onboarding_fyn_selection ?? null) === 'savetax') {
+            return self::expenditureTax();
+        }
         if (! $detailedAllowed) {
             return self::expenditure();
         }
@@ -1199,6 +1208,18 @@ final class CaptureForms
     {
         if ($schema['name'] === self::EXPENDITURE) {
             return isset($input['monthly_total']) ? 'About '.self::pounds($input['monthly_total']).' goes out each month.' : '';
+        }
+        if ($schema['name'] === self::EXPENDITURE_TAX) {
+            $parts = [];
+            if (isset($input['childcare'])) {
+                $parts[] = 'childcare '.self::pounds($input['childcare']).' a month';
+            }
+            if (isset($input['charitable_donations'])) {
+                $parts[] = 'charitable donations '.self::pounds($input['charitable_donations']).' a month'
+                    .(($input['is_gift_aid'] ?? null) === 'yes' ? ' under Gift Aid' : '');
+            }
+
+            return $parts === [] ? 'No childcare or charitable donations.' : ucfirst(implode(', ', $parts)).'.';
         }
         $parts = [];
         $total = 0.0;
@@ -1218,6 +1239,37 @@ final class CaptureForms
         };
 
         return 'My monthly spending: '.implode(', ', $parts).' — about '.self::pounds($total).' a month in total.'.$household;
+    }
+
+    /**
+     * The Save Tax expenditure step (CSJ 2026-09-22): the two categories its
+     * tax lines read and the Gift Aid fact, through the same one write as the
+     * one-box form. No monthly total — that is an action after the plan.
+     *
+     * @return array<string, mixed>
+     */
+    private static function expenditureTax(): array
+    {
+        $one = self::expenditure();
+
+        return [
+            'name' => self::EXPENDITURE_TAX,
+            'base' => self::EXPENDITURE,
+            'submit_label' => 'Save',
+            'tool' => $one['tool'],
+            'entity_type' => $one['entity_type'],
+            'lead_in' => 'Two things that change your tax.',
+            'lead_fields' => ['childcare', 'charitable_donations', 'is_gift_aid'],
+            'allow_empty' => true,
+            'kinds' => [],
+            'fields' => [
+                'childcare' => ['type' => 'money', 'label' => 'Childcare each month', 'required' => false,
+                    'hint' => 'Nursery, childminder, after school. Leave blank if none'],
+                'charitable_donations' => ['type' => 'money', 'label' => 'Charitable donations each month', 'required' => false,
+                    'hint' => 'Leave blank if none'],
+                'is_gift_aid' => $one['fields']['is_gift_aid'],
+            ],
+        ];
     }
 
     /** @return array<string, mixed> */

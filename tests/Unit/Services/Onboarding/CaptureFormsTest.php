@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'protection'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'expenditure_tax', 'protection'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -505,4 +506,27 @@ it('asks for dividends on the investment and non-working spouse forms and turns 
     ]];
     expect(CaptureForms::toolInputs($spouse)['_lead']['spouse_pays_non_earner_maximum'])->toBe('yes')
         ->and(CaptureForms::summarise($spouse))->toBe('£50,000 in investments, £30,000 in their pension, pays £'.number_format($net).' a year into their pension, £1,500 a year in dividends.');
+});
+
+// CSJ 2026-09-22 (Brett item 11): the Save Tax walk asks only what its tax
+// lines read — childcare, donations, Gift Aid — and no monthly total, on
+// every plan; the other paths keep the one-box and category forms.
+it('the Save Tax expenditure form asks the three tax fields and nothing else', function (): void {
+    $tax = CaptureForms::schema('expenditure_tax');
+    expect($tax['tool'])->toBe('capture_monthly_expenditure')
+        ->and($tax['lead_in'])->toBe('Two things that change your tax.')
+        ->and($tax['lead_fields'])->toBe(['childcare', 'charitable_donations', 'is_gift_aid'])
+        ->and(array_key_exists('monthly_total', $tax['fields']))->toBeFalse()
+        ->and($tax['allow_empty'])->toBeTrue()
+        ->and(CaptureForms::toolInputs(['name' => 'expenditure_tax', 'answers' => ['_lead' => ['childcare' => 600, 'charitable_donations' => 40, 'is_gift_aid' => 'yes']]]))
+        ->toBe(['_lead' => ['childcare' => 600.0, 'charitable_donations' => 40.0, 'is_gift_aid' => 'yes']])
+        ->and(CaptureForms::summarise(['name' => 'expenditure_tax', 'answers' => ['_lead' => ['childcare' => 600, 'charitable_donations' => 40, 'is_gift_aid' => 'yes']]]))
+        ->toBe('Childcare £600 a month, charitable donations £40 a month under Gift Aid.')
+        ->and(CaptureForms::summarise(['name' => 'expenditure_tax', 'answers' => ['_lead' => []]]))->toBe('No childcare or charitable donations.');
+
+    $savetax = User::factory()->make(['onboarding_fyn_selection' => 'savetax']);
+    $other = User::factory()->make(['onboarding_fyn_selection' => 'pensioncheck']);
+    expect(CaptureForms::expenditureVariantFor($savetax, true)['name'])->toBe('expenditure_tax')
+        ->and(CaptureForms::expenditureVariantFor($savetax, false)['name'])->toBe('expenditure_tax')
+        ->and(CaptureForms::expenditureVariantFor($other, false)['name'])->toBe('expenditure');
 });
