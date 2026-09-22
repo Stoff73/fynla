@@ -1,21 +1,21 @@
-# Tech Debt Report — Session 2026-09-22
+# Tech Debt Report — Session 2026-09-22 (release #934)
 
-**Files analysed:** 26 (PRs #919 CI fix, #920–#925)
+**Files analysed:** 14 (PRs #928–#933)
 **Issues found:** 7
-**Severity breakdown:** 0 critical, 4 warnings, 3 suggestions
+**Severity breakdown:** 0 critical, 3 warnings, 4 suggestions
 
 ## Warnings
 
-- **`app/Agents/CoordinatingAgent.php:5380` and `app/Http/Controllers/Api/UserProfileController.php:40`** — Category 1. `FREE_EXPENDITURE_CATEGORIES` (`childcare`, `charitable_donations`) is declared twice with a comment on each saying it mirrors the other. One home (a constant on `App\Support\SharedExpenditure` or a `TierConfiguration` capability) so a third free field is added once.
-- **`app/Services/Onboarding/OnboardingService.php:470–560`** — Category 1. `processExpenditureInfo` maps a hand-written list of category keys in each of its two branches (the separate branch still omits `school_lunches`, `school_extras`, `university_fees`, `gifts_charity`, `regular_savings`, `rent`, `utilities`); today only `charitable_donations` was added. Derive both from the controller's validated list or `SharedExpenditure::shareOf()`'s field set.
-- **`resources/js/mixins/currencyMixin.js:92–100`, `resources/mobile/views/modules/investmentFormat.js:22–26`, `resources/js/components/Retirement/RequiredCapitalDetail.vue:546`, `ios-native/.../InvestmentModels.swift:92–107`** — Category 1. Account-type label maps kept as fallbacks after `account_type_label` moved to the server. `RequiredCapitalDetail.vue` was not switched to the server label at all. Switch it and consider dropping the fallbacks once every payload carries the field.
-- **`app/Agents/CoordinatingAgent.php:5382`** — Category 4. `handleSetExpenditure` is 203 lines and now also writes `is_gift_aid`; the file is 6,960 lines. The Gift Aid write, the free-tier gate and the household split are three extractable steps.
+- **`resources/js/components/Retirement/RequiredCapitalDetail.vue`** — Category 2. Imported nowhere in `resources/js` (0 references). #928 switched it to `account_type_label` and the change is untestable in a browser. Either wire it to the Required Capital drill-down it was written for or delete it with the other MB-09 dead pages. CSJ decision.
+- **`app/Services/Onboarding/OnboardingStateMachine.php:832` and `:1414`** — Category 2. `campaign_verify_announce` and `verifyPromptAnnounce()` are orphaned since #932 (no path returns the state); kept for golden-master parity like `campaign_verify_more`. Two orphaned verify states now. When the Okay-gate decision settles (CSJ "let's try this"), delete both or restore one.
+- **`app/Agents/CoordinatingAgent.php`** — Category 4. 6,979 lines; `handleSetExpenditure` 203 lines, `handleCaptureMonthlyExpenditure` 55, `handleCaptureSpouseNonWorkingAssets` 58. Unchanged finding from yesterday; today added the optional-total branch and the non-earner yes/no. The three expenditure handlers and the spouse handlers are the extraction candidates.
 
 ## Suggestions
 
-- **`resources/js/components/Investment/EmployeeShareSchemeFields.vue:1`** — Category 3. File-level `eslint-disable vue/no-mutating-props` added today to cover 37 pre-existing direct mutations of `modelValue`; the new vesting-frequency input is the 38th. Convert to `update:modelValue` emits when the form is next reworked (noted in the file).
-- **`resources/js/components/Retirement/DCPensionForm.vue:1143`, `resources/js/components/UserProfile/FamilyMemberFormModal.vue:393`** — Category 2. Empty `catch {}` blocks (pre-existing; today only dropped the unused binding). Both intentionally swallow (optional risk profile fetch, date parse); a one-line comment on each would stop the next reader asking.
-- **Servers, not repo** — a `public/.user.ini` with `serialize_precision = -1` was left on fynla.org and csjones; harmless and superseded by `AppServiceProvider::boot`. Remove on the next deploy or leave.
+- **`app/Services/Onboarding/OnboardingChatDirector.php:6423` and `:6479`** — Category 1. `spouseHouseholdAck` and `spouseAssetsAck` build the same "receives £x a year in dividends" and "pays £x a year into their pension" clauses independently. One private clause builder over the household row would serve both acks.
+- **`app/Services/Onboarding/CaptureForms.php:1267`, `:1291`, `:1345`** — Category 1. The childcare hint "Nursery, childminder, after school. Leave blank if none" is written three times (one-box form, tax-only form, detailed form). A shared field definition for `childcare` would keep the copy in one place.
+- **`app/Services/Onboarding/OnboardingService.php` `expenditureColumns()` / `expenditureColumnsOf()`** — Category 1. Two helpers walk the same `SharedExpenditure::SHARED_FIELDS + charitable_donations` list, one over a payload and one over a user model. Fine today; if a third reader appears, make the list a public constant on `SharedExpenditure` and derive both.
+- **`app/Services/Onboarding/CaptureForms.php` `nonEarnerNetContribution()`** — Category 6. A static value class resolving `TaxConfigService` through `app()`. Consistent with the rest of `CaptureForms` (static, no constructor), but it is the first tax-config read in the file; if more follow, inject the service.
 
 ---
 *Generated by tech-debt-session skill*
