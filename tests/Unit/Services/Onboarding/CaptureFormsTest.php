@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 
 it('lists the property form and returns null for an unknown form', function (): void {
     expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'protection'])
@@ -312,7 +313,7 @@ it('the spouse forms fold every section into one household write', function (): 
         ->and(array_column($assets['kinds'], 'label'))->toBe(['Savings', 'ISAs', 'Investments', 'A pension'])
         ->and(CaptureForms::toolInputs(['name' => 'spouse_assets', 'answers' => []]))->toBe(['_lead' => [
             'spouse_existing_savings_balance' => 0.0, 'spouse_existing_isa_balance' => 0.0, 'spouse_existing_investment_balance' => 0.0,
-            'spouse_existing_dividend_holdings_value' => 0.0, 'spouse_existing_pension_balance' => 0.0,
+            'spouse_existing_dividend_holdings_value' => 0.0, 'spouse_annual_dividends' => 0.0, 'spouse_existing_pension_balance' => 0.0,
         ]])
         ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => []]))->toBe('My spouse has nothing in their own name.')
         ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => ['savings' => ['spouse_existing_savings_balance' => 8000]]]))->toBe('£8,000 in savings.');
@@ -481,4 +482,27 @@ it('reads back an unknown spouse income as unknown, not as nothing to add', func
 
     expect($unknownOnly)->toBe("I don't know what my spouse earns, and they have no holdings to add.")
         ->and($unknownWithIsa)->toBe("I don't know what my spouse earns, £7,500 in ISAs with Vanguard.");
+});
+
+// Brett, 2026-09-22: shares pay dividends, so both the main user's investment
+// form and the non-working spouse form ask for them; the non-working spouse's
+// pension contribution is a yes/no worth the relief-at-source maximum.
+it('asks for dividends on the investment and non-working spouse forms and turns the non-earner maximum into a figure', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $form = ['name' => 'investment', 'answers' => [
+        'gia' => ['provider' => 'Hargreaves Lansdown', 'current_value' => 318000, 'annual_dividend_income' => 4200, 'ownership_type' => 'individual'],
+    ]];
+    expect(CaptureForms::toolInputs($form)['gia']['annual_dividend_income'])->toBe(4200.0)
+        ->and(CaptureForms::summarise($form))->toBe('General Investment Account with Hargreaves Lansdown worth £318,000, paying £4,200 a year in dividends, individual.');
+
+    $net = CaptureForms::nonEarnerNetContribution();
+    expect($net)->toBeGreaterThan(0.0)
+        ->and(CaptureForms::schema('spouse_assets')['fields']['spouse_pays_non_earner_maximum']['label'])->toContain(number_format($net));
+
+    $spouse = ['name' => 'spouse_assets', 'answers' => [
+        'investments' => ['spouse_existing_investment_balance' => 50000, 'spouse_annual_dividends' => 1500],
+        'pension' => ['spouse_existing_pension_balance' => 30000, 'spouse_pays_non_earner_maximum' => 'yes'],
+    ]];
+    expect(CaptureForms::toolInputs($spouse)['_lead']['spouse_pays_non_earner_maximum'])->toBe('yes')
+        ->and(CaptureForms::summarise($spouse))->toBe('£50,000 in investments, £30,000 in their pension, pays £'.number_format($net).' a year into their pension, £1,500 a year in dividends.');
 });

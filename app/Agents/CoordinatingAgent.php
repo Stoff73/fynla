@@ -69,6 +69,7 @@ use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\HouseholdProvisioner;
 use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Onboarding\SpouseLinkingService;
@@ -5783,19 +5784,30 @@ class CoordinatingAgent extends BaseAgent
             'spouse_existing_savings_balance',
             'spouse_existing_investment_balance',
             'spouse_existing_dividend_holdings_value',
+            'spouse_annual_dividends',
             'spouse_existing_pension_balance',
         ];
+        // A yes/no rather than an amount (CSJ 2026-09-22): a non-earner's one
+        // sensible contribution is the relief-at-source maximum, whose figure
+        // lives in the tax configuration, not in the caller's input.
+        $paysMaximum = $input['spouse_pays_non_earner_maximum'] ?? null;
+        unset($input['spouse_pays_non_earner_maximum']);
         if (array_diff(array_keys($input), $allowedFields) !== []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse asset fields are not supported.'];
         }
 
         $allowed = array_intersect_key($input, array_flip($allowedFields));
+        if ($paysMaximum !== null && $paysMaximum !== '') {
+            $allowed['spouse_pension_input_annual'] = filter_var($paysMaximum, FILTER_VALIDATE_BOOLEAN)
+                ? CaptureForms::nonEarnerNetContribution()
+                : 0.0;
+        }
         if ($allowed === []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No spouse asset details were provided.'];
         }
 
         $rules = [];
-        foreach ($allowedFields as $field) {
+        foreach ([...$allowedFields, 'spouse_pension_input_annual'] as $field) {
             $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
         }
         $validator = Validator::make($allowed, $rules);
