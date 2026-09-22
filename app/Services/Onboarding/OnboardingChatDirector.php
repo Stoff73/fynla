@@ -19,7 +19,6 @@ use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\OnboardingProgress;
-use App\Models\Property;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
@@ -1748,7 +1747,7 @@ final class OnboardingChatDirector
     private function capReachedAtLoop(User $user, string $stateId): ?array
     {
         [$entityKey, $count, $noun] = match ($stateId) {
-            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE => [PropertyStore::ENTITY_KEY, Property::where('user_id', $user->id)->count(), 'properties'],
+            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE => [PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'],
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'],
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts'],
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'investment accounts'],
