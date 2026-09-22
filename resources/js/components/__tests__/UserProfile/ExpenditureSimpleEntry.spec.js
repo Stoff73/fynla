@@ -91,6 +91,7 @@ describe('ExpenditureForm simple entry', () => {
     const FREE_KEYS = ['childcare', 'charitable_donations'];
     DETAILED_KEYS.filter((key) => !FREE_KEYS.includes(key)).forEach((key) => expect(payload).not.toHaveProperty(key));
     FREE_KEYS.forEach((key) => expect(payload).toHaveProperty(key));
+    expect(payload).toHaveProperty('is_gift_aid');
   });
 
   it('still sends the categories from Detailed View', async () => {

@@ -2286,6 +2286,10 @@ export default {
         use_simple_entry: useSimpleEntry.value,
         expenditure_entry_mode: useSimpleEntry.value ? 'simple' : 'category',
         use_separate_expenditure: useSeparateExpenditure.value,
+        // Gift Aid rides with the donations figure in the SAME request. It used
+        // to go to the personal endpoint in parallel, and two writes to one user
+        // row deadlocked on the audit log (csjones, 2026-09-22).
+        is_gift_aid: isGiftAid.value,
         monthly_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value : totalMonthlyExpenditure.value,
         annual_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value * 12 : totalMonthlyExpenditure.value * 12,
       };
@@ -2347,19 +2351,6 @@ export default {
         // meant to have ended.
         emit('save', saveData);
       }
-
-      // Gift Aid only. `charitable_donations` now posts with every other
-      // category above and the annual figure is derived from it server-side
-      // (User::charitableDonations), so writing the annual here as well would
-      // fight that. It also used to destroy data: the monthly field was never
-      // read back, so it sat at 0, and this call fired on the Gift Aid flag
-      // alone — committing an annual total of 0 over whatever the user or Fyn
-      // had recorded.
-      store.dispatch('userProfile/updatePersonalInfo', {
-        is_gift_aid: isGiftAid.value,
-      }).catch((err) => {
-        logger.error('Failed to save Gift Aid preference to user profile:', err);
-      });
 
       if (!props.isOnboarding) {
         isEditing.value = false;
