@@ -1017,8 +1017,9 @@ final class CaptureForms
         $name = trim((string) ($input['first_name'] ?? ''));
         $who = 'My '.$noun.($name !== '' ? ' '.$name : '');
         $born = isset($input['date_of_birth']) ? ' was born on '.Carbon::parse($input['date_of_birth'])->format('j F Y') : '';
+        $disability = ($input['is_disabled'] ?? null) === 'yes' ? ' and has a disability' : '';
 
-        return $who.$born.'.';
+        return $who.$born.$disability.'.';
     }
 
     /**
@@ -1055,7 +1056,7 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_dependants',
             'entity_type' => 'dependant',
-            'lead_fields' => ['relationship', 'first_name', 'date_of_birth'],
+            'lead_fields' => ['relationship', 'first_name', 'date_of_birth', 'is_disabled'],
             'kinds' => [],
             'fields' => [
                 'relationship' => ['type' => 'choice', 'label' => 'Who they are', 'required' => true, 'options' => [
@@ -1065,6 +1066,12 @@ final class CaptureForms
                 ]],
                 'first_name' => ['type' => 'text', 'label' => 'Their first name', 'required' => false],
                 'date_of_birth' => ['type' => 'date', 'label' => 'Their date of birth', 'required' => true, 'hint' => 'The exact date helps keep the plan correct'],
+                // Tax-Free Childcare pays more, for longer, for a disabled child.
+                'is_disabled' => ['type' => 'choice', 'label' => 'Do they have a disability?', 'required' => false,
+                    'hint' => 'For example they receive Disability Living Allowance or have an Education, Health and Care plan', 'options' => [
+                        ['value' => 'yes', 'label' => 'Yes'],
+                        ['value' => 'no', 'label' => 'No'],
+                    ]],
             ],
         ];
     }

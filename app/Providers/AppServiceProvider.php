@@ -239,6 +239,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // SiteGround's web PHP runs with serialize_precision = 100 and ignores
+        // .user.ini, so every JSON float went out as 6.4199999999999999289...
+        // (seen on fynla.org and csjones, 2026-09-22). -1 is PHP's shortest
+        // round-trip representation, the default everywhere else.
+        ini_set('serialize_precision', '-1');
+
         $this->assertDatabaseCredentialsLoaded();
 
         // Prevent lazy loading in non-production environments to catch N+1 query issues

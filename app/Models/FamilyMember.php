@@ -38,6 +38,7 @@ class FamilyMember extends Model
         'is_dependent',
         'education_status',
         'receives_child_benefit',
+        'is_disabled',
         'linked_user_id',
         'notes',
     ];
@@ -47,6 +48,7 @@ class FamilyMember extends Model
         'annual_income' => 'decimal:2',
         'is_dependent' => 'boolean',
         'receives_child_benefit' => 'boolean',
+        'is_disabled' => 'boolean',
     ];
 
     /**
