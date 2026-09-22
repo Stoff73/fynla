@@ -187,7 +187,7 @@
 
 <script>
 import { apiGet, apiPost } from '../api.js';
-import { store } from '../store.js';
+import { store, inOnboardingVerify } from '../store.js';
 import { primaryNavigationSections } from '../navigation/navigationModel.js';
 import { issueWebHandoff } from '../navigation/webHandoff.js';
 // Shared Fyn onboarding-chat client. The campaign verify flow navigates the user
@@ -273,7 +273,7 @@ export default {
       return this.onboardingActive && !this.fynOpen;
     },
     showVerifyActions() {
-      return this.showOnboardingNudge && String(store.user?.onboarding_fyn_step || '').startsWith('campaign_verify_');
+      return this.showOnboardingNudge && inOnboardingVerify();
     },
     fynIcon() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'images/Fyn/Fynla-Fyn-Icon.png';

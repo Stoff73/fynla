@@ -899,7 +899,7 @@ final class CaptureForms
                 'spouse_existing_savings_balance' => ['type' => 'money', 'label' => 'Savings balance', 'required' => true],
                 'spouse_existing_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
                 'spouse_existing_investment_balance' => ['type' => 'money', 'label' => 'Investments value', 'required' => true],
-                'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none'],
+                'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none or unknown'],
                 'spouse_existing_pension_balance' => ['type' => 'money', 'label' => 'Pension pot value', 'required' => true],
             ],
         ];
@@ -1094,7 +1094,8 @@ final class CaptureForms
             'kinds' => [],
             'fields' => [
                 'employer' => ['type' => 'text', 'label' => 'Employer or trading name', 'required' => true],
-                'occupation' => ['type' => 'text', 'label' => 'Job title or role', 'required' => true],
+                // CSJ 2026-09-22: optional; the employer names the job.
+                'occupation' => ['type' => 'text', 'label' => 'Job title or role', 'required' => false],
                 'annual_income' => ['type' => 'money', 'label' => 'Gross annual income', 'required' => true, 'hint' => 'Before tax, including bonuses and commissions'],
             ],
         ];
@@ -1196,7 +1197,7 @@ final class CaptureForms
             'lead_fields' => ['monthly_total', 'childcare', 'charitable_donations', 'is_gift_aid'],
             'kinds' => [],
             'fields' => [
-                'monthly_total' => ['type' => 'money', 'label' => 'What goes out each month', 'required' => true,
+                'monthly_total' => ['type' => 'money', 'label' => 'What your household spends each month', 'required' => true,
                     'hint' => 'Rent or mortgage, bills, food, transport, the lot. A ballpark figure is fine'],
                 'childcare' => ['type' => 'money', 'label' => 'Of that, childcare', 'required' => false,
                     'hint' => 'Nursery, childminder, after school. Leave blank if none'],

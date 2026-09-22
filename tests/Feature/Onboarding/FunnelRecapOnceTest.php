@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Onboarding\FunnelIncomeBand;
+use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\TaxConfigService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -103,4 +104,25 @@ it('keeps the recap wording from the tax year in which the funnel was completed'
     expect(OnboardingStateMachine::buildWorkPrompt('', $user))
         ->toContain('Earning up to £50,270')
         ->not->toContain('Earning up to £60,000');
+});
+
+// The recap and the income question are separate bubbles on a typed client,
+// joined by BUBBLE_BREAK. A forms client gets both as the one lead-in above
+// the work form, so the marker must never reach it (it rendered as a box on
+// iOS, Brett 2026-09-22).
+it('never streams the bubble-break marker in the work form lead-in', function () {
+    $user = campaignWorkUser();
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $step = OnboardingStateMachine::STATE_BASE_WORK;
+
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $events = iterator_to_array($director->emitTurnForState($user, $conversation, $step, OnboardingStateMachine::getState($step)), false);
+    $form = collect($events)->firstWhere('type', 'capture_form');
+
+    expect($form)->not->toBeNull()
+        ->and($form['prompt_text'])->not->toContain(OnboardingStateMachine::BUBBLE_BREAK)
+        ->and($form['prompt_text'])->toContain('thanks for those answers')
+        ->and($form['prompt_text'])->toContain("\n\n**Let's start with your income.**")
+        ->and($conversation->fresh()->messages()->where('role', 'assistant')->value('content'))->not->toContain(OnboardingStateMachine::BUBBLE_BREAK);
 });
