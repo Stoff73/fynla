@@ -84,7 +84,8 @@ it('explains summary-only expenditure without exposing hidden category values', 
     $response = $this->actingAs($user)->getJson('/api/user/profile');
 
     $response->assertOk()
-        ->assertJsonMissingPath('data.expenditure.categories')
+        // A free user reads back only the two free-tier categories (CSJ, 2026-09-22).
+        ->assertJsonPath('data.expenditure.categories', fn ($categories) => array_keys((array) $categories) === ['childcare', 'charitable_donations'])
         ->assertJsonPath('data.expenditure.presentation.entry_mode', 'summary')
         ->assertJsonPath('data.expenditure.presentation.active_monthly_total', 1800)
         ->assertJsonPath('data.expenditure.presentation.active_annual_total', 21600)
