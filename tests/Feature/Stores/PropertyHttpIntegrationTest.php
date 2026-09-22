@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\TierGate;
 use Carbon\Carbon;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -74,7 +75,9 @@ it('rejects updates from a non-owner', function () {
 
 it('returns the typed subscription destination when the free property cap is reached', function () {
     $user = User::factory()->create(['tier' => 'free']);
-    Property::factory()->create(['user_id' => $user->id]);
+    // The Free plan holds two properties (74b6ef3c8); fill the seeded cap, never pin it.
+    $cap = app(TierGate::class)->hardLimit($user, 'property');
+    Property::factory($cap)->create(['user_id' => $user->id]);
 
     $this->actingAs($user)->postJson('/api/properties', [
         'property_type' => 'buy_to_let',
@@ -91,7 +94,7 @@ it('returns the typed subscription destination when the free property cap is rea
         ->assertJsonPath('destination.screen', 'subscription')
         ->assertJsonPath('destination.fallback', 'net_worth');
 
-    expect(Property::where('user_id', $user->id)->count())->toBe(1);
+    expect(Property::where('user_id', $user->id)->count())->toBe($cap);
 });
 
 it('refuses a stated 100% share on a joint property instead of rewriting it', function () {
