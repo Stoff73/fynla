@@ -186,6 +186,9 @@ describe('PUT /api/user/profile/personal', function () {
             ->and((float) $fresh->charitable_donations)->toBe(40.0)
             ->and($fresh->expenditure_entry_mode)->toBe('simple');
 
+        // The request user is the model instance actingAs() pinned before the
+        // write; read back as a fresh session would.
+        $this->actingAs($fresh, 'sanctum');
         $profile = $this->getJson('/api/user/profile')->assertOk()->json('data');
         expect((float) data_get($profile, 'expenditure.categories.childcare'))->toBe(700.0)
             ->and((float) data_get($profile, 'expenditure.categories.charitable_donations'))->toBe(40.0);
