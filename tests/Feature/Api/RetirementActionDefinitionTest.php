@@ -47,8 +47,11 @@ describe('Admin Retirement Action Definitions API', function () {
                 ],
             ]);
 
-        // 21 agent rows + 4 source='strategy' composer catalogue rows (Phase 2).
-        expect($response->json('data'))->toHaveCount(25);
+        // The endpoint lists every seeded definition; the seeder is the oracle, not
+        // a literal that goes stale each time a definition is added (25 became 26
+        // with 347fbe88b and the test sat red for weeks).
+        expect($response->json('data'))->toHaveCount(RetirementActionDefinition::count())
+            ->and(RetirementActionDefinition::count())->toBeGreaterThanOrEqual(25);
     });
 
     it('denies access to non-admin users', function () {

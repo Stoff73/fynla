@@ -168,8 +168,12 @@ it('does not acknowledge an unmatched completion webhook', function () {
 });
 
 it('canonicalises a trusted retired-tier payment on confirmation without rewriting its history', function () {
-    $user = User::factory()->create(['plan' => 'tier2', 'tier' => null]);
-    [$subscription, $payment] = pendingPaymentFor($user, 'tier2');
+    // users.plan and subscriptions.plan hold only free and premium since the
+    // 2026-09-08 collapse; the retired slug survives on the payment row, which is
+    // what PaymentSettlementService canonicalises.
+    $user = User::factory()->create(['plan' => 'free', 'tier' => 'free']);
+    [$subscription, $payment] = pendingPaymentFor($user);
+    $payment->update(['plan_slug' => 'tier2']);
 
     $revolut = Mockery::mock(RevolutService::class);
     $revolut->shouldReceive('getOrder')->once()->andReturn([
@@ -195,8 +199,12 @@ it('canonicalises a trusted retired-tier payment on confirmation without rewriti
 });
 
 it('canonicalises a trusted retired-tier payment completed by webhook', function () {
-    $user = User::factory()->create(['plan' => 'tier3', 'tier' => null]);
-    [$subscription, $payment] = pendingPaymentFor($user, 'tier3');
+    // users.plan and subscriptions.plan hold only free and premium since the
+    // 2026-09-08 collapse; the retired slug survives on the payment row, which is
+    // what PaymentSettlementService canonicalises.
+    $user = User::factory()->create(['plan' => 'free', 'tier' => 'free']);
+    [$subscription, $payment] = pendingPaymentFor($user);
+    $payment->update(['plan_slug' => 'tier3']);
 
     $revolut = Mockery::mock(RevolutService::class);
     $revolut->shouldReceive('verifyWebhookSignature')->once()->andReturnTrue();
