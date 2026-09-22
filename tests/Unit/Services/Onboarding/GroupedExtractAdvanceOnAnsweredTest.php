@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
  * campaign2_state_pension is grouped_extract with advance_on_answered_question: true.
  * When the user says "not sure", the LLM returns no capture (capture_state_pension
  * is never called). Before the fix the director called emitRetry forever; after the
- * fix it advances to the next state (campaign_verify_announce, via enterCampaignVerify).
+ * fix it advances to the next state (campaign_verify_navigate, via enterCampaignVerify).
  *
  * campaign2_flexible_access is converted from grouped_extract to delegated with
  * advance_on_answered_question: true, so "No" advances without a tool call.

@@ -108,7 +108,7 @@ it('nextFromCampaignPensionContribs sends a savetax user back through the pot lo
 it('nextFromPensionPots closes the savetax pensions section once contributions were asked', function (): void {
     $user = pensioncheckUser(['onboarding_fyn_selection' => 'savetax', 'onboarding_fyn_context' => ['pension_contribs_done' => true]]);
     DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 45000]);
-    expect(SM::nextFromPensionPots('done', $user))->toBe('campaign_verify_announce')
+    expect(SM::nextFromPensionPots('done', $user))->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('pensions')
         ->and($user->fresh()->onboarding_fyn_context['pension_contribs_done'] ?? null)->toBeNull();
 });
@@ -142,7 +142,7 @@ it('nextFromCampaignPensionContribs routes savetax through the pot loop, never t
     // closes the section at the verify announce — never pension_db.
     expect($next)->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS)
         ->and($next)->not->toBe(SM::STATE_CAMPAIGN2_PENSION_DB)
-        ->and(SM::nextFromPensionPots('done', $user->fresh()))->toBe('campaign_verify_announce');
+        ->and(SM::nextFromPensionPots('done', $user->fresh()))->toBe('campaign_verify_navigate');
 });
 
 // campaign2_pension_db.next = campaign2_flexible_access (static)
@@ -543,11 +543,11 @@ it('campaign2_state_pension has advance_on_answered_question set', function (): 
     expect($state['advance_on_answered_question'] ?? false)->toBeTrue();
 });
 
-it('campaign2_state_pension transitions to campaign_verify_announce on answer', function (): void {
+it('campaign2_state_pension transitions to campaign_verify_navigate on answer', function (): void {
     $user = pensioncheckUser();
-    // enterCampaignVerify stamps verify_section + returns campaign_verify_announce.
+    // enterCampaignVerify stamps verify_section + returns campaign_verify_navigate.
     $next = SM::getNextStateId(SM::STATE_CAMPAIGN2_STATE_PENSION, 'not sure', $user);
-    expect($next)->toBe('campaign_verify_announce');
+    expect($next)->toBe('campaign_verify_navigate');
 });
 
 it('campaign2_state_pension uses the capture_state_pension extraction tool', function (): void {
@@ -904,7 +904,7 @@ it('never asks for a declined pension value twice — the second pass only asks 
     expect(SM::nextFromCampaignPensionContribs('No', $user))->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS);
     $user = $user->fresh();
     expect(SM::skipIfNoPensionPotToFill($user))->toBeTrue()
-        ->and(SM::nextFromPensionPots('', $user))->toBe('campaign_verify_announce');
+        ->and(SM::nextFromPensionPots('', $user))->toBe('campaign_verify_navigate');
 
     // Same walk, but a SIPP was added at the contributions step: only the
     // SIPP is asked, the declined workplace value is not, and "don't know"
@@ -920,7 +920,7 @@ it('never asks for a declined pension value twice — the second pass only asks 
         ->and(SM::buildPensionPotsPrompt('', $user2))->toContain('Vanguard SIPP')
         ->and(SM::buildPensionPotsPrompt('', $user2))->not->toContain('Workplace')
         ->and(SM::buildPensionPotsPrompt('', $user2))->not->toContain('pension pension');
-    expect(SM::nextFromPensionPots("don't know", $user2))->toBe('campaign_verify_announce');
+    expect(SM::nextFromPensionPots("don't know", $user2))->toBe('campaign_verify_navigate');
     expect($user2->fresh()->onboarding_fyn_context['pension_value_declined'] ?? [])->toBe([$wp2->id, $sipp->id]);
 });
 
@@ -946,7 +946,7 @@ it('walks the property section after investments when the funnel ticked property
     // The capture-end asks whether there's another property to add (CSJ
     // 2026-09-16) before entering the verify announce for the property page.
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY, 'my home is worth 450000, joint with my wife', $with))->toBe('campaign_property_more');
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY_MORE, "No, that's everything", $with))->toBe('campaign_verify_announce')
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY_MORE, "No, that's everything", $with))->toBe('campaign_verify_navigate')
         ->and($with->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('property');
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY_MORE, 'Yes, add another', $with))->toBe(SM::STATE_CAMPAIGN_PROPERTY);
 });

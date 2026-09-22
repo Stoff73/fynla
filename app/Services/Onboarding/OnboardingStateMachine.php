@@ -826,13 +826,9 @@ final class OnboardingStateMachine
             ],
             // ── SaveTax verify sub-flow (generic; section in context) ──────
             // Entered via enterCampaignVerify() which stamps verify_section.
-            // Announce-before-navigate: Fyn says it's taking the user to the
-            // section's page and waits for an explicit "Okay" tap BEFORE the
-            // navigation fires. Without this gate the navigate event fired in the
-            // same turn as the message, so the chat minimised and the user never
-            // saw/acknowledged the handoff — it "just transitioned". No navigate_to
-            // here on purpose; the Okay tap advances to campaign_verify_navigate,
-            // which owns the actual navigation.
+            // The announce state was the Okay gate before the navigation; no
+            // path enters it since 2026-09-22 (CSJ: fewer taps). It stays
+            // defined for golden-master parity.
             'campaign_verify_announce' => [
                 'prompt_text' => self::class.'::verifyPromptAnnounce',
             ],
@@ -840,8 +836,8 @@ final class OnboardingStateMachine
             // resolves to a route (director extension): the chat minimises + routes,
             // and the "is this correct?" bubbles wait for the user to reopen.
             // navigate_to is a code-only closure (null for charitable giving =
-            // inline confirm, no navigation). Reached only AFTER the user taps
-            // Okay on campaign_verify_announce.
+            // inline confirm, no navigation). Entered directly from the
+            // section's capture end.
             'campaign_verify_navigate' => [
                 'prompt_text' => self::class.'::verifyPromptNavigate',
                 'navigate_to' => fn (User $user): ?string => self::verifyNavigateRoute($user),
@@ -1219,11 +1215,12 @@ final class OnboardingStateMachine
                 : self::journeyAfterVerify($section, $user);
         }
 
-        // Announce first: Fyn states it's taking the user to the section page and
-        // waits for an "Okay" tap before navigating (campaign_verify_announce →
-        // campaign_verify_navigate). The section's own capture "anything else?"
-        // gate already covered "more"; we never ask it again.
-        return 'campaign_verify_announce';
+        // Straight to the page (CSJ 2026-09-22, Brett item 4): the section's
+        // capture end already answered "anything else?", and the Okay tap that
+        // used to sit between it and the navigation was one more tap for no
+        // information. campaign_verify_announce stays in the table, orphaned,
+        // for golden-master parity like campaign_verify_more.
+        return 'campaign_verify_navigate';
     }
 
     /**

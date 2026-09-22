@@ -138,7 +138,7 @@ it('only asks ISA when ISA was ticked, bank/savings otherwise', function () {
         ->and(SM::nextCampaignSection('income', $bankOnly))->toBe(SM::STATE_CAMPAIGN_BANK_ACCOUNTS)
         // The "another ISA?" loop skips with the ISA question (CSJ 2026-09-16 forms):
         // an ISA-only user's "No" leaves the savings section for the verify gate.
-        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ISA_MORE, "No, that's everything", $isaOnly))->toBe('campaign_verify_announce');
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ISA_MORE, "No, that's everything", $isaOnly))->toBe('campaign_verify_navigate');
 });
 
 it('opens the income-first entry with the funnel recap greeting', function () {
@@ -239,12 +239,12 @@ it('runs verify+confirm before the section advice, then advice → next section'
     // the investments entry. (See CampaignVerifyFlowTest for the full walk.)
     // CSJ 2026-09-16: the bank step asks "another account?" first; "No" enters the gate.
     expect(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS, '', $u))->toBe(SM::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE)
-        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE, "No, that's everything", $u))->toBe('campaign_verify_announce')
+        ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE, "No, that's everything", $u))->toBe('campaign_verify_navigate')
         ->and(SM::getNextStateId(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, '', $u))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
 
     // Pensions' last capture (personal contributions) → announce gate.
     // The carry-forward history question was removed (CSJ).
-    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_CONTRIBS, '', $u))->toBe('campaign_verify_announce');
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PENSION_CONTRIBS, '', $u))->toBe('campaign_verify_navigate');
 
     // Income end (employment-more "no") → no details page on the Save Tax walk
     // (CSJ 2026-09-16): straight to the income advice, then the next section.

@@ -36,7 +36,7 @@ it('verifies a journey module capture that landed data', function (): void {
 
     $next = OnboardingStateMachine::nextFromAssetCapture('done', $user);
 
-    expect($next)->toBe('campaign_verify_announce')
+    expect($next)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('savings')
         ->and($user->fresh()->onboarding_fyn_context['verify_origin'])->toBe('journey_module');
 });
@@ -67,7 +67,7 @@ it('maps each journey focus to its verify section', function (): void {
         $seed($user);
 
         expect(OnboardingStateMachine::nextFromAssetCapture('done', $user))
-            ->toBe('campaign_verify_announce');
+            ->toBe('campaign_verify_navigate');
         expect($user->fresh()->onboarding_fyn_context['verify_section'])->toBe($section);
     }
 });
@@ -108,7 +108,7 @@ it('verifies journey income when earnings were captured and skips when none were
         'onboarding_fyn_context' => [],
     ]);
     expect(OnboardingStateMachine::nextFromEmploymentMore('no', $earner))
-        ->toBe('campaign_verify_announce');
+        ->toBe('campaign_verify_navigate');
     expect($earner->fresh()->onboarding_fyn_context['verify_section'])->toBe('income');
 
     $noIncome = User::factory()->create([
@@ -133,7 +133,7 @@ it('routes journey expenditure through the verify instead of the in-chat profile
     $states = $m->invoke(null);
     $next = ($states[OnboardingStateMachine::STATE_BASE_EXPENDITURE]['next'])('3400', $user);
 
-    expect($next)->toBe('campaign_verify_announce')
+    expect($next)->toBe('campaign_verify_navigate')
         ->and($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('expenditure')
         ->and($user->fresh()->onboarding_fyn_context['verify_origin'])->toBe('journey_base');
 });
