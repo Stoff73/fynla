@@ -179,11 +179,13 @@ describe('PUT /api/user/profile/personal', function () {
             'monthly_expenditure' => 2500,
             'childcare' => 700,
             'charitable_donations' => 40,
+            'is_gift_aid' => true,
         ])->assertOk();
 
         $fresh = $this->user->fresh();
         expect((float) $fresh->childcare)->toBe(700.0)
             ->and((float) $fresh->charitable_donations)->toBe(40.0)
+            ->and($fresh->is_gift_aid)->toBeTrue()
             ->and($fresh->expenditure_entry_mode)->toBe('simple');
 
         // The request user is the model instance actingAs() pinned before the

@@ -463,6 +463,13 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
+        // The Gift Aid flag travels with the donations figure (2026-09-22).
+        $giftAid = $data['is_gift_aid'] ?? $data['userData']['is_gift_aid'] ?? null;
+        if ($giftAid !== null) {
+            $user->is_gift_aid = filter_var($giftAid, FILTER_VALIDATE_BOOLEAN);
+            $user->save();
+        }
+
         // Check if this is separate mode data (has userData and spouseData keys)
         if (isset($data['userData']) && isset($data['spouseData'])) {
             // Separate mode: Update current user with userData

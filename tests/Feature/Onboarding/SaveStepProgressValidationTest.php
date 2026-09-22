@@ -121,11 +121,13 @@ it('stores childcare and charitable donations from the onboarding expenditure st
             'annual_expenditure' => 30000,
             'childcare' => 700,
             'charitable_donations' => 40,
+            'is_gift_aid' => true,
         ],
     ])->assertOk();
 
     $fresh = $this->user->fresh();
     expect((float) $fresh->childcare)->toBe(700.0)
         ->and((float) $fresh->charitable_donations)->toBe(40.0)
+        ->and($fresh->is_gift_aid)->toBeTrue()
         ->and((float) $fresh->monthly_expenditure)->toBe(2500.0);
 });
