@@ -36,6 +36,9 @@ class UserProfileController extends Controller
      * categories in this payload", so gating on it made a Simple View save
      * indistinguishable from a detailed one (W-0011).
      */
+    /** Categories a free user may record and read back (CSJ, 2026-09-22); mirrored by CoordinatingAgent. */
+    private const FREE_EXPENDITURE_CATEGORIES = ['childcare', 'charitable_donations'];
+
     private const DETAILED_EXPENDITURE_FIELDS = [
         'food_groceries',
         'transport_fuel',
@@ -48,14 +51,15 @@ class UserProfileController extends Controller
         'entertainment_dining',
         'holidays_travel',
         'pets',
-        'childcare',
+        // `childcare` and `charitable_donations` are NOT here (CSJ, 2026-09-22):
+        // they feed the Tax-Free Childcare line and the Gift Aid band extension,
+        // which a free user sees, so a free user must be able to record them.
         'school_fees',
         'school_lunches',
         'school_extras',
         'university_fees',
         'children_activities',
         'gifts_charity',
-        'charitable_donations',
         'regular_savings',
         'other_expenditure',
         'retired_budget_overrides',
@@ -80,7 +84,12 @@ class UserProfileController extends Controller
 
         $profile = $this->userProfileService->getCompleteProfile($user);
         if (! $this->canUseDetailedExpenditure($user)) {
-            unset($profile['expenditure']['categories']);
+            // Childcare and charitable donations are free-tier fields (CSJ,
+            // 2026-09-22); the rest of the breakdown stays Premium.
+            $profile['expenditure']['categories'] = array_intersect_key(
+                $profile['expenditure']['categories'] ?? [],
+                array_flip(self::FREE_EXPENDITURE_CATEGORIES),
+            );
             $profile['expenditure']['presentation']['detail_available'] = false;
             if (($profile['expenditure']['presentation']['entry_mode'] ?? null) === 'category') {
                 $profile['expenditure']['presentation']['summary_only_reason'] =

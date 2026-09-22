@@ -38,7 +38,7 @@
                 {{ formatOwnershipType(account.ownership_type) }}
               </span>
               <span :class="['badge', accountTypeBadgeClass(account.account_type)]">
-                {{ formatAccountType(account.account_type) }}
+                {{ accountTypeLabel(account) }}
               </span>
             </div>
             <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ account.provider }}</h1>
@@ -1042,16 +1042,9 @@ export default {
       return levels[level] || level;
     },
 
-    formatAccountType(type) {
-      const types = {
-        'isa': 'Stocks & Shares ISA', 'sipp': 'Self-Invested Personal Pension', 'gia': 'General Investment Account',
-        'pension': 'Pension', 'nsi': 'National Savings & Investments', 'onshore_bond': 'Onshore Bond',
-        'offshore_bond': 'Offshore Bond', 'vct': 'Venture Capital Trust', 'eis': 'Enterprise Investment Scheme',
-        'saye': 'Save As You Earn', 'csop': 'Company Share Option Plan', 'emi': 'Enterprise Management Incentive Options',
-        'unapproved_options': 'Unapproved Options', 'rsu': 'Restricted Stock Units',
-        'private_company': 'Private Company', 'crowdfunding': 'Crowdfunding', 'other': 'Other',
-      };
-      return types[type] || type;
+    // Server label first (InvestmentAccountTypes); the mixin covers older payloads.
+    accountTypeLabel(account) {
+      return account.account_type_label || this.formatAccountType(account.account_type);
     },
 
     formatOwnershipType(type) {

@@ -151,3 +151,35 @@ it('does not write the incidental category zeros a simple save carries', functio
     // clear through a form that never showed them.
     expect((float) $free->fresh()->food_groceries)->toBe(123.45);
 });
+
+it('lets a free user record childcare, charitable donations and Gift Aid through Fyn, and still refuses the other categories', function (): void {
+    $user = User::factory()->create(['is_gift_aid' => false]);
+    $method = new ReflectionMethod(CoordinatingAgent::class, 'handleSetExpenditure');
+
+    $allowed = $method->invoke(app(CoordinatingAgent::class), ['childcare' => 900, 'charitable_donations' => 100, 'is_gift_aid' => true], $user, false);
+    $user->refresh();
+
+    expect($allowed['blocked'] ?? false)->toBeFalse()
+        ->and((float) $user->childcare)->toBe(900.0)
+        ->and((float) $user->charitable_donations)->toBe(100.0)
+        ->and($user->is_gift_aid)->toBeTrue();
+
+    $refused = $method->invoke(app(CoordinatingAgent::class), ['childcare' => 900, 'food_groceries' => 400], $user, false);
+    expect($refused['blocked'])->toBeTrue();
+});
+
+it('writes childcare, charitable donations and Gift Aid beside the monthly total on the free plan', function (): void {
+    $user = User::factory()->create(['is_gift_aid' => false]);
+
+    $result = app(CoordinatingAgent::class)->handleCaptureMonthlyExpenditure(
+        ['monthly_total' => 2400, 'childcare' => 600, 'charitable_donations' => 50, 'is_gift_aid' => 'yes'],
+        $user,
+    );
+    $user->refresh();
+
+    expect($result['onboarding_capture'])->toBeTrue()
+        ->and((float) $user->monthly_expenditure)->toBe(2400.0)
+        ->and((float) $user->childcare)->toBe(600.0)
+        ->and((float) $user->charitable_donations)->toBe(50.0)
+        ->and($user->is_gift_aid)->toBeTrue();
+});

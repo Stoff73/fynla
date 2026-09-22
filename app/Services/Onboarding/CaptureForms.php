@@ -1184,11 +1184,21 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_monthly_expenditure',
             'entity_type' => 'expenditure',
-            'lead_fields' => ['monthly_total'],
+            // Childcare, charitable donations and Gift Aid are free-tier fields
+            // (CSJ, 2026-09-22): the tax lines a free user sees read them.
+            'lead_fields' => ['monthly_total', 'childcare', 'charitable_donations', 'is_gift_aid'],
             'kinds' => [],
             'fields' => [
                 'monthly_total' => ['type' => 'money', 'label' => 'What goes out each month', 'required' => true,
                     'hint' => 'Rent or mortgage, bills, food, transport, the lot. A ballpark figure is fine'],
+                'childcare' => ['type' => 'money', 'label' => 'Of that, childcare', 'required' => false,
+                    'hint' => 'Nursery, childminder, after school. Leave blank if none'],
+                'charitable_donations' => ['type' => 'money', 'label' => 'Of that, charitable donations', 'required' => false,
+                    'hint' => 'Leave blank if none'],
+                'is_gift_aid' => ['type' => 'choice', 'label' => 'Are your donations made under Gift Aid?', 'required' => false, 'options' => [
+                    ['value' => 'yes', 'label' => 'Yes'],
+                    ['value' => 'no', 'label' => 'No'],
+                ]],
             ],
         ];
     }

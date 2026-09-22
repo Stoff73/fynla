@@ -246,7 +246,7 @@
                 class="badge"
                 :class="getInvestmentTypeBadgeClass(investment.account_type)"
               >
-                {{ formatInvestmentAccountType(investment.account_type) }}
+                {{ formatInvestmentAccountType(investment) }}
               </span>
             </div>
 
@@ -1187,26 +1187,9 @@ export default {
     };
 
     // Investment account helper functions
-    const formatInvestmentAccountType = (type) => {
-      const types = {
-        'isa': 'ISA',
-        'sipp': 'Self-Invested Personal Pension',
-        'gia': 'General Investment Account',
-        'pension': 'Pension',
-        'nsi': 'National Savings & Investments',
-        'onshore_bond': 'Onshore Bond',
-        'offshore_bond': 'Offshore Bond',
-        'vct': 'Venture Capital Trust',
-        'eis': 'Enterprise Investment Scheme',
-        'saye': 'Save As You Earn',
-        'csop': 'Company Share Option Plan',
-        'emi': 'Enterprise Management Incentive',
-        'unapproved_options': 'Options',
-        'rsu': 'Restricted Stock Units',
-        'other': 'Other',
-      };
-      return types[type] || type;
-    };
+    // The label travels with the account (InvestmentAccountTypes on the server).
+    const formatInvestmentAccountType = (investment) =>
+      investment.account_type_label || String(investment.account_type || '').replace(/_/g, ' ');
 
     const isShareScheme = (investment) => ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'].includes(investment.account_type);
 

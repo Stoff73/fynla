@@ -111,3 +111,21 @@ it("names the field's own message for a bad phone number, not the data.phone att
         ->assertJsonValidationErrors(['data.phone' => 'Please enter a valid UK phone number']);
 });
 
+it('stores childcare and charitable donations from the onboarding expenditure step in Simple View', function () {
+    $this->postJson('/api/onboarding/step', [
+        'step_name' => 'expenditure',
+        'data' => [
+            'use_simple_entry' => true,
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 2500,
+            'annual_expenditure' => 30000,
+            'childcare' => 700,
+            'charitable_donations' => 40,
+        ],
+    ])->assertOk();
+
+    $fresh = $this->user->fresh();
+    expect((float) $fresh->childcare)->toBe(700.0)
+        ->and((float) $fresh->charitable_donations)->toBe(40.0)
+        ->and((float) $fresh->monthly_expenditure)->toBe(2500.0);
+});

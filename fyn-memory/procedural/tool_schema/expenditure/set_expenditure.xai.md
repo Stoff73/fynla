@@ -168,6 +168,13 @@ effective_from: 2026-06-02
                     "null"
                 ],
                 "description": "Any other monthly expenses in pounds."
+            },
+            "is_gift_aid": {
+                "type": [
+                    "boolean",
+                    "null"
+                ],
+                "description": "True when the user says their charitable donations are made under Gift Aid, false when they say they are not. Null when not mentioned."
             }
         },
         "required": [
@@ -192,7 +199,8 @@ effective_from: 2026-06-02
             "children_activities",
             "gifts_charity",
             "charitable_donations",
-            "other_expenditure"
+            "other_expenditure",
+            "is_gift_aid"
         ],
         "additionalProperties": false
     },
