@@ -1,12 +1,8 @@
-# Tech Debt Report — Session 2026-09-18
+# Tech Debt Report — Session 2026-09-19
 
-**Files analysed:** 21 (the /m onboarding fixes and the dashboard card removal)
-**Issues found:** 0 critical, 2 warnings, 2 suggestions
-
-The new code is clean: every new PHP file carries `declare(strict_types=1)`, no
-debug leftovers, no banned colours or hex in the changed style blocks, no
-hardcoded tax values, no re-implemented currency or ownership helpers.
-`EmploymentIncomeService` is 110 lines with a 29-line longest method.
+**Files analysed:** 7 (the diff of PRs #916 and #917: `app/Agents/SavingsAgent.php`, `app/Services/Onboarding/CaptureForms.php`, `app/Services/Onboarding/OnboardingChatDirector.php`, `app/Services/Onboarding/SpouseJointRecords.php`, `tests/Feature/Api/SpouseDashboardSavingsTileTest.php`, `tests/Feature/Onboarding/SpouseJointRecordsTest.php`, `tests/Unit/Services/Onboarding/CaptureFormsTest.php`)
+**Issues found:** 4
+**Severity breakdown:** 0 critical, 1 warning, 3 suggestions
 
 ## Critical Issues
 
@@ -14,48 +10,27 @@ None.
 
 ## Warnings
 
-**1. `app/Services/UserProfile/UserProfileService.php:413` — the employment
-detail line reads a relation per person.**
-`incomeSources()` now maps `$person->employments` for the "employer · role"
-detail. It is eager-loaded for the user (`getCompleteProfile`) and explicitly
-loaded for the spouse (`spouseIncomeSources`), so there is no N+1 today — but
-the guard is two `load`/`loadMissing` calls in separate methods rather than
-anything structural. A third caller of `incomeSources()` would lazy-load.
-*Fix when it bites:* have `incomeSources()` itself `loadMissing('employments')`
-rather than trusting each caller.
-
-**2. `resources/mobile/views/Dashboard.vue` — 1,065 lines.**
-Down from 1,087 (the card removal took 22 lines out), so it moved the right way,
-but still the largest view in the mobile bundle. Standing item from 2026-09-17.
-*Fix when it grows again:* lift the Fyn overlay out.
+### 1. The onboarding scratch is cleared in three copies — `app/Services/Onboarding/OnboardingChatDirector.php:862-867`, `:6317-6322`, `:7667-7672`
+**Category:** Duplicate code (within-file)
+Each site resets the same five columns (`onboarding_fyn_step`, `onboarding_fyn_path`, `onboarding_fyn_selection`, `onboarding_fyn_context`, `active_campaign`) and now carries the same two-line comment and the same `SpouseJointRecords::carry()` call. The duplication predates today; today's fix added a fourth line to each copy. A future column added to one site and not the others is the same class of bug as the one fixed today.
+**Suggested fix:** one private `clearOnboardingScratch(User $user): void` in the director that the three sites call; the restart site keeps its own `onboarding_fyn_step` rule beside it.
 
 ## Suggestions
 
-**1. Deliberately unused code, kept on CSJ's instruction (2026-09-18).**
-`.md-next-milestone`, `.md-insight`, `.md-milestone` and
-`.md-callout--below-nudge` in `resources/mobile/views/dashboard.css`, plus
-`ios-native/Fynla/Features/Dashboard/NextMilestoneView.swift`. All are commented
-with why they are there and what to restore alongside them. **Not debt to
-action** — an audit flagging these for deletion is declined, not actioned.
+### 2. Two extra queries on the gated savings return — `app/Agents/SavingsAgent.php:79-80`
+**Category:** Complexity & maintainability
+`calculateCashTotal($userId)` does `User::findOrFail` and `savingsStore->forUser` internally, then line 80 calls `forUser($user)` again for the count, so the gated branch loads the user once more and the accounts twice. Cheap, but the un-gated branch below (line 108) already has the loaded `$accounts` collection and the same total.
+**Suggested fix:** compute `$accounts = $this->savingsStore->forUser($user)` once above the gate and derive both the count and, via `atUserShare`, the total from it — or give `CrossModuleAssetAggregator` a `calculateCashTotalFor(User $user)` overload that skips the re-fetch.
 
-**2. `app/Agents/CoordinatingAgent.php:2178` — the job-count query.**
-`handleCaptureWorkDetails` returns a `jobs` count with an inline ternary
-repeating the employment/self-employment branch that `EmploymentIncomeService`
-already owns in `incomeTypeFor()`. Harmless, but it is the same decision
-expressed twice.
-*Fix:* expose the resolved type from the service and read it here.
+### 3. The unknown-income sentence lives in two places — `app/Services/Onboarding/CaptureForms.php:605` and `:629-631`
+**Category:** Duplicate code (within-file)
+"I don't know what my spouse earns" is pushed as a part at line 605 and repeated verbatim inside the special-case return at line 630. A wording change has to be made twice.
+**Suggested fix:** build the special case from the part: `return $parts[0].', and they have no holdings to add.';`.
 
-## Standing — do not re-raise
-
-- **`CaptureForms.php` is never to be split** (CSJ ruling 53). An audit flagging
-  it for length is declined.
-- The level-celebration rule in three copies (JS ×2, Swift) — deliberate, guarded
-  by shared test vectors. Do not "fix" by importing across bundles.
-- `playBankedLevels()` duplicated across the two Vue dashboards — extract only if
-  it needs changing twice more.
-- `HolisticPlan.vue:90`'s fourth `MODULE_LABELS` map.
-- "Free plan" hardcoded at `OnboardingChatDirector.php:1105`.
-- `handleFormTurn` at 142 lines.
+### 4. The test hedges over the response envelope — `tests/Feature/Api/SpouseDashboardSavingsTileTest.php:27`
+**Category:** Inconsistency with existing patterns (test discipline)
+`$data = $res['data'] ?? $res;` accepts either envelope shape, so the test cannot notice the endpoint changing its envelope. The other mobile dashboard tests read `$response->json('data.modules.savings')` directly.
+**Suggested fix:** assert the envelope: `$data = $this->getJson('/api/v1/mobile/dashboard')->assertOk()->json('data');` and `expect($data)->not->toBeNull()`.
 
 ---
 *Generated by tech-debt-session skill*

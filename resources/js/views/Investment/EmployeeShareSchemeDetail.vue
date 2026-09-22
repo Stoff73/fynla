@@ -48,9 +48,15 @@
             <p class="metric-value text-violet-600">{{ daysToFullVest }}</p>
             <p class="metric-sub">days remaining</p>
           </template>
-          <template v-else>
+          <!-- No future date and nothing left to vest: complete. No date but units
+               still unvested (the schedule was never entered): not set, not complete. -->
+          <template v-else-if="!(Number(account.units_unvested) > 0)">
             <p class="metric-value text-spring-600">Complete</p>
             <p class="metric-sub">Fully vested</p>
+          </template>
+          <template v-else>
+            <p class="metric-value text-neutral-500">--</p>
+            <p class="metric-sub">Not set</p>
           </template>
         </template>
       </div>

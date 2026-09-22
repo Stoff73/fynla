@@ -64,6 +64,8 @@ class DCPension extends Model
         'beneficiary_name',
         'has_flexibly_accessed',
         'flexible_access_date',
+        'annual_drawdown_income',
+        'pcls_taken',
         'salary_sacrifice',
         'employer_ni_rebate_pct',
         // SP1 Pass 3 / PR 6 — derived columns
@@ -137,6 +139,8 @@ class DCPension extends Model
         'projected_value_at_retirement' => 'decimal:2',
         'has_custom_risk' => 'boolean',
         'has_flexibly_accessed' => 'boolean',
+        'annual_drawdown_income' => 'decimal:2',
+        'pcls_taken' => 'decimal:2',
         'flexible_access_date' => 'date',
         'salary_sacrifice' => 'boolean',
         'employer_ni_rebate_pct' => 'decimal:4',

@@ -36,6 +36,9 @@ class UserProfileController extends Controller
      * categories in this payload", so gating on it made a Simple View save
      * indistinguishable from a detailed one (W-0011).
      */
+    /** Categories a free user may record and read back (CSJ, 2026-09-22); mirrored by CoordinatingAgent. */
+    private const FREE_EXPENDITURE_CATEGORIES = ['childcare', 'charitable_donations'];
+
     private const DETAILED_EXPENDITURE_FIELDS = [
         'food_groceries',
         'transport_fuel',
@@ -48,14 +51,15 @@ class UserProfileController extends Controller
         'entertainment_dining',
         'holidays_travel',
         'pets',
-        'childcare',
+        // `childcare` and `charitable_donations` are NOT here (CSJ, 2026-09-22):
+        // they feed the Tax-Free Childcare line and the Gift Aid band extension,
+        // which a free user sees, so a free user must be able to record them.
         'school_fees',
         'school_lunches',
         'school_extras',
         'university_fees',
         'children_activities',
         'gifts_charity',
-        'charitable_donations',
         'regular_savings',
         'other_expenditure',
         'retired_budget_overrides',
@@ -80,7 +84,12 @@ class UserProfileController extends Controller
 
         $profile = $this->userProfileService->getCompleteProfile($user);
         if (! $this->canUseDetailedExpenditure($user)) {
-            unset($profile['expenditure']['categories']);
+            // Childcare and charitable donations are free-tier fields (CSJ,
+            // 2026-09-22); the rest of the breakdown stays Premium.
+            $profile['expenditure']['categories'] = array_intersect_key(
+                $profile['expenditure']['categories'] ?? [],
+                array_flip(self::FREE_EXPENDITURE_CATEGORIES),
+            );
             $profile['expenditure']['presentation']['detail_available'] = false;
             if (($profile['expenditure']['presentation']['entry_mode'] ?? null) === 'category') {
                 $profile['expenditure']['presentation']['summary_only_reason'] =
@@ -165,6 +174,7 @@ class UserProfileController extends Controller
             'annual_expenditure' => 'nullable|numeric|min:0',
             'use_simple_entry' => 'nullable|boolean',
             'use_separate_expenditure' => 'nullable|boolean',
+            'is_gift_aid' => 'nullable|boolean',
             // W-0413 — `rent` and `utilities` were the two the list skipped, and
             // `$request->validate()` returns ONLY what it validated, so both were
             // dropped before the write. Everything else was already in place:
@@ -208,6 +218,15 @@ class UserProfileController extends Controller
         // expenditure_entry_mode: enum('simple', 'category')
         // expenditure_sharing_mode: enum('joint', 'separate')
         $updateData = $validated;
+        // Gift Aid is a fact about the donor, written here in the one request the
+        // form sends (a parallel personal-info write deadlocked the audit log).
+        if (array_key_exists('is_gift_aid', $validated)) {
+            unset($updateData['is_gift_aid']);
+            if ($validated['is_gift_aid'] !== null) {
+                $user->is_gift_aid = (bool) $validated['is_gift_aid'];
+                $user->save();
+            }
+        }
         if (isset($validated['use_simple_entry'])) {
             $updateData['expenditure_entry_mode'] = $validated['use_simple_entry'] ? 'simple' : 'category';
             unset($updateData['use_simple_entry']);

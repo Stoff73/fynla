@@ -22,11 +22,17 @@ class UpdatePersonalInfoRequest extends FormRequest
     /**
      * Prepare the data for validation.
      */
+    /** A phone number as typed ("07700 900123", "+44-7700-900123") to the digits the rule reads. */
+    public static function normalisePhone(string $phone): string
+    {
+        return preg_replace('/[\s\-]/', '', $phone);
+    }
+
     protected function prepareForValidation(): void
     {
         if ($this->has('phone') && $this->phone) {
             $this->merge([
-                'phone' => preg_replace('/[\s\-]/', '', $this->phone),
+                'phone' => self::normalisePhone($this->phone),
             ]);
         }
 
@@ -83,6 +89,10 @@ class UpdatePersonalInfoRequest extends FormRequest
             // instrument. Do not re-add this rule: it is the shape that lets a
             // fourth mechanism grow back.
             'is_registered_blind' => ['nullable', 'boolean'],
+            // The expenditure form's Gift Aid toggle posts here, not to
+            // income-occupation — the only other endpoint that carried this
+            // rule and the form never calls.
+            'is_gift_aid' => ['nullable', 'boolean'],
             'life_expectancy_override' => ['sometimes', 'nullable', 'integer', 'min:60', 'max:110'],
             'monthly_expenditure' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'annual_expenditure' => ['sometimes', 'nullable', 'numeric', 'min:0'],

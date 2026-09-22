@@ -117,6 +117,7 @@ use App\Http\Controllers\Api\TaxProductInfoController;
 use App\Http\Controllers\Api\TaxSettingsController;
 use App\Http\Controllers\Api\TaxStrategyController;
 use App\Http\Controllers\Api\TaxYearController;
+use App\Http\Controllers\Api\ThresholdController;
 use App\Http\Controllers\Api\UserMetricsController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\WebhookController;
@@ -1128,6 +1129,9 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::post('/{id}/dismiss', [RecommendationsController::class, 'dismiss']);
     Route::patch('/{id}/notes', [RecommendationsController::class, 'updateNotes']);
 });
+
+// Threshold position (2026-09-21) — the strip above "Your actions" on web, /m and native.
+Route::middleware('auth:sanctum')->get('/thresholds', [ThresholdController::class, 'index']);
 
 // Gamification routes (points-and-levels engine)
 Route::middleware('auth:sanctum')->prefix('gamification')->group(function () {

@@ -50,15 +50,12 @@ php artisan queue:restart                       # old workers exit after their c
 ```bash
 set -euo pipefail
 git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
-php artisan subscriptions:audit-tier-collapse --json  # required only for the Free/Premium collapse release; must report safe_to_collapse=true
 php artisan migrate --force
 php artisan db:seed --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan config:cache
 php artisan up
 ```
 
-For the Free/Premium identity-collapse release, do not run the migration until
-the audit reports zero current paid entitlements and `safe_to_collapse=true`.
 Maintenance mode must remain active from before `git pull` until migrations,
 seeding where required, and cache rebuilds finish. Queue workers started by a
 supervisor remain paused by Laravel maintenance mode; verify the old worker has
@@ -105,7 +102,6 @@ php artisan queue:restart                       # old workers exit after their c
 
 ```bash
 set -euo pipefail
-php artisan subscriptions:audit-tier-collapse --json  # Free/Premium collapse release only; must report safe_to_collapse=true
 php artisan migrate --force
 php artisan db:seed --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan config:cache

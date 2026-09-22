@@ -400,6 +400,10 @@ class UserProfileService
             'other' => ['Other', 'Other taxable income'],
             'trust' => ['Trust income', 'Trust income'],
             'pension_income' => ['Pension income', 'Taxable pension income'],
+            // Without this line the total counted share-scheme vests that no row on
+            // the screen named. Both surfaces read these labels from here, so /m keeps
+            // no copy of the map.
+            'vesting' => ['Share scheme vests', 'Taxable employment income at vest'],
         ];
         $sources = $components;
         $sources['total'] = (float) $definition['total_income'];

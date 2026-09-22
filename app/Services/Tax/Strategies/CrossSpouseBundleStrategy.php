@@ -37,7 +37,7 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
         // + dividends + interest). A user with basic-rate employment but
         // significant dividends/interest IS a higher-rate payer for the
         // dividend rate-delta calculation below.
-        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
         $spouseIncome = (float) ($household->spouse_annual_income ?? 0)
             + (float) ($household->spouse_annual_dividends ?? 0);
         $spouseBand = $this->math->bandFromIncome($spouseIncome);

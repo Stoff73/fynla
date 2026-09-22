@@ -83,9 +83,47 @@ final class TaxStrategyMath
         return ['higher' => $higher, 'additional' => $additional];
     }
 
+    /**
+     * The band limits as they apply to THIS user: extended by the grossed-up Gift
+     * Aid, the same extension `UKTaxCalculator` applies (ITA 2007 s414); the
+     * Personal Allowance taper is not modelled here because it only bites above
+     * £100,000 where both limits are already exceeded. Without this the strategy
+     * engine valued a slice at 45% that the calculator taxed at 40% (2026-09-17).
+     *
+     * @return array{higher: float, additional: float}
+     */
+    public function bandThresholdsFor(User $user): array
+    {
+        $extension = (float) ($this->incomeDefinitionsFor($user)['deductions']['gift_aid_gross'] ?? 0);
+        $raw = $this->bandThresholds();
+
+        return [
+            'higher' => $raw['higher'] > 0 ? $raw['higher'] + $extension : 0.0,
+            'additional' => $raw['additional'] > 0 ? $raw['additional'] + $extension : 0.0,
+        ];
+    }
+
+    /**
+     * Raw (non-Gift-Aid-aware) band lookup for an arbitrary income figure.
+     * Stays raw deliberately for `QuerySchemas` and for `CoordinatingAgent`'s two
+     * spouse-income calls — none of those callers have a `User` model in hand to
+     * look up Gift Aid for, so `bandFromIncomeFor()` is not available to them.
+     * Every caller that DOES hold a `User` should use `bandFromIncomeFor()` instead.
+     */
     public function bandFromIncome(float $income): string
     {
         $thresholds = $this->bandThresholds();
+
+        return match (true) {
+            $income >= $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
+            $income >= $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
+            default => 'basic',
+        };
+    }
+
+    public function bandFromIncomeFor(User $user, float $income): string
+    {
+        $thresholds = $this->bandThresholdsFor($user);
 
         return match (true) {
             $income >= $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
@@ -103,7 +141,7 @@ final class TaxStrategyMath
      */
     public function bandRateFor(User $user): float
     {
-        return $this->bandRateForBand($this->bandFromIncome($this->taxableIncomeFor($user)));
+        return $this->bandRateForBand($this->bandFromIncomeFor($user, $this->taxableIncomeFor($user)));
     }
 
     /**
@@ -145,6 +183,17 @@ final class TaxStrategyMath
     public function personalSavingsAllowanceFor(float $income): float
     {
         return $this->psaForBand($this->bandFromIncome($income));
+    }
+
+    /**
+     * Personal Savings Allowance for THIS user, banded on their Gift-Aid-extended
+     * thresholds via `bandFromIncomeFor()`. Use this over `personalSavingsAllowanceFor()`
+     * whenever a `User` is in hand; the float-only variant stays for the spouse grids,
+     * which price off a household income figure rather than a `User` model.
+     */
+    public function personalSavingsAllowanceForUser(User $user): float
+    {
+        return $this->psaForBand($this->bandFromIncomeFor($user, $this->taxableIncomeFor($user)));
     }
 
     /**
@@ -421,27 +470,6 @@ final class TaxStrategyMath
             0.0,
             (float) ($definitions['adjusted_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
         );
-    }
-
-    /**
-     * Total annual employer pension contributions across all DC pensions,
-     * estimated as (annual_salary ?? user employment income) × employer_pct.
-     * Pensions with null employer_contribution_percent contribute 0.
-     */
-    public function employerPensionContributionsFor(User $user): float
-    {
-        $userIncome = (float) ($user->annual_employment_income ?? 0);
-
-        return (float) app(PensionStore::class)
-            ->forUserByType($user, 'dc')
-            ->whereNotNull('employer_contribution_percent')
-            ->sum(function ($p) use ($userIncome) {
-                $base = (float) ($p->annual_salary ?? 0) > 0
-                    ? (float) $p->annual_salary
-                    : $userIncome;
-
-                return $base * ((float) $p->employer_contribution_percent / 100);
-            });
     }
 
     /**

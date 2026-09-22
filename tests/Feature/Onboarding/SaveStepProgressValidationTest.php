@@ -93,3 +93,41 @@ it('still accepts a valid income step', function () {
 
     expect((float) $this->user->fresh()->annual_employment_income)->toBe(46000.0);
 });
+
+it('accepts a phone number typed with spaces and stores the digits, as the profile endpoint does', function () {
+    $this->postJson('/api/onboarding/step', [
+        'step_name' => 'personal_info',
+        'data' => ['phone' => '07700 900123'],
+    ])->assertOk();
+
+    expect($this->user->fresh()->phone)->toBe('07700900123');
+});
+
+it("names the field's own message for a bad phone number, not the data.phone attribute", function () {
+    $this->postJson('/api/onboarding/step', [
+        'step_name' => 'personal_info',
+        'data' => ['phone' => '12345'],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['data.phone' => 'Please enter a valid UK phone number']);
+});
+
+it('stores childcare and charitable donations from the onboarding expenditure step in Simple View', function () {
+    $this->postJson('/api/onboarding/step', [
+        'step_name' => 'expenditure',
+        'data' => [
+            'use_simple_entry' => true,
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 2500,
+            'annual_expenditure' => 30000,
+            'childcare' => 700,
+            'charitable_donations' => 40,
+            'is_gift_aid' => true,
+        ],
+    ])->assertOk();
+
+    $fresh = $this->user->fresh();
+    expect((float) $fresh->childcare)->toBe(700.0)
+        ->and((float) $fresh->charitable_donations)->toBe(40.0)
+        ->and($fresh->is_gift_aid)->toBeTrue()
+        ->and((float) $fresh->monthly_expenditure)->toBe(2500.0);
+});

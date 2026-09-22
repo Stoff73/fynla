@@ -211,6 +211,39 @@
             </p>
           </div>
 
+          <!-- Drawdown: taxable income drawn and the tax-free lump sum taken -->
+          <div v-if="isDCType" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="annual_drawdown_income" class="block text-sm font-medium text-neutral-500 mb-2">
+                Income drawn each year (£) <span class="text-neutral-500 text-xs">(Optional)</span>
+              </label>
+              <input
+                id="annual_drawdown_income"
+                v-model.number="formData.annual_drawdown_income"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 18000.00"
+              />
+              <p class="text-xs text-neutral-500 mt-1">Leave blank if you have not started drawing from it.</p>
+            </div>
+            <div>
+              <label for="pcls_taken" class="block text-sm font-medium text-neutral-500 mb-2">
+                Tax-free lump sum taken (£) <span class="text-neutral-500 text-xs">(Optional)</span>
+              </label>
+              <input
+                id="pcls_taken"
+                v-model.number="formData.pcls_taken"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 50000.00"
+              />
+            </div>
+          </div>
+
           <!-- Expected Return (DC only) — collapsed by default, see "Additional information" -->
           <div v-if="isDCType && showAdditionalInfo">
             <label for="expected_return_percent" class="block text-sm font-medium text-neutral-500 mb-2">
@@ -840,6 +873,8 @@ export default {
         employer_contribution_percent: null,
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
+        annual_drawdown_income: null,
+        pcls_taken: null,
         expected_return_percent: null,
         platform_fee_type: 'percentage',
         platform_fee_amount: null,
@@ -1105,7 +1140,7 @@ export default {
         if (allowedResponse.data?.allowed_levels) {
           this.allowedRiskLevels = allowedResponse.data.allowed_levels;
         }
-      } catch (error) {
+      } catch {
         // Silently fail - risk profile is optional
       }
     },
@@ -1294,15 +1329,12 @@ export default {
     // Strips DB/State scratch fields and renames policy_number -> member_number
     // (the column the backend expects for dc_pensions).
     buildDCPayload() {
-      const {
-        db_scheme_status, db_scheme_type, db_annual_income, db_service_years, db_final_salary,
-        db_normal_retirement_age, db_spouse_pension_percent, db_accrual_rate,
-        db_inflation_protection, db_revaluation_rate, db_pcls_available,
-        state_forecast_weekly_amount, state_qualifying_years, state_forecast_date,
-        state_has_ni_gaps, state_gaps_years, state_estimated_gap_cost,
-        policy_number,
-        ...dcFields
-      } = this.formData;
+      // ponytail: every DB/State scratch field shares a prefix, so strip by prefix rather than by name
+      const scratch = /^(db_|state_)/;
+      const dcFields = Object.fromEntries(
+        Object.entries(this.formData).filter(([key]) => !scratch.test(key) && key !== 'policy_number'),
+      );
+      const { policy_number } = this.formData;
 
       const payload = { ...dcFields };
       if (policy_number !== undefined && policy_number !== null && policy_number !== '') {

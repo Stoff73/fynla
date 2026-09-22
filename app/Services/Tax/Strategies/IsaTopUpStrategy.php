@@ -34,7 +34,7 @@ final class IsaTopUpStrategy implements TaxStrategy
         $user = $context->user;
         $isa = $this->taxConfig->getISAAllowances();
         $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
-        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
 
         $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
         $isaRemaining = max(0, $isaAllowance - $isaUsed);

@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-18 session 1 — two releases today, both on production and verified live. (1) Four `/m` journey-onboarding bugs, including real data loss: a second job used to overwrite the first. Employment income now lives in an `employments` table, one row per job, with the two `users` columns kept as maintained totals written only through `EmploymentIncomeService`. (2) The milestone cards and Today's insight removed from the `/m` and iOS dashboards — cards only, all logic kept. Production = main `d6abfdaf0`; `dev` level with it. **Next: decide what happens to `docs-bugs-fixed-log` / PRs #829–#839 — 10 fixes from 2026-09-14 that still merge cleanly and have never landed.** Handover: `handover/September/18/handover-2026-09-18-session-1.md`*
+*Last updated: 2026-09-19 session 1 — two releases: #915 (Azlan/Laura/Brett batches #907–#914) and #918 (#916 joint records survive onboarding completion, #917 savings card before the readiness gate + unknown spouse income read-back). fynla.org = main `8fdaac326` == dev `b31a9c24a`. Every change walked live on csjones and fynla.org, web and /m; test accounts purged. Handover `handover/September/19/handover-2026-09-19-session-1.md`.*
 
 ## The board position
 
@@ -26,7 +26,7 @@ re-check the nine items before fixing found one already resolved and one oversta
 - [x] Expenditure (CSJ 2026-09-16): one box for everyone; the web page's five category groups on Premium, asking "whole household or just you?" first when a spouse is on file.
 - [x] Spouse holding transfer (CSJ 2026-09-16): when the spouse accepts the link, the facts given during onboarding are copied onto their account once — date of birth, employment status, income, savings, a Stocks and Shares ISA with its provider, investments, and the pension pot with its contribution. Migration `2026_09_16_220000` ran on production.
 - [x] The unlinked-spouse action (CSJ 2026-09-16) and the `/m` all-actions list (CSJ 2026-09-17). Released to main `07f772d8b` and verified live on fynla.org.
-- [ ] Adjacent, CSJ to decide: `/savings` verify page lists accounts only in preview mode (real users see the Open Banking promo); on Free two ISAs use up the investment cap (a General Investment Account is then refused); native (no forms header) still gets the typed questions; after a partial refusal the saved kind stays editable; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hung after opening Chat with Fyn in a phone-width desktop window (csjones, 2026-09-16 session 1). New today: a retired user is still asked "when would you like to retire"; Fyn says "I've saved your State Pension" when the user answered that they do not know it.
+- [ ] Adjacent, CSJ to decide (seen again 2026-09-19 on both servers): `/savings` verify page lists accounts only in preview mode (real users see the Open Banking promo); on Free two ISAs use up the investment cap (a General Investment Account is then refused); native (no forms header) still gets the typed questions; after a partial refusal the saved kind stays editable; a form at a non-form state returns a friendly message not the spec's 422; the web SPA hung after opening Chat with Fyn in a phone-width desktop window (csjones, 2026-09-16 session 1). New today: a retired user is still asked "when would you like to retire"; Fyn says "I've saved your State Pension" when the user answered that they do not know it.
 
 ## Application mapping programme (CSJ, 2026-09-14) — in progress
 
@@ -66,6 +66,20 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       and `/m`: MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55 (subject to MB-44). Unskip
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
+
+## Next session starts here — adjacent defects from the threshold work (CSJ, 2026-09-21)
+
+PR #919 (`feature/threshold-position` → dev) is open, walked green on csjones, not merged; csjones runs that branch. CSJ: merge or hold first, then switch csjones back to dev. Full detail with file:line in `handover/September/21/handover-2026-09-21-session-1.md`.
+
+1. Gift Aid: `GiftAidHigherRateReliefStrategy` never reads `is_gift_aid`; every user who ticked Gift Aid before fd60af65d had the flag silently dropped (save fixed, history not).
+2. `GET /api/investment` omits `units_unvested` — share-scheme detail view says "Fully vested" against the strip.
+3. `TaperedAnnualAllowanceStrategy` adjusted income lacks the s228ZA add-back (£15,000 low on a £300,000 fixture); other callers read it.
+4. No form renders `vesting_frequency_months` (resolver now derives the cadence from `vesting_type`).
+5. `SalarySacrificeNiStrategy` is a third NI implementation; `SalarySacrificeAnalyzer` ignores `employment_income_basis`; unreachable fallback in `RetirementActionDefinitionService`.
+6. Free tier cannot capture childcare spend or Gift Aid — product decision (CSJ).
+7. From-scratch migrations fail: `2026_07_13_100000_create_pipeline_articles_table.php:13` references `insight_articles` before it exists.
+8. Two suites red before the branch: `ValidationMaxFitsColumnPrecisionTest`, `PensionStoreBoundaryTest`.
+9. Small: phone with a space rejected at onboarding; RSU card shows raw "rsu" and £0; csjones `route:list` fails (Apple bridge config); csjones `serialize_precision = 100`; no disability flag on `FamilyMember`; no lever prices the salary-sacrifice NI saving.
 
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
@@ -155,9 +169,10 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 - **A preview persona's `/m` token is rotated by the app's refresh flow** — mint a fresh
   one (`POST /api/preview/login/{persona}`) per browser session.
 - The iOS `test-and-build` CI job is **not a release gate and must never be re-run
-  unasked** (CSJ 2026-09-07). dev's own Quality Gate is red on Unit/Feature
-  (`AccountDeletionService`, `AuditTierCollapse` QueryExceptions) — pre-existing, not
-  investigated.
+  unasked** (CSJ 2026-09-07). dev's Quality Gate's three long-standing reds
+  (`AccountDeletionService`, `AuditTierCollapse`, the admin action-definition count)
+  were fixed on 2026-09-22: two tests wrote enum values migrations had removed, one
+  pinned a seeder count; the collapse audit command went with its test.
 - **Before any release, check what prod actually runs** (bundle hash, `migrate:status`,
   vendor mtime). Prod deploys rsync `app config database routes resources/views public/pages
   public/build` (+ `fyn-memory/` and `resources/js/data/` when they change) and `rm` any
@@ -182,6 +197,12 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 ## Deploy state
 
+- **csjones is on `feature/threshold-position` at e0204fe2f (2026-09-21)**, migration and both seeders applied there; switch back to dev after PR #919 merges. Production untouched by this work.
+
+
+- **2026-09-19: prod (fynla.org) = main `8fdaac326`.** Two releases, both verified live on web and `/m`; nothing unreleased. Backups `~/release-backups/2026-09-19a/` (full, before #915) and `2026-09-19b/` (four files, before #918).
+  - `c5fc88981` (#915) — Azlan/Laura/Brett batches #907–#914; migration `2026_09_19_120000_create_spouse_invitations_table` ran.
+  - `8fdaac326` (#918) — #916 `SpouseJointRecords::carry()` (joint records keep the invitee's id after onboarding completes) and #917 (savings card agrees with net worth before the readiness gate; "I don't know" spouse income reads back as unknown). PHP only.
 - **2026-09-17: prod (fynla.org) = main `0988f6d31`.** Three releases today, all verified live on web and `/m`; nothing unreleased. Backups `~/release-backups/2026-09-17{a,c,d}/`. `c.jones` purged after the last one.
   - `94ad79c33` (#895) — capture forms on every entry point + the spouse holding transfer; migration `2026_09_16_220000`.
   - `07f772d8b` (#898) — the unlinked-spouse action and the `/m` all-actions list. No migration.
@@ -202,6 +223,7 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 Full report: `docs/tech-debt-report.md`.
 
+- **(2026-09-19)** the onboarding-scratch reset exists three times in `OnboardingChatDirector.php` (`:862`, `:6317`, `:7667`; today added a line to each — one `clearOnboardingScratch()`); two extra queries on the gated return `SavingsAgent.php:79-80`; the unknown-income sentence twice in `CaptureForms.php:605/630`; `SpouseDashboardSavingsTileTest.php:27` hedges over the response envelope.
 - **(2026-09-11/12)** The spouse "What you told Fyn" row mapping is written once per surface
   (`resources/mobile/views/Income.vue:79`, `IncomeOccupation.vue:538`); five homes for the
   `capture_spouse_household_data` field list (handler allowlist + rules, model fillable, both

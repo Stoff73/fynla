@@ -1,3 +1,6 @@
+<!-- eslint-disable vue/no-mutating-props -->
+<!-- ponytail: the parent hands this section its reactive formData on purpose and reads it back;
+     every field here binds to it directly. Move to update:modelValue emits when the form is next reworked. -->
 <template>
   <div>
     <!-- Employer Details Section -->
@@ -301,6 +304,22 @@
               type="date"
               class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="vesting_frequency_months" class="block text-sm font-medium text-neutral-500 mb-1">
+              Months Between Vestings
+            </label>
+            <input
+              id="vesting_frequency_months"
+              v-model.number="modelValue.vesting_frequency_months"
+              type="number"
+              min="1"
+              class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              :placeholder="vestingFrequencyPlaceholder"
+            />
+            <p class="mt-1 text-xs text-neutral-500">Leave blank to follow the vesting type.</p>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
@@ -609,6 +628,10 @@ export default {
   emits: ['update:modelValue'],
 
   computed: {
+    // What the resolver assumes when the field is blank (VestScheduleResolver::MONTHS_BY_TYPE).
+    vestingFrequencyPlaceholder() {
+      return { monthly: '1', quarterly: '3', annual: '12' }[this.modelValue.vesting_type] || '12';
+    },
     isOptionsScheme() {
       return ['saye', 'csop', 'emi', 'unapproved_options'].includes(this.schemeType);
     },

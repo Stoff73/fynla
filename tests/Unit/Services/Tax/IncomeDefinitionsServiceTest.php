@@ -6,6 +6,7 @@ use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Property\PropertyService;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\VestScheduleResolver;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->taxConfig = app(TaxConfigService::class);
-    $this->service = new IncomeDefinitionsService($this->taxConfig, app(PropertyService::class));
+    $this->service = new IncomeDefinitionsService($this->taxConfig, app(PropertyService::class), app(VestScheduleResolver::class));
 
     // These tests verify income-definition math only. Mute model events so the
     // RecommendationCacheObserver (agent cache invalidation) does not fire when
@@ -517,5 +518,51 @@ describe('W-0205 — Gift Aid is deducted at adjusted net income, not at net inc
         expect($result['net_income'])->toBe(110000.00)
             ->and($result['adjusted_net_income'])->toBe(100000.00)
             ->and($result['adjusted_allowances']['personal_allowance_tapered'])->toBeFalse();
+    });
+});
+
+describe('DC drawdown income', function () {
+    it('adds annual drawdown income to pension income in payment and never the lump sum', function () {
+        $user = User::factory()->create(['annual_employment_income' => 0]);
+        DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Aviva SIPP',
+            'pension_type' => 'personal',
+            'current_fund_value' => 200000,
+            'has_flexibly_accessed' => true,
+            'annual_drawdown_income' => 18000,
+            'pcls_taken' => 50000,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+
+        expect($result['components']['pension_income'])->toBe(18000.00)
+            ->and($result['total_income'])->toBe(18000.00);
+    });
+
+    it('counts drawdown income even when has_flexibly_accessed is not set — the figure is the fact, not the flag', function () {
+        $user = User::factory()->create(['annual_employment_income' => 0]);
+        DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Aviva SIPP',
+            'pension_type' => 'personal',
+            'current_fund_value' => 200000,
+            'annual_drawdown_income' => 18000,
+        ]);
+
+        expect($this->service->calculate($user->id)['components']['pension_income'])->toBe(18000.00);
+    });
+
+    it('treats a null drawdown income as not asked, contributing nothing', function () {
+        $user = User::factory()->create(['annual_employment_income' => 0]);
+        DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Aviva SIPP',
+            'pension_type' => 'personal',
+            'current_fund_value' => 200000,
+            'has_flexibly_accessed' => true,
+        ]);
+
+        expect($this->service->calculate($user->id)['components']['pension_income'])->toBe(0.00);
     });
 });

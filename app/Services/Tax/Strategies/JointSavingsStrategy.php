@@ -58,7 +58,7 @@ final class JointSavingsStrategy implements TaxStrategy
         // additional-rate taxpayer (£140k > £125,140) and gets PSA = £0, so
         // the strategy must skip them even if their employment-only band is
         // 'higher'.
-        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
         if ($userBand === 'additional') {
             return [];
         }

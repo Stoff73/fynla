@@ -463,6 +463,13 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
+        // The Gift Aid flag travels with the donations figure (2026-09-22).
+        $giftAid = $data['is_gift_aid'] ?? $data['userData']['is_gift_aid'] ?? null;
+        if ($giftAid !== null) {
+            $user->is_gift_aid = filter_var($giftAid, FILTER_VALIDATE_BOOLEAN);
+            $user->save();
+        }
+
         // Check if this is separate mode data (has userData and spouseData keys)
         if (isset($data['userData']) && isset($data['spouseData'])) {
             // Separate mode: Update current user with userData
@@ -480,6 +487,7 @@ class OnboardingService
                 'holidays_travel' => $userData['holidays_travel'] ?? 0,
                 'pets' => $userData['pets'] ?? 0,
                 'childcare' => $userData['childcare'] ?? 0,
+                'charitable_donations' => $userData['charitable_donations'] ?? 0,
                 'school_fees' => $userData['school_fees'] ?? 0,
                 'children_activities' => $userData['children_activities'] ?? 0,
                 'other_expenditure' => $userData['other_expenditure'] ?? 0,
@@ -508,6 +516,7 @@ class OnboardingService
                     'holidays_travel' => $spouseData['holidays_travel'] ?? 0,
                     'pets' => $spouseData['pets'] ?? 0,
                     'childcare' => $spouseData['childcare'] ?? 0,
+                    'charitable_donations' => $spouseData['charitable_donations'] ?? 0,
                     'school_fees' => $spouseData['school_fees'] ?? 0,
                     'children_activities' => $spouseData['children_activities'] ?? 0,
                     'other_expenditure' => $spouseData['other_expenditure'] ?? 0,
@@ -547,6 +556,9 @@ class OnboardingService
                 'university_fees' => $data['university_fees'] ?? 0,
                 'children_activities' => $data['children_activities'] ?? 0,
                 'gifts_charity' => $data['gifts_charity'] ?? 0,
+                // Was never written here, so an onboarding donor's Gift Aid flag
+                // had no figure behind it (2026-09-22).
+                'charitable_donations' => $data['charitable_donations'] ?? 0,
                 'regular_savings' => $data['regular_savings'] ?? 0,
                 'other_expenditure' => $data['other_expenditure'] ?? 0,
                 'monthly_expenditure' => $data['monthly_expenditure'] ?? 0,

@@ -41,7 +41,13 @@ class TierConfigurationStore
 
     public static function canonicalPlanForEntitlement(string $plan): string
     {
-        return in_array($plan, self::RETIRED_TIERS, true) ? 'premium' : $plan;
+        // Retired tiers AND the legacy paid plans confer Premium (#771); the
+        // subscriptions.plan column holds only free and premium since the
+        // 2026-09-08 collapse, so a legacy slug left uncanonicalised here fails
+        // settlement with a truncation error.
+        return in_array($plan, self::RETIRED_TIERS, true) || in_array($plan, self::LEGACY_PAID_PLANS, true)
+            ? 'premium'
+            : $plan;
     }
 
     public function forTier(string $tier): TierConfiguration

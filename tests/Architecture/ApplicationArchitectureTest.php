@@ -133,6 +133,8 @@ arch('services are organized by module')
         'App\Services\Documents\FieldMappers\FieldMapperInterface',
         'App\Services\Lifecycle\Contracts\LifecycleCampaign',
         'App\Services\Tax\Strategies\Contract\TaxStrategy',
+        // The threshold catalogue's line contract (2026-09-21).
+        'App\Services\Tax\Thresholds\ThresholdLine',
         // Package 4 Apple billing ports are service contracts with concrete
         // Python/Symfony implementations bound in AppServiceProvider.
         'App\Services\Billing\Apple\AppleBridgeClient',

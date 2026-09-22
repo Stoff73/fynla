@@ -19,9 +19,17 @@ const ACCOUNT_TYPE_LABELS = {
   eis: 'Enterprise Investment Scheme',
   seis: 'Seed Enterprise Investment Scheme',
   employee_share_scheme: 'Employee Share Scheme',
+  saye: 'Save As You Earn',
+  csop: 'Company Share Option Plan',
+  emi: 'Enterprise Management Incentive',
+  unapproved_options: 'Options',
+  rsu: 'Restricted Stock Units',
 };
 
 export function accountTypeLabel(account) {
+  // The API names the type (InvestmentAccountTypes on the server); the map
+  // below only covers a payload that predates account_type_label.
+  if (account?.account_type_label) return account.account_type_label;
   const type = account?.account_type;
   if (!type) return 'Investment account';
   if (type === 'other' && account.account_type_other) return account.account_type_other;

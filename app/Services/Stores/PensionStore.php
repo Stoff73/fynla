@@ -624,6 +624,10 @@ class PensionStore
             'retirement_age' => 'sometimes|nullable|integer|min:50|max:75',
             'expected_return_percent' => 'sometimes|nullable|numeric|min:0|max:20',
             'has_flexibly_accessed' => 'sometimes|boolean',
+            // Task 2 exposes both to Fyn's create_pension tool; the normaliser only
+            // casts to float, so without a rule here a negative would reach the row.
+            'annual_drawdown_income' => 'sometimes|nullable|numeric|min:0',
+            'pcls_taken' => 'sometimes|nullable|numeric|min:0',
             'flexible_access_date' => 'sometimes|nullable|date|before_or_equal:today',
             // `dc_pensions.salary_sacrifice` is tinyint(1) NULL — null is a
             // storable value meaning "not stated", and DCPensionForm sends exactly

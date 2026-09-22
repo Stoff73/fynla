@@ -11,6 +11,8 @@
   >
     <p v-if="error" class="ma-error">{{ error }}</p>
 
+    <MobileThresholdStrip :data="thresholds" />
+
     <section class="m-card" aria-labelledby="m-actions-open">
       <div class="ma-head">
         <h2 class="ma-head__title" id="m-actions-open">Open</h2>
@@ -63,6 +65,7 @@ import { apiGet, apiPost } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import { resolveMobileDestination, recordUnknownMobileDestination } from '../navigation/semanticDestinations.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import MobileThresholdStrip from '../components/ThresholdStrip.vue';
 
 /**
  * Rule 19 parity for the desktop /actions page: the FULL ranked open list
@@ -73,7 +76,7 @@ import MobileChrome from '../components/MobileChrome.vue';
  */
 export default {
   name: 'MobileActions',
-  components: { MobileChrome },
+  components: { MobileChrome, MobileThresholdStrip },
 
   data() {
     return {
@@ -82,6 +85,7 @@ export default {
       marking: null,
       open: [],
       completed: [],
+      thresholds: { strip: null, lines: [] },
     };
   },
 
@@ -159,6 +163,10 @@ export default {
         const d = res.data?.data || {};
         this.open = Array.isArray(d.open) ? d.open : [];
         this.completed = Array.isArray(d.completed) ? d.completed : [];
+
+        const thresholds = await apiGet('/api/thresholds', store.token);
+        if (handleAuthExpiry(thresholds, this.$router)) return;
+        if (thresholds.ok) this.thresholds = thresholds.data?.data || { strip: null, lines: [] };
       } catch {
         this.error = 'Network error. Please try again.';
       } finally {

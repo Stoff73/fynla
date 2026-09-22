@@ -50,7 +50,7 @@ final class BedAndIsaStrategy implements TaxStrategy
             return [];
         }
 
-        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
         $cgtRate = match ($userBand) {
             'basic' => (float) ($cgt['basic_rate'] ?? 0.18),
             'higher', 'additional' => (float) ($cgt['higher_rate'] ?? 0.24),

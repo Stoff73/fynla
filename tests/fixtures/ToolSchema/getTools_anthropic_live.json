@@ -793,6 +793,14 @@
                     "type": "number",
                     "description": "Employer contribution as percentage of salary (e.g. 3 for 3%). Workplace pensions only."
                 },
+                "annual_drawdown_income": {
+                    "type": "number",
+                    "description": "Taxable income drawn from this pension each year in pounds, personal and Self-Invested Personal Pension arrangements the user has started drawing from."
+                },
+                "pcls_taken": {
+                    "type": "number",
+                    "description": "Tax-free lump sum already taken from this pension in pounds."
+                },
                 "accrued_annual_pension": {
                     "type": "number",
                     "description": "Accrued annual pension in pounds. Guaranteed-income pensions only."
@@ -3011,6 +3019,10 @@
                 "other_expenditure": {
                     "type": "number",
                     "description": "Other monthly expenses in pounds."
+                },
+                "is_gift_aid": {
+                    "type": "boolean",
+                    "description": "True when the user says their charitable donations are made under Gift Aid, false when they say they are not. Omit when not mentioned."
                 }
             },
             "required": [],

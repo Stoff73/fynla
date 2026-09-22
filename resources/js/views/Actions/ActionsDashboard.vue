@@ -22,6 +22,8 @@
              (RecommendationsAggregator ids via GET /api/recommendations/actions):
              every open action, ranked, uncapped, with the same mark-done —
              plus the completed history that previously had no home. -->
+        <ThresholdStrip :data="thresholds" />
+
         <div class="top-priorities module-gradient">
           <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center gap-2">
             Your actions
@@ -107,6 +109,7 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
+import ThresholdStrip from '@/components/Actions/ThresholdStrip.vue';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import logger from '@/utils/logger';
@@ -132,6 +135,7 @@ export default {
 
   components: {
     AppLayout,
+    ThresholdStrip,
   },
 
   mixins: [currencyMixin],
@@ -143,6 +147,7 @@ export default {
       openActions: [],
       completedActions: [],
       activity: [],
+      thresholds: { strip: null, lines: [] },
     };
   },
 
@@ -201,13 +206,15 @@ export default {
 
     async load() {
       try {
-        const [{ data }, activityRes] = await Promise.all([
+        const [{ data }, activityRes, thresholdRes] = await Promise.all([
           api.get('/recommendations/actions'),
           api.get('/gamification/activity'),
+          api.get('/thresholds').catch(() => null),
         ]);
         this.openActions = data?.data?.open ?? [];
         this.completedActions = data?.data?.completed ?? [];
         this.activity = activityRes?.data?.data ?? [];
+        this.thresholds = thresholdRes?.data?.data ?? { strip: null, lines: [] };
       } catch (e) {
         logger.error('[Actions] Failed to fetch unified actions:', e);
       }

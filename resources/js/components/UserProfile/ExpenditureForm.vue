@@ -453,7 +453,29 @@
               :step="100"
             />
           </div>
+          <!-- Childcare and charitable donations are captured on every plan
+               (CSJ, 2026-09-22): the Tax-Free Childcare line and the Gift Aid
+               band extension read them. -->
+          <div>
+            <label for="simple_childcare" class="label">Of that, childcare</label>
+            <CurrencyInputField
+              id="simple_childcare"
+              v-model="formData.childcare"
+              placeholder="0"
+              :step="50"
+            />
+          </div>
+          <div>
+            <label for="simple_charitable_donations" class="label">Of that, charitable donations</label>
+            <CurrencyInputField
+              id="simple_charitable_donations"
+              v-model="formData.charitable_donations"
+              placeholder="0"
+              :step="10"
+            />
+          </div>
         </div>
+        <GiftAidToggle v-if="formData.charitable_donations > 0" v-model="isGiftAid" class="mt-6" />
       </div>
 
       <!-- Detailed Entry Mode -->
@@ -541,22 +563,7 @@
         />
 
         <!-- Gift Aid toggle - shown when charitable donations > 0 -->
-        <div v-if="formData.charitable_donations > 0" class="card p-4 -mt-2 border-violet-200 bg-violet-50">
-          <div class="flex items-center gap-3">
-            <input
-              id="is_gift_aid"
-              v-model="isGiftAid"
-              type="checkbox"
-              class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
-            >
-            <label for="is_gift_aid" class="text-body-sm text-horizon-500 font-medium">
-              I use Gift Aid for my charitable donations
-            </label>
-          </div>
-          <p class="mt-1 ml-7 text-body-sm text-neutral-500">
-            Gift Aid lets charities claim 25p for every £1 you donate, and higher-rate taxpayers can claim back the difference
-          </p>
-        </div>
+        <GiftAidToggle v-if="formData.charitable_donations > 0" v-model="isGiftAid" />
 
         <!-- Financial Commitments (Read-Only) - Edit Mode -->
         <div v-if="hasAnyCommitments" class="card p-6 bg-violet-50 border-2 border-violet-200">
@@ -1297,6 +1304,7 @@ import ExpenditureSection from './ExpenditureSection.vue';
 import ExpenditureGridRow from './ExpenditureGridRow.vue';
 import ExpenditureExpandableGridRow from './ExpenditureExpandableGridRow.vue';
 import ExpenditureCategoryCard from './ExpenditureCategoryCard.vue';
+import GiftAidToggle from './GiftAidToggle.vue';
 import { formatCurrency } from '@/utils/currency';
 
 import logger from '@/utils/logger';
@@ -1309,6 +1317,7 @@ export default {
     ExpenditureGridRow,
     ExpenditureExpandableGridRow,
     ExpenditureCategoryCard,
+    GiftAidToggle,
   },
 
   props: {
@@ -2277,6 +2286,10 @@ export default {
         use_simple_entry: useSimpleEntry.value,
         expenditure_entry_mode: useSimpleEntry.value ? 'simple' : 'category',
         use_separate_expenditure: useSeparateExpenditure.value,
+        // Gift Aid rides with the donations figure in the SAME request. It used
+        // to go to the personal endpoint in parallel, and two writes to one user
+        // row deadlocked on the audit log (csjones, 2026-09-22).
+        is_gift_aid: isGiftAid.value,
         monthly_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value : totalMonthlyExpenditure.value,
         annual_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value * 12 : totalMonthlyExpenditure.value * 12,
       };
@@ -2289,6 +2302,10 @@ export default {
         allFields.forEach(field => {
           saveData[field.key] = formData.value[field.key] || 0;
         });
+      } else {
+        // The two free-tier categories the Simple View captures (CSJ, 2026-09-22).
+        saveData.childcare = formData.value.childcare || 0;
+        saveData.charitable_donations = formData.value.charitable_donations || 0;
       }
 
       // Include budget overrides if user has customised them
@@ -2334,19 +2351,6 @@ export default {
         // meant to have ended.
         emit('save', saveData);
       }
-
-      // Gift Aid only. `charitable_donations` now posts with every other
-      // category above and the annual figure is derived from it server-side
-      // (User::charitableDonations), so writing the annual here as well would
-      // fight that. It also used to destroy data: the monthly field was never
-      // read back, so it sat at 0, and this call fired on the Gift Aid flag
-      // alone — committing an annual total of 0 over whatever the user or Fyn
-      // had recorded.
-      store.dispatch('userProfile/updatePersonalInfo', {
-        is_gift_aid: isGiftAid.value,
-      }).catch((err) => {
-        logger.error('Failed to save Gift Aid preference to user profile:', err);
-      });
 
       if (!props.isOnboarding) {
         isEditing.value = false;

@@ -138,10 +138,13 @@ it('removes detailed expenditure fields from Free responses', function () {
         ->assertOk()
         ->assertJsonMissingPath('data.user.food_groceries');
 
+    // Childcare and charitable donations are free-tier fields (CSJ, 2026-09-22),
+    // so the categories block survives with exactly those two keys.
     $this->actingAs($free, 'sanctum')
         ->getJson('/api/user/profile')
         ->assertOk()
-        ->assertJsonMissingPath('data.expenditure.categories');
+        ->assertJsonMissingPath('data.expenditure.categories.food_groceries')
+        ->assertJsonPath('data.expenditure.categories', fn ($categories) => array_keys((array) $categories) === ['childcare', 'charitable_donations']);
 });
 
 it('returns detailed expenditure fields to Premium', function () {

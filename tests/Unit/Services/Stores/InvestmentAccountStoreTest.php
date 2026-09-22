@@ -220,3 +220,21 @@ it('updateOrCreate matches a legacy NULL-account_name row and updates it in plac
     expect($result->account_name)->toBe('Vanguard Stocks & Shares ISA');
     expect(InvestmentAccount::where('user_id', $this->user->id)->count())->toBe(1);
 });
+
+it('values an employee share scheme at its vested units and today\'s price on create and update', function () {
+    $account = $this->store->create(makeCanonical($this->user->id, [
+        'account_name' => 'Acme RSUs',
+        'account_type' => 'rsu',
+        'current_value' => 0,
+        'units_granted' => 1200,
+        'units_vested' => 400,
+        'units_unvested' => 800,
+        'current_share_price' => 30,
+    ]), $this->user, IngestSource::FORM);
+
+    expect((float) $account->current_value)->toBe(12000.0);
+
+    $updated = $this->store->update($account->id, ['units_vested' => 600, 'units_unvested' => 600], $this->user, IngestSource::FORM);
+
+    expect((float) $updated->current_value)->toBe(18000.0);
+});
