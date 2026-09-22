@@ -145,8 +145,9 @@
         </div>
       </div>
 
-      <!-- Server-owned product reconciliation and age-banded projection -->
-      <div class="m-card m-detail-rows">
+      <!-- Server-owned product reconciliation and age-banded projection.
+           Hidden on the onboarding verify visit with the hero above. -->
+      <div v-if="!verifying" class="m-card m-detail-rows">
         <p class="m-section-label" style="margin-top:0">Retirement income projection</p>
         <p v-if="projError" class="m-sub" style="margin-bottom:0">{{ projError }}</p>
         <template v-else-if="planningProjection">
@@ -199,7 +200,7 @@
       </div>
 
       <!-- Recommendations -->
-      <div v-if="recommendations.length" class="m-card">
+      <div v-if="recommendations.length && !verifying" class="m-card">
         <p class="m-section-label" style="margin-top:0">Recommended actions</p>
         <article v-for="(rec, i) in recommendations" :key="rec.type || rec.title || i" class="mr-rec">
           <h3 class="mr-rec__title">{{ rec.title || rec.action || 'Recommendation' }}</h3>
