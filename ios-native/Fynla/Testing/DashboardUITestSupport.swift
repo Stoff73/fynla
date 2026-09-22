@@ -4,7 +4,18 @@ import Foundation
 @MainActor
 enum DashboardUITestComposition {
     static func model() -> DashboardModel {
-        DashboardModel(client: DashboardUITestClient())
+        DashboardModel(
+            client: DashboardUITestClient(),
+            thresholdClient: DashboardUITestThresholdClient()
+        )
+    }
+}
+
+// The UI-test dashboard carries no threshold strip: the existing journeys
+// assert against the focus areas, and an extra card would move them.
+private struct DashboardUITestThresholdClient: ThresholdClient {
+    func load() async throws -> ThresholdPosition {
+        ThresholdPosition(strip: nil, lines: [])
     }
 }
 

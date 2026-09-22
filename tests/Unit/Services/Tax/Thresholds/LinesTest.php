@@ -1,0 +1,495 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\DCPension;
+use App\Models\FamilyMember;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\Property;
+use App\Models\SavingsAccount;
+use App\Models\TaxConfiguration;
+use App\Models\TierConfiguration;
+use App\Models\User;
+use App\Services\Benefits\ChildBenefitService;
+use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\Thresholds\ChildcareEntitlements;
+use App\Services\Tax\Thresholds\Lines\AdditionalRateLine;
+use App\Services\Tax\Thresholds\Lines\HigherRateLine;
+use App\Services\Tax\Thresholds\Lines\HighIncomeChildBenefitLine;
+use App\Services\Tax\Thresholds\Lines\PensionsEnterEstateLine;
+use App\Services\Tax\Thresholds\Lines\PersonalAllowanceTaperLine;
+use App\Services\Tax\Thresholds\Lines\ResidenceBandTaperLine;
+use App\Services\Tax\Thresholds\Lines\SalarySacrificeNiCapLine;
+use App\Services\Tax\Thresholds\Lines\TaperedAnnualAllowanceLine;
+use App\Services\Tax\Thresholds\ThresholdContext;
+use App\Services\Tax\Thresholds\ThresholdCopy;
+use App\Services\Tax\VestScheduleResolver;
+use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator;
+use Carbon\Carbon;
+use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+    // W-0532 — ChildBenefitService resolves the user's tier through TeaserGate, so
+    // the rows must exist for a factory user to get a figure rather than the zero
+    // position. The global Pest hook seeds these too; the seeder is firstOrCreate.
+    $this->seed(TierConfigurationSeeder::class);
+    Carbon::setTestNow('2026-09-21');
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
+    Mockery::close();
+});
+
+function thresholdLineContext(User $user): ThresholdContext
+{
+    return new ThresholdContext($user, app(IncomeDefinitionsService::class)->calculate($user->id));
+}
+
+/** Record `$amount` of ISA subscription in the current tax year, to eat the allowance. */
+function thresholdSubscribeIsa(User $user, float $amount): SavingsAccount
+{
+    $taxConfig = app(TaxConfigService::class);
+
+    return SavingsAccount::create([
+        'user_id' => $user->id, 'account_name' => 'Cash ISA', 'provider' => 'Bank',
+        'account_type' => 'cash_isa', 'is_isa' => true, 'current_balance' => $amount,
+        'isa_subscription_year' => $taxConfig->getTaxYear(),
+        'isa_subscription_amount' => $amount,
+    ]);
+}
+
+describe('PersonalAllowanceTaperLine', function () {
+    it('places a £112,400 parent inside the band with childcare in the cost and a pension lever', function () {
+        $user = User::factory()->create(['annual_employment_income' => 112400, 'childcare' => 1000]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2023-03-01']);
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        // The two childcare entitlements are derived from the seeded config here, not
+        // written in: a test that restated the rates would pass over a wrong rate.
+        $childcare = array_sum(array_column(app(ChildcareEntitlements::class)->for($user), 'amount'));
+        // 40% on the £12,400 slice plus 40% on the £6,200 of Personal Allowance it
+        // withdraws, which is the 60% the headline names.
+        $expectedTotal = round(7440.0 + $childcare, 2);
+
+        expect($result)->not->toBeNull()
+            ->and($result->position['over'])->toBeTrue()
+            ->and($result->position['distance'])->toBe(12400.0)
+            ->and($result->headline)->toBe('You are £12,400 into the 60% band')
+            ->and(array_column($result->cost->benefits, 'label'))->toContain('Tax-Free Childcare')
+            ->and($result->cost->incomeTax)->toBe(7440.0)
+            ->and($childcare)->toBeGreaterThan(0.0)
+            ->and($result->cost->total())->toBe($expectedTotal)
+            ->and($result->lever['amount'])->toBe(12400.0)
+            // `recovers` must be the price of the move on the button, not of a
+            // larger one.
+            ->and($result->lever['recovers'])->toBe($expectedTotal)
+            // "Pay into", not "salary sacrifice": the cost carries no National
+            // Insurance saving, so the title must not promise one.
+            ->and($result->lever['title'])->toBe('Pay £12,400 into your pension')
+            ->and($result->lever['downside'])->toContain('locked until you are 55');
+    });
+
+    it('does not apply to a £70,000 earner', function () {
+        $user = User::factory()->create(['annual_employment_income' => 70000]);
+        expect(app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user)))->toBeNull();
+    });
+
+    it('says the allowance is gone once past the top of the band', function () {
+        $user = User::factory()->create(['annual_employment_income' => 200000]);
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->headline)->toBe('You are past the 60% band')
+            ->and($result->body)->toContain('your Personal Allowance is gone entirely')
+            ->and($result->body)->toContain('45%')
+            // Still over the line, and the distance is still measured from it.
+            ->and($result->position['over'])->toBeTrue()
+            ->and($result->position['distance'])->toBe(100000.0)
+            ->and($result->lever)->not->toBeNull();
+    });
+
+    it('follows the seeded taper rate into the copy rather than the rate today implies', function () {
+        // Rule 2. At the seeded rate of 0.5 the band is 60% and the lost allowance
+        // costs 20p, which the tests above pin. Those numbers also fall out of the
+        // literals 150 and 50, so they could not tell a derived figure from a written
+        // one. Driving a different rate can.
+        $config = TaxConfiguration::where('is_active', true)->firstOrFail();
+        $data = $config->config_data;
+        $data['income_tax']['personal_allowance_taper_rate'] = 0.25;
+        $config->update(['config_data' => $data]);
+        app()->forgetInstance(TaxConfigService::class);
+        Cache::flush();
+
+        $user = User::factory()->create(['annual_employment_income' => 112400]);
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        // £1 of allowance per £4 earned: 40% on the pound plus a quarter of 40% on the
+        // allowance is a 50% band, and the allowance costs 10p.
+        expect($result->headline)->toBe('You are £12,400 into the 50% band')
+            ->and($result->explanation)->toContain('For every £4 you earn above £100,000')
+            ->and($result->explanation)->toContain('the allowance costs another 10p')
+            // The band now runs to £100,000 + £12,570 / 0.25.
+            ->and($result->range['to'])->toBe(150280.0);
+    });
+
+    it('sizes the lever by the money purchase allowance and withholds childcare when it stops short', function () {
+        $user = User::factory()->create(['annual_employment_income' => 120000]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2023-03-01']);
+        // Flexibly accessed, so the Annual Allowance is the £10,000 money purchase one
+        // and the contribution cannot reach the £20,000 needed to get back under.
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'SIPP', 'pension_type' => 'personal', 'current_fund_value' => 250000, 'has_flexibly_accessed' => true]);
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->lever['amount'])->toBe(10000.0)
+            ->and($result->lever['recovers'])->toBe($result->cost->total())
+            ->and(array_column($result->cost->benefits, 'label'))->not->toContain('Tax-Free Childcare')
+            ->and($result->body)->toContain('gets you part of the way')
+            // The allowance is what cut this move, not their earnings: this earner has
+            // £120,000 of relevant earnings and could pension far more than £10,000.
+            ->and($result->lever['downside'])->toContain('Annual Allowance limits')
+            ->and($result->lever['downside'])->toContain('money purchase')
+            ->and($result->lever['downside'])->not->toContain('limited to your earnings');
+    });
+
+    it('blames earnings, not the allowance, when relevant earnings are what cut the move', function () {
+        // A director paying themselves a small salary and taking the rest as dividends.
+        // Adjusted net income £132,570, so £32,570 over the taper threshold, but pension
+        // relief reaches only the £12,570 of earnings from work (FA 2004 s190).
+        $user = User::factory()->create(['annual_employment_income' => 12570, 'annual_dividend_income' => 120000]);
+        // The ISA path is closed explicitly rather than left to the arithmetic. The
+        // £32,570 excess happens to exceed the current £20,000 allowance, but that is a
+        // seeded figure: subscribing it in full leaves nothing remaining whatever the
+        // allowance becomes, so this test keeps testing the pension lever after a Budget.
+        thresholdSubscribeIsa($user, (float) app(TaxConfigService::class)->getISAAllowances()['annual_allowance']);
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->lever['mechanism'])->toBe('pension')
+            ->and($result->lever['amount'])->toBe(12570.0)
+            ->and($result->lever['downside'])->toContain('limited to your earnings from work')
+            ->and($result->lever['downside'])->toContain('£12,570')
+            // Nothing cut this before pricing, so the allowance sentence must not appear.
+            ->and($result->lever['downside'])->not->toContain('Annual Allowance limits');
+    });
+
+    it('names an upcoming vest in the lever downside', function () {
+        $user = User::factory()->create(['annual_employment_income' => 105000]);
+        InvestmentAccount::create(['user_id' => $user->id, 'account_type' => 'rsu', 'account_name' => 'Acme RSUs', 'provider' => 'Acme', 'current_value' => 0, 'scheme_status' => 'active', 'vesting_frequency_months' => 6, 'full_vest_date' => '2027-03-15', 'units_unvested' => 800, 'current_share_price' => 30]);
+
+        $result = app(PersonalAllowanceTaperLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->lever['downside'])->toContain('vest');
+    });
+});
+
+describe('HighIncomeChildBenefitLine', function () {
+    it('applies to a £66,000 parent receiving child benefit and prices the charge', function () {
+        $user = User::factory()->create(['annual_employment_income' => 66000]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2018-01-01', 'receives_child_benefit' => true]);
+
+        $result = app(HighIncomeChildBenefitLine::class)->evaluate(thresholdLineContext($user));
+
+        // 30% of the benefit: £6,000 over the line at 1% per £200. The benefit itself
+        // comes from the service, so the test does not restate the weekly rates.
+        $benefit = (float) app(ChildBenefitService::class)->calculateChildBenefitPosition($user, 66000.0)['benefit']['annual_amount'];
+        $expectedCharge = round($benefit * 0.30, 2);
+
+        expect($result)->not->toBeNull()
+            ->and($result->position['distance'])->toBe(6000.0)
+            ->and($benefit)->toBeGreaterThan(0.0)
+            ->and(collect($result->cost->benefits)->firstWhere('label', 'Child Benefit charge')['amount'])->toBe($expectedCharge)
+            // £6,000 at the higher rate, the slice the contribution would remove.
+            ->and($result->cost->incomeTax)->toBe(2400.0)
+            ->and($result->cost->total())->toBe(round(2400.0 + $expectedCharge, 2))
+            ->and($result->lever['recovers'])->toBe($result->cost->total());
+    });
+
+    it('prices only the part of the charge the lever actually wins back', function () {
+        $user = User::factory()->create(['annual_employment_income' => 75000]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2018-01-01', 'receives_child_benefit' => true]);
+        // Flexibly accessed, so the £10,000 money purchase allowance caps the lever at
+        // two thirds of the £15,000 excess. It cannot repay the whole charge.
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'SIPP', 'pension_type' => 'personal', 'current_fund_value' => 250000, 'has_flexibly_accessed' => true]);
+
+        $result = app(HighIncomeChildBenefitLine::class)->evaluate(thresholdLineContext($user));
+
+        $service = app(ChildBenefitService::class);
+        $benefit = (float) $service->calculateChildBenefitPosition($user, 75000.0)['benefit']['annual_amount'];
+        $recovered = round(
+            (float) $service->calculateHICBC(75000.0, $benefit)['charge']
+            - (float) $service->calculateHICBC(65000.0, $benefit)['charge'],
+            2
+        );
+        $fullCharge = round((float) $service->calculateHICBC(75000.0, $benefit)['charge'], 2);
+
+        expect($result->lever['amount'])->toBe(10000.0)
+            ->and(collect($result->cost->benefits)->firstWhere('label', 'Child Benefit charge')['amount'])->toBe($recovered)
+            // The whole charge would be a promise a £10,000 contribution cannot keep.
+            ->and($recovered)->toBeLessThan($fullCharge)
+            ->and($result->lever['recovers'])->toBe($result->cost->total());
+    });
+
+    it('says the benefit is all repaid once past the top of the band', function () {
+        $user = User::factory()->create(['annual_employment_income' => 200000]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2018-01-01', 'receives_child_benefit' => true]);
+
+        $result = app(HighIncomeChildBenefitLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->headline)->toBe('You are past the Child Benefit charge band')
+            ->and($result->body)->toBe('Above £80,000 all of your Child Benefit is repaid.')
+            ->and($result->position['over'])->toBeTrue()
+            ->and($result->position['distance'])->toBe(140000.0);
+    });
+
+    it('does not apply without a child receiving child benefit', function () {
+        $user = User::factory()->create(['annual_employment_income' => 66000]);
+        expect(app(HighIncomeChildBenefitLine::class)->evaluate(thresholdLineContext($user)))->toBeNull();
+    });
+
+    it('does not apply when the tier does not carry the Child Benefit figure', function () {
+        $user = User::factory()->create(['annual_employment_income' => 66000, 'tier' => 'free', 'is_admin' => false, 'is_preview_user' => false]);
+        FamilyMember::create(['user_id' => $user->id, 'first_name' => 'A', 'last_name' => 'B', 'relationship' => 'child', 'date_of_birth' => '2018-01-01', 'receives_child_benefit' => true]);
+
+        // Withhold the capability on the resolved tier rather than stubbing the
+        // gate, the way SoldCapabilitiesAreEnforcedTest does: a stubbed gate would
+        // pass whether or not the line actually consults it.
+        $config = TierConfiguration::where('tier', 'free')->firstOrFail();
+        $matrix = $config->capability_matrix;
+        $matrix['benefits_child'] = 'none';
+        $config->update(['capability_matrix' => $matrix]);
+
+        expect(app(HighIncomeChildBenefitLine::class)->evaluate(thresholdLineContext($user)))->toBeNull();
+    });
+});
+
+describe('band lines', function () {
+    it('places a £48,000 earner below the higher-rate line within the window', function () {
+        $user = User::factory()->create(['annual_employment_income' => 48000]);
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+        expect($result->position['over'])->toBeFalse()->and($result->position['distance'])->toBe(-2270.0);
+    });
+
+    it('names the ISA move when the excess is dividends', function () {
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+        expect($result->lever['title'])->toContain('ISA')
+            ->and($result->lever['downside'])->toContain('you have £20,000 of it left')
+            // Under top-slicing a dividend excess never lands in income tax, so the
+            // explanation must not call it that.
+            ->and($result->explanation)->not->toContain('Income tax is')
+            ->and($result->explanation)->toContain('Moving it into an ISA');
+    });
+
+    it('falls back to the pension when the remaining ISA allowance is smaller than the excess', function () {
+        // £2,730 over the higher-rate line, covered several times over by the dividends,
+        // but only £2,000 of ISA allowance left. Income moved out can never exceed the
+        // capital sheltered, so this move cannot be made.
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
+        thresholdSubscribeIsa($user, 18000.0);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->position['distance'])->toBe(2730.0)
+            ->and($result->lever['mechanism'])->toBe('pension');
+    });
+
+    it('keeps the ISA lever when the remaining allowance covers the excess', function () {
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
+        thresholdSubscribeIsa($user, 15000.0);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        // £5,000 left against a £2,730 excess.
+        expect($result->lever['mechanism'])->toBe('isa')
+            ->and($result->lever['downside'])->toContain('£5,000 of it left');
+    });
+
+    it('falls back to the pension when this year\'s ISA allowance is already used', function () {
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
+        thresholdSubscribeIsa($user, (float) app(TaxConfigService::class)->getISAAllowances()['annual_allowance']);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        // There is savings income to move, but nowhere left to move it to.
+        expect($result->lever['mechanism'])->toBe('pension')
+            ->and($result->lever['title'])->toContain('into your pension')
+            ->and($result->explanation)->toContain('Income tax is');
+    });
+
+    it('caps the higher-rate lever at the pension Annual Allowance', function () {
+        // £92,130 over the higher-rate line. Offering that as a contribution would be
+        // offering an Annual Allowance charge, not a saving.
+        $user = User::factory()->create(['annual_employment_income' => 142400]);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->position['distance'])->toBe(92130.0)
+            ->and($result->lever['amount'])->toBe(60000.0)
+            ->and($result->lever['title'])->toBe('Pay £60,000 into your pension')
+            ->and($result->lever['downside'])->toContain('Annual Allowance limits')
+            ->and($result->lever['downside'])->toContain('£60,000');
+    });
+
+    it('counts contributions already made against the lever', function () {
+        $user = User::factory()->create(['annual_employment_income' => 142400]);
+        // £50,000 of the allowance already used: 25% employee and 25% employer on a
+        // £100,000 scheme salary, chosen so the figure is exact rather than rounded.
+        DCPension::create([
+            'user_id' => $user->id, 'scheme_name' => 'Work', 'pension_type' => 'occupational',
+            'current_fund_value' => 300000, 'annual_salary' => 100000,
+            'employee_contribution_percent' => 25, 'employer_contribution_percent' => 25,
+        ]);
+
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result->lever['amount'])->toBe(10000.0)
+            ->and($result->lever['downside'])->toContain('Annual Allowance limits');
+    });
+
+    it('uses the Gift Aid extended limit for the additional-rate line', function () {
+        $user = User::factory()->create(['annual_employment_income' => 135000, 'is_gift_aid' => true, 'annual_charitable_donations' => 12000]);
+        $result = app(AdditionalRateLine::class)->evaluate(thresholdLineContext($user));
+        expect($result->range['from'])->toBe(125140.0 + 15000.0);
+    });
+});
+
+describe('ThresholdCopy', function () {
+    it('says you are on the line rather than £0 under it', function () {
+        // 40p either side of the line rounds to £0, and "You are £0 under the 60%
+        // band" reads as a bug to the one reader standing exactly on it.
+        expect(ThresholdCopy::into(0.4, '60% band'))->toBe('You are on the 60% band line')
+            ->and(ThresholdCopy::into(-0.4, '60% band'))->toBe('You are on the 60% band line')
+            ->and(ThresholdCopy::into(-600.0, '60% band'))->toBe('You are £600 under the 60% band');
+    });
+
+    it('says the estate is on the nil rate band line rather than £0 under it', function () {
+        expect(ThresholdCopy::estate(0.4))->toBe('Your estate is on the nil rate band line')
+            ->and(ThresholdCopy::estate(-0.4))->toBe('Your estate is on the nil rate band line')
+            ->and(ThresholdCopy::estate(5000.0))->toBe('Your estate is £5,000 over the nil rate band');
+    });
+});
+
+describe('TaperedAnnualAllowanceLine', function () {
+    it('states the allowance the definitions computed, and prices what was lost', function () {
+        $user = User::factory()->create(['annual_employment_income' => 300000]);
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Work', 'pension_type' => 'occupational', 'current_fund_value' => 500000, 'annual_salary' => 300000, 'employee_contribution_percent' => 5, 'employer_contribution_percent' => 10]);
+
+        $definitions = app(IncomeDefinitionsService::class)->calculate($user->id);
+        $result = app(TaperedAnnualAllowanceLine::class)->evaluate(new ThresholdContext($user, $definitions));
+
+        // Adjusted income £330,000: total income of £300,000 with the employee
+        // contribution added back, plus £30,000 of employer contributions. £70,000
+        // over the £260,000 limit withdraws £35,000, leaving £25,000.
+        $allowances = $definitions['adjusted_allowances'];
+        $lost = $allowances['pension_annual_allowance_full'] - $allowances['pension_annual_allowance'];
+
+        expect($result)->not->toBeNull()
+            ->and($definitions['adjusted_income'])->toBe(330000.0)
+            ->and($allowances['pension_annual_allowance'])->toBe(25000.0)
+            ->and($lost)->toBe(35000.0)
+            ->and($result->position['value'])->toBe(330000.0)
+            ->and($result->explanation)->toBe('Your allowance this year is £25,000 against the full £60,000.')
+            // £35,000 of allowance at the 45% this earner pays.
+            ->and($result->cost->total())->toBe(15750.0)
+            ->and($result->lever)->toBeNull();
+    });
+
+    it('does not apply below the threshold income gate', function () {
+        $user = User::factory()->create(['annual_employment_income' => 230000]);
+        expect(app(TaperedAnnualAllowanceLine::class)->evaluate(thresholdLineContext($user)))->toBeNull();
+    });
+});
+
+describe('estate lines', function () {
+    // The money figures on the estate lines are exercised in the Task 12 feature
+    // test with a constructed estate. This one pins the guard only, which needs no
+    // estate figures: it asserts the line withholds.
+    it('withholds the residence band taper when there is no residence band to lose', function () {
+        $user = User::factory()->create(['date_of_birth' => '1965-01-01']);
+        Property::create(['user_id' => $user->id, 'property_type' => 'main_residence', 'ownership_type' => 'individual', 'current_value' => 2400000, 'address_line_1' => '1 High St', 'city' => 'London', 'postcode' => 'N1 1AA']);
+
+        // A £2.4m estate is over the £2m taper threshold, but nothing is left to a
+        // direct descendant, so the residence band is already nil and there is
+        // nothing for the taper to take. The card would read "You lose £0".
+        expect(app(ResidenceBandTaperLine::class)->evaluate(thresholdLineContext($user)))->toBeNull();
+    });
+
+    it('withholds the residence band taper below the taper threshold', function () {
+        $user = User::factory()->create(['date_of_birth' => '1965-01-01']);
+        FamilyMember::factory()->child()->create(['user_id' => $user->id, 'date_of_birth' => '1995-01-01']);
+        Property::create(['user_id' => $user->id, 'property_type' => 'main_residence', 'ownership_type' => 'individual', 'current_value' => 1800000, 'address_line_1' => '2 High St', 'city' => 'London', 'postcode' => 'N1 1AB']);
+
+        // Under £2,000,000, so no residence band has been taken away and the taper
+        // has nothing to report even with a direct descendant in the household.
+        expect(app(ResidenceBandTaperLine::class)->evaluate(thresholdLineContext($user)))->toBeNull();
+    });
+});
+
+describe('date lines', function () {
+    it('counts days to the NI cap for a £30,000 sacrificer', function () {
+        $user = User::factory()->create(['annual_employment_income' => 145000, 'employment_income_basis' => 'gross']);
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Work', 'pension_type' => 'occupational', 'current_fund_value' => 100000, 'annual_salary' => 145000, 'employee_contribution_percent' => 20.69, 'salary_sacrifice' => true]);
+
+        $result = app(SalarySacrificeNiCapLine::class)->evaluate(thresholdLineContext($user));
+
+        // The whole sacrifice sits above the upper earnings limit, where the employee
+        // rate is 2%, not the 8% main rate. Priced through the calculator, so the
+        // bands decide; a flat main rate overstated this fourfold.
+        $sacrificed = 145000 * 0.2069;
+        $expected = round(($sacrificed - 2000) * 0.02, 2);
+        $ifMainRateWereUsed = round(($sacrificed - 2000) * 0.08, 2);
+
+        expect($result)->not->toBeNull()
+            ->and($result->position['unit'])->toBe('days')
+            ->and($result->position['value'])->toBe((float) Carbon::today()->diffInDays(Carbon::parse('2027-04-06')))
+            ->and($result->lever)->toBeNull()
+            ->and($result->cost->total())->toBe($expected)
+            ->and($result->cost->total())->not->toBe($ifMainRateWereUsed)
+            ->and($result->cost->benefits[0]['detail'])->toBe('National Insurance on the £28,001 above the £2,000 cap');
+    });
+
+    it('counts share vests towards where the sacrifice sits in the National Insurance bands', function () {
+        // £45,000 of salary is below the upper earnings limit on its own, but £20,000
+        // of vests carries the pay above it. Vests are employment income and carry
+        // Class 1, so the sacrifice is priced at 2%, not the 8% main rate.
+        $user = User::factory()->create(['annual_employment_income' => 45000, 'employment_income_basis' => 'gross']);
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Work', 'pension_type' => 'occupational', 'current_fund_value' => 100000, 'annual_salary' => 50000, 'employee_contribution_percent' => 10, 'salary_sacrifice' => true]);
+        InvestmentAccount::create(['user_id' => $user->id, 'account_type' => 'rsu', 'account_name' => 'Acme RSUs', 'provider' => 'Acme', 'current_value' => 0, 'scheme_status' => 'active', 'vesting_type' => 'quarterly', 'full_vest_date' => '2027-03-15', 'units_unvested' => 1000, 'current_share_price' => 20]);
+
+        $result = app(SalarySacrificeNiCapLine::class)->evaluate(thresholdLineContext($user));
+
+        $vests = app(VestScheduleResolver::class)->annualVestIncome($user);
+        $calculator = app(UKTaxCalculator::class);
+        $classOne = fn (float $pay): float => (float) $calculator->calculateNetIncome($pay)['breakdown']['class_1_ni'];
+        // Pre-sacrifice pay is the recorded salary plus the vests; £5,000 is sacrificed
+        // and £2,000 of it stays exempt.
+        $prePay = 45000.0 + $vests;
+        $expected = round($classOne($prePay - 2000.0) - $classOne($prePay - 5000.0), 2);
+
+        expect($vests)->toBeGreaterThan(0.0)
+            ->and($result)->not->toBeNull()
+            ->and($result->cost->total())->toBe($expected)
+            // The main rate on the £3,000 above the cap would be £240.
+            ->and($result->cost->total())->not->toBe(240.0);
+    });
+
+    it('applies the pensions-in-estate date to a DC holder', function () {
+        $user = User::factory()->create();
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'SIPP', 'pension_type' => 'personal', 'current_fund_value' => 400000]);
+
+        $result = app(PensionsEnterEstateLine::class)->evaluate(thresholdLineContext($user));
+
+        expect($result)->not->toBeNull()->and($result->position['unit'])->toBe('days');
+    });
+});

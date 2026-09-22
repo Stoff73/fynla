@@ -212,7 +212,7 @@ class PensionNormaliser
             'provider' => ! empty($toolParams['provider']) ? $toolParams['provider'] : $toolParams['scheme_name'],
         ];
 
-        foreach (['current_fund_value', 'annual_salary', 'employee_contribution_percent', 'employer_contribution_percent', 'employer_matching_limit', 'monthly_contribution_amount', 'lump_sum_contribution', 'expected_return_percent', 'platform_fee_percent', 'advisor_fee_percent'] as $f) {
+        foreach (['current_fund_value', 'annual_salary', 'employee_contribution_percent', 'employer_contribution_percent', 'employer_matching_limit', 'monthly_contribution_amount', 'lump_sum_contribution', 'expected_return_percent', 'platform_fee_percent', 'advisor_fee_percent', 'annual_drawdown_income', 'pcls_taken'] as $f) {
             if (isset($toolParams[$f]) && is_numeric($toolParams[$f])) {
                 $canonical[$f] = (float) $toolParams[$f];
             }

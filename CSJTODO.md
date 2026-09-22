@@ -67,6 +67,20 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
+## Next session starts here — adjacent defects from the threshold work (CSJ, 2026-09-21)
+
+PR #919 (`feature/threshold-position` → dev) is open, walked green on csjones, not merged; csjones runs that branch. CSJ: merge or hold first, then switch csjones back to dev. Full detail with file:line in `handover/September/21/handover-2026-09-21-session-1.md`.
+
+1. Gift Aid: `GiftAidHigherRateReliefStrategy` never reads `is_gift_aid`; every user who ticked Gift Aid before fd60af65d had the flag silently dropped (save fixed, history not).
+2. `GET /api/investment` omits `units_unvested` — share-scheme detail view says "Fully vested" against the strip.
+3. `TaperedAnnualAllowanceStrategy` adjusted income lacks the s228ZA add-back (£15,000 low on a £300,000 fixture); other callers read it.
+4. No form renders `vesting_frequency_months` (resolver now derives the cadence from `vesting_type`).
+5. `SalarySacrificeNiStrategy` is a third NI implementation; `SalarySacrificeAnalyzer` ignores `employment_income_basis`; unreachable fallback in `RetirementActionDefinitionService`.
+6. Free tier cannot capture childcare spend or Gift Aid — product decision (CSJ).
+7. From-scratch migrations fail: `2026_07_13_100000_create_pipeline_articles_table.php:13` references `insight_articles` before it exists.
+8. Two suites red before the branch: `ValidationMaxFitsColumnPrecisionTest`, `PensionStoreBoundaryTest`.
+9. Small: phone with a space rejected at onboarding; RSU card shows raw "rsu" and £0; csjones `route:list` fails (Apple bridge config); csjones `serialize_precision = 100`; no disability flag on `FamilyMember`; no lever prices the salary-sacrifice NI saving.
+
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
 - [ ] **Two native changes are on `main` but have never been seen on screen.** Both compile-verified
@@ -181,6 +195,9 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
   guard `nextFrom…('')` (skip rules pass an empty answer; `matchBubble('')` hits the first bubble).
 
 ## Deploy state
+
+- **csjones is on `feature/threshold-position` at e0204fe2f (2026-09-21)**, migration and both seeders applied there; switch back to dev after PR #919 merges. Production untouched by this work.
+
 
 - **2026-09-19: prod (fynla.org) = main `8fdaac326`.** Two releases, both verified live on web and `/m`; nothing unreleased. Backups `~/release-backups/2026-09-19a/` (full, before #915) and `2026-09-19b/` (four files, before #918).
   - `c5fc88981` (#915) — Azlan/Laura/Brett batches #907–#914; migration `2026_09_19_120000_create_spouse_invitations_table` ran.

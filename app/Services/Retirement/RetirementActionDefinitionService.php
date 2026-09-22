@@ -1365,21 +1365,26 @@ class RetirementActionDefinitionService
                 'explanation' => $userName.' could save £'.number_format($employeeNISaving, 0).' per year (£'.number_format($monthlyNISaving, 0).' per month) in National Insurance contributions by switching to salary sacrifice. The pension contribution stays the same, but it comes from pre-NI salary. Speak to the employer to arrange this.',
             ];
 
-            // Step 6: April 2029 NIC exemption cap
+            // Step 6: NIC exemption cap (year sourced from config)
             $nicCap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap', 2000);
             $exceedsCap = $annualContribution > $nicCap;
-            $post2029EmployeeSaving = (float) ($analysis['post_2029_employee_ni_saving'] ?? ($exceedsCap ? $nicCap * 0.08 : $employeeNISaving));
-            $niReduction = $employeeNISaving - $post2029EmployeeSaving;
+            $year = (int) ($analysis['nic_cap_effective_year'] ?? 2027);
+            // The analyser publishes this, priced through UKTaxCalculator. The old
+            // fallback multiplied the cap by a literal 0.08, which is the wrong rate
+            // for anyone above the upper earnings limit and a second answer to a
+            // question the analyser already answers (Rule 20). No rate literal here.
+            $postCapEmployeeSaving = (float) ($analysis['post_cap_employee_ni_saving'] ?? $employeeNISaving);
+            $niReduction = $employeeNISaving - $postCapEmployeeSaving;
 
             $trace[] = [
-                'question' => 'How will the April 2029 salary sacrifice changes affect this?',
-                'data_field' => 'April 2029 National Insurance exemption cap',
+                'question' => 'How will the April '.$year.' salary sacrifice changes affect this?',
+                'data_field' => 'April '.$year.' National Insurance exemption cap',
                 'data_value' => 'Annual sacrifice £'.number_format($annualContribution, 0).' vs £'.number_format($nicCap, 0).' cap. '.($exceedsCap ? 'Exceeds cap by £'.number_format($annualContribution - $nicCap, 0) : 'Within cap'),
-                'threshold' => '£'.number_format($nicCap, 0).' annual NIC exemption limit from April 2029',
+                'threshold' => '£'.number_format($nicCap, 0).' annual NIC exemption limit from April '.$year,
                 'passed' => ! $exceedsCap,
                 'explanation' => $exceedsCap
-                    ? 'From April 2029, only the first £'.number_format($nicCap, 0).' of employee salary sacrifice will be exempt from National Insurance. '.$userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' exceeds this cap. Current NI saving: £'.number_format($employeeNISaving, 0).'/year. Post-2029 NI saving: £'.number_format($post2029EmployeeSaving, 0).'/year (a reduction of £'.number_format($niReduction, 0).'). Employer contributions and Income Tax relief are unaffected.'
-                    : $userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' is within the £'.number_format($nicCap, 0).' cap — no change after April 2029.',
+                    ? 'From April '.$year.', only the first £'.number_format($nicCap, 0).' of employee salary sacrifice will be exempt from National Insurance. '.$userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' exceeds this cap. Current NI saving: £'.number_format($employeeNISaving, 0).'/year. Post-'.$year.' NI saving: £'.number_format($postCapEmployeeSaving, 0).'/year (a reduction of £'.number_format($niReduction, 0).'). Employer contributions and Income Tax relief are unaffected.'
+                    : $userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' is within the £'.number_format($nicCap, 0).' cap — no change after April '.$year.'.',
             ];
 
             $vars = [

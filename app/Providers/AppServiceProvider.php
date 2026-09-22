@@ -47,6 +47,17 @@ use App\Services\Gamification\LevelUpCollector;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Plans\PlanConfigService;
 use App\Services\Stores\TierGate;
+use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\Thresholds\Lines\AdditionalRateLine;
+use App\Services\Tax\Thresholds\Lines\HigherRateLine;
+use App\Services\Tax\Thresholds\Lines\HighIncomeChildBenefitLine;
+use App\Services\Tax\Thresholds\Lines\NilRateBandLine;
+use App\Services\Tax\Thresholds\Lines\PensionsEnterEstateLine;
+use App\Services\Tax\Thresholds\Lines\PersonalAllowanceTaperLine;
+use App\Services\Tax\Thresholds\Lines\ResidenceBandTaperLine;
+use App\Services\Tax\Thresholds\Lines\SalarySacrificeNiCapLine;
+use App\Services\Tax\Thresholds\Lines\TaperedAnnualAllowanceLine;
+use App\Services\Tax\Thresholds\ThresholdPositionService;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\DbTierGate;
 use App\Support\SecuringPropertyResolver;
@@ -204,6 +215,23 @@ class AppServiceProvider extends ServiceProvider
             PythonAppleStoreServerClient::class,
         );
 
+        // Threshold position (2026-09-21): the catalogue is the tagged set, so a new
+        // line is one class and one entry here, never a change to the evaluator.
+        $this->app->tag([
+            PersonalAllowanceTaperLine::class,
+            HighIncomeChildBenefitLine::class,
+            HigherRateLine::class,
+            AdditionalRateLine::class,
+            TaperedAnnualAllowanceLine::class,
+            SalarySacrificeNiCapLine::class,
+            NilRateBandLine::class,
+            ResidenceBandTaperLine::class,
+            PensionsEnterEstateLine::class,
+        ], 'threshold.lines');
+        $this->app->bind(ThresholdPositionService::class, fn ($app) => new ThresholdPositionService(
+            $app->make(IncomeDefinitionsService::class),
+            $app->tagged('threshold.lines'),
+        ));
     }
 
     /**

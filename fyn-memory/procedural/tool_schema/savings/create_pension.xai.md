@@ -3,9 +3,9 @@ procedure_id: 'savings.tool.create_pension'
 kind: tool_schema
 module: savings
 provider: xai
-version: 4
+version: 5
 active: true
-effective_from: 2026-08-21
+effective_from: 2026-09-21
 ---
 
 ```json
@@ -88,6 +88,20 @@ effective_from: 2026-08-21
                     "null"
                 ],
                 "description": "Fixed monthly contribution in pounds. Personal and Self-Invested Personal Pension arrangements only. Send null if not stated — never 0."
+            },
+            "annual_drawdown_income": {
+                "type": [
+                    "number",
+                    "null"
+                ],
+                "description": "Taxable income drawn from this pension each year in pounds, personal and Self-Invested Personal Pension arrangements the user has started drawing from. Send null if not stated — never 0."
+            },
+            "pcls_taken": {
+                "type": [
+                    "number",
+                    "null"
+                ],
+                "description": "Tax-free lump sum already taken from this pension in pounds. Send null if not stated — never 0."
             },
             "retirement_age": {
                 "type": [
@@ -189,6 +203,8 @@ effective_from: 2026-08-21
             "employer_contribution_percent",
             "annual_salary",
             "monthly_contribution_amount",
+            "annual_drawdown_income",
+            "pcls_taken",
             "retirement_age",
             "accrued_annual_pension",
             "pensionable_service_years",

@@ -523,6 +523,11 @@ final class CaptureForms
         } elseif (is_numeric($answers['annual_contribution'] ?? null)) {
             $input['monthly_contribution_amount'] = round(((float) $answers['annual_contribution']) / 12, 2);
         }
+        foreach (['annual_drawdown_income', 'pcls_taken'] as $field) {
+            if (is_numeric($answers[$field] ?? null)) {
+                $input[$field] = (float) $answers[$field];
+            }
+        }
 
         return $input;
     }
@@ -807,7 +812,7 @@ final class CaptureForms
                     'fields' => ['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice']],
                 ['key' => 'personal', 'label' => 'Personal pension or SIPP', 'scheme_type' => 'personal',
                     'tool' => 'create_pension', 'entity_type' => 'dc_pension',
-                    'fields' => ['provider', 'current_value', 'annual_contribution']],
+                    'fields' => ['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken']],
             ],
             'fields' => [
                 'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
@@ -822,6 +827,10 @@ final class CaptureForms
                 ]],
                 'annual_contribution' => ['type' => 'money', 'label' => 'You pay in each year', 'required' => false,
                     'hint' => "Leave blank if you don't pay in"],
+                'annual_drawdown_income' => ['type' => 'money', 'label' => 'You draw from it each year', 'required' => false,
+                    'hint' => "Leave blank if you haven't started drawing"],
+                'pcls_taken' => ['type' => 'money', 'label' => 'Tax-free lump sum already taken', 'required' => false,
+                    'hint' => 'Leave blank if none'],
             ],
         ];
     }

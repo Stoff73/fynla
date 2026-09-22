@@ -78,6 +78,24 @@ struct DashboardView: View {
                             .accessibilityIdentifier("dashboard.offline")
                     }
 
+                    if let line = model.thresholds?.stripLine {
+                        ThresholdStripView(
+                            line: line,
+                            onModel: { route in
+                                onRoute(
+                                    SemanticDestinationResolver.route(
+                                        for: nil,
+                                        legacyPath: route
+                                    )
+                                )
+                            }
+                        )
+                        // Clears the level card's downward overflow past the
+                        // hero box, the way FocusAreasView does when it is the
+                        // first card under the hero.
+                        .padding(.top, 128)
+                    }
+
                     FocusAreasView(
                         areas: snapshot.focusAreas,
                         percentile: snapshot.percentile,
@@ -116,8 +134,9 @@ struct DashboardView: View {
                     // /m's md-callout margin-top clears the level card's
                     // downward overflow past the hero box. Always applied now
                     // the milestone nudge that used to provide that clearance
-                    // is gone (CSJ 2026-09-18).
-                    .padding(.top, 128)
+                    // is gone (CSJ 2026-09-18) — unless the threshold strip is
+                    // above and has already taken that clearance.
+                    .padding(.top, model.thresholds?.stripLine == nil ? 128 : 0)
 
                     if let actionMessage = model.actionMessage {
                         Text(actionMessage)

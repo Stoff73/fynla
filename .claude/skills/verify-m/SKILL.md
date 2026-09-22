@@ -7,7 +7,7 @@ description: Verify the /m mobile-web pathway (Rule 19 — "done" = web AND /m).
 
 **Trap first:** a cold Playwright `goto('https://csjones.co/fynla/m')` shows the public landing or "could not load dashboard" (greeting "Good …, there" = no user). The desktop→/m bridge (`mScaffoldBridge.js`, localStorage `m_scaffold_token`) only adopts the token in the real funnel/in-app flow — never on a fresh automated nav. Do not burn cycles on it.
 
-**Establish WHICH ACCOUNT you are on from `GET /api/auth/user`, never from `localStorage`.**
+**Establish WHICH ACCOUNT you are on from `GET /api/auth/user`, never from `localStorage`.** Send the /m bearer with `credentials: 'omit'` (or from a context with no cookies): a same-origin fetch with an `Authorization` header still sends the desktop session cookie, and `auth:sanctum` answers the cookie, so the probe names the desktop user while the /m page renders the token's user (found live 2026-09-21: the probe said Persona A, the page served Persona B).
 
 `fynla-state.auth.user` is a persisted Vuex snapshot. **The server answers to the TOKEN, not to that store**, and the two can name different people. Measured at the start of the W-0341 pass:
 

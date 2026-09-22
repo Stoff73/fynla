@@ -53,6 +53,8 @@ class DCPensionResource extends JsonResource
             'beneficiary_id' => $this->beneficiary_id,
             'beneficiary_name' => $this->beneficiary_name,
             'has_flexibly_accessed' => $this->has_flexibly_accessed,
+            'annual_drawdown_income' => $this->annual_drawdown_income,
+            'pcls_taken' => $this->pcls_taken,
             'flexible_access_date' => $this->flexible_access_date?->toDateString(),
             'salary_sacrifice' => $this->salary_sacrifice,
             'employer_ni_rebate_pct' => $this->employer_ni_rebate_pct,

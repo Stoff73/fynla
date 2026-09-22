@@ -30,7 +30,7 @@ final class IncomeBandStrategy implements TaxStrategy
 
         $income = $this->taxConfig->getIncomeTax();
         $taperThreshold = (float) ($income['personal_allowance_taper_threshold'] ?? 100000);
-        $additionalRateThreshold = $this->math->bandThresholds()['additional'] ?: 125140;
+        $additionalRateThreshold = $this->math->bandThresholdsFor($user)['additional'] ?: 125140;
 
         $taxableIncome = $this->math->taxableIncomeFor($user);
         $adjustedNetIncome = $this->math->adjustedNetIncomeFor($user);

@@ -44,6 +44,8 @@ trait ResolvesIncome
      */
     protected function resolvePensionIncomeInPayment(User $user): float
     {
+        $user->loadMissing('dcPensions');
+
         $age = $user->date_of_birth?->age;
 
         $income = $user->dbPensions
@@ -54,6 +56,16 @@ trait ResolvesIncome
         if ($statePension && $statePension->already_receiving) {
             $income += (float) ($statePension->state_pension_forecast_annual ?? 0);
         }
+
+        // Taxable drawdown from a DC pot. `annual_drawdown_income` is summed
+        // wherever it is greater than zero: the recorded income is the fact, so
+        // this does not gate on `has_flexibly_accessed` — a flag can lag or be
+        // unset while the figure the user actually stated is the one that must
+        // enter the tax computation. The tax-free lump sum (`pcls_taken`) is
+        // recorded on the same row and is never income (FA 2004 Sch 29 para 1),
+        // so it is not read here or anywhere else that taxes.
+        $income += $user->dcPensions
+            ->sum(fn ($pension): float => (float) ($pension->annual_drawdown_income ?? 0));
 
         return (float) $income;
     }

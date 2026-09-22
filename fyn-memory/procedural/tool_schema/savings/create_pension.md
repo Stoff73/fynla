@@ -2,9 +2,9 @@
 procedure_id: 'savings.tool.create_pension'
 kind: tool_schema
 module: savings
-version: 4
+version: 5
 active: true
-effective_from: 2026-08-21
+effective_from: 2026-09-21
 ---
 
 ```json
@@ -54,6 +54,14 @@ effective_from: 2026-08-21
             "employer_contribution_percent": {
                 "type": "number",
                 "description": "Employer contribution as percentage of salary (e.g. 3 for 3%). Workplace pensions only."
+            },
+            "annual_drawdown_income": {
+                "type": "number",
+                "description": "Taxable income drawn from this pension each year in pounds, personal and Self-Invested Personal Pension arrangements the user has started drawing from."
+            },
+            "pcls_taken": {
+                "type": "number",
+                "description": "Tax-free lump sum already taken from this pension in pounds."
             },
             "accrued_annual_pension": {
                 "type": "number",

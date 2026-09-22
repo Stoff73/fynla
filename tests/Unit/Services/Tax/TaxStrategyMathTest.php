@@ -281,3 +281,25 @@ describe('estimateSpouseJointInterest', function () {
         expect($this->math->estimateSpouseJointInterest($user))->toBe(0.0);
     });
 });
+
+describe('bandThresholdsFor', function () {
+    it('extends both limits by the grossed-up Gift Aid, matching UKTaxCalculator', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 135000,
+            'is_gift_aid' => true,
+            'annual_charitable_donations' => 12000, // £15,000 gross
+        ]);
+
+        $thresholds = $this->math->bandThresholdsFor($user);
+        $raw = $this->math->bandThresholds();
+
+        expect($thresholds['higher'])->toBe($raw['higher'] + 15000.0)
+            ->and($thresholds['additional'])->toBe($raw['additional'] + 15000.0);
+    });
+
+    it('leaves the limits alone for a non-donor', function () {
+        $user = User::factory()->create(['annual_employment_income' => 135000]);
+
+        expect($this->math->bandThresholdsFor($user))->toBe($this->math->bandThresholds());
+    });
+});

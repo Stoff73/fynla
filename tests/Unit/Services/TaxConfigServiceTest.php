@@ -6,6 +6,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\TaxConfiguration;
 use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
@@ -638,5 +639,24 @@ class TaxConfigServiceTest extends TestCase
             ],
             'notes' => "Test tax configuration for {$taxYear}",
         ]);
+    }
+
+    /**
+     * Test getEarlyYearsFunding() seeds an hourly funding rate for every
+     * income-tested band, read from the real seeder rather than the
+     * hand-built fixture used elsewhere in this file.
+     */
+    public function test_get_early_years_funding_has_hourly_rate_for_income_tested_bands(): void
+    {
+        // Arrange
+        $this->seed(TaxConfigurationSeeder::class);
+
+        // Act
+        $funding = app(TaxConfigService::class)->getEarlyYearsFunding();
+
+        // Assert
+        foreach (['working_parents_30hrs', 'working_parents_2yr', 'working_parents_under_2'] as $band) {
+            $this->assertGreaterThan(0.0, $funding[$band]['hourly_rate'] ?? null);
+        }
     }
 }

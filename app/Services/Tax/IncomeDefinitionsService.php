@@ -16,6 +16,7 @@ class IncomeDefinitionsService
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly PropertyService $propertyService,
+        private readonly VestScheduleResolver $vests,
     ) {}
 
     public function calculate(int $userId): array
@@ -188,6 +189,11 @@ class IncomeDefinitionsService
             'other' => round((float) ($user->annual_other_income ?? 0), 2),
             'trust' => round((float) ($user->annual_trust_income ?? 0), 2),
             'pension_income' => round($this->calculatePensionIncome($user), 2),
+            // Share-scheme vests this tax year (RSUs and unapproved options). Employment
+            // income under ITEPA 2003, so it reaches every definition below. Assumed NOT
+            // already inside `annual_employment_income`, which the form captures as
+            // salary. ponytail: no per-account include flag; add one on a double-count report.
+            'vesting' => $this->vests->annualVestIncome($user),
         ];
     }
 
