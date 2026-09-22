@@ -2117,7 +2117,7 @@ class CoordinatingAgent extends BaseAgent
         // free plan (CSJ, 2026-09-22): the first two are the categories the tax
         // lines read, the third is a fact about the donor.
         $extras = [];
-        foreach (self::FREE_EXPENDITURE_CATEGORIES as $field) {
+        foreach (SharedExpenditure::FREE_CATEGORIES as $field) {
             if (! array_key_exists($field, $input) || $input[$field] === null || $input[$field] === '') {
                 continue;
             }
@@ -5387,9 +5387,6 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    /** Categories a free user may record (CSJ, 2026-09-22); mirrored by UserProfileController. */
-    private const FREE_EXPENDITURE_CATEGORIES = ['childcare', 'charitable_donations'];
-
     private function handleSetExpenditure(array $input, User $user, bool $isPreview): array
     {
         if ($isPreview) {
@@ -5413,7 +5410,7 @@ class CoordinatingAgent extends BaseAgent
         // are free-tier fields (CSJ, 2026-09-22: they feed tax lines a free user
         // sees), so only the other categories trip the gate — the same carve-out
         // as UserProfileController::DETAILED_EXPENDITURE_FIELDS.
-        $premiumOnly = array_diff(array_intersect(array_keys($input), $categoryFields), self::FREE_EXPENDITURE_CATEGORIES);
+        $premiumOnly = array_diff(array_intersect(array_keys($input), $categoryFields), SharedExpenditure::FREE_CATEGORIES);
         if ($premiumOnly !== [] && ! $this->teaserGate->allows($user, 'expenditure_detailed')) {
             return [
                 'blocked' => true,
