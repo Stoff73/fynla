@@ -48,6 +48,14 @@ final class SharedExpenditure
     public const JOINT_SHARE = 0.5;
 
     /**
+     * Categories a free user may record and read back (CSJ, 2026-09-22): they
+     * feed the Tax-Free Childcare line and the Gift Aid band extension, which a
+     * free user sees. Read by UserProfileController and CoordinatingAgent, so a
+     * third free field is added here once.
+     */
+    public const FREE_CATEGORIES = ['childcare', 'charitable_donations'];
+
+    /**
      * The money fields a household expenditure payload divides.
      *
      * This is the list the onboarding path has always divided, unchanged, so that

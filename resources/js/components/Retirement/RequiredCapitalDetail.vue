@@ -70,9 +70,9 @@
             <span class="asset-type">Defined Contribution Pension - Projected (80% confidence)</span>
           </div>
           <div v-for="account in includedInvestments" :key="'inv-' + account.id" class="asset-card investment">
-            <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
+            <span class="asset-name">{{ account.account_name || account.provider || account.account_type_label }}</span>
             <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
-            <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80% confidence)</span>
+            <span class="asset-type">{{ account.account_type_label }} - Projected (80% confidence)</span>
             <label class="toggle-row">
               <span class="toggle-label">Exclude</span>
               <input
@@ -106,9 +106,9 @@
         <h3 class="section-label">Other assets (not included)</h3>
         <div class="asset-cards">
           <div v-for="account in excludedInvestments" :key="'inv-other-' + account.id" class="asset-card investment">
-            <span class="asset-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</span>
+            <span class="asset-name">{{ account.account_name || account.provider || account.account_type_label }}</span>
             <span class="asset-value">{{ formatCurrency(getProjectedValue(account)) }}</span>
-            <span class="asset-type">{{ formatAccountType(account.account_type) }} - Projected (80% confidence)</span>
+            <span class="asset-type">{{ account.account_type_label }} - Projected (80% confidence)</span>
             <label class="toggle-row">
               <span class="toggle-label">Include</span>
               <input
@@ -528,25 +528,6 @@ export default {
       } else if (type === 'cash') {
         this.toggleIncludedCash(id);
       }
-    },
-
-    formatAccountType(type) {
-      if (!type) return 'Investment';
-      const typeMap = {
-        isa: 'ISA',
-        sipp: 'Self-Invested Personal Pension',
-        gia: 'General Investment Account',
-        lisa: 'Lifetime ISA',
-        jisa: 'Junior ISA',
-        private_company: 'Private Company',
-        crowdfunding: 'Crowdfunding',
-        saye: 'Save As You Earn',
-        csop: 'Company Share Option Plan',
-        emi: 'Enterprise Management Incentive',
-        rsu: 'Restricted Stock Units',
-        unapproved_options: 'Unapproved Options',
-      };
-      return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     },
 
     /**
