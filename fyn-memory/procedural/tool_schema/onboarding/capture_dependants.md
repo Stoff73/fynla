@@ -37,6 +37,10 @@ effective_from: 2026-06-02
                                 "other_dependent"
                             ],
                             "description": "Child (son, daughter, step-child, etc.), parent (mother, father, in-law), or other_dependent (sibling, nephew, elderly relative, friend)."
+                        },
+                        "is_disabled": {
+                            "type": "boolean",
+                            "description": "True when the user says the dependant has a disability (for example receives Disability Living Allowance or has an Education, Health and Care plan), false when they say not. Omit when not mentioned."
                         }
                     },
                     "required": [

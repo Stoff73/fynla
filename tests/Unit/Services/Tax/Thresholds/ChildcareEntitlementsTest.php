@@ -84,3 +84,19 @@ it('gives no Tax-Free Childcare when no spend is recorded', function () {
 
     expect(collect($this->entitlements->for($user))->firstWhere('label', 'Tax-Free Childcare'))->toBeNull();
 });
+
+it('applies the higher cap and the later age limit to a disabled child, from the seeded figures', function () {
+    $tfc = app(TaxConfigService::class)->getTaxFreeChildcare();
+    $user = User::factory()->create(['childcare' => 1500]); // £18,000 a year
+    $fourteen = thresholdChild($user, '2012-06-01');
+    $fourteen->update(['is_disabled' => true]);
+    thresholdChild($user, '2012-06-01'); // the same age, no disability: past the ordinary limit
+
+    $item = collect($this->entitlements->for($user))->firstWhere('label', 'Tax-Free Childcare');
+
+    // Only the disabled fourteen-year-old qualifies, at the disabled cap.
+    expect($item)->not->toBeNull()
+        ->and($item['amount'])->toBe(round(min(18000 * (float) $tfc['government_top_up_rate'], (float) $tfc['max_disabled_contribution']), 2))
+        ->and($item['detail'])->toContain('One child eligible')
+        ->and($item['detail'])->toContain('£'.number_format((float) $tfc['max_disabled_contribution']).' for a disabled child');
+});

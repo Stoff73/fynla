@@ -52,6 +52,10 @@ effective_from: 2026-06-02
             "is_dependent": {
                 "type": "boolean",
                 "description": "Whether this person is financially dependent on the user"
+            },
+            "is_disabled": {
+                "type": "boolean",
+                "description": "True when the family member has a disability (for example receives Disability Living Allowance or has an Education, Health and Care plan). Omit when not mentioned."
             }
         },
         "required": [

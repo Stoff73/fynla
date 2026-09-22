@@ -148,6 +148,7 @@ describe('POST /api/user/family-members', function () {
             'education_status' => 'primary',
             'annual_income' => 0,
             'notes' => 'Third child',
+            'is_disabled' => true,
         ];
 
         $response = $this->postJson('/api/user/family-members', $newMemberData);
@@ -164,6 +165,7 @@ describe('POST /api/user/family-members', function () {
             'first_name' => 'New',
             'last_name' => 'Child',
             'relationship' => 'child',
+            'is_disabled' => 1,
         ]);
 
         // Verify response data

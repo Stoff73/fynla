@@ -290,8 +290,9 @@ export default {
         other_dependent: 'Dependant',
       }[dependant.relationship] || 'Dependant';
       const age = dependant.age;
+      const label = age == null ? relationship : `${relationship}, aged ${age}`;
 
-      return age == null ? relationship : `${relationship}, aged ${age}`;
+      return dependant.is_disabled ? `${label}, has a disability` : label;
     },
     money(value) {
       if (value == null || value === '' || Number.isNaN(Number(value))) return '—';

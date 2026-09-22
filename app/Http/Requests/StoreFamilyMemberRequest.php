@@ -52,6 +52,7 @@ class StoreFamilyMemberRequest extends FormRequest
             'is_dependent' => ['sometimes', 'boolean'],
             'education_status' => ['nullable', Rule::in(['pre_school', 'primary', 'secondary', 'further_education', 'higher_education', 'graduated', 'not_applicable'])],
             'receives_child_benefit' => ['nullable', 'boolean'],
+            'is_disabled' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }

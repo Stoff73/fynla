@@ -81,6 +81,12 @@
               >
                 Child Benefit
               </span>
+              <span
+                v-if="member.is_disabled"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800"
+              >
+                Disability
+              </span>
               <!-- Reads the link, never the relationship (W-0051) -->
               <span
                 v-if="isLinkedAccount(member)"

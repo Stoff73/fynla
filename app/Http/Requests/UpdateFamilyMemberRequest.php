@@ -38,6 +38,7 @@ class UpdateFamilyMemberRequest extends FormRequest
             'is_dependent' => ['sometimes', 'boolean'],
             'education_status' => ['sometimes', 'nullable', Rule::in(['pre_school', 'primary', 'secondary', 'further_education', 'higher_education', 'graduated', 'not_applicable'])],
             'receives_child_benefit' => ['sometimes', 'nullable', 'boolean'],
+            'is_disabled' => ['sometimes', 'nullable', 'boolean'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }
