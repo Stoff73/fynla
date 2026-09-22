@@ -28,11 +28,12 @@ beforeEach(function () {
     $this->seed(TierConfigurationSeeder::class);
 });
 
-it('refuses to create a second property for a free-tier user', function () {
+it('refuses a property beyond the seeded free-tier cap', function () {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(PropertyStore::class);
 
-    Property::factory()->create(['user_id' => $user->id]);
+    // The Free plan holds two properties (74b6ef3c8); read the cap, never pin it.
+    Property::factory(app(TierGate::class)->hardLimit($user, PropertyStore::ENTITY_KEY))->create(['user_id' => $user->id]);
 
     expect(fn () => $store->create([
         'property_type' => 'main_residence',
@@ -44,8 +45,9 @@ it('refuses to create a second property for a free-tier user', function () {
 it('carries the entity key, current count and hard limit on the thrown exception', function () {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(PropertyStore::class);
+    $cap = app(TierGate::class)->hardLimit($user, PropertyStore::ENTITY_KEY);
 
-    Property::factory()->create(['user_id' => $user->id]);
+    Property::factory($cap)->create(['user_id' => $user->id]);
 
     try {
         $store->create([
@@ -56,8 +58,8 @@ it('carries the entity key, current count and hard limit on the thrown exception
         $this->fail('Expected TierLimitExceededException was not thrown');
     } catch (TierLimitExceededException $e) {
         expect($e->entityKey)->toBe(PropertyStore::ENTITY_KEY);
-        expect($e->currentCount)->toBe(1);
-        expect($e->hardLimit)->toBe(1);
+        expect($e->currentCount)->toBe($cap);
+        expect($e->hardLimit)->toBe($cap);
     }
 });
 
@@ -96,7 +98,7 @@ it('enforces the cap under the global DbTierGate binding', function () {
     $user = User::factory()->create(['tier' => 'free']);
     $store = app(PropertyStore::class);
 
-    Property::factory()->create(['user_id' => $user->id]);
+    Property::factory(app(TierGate::class)->hardLimit($user, PropertyStore::ENTITY_KEY))->create(['user_id' => $user->id]);
 
     expect(fn () => $store->create([
         'property_type' => 'main_residence',

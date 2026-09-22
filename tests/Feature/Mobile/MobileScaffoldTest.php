@@ -88,6 +88,9 @@ it('does not redirect a phone document loaded inside the mobile iframe (no loop)
 it('does not redirect the legal pages on a phone UA (no /m counterpart)', function () {
     // SFSafariViewController in the native app and the /m Settings links open
     // these with a phone UA; bouncing them to /m lost the page (CSJ 2026-09-09).
+    // The pages render the SPA shell, whose @vite tag needs a built manifest the
+    // CI test job never has; the test is about the redirect, not the bundle.
+    $this->withoutVite();
     foreach (['/privacy', '/terms', '/editorial-policy'] as $path) {
         get($path, ['User-Agent' => PHONE_UA, 'Accept' => 'text/html'])->assertOk();
     }

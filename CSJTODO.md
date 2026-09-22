@@ -169,9 +169,10 @@ PR #919 (`feature/threshold-position` → dev) is open, walked green on csjones,
 - **A preview persona's `/m` token is rotated by the app's refresh flow** — mint a fresh
   one (`POST /api/preview/login/{persona}`) per browser session.
 - The iOS `test-and-build` CI job is **not a release gate and must never be re-run
-  unasked** (CSJ 2026-09-07). dev's own Quality Gate is red on Unit/Feature
-  (`AccountDeletionService`, `AuditTierCollapse` QueryExceptions) — pre-existing, not
-  investigated.
+  unasked** (CSJ 2026-09-07). dev's Quality Gate's three long-standing reds
+  (`AccountDeletionService`, `AuditTierCollapse`, the admin action-definition count)
+  were fixed on 2026-09-22: two tests wrote enum values migrations had removed, one
+  pinned a seeder count; the collapse audit command went with its test.
 - **Before any release, check what prod actually runs** (bundle hash, `migrate:status`,
   vendor mtime). Prod deploys rsync `app config database routes resources/views public/pages
   public/build` (+ `fyn-memory/` and `resources/js/data/` when they change) and `rm` any

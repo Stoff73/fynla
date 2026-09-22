@@ -163,9 +163,11 @@ it('deleteAccount with non-active subscription leaves status alone', function ()
     $user = User::factory()->create();
     Subscription::factory()->create(['user_id' => $user->id, 'status' => 'expired']);
 
+    // 'trial_expired' left the deletion_reason enum with the trial schema
+    // (2026_07_15_000005); the surviving grace-ended reason exercises the same path.
     app(AccountDeletionService::class)->deleteAccount(
         $user,
-        'trial_expired',
+        'subscription_cancelled_grace_ended',
         'auto_expiration_grace'
     );
 
