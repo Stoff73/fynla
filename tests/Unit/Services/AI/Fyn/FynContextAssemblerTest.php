@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\Fyn\FynContextAssembler;
@@ -368,4 +370,33 @@ it('does not inject the saving block on an onboarding turn', function (): void {
 
     expect(app(FynContextAssembler::class)->build($ctx))
         ->not->toContain('<savings_getting_started>');
+});
+
+it('flags a word-for-word repeat of the previous user message, and nothing else', function (): void {
+    $conversation = AiConversation::create([
+        'user_id' => $this->user->id, 'title' => 'Test', 'status' => 'active',
+        'model_used' => 'grok-4.3', 'metadata' => ['source' => 'fyn_advice'],
+    ]);
+    $turn = static fn (string $role, string $content) => AiMessage::create([
+        'conversation_id' => $conversation->id, 'role' => $role, 'content' => $content,
+    ]);
+    $build = fn (string $message): string => app(FynContextAssembler::class)->build(FynTurnContext::make(
+        user: $this->user, message: $message, currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'billing'], conversation: $conversation,
+    ));
+
+    // First ask: the current turn is persisted before the build, as every send path does.
+    $turn('user', 'Where did you get the income figure from');
+    expect($build('Where did you get the income figure from'))->not->toContain('<repeated_question>');
+    $turn('assistant', 'From the employment income in your profile.');
+
+    // A different question is not a repeat.
+    $turn('user', 'How much should I be saving each month');
+    expect($build('How much should I be saving each month'))->not->toContain('<repeated_question>');
+    $turn('assistant', 'About £1,000 a month.');
+
+    // The same words again, whitespace and case aside, is.
+    $turn('user', '  how much should I be saving  each month ');
+    expect($build('  how much should I be saving  each month '))->toContain('<repeated_question>');
 });

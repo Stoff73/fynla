@@ -325,12 +325,56 @@ final class FynContextAssembler
                 .'analysis and questions.'."\n".'</preview_mode>';
         }
 
+        if (($repeated = $this->repeatedQuestionBlock($ctx)) !== null) {
+            $lines[] = $repeated;
+        }
+
         $lines[] = '</context>';
         $lines[] = '<user_message>';
         $lines[] = UserContentSanitiser::clean($ctx->message);
         $lines[] = '</user_message>';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The user has sent their previous message again, word for word. Left to
+     * itself the model returns its previous reply byte for byte (csjones
+     * 2026-09-23, conversations 263, 268 and 270: three separately billed
+     * calls, identical output; the prompt rule alone did not stop it). Every
+     * send path persists the user row before this runs, so the latest user
+     * row is the current turn and the one before it is the previous message.
+     * ponytail: exact repeats only; a near-repeat is the prompt rule's job.
+     */
+    private function repeatedQuestionBlock(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->conversation === null) {
+            return null;
+        }
+
+        $normalise = static fn (string $text): string => mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $text)));
+        $current = $normalise($ctx->message);
+
+        $recent = $ctx->conversation->messages()
+            ->where('role', 'user')
+            ->latest('id')
+            ->limit(2)
+            ->pluck('content')
+            ->map(static fn ($content): string => $normalise((string) $content))
+            ->values();
+
+        $previous = $recent->get(0) === $current ? $recent->get(1) : $recent->get(0);
+
+        if ($previous === null || $previous !== $current) {
+            return null;
+        }
+
+        return '<repeated_question>'."\n"
+            .'The user has just sent the same message as their previous one, word for word. '
+            .'Your previous reply did not give them what they needed. Do not send it again: '
+            .'say briefly that you answered this a moment ago, put it a different way or add what was missing, '
+            .'and ask what is still unclear.'."\n"
+            .'</repeated_question>';
     }
 
     private function surfaceActionContext(FynTurnContext $ctx): ?string
