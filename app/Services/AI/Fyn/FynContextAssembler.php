@@ -370,10 +370,11 @@ final class FynContextAssembler
         }
 
         return '<repeated_question>'."\n"
-            .'The user has just sent the same message as their previous one, word for word. '
-            .'Your previous reply did not give them what they needed. Do not send it again: '
-            .'say briefly that you answered this a moment ago, put it a different way or add what was missing, '
-            .'and ask what is still unclear.'."\n"
+            .'The user has just sent the same message as their previous one, word for word, so your previous reply did not give them what they needed. '
+            .'This overrides the usual answer shape. Your reply MUST have exactly three parts and nothing else: '
+            .'(1) begin with the exact words "I answered that a moment ago, so let me put it differently." '
+            .'(2) one or two sentences that explain it another way or add what the previous reply left out; never reuse a sentence from the previous reply. '
+            .'(3) one question asking which part is unclear or what they were expecting to see.'."\n"
             .'</repeated_question>';
     }
 
