@@ -7,6 +7,7 @@ namespace App\Services\AI;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\AI\ContextualConversation\ConversationModeResolver;
 use App\Services\Onboarding\OnboardingFactExtractor;
 use App\Services\Shared\DependantsReach;
 
@@ -56,6 +57,13 @@ class MemoryRetrieverService
         private readonly OnboardingFactExtractor $factExtractor,
         // W-0275 — the one home for "who depends on this user" (Rule 20).
         private readonly DependantsReach $dependantsReach,
+        // The one dispatch predicate (Rule 20): Layer 3 exists to catch an
+        // onboarding answer before parking flushes it, so it runs only when
+        // the conversation routes to the director. Live 2026-09-23 (fynla.org,
+        // conversation 888): an advice question, "where did you get the 21k
+        // income number from", was extracted as annual_income 21000 and fed
+        // back to Fyn as a known fact, which it then cited as recorded income.
+        private readonly ConversationModeResolver $conversationModes,
     ) {}
 
     /**
@@ -70,7 +78,9 @@ class MemoryRetrieverService
 
         if ($conversation !== null) {
             $this->mergeNewKeys($facts, $this->fromParkedFacts($conversation));
-            $this->mergeNewKeys($facts, $this->fromCurrentConversation($conversation));
+            if ($this->conversationModes->routesToOnboarding($conversation, $user)) {
+                $this->mergeNewKeys($facts, $this->fromCurrentConversation($conversation));
+            }
         }
 
         $this->mergeNewKeys($facts, $this->fromConversationIndex($user, array_keys($facts), $conversation?->id));
