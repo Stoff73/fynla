@@ -358,24 +358,40 @@ final class FynContextAssembler
         $recent = $ctx->conversation->messages()
             ->where('role', 'user')
             ->latest('id')
-            ->limit(2)
+            ->limit(6)
             ->pluck('content')
             ->map(static fn ($content): string => $normalise((string) $content))
-            ->values();
+            ->values()
+            ->all();
 
-        $previous = $recent->get(0) === $current ? $recent->get(1) : $recent->get(0);
+        // Drop the current turn's own row, then count how many earlier sends
+        // in a row were this same message.
+        if (($recent[0] ?? null) === $current) {
+            array_shift($recent);
+        }
+        $repeats = 0;
+        foreach ($recent as $earlier) {
+            if ($earlier !== $current) {
+                break;
+            }
+            $repeats++;
+        }
 
-        if ($previous === null || $previous !== $current) {
+        if ($repeats === 0) {
             return null;
         }
 
-        return '<repeated_question>'."\n"
-            .'The user has just sent the same message as their previous one, word for word, so your previous reply did not give them what they needed. '
-            .'This overrides the usual answer shape. Your reply MUST have exactly three parts and nothing else: '
-            .'(1) begin with the exact words "I answered that a moment ago, so let me put it differently." '
-            .'(2) one or two sentences that explain it another way or add what the previous reply left out; never reuse a sentence from the previous reply. '
-            .'(3) one question asking which part is unclear or what they were expecting to see.'."\n"
-            .'</repeated_question>';
+        $instruction = $repeats === 1
+            ? 'The user has just sent the same message as their previous one, word for word, so your previous reply did not give them what they needed. '
+                .'This overrides the usual answer shape. Your reply MUST have exactly three parts and nothing else: '
+                .'(1) begin with the exact words "I answered that a moment ago, so let me put it differently." '
+                .'(2) one or two sentences that explain it another way or add what the previous reply left out; never reuse a sentence from the previous reply. '
+                .'(3) one question asking which part is unclear or what they were expecting to see.'
+            : 'The user has now sent this same message '.($repeats + 1).' times in a row and has had two different explanations. '
+                .'Do not explain it again and do not reuse any sentence from your previous replies. '
+                .'Your whole reply MUST be one or two sentences: acknowledge you may be missing what they are looking for, and ask them to tell you in their own words what they expected to see, or whether the message was sent again by mistake.';
+
+        return '<repeated_question>'."\n".$instruction."\n".'</repeated_question>';
     }
 
     private function surfaceActionContext(FynTurnContext $ctx): ?string

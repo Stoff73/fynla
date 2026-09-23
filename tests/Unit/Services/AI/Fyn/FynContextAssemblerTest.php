@@ -398,5 +398,14 @@ it('flags a word-for-word repeat of the previous user message, and nothing else'
 
     // The same words again, whitespace and case aside, is.
     $turn('user', '  how much should I be saving  each month ');
-    expect($build('  how much should I be saving  each month '))->toContain('<repeated_question>');
+    expect($build('  how much should I be saving  each month '))
+        ->toContain('<repeated_question>')
+        ->toContain('I answered that a moment ago');
+    $turn('assistant', 'I answered that a moment ago, so let me put it differently. Roughly £1,000. Which part is unclear?');
+
+    // A third send gets the one-line ask, not a third explanation.
+    $turn('user', 'How much should I be saving each month');
+    expect($build('How much should I be saving each month'))
+        ->toContain('3 times in a row')
+        ->not->toContain('I answered that a moment ago');
 });
