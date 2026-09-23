@@ -325,12 +325,73 @@ final class FynContextAssembler
                 .'analysis and questions.'."\n".'</preview_mode>';
         }
 
+        if (($repeated = $this->repeatedQuestionBlock($ctx)) !== null) {
+            $lines[] = $repeated;
+        }
+
         $lines[] = '</context>';
         $lines[] = '<user_message>';
         $lines[] = UserContentSanitiser::clean($ctx->message);
         $lines[] = '</user_message>';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The user has sent their previous message again, word for word. Left to
+     * itself the model returns its previous reply byte for byte (csjones
+     * 2026-09-23, conversations 263, 268 and 270: three separately billed
+     * calls, identical output; the prompt rule alone did not stop it). Every
+     * send path persists the user row before this runs, so the latest user
+     * row is the current turn and the one before it is the previous message.
+     * ponytail: exact repeats only; a near-repeat is the prompt rule's job.
+     */
+    private function repeatedQuestionBlock(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->conversation === null) {
+            return null;
+        }
+
+        $normalise = static fn (string $text): string => mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $text)));
+        $current = $normalise($ctx->message);
+
+        $recent = $ctx->conversation->messages()
+            ->where('role', 'user')
+            ->latest('id')
+            ->limit(6)
+            ->pluck('content')
+            ->map(static fn ($content): string => $normalise((string) $content))
+            ->values()
+            ->all();
+
+        // Drop the current turn's own row, then count how many earlier sends
+        // in a row were this same message.
+        if (($recent[0] ?? null) === $current) {
+            array_shift($recent);
+        }
+        $repeats = 0;
+        foreach ($recent as $earlier) {
+            if ($earlier !== $current) {
+                break;
+            }
+            $repeats++;
+        }
+
+        if ($repeats === 0) {
+            return null;
+        }
+
+        $instruction = $repeats === 1
+            ? 'The user has just sent the same message as their previous one, word for word, so your previous reply did not give them what they needed. '
+                .'This overrides the usual answer shape. Your reply MUST have exactly three parts and nothing else: '
+                .'(1) begin with the exact words "I answered that a moment ago, so let me put it differently." '
+                .'(2) one or two sentences that explain it another way or add what the previous reply left out; never reuse a sentence from the previous reply. '
+                .'(3) one question asking which part is unclear or what they were expecting to see.'
+            : 'The user has now sent this same message '.($repeats + 1).' times in a row and has had two different explanations. '
+                .'Do not explain it again and do not reuse any sentence from your previous replies. '
+                .'Your whole reply MUST be one or two sentences: acknowledge you may be missing what they are looking for, and ask them to tell you in their own words what they expected to see, or whether the message was sent again by mistake.';
+
+        return '<repeated_question>'."\n".$instruction."\n".'</repeated_question>';
     }
 
     private function surfaceActionContext(FynTurnContext $ctx): ?string
