@@ -130,6 +130,35 @@ it('Layer 3 — re-runs the fact extractor over recent user messages', function 
     expect($facts)->toHaveKey('marital_status', 'married');
 });
 
+it('Layer 3 — retrieve() skips the in-flight extractor once the conversation routes to advice', function () {
+    // Live 2026-09-23 (fynla.org, conversation 888): an advice question,
+    // "where did you get the 21k income number from", was extracted as
+    // annual_income 21000 and fed back to Fyn as a known fact.
+    $user = User::factory()->create([
+        'onboarding_completed' => true,
+        'onboarding_fyn_step' => null,
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'title' => 'Test',
+        'status' => 'active',
+        'model_used' => 'grok-4.3',
+        'metadata' => ['source' => 'fyn_onboarding'],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Where did you get the 21k income number from',
+    ]);
+
+    expect($this->memory->retrieve($user, $conversation))->not->toHaveKey('annual_income');
+
+    // The same message while the walk is live is an onboarding answer.
+    $user->forceFill(['onboarding_completed' => false, 'onboarding_fyn_step' => 'base_work'])->save();
+
+    expect($this->memory->retrieve($user->fresh(), $conversation))->toHaveKey('annual_income', 21000.0);
+});
+
 it('Layer 4 — surfaces prior_topics and prior_intents from the conversation index', function () {
     $user = User::factory()->create();
 
