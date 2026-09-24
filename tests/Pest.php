@@ -102,6 +102,17 @@ uses()->beforeEach(function () {
     if (class_exists(TierConfiguration::class) && ! TierConfiguration::query()->exists()) {
         (new TierConfigurationSeeder)->run();
     }
+
+    // Fyn memory writes go to a per-test temp dir, never the real
+    // fyn-memory/episodic/episodes/ or storage/app/memory/semantic-user/.
+    // 2026-09-24: FailureContextTest's "cycle N learn" episodes landed in the
+    // real folder, the deploy rsync carried them to production, and four real
+    // users would have had them recalled as "What I remember about you".
+    $memoryTmp = sys_get_temp_dir().'/fyn-test-memory-'.uniqid('', true);
+    config([
+        'fyn.memory.episodic_path' => $memoryTmp.'/episodes',
+        'fyn.memory.user_semantic_path' => $memoryTmp.'/semantic-user',
+    ]);
 })->in('Feature', 'Unit/Services', 'Unit/Observers', 'Unit/Http', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Unit/Agents/SavingsAgentGoalsTest.php', 'Unit/Agents/ProtectionAgentGoalsTest.php', 'Unit/Agents/EstateAgentGoalsTest.php', 'Unit/Agents/RetirementAgentGoalsTest.php', 'Integration');
 
 // CoALA Phase 5 item 5 — the planner (and reasoner) resolve a provider LLM
