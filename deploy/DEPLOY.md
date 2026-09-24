@@ -97,7 +97,7 @@ php artisan queue:restart                       # old workers exit after their c
 # Confirm no pre-deploy queue job is still running before continuing.
 ```
 
-6. With maintenance mode still active, upload `public/build/` + `public/m-build/` + changed PHP files to `~/www/fynla.org/public_html/` (rsync `app/ config/ database/ routes/ resources/views/ fyn-memory/ resources/js/data/ public/pages/`; rsync never deletes, so remove retired classes by hand). **Never upload `bootstrap/`** — `bootstrap/cache/packages.php` and `services.php` are the local package manifest and list dev-only providers (Collision) that prod's vendor does not have; every artisan call then dies with `CollisionServiceProvider not found` until `composer dump-autoload` regenerates them (found 2026-09-09, inside the maintenance window).
+6. With maintenance mode still active, upload `public/build/` + `public/m-build/` + changed PHP files to `~/www/fynla.org/public_html/` (rsync `app/ config/ database/ routes/ resources/views/ fyn-memory/ resources/js/data/ public/pages/` with `--exclude 'fyn-memory/episodic/episodes/'`; rsync never deletes, so remove retired classes by hand). **The episodes folder is runtime user data on each server; never upload the local one.** Local test runs wrote fake `cycle N learn` episodes there, and on 2026-09-24 432 of them were found on production, four under real user ids. **Never upload `bootstrap/`** — `bootstrap/cache/packages.php` and `services.php` are the local package manifest and list dev-only providers (Collision) that prod's vendor does not have; every artisan call then dies with `CollisionServiceProvider not found` until `composer dump-autoload` regenerates them (found 2026-09-09, inside the maintenance window).
 7. Finalise over SSH:
 
 ```bash
