@@ -23,9 +23,8 @@ branch: dev
 
 CSJ, session end: **"make sure we start with implementation of the plans tomorrow."**
 
-1. **Ask CSJ how to run the plan, then start Task 1 immediately.** BLOCKED ON CSJ, one-line answers:
-   - (a) Subagent-driven (recommended: tasks 2–8 each build on the previous task's code, and a memory mistake reaches every Fyn answer) or native.
-   - (b) Confirm D5 (OpenAI `text-embedding-3-small` at 512 dimensions). Only needed before Task 7, so do not wait on it for Tasks 1–6.
+1. **Start Task 1 immediately, INLINE.** CSJ ruling, 19:37: "the implementation plan is done inline, not sub-agent driven." Execute it yourself in the session with the `superpowers:executing-plans` skill; do not dispatch subagents to implement tasks. No question needs asking before Task 1.
+   - D5 (OpenAI `text-embedding-3-small` at 512 dimensions) needs CSJ's confirmation before Task 7 only.
    - Load `fyn-architecture`, `data-integrity-traps` and `test-failure-forensics` before coding, and `vault-context` for the Fyn/AI module if dispatching agents (CLAUDE.md).
 2. **Tasks 1–6: memory.** `MemoryFactGuard`, then `user_memory_facts` and the repository, then per-user learning writing memory (active immediately), then recall and erase on typed memory, then conversation summaries as the one episodic recall path, then the settings memory screen on web and `/m` plus "forget that" in chat.
    - Branch off `dev`, PR to `dev`, admin-merge, and put csjones back on `dev` afterwards.

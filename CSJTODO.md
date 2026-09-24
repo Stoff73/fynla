@@ -71,7 +71,7 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 CSJ: "make sure we start with implementation of the plans tomorrow".
 
-- [ ] **CSJ first: choose how to run it**, subagent-driven or native. Also confirm D5 (OpenAI `text-embedding-3-small` at 512 dimensions) before Task 7.
+- [ ] **Run it inline** (CSJ 2026-09-24: "done inline, not sub-agent driven"; `superpowers:executing-plans`). Confirm D5 (OpenAI `text-embedding-3-small` at 512 dimensions) with CSJ before Task 7.
 - [ ] Plan `docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md`, 9 tasks:
   1. `MemoryFactGuard`
   2. `user_memory_facts` + repository

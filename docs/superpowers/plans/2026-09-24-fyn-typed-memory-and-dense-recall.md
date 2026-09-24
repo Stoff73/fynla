@@ -1,6 +1,6 @@
 # Fyn Typed Memory and Dense Recall Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task, **inline in the main session**. CSJ 2026-09-24: "the implementation plan is done inline, not sub-agent driven." Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Give Fyn real per-user memory and per-user learning. Every user has their own memory, Fyn learns from each of that user's conversations, and what it learns applies to that user's next turn automatically. This brings the code into line with the agreed CoALA design. That means typed SQL relationship memory, which never copies live data, which the user can see, correct and delete on web and `/m`, and which is recalled with the canonical SQL episodes. Then add dense (embedding) recall behind the existing `RecallScorer` seam, which is Option 5 of the 2026-09-24 research.
 
