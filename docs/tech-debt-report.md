@@ -1,21 +1,39 @@
-# Tech Debt Report — Session 2026-09-22 (release #934)
+# Tech Debt Report — Session 2026-09-24 (PR #937 + memory/vector plan)
 
-**Files analysed:** 14 (PRs #928–#933)
-**Issues found:** 7
-**Severity breakdown:** 0 critical, 3 warnings, 4 suggestions
+**Files analysed:** 7 (4 code/config, 3 docs)
+**Issues found:** 5
+**Severity breakdown:** 0 critical, 3 warnings, 2 suggestions (1, 2 and 4 are fixed in the plan text; 3 and 5 are deferred)
 
 ## Warnings
 
-- **`resources/js/components/Retirement/RequiredCapitalDetail.vue`** — Category 2. Imported nowhere in `resources/js` (0 references). #928 switched it to `account_type_label` and the change is untestable in a browser. Either wire it to the Required Capital drill-down it was written for or delete it with the other MB-09 dead pages. CSJ decision.
-- **`app/Services/Onboarding/OnboardingStateMachine.php:832` and `:1414`** — Category 2. `campaign_verify_announce` and `verifyPromptAnnounce()` are orphaned since #932 (no path returns the state); kept for golden-master parity like `campaign_verify_more`. Two orphaned verify states now. When the Okay-gate decision settles (CSJ "let's try this"), delete both or restore one.
-- **`app/Agents/CoordinatingAgent.php`** — Category 4. 6,979 lines; `handleSetExpenditure` 203 lines, `handleCaptureMonthlyExpenditure` 55, `handleCaptureSpouseNonWorkingAssets` 58. Unchanged finding from yesterday; today added the optional-total branch and the non-earner yes/no. The three expenditure handlers and the spouse handlers are the extraction candidates.
+1. **`docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md` Task 1, `MemoryFactGuard::CANONICAL_TOPICS`**
+   - **Category:** Complexity & Maintainability (correctness risk)
+   - **What's wrong:** Topic matching uses `str_contains`, so `'isa'` matches "disadvantage" and "visa", and `'child'` matches "childhood". A durable fact such as "Sees a disadvantage in locking money away" would be rejected as `canonical_field`.
+   - **Suggested fix:** Match on word boundaries (`preg_match('/\b'.preg_quote($topic).'\b/u', $t)`), and add a false-positive case to the Task 1 test before implementing.
+
+2. **Same plan, Task 8, `HybridRecallScorer` query memoisation**
+   - **Category:** Inconsistency with Existing Patterns
+   - **What's wrong:** The plan memoises the query embedding "on the instance", but `RecallScorer` is bound with `bind()` (`app/Providers/AppServiceProvider.php:171`). `SemanticRetriever` and `EpisodeRecallService` would each get their own instance, which means two OpenAI calls per turn.
+   - **Suggested fix:** Bind `HybridRecallScorer` with `$this->app->scoped(...)`, so it has one instance per request.
+
+3. **`tests/Pest.php:111`: per-test temp memory directories are never removed**
+   - **Category:** Dead & Redundant Code (resource leak)
+   - **What's wrong:** A `fyn-test-memory-*` directory is created only when a test writes to it (6 exist after today's runs), but none are ever deleted, so they accumulate in the system temp directory across runs.
+   - **Suggested fix:** Add a matching global `afterEach` that removes `$memoryTmp` when it exists. Or accept it until Task 5 removes `episodic_path` and Task 4 removes `user_semantic_path`, when the hook goes away.
 
 ## Suggestions
 
-- **`app/Services/Onboarding/OnboardingChatDirector.php:6423` and `:6479`** — Category 1. `spouseHouseholdAck` and `spouseAssetsAck` build the same "receives £x a year in dividends" and "pays £x a year into their pension" clauses independently. One private clause builder over the household row would serve both acks.
-- **`app/Services/Onboarding/CaptureForms.php:1267`, `:1291`, `:1345`** — Category 1. The childcare hint "Nursery, childminder, after school. Leave blank if none" is written three times (one-box form, tax-only form, detailed form). A shared field definition for `childcare` would keep the copy in one place.
-- **`app/Services/Onboarding/OnboardingService.php` `expenditureColumns()` / `expenditureColumnsOf()`** — Category 1. Two helpers walk the same `SharedExpenditure::SHARED_FIELDS + charitable_donations` list, one over a payload and one over a user model. Fine today; if a third reader appears, make the list a public constant on `SharedExpenditure` and derive both.
-- **`app/Services/Onboarding/CaptureForms.php` `nonEarnerNetContribution()`** — Category 6. A static value class resolving `TaxConfigService` through `app()`. Consistent with the rest of `CaptureForms` (static, no constructor), but it is the first tax-config read in the file; if more follow, inject the service.
+4. **Plan Task 4, Step 3: service location inside `SemanticRetriever`**
+   - **Category:** Inconsistency with Existing Patterns
+   - **What's wrong:** The step says to use `app(UserMemoryRepository::class)` plus `User::findOrFail($userId)` inside `retrieveForUser`. The class already uses constructor injection.
+   - **Suggested fix:** Inject `UserMemoryRepository` through the constructor, replacing `UserSemanticStore`.
+
+5. **`deploy/DEPLOY.md` step 6 and `.claude/skills/release/SKILL.md:42`: temporary rsync exclude**
+   - **Category:** Info
+   - **What's wrong:** The `--exclude 'fyn-memory/episodic/episodes/'` note is correct today, but it becomes obsolete when plan Task 5 deletes the folder.
+   - **Suggested fix:** None needed now. Task 5, Step 5 already removes it.
+
+No hardcoded tax values, acronyms, scores, icons or banned colours were found in the changed files. `declare(strict_types=1)` is present in the PHP test files.
 
 ---
 *Generated by tech-debt-session skill*
