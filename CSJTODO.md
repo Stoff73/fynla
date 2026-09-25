@@ -67,9 +67,9 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
-## Next session starts here — implement the Fyn memory and dense-recall plan (CSJ, 2026-09-24)
+## QUEUED — Fyn memory and dense-recall plan (starts only on CSJ's go)
 
-CSJ: "make sure we start with implementation of the plans tomorrow".
+CSJ 2026-09-25: queued, not started automatically. A session presents it as the next item and waits for CSJ to say go.
 
 - [ ] **Run it inline** (CSJ 2026-09-24: "done inline, not sub-agent driven"; `superpowers:executing-plans`). Confirm D5 (OpenAI `text-embedding-3-small` at 512 dimensions) with CSJ before Task 7.
 - [ ] Plan `docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md`, 9 tasks:

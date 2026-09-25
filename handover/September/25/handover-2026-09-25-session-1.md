@@ -13,16 +13,17 @@ branch: dev
 
 - This session did not start the typed-memory plan. CSJ paused it at session start ("we need to attend to other issues first").
 - Instead, the Claude Code setup (agents, skills, hooks, CLAUDE.md, settings, memory) was reviewed against Anthropic's Opus 5.5 guidance. CSJ approved all ten recommendations, and they are applied and merged as PR #938 (`426ca031b` on `dev`).
-- The typed-memory plan (`docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md`, 9 tasks) is still untouched. It is the next piece of work.
+- The typed-memory plan (`docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md`, 9 tasks) is still untouched. It is **queued**, not started: it begins only when CSJ says go.
 
 ## Priorities for the next session
 
-1. **Confirm the new settings took effect, then start plan Task 1 INLINE.** This is the first session opened after the changes.
+1. **Confirm the new settings took effect, then ask CSJ what to work on.** This is the first session opened after the changes.
    - Check `/effort` reads `high` for Opus 5.5.
    - Check the skill list no longer shows planning-with-files, feature-dev, code-simplifier, claude-code-setup, skill-creator, remember or ponytail.
-   - Then execute the plan with `superpowers:executing-plans`, yourself, with no implementation subagents (CSJ ruling 2026-09-24, 19:37). Load `fyn-architecture`, `data-integrity-traps` and `test-failure-forensics` before coding.
-2. **Plan Tasks 1–6 (memory).** Branch off `dev`, PR to `dev`, admin-merge, and put csjones back on `dev` afterwards. Task 6 needs web and `/m` browser verification (`verify-m`).
-3. **Plan Tasks 7–9 (dense recall).** Two things are BLOCKED ON CSJ:
+   - **Do NOT start the typed-memory plan automatically.** It is QUEUED (CSJ, 2026-09-25): present it as the queued next item and start it only when CSJ says go.
+   - When CSJ says go: execute it with `superpowers:executing-plans`, yourself, with no implementation subagents (CSJ ruling 2026-09-24, 19:37). Load `fyn-architecture`, `data-integrity-traps` and `test-failure-forensics` before coding.
+2. **QUEUED — Plan Tasks 1–6 (memory), on CSJ's go.** Branch off `dev`, PR to `dev`, admin-merge, and put csjones back on `dev` afterwards. Task 6 needs web and `/m` browser verification (`verify-m`).
+3. **QUEUED — Plan Tasks 7–9 (dense recall).** Two things are BLOCKED ON CSJ:
    - D5, the embedding model (OpenAI `text-embedding-3-small`, 512 dimensions), needs confirming before Task 7.
    - `OPENAI_API_KEY` must be set on csjones before Task 9.
 4. **After Tasks 1–6 are released:** CSJ sets `FYN_LEARNING_ENABLED=true` on production.
