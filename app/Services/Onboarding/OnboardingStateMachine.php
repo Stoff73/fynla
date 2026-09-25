@@ -493,6 +493,7 @@ final class OnboardingStateMachine
                 'next' => self::class.'::nextFromFunnelQuestion',
             ],
             self::STATE_CAMPAIGN_FUNNEL_ASSETS => [
+                'prompt_text' => self::class.'::buildFunnelAssetsPrompt',
                 'next' => self::class.'::nextFromFunnelAssets',
             ],
             self::STATE_BASE_PERSONAL => [
@@ -1100,6 +1101,13 @@ final class OnboardingStateMachine
         }
 
         return self::interpolate("Hi {first_name}, I'm Fyn. I'll help you find where you could be saving tax. First, a few quick questions. ", $user).$question;
+    }
+
+    public static function buildFunnelAssetsPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        return self::stateTurnAlreadyDelivered($conversation, self::STATE_CAMPAIGN_FUNNEL_ASSETS)
+            ? '**Anything else?** Tap each one, then "That\'s everything".'
+            : '**Which of these do you have?** Tap each one, then "That\'s everything".';
     }
 
     public static function nextFromFunnelQuestion(string $answer, User $user): string

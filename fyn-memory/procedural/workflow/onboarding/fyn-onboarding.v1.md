@@ -92,7 +92,7 @@ campaign_funnel_spouse_income:
 
 campaign_funnel_assets:
   turn_type: bubbles
-  prompt_text: '**Which of these do you have?** Tap each one, then "That''s everything".'
+  prompt_text: { builder: buildFunnelAssetsPrompt }
   bubbles:
     - { id: bank, label: 'Bank account' }
     - { id: savings, label: 'Savings account' }

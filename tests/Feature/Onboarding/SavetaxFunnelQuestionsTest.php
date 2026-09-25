@@ -259,3 +259,12 @@ it('the default first turn is Save Tax while it is forced', function () {
 
     expect($text)->toContain('employment')->not->toContain('life-stage journey');
 });
+
+it('asks "anything else" after the first asset instead of repeating the whole question', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no']]);
+    $first = ftqStart($user);
+    expect($first)->toContain('Which of these do you have?');
+
+    $again = ftqSay($user, 'ISA');
+    expect($again)->toContain('Anything else?')->not->toContain('Which of these do you have?');
+});
