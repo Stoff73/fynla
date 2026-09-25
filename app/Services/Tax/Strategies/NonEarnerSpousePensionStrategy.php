@@ -59,8 +59,14 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         }
 
         $figures = $this->math->nonEarnerPensionContribution();
-        $netContribution = $figures['net'];
-        $governmentUplift = $figures['relief'];
+        // What the spouse already pays in (stored net for a non-earner, the
+        // relief-at-source shape the capture writes) comes off the top (B5).
+        $alreadyPaid = (float) ($household?->spouse_pension_input_annual ?? 0);
+        $netContribution = round(max(0.0, $figures['net'] - $alreadyPaid), 2);
+        if ($netContribution < 1) {
+            return [];
+        }
+        $governmentUplift = round($netContribution * $figures['relief'] / $figures['net'], 2);
         $existingBalance = (float) ($household?->spouse_existing_pension_balance ?? 0);
 
         $balanceLine = $existingBalance > 0
@@ -134,7 +140,12 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
 
         // Basic-rate relief at source — from TaxConfigService, not hardcoded.
         $basicRate = $this->math->bandRateForBand('basic');
-        $grossCapacity = $spouseIncome; // relevant UK earnings = contribution cap
+        // Relevant earnings cap the gross contribution; what they already pay
+        // in (gross in this mode) has used part of it (B5).
+        $grossCapacity = max(0.0, $spouseIncome - (float) ($household->spouse_pension_input_annual ?? 0));
+        if ($grossCapacity < 1) {
+            return [];
+        }
         $uplift = round($grossCapacity * $basicRate, 2);
         $netCost = round($grossCapacity * (1.0 - $basicRate), 2);
 
