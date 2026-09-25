@@ -37,3 +37,28 @@ it('renders the current ISA rule with the configured allowance on the public hel
         ->assertSee('more than one ISA of the same type', false)
         ->assertSee('£'.number_format($allowance), false);
 });
+
+it('has no garbled characters or outdated spouse-linking and Inheritance Tax statements', function (string $file) {
+    // Spouse linking is an invitation the spouse accepts, never an automatic
+    // link or a created account (FamilyMembersController.php, W-0347/W-0349).
+    // Inheritance Tax figures come from config (Rule 2), never literals.
+    $text = file_get_contents(base_path($file));
+
+    expect($text)->not->toContain('â')
+        ->and($text)->not->toContain('link automatically')
+        ->and($text)->not->toContain('creates an account and emails them')
+        ->and($text)->not->toMatch('/(£|&pound;)(325|175|650|350)k/');
+})->with([
+    'public/pages/help.php',
+    'resources/js/views/Help.vue',
+]);
+
+it('renders the Inheritance Tax answer from the tax configuration on the public help page', function () {
+    $this->seed(TaxConfigurationSeeder::class);
+    $iht = app(TaxConfigService::class)->getInheritanceTax();
+
+    $this->get('/help')->assertOk()
+        ->assertSee('tax-free threshold of £'.number_format((int) $iht['nil_rate_band']), false)
+        ->assertSee('up to £'.number_format((int) $iht['residence_nil_rate_band']), false)
+        ->assertSee('We send them an invitation', false);
+});

@@ -243,14 +243,14 @@
                   <li><strong>Assets:</strong> Property, pensions, investments, savings, business, other assets</li>
                   <li><strong>Liabilities:</strong> Mortgages, loans, credit cards, other debts</li>
                   <li><strong>Net Estate:</strong> Total assets minus liabilities</li>
-                  <li><strong>Inheritance Tax Calculation:</strong> Tax-free allowance (£325k), home allowance (£175k for main residence), tax liability</li>
+                  <li><strong>Inheritance Tax Calculation:</strong> Tax-free threshold ({{ formatCurrency(ihtNilRateBand) }}), residence allowance (up to {{ formatCurrency(ihtResidenceNilRateBand) }} for a home left to direct descendants), tax liability</li>
                 </ul>
               </div>
 
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">Inheritance Tax Planning Tab</h3>
                 <p class="text-body-base text-horizon-500 mb-4">
-                  For married couples, view Second Death analysis with combined tax-free allowances (up to £650k basic allowance, plus up to £350k home allowance). Includes spouse exemption on first death.
+                  For married couples, view Second Death analysis with combined tax-free allowances (up to {{ formatCurrency(ihtNilRateBand * 2) }} of threshold, plus up to {{ formatCurrency(ihtResidenceNilRateBand * 2) }} of residence allowance). Includes spouse exemption on first death.
                 </p>
               </div>
 
@@ -504,7 +504,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">How do I add a protection policy?</h3>
                 <p class="text-body-base text-horizon-500">
-                  Go to Protection module → Policy Details tab → Click "Add Policy". Select the policy type (Life, Critical Illness, etc.) and fill in the required details including sum assured, premium, and term.
+                  In the Protection module, choose Add Policy. Select the policy type (Life, Critical Illness, etc.) and fill in the required details including sum assured, premium, and term.
                 </p>
               </div>
 
@@ -518,7 +518,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">How is inheritance tax calculated?</h3>
                 <p class="text-body-base text-horizon-500">
-                  Inheritance tax is charged at 40% on your estate above the tax-free allowances. For {{ currentTaxYear }}: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.
+                  Inheritance Tax is charged at {{ ihtRatePercent }}% on the part of your estate above your tax-free threshold of {{ formatCurrency(ihtNilRateBand) }}. If you leave your home to your direct descendants (children, including adopted, foster and stepchildren, and grandchildren), a residence allowance of up to {{ formatCurrency(ihtResidenceNilRateBand) }} is added; it reduces by £1 for every £2 that your estate is worth over {{ formatCurrency(ihtRnrbTaperThreshold) }}. If you are married or in a civil partnership, any threshold or residence allowance left unused on the first death can be added to the survivor's.
                 </p>
               </div>
 
@@ -539,7 +539,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">How do I link my spouse account?</h3>
                 <p class="text-body-base text-horizon-500">
-                  Go to User Profile → Family tab → Add Family Member → Select "spouse" and enter their email. If they have an account, it will link automatically. If not, the system creates an account and emails them login details.
+                  Go to Settings, then Family, and choose Add Family Member. Select spouse and enter their email address. We send them an invitation, and nothing is shared or linked until they accept it.
                 </p>
               </div>
 
@@ -597,7 +597,7 @@
                   Common issues:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-body-base text-horizon-500 ml-4">
-                  <li>Verify all assets are entered correctly (check Estate → Current Situation)</li>
+                  <li>Verify all assets are entered correctly in the Estate module</li>
                   <li>Ensure liabilities are entered (they reduce net estate)</li>
                   <li>Check domicile status (affects inheritance tax liability)</li>
                   <li>For married couples, check if tax-free allowance transfer from deceased spouse is set correctly</li>
@@ -711,7 +711,13 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
+import {
+  ISA_ANNUAL_ALLOWANCE,
+  IHT_NIL_RATE_BAND,
+  IHT_RESIDENCE_NIL_RATE_BAND,
+  IHT_RNRB_TAPER_THRESHOLD,
+  IHT_STANDARD_RATE,
+} from '@/constants/taxConfig';
 
 export default {
   name: 'HelpView',
@@ -828,6 +834,10 @@ export default {
       shouldShowSection,
       scrollToSection,
       isaAnnualAllowance: ISA_ANNUAL_ALLOWANCE,
+      ihtNilRateBand: IHT_NIL_RATE_BAND,
+      ihtResidenceNilRateBand: IHT_RESIDENCE_NIL_RATE_BAND,
+      ihtRnrbTaperThreshold: IHT_RNRB_TAPER_THRESHOLD,
+      ihtRatePercent: Math.round(IHT_STANDARD_RATE * 100),
     };
   },
 };
