@@ -69,7 +69,7 @@ campaign_funnel_employment:
 
 campaign_funnel_spouse:
   turn_type: bubbles
-  prompt_text: '**Do you have a spouse or civil partner?**'
+  prompt_text: { builder: buildFunnelSpousePrompt }
   bubbles:
     - { id: 'yes', label: 'Yes' }
     - { id: 'no', label: 'No' }
@@ -78,7 +78,7 @@ campaign_funnel_spouse:
 
 campaign_funnel_spouse_income:
   turn_type: bubbles
-  prompt_text: '**Roughly what does your spouse or civil partner earn a year?**'
+  prompt_text: { builder: buildFunnelSpouseIncomePrompt }
   # ids are the funnel page's; labels are filled from TaxConfigService at read
   # time (OnboardingStateMachine::bubblesFor → FunnelIncomeBand::label)
   bubbles:

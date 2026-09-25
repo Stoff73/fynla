@@ -6,7 +6,9 @@
  */
 export function forcedCampaignRedirect(user) {
   const campaign = user?.onboarding_forced_campaign;
-  if (!campaign) {
+  // Only onboarding is forced: a completed user's journeys (the Planning
+  // Journeys page links into the wizard) stay reachable.
+  if (!campaign || user?.onboarding_completed === true) {
     return null;
   }
 

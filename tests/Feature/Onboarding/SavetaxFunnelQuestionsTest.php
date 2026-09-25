@@ -268,3 +268,58 @@ it('asks "anything else" after the first asset instead of repeating the whole qu
     $again = ftqSay($user, 'ISA');
     expect($again)->toContain('Anything else?')->not->toContain('Which of these do you have?');
 });
+
+// ── Final review fixes ──────────────────────────────────────────────────────
+
+it('greets on whichever funnel question comes first (I-1)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'pensioncheck', 'employment' => 'full-time', 'spouse' => 'yes'], 'employment_status' => 'full_time', 'marital_status' => 'married']);
+    $first = ftqStart($user);
+
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME)
+        ->and($first)->toContain("I'm Fyn")->toContain('earn a year');
+
+    $next = ftqSay($user, "They don't earn");
+    expect($next)->not->toContain("I'm Fyn")->toContain('Which of these do you have?');
+});
+
+it('does not ask what the profile already answers — a linked spouse invitee (I-2)', function () {
+    $user = ftqUser([
+        'funnel_answers' => ['campaign' => 'savetax'],
+        'marital_status' => 'married',
+        'household_calculation_mode' => 'dual_earner',
+        'employment_status' => 'employed',
+    ]);
+    ftqStart($user);
+
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+});
+
+it('asks spouse income for a married profile with no household mode (I-2)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax'], 'marital_status' => 'married', 'employment_status' => 'employed']);
+    ftqStart($user);
+
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME);
+});
+
+it('only says "Anything else?" once an asset has been picked (M-2)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no']]);
+    ftqStart($user);
+    $conversation = AiConversation::forUser($user->id)->onboarding()->latest('id')->firstOrFail();
+
+    expect(OnboardingStateMachine::buildFunnelAssetsPrompt('', $user->refresh(), $conversation))->toContain('Which of these do you have?');
+});
+
+it('keeps the campaign the user arrived on (M-4)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'pensioncheck', 'employment' => 'full-time']]);
+    ftqStart($user);
+    ftqSay($user, 'No');
+
+    expect($user->refresh()->funnel_answers['campaign'])->toBe('pensioncheck');
+});
+
+it('treats an empty asset list from registration as unanswered (M-5)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no', 'assets' => []], 'employment_status' => 'full_time']);
+    ftqStart($user);
+
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+});

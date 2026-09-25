@@ -2539,7 +2539,8 @@ final class OnboardingChatDirector
         if (isset(OnboardingStateMachine::FUNNEL_STATES[$stateId]) && is_string($capturedValue) && $capturedValue !== '') {
             $key = OnboardingStateMachine::FUNNEL_STATES[$stateId];
             $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
-            $funnel['campaign'] = $user->onboarding_fyn_selection ?? 'savetax';
+            // Keep the campaign the user arrived on (their acquisition record).
+            $funnel['campaign'] ??= $user->onboarding_fyn_selection ?? 'savetax';
             if ($key === 'assets') {
                 $assets = (array) ($funnel['assets'] ?? []);
                 if ($capturedValue !== 'done' && ! in_array($capturedValue, $assets, true)) {

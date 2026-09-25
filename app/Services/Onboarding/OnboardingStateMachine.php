@@ -487,9 +487,11 @@ final class OnboardingStateMachine
                 'next' => self::class.'::nextFromFunnelQuestion',
             ],
             self::STATE_CAMPAIGN_FUNNEL_SPOUSE => [
+                'prompt_text' => self::class.'::buildFunnelSpousePrompt',
                 'next' => self::class.'::nextFromFunnelQuestion',
             ],
             self::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME => [
+                'prompt_text' => self::class.'::buildFunnelSpouseIncomePrompt',
                 'next' => self::class.'::nextFromFunnelQuestion',
             ],
             self::STATE_CAMPAIGN_FUNNEL_ASSETS => [
@@ -1022,11 +1024,27 @@ final class OnboardingStateMachine
     public static function firstMissingFunnelState(User $user): ?string
     {
         $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
+        // The profile can already answer a question — a linked spouse
+        // invitee, or a user who set it elsewhere — and FunnelAnswersMapper
+        // never overwrites it, so asking again only contradicts the profile.
+        $married = $user->spouse_id !== null
+            || in_array($user->marital_status, ['married', 'civil_partnership'], true);
+        $answered = [
+            'employment' => array_key_exists('employment', $funnel) || ! empty($user->employment_status),
+            'spouse' => array_key_exists('spouse', $funnel) || ! empty($user->marital_status) || $user->spouse_id !== null,
+            'spouseIncome' => array_key_exists('spouseIncome', $funnel) || ! empty($user->household_calculation_mode),
+            // An empty list from a registration that never showed the
+            // question is not an answer (the chat's "That's everything" leaves
+            // the walk directly and does not come back through here).
+            'assets' => ! empty($funnel['assets']),
+        ];
+        $hasSpouse = array_key_exists('spouse', $funnel) ? $funnel['spouse'] === 'yes' : $married;
+
         foreach (self::FUNNEL_STATES as $state => $key) {
-            if ($key === 'spouseIncome' && ($funnel['spouse'] ?? null) !== 'yes') {
+            if ($key === 'spouseIncome' && ! $hasSpouse) {
                 continue;
             }
-            if (! array_key_exists($key, $funnel)) {
+            if (! $answered[$key]) {
                 return $state;
             }
         }
@@ -1095,19 +1113,36 @@ final class OnboardingStateMachine
 
     public static function buildFunnelEmploymentPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
-        $question = "**What's your employment situation at the moment?**";
-        if (self::stateTurnAlreadyDelivered($conversation, self::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT)) {
-            return $question;
-        }
+        return self::funnelGreeting($user, $conversation)."**What's your employment situation at the moment?**";
+    }
 
-        return self::interpolate("Hi {first_name}, I'm Fyn. I'll help you find where you could be saving tax. First, a few quick questions. ", $user).$question;
+    public static function buildFunnelSpousePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        return self::funnelGreeting($user, $conversation).'**Do you have a spouse or civil partner?**';
+    }
+
+    public static function buildFunnelSpouseIncomePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        return self::funnelGreeting($user, $conversation).'**Roughly what does your spouse or civil partner earn a year?**';
+    }
+
+    /**
+     * Fyn's introduction, on whichever funnel question comes first in the
+     * conversation — a partial funnel starts past employment — and never
+     * again after one has been delivered.
+     */
+    private static function funnelGreeting(User $user, ?AiConversation $conversation): string
+    {
+        return self::funnelAskedInChat($conversation)
+            ? ''
+            : self::interpolate("Hi {first_name}, I'm Fyn. I'll help you find where you could be saving tax. First, a few quick questions. ", $user);
     }
 
     public static function buildFunnelAssetsPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
-        return self::stateTurnAlreadyDelivered($conversation, self::STATE_CAMPAIGN_FUNNEL_ASSETS)
+        return ! empty($user->funnel_answers['assets'])
             ? '**Anything else?** Tap each one, then "That\'s everything".'
-            : '**Which of these do you have?** Tap each one, then "That\'s everything".';
+            : self::funnelGreeting($user, $conversation).'**Which of these do you have?** Tap each one, then "That\'s everything".';
     }
 
     public static function nextFromFunnelQuestion(string $answer, User $user): string

@@ -14,4 +14,8 @@ describe('onboarding wizard while a campaign is forced (CSJ 2026-09-25)', () => 
     expect(forcedCampaignRedirect({ onboarding_forced_campaign: null })).toBeNull();
     expect(forcedCampaignRedirect(null)).toBeNull();
   });
+
+  it('leaves post-onboarding journeys reachable for a completed user', () => {
+    expect(forcedCampaignRedirect({ onboarding_forced_campaign: 'savetax', onboarding_completed: true })).toBeNull();
+  });
 });

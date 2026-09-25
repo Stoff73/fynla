@@ -110,3 +110,17 @@ it('tells every client which campaign is forced', function () {
     $data = (new UserResource($user))->toArray(request());
     expect($data['onboarding_forced_campaign'])->toBeNull();
 });
+
+it('lets a completed user already mid-Pension-Check keep resuming', function () {
+    $user = forcedFreshUser([
+        'onboarding_completed' => true,
+        'active_campaign' => 'pensioncheck',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_selection' => 'pensioncheck',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_WORK,
+    ]);
+    $response = forcedStart($user)->assertOk();
+
+    expect($response->streamedContent())->toContain('"type":"resume"')
+        ->and($user->refresh()->onboarding_fyn_selection)->toBe('pensioncheck');
+});
