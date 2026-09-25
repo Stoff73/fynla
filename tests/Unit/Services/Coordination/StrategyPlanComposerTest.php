@@ -36,7 +36,7 @@ it('orders by sequencing, sums savings, and marks conflicts', function () {
         ->toBeLessThan(array_search('savings_to_spouse', $types));
     // Conflict pair: the lower-saving one carries the note naming its alternative.
     $joint = collect($plan['items'])->firstWhere('type', 'joint_savings_psa_split');
-    expect($joint['conflict_note'])->toContain('savings_to_spouse');
+    expect($joint['conflict_note'])->toContain('"Gift savings to spouse"');
     // The higher-saving member of the pair carries no note.
     $gift = collect($plan['items'])->firstWhere('type', 'savings_to_spouse');
     expect($gift['conflict_note'])->toBeNull();
@@ -111,7 +111,7 @@ it('notes the null-saving member of a mutual conflict pair', function () {
     $nullSaver = collect($plan['items'])->firstWhere('type', 'null_saver');
     $valuedSaver = collect($plan['items'])->firstWhere('type', 'valued_saver');
 
-    expect($nullSaver['conflict_note'])->toContain('valued_saver')
+    expect($nullSaver['conflict_note'])->toContain('"B"')
         ->and($valuedSaver['conflict_note'])->toBeNull()
         ->and($plan['combined_annual_saving'])->toBe(50.0);
 });
@@ -141,7 +141,7 @@ it('keeps the chain tail realisable when its only conflict is itself excluded', 
     $c = collect($plan['items'])->firstWhere('type', 'strategy_c');
 
     expect($plan['combined_annual_saving'])->toBe(400.0)
-        ->and($b['conflict_note'])->toContain('strategy_a')
+        ->and($b['conflict_note'])->toContain('"A"')
         ->and($c['conflict_note'])->toBeNull()
         ->and($a['conflict_note'])->toBeNull();
 });
@@ -209,7 +209,7 @@ it('lets a conflict-pair note win over an ISA allowance note', function () {
     $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
 
     $b = collect($plan['items'])->firstWhere('type', 'strategy_b');
-    expect($b['conflict_note'])->toContain('Alternative to strategy_a')
+    expect($b['conflict_note'])->toContain('Alternative to "A"')
         ->and($plan['combined_annual_saving'])->toBe(300.0);
 });
 

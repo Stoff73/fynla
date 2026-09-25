@@ -54,6 +54,10 @@ it('seeds the sequencing and claim-tier metadata the plan composer relies on', f
     expect($savingsToSpouse->sequencing['conflicts_with'])->toContain('joint_savings_psa_split')
         ->and($jointSplit->sequencing['conflicts_with'])->toContain('savings_to_spouse');
 
+    // ISA top-up shelters the same sole-name interest as both spouse items (B4).
+    expect($isaTopUp->sequencing['conflicts_with'])->toContain('savings_to_spouse')
+        ->and($isaTopUp->sequencing['conflicts_with'])->toContain('joint_savings_psa_split');
+
     // (c) The judgement tier is exactly these six strategies.
     $judgement = TaxActionDefinition::where('source', 'strategy')
         ->where('claim_tier', 'judgement')

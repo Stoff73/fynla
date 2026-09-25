@@ -64,7 +64,8 @@ final class LifecycleStrategy implements TaxStrategy
                         number_format((int) $bonus),
                         number_format((int) $isaAllowance),
                     ),
-                    estimatedAnnualTaxSaved: round($bonus, 2),
+                    // A government bonus, not tax saved (CSJ ruling 2026-09-25): never in the headline total.
+                    estimatedAnnualTaxSaved: null,
                     extra: [
                         'suggested_contribution' => round($contribution, 2),
                         'government_bonus' => round($bonus, 2),
@@ -138,7 +139,8 @@ final class LifecycleStrategy implements TaxStrategy
                     number_format((int) ($juniorPensionNet + $juniorPensionUplift)),
                     number_format((int) $juniorPensionUplift),
                 ),
-                estimatedAnnualTaxSaved: round($totalUplift, 2),
+                // A government uplift, not tax saved (CSJ ruling 2026-09-25): never in the headline total.
+                estimatedAnnualTaxSaved: null,
                 extra: [
                     'children_under_18' => $childCount,
                     'net_contribution_per_child' => $juniorPensionNet,

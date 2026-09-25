@@ -879,7 +879,9 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
         $rec = collect($output->recommendations)->firstWhere('type', 'dividend_allowance_harvest');
         expect($rec)->not->toBeNull()
             ->and($rec['category'])->toBe('allowance')
-            ->and($rec['priority'])->toBe('low');
+            ->and($rec['priority'])->toBe('low')
+            // Unused allowance is not tax saved (ruling 2026-09-25).
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull();
     });
 });
 
@@ -1104,7 +1106,9 @@ describe('Phase 2 — lifecycle strategies (#16, #17, #18)', function () {
         expect($rec)->not->toBeNull()
             ->and($rec['category'])->toBe('lifecycle')
             ->and($rec['priority'])->toBe('medium')
-            ->and($rec['estimated_annual_tax_saved'])->toBe(1000.0); // £4k × 25% bonus
+            // A bonus, not tax saved (ruling 2026-09-25): shown, never totalled.
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull()
+            ->and($rec['government_bonus'])->toBe(1000.0); // £4k × 25% bonus
     });
 
     it('omits Lifetime ISA for a user past 40', function () {
@@ -1149,7 +1153,9 @@ describe('Phase 2 — lifecycle strategies (#16, #17, #18)', function () {
 
         expect($jpension)->not->toBeNull()
             ->and($jpension['children_under_18'])->toBe(2)
-            ->and($jpension['estimated_annual_tax_saved'])->toBe(1440.0); // 2 × £720
+            // An uplift, not tax saved (ruling 2026-09-25): shown, never totalled.
+            ->and($jpension['estimated_annual_tax_saved'])->toBeNull()
+            ->and($jpension['total_government_uplift'])->toBe(1440.0); // 2 × £720
     });
 });
 
@@ -1957,7 +1963,10 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             ->and($rec['standard_annual_allowance'])->toBe(60000.0)
             ->and($rec['minimum_allowance'])->toBe(10000.0)
             ->and($rec['taper_rate'])->toBe(0.5)
-            ->and($rec['marginal_rate'])->toBe(0.45);
+            ->and($rec['marginal_rate'])->toBe(0.45)
+            // A warning: the charge avoided is carried, never counted as tax saved.
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull()
+            ->and($rec['annual_allowance_charge_avoided'])->toBeGreaterThan(0.0);
     });
 
     it('adds the employee contributions back into adjusted income (FA 2004 s228ZA)', function () {

@@ -97,12 +97,13 @@ class TaxActionDefinitionSeeder extends Seeder
             // ── B. Allowance harvesting (single-user) ─────────────────────
 
             [
+                // All three shelter the same sole-name interest; only the largest counts (B4).
                 'strategy_type' => 'isa_topup_vs_psa',
                 'category' => 'allowance',
                 'priority' => 'high',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['savings_balances', 'isa_subscriptions_ytd'],
-                'sequencing' => ['do_before' => ['savings_to_spouse'], 'conflicts_with' => []],
+                'sequencing' => ['do_before' => ['savings_to_spouse'], 'conflicts_with' => ['savings_to_spouse', 'joint_savings_psa_split']],
             ],
 
             [
@@ -158,7 +159,7 @@ class TaxActionDefinitionSeeder extends Seeder
                 'priority' => 'high',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['marital_status', 'savings_balances', 'spouse_income'],
-                'sequencing' => ['do_before' => [], 'conflicts_with' => ['joint_savings_psa_split']],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['joint_savings_psa_split', 'isa_topup_vs_psa']],
             ],
 
             [
@@ -212,7 +213,7 @@ class TaxActionDefinitionSeeder extends Seeder
                 'priority' => 'low',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['marital_status', 'savings_balances', 'spouse_income'],
-                'sequencing' => ['do_before' => [], 'conflicts_with' => ['savings_to_spouse']],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['savings_to_spouse', 'isa_topup_vs_psa']],
             ],
 
             // ── D. Warning strategies ──────────────────────────────────────
