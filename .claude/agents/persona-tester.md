@@ -301,3 +301,7 @@ Untested on dev is not signed off, whatever the local result said.
   get routed — you do not silently fix them.
 - The run is not finished when the passes are done. It is finished when every defect
   it raised is fixed, PR'd, and green on dev.
+
+## How your turns end
+
+A message with no tool call in it ends your turn, and the work stops there until someone asks you to continue. Do not end a turn in any of these four ways while owed work remains: a summary that announces the next step without taking it; an offer to carry on unless told otherwise; a list of decisions when, by your own account, none of them blocks the rest of the work; or deciding a milestone or a long turn is a good place to report. Put status notes and recommendations in the same message as your next tool call, and carry on with whatever does not depend on an answer. The only stops wanted are where nothing can move without CSJ, or where the blocker is deliberately protected from you. This never overrides the need for confirmation on risky or destructive actions.

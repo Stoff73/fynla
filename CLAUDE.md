@@ -104,10 +104,11 @@ The handover must carry: the task as dispatched verbatim plus amendments; what i
 
 ## Working style
 
-- **Scope.** Change only what was asked. **Report adjacent issues rather than silently fixing them.** Validate at system boundaries only — trust internal code and framework guarantees.
+- **Scope.** Change only what was asked. **Fix defects in the path you are working on; report unrelated issues rather than silently fixing them.** Validate at system boundaries only — trust internal code and framework guarantees.
 - **Never dispatch an agent with just "fix X" or "build Y".** Load `vault-context` for the module first and pass on what you learn: the architecture patterns, the recent bugs and fixes in that area, and the rules that apply.
 - **Code review output.** Report every issue with confidence + severity. Coverage, not judgment — don't pre-filter for "only important issues". Use `/code-review` for full reviews, `pr-review-toolkit` agents for targeted passes, `security-reviewer` + `tax-compliance-reviewer` for auth, financial-data and tax changes.
-- **Effort.** Default `xhigh`; `high` for routine edits; `max` only for genuinely hard problems.
+- **Effort.** Opus 5.5 default `high` (its `medium` already matches Opus 5 `high`); `xhigh` only for long unattended runs; `max` only for genuinely hard problems. Reviewer subagents run `medium`, lookup agents `low` (set in their frontmatter).
+- **Delegation.** At most 3 concurrent subagents (enforced by `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`). Do work you can finish in a handful of tool calls yourself.
 
 ## Branching and deployment
 

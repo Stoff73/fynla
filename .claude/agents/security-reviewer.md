@@ -2,6 +2,7 @@
 name: security-reviewer
 description: Audit code changes for security vulnerabilities in financial data handling, authentication, input validation, and data exposure. Use proactively when reviewing auth flows, API endpoints, form handling, or any code touching sensitive financial data.
 model: inherit
+effort: medium
 ---
 
 # Security Reviewer

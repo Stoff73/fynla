@@ -1,14 +1,6 @@
 ---
 name: frontend-developer
-description: >
-  Frontend developer agent that converts unauthenticated/public Vue pages to standalone HTML files
-  and creates new public HTML pages from scratch. Always invokes the html-template skill.
-  Use this agent when: converting a Vue page wrapped in PublicLayout to HTML, creating a static
-  marketing or landing page, producing a standalone HTML mockup of any public Fynla page, or when
-  the user says "convert to HTML", "static HTML version", "make a standalone page", or "HTML page".
-  The agent reads every imported component, maps all interactive features to vanilla JS equivalents,
-  converts Tailwind classes to plain CSS using the Fynla design palette, and enforces W3C, AA
-  accessibility, SEO, CLS, and graceful JS degradation rules on every output.
+description: "Converts public (PublicLayout) Vue pages to standalone HTML, or builds new public HTML pages, via the html-template skill. Use for \"convert to HTML\", \"static page\" or \"standalone page\" requests."
 tools:
   - Read
   - Write
