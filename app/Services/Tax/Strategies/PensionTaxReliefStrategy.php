@@ -37,15 +37,19 @@ final class PensionTaxReliefStrategy implements TaxStrategy
     {
         $user = $context->user;
 
+        // Band position after what the user already pays in (review I1): a
+        // contribution already made has used that slice of higher-rate income.
+        $taxable = $this->math->taxableIncomeAfterPensionContributions($user);
+        $alreadyRelieved = $this->math->taxableIncomeFor($user) - $taxable;
+
         $taperThreshold = (float) ($this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'] ?? 0);
-        if ($this->math->adjustedNetIncomeFor($user) > $taperThreshold) {
+        if ($this->math->adjustedNetIncomeFor($user) - $alreadyRelieved > $taperThreshold) {
             return [];
         }
 
         $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
         $age = $this->math->ageOf($user->date_of_birth);
         $availableAA = $this->math->availableAnnualAllowance($user, $context->overrides);
-        $taxable = $this->math->taxableIncomeFor($user);
         $aboveAllowance = $taxable - $this->math->personalAllowanceFor($user);
         if ($earnings <= 0 || ($age !== null && $age >= 75) || $availableAA <= 0 || $aboveAllowance <= 0) {
             return [];
@@ -53,14 +57,19 @@ final class PensionTaxReliefStrategy implements TaxStrategy
 
         $band = $this->math->bandFromIncomeFor($user, $taxable);
         $contribution = $band === 'higher'
-            ? min($taxable - $this->math->bandThresholdsFor($user)['higher'], $availableAA, $earnings)
+            ? min(
+                $taxable - $this->math->bandThresholdsFor($user)['higher'],
+                $availableAA,
+                $earnings - $this->math->grossEmployeePensionContributions($user),
+            )
             : min(
                 $earnings * self::BASIC_RATE_SHARE_OF_EARNINGS - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
                 $availableAA,
                 $aboveAllowance,
             );
 
-        $display = (int) (round($contribution / 100) * 100);
+        // Down, never up: rounding up would relieve tax the user does not pay.
+        $display = (int) (floor($contribution / 100) * 100);
         if ($display < 100) {
             return [];
         }

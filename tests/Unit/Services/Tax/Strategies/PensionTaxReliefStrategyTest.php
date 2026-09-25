@@ -6,6 +6,7 @@ use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -79,3 +80,33 @@ it('stays silent without taxable earnings', function (array $attrs) {
     'no earnings' => [[0, ['employment_status' => 'retired', 'annual_other_income' => 30000]]],
     'aged 75' => [[30000, ['date_of_birth' => now()->subYears(76)->toDateString()]]],
 ]);
+
+it('sizes the higher-rate slice after what the user already pays in (review I1)', function () {
+    // £60,000 with 5% net-pay contributions: adjusted net income is £57,000,
+    // so only £57,000 − the higher-rate threshold is relieved at 40%.
+    $user = reliefUser(60000);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 0,
+        'salary_sacrifice' => false,
+    ]);
+    $math = app(TaxStrategyMath::class);
+    $slice = 60000 - 3000 - $math->bandThresholds()['higher'];
+
+    $rec = reliefRecs($user)['pension_relief_higher_rate'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['suggested_contribution'])->toBe((float) (floor($slice / 100) * 100));
+});
+
+it('never rounds the contribution above the tax the user pays', function () {
+    // £450 above the Personal Allowance: rounding to £500 would relieve tax
+    // that is never paid.
+    $pa = (float) app(TaxConfigService::class)->getIncomeTax()['personal_allowance'];
+
+    $rec = reliefRecs(reliefUser($pa + 450))['pension_relief_basic_rate'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['suggested_contribution'])->toBe(400.0);
+});

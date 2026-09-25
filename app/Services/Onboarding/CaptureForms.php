@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\User;
+use App\Services\Tax\TaxStrategyMath;
 use Carbon\Carbon;
 
 /**
@@ -939,7 +940,7 @@ final class CaptureForms
      */
     public static function nonEarnerNetContribution(): float
     {
-        return app(\App\Services\Tax\TaxStrategyMath::class)->nonEarnerPensionContribution()['net'];
+        return app(TaxStrategyMath::class)->nonEarnerPensionContribution()['net'];
     }
 
     /**

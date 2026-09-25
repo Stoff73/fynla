@@ -8,6 +8,7 @@ use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
@@ -473,6 +474,49 @@ final class TaxStrategyMath
         );
     }
 
+    /**
+     * The user's own pension contributions this year as the gross amount that
+     * earns relief: workplace (net pay) contributions as paid, personal pension
+     * and SIPP payments grossed up at the basic rate (relief at source).
+     * Salary-sacrificed pensions are excluded: that pay never reaches them.
+     */
+    public function grossEmployeePensionContributions(User $user): float
+    {
+        $salary = (float) ($user->annual_employment_income ?? 0);
+        $basicRelief = (float) ($this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'] ?? 0);
+
+        return (float) app(PensionStore::class)->forUserByType($user, 'dc')
+            ->reject(fn ($p) => ! empty($p->salary_sacrifice))
+            ->sum(function ($p) use ($salary, $basicRelief) {
+                $paid = PensionContributionRule::monthlyEmployee($p, $salary) * 12;
+
+                return PensionContributionRule::isWorkplace($p) || $basicRelief >= 1
+                    ? $paid
+                    : $paid / (1 - $basicRelief);
+            });
+    }
+
+    /**
+     * Taxable income once every pension contribution has done its work.
+     * IncomeDefinitionsService only sees contributions recorded as
+     * annual_salary × employee % — the onboarding form never writes
+     * annual_salary, and relief-at-source payments are not read at all — so
+     * the rest are taken off here: a net-pay contribution comes out of taxed
+     * pay, and a relief-at-source one extends the basic-rate band, which is
+     * the same thing for the band position.
+     *
+     * ponytail: corrects the band position for the strategies only; if
+     * IncomeDefinitionsService learns to read these contributions, the
+     * max(0, …) below stops this double counting.
+     */
+    public function taxableIncomeAfterPensionContributions(User $user): float
+    {
+        $seen = (float) ($this->incomeDefinitionsFor($user)['deductions']['employee_pension_contributions'] ?? 0);
+        $unseen = max(0.0, $this->grossEmployeePensionContributions($user) - $seen);
+
+        return max(0.0, $this->taxableIncomeFor($user) - $unseen);
+    }
+
     /** Tax treats spouses and civil partners alike; unmarried partners get neither transfer. */
     public function isMarriedOrCivilPartner(User $user): bool
     {
@@ -493,7 +537,8 @@ final class TaxStrategyMath
      *   dual_earner mode);
      * - the user is a basic-rate taxpayer.
      * The result is capped at the user's income above their own allowance,
-     * so nobody is promised a reduction on tax they don't pay.
+     * so nobody is promised a reduction on tax they don't pay, and it nets off
+     * the tax the transferring spouse starts paying on the slice they give up.
      */
     public function marriageAllowanceTransfer(User $user, string $mode, ?TaxStrategyHouseholdInput $household): float
     {
@@ -513,12 +558,17 @@ final class TaxStrategyMath
             return 0.0;
         }
 
-        $taxable = $this->taxableIncomeFor($user);
+        $taxable = $this->taxableIncomeAfterPensionContributions($user);
         if ($this->bandFromIncomeFor($user, $taxable) !== 'basic') {
             return 0.0;
         }
 
-        return max(0.0, min($this->marriageAllowanceAmount(), $taxable - $this->personalAllowanceFor($user)));
+        // The transferring spouse loses that slice of their own allowance, so
+        // any of it they were using is taxed on their side instead.
+        $amount = $this->marriageAllowanceAmount();
+        $transferorCost = max(0.0, $spouseIncome - ($personalAllowance - $amount));
+
+        return max(0.0, min($amount, $taxable - $this->personalAllowanceFor($user)) - $transferorCost);
     }
 
     /**

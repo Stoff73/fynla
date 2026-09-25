@@ -1423,7 +1423,7 @@ final class OnboardingChatDirector
         'income' => ['pa_taper_rescue', 'additional_rate_avoidance', 'tapered_annual_allowance'],
         'savings' => ['isa_topup_vs_psa', 'joint_savings_psa_split', 'lifetime_isa'],
         'investments' => ['bed_and_isa', 'dividend_allowance_harvest'],
-        'pensions' => ['salary_sacrifice_ni', 'pension_aa_carry_forward'],
+        'pensions' => ['pension_relief_higher_rate', 'pension_relief_basic_rate', 'salary_sacrifice_ni', 'pension_aa_carry_forward'],
         'giving' => ['gift_aid_higher_rate_relief'],
         'spouse' => ['non_earner_spouse_pension', 'savings_to_spouse', 'isa_topup_spouse', 'marriage_allowance_transfer', 'gia_to_spouse', 'gia_rebalance', 'isa_coordination'],
     ];
@@ -1589,7 +1589,11 @@ final class OnboardingChatDirector
         foreach ($plan['items'] as $item) {
             if (in_array($item['type'] ?? '', $wanted, true)) {
                 $hasSpouseStrategy = true;
-                $saving += (float) ($item['estimated_annual_tax_saved'] ?? 0);
+                // An item excluded from the plan total (a conflict loser) is
+                // an alternative, not an extra saving.
+                if (($item['counted_in_total'] ?? true) === true) {
+                    $saving += (float) ($item['estimated_annual_tax_saved'] ?? 0);
+                }
             }
         }
 

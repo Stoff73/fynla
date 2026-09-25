@@ -183,6 +183,9 @@ final class StrategyPlanComposer
                 'claim_tier' => $metadata[$rec->type]['claim_tier'] ?? 'judgement',
                 'sequence_position' => $index + 1,
                 'conflict_note' => $conflictNote,
+                // Machine-readable twin of the note: consumers that voice a
+                // figure (Fyn's section turns) must add only what the total does.
+                'counted_in_total' => ! isset($excluded[$rec->type]),
             ]);
         }
 
