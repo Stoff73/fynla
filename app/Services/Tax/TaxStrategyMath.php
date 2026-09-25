@@ -6,6 +6,7 @@ namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -470,6 +471,54 @@ final class TaxStrategyMath
             0.0,
             (float) ($definitions['adjusted_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
         );
+    }
+
+    /** Tax treats spouses and civil partners alike; unmarried partners get neither transfer. */
+    public function isMarriedOrCivilPartner(User $user): bool
+    {
+        return in_array((string) ($user->marital_status ?? ''), ['married', 'civil_partnership'], true);
+    }
+
+    public function marriageAllowanceAmount(): float
+    {
+        return (float) ($this->taxConfig->getIncomeTax()['marriage_allowance']['amount'] ?? 0);
+    }
+
+    /**
+     * How much of a Marriage Allowance transfer reduces this user's tax. It is
+     * 0 unless all of these hold:
+     * - they are married or in a civil partnership;
+     * - the spouse's income is KNOWN to be below the Personal Allowance (a
+     *   non-earner in single_earner_couple mode, or captured income in
+     *   dual_earner mode);
+     * - the user is a basic-rate taxpayer.
+     * The result is capped at the user's income above their own allowance,
+     * so nobody is promised a reduction on tax they don't pay.
+     */
+    public function marriageAllowanceTransfer(User $user, string $mode, ?TaxStrategyHouseholdInput $household): float
+    {
+        if (! $this->isMarriedOrCivilPartner($user)) {
+            return 0.0;
+        }
+
+        $spouseIncome = match ($mode) {
+            'single_earner_couple' => 0.0,
+            'dual_earner' => $household?->spouse_annual_income === null
+                ? null
+                : (float) $household->spouse_annual_income + (float) ($household->spouse_annual_dividends ?? 0),
+            default => null,
+        };
+        $personalAllowance = (float) ($this->taxConfig->getIncomeTax()['personal_allowance'] ?? 0);
+        if ($spouseIncome === null || $spouseIncome >= $personalAllowance) {
+            return 0.0;
+        }
+
+        $taxable = $this->taxableIncomeFor($user);
+        if ($this->bandFromIncomeFor($user, $taxable) !== 'basic') {
+            return 0.0;
+        }
+
+        return max(0.0, min($this->marriageAllowanceAmount(), $taxable - $this->personalAllowanceFor($user)));
     }
 
     /**

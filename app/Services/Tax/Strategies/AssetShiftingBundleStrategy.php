@@ -14,9 +14,9 @@ use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
- * Single_earner_couple bundle of asset-shifting strategies — Marriage
- * Allowance transfer, savings-to-spouse, ISA top-up in spouse's name, GIA-
- * to-spouse for CGT/Dividend allowance shelter. Each emitted suggestion
+ * Single_earner_couple bundle of asset-shifting strategies — savings-to-
+ * spouse, ISA top-up in spouse's name, GIA-to-spouse for CGT/Dividend
+ * allowance shelter. Marriage Allowance lives in MarriageAllowanceStrategy. Each emitted suggestion
  * surfaces as a separate recommendation card on the dashboard.
  */
 final class AssetShiftingBundleStrategy implements TaxStrategy
@@ -38,30 +38,12 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         $household = $context->household;
         $suggestions = [];
         $income = $this->taxConfig->getIncomeTax();
-        $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
         $isaAmount = (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000);
 
         // M11 — HMRC band uses TOTAL taxable income (employment + dividends +
         // savings interest), not employment alone. Computed once because
         // taxableIncomeFor() runs a SavingsAccount query.
         $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
-
-        // 1. Marriage Allowance transfer (basic-rate recipients only). A £45k
-        // employee with £10k of dividend income is a higher-rate taxpayer for
-        // MA purposes and must not see this suggestion.
-        if ($user->marriage_allowance_eligible && $userBand === 'basic') {
-            // M8 — basic-rate from TaxConfigService, not hardcoded 0.20.
-            $basicRate = $this->math->bandRateForBand('basic');
-            $estimatedSaving = $marriageAmount * $basicRate;
-            $suggestions[] = [
-                'type' => 'marriage_allowance_transfer',
-                'priority' => 'medium',
-                'title' => 'Claim Marriage Allowance',
-                'description' => 'Your spouse can transfer £'.number_format((int) $marriageAmount).' of unused Personal Allowance to you, saving roughly £'.number_format((int) $estimatedSaving).' per year in income tax.',
-                'estimated_annual_tax_saved' => round($estimatedSaving, 2),
-                'amount_transferred' => $marriageAmount,
-            ];
-        }
 
         // 2. Savings → spouse: only price this when the campaign has explicitly
         // confirmed that the non-earning spouse has no existing savings. A
@@ -86,8 +68,13 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         $userAvgRate = $userSavingsTotal > 0 ? $annualInterest / $userSavingsTotal : 0.0;
 
         $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
+        // A Marriage Allowance transfer takes that slice of the spouse's
+        // Personal Allowance; it cannot also shelter gifted interest (B4).
+        $spousePersonalAllowance = $this->math->marriageAllowanceTransfer($user, $context->mode, $household) > 0
+            ? $personalAllowance - $this->math->marriageAllowanceAmount()
+            : $personalAllowance;
         $startingRate = (float) ($income['starting_rate_for_savings']['band'] ?? 5000);
-        $spouseInterestCapacity = $personalAllowance + $startingRate + $this->math->psaForBand('basic');
+        $spouseInterestCapacity = $spousePersonalAllowance + $startingRate + $this->math->psaForBand('basic');
         $spouseSavingsKnownZero = $household?->spouse_existing_savings_balance !== null
             && (float) $household->spouse_existing_savings_balance === 0.0;
         $maxTransferableByCapacity = $userAvgRate > 0 ? $spouseInterestCapacity / $userAvgRate : 0.0;
@@ -101,7 +88,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             // via the cached $userBand instead.
             $userBandRate = $this->math->bandRateForBand($userBand);
             $psaBasic = $this->math->psaForBand('basic');
-            $stackedCapacity = $personalAllowance + $startingRate + $psaBasic;
+            $stackedCapacity = $spousePersonalAllowance + $startingRate + $psaBasic;
             $userPersonalAllowance = $this->math->personalAllowanceFor($user);
             $userStartingRate = max(
                 0.0,
@@ -123,7 +110,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
                 ),
                 'description' => sprintf(
                     'Their Personal Allowance (£%s), Starting Rate for Savings (£%s) and Personal Savings Allowance (£%s) can stack because they are recorded as having no earnings or savings. The estimate only counts the £%s of your interest currently above your own tax-free savings amounts. A cash gift between eligible spouses or civil partners normally has no immediate Capital Gains Tax charge and may qualify for Inheritance Tax spouse exemption; ownership changes and conditions apply.',
-                    number_format((int) $personalAllowance),
+                    number_format((int) $spousePersonalAllowance),
                     number_format((int) $startingRate),
                     number_format((int) $psaBasic),
                     number_format((int) round($taxableInterestSheltered)),
@@ -132,7 +119,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
                 'estimated_annual_tax_saved' => round($estimatedAnnualTaxSaved, 2),
                 'annual_interest_moved' => round($annualInterestMoved, 2),
                 'taxable_interest_sheltered' => round($taxableInterestSheltered, 2),
-                'spouse_personal_allowance' => $personalAllowance,
+                'spouse_personal_allowance' => $spousePersonalAllowance,
                 'spouse_starting_rate_for_savings' => $startingRate,
                 'spouse_personal_savings_allowance' => $psaBasic,
                 'spouse_stacked_interest_capacity' => $stackedCapacity,

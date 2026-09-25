@@ -42,6 +42,7 @@ final class TaxStrategyCalculator
         private readonly Strategies\GiftAidHigherRateReliefStrategy $giftAidHigherRate,
         private readonly Strategies\TaperedAnnualAllowanceStrategy $taperedAnnualAllowance,
         private readonly Strategies\NonEarnerSpousePensionStrategy $nonEarnerSpousePension,
+        private readonly Strategies\MarriageAllowanceStrategy $marriageAllowance,
         private readonly Strategies\AssetShiftingBundleStrategy $assetShifting,
         private readonly Strategies\CrossSpouseBundleStrategy $crossSpouse,
     ) {}
@@ -78,6 +79,7 @@ final class TaxStrategyCalculator
             $this->giftAidHigherRate,
             $this->taperedAnnualAllowance,
             $this->nonEarnerSpousePension,
+            $this->marriageAllowance,
             $this->crossSpouse,
             $this->assetShifting,
         ];
