@@ -242,6 +242,9 @@ it('drops the welcome introduction on re-emission once an assistant message alre
 });
 
 it('deletes prior messages and resets to path_choice on restart', function () {
+    // The dormant route (CSJ 2026-09-25); SavetaxFunnelQuestionsTest pins
+    // restart while Save Tax is forced.
+    config()->set('onboarding.forced_campaign', null);
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,

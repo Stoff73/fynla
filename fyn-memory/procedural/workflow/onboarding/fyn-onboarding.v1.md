@@ -55,6 +55,55 @@ focus_selection:
   capture_field: onboarding_fyn_selection
   next: base_personal
 
+campaign_funnel_employment:
+  turn_type: bubbles
+  prompt_text: { builder: buildFunnelEmploymentPrompt }
+  bubbles:
+    - { id: full-time, label: Full-time }
+    - { id: part-time, label: Part-time }
+    - { id: self-employed, label: Self-employed }
+    - { id: retired, label: Retired }
+    - { id: not-employed, label: 'Not working' }
+  capture_field: null
+  next: { branch: nextFromFunnelQuestion }
+
+campaign_funnel_spouse:
+  turn_type: bubbles
+  prompt_text: '**Do you have a spouse or civil partner?**'
+  bubbles:
+    - { id: 'yes', label: 'Yes' }
+    - { id: 'no', label: 'No' }
+  capture_field: null
+  next: { branch: nextFromFunnelQuestion }
+
+campaign_funnel_spouse_income:
+  turn_type: bubbles
+  prompt_text: '**Roughly what does your spouse or civil partner earn a year?**'
+  # ids are the funnel page's; labels are filled from TaxConfigService at read
+  # time (OnboardingStateMachine::bubblesFor → FunnelIncomeBand::label)
+  bubbles:
+    - { id: 'zero', label: 'zero' }
+    - { id: 'upto_50270', label: 'upto_50270' }
+    - { id: '50271_100000', label: '50271_100000' }
+    - { id: '100001_125140', label: '100001_125140' }
+    - { id: 'over_125140', label: 'over_125140' }
+  capture_field: null
+  next: { branch: nextFromFunnelQuestion }
+
+campaign_funnel_assets:
+  turn_type: bubbles
+  prompt_text: '**Which of these do you have?** Tap each one, then "That''s everything".'
+  bubbles:
+    - { id: bank, label: 'Bank account' }
+    - { id: savings, label: 'Savings account' }
+    - { id: isa, label: ISA }
+    - { id: pension, label: Pension }
+    - { id: investments, label: Investments }
+    - { id: property, label: Property }
+    - { id: done, label: "That's everything" }
+  capture_field: null
+  next: { branch: nextFromFunnelAssets }
+
 base_personal:
   turn_type: grouped_extract
   form: personal

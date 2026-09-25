@@ -12,6 +12,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\PrerequisiteGateService;
 use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
@@ -479,6 +480,20 @@ final class OnboardingStateMachine
             self::STATE_JOURNEY_SELECTION => [
             ],
             self::STATE_FOCUS_SELECTION => [
+            ],
+            // CSJ 2026-09-25 — Save Tax funnel questions asked in chat.
+            self::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT => [
+                'prompt_text' => self::class.'::buildFunnelEmploymentPrompt',
+                'next' => self::class.'::nextFromFunnelQuestion',
+            ],
+            self::STATE_CAMPAIGN_FUNNEL_SPOUSE => [
+                'next' => self::class.'::nextFromFunnelQuestion',
+            ],
+            self::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME => [
+                'next' => self::class.'::nextFromFunnelQuestion',
+            ],
+            self::STATE_CAMPAIGN_FUNNEL_ASSETS => [
+                'next' => self::class.'::nextFromFunnelAssets',
             ],
             self::STATE_BASE_PERSONAL => [
                 'prompt_text' => self::class.'::buildPersonalPrompt',
@@ -1024,6 +1039,22 @@ final class OnboardingStateMachine
      * (retirement date, or straight past income) — csjones 2026-09-16: a
      * retired pension check user was asked for an employer and job title.
      */
+    /**
+     * Where a fresh start lands while a campaign is forced (CSJ 2026-09-25):
+     * the first unanswered funnel question, else the campaign's entry. Null
+     * when nothing is forced — callers keep their dormant default.
+     */
+    public static function forcedCampaignEntry(User $user): ?string
+    {
+        $forced = config('onboarding.forced_campaign');
+        $entry = is_string($forced) ? config("onboarding.campaign_map.{$forced}.entry") : null;
+        if (! is_string($entry)) {
+            return null;
+        }
+
+        return self::firstMissingFunnelState($user) ?? self::campaignEntryFor($user, $entry);
+    }
+
     public static function campaignEntryFor(User $user, string $entry): string
     {
         if ($entry === self::STATE_BASE_WORK && ! empty($user->employment_status)
@@ -1037,6 +1068,59 @@ final class OnboardingStateMachine
     public static function getState(string $stateId): ?array
     {
         return self::states()[$stateId] ?? null;
+    }
+
+    /**
+     * A state's bubbles as the user sees and answers them. The spouse-income
+     * bands are figures, so their labels come from the tax configuration via
+     * FunnelIncomeBand (the funnel page's own labels, Rule 2), filled at read
+     * time: the table itself stays static so resolveStateId's array
+     * comparison and an unseeded tax config never break other states.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function bubblesFor(string $stateId, array $state): array
+    {
+        $bubbles = $state['bubbles'] ?? [];
+        if ($stateId !== self::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME) {
+            return $bubbles;
+        }
+
+        return array_map(static fn (array $b): array => [
+            ...$b,
+            'label' => $b['id'] === 'zero' ? "They don't earn" : ucfirst(FunnelIncomeBand::label((string) $b['id'])),
+        ], $bubbles);
+    }
+
+    public static function buildFunnelEmploymentPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        $question = "**What's your employment situation at the moment?**";
+        if (self::stateTurnAlreadyDelivered($conversation, self::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT)) {
+            return $question;
+        }
+
+        return self::interpolate("Hi {first_name}, I'm Fyn. I'll help you find where you could be saving tax. First, a few quick questions. ", $user).$question;
+    }
+
+    public static function nextFromFunnelQuestion(string $answer, User $user): string
+    {
+        return self::firstMissingFunnelState($user) ?? self::leaveFunnelQuestions($user);
+    }
+
+    public static function nextFromFunnelAssets(string $answer, User $user): string
+    {
+        return self::matchBubble(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer) === 'done'
+            ? self::leaveFunnelQuestions($user)
+            : self::STATE_CAMPAIGN_FUNNEL_ASSETS;
+    }
+
+    /** Map the answers onto the profile exactly as registration does, then enter Save Tax. */
+    private static function leaveFunnelQuestions(User $user): string
+    {
+        app(FunnelAnswersMapper::class)->mapToProfile($user);
+        $user->refresh();
+
+        return self::campaignEntryFor($user, (string) config('onboarding.campaign_map.savetax.entry'));
     }
 
     /**
@@ -1898,7 +1982,8 @@ final class OnboardingStateMachine
         $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
         $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
         if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! $noIncomeYet
-            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)) {
+            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)
+            || self::funnelAskedInChat($conversation)) {
             return null;
         }
         $firstName = trim((string) ($user->first_name ?? '')) !== ''
@@ -1924,7 +2009,8 @@ final class OnboardingStateMachine
         $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
         $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
         if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && $noIncomeYet
-            && ! self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)) {
+            && ! self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)
+            && ! self::funnelAskedInChat($conversation)) {
             $firstName = trim((string) ($user->first_name ?? '')) !== ''
                 ? trim((string) $user->first_name)
                 : 'there';
@@ -1955,6 +2041,22 @@ final class OnboardingStateMachine
      * so this survives across surfaces (desktop start → /m dock resume). Used
      * to deliver one-off content (the funnel recap) exactly once.
      */
+    /**
+     * Did Fyn ask any Save Tax funnel question in this conversation? Then it
+     * has already greeted the user, and the work step's "thanks for those
+     * answers" recap would greet a second time.
+     */
+    private static function funnelAskedInChat(?AiConversation $conversation): bool
+    {
+        foreach (array_keys(self::FUNNEL_STATES) as $state) {
+            if (self::stateTurnAlreadyDelivered($conversation, $state)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static function stateTurnAlreadyDelivered(?AiConversation $conversation, string $stateId): bool
     {
         if ($conversation === null) {
@@ -2946,7 +3048,7 @@ final class OnboardingStateMachine
         }
 
         $normalised = mb_strtolower(trim($userAnswer));
-        $bubbles = $state['bubbles'] ?? [];
+        $bubbles = self::bubblesFor($stateId, $state);
 
         // Exact label match first (fastest, most precise)
         foreach ($bubbles as $bubble) {
@@ -2968,6 +3070,15 @@ final class OnboardingStateMachine
         foreach ($bubbles as $bubble) {
             $label = mb_strtolower(trim((string) ($bubble['label'] ?? '')));
             if ($label !== '' && (str_contains($normalised, $label) || str_contains($label, $normalised))) {
+                return (string) $bubble['id'];
+            }
+        }
+
+        // Typed answers drop hyphens ("full time" for "Full-time").
+        $unhyphen = static fn (string $v): string => str_replace('-', ' ', $v);
+        foreach ($bubbles as $bubble) {
+            $label = $unhyphen(mb_strtolower(trim((string) ($bubble['label'] ?? ''))));
+            if ($label !== '' && str_contains($unhyphen($normalised), $label)) {
                 return (string) $bubble['id'];
             }
         }
