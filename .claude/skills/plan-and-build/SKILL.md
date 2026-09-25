@@ -1,6 +1,6 @@
 ---
 name: plan-and-build
-description: Full feature lifecycle with quality gates. Use when starting any new feature, enhancement, or multi-step task. Wraps brainstorming → planning → implementation with mandatory browser test checkpoints, sub-agent verification, and double-check passes against the plan. Use when the user says "build", "create", "implement", "add feature", "new feature", or describes work that will take more than a single edit.
+description: Full feature lifecycle with quality gates. Use when starting any new feature, enhancement, or multi-step task. Wraps brainstorming → planning → implementation with mandatory browser test checkpoints and a final end-to-end browser test. Use when the user says "build", "create", "implement", "add feature", "new feature", or describes work that will take more than a single edit.
 disable-model-invocation: true
 ---
 
@@ -152,39 +152,9 @@ When you reach a checkpoint marker in the plan:
 
 ---
 
-## Phase 4: Final Audit (Double-Check Pass)
+## Phase 4: Final End-to-End Browser Test
 
-After ALL tasks are implemented and ALL checkpoints pass, run TWO verification passes against the plan.
-
-### Pass 1: Plan Compliance Audit
-
-Read the implementation plan. For EVERY task:
-
-```
-□ Task 1: [description] — Check file exists/was modified as specified
-□ Task 2: [description] — Check implementation matches what was planned
-□ Task 3: [description] — Check tests were written (if TDD was specified)
-...
-```
-
-Report any deviations:
-
-```markdown
-### Plan Compliance — Pass 1
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Task 1: Create UserForm | DONE | File created at correct path |
-| Task 2: Add API endpoint | DONE | Route added, controller method exists |
-| Task 3: Write tests | MISSING | No test file found |
-| Task 4: Update sidebar | PARTIAL | Item added but icon is wrong |
-```
-
-Fix any MISSING or PARTIAL items before Pass 2.
-
-### Pass 2: Full Browser Test
-
-After Pass 1 fixes are applied:
+After ALL tasks are implemented and ALL checkpoints pass:
 
 1. Seed the database
 2. Open the browser
@@ -197,7 +167,7 @@ After Pass 1 fixes are applied:
 4. Report with snapshots
 
 ```markdown
-### Full Browser Test — Pass 2
+### Full Browser Test
 
 **Flow tested:** [describe the full user journey]
 
@@ -214,15 +184,15 @@ After Pass 1 fixes are applied:
 ### Completion Gate
 
 Only declare "DONE" when:
-- [ ] Pass 1 shows ALL tasks complete
-- [ ] Pass 2 shows ALL browser tests passing
+- [ ] Every plan task is implemented
+- [ ] The browser test shows every step passing
 - [ ] No TODO stubs or placeholder functionality
 - [ ] No console.log statements left in changed files
 - [ ] No hardcoded hex values in changed Vue files
 - [ ] All user-facing text uses British spelling
 - [ ] All acronyms spelled out (except ISA)
 
-If ANY of these fail, fix and re-run Pass 2.
+If ANY of these fail, fix and re-run the browser test.
 
 ---
 
@@ -251,6 +221,6 @@ If ANY of these fail, fix and re-run Pass 2.
 
 - Don't skip checkpoints — the alternative is 3-5× rework time.
 - Don't self-approve sub-agent work. Verify at least 2-3 files per agent before merging.
-- Don't say "done" without Pass 1 AND Pass 2 completing.
+- Don't say "done" before the Phase 4 browser test passes.
 - Don't proceed past a failing checkpoint. Fix first, re-test the whole flow from Step 1, then continue.
 - Checkpoints feel slow. They are. They're still faster than discovering everything is broken at the end.

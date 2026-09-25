@@ -165,7 +165,10 @@ final class OnboardingChatDirector
      */
     public function emitFirstTurn(User $user, AiConversation $conversation, ?string $stateId = null): \Generator
     {
-        $stateId = $stateId ?? OnboardingStateMachine::STATE_PATH_CHOICE;
+        $stateId = $stateId
+            ?? $user->onboarding_fyn_step
+            ?? OnboardingStateMachine::forcedCampaignEntry($user)
+            ?? OnboardingStateMachine::STATE_PATH_CHOICE;
 
         $state = OnboardingStateMachine::getState($stateId);
         if ($state === null) {
@@ -538,7 +541,10 @@ final class OnboardingChatDirector
             // Only here. Deeper in the walk the user has context and the retry
             // is the right response — and the interruption mechanism (store
             // offers, inline module answers) still runs first, everywhere.
-            if ($currentStateId === OnboardingStateMachine::STATE_PATH_CHOICE && trim($message) !== '') {
+            // While Save Tax is forced (CSJ 2026-09-25) its first funnel
+            // question is the front door, so it gets the same way out.
+            $frontDoors = [OnboardingStateMachine::STATE_PATH_CHOICE, OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT];
+            if (in_array($currentStateId, $frontDoors, true) && trim($message) !== '') {
                 $user->onboarding_fyn_step = null;
                 $user->save();
                 $this->recordProgress($user, OnboardingStateMachine::STATE_FREE_CHAT, [
@@ -854,11 +860,13 @@ final class OnboardingChatDirector
         // re-entrant who restarts): reset every onboarding column, including
         // active_campaign, so their next message routes to Advice Fyn instead
         // of leaving them flagged mid-campaign in the generic flow.
-        $user->onboarding_fyn_step = $user->onboarding_completed === true
-            ? null
-            : OnboardingStateMachine::STATE_PATH_CHOICE;
-        $user->onboarding_fyn_path = null;
-        $user->onboarding_fyn_selection = null;
+        // While a campaign is forced (CSJ 2026-09-25) a restart goes back to
+        // its start — the journey chooser is dormant.
+        $forcedEntry = $user->onboarding_completed === true ? null : OnboardingStateMachine::forcedCampaignEntry($user);
+        $restartState = $forcedEntry ?? OnboardingStateMachine::STATE_PATH_CHOICE;
+        $user->onboarding_fyn_step = $user->onboarding_completed === true ? null : $restartState;
+        $user->onboarding_fyn_path = $forcedEntry !== null ? 'campaign' : null;
+        $user->onboarding_fyn_selection = $forcedEntry !== null ? config('onboarding.forced_campaign') : null;
         // The remembered joint records outlive the onboarding scratch: the
         // invitee usually registers after the plan is delivered.
         $user->onboarding_fyn_context = SpouseJointRecords::carry($user->onboarding_fyn_context);
@@ -880,9 +888,9 @@ final class OnboardingChatDirector
 
         yield ['type' => 'content', 'text' => "No problem — let's start fresh."];
 
-        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PATH_CHOICE);
+        $state = OnboardingStateMachine::getState($restartState);
         if ($state !== null) {
-            yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_PATH_CHOICE, $state);
+            yield from $this->emitTurnForState($user, $conversation, $restartState, $state);
         }
     }
 
@@ -1773,7 +1781,17 @@ final class OnboardingChatDirector
 
     private function filterBubbles(User $user, string $stateId, array $state): array
     {
-        $bubbles = $state['bubbles'] ?? [];
+        $bubbles = OnboardingStateMachine::bubblesFor($stateId, $state);
+
+        // Assets already picked drop out; "That's everything" stays last.
+        if ($stateId === OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS) {
+            $picked = (array) ($user->funnel_answers['assets'] ?? []);
+
+            return array_values(array_filter(
+                $bubbles,
+                static fn (array $b): bool => ! in_array($b['id'] ?? '', $picked, true),
+            ));
+        }
 
         if ($stateId !== OnboardingStateMachine::STATE_ADD_MORE) {
             return $bubbles;
@@ -2511,6 +2529,29 @@ final class OnboardingChatDirector
                 $user->onboarding_fyn_context = $context;
                 $user->save();
             }
+
+            return;
+        }
+
+        // Save Tax funnel questions asked in chat (CSJ 2026-09-25): write the
+        // answer into funnel_answers in the funnel page's own vocabulary so
+        // FunnelAnswersMapper and every funnel-keyed skip read it unchanged.
+        if (isset(OnboardingStateMachine::FUNNEL_STATES[$stateId]) && is_string($capturedValue) && $capturedValue !== '') {
+            $key = OnboardingStateMachine::FUNNEL_STATES[$stateId];
+            $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
+            // Keep the campaign the user arrived on (their acquisition record).
+            $funnel['campaign'] ??= $user->onboarding_fyn_selection ?? 'savetax';
+            if ($key === 'assets') {
+                $assets = (array) ($funnel['assets'] ?? []);
+                if ($capturedValue !== 'done' && ! in_array($capturedValue, $assets, true)) {
+                    $assets[] = $capturedValue;
+                }
+                $funnel['assets'] = $assets;
+            } else {
+                $funnel[$key] = $capturedValue;
+            }
+            $user->funnel_answers = $funnel;
+            $user->save();
 
             return;
         }

@@ -1,21 +1,39 @@
-# Tech Debt Report — Session 2026-09-22
+# Tech Debt Report — Session 2026-09-24 (PR #937 + memory/vector plan)
 
-**Files analysed:** 26 (PRs #919 CI fix, #920–#925)
-**Issues found:** 7
-**Severity breakdown:** 0 critical, 4 warnings, 3 suggestions
+**Files analysed:** 7 (4 code/config, 3 docs)
+**Issues found:** 5
+**Severity breakdown:** 0 critical, 3 warnings, 2 suggestions (1, 2 and 4 are fixed in the plan text; 3 and 5 are deferred)
 
 ## Warnings
 
-- **`app/Agents/CoordinatingAgent.php:5380` and `app/Http/Controllers/Api/UserProfileController.php:40`** — Category 1. `FREE_EXPENDITURE_CATEGORIES` (`childcare`, `charitable_donations`) is declared twice with a comment on each saying it mirrors the other. One home (a constant on `App\Support\SharedExpenditure` or a `TierConfiguration` capability) so a third free field is added once.
-- **`app/Services/Onboarding/OnboardingService.php:470–560`** — Category 1. `processExpenditureInfo` maps a hand-written list of category keys in each of its two branches (the separate branch still omits `school_lunches`, `school_extras`, `university_fees`, `gifts_charity`, `regular_savings`, `rent`, `utilities`); today only `charitable_donations` was added. Derive both from the controller's validated list or `SharedExpenditure::shareOf()`'s field set.
-- **`resources/js/mixins/currencyMixin.js:92–100`, `resources/mobile/views/modules/investmentFormat.js:22–26`, `resources/js/components/Retirement/RequiredCapitalDetail.vue:546`, `ios-native/.../InvestmentModels.swift:92–107`** — Category 1. Account-type label maps kept as fallbacks after `account_type_label` moved to the server. `RequiredCapitalDetail.vue` was not switched to the server label at all. Switch it and consider dropping the fallbacks once every payload carries the field.
-- **`app/Agents/CoordinatingAgent.php:5382`** — Category 4. `handleSetExpenditure` is 203 lines and now also writes `is_gift_aid`; the file is 6,960 lines. The Gift Aid write, the free-tier gate and the household split are three extractable steps.
+1. **`docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md` Task 1, `MemoryFactGuard::CANONICAL_TOPICS`**
+   - **Category:** Complexity & Maintainability (correctness risk)
+   - **What's wrong:** Topic matching uses `str_contains`, so `'isa'` matches "disadvantage" and "visa", and `'child'` matches "childhood". A durable fact such as "Sees a disadvantage in locking money away" would be rejected as `canonical_field`.
+   - **Suggested fix:** Match on word boundaries (`preg_match('/\b'.preg_quote($topic).'\b/u', $t)`), and add a false-positive case to the Task 1 test before implementing.
+
+2. **Same plan, Task 8, `HybridRecallScorer` query memoisation**
+   - **Category:** Inconsistency with Existing Patterns
+   - **What's wrong:** The plan memoises the query embedding "on the instance", but `RecallScorer` is bound with `bind()` (`app/Providers/AppServiceProvider.php:171`). `SemanticRetriever` and `EpisodeRecallService` would each get their own instance, which means two OpenAI calls per turn.
+   - **Suggested fix:** Bind `HybridRecallScorer` with `$this->app->scoped(...)`, so it has one instance per request.
+
+3. **`tests/Pest.php:111`: per-test temp memory directories are never removed**
+   - **Category:** Dead & Redundant Code (resource leak)
+   - **What's wrong:** A `fyn-test-memory-*` directory is created only when a test writes to it (6 exist after today's runs), but none are ever deleted, so they accumulate in the system temp directory across runs.
+   - **Suggested fix:** Add a matching global `afterEach` that removes `$memoryTmp` when it exists. Or accept it until Task 5 removes `episodic_path` and Task 4 removes `user_semantic_path`, when the hook goes away.
 
 ## Suggestions
 
-- **`resources/js/components/Investment/EmployeeShareSchemeFields.vue:1`** — Category 3. File-level `eslint-disable vue/no-mutating-props` added today to cover 37 pre-existing direct mutations of `modelValue`; the new vesting-frequency input is the 38th. Convert to `update:modelValue` emits when the form is next reworked (noted in the file).
-- **`resources/js/components/Retirement/DCPensionForm.vue:1143`, `resources/js/components/UserProfile/FamilyMemberFormModal.vue:393`** — Category 2. Empty `catch {}` blocks (pre-existing; today only dropped the unused binding). Both intentionally swallow (optional risk profile fetch, date parse); a one-line comment on each would stop the next reader asking.
-- **Servers, not repo** — a `public/.user.ini` with `serialize_precision = -1` was left on fynla.org and csjones; harmless and superseded by `AppServiceProvider::boot`. Remove on the next deploy or leave.
+4. **Plan Task 4, Step 3: service location inside `SemanticRetriever`**
+   - **Category:** Inconsistency with Existing Patterns
+   - **What's wrong:** The step says to use `app(UserMemoryRepository::class)` plus `User::findOrFail($userId)` inside `retrieveForUser`. The class already uses constructor injection.
+   - **Suggested fix:** Inject `UserMemoryRepository` through the constructor, replacing `UserSemanticStore`.
+
+5. **`deploy/DEPLOY.md` step 6 and `.claude/skills/release/SKILL.md:42`: temporary rsync exclude**
+   - **Category:** Info
+   - **What's wrong:** The `--exclude 'fyn-memory/episodic/episodes/'` note is correct today, but it becomes obsolete when plan Task 5 deletes the folder.
+   - **Suggested fix:** None needed now. Task 5, Step 5 already removes it.
+
+No hardcoded tax values, acronyms, scores, icons or banned colours were found in the changed files. `declare(strict_types=1)` is present in the PHP test files.
 
 ---
 *Generated by tech-debt-session skill*

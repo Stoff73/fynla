@@ -52,3 +52,16 @@ it('pins the global scripted AI-client binding hook as live', function () {
     expect(app(Client::class))->toBeInstanceOf(ScriptedAnthropicClient::class);
     expect(app(XaiClient::class))->toBeInstanceOf(ScriptedXaiClient::class);
 });
+
+// This test pins the memory-path redirect in the global hook. Without it, a
+// test that makes the planner `learn` writes episodes into the real
+// fyn-memory/ folder, which the deploy rsync copies to production as real
+// users' memory (2026-09-24).
+it('pins the global Fyn memory-path redirect hook as live', function () {
+    expect((string) config('fyn.memory.episodic_path'))
+        ->not->toStartWith(base_path('fyn-memory'))
+        ->toStartWith(sys_get_temp_dir());
+    expect((string) config('fyn.memory.user_semantic_path'))
+        ->not->toStartWith(storage_path('app/memory'))
+        ->toStartWith(sys_get_temp_dir());
+});

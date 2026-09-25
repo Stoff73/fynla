@@ -509,6 +509,15 @@ class CoverageGapAnalyzer
             'education_funding' => $educationFunding,
             'final_expenses' => $finalExpenses,
             'income_protection_need' => $incomeProtectionNeed,
+            // Plain-words provenance for Fyn. Live 2026-09-23 (fynla.org,
+            // conversation 888): the model read the need as "£21,000 of annual
+            // income you would lose" and then invented where it came from.
+            'income_protection_basis' => sprintf(
+                'Income protection would replace £%s a year: %d%% of £%s gross earned income (employment, self-employment and other earned income). Rental and dividend income continue if the user cannot work, so they are excluded.',
+                number_format((float) $incomeProtectionNeed, 2),
+                (int) round($ipMaxBenefit * 100),
+                number_format((float) $userGrossIncome, 2)
+            ),
             'total_need' => $totalNeed,
             'gross_income' => $userGrossIncome,
             'net_income' => $userNetIncome,

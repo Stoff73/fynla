@@ -119,6 +119,12 @@ Post-turn summarisation and learning proposal generation move to queued jobs. No
 
 ## 7. Memory trust model
 
+> **CSJ ruling, 2026-09-24. This supersedes the per-user parts of sections 7 and 10.**
+> - Memory and learning are **per user**, and what Fyn learns about a user **applies automatically** to that user's next turn. There is no approval queue and no "never auto-apply" for per-user facts. The user sees, corrects and deletes them (section 8).
+> - The only hard block is the pointer rule: no live values (money, percentages, dates of birth, anything Fynla stores as a record) in memory. It is enforced in code by `MemoryFactGuard`.
+> - Review applies only to **global** content that changes Fyn for everyone: the procedural and regulatory corpora.
+> - Implementation: `docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md`.
+
 Fyn distinguishes information by ownership and trust:
 
 | Layer | Source of truth | Use |
@@ -185,6 +191,12 @@ Launch guidance-mode checks include:
 Product-name detection begins report-only. Blocking is enabled only after an evaluated allowlist and false-positive threshold are approved. Unsupported numerical claims, fabricated writes and disabled operating modes fail closed immediately.
 
 ## 10. Learning and retention
+
+> **CSJ ruling, 2026-09-24. This supersedes the per-user parts of sections 7 and 10.**
+> - Memory and learning are **per user**, and what Fyn learns about a user **applies automatically** to that user's next turn. There is no approval queue and no "never auto-apply" for per-user facts. The user sees, corrects and deletes them (section 8).
+> - The only hard block is the pointer rule: no live values (money, percentages, dates of birth, anything Fynla stores as a record) in memory. It is enforced in code by `MemoryFactGuard`.
+> - Review applies only to **global** content that changes Fyn for everyone: the procedural and regulatory corpora.
+> - Implementation: `docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md`.
 
 `FYN_LEARNING_ENABLED` remains false through initial implementation and migration. Enabling it requires all of the following:
 

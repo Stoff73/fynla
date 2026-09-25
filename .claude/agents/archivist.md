@@ -7,6 +7,7 @@ description: >
   transcripts. Use for the nightly sweep, after any trunk amendment, when a branch document
   is written, on context handover, or for the quarterly doctrine review.
 model: inherit
+effort: low
 color: violet
 ---
 

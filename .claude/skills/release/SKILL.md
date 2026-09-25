@@ -39,7 +39,7 @@ The gate exists so every change is **verified working before it lands**. Never i
 1. Pre-merge verification = "the dev tip is browser-verified GREEN on csjones" + "the main↔dev diff contains nothing that wasn't on csjones".
 2. After merge, deploy to fynla.org (manual upload — prod is NOT a git checkout):
    - Build: `./deploy/fynla-org/build.sh` (never mix with the csjones build — different `VITE_BASE_PATH`).
-   - Upload `public/build/` + changed PHP. Prod accumulates drift — each release do a full rsync reconcile + `composer dump-autoload -o` + `migrate:status` check.
+   - Upload `public/build/` + changed PHP. Prod accumulates drift — each release do a full rsync reconcile + `composer dump-autoload -o` + `migrate:status` check. The rsync always carries `--exclude 'fyn-memory/episodic/episodes/'` (server-side user data; see `deploy/DEPLOY.md` step 6).
    - `php artisan migrate --force`, cache clears ending `config:cache` (routes uncached).
    - Monitor `storage/logs/laravel.log` for 10–15 min.
 3. Browser-verify on fynla.org (MFA code: ask CSJ), then it's done. Follow `deploy-checklist` / `deploy-notes` skills for the file-level checklist.

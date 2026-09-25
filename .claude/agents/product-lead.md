@@ -32,7 +32,6 @@ the situation, the work is not specified.
 already exist.** Do not run it earlier.
 `plan-and-build` — brainstorm → plan → implement, with browser checkpoints written
 into the spec before any code.
-`product-manager` — user stories, personas, backlog structure.
 
 ## Acceptance before implementation
 

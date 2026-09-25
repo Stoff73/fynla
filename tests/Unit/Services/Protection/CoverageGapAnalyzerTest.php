@@ -603,6 +603,11 @@ describe('calculateProtectionNeeds', function () {
         // Final expenses: 7,500
         expect($result['final_expenses'])->toEqual(7500.0);
 
+        // Plain-words provenance for Fyn: the need is 60% of gross earned income.
+        expect($result['income_protection_basis'])
+            ->toContain('60% of £50,000.00 gross earned income')
+            ->toContain('£'.number_format($result['income_protection_need'], 2).' a year');
+
         // Income protection need: 50000 * 0.6 = 30,000
         expect($result['income_protection_need'])->toEqual(30000.0);
 

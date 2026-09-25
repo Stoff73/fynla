@@ -8,6 +8,7 @@ description: >
   undocumented machinery is found, when a trunk clause changes, or on the quarterly
   re-survey. Does NOT judge whether the map was sufficient — that is the Quartermaster.
 model: inherit
+effort: low
 color: green
 ---
 

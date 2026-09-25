@@ -2,6 +2,7 @@
 name: tax-compliance-reviewer
 description: Review tax calculation code for UK HMRC compliance. Verify all tax values use TaxConfigService, check IHT/CGT/income tax/pension calculations against current rules, and flag hardcoded tax values. Use when modifying any tax-related service, calculator, or financial projection.
 model: inherit
+effort: medium
 ---
 
 # UK Tax Compliance Reviewer
