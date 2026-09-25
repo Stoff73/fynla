@@ -57,6 +57,9 @@ class UserResource extends JsonResource
             // The campaign a registrant carries (funnel arrival or spouse
             // invitation): the web registration page opens Fyn on it.
             'onboarding_campaign' => data_get($this->resource->funnel_answers, 'campaign'),
+            // CSJ 2026-09-25: the campaign every onboarding goes through while
+            // forced; the web wizard and life-stage entry are dormant then.
+            'onboarding_forced_campaign' => config('onboarding.forced_campaign'),
             'journey_state' => $this->journey_state,
             // `spouse_id` is the historical link and survives the partner
             // deleting their account — everything is retained for regulatory

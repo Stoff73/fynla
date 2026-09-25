@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
@@ -98,4 +99,14 @@ it('restores the old routing when forced_campaign is null', function () {
     forcedStart($user)->assertOk();
 
     expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+});
+
+it('tells every client which campaign is forced', function () {
+    $user = forcedFreshUser();
+    $data = (new UserResource($user))->toArray(request());
+    expect($data['onboarding_forced_campaign'])->toBe('savetax');
+
+    config()->set('onboarding.forced_campaign', null);
+    $data = (new UserResource($user))->toArray(request());
+    expect($data['onboarding_forced_campaign'])->toBeNull();
 });

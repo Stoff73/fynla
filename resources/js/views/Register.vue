@@ -528,13 +528,16 @@ export default {
       // registering from an invitation) opens on Fyn's campaign walk, not the
       // wizard welcome — /onboarding/start keys the campaign off funnel_answers.
       const campaign = store.getters['auth/currentUser']?.onboarding_campaign || null;
+      // While a campaign is forced (CSJ 2026-09-25) every registrant opens on
+      // Fyn; the wizard and life-stage branches below are dormant.
+      const forcedCampaign = store.getters['auth/currentUser']?.onboarding_forced_campaign || null;
 
       if (data.checkout_intent) {
         router.push(`/checkout?plan=${encodeURIComponent(data.checkout_intent.tier)}&cycle=${encodeURIComponent(data.checkout_intent.billing_cycle)}`);
-      } else if (fromParam || campaign) {
+      } else if (fromParam || campaign || forcedCampaign) {
         router.push({
           name: 'Dashboard',
-          query: { openFyn: 'journey', newUser: '1', from: fromParam },
+          query: { openFyn: 'journey', newUser: '1', from: fromParam || forcedCampaign },
         });
       } else if (stageParam) {
         router.push({ name: 'Onboarding', query: { stage: stageParam, newUser: '1' } });

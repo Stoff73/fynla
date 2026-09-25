@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { isAuthenticatedPublicUtilityPath } from './publicRoutePolicy.js';
 import { isTransferableMobileBearer } from '../mScaffoldBridge.js';
 import store from '@/store';
+import { forcedCampaignRedirect } from '@/router/onboardingRoutePolicy.js';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
 import { capabilityForRoute, isRouteGated } from '@/constants/tierAccess';
@@ -455,20 +456,20 @@ const routes = [
     path: '/onboarding/welcome',
     name: 'OnboardingWelcome',
     component: Onboarding,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
   },
   {
     path: '/onboarding/journey/:journey',
     name: 'OnboardingJourney',
     component: Onboarding,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     props: route => ({ mode: 'journey', journeyName: route.params.journey }),
   },
   {
     path: '/onboarding',
     name: 'Onboarding',
     component: Onboarding,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     children: [
       {
         path: ':step',
@@ -481,48 +482,48 @@ const routes = [
     path: '/onboarding/full',
     name: 'OnboardingFull',
     component: () => import('@/views/Onboarding/OnboardingFullView.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
   },
   {
     path: '/onboarding/protection',
     name: 'OnboardingProtection',
     component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     props: { moduleName: 'protection' },
   },
   {
     path: '/onboarding/estate',
     name: 'OnboardingEstate',
     component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     props: { moduleName: 'estate' },
   },
   {
     path: '/onboarding/investments',
     name: 'OnboardingInvestments',
     component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     props: { moduleName: 'investments' },
   },
   {
     path: '/onboarding/pensions',
     name: 'OnboardingPensions',
     component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     props: { moduleName: 'pensions' },
   },
   {
     path: '/onboarding/family',
     name: 'OnboardingFamily',
     component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     props: { moduleName: 'family' },
   },
   {
     path: '/onboarding/savings',
     name: 'OnboardingSavings',
     component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, hideNavbar: true, onboardingWizard: true },
     props: { moduleName: 'savings' },
   },
   {
@@ -1744,6 +1745,23 @@ router.beforeEach(async (to, from, next) => {
     } catch {
       // Token invalid/expired — leave state as-is; the requiresAuth / requiresAdmin
       // branches below still apply (and API 401s force a re-login).
+    }
+  }
+
+  // The onboarding wizard is dormant while a campaign is forced
+  // (CSJ 2026-09-25): it opens Fyn on that campaign instead.
+  if (isAuthenticated && !isPreviewMode && to.matched.some(r => r.meta.onboardingWizard)) {
+    if (!store.state.auth.user) {
+      try {
+        await store.dispatch('auth/fetchUser');
+      } catch {
+        // Leave it to the requiresAuth branch below.
+      }
+    }
+    const redirect = forcedCampaignRedirect(store.state.auth.user);
+    if (redirect) {
+      next(redirect);
+      return;
     }
   }
 
