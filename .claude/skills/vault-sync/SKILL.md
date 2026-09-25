@@ -6,27 +6,15 @@ disable-model-invocation: false
 
 # Vault Sync — Full Documentation & Integrity Check
 
-## Execution model — Haiku 4.5 subagent at high effort
+## Execution model — the `vault-syncer` agent (Haiku)
 
-**Do NOT execute the phases below directly. Dispatch this skill to a Haiku 4.5 subagent.**
+**Do not execute the phases below directly.** Vault sync is file-shuffling, frontmatter checks and grep audits; it does not need Opus. Dispatch the `vault-syncer` agent, which runs on Haiku with this skill preloaded, so the phases never pass through the parent's context.
 
-Vault sync is mostly file-shuffling, frontmatter checks, and grep-pattern audits — it does not need Opus reasoning. Running it on Haiku 4.5 keeps the cost of session-end orders of magnitude lower and frees the parent Opus context for actual engineering work.
+Use the `Agent` tool with `subagent_type: vault-syncer`, `description: Vault sync`, and a prompt carrying only:
+- the repo path (the parent's working directory)
+- the resolved `${MONTH_NAME}`, `${MONTH_SHORT}`, `${YEAR}`, `${TODAY}`
 
-Use the `Agent` tool with these parameters:
-
-- `subagent_type`: `general-purpose`
-- `model`: `haiku`
-- `description`: `Vault sync` (3–5 words)
-- `prompt`: a self-contained brief that includes:
-  - The parent's current working directory (so the subagent can `cd` to the right repo) — pass it explicitly
-  - Today's date and month resolved BEFORE handoff: `${MONTH_NAME}`, `${MONTH_SHORT}`, `${YEAR}`, `${TODAY}` — the subagent should not have to compute these
-  - A note that the brief is the contract: "execute Phases 1–9 below verbatim, in order, at **high effort**. Report back with the Phase 9 summary only — no progress narration."
-  - The full Phases 1–9 content from this skill, copied inline so the subagent has the instructions without needing to re-read the file
-  - An explicit effort instruction: "work at high effort — exhaustively check formatting, wikilinks, orphans, frontmatter on every file you touch. Do not shortcut the audit phases. If a check is ambiguous, run it; do not skip."
-
-After the subagent returns, surface its Phase 9 summary to the user verbatim. Do not re-summarise. If the subagent reports failures (vault unreachable, broken wikilinks, stale Current State docs), pass them through unchanged so the user sees the real state.
-
-The phases below are the contract for the subagent — keep them stable so the brief stays copy-paste.
+After it returns, show its Phase 9 summary to the user verbatim, failures included.
 
 ---
 

@@ -7,6 +7,7 @@ description: >
   the seven regulatory rules. Use on any diff touching those surfaces, before any
   publication, and on the weekly scan. Never approves — it clears within competence or flags.
 model: inherit
+effort: medium
 color: raspberry
 ---
 
