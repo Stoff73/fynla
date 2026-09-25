@@ -194,7 +194,7 @@ export default {
       const qualification = 'Transfers between eligible spouses or civil partners can usually be made without an immediate Capital Gains Tax charge, but the recipient normally inherits the original acquisition cost and may pay tax on a later disposal. Inheritance Tax spouse-exemption conditions apply.';
       return this.calculationMode === 'single_earner_couple'
         ? `Move assets into your spouse's name to use their unused allowances. ${qualification}`
-        : `Coordinate as a household. ${qualification}`;
+        : qualification;
     },
     householdHeading() {
       return this.calculationMode === 'single_earner_couple'

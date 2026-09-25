@@ -24,3 +24,14 @@ describe('spouse transfer tax statements', () => {
     expect(src).not.toContain('only work because both spouses contribute');
   });
 });
+
+describe('household panel copy does not repeat its heading', () => {
+  it.each([
+    'resources/js/components/TaxStrategy/HouseholdCoordinationPanel.vue',
+    'resources/mobile/views/TaxStrategy.vue',
+  ])('%s', (file) => {
+    const src = readFileSync(resolve(process.cwd(), file), 'utf8');
+
+    expect(src).not.toContain('Coordinate as a household. ');
+  });
+});

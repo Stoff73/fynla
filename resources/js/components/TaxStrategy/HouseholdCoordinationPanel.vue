@@ -10,7 +10,7 @@
   >
     <h2 class="text-h4 font-bold text-horizon-500 mb-3">Coordinate as a household</h2>
     <p class="text-body-sm text-neutral-500 mb-4">
-      Coordinate as a household. Transfers between eligible spouses or civil partners can usually be made without an immediate Capital Gains Tax charge, but the recipient normally inherits the original acquisition cost and may pay tax on a later disposal. Inheritance Tax spouse-exemption conditions apply.
+      Transfers between eligible spouses or civil partners can usually be made without an immediate Capital Gains Tax charge, but the recipient normally inherits the original acquisition cost and may pay tax on a later disposal. Inheritance Tax spouse-exemption conditions apply.
     </p>
     <ul class="space-y-3">
       <li
