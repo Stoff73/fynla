@@ -34,6 +34,9 @@ function grantAiChatConsentForOnboardingEndpointTest(User $user): void
  *   503       — kill switch off
  */
 beforeEach(function () {
+    // Pins the entry routing that is dormant while a campaign is forced
+    // (CSJ 2026-09-25); ForcedSavetaxCampaignTest covers the forced path.
+    config()->set('onboarding.forced_campaign', null);
     $this->seed(TaxConfigurationSeeder::class);
 });
 

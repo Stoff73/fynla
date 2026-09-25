@@ -640,7 +640,13 @@ class AiChatController extends Controller
         // and start a fresh campaign session (or resume a mid-campaign one).
         $from = $request->input('from');
         $campaignMap = (array) config('onboarding.campaign_map', []);
+        // CSJ 2026-09-25: while a campaign is forced, it is the only campaign
+        // a user can enter or re-enter; the other routes stay dormant.
+        $forced = config('onboarding.forced_campaign');
+        $forcedEntry = is_string($forced) && is_array($campaignMap[$forced] ?? null) ? $campaignMap[$forced] : null;
+        $reachable = fn (?string $campaign): bool => $forcedEntry === null || $campaign === $forced;
         $reentryCampaign = is_string($from)
+            && $reachable($from)
             && isset($campaignMap[$from])
             && ($campaignMap[$from]['reentry'] ?? false)
             ? $campaignMap[$from] : null;
@@ -659,6 +665,7 @@ class AiChatController extends Controller
             && $user->onboarding_fyn_path === 'campaign'
             && is_string($pausedSelection)
             && isset($campaignMap[$pausedSelection])
+            && $reachable($pausedSelection)
             && OnboardingStateMachine::getState($pausedStep) !== null) {
             $pausedCampaign = $campaignMap[$pausedSelection];
         }
@@ -754,29 +761,35 @@ class AiChatController extends Controller
         // $from and $campaignMap are already resolved above the completed-user
         // gate (re-entry gate reads them to derive $reentryCampaign).
         $journeyMap = (array) config('onboarding.journey_map', []);
-        $campaignEntry = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
-        $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
-        $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
-
-        // Paused-campaign fallback: resolves BEFORE the funnel fallback so a
-        // paused pensioncheck re-entrant is not misrouted to their original
-        // (savetax) funnel campaign on a bare /start.
-        if ($matchedCampaign === null && $matchedJourney === null && $pausedCampaign !== null) {
-            $campaignEntry = $pausedCampaign;
-            $matchedCampaign = $pausedCampaign['selection'] ?? null;
-        }
-
-        // Funnel fallback: a user who arrived via an acquisition funnel carries
-        // durable funnel_answers. The transient `from=<campaign>` query is lost
-        // across the mobile handoff (the iframe is replaced with /m/app), so
-        // key the campaign off funnel_answers['campaign'] instead — both mobile
-        // and desktop funnel users then get the right campaign onboarding.
-        // Legacy rows that predate the stamp default to 'savetax'.
-        if ($matchedCampaign === null && $matchedJourney === null && ! empty($user->funnel_answers)) {
-            $rawCampaign = $user->funnel_answers['campaign'] ?? null;
-            $funnelCampaign = is_string($rawCampaign) ? $rawCampaign : 'savetax';
-            $campaignEntry = $campaignMap[$funnelCampaign] ?? null;
+        if ($forcedEntry !== null) {
+            $campaignEntry = $forcedEntry;
+            $matchedCampaign = $forcedEntry['selection'] ?? $forced;
+            $matchedJourney = null;
+        } else {
+            $campaignEntry = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
             $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
+            $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
+
+            // Paused-campaign fallback: resolves BEFORE the funnel fallback so a
+            // paused pensioncheck re-entrant is not misrouted to their original
+            // (savetax) funnel campaign on a bare /start.
+            if ($matchedCampaign === null && $matchedJourney === null && $pausedCampaign !== null) {
+                $campaignEntry = $pausedCampaign;
+                $matchedCampaign = $pausedCampaign['selection'] ?? null;
+            }
+
+            // Funnel fallback: a user who arrived via an acquisition funnel carries
+            // durable funnel_answers. The transient `from=<campaign>` query is lost
+            // across the mobile handoff (the iframe is replaced with /m/app), so
+            // key the campaign off funnel_answers['campaign'] instead — both mobile
+            // and desktop funnel users then get the right campaign onboarding.
+            // Legacy rows that predate the stamp default to 'savetax'.
+            if ($matchedCampaign === null && $matchedJourney === null && ! empty($user->funnel_answers)) {
+                $rawCampaign = $user->funnel_answers['campaign'] ?? null;
+                $funnelCampaign = is_string($rawCampaign) ? $rawCampaign : 'savetax';
+                $campaignEntry = $campaignMap[$funnelCampaign] ?? null;
+                $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
+            }
         }
 
         if ($matchedCampaign !== null) {
@@ -799,15 +812,13 @@ class AiChatController extends Controller
                 unset($pausedContext['paused_at_step']);
                 $user->onboarding_fyn_context = $pausedContext === [] ? null : $pausedContext;
             }
-            // The map's income-first entry assumes earned income. A retired or
-            // not-working funnel arrival takes the same branch the employment
-            // step would have (retirement date, or straight past income) —
-            // csjones 2026-09-16: a retired pension check user was asked for an
-            // employer and job title.
-            if ($stepId === OnboardingStateMachine::STATE_BASE_WORK && ! empty($user->employment_status)
-                && ! in_array($user->employment_status, [...OnboardingStateMachine::WORKPLACE_PENSION_STATUSES, 'self_employed'], true)) {
-                $stepId = OnboardingStateMachine::nextFromEmployment('', $user);
+            // A user who has not answered the Save Tax funnel questions is
+            // greeted and asked them first (CSJ 2026-09-25).
+            $missingFunnel = OnboardingStateMachine::firstMissingFunnelState($user);
+            if ($forcedEntry !== null && $missingFunnel !== null && $stepId === $campaignEntry['entry']) {
+                $stepId = $missingFunnel;
             }
+            $stepId = OnboardingStateMachine::campaignEntryFor($user, $stepId);
             $user->onboarding_fyn_step = $stepId;
             $startStateId = $stepId;
             // Re-entry: stamp active_campaign so legacy untyped conversations

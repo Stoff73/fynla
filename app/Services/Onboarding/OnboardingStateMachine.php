@@ -179,6 +179,25 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS = 'campaign_spouse_invite_details';
 
+    // CSJ 2026-09-25 — Save Tax funnel questions asked in chat when the user
+    // never answered them on the funnel page (the income band is not asked:
+    // the walk's work step asks exact income straight after).
+    public const STATE_CAMPAIGN_FUNNEL_EMPLOYMENT = 'campaign_funnel_employment';
+
+    public const STATE_CAMPAIGN_FUNNEL_SPOUSE = 'campaign_funnel_spouse';
+
+    public const STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME = 'campaign_funnel_spouse_income';
+
+    public const STATE_CAMPAIGN_FUNNEL_ASSETS = 'campaign_funnel_assets';
+
+    /** Funnel question state → the funnel_answers key it writes, in asking order. */
+    public const FUNNEL_STATES = [
+        self::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT => 'employment',
+        self::STATE_CAMPAIGN_FUNNEL_SPOUSE => 'spouse',
+        self::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME => 'spouseIncome',
+        self::STATE_CAMPAIGN_FUNNEL_ASSETS => 'assets',
+    ];
+
     // PensionCheck campaign states — all defined in Task C3.
     // The STATE_CAMPAIGN2_STATE_PENSION and STATE_CAMPAIGN2_RETIREMENT_GOALS constants
     // were defined in Task C1 so the pensioncheck section arrays could reference them.
@@ -978,6 +997,41 @@ final class OnboardingStateMachine
         }
 
         return $merged;
+    }
+
+    /**
+     * The first Save Tax funnel question this user has not answered, or null
+     * when every one is answered. Spouse income is only asked after "yes".
+     */
+    public static function firstMissingFunnelState(User $user): ?string
+    {
+        $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
+        foreach (self::FUNNEL_STATES as $state => $key) {
+            if ($key === 'spouseIncome' && ($funnel['spouse'] ?? null) !== 'yes') {
+                continue;
+            }
+            if (! array_key_exists($key, $funnel)) {
+                return $state;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The campaign map's income-first entry assumes earned income. A retired
+     * or not-working arrival takes the branch the employment step would have
+     * (retirement date, or straight past income) — csjones 2026-09-16: a
+     * retired pension check user was asked for an employer and job title.
+     */
+    public static function campaignEntryFor(User $user, string $entry): string
+    {
+        if ($entry === self::STATE_BASE_WORK && ! empty($user->employment_status)
+            && ! in_array($user->employment_status, [...self::WORKPLACE_PENSION_STATUSES, 'self_employed'], true)) {
+            return self::nextFromEmployment('', $user);
+        }
+
+        return $entry;
     }
 
     public static function getState(string $stateId): ?array

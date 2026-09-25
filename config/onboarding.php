@@ -84,4 +84,10 @@ return [
         'savetax' => ['selection' => 'savetax', 'entry' => 'base_work', 'reentry' => false],
         'pensioncheck' => ['selection' => 'pensioncheck', 'entry' => 'base_work', 'reentry' => true, 'reentry_entry' => 'campaign2_existing_recap'],
     ],
+
+    // CSJ 2026-09-25: every onboarding goes through Save Tax. The other entry
+    // routes (path_choice, journeys, focus, pensioncheck, the web wizard) stay
+    // in the code but are unreachable while this is set; null restores the
+    // from= / funnel / journey routing exactly.
+    'forced_campaign' => env('ONBOARDING_FORCED_CAMPAIGN', 'savetax'),
 ];
