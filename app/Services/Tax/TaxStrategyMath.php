@@ -473,6 +473,38 @@ final class TaxStrategyMath
     }
 
     /**
+     * Relief-at-source figures for a contribution by or for someone with no
+     * relevant earnings. Gross is the configured limit, relief is basic-rate
+     * relief on it, and net is what the payer actually hands over.
+     *
+     * @return array{gross: float, net: float, relief: float}
+     */
+    public function nonEarnerPensionContribution(): array
+    {
+        $pension = $this->taxConfig->getPensionAllowances();
+        $gross = (float) ($pension['relevant_earnings_minimum'] ?? 0);
+        $relief = round($gross * (float) ($pension['tax_relief']['basic_rate'] ?? 0), 2);
+
+        return ['gross' => $gross, 'net' => round($gross - $relief, 2), 'relief' => $relief];
+    }
+
+    /**
+     * Share of a net Gift Aid donation a higher- or additional-rate taxpayer
+     * reclaims through Self Assessment: the grossed-up gift (net ÷ (1 − basic))
+     * times the gap between their rate and the basic rate. 0 at basic rate.
+     */
+    public function giftAidReclaimFactor(string $band): float
+    {
+        if (! in_array($band, ['higher', 'additional'], true)) {
+            return 0.0;
+        }
+
+        $basic = $this->bandRateForBand('basic');
+
+        return $basic < 1 ? round(($this->bandRateForBand($band) - $basic) / (1 - $basic), 4) : 0.0;
+    }
+
+    /**
      * Dividend tax rate for a given band, sourced from
      * TaxConfigService['dividend_tax']. Centralises the match block previously
      * duplicated across DividendAllowanceHarvestStrategy, AssetShiftingBundle-

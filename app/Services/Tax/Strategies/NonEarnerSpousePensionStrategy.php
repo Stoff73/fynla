@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Strategies;
 
-use App\Constants\TaxDefaults;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
@@ -19,7 +18,7 @@ use App\Services\TaxConfigService;
  *
  * Fires when household_calculation_mode = single_earner_couple AND the
  * spouse is under 75. £2,880 net contribution → £3,600 gross via 25%
- * basic-rate uplift = £720/yr direct saving. Spouse age is resolved from
+ * basic-rate uplift (figures from TaxConfigService) = the direct saving. Spouse age is resolved from
  * a family_members row (relationship in spouse/partner/wife/husband/
  * civil_partner) or, failing that, a linked spouse user — when no DOB is
  * known we keep firing because single_earner_couple normally implies a
@@ -50,7 +49,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
 
     /**
      * Original non-earner path (single_earner_couple mode): flat £2,880 net
-     * → £3,600 gross → £720 government uplift per TaxDefaults constants.
+     * net → gross via basic-rate relief at source (TaxStrategyMath::nonEarnerPensionContribution).
      */
     private function nonEarnerPath(User $user, mixed $household): array
     {
@@ -59,10 +58,9 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
             return [];
         }
 
-        // M9 — sourced from TaxDefaults; promote to TaxConfigService once
-        // the schema gains a non_earner_pension key (CSJTODO S-3).
-        $netContribution = (float) TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
-        $governmentUplift = (float) TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
+        $figures = $this->math->nonEarnerPensionContribution();
+        $netContribution = $figures['net'];
+        $governmentUplift = $figures['relief'];
         $existingBalance = (float) ($household?->spouse_existing_pension_balance ?? 0);
 
         $balanceLine = $existingBalance > 0

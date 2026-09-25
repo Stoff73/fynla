@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\User;
-use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
 /**
@@ -940,9 +939,7 @@ final class CaptureForms
      */
     public static function nonEarnerNetContribution(): float
     {
-        $pension = app(TaxConfigService::class)->getPensionAllowances();
-
-        return round((float) ($pension['relevant_earnings_minimum'] ?? 0) * (1 - (float) ($pension['tax_relief']['basic_rate'] ?? 0)), 2);
+        return app(\App\Services\Tax\TaxStrategyMath::class)->nonEarnerPensionContribution()['net'];
     }
 
     /**

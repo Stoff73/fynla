@@ -19,15 +19,11 @@ use App\Services\Tax\TaxStrategyMath;
  * higher-rate relief to extend — the same gate IncomeDefinitionsService applies. Personal saving is the
  * extra relief they can reclaim via Self Assessment on top of basic-rate
  * Gift Aid the charity already reclaims:
- *   - higher band:     donations × 0.25
- *   - additional band: donations × 0.3125
+ *   donations × (band rate − basic rate) ÷ (1 − basic rate), from the
+ *   configured rates (25% at higher rate, 31.25% at additional in 2026/27).
  */
 final class GiftAidHigherRateReliefStrategy implements TaxStrategy
 {
-    private const HIGHER_RATE_FACTOR = 0.25;
-
-    private const ADDITIONAL_RATE_FACTOR = 0.3125;
-
     public function __construct(
         private readonly TaxStrategyMath $math,
     ) {}
@@ -42,11 +38,7 @@ final class GiftAidHigherRateReliefStrategy implements TaxStrategy
         }
 
         $band = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
-        $factor = match ($band) {
-            'higher' => self::HIGHER_RATE_FACTOR,
-            'additional' => self::ADDITIONAL_RATE_FACTOR,
-            default => 0.0,
-        };
+        $factor = $this->math->giftAidReclaimFactor($band);
 
         if ($factor <= 0) {
             return [];
