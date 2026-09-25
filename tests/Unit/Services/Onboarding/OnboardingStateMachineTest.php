@@ -18,6 +18,11 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_FREE_CHAT,
             OnboardingStateMachine::STATE_JOURNEY_SELECTION,
             OnboardingStateMachine::STATE_FOCUS_SELECTION,
+            // Save Tax funnel questions asked in chat (CSJ 2026-09-25)
+            OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT,
+            OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE,
+            OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME,
+            OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS,
             OnboardingStateMachine::STATE_BASE_PERSONAL,
             OnboardingStateMachine::STATE_BASE_SPOUSE,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS,

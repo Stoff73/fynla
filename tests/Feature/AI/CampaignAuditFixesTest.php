@@ -41,6 +41,9 @@ uses(RefreshDatabase::class);
  *        never 422-blocking the account.
  */
 beforeEach(function () {
+    // Pins the entry routing that is dormant while a campaign is forced
+    // (CSJ 2026-09-25); ForcedSavetaxCampaignTest covers the forced path.
+    config()->set('onboarding.forced_campaign', null);
     $this->seed(TaxConfigurationSeeder::class);
     OnboardingStateMachine::flushTransitionTableCache();
     Cache::put('ai_provider', 'anthropic');

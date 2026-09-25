@@ -77,7 +77,7 @@ it('validates only the kinds that were submitted', function (): void {
 
 function formStepHttpUser(): User
 {
-    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false, 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY, 'onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['property']]]);
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false, 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY, 'onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no', 'assets' => ['property']]]);
     app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
 
     return $user;
@@ -91,7 +91,7 @@ it('streams the property form to a client declaring forms and the typed prompt t
     // the property step (config override on the savetax entry state) so
     // /start's other director call — emitFirstTurn — is the one under test.
     config(['onboarding.campaign_map.savetax.entry' => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY]);
-    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false, 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['property']]]);
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false, 'funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no', 'assets' => ['property']]]);
     app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
     Sanctum::actingAs($user);
     FynStreamHarness::fake()->bind();

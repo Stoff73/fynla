@@ -34,6 +34,9 @@ uses(RefreshDatabase::class);
  * PRD: April/April20Updates/PRD-fyn-driven-onboarding.md §FR-M11
  */
 beforeEach(function () {
+    // Pins the entry routing that is dormant while a campaign is forced
+    // (CSJ 2026-09-25); ForcedSavetaxCampaignTest covers the forced path.
+    config()->set('onboarding.forced_campaign', null);
     $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create([
         'is_preview_user' => false,
