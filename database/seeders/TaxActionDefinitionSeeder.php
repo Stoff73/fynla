@@ -11,7 +11,7 @@ use Illuminate\Database\Seeder;
  * Seed the tax_action_definitions table with all action types.
  *
  * Seeds 5 agent-sourced tax optimisation action definitions (disabled — orphaned
- * TaxActionDefinitionService has zero callers) and 22 strategy-registry metadata
+ * TaxActionDefinitionService has zero callers) and 21 strategy-registry metadata
  * rows (source='strategy') linking to the June Tax/Strategies classes. Priorities
  * follow the canonical catalogue (fynlaBrain April30Updates/savetax-strategy-catalogue.md).
  * Uses updateOrCreate for idempotency.
@@ -54,6 +54,10 @@ class TaxActionDefinitionSeeder extends Seeder
             );
         }
 
+        // Superseded by pension_tax_relief before release (PR #941); remove the
+        // rows from any environment that seeded the first version.
+        TaxActionDefinition::whereIn('strategy_type', ['pension_relief_higher_rate', 'pension_relief_basic_rate'])->delete();
+
         // The March 'agent' evaluators duplicate the strategy registry and their
         // service (TaxActionDefinitionService) is orphaned — disable, don't delete.
         TaxActionDefinition::where('source', 'agent')->update(['is_enabled' => false]);
@@ -87,19 +91,12 @@ class TaxActionDefinitionSeeder extends Seeder
 
             // Pension relief below the taper band (CSJ ruling 2026-09-25: every
             // band). Band-exclusive with the two rows above by construction.
+            // One type for every band so a user's action state survives a band
+            // change.
             [
-                'strategy_type' => 'pension_relief_higher_rate',
+                'strategy_type' => 'pension_tax_relief',
                 'category' => 'income_band',
                 'priority' => 'high',
-                'claim_tier' => 'mechanical',
-                'required_data' => ['annual_income'],
-                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
-            ],
-
-            [
-                'strategy_type' => 'pension_relief_basic_rate',
-                'category' => 'income_band',
-                'priority' => 'medium',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['annual_income'],
                 'sequencing' => ['do_before' => [], 'conflicts_with' => []],

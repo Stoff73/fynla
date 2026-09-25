@@ -12,6 +12,7 @@ use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 
@@ -529,46 +530,155 @@ final class TaxStrategyMath
     }
 
     /**
-     * How much of a Marriage Allowance transfer reduces this user's tax. It is
-     * 0 unless all of these hold:
-     * - they are married or in a civil partnership;
-     * - the spouse's income is KNOWN to be below the Personal Allowance (a
-     *   non-earner in single_earner_couple mode, or captured income in
-     *   dual_earner mode);
-     * - the user is a basic-rate taxpayer.
-     * The result is capped at the user's income above their own allowance,
-     * so nobody is promised a reduction on tax they don't pay, and it nets off
-     * the tax the transferring spouse starts paying on the slice they give up.
+     * The Marriage Allowance position for a couple, in either direction, from
+     * ITA 2007 Part 3 Chapter 3A
+     * (https://www.legislation.gov.uk/ukpga/2007/3/part/3/chapter/3A):
+     * - s55C(1)(a): the couple must be married or civil partners.
+     * - s55C(2): the transferor's net income must be LESS THAN the Personal
+     *   Allowance.
+     * - s55B(2)(b),(ba): the recipient may be liable only at the basic,
+     *   savings, dividend-ordinary and nil rates, i.e. their total income
+     *   stays inside the basic-rate band.
+     * - s55B(1),(3): the reduction is the basic rate × the transferable
+     *   amount (income_tax.marriage_allowance.amount).
+     * - s23 Step 6 and s26: the reduction comes off the tax calculated at
+     *   Step 5, so it can never exceed the recipient's tax.
+     * - s55B(6): the transferor's Personal Allowance falls by the transferable
+     *   amount, so any extra tax they then pay comes off the household saving.
+     *
+     * The spouse's income must be known: a non-earner (single_earner_couple)
+     * or captured income (dual_earner). Returns null when nothing is saved.
+     *
+     * @return array{saving: float, direction: 'to_user'|'to_spouse'}|null
+     */
+    public function marriageAllowance(User $user, string $mode, ?TaxStrategyHouseholdInput $household): ?array
+    {
+        if (! $this->isMarriedOrCivilPartner($user)) {
+            return null;
+        }
+
+        $spouse = match ($mode) {
+            'single_earner_couple' => ['non_savings' => 0.0, 'dividends' => 0.0],
+            'dual_earner' => $household?->spouse_annual_income === null ? null : [
+                'non_savings' => (float) $household->spouse_annual_income,
+                'dividends' => (float) ($household->spouse_annual_dividends ?? 0),
+            ],
+            default => null,
+        };
+        if ($spouse === null) {
+            return null;
+        }
+        $spouse['interest'] = $this->estimateSpouseJointInterest($user);
+        $spouse['net_pay'] = 0.0;
+        $spouse['trust'] = 0.0;
+
+        $user_ = $this->incomePartsFor($user);
+        $personalAllowance = (float) ($this->taxConfig->getIncomeTax()['personal_allowance'] ?? 0);
+        $amount = $this->marriageAllowanceAmount();
+        $maxReduction = $amount * $this->bandRateForBand('basic');
+        $userNet = $user_['non_savings'] + $user_['interest'] + $user_['dividends'] + $user_['trust'] - $user_['net_pay'];
+        $spouseNet = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'];
+
+        $options = [];
+        if ($spouseNet < $personalAllowance
+            && $this->bandFromIncomeFor($user, $this->taxableIncomeAfterPensionContributions($user)) === 'basic') {
+            $options['to_user'] = min($maxReduction, $this->incomeTaxOn($user_))
+                - $this->extraTaxFromLosingAllowance($spouse, $amount);
+        }
+        if ($mode === 'dual_earner' && $userNet < $personalAllowance
+            && $this->bandFromIncome($spouseNet) === 'basic') {
+            $options['to_spouse'] = min($maxReduction, $this->incomeTaxOn($spouse))
+                - $this->extraTaxFromLosingAllowance($user_, $amount);
+        }
+
+        $options = array_filter($options, fn (float $saving): bool => $saving >= 0.01);
+        if ($options === []) {
+            return null;
+        }
+        arsort($options);
+
+        return ['saving' => round((float) reset($options), 2), 'direction' => (string) key($options)];
+    }
+
+    /**
+     * The transferable amount when the user RECEIVES a Marriage Allowance that
+     * saves tax, else 0. The spouse's Personal Allowance is then reduced by it
+     * (s55B(6)) and cannot also shelter gifted interest.
      */
     public function marriageAllowanceTransfer(User $user, string $mode, ?TaxStrategyHouseholdInput $household): float
     {
-        if (! $this->isMarriedOrCivilPartner($user)) {
-            return 0.0;
-        }
+        return ($this->marriageAllowance($user, $mode, $household)['direction'] ?? null) === 'to_user'
+            ? $this->marriageAllowanceAmount()
+            : 0.0;
+    }
 
-        $spouseIncome = match ($mode) {
-            'single_earner_couple' => 0.0,
-            'dual_earner' => $household?->spouse_annual_income === null
-                ? null
-                : (float) $household->spouse_annual_income + (float) ($household->spouse_annual_dividends ?? 0),
-            default => null,
-        };
-        $personalAllowance = (float) ($this->taxConfig->getIncomeTax()['personal_allowance'] ?? 0);
-        if ($spouseIncome === null || $spouseIncome >= $personalAllowance) {
-            return 0.0;
-        }
+    /**
+     * The user's income split the way the tax engine stacks it (ITA 2007 s16).
+     * The total comes from IncomeDefinitionsService, so salary sacrifice is
+     * already resolved. Net-pay contributions are the workplace contributions
+     * taken from pay, including those IncomeDefinitionsService cannot see (see
+     * taxableIncomeAfterPensionContributions).
+     *
+     * @return array{non_savings: float, interest: float, dividends: float, trust: float, net_pay: float}
+     */
+    public function incomePartsFor(User $user): array
+    {
+        $definitions = $this->incomeDefinitionsFor($user);
+        $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
+        $interest = (float) ($components['interest'] ?? 0);
+        $dividends = (float) ($components['dividend'] ?? 0);
+        $trust = (float) ($components['trust'] ?? 0);
+        $salary = (float) ($user->annual_employment_income ?? 0);
 
-        $taxable = $this->taxableIncomeAfterPensionContributions($user);
-        if ($this->bandFromIncomeFor($user, $taxable) !== 'basic') {
-            return 0.0;
-        }
+        $netPay = (float) app(PensionStore::class)->forUserByType($user, 'dc')
+            ->filter(fn ($p) => empty($p->salary_sacrifice) && PensionContributionRule::isWorkplace($p))
+            ->sum(fn ($p) => PensionContributionRule::monthlyEmployee($p, $salary) * 12);
 
-        // The transferring spouse loses that slice of their own allowance, so
-        // any of it they were using is taxed on their side instead.
-        $amount = $this->marriageAllowanceAmount();
-        $transferorCost = max(0.0, $spouseIncome - ($personalAllowance - $amount));
+        return [
+            'non_savings' => max(0.0, (float) ($definitions['total_income'] ?? 0) - $interest - $dividends - $trust),
+            'interest' => $this->resolvedInterest($user, $definitions),
+            'dividends' => $dividends,
+            'trust' => $trust,
+            'net_pay' => $netPay,
+        ];
+    }
 
-        return max(0.0, min($amount, $taxable - $this->personalAllowanceFor($user)) - $transferorCost);
+    /**
+     * Income tax at ITA 2007 s23 Step 5 (before tax reductions), from the
+     * app's one tax engine, UKTaxCalculator. Non-savings income goes in the
+     * employment slot: only the income tax total is read, and non-savings
+     * income is stacked first whatever its source (ITA 2007 s16).
+     *
+     * @param  array{non_savings: float, interest: float, dividends: float, trust?: float, net_pay?: float}  $parts
+     */
+    public function incomeTaxOn(array $parts): float
+    {
+        $result = app(UKTaxCalculator::class)->calculateDetailedNetIncome(
+            employmentIncome: $parts['non_savings'],
+            trustIncome: (float) ($parts['trust'] ?? 0),
+            interestIncome: $parts['interest'],
+            dividendIncome: $parts['dividends'],
+            pensionContributions: (float) ($parts['net_pay'] ?? 0),
+        );
+
+        return (float) $result['summary']['total_income_tax_before_credits'];
+    }
+
+    /**
+     * Extra tax a transferor pays once their Personal Allowance falls by
+     * $amount (s55B(6)). A smaller allowance taxes exactly the income that
+     * $amount of extra non-savings income would, because non-savings income
+     * is stacked first (ITA 2007 s16) and the transferor is far below the
+     * taper threshold.
+     *
+     * @param  array{non_savings: float, interest: float, dividends: float, trust?: float, net_pay?: float}  $parts
+     */
+    private function extraTaxFromLosingAllowance(array $parts, float $amount): float
+    {
+        $reduced = $parts;
+        $reduced['non_savings'] += $amount;
+
+        return max(0.0, $this->incomeTaxOn($reduced) - $this->incomeTaxOn($parts));
     }
 
     /**

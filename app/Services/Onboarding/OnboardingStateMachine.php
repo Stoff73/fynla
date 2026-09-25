@@ -1875,7 +1875,7 @@ final class OnboardingStateMachine
                 $funnel['spouse_income_context'] ?? null,
             );
             $spouseIncomeSuffix = $spouseIncomeLabel ? ' '.$spouseIncomeLabel : '';
-            $points[] = 'You have a spouse'.$spouseIncomeSuffix;
+            $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix;
         }
 
         $assetMap = [
@@ -3251,7 +3251,7 @@ final class OnboardingStateMachine
                 '100001_125140' => ' earning £100,001 to £125,140',
                 'over_125140' => ' earning above £125,140',
             ][$funnel['spouseIncome'] ?? ''] ?? '';
-            $points[] = 'You have a spouse'.$spouseIncomeSuffix;
+            $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix;
         }
 
         // pensioncheck never produces funnel_answers['assets']; it produces

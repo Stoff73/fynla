@@ -354,7 +354,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">ISA Allowance Tracking</h3>
                 <p class="text-body-base text-horizon-500 mb-4">
-                  Track ISA contributions across Cash ISAs (Savings module) and Stocks & Shares ISAs (Investment module) against the £20,000 annual allowance (tax year: April 6 - April 5).
+                  Track ISA contributions across Cash ISAs (Savings module) and Stocks & Shares ISAs (Investment module) against the {{ formatCurrency(isaAnnualAllowance) }} annual allowance (tax year: 6 April to 5 April).
                 </p>
               </div>
 
@@ -532,7 +532,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">Can I have multiple ISAs?</h3>
                 <p class="text-body-base text-horizon-500">
-                  Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (April 6 - April 5). Fynla automatically tracks your ISA allowance usage.
+                  Yes. You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA, where only one can be paid into each year. Total contributions across all your ISAs cannot exceed {{ formatCurrency(isaAnnualAllowance) }} per tax year (6 April to 5 April). Fynla automatically tracks your ISA allowance usage.
                 </p>
               </div>
 
@@ -710,6 +710,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { currencyMixin } from '@/mixins/currencyMixin';
+import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'HelpView',
@@ -718,6 +720,8 @@ export default {
     AppLayout,
     ModuleStatusBar,
   },
+
+  mixins: [currencyMixin],
 
   setup() {
     const searchQuery = ref('');
@@ -823,6 +827,7 @@ export default {
       visibleSections,
       shouldShowSection,
       scrollToSection,
+      isaAnnualAllowance: ISA_ANNUAL_ALLOWANCE,
     };
   },
 };

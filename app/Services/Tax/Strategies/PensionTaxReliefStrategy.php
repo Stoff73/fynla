@@ -41,6 +41,9 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         // contribution already made has used that slice of higher-rate income.
         $taxable = $this->math->taxableIncomeAfterPensionContributions($user);
         $alreadyRelieved = $this->math->taxableIncomeFor($user) - $taxable;
+        // Interest an ISA wrap or spouse gift in the same plan already takes
+        // out of taxed income leaves the higher-rate slice with it.
+        $taxable = max(0.0, $taxable - $context->interestShelteredElsewhere);
 
         $taperThreshold = (float) ($this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'] ?? 0);
         if ($this->math->adjustedNetIncomeFor($user) - $alreadyRelieved > $taperThreshold) {
@@ -51,7 +54,11 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $age = $this->math->ageOf($user->date_of_birth);
         $availableAA = $this->math->availableAnnualAllowance($user, $context->overrides);
         $aboveAllowance = $taxable - $this->math->personalAllowanceFor($user);
-        if ($earnings <= 0 || ($age !== null && $age >= 75) || $availableAA <= 0 || $aboveAllowance <= 0) {
+        // No relief on contributions paid after the member reaches the age in
+        // pension.relief_max_age: FA 2004 s188(3)(a),
+        // https://www.legislation.gov.uk/ukpga/2004/12/section/188
+        $maxAge = (int) $this->taxConfig->getPensionAllowances()['relief_max_age'];
+        if ($earnings <= 0 || ($age !== null && $age >= $maxAge) || $availableAA <= 0 || $aboveAllowance <= 0) {
             return [];
         }
 
@@ -80,7 +87,9 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $basicPct = (int) round($this->math->bandRateForBand('basic') * 100);
 
         return [new StrategyRecommendation(
-            type: $band === 'higher' ? 'pension_relief_higher_rate' : 'pension_relief_basic_rate',
+            // One type for every band, so a user's done or dismissed state for
+            // this action survives a change of band.
+            type: 'pension_tax_relief',
             category: StrategyCategory::IncomeBand,
             priority: $band === 'higher' ? StrategyPriority::High : StrategyPriority::Medium,
             title: sprintf('Pay £%s more into your pension and save £%s in tax', number_format($display), number_format((int) round($saving))),

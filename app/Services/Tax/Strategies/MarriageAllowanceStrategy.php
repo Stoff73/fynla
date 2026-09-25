@@ -11,10 +11,9 @@ use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 
 /**
- * Marriage Allowance transfer, for both couple modes. The one home for the
- * rule: it used to live in the single-earner bundle only, so a dual-earner
- * couple with a low-earning spouse never saw it (B7), and a user with no
- * taxable income was promised the full saving (B6).
+ * Marriage Allowance transfer, in both directions and both couple modes.
+ * The statutory tests live in TaxStrategyMath::marriageAllowance (ITA 2007
+ * Part 3 Chapter 3A); this class only words the result.
  */
 final class MarriageAllowanceStrategy implements TaxStrategy
 {
@@ -24,26 +23,32 @@ final class MarriageAllowanceStrategy implements TaxStrategy
 
     public function generate(TaxStrategyContext $context): array
     {
-        $reducible = $this->math->marriageAllowanceTransfer($context->user, $context->mode, $context->household);
-        $saving = round($reducible * $this->math->bandRateForBand('basic'), 2);
-        if ($saving < 1) {
+        $position = $this->math->marriageAllowance($context->user, $context->mode, $context->household);
+        if ($position === null || $position['saving'] < 1) {
             return [];
         }
 
         $amount = $this->math->marriageAllowanceAmount();
+        $saving = $position['saving'];
 
         return [new StrategyRecommendation(
             type: 'marriage_allowance_transfer',
             category: StrategyCategory::Household,
             priority: StrategyPriority::Medium,
             title: 'Claim Marriage Allowance',
-            description: sprintf(
-                'Your spouse or civil partner can transfer £%s of their unused Personal Allowance to you, saving you around £%s a year in income tax.',
-                number_format((int) $amount),
-                number_format((int) round($saving)),
-            ),
+            description: $position['direction'] === 'to_user'
+                ? sprintf(
+                    'Your spouse or civil partner can transfer £%s of their unused Personal Allowance to you, saving your household around £%s a year in income tax.',
+                    number_format((int) $amount),
+                    number_format((int) round($saving)),
+                )
+                : sprintf(
+                    'You can transfer £%s of your unused Personal Allowance to your spouse or civil partner, saving your household around £%s a year in income tax.',
+                    number_format((int) $amount),
+                    number_format((int) round($saving)),
+                ),
             estimatedAnnualTaxSaved: $saving,
-            extra: ['amount_transferred' => $amount],
+            extra: ['amount_transferred' => $amount, 'transfer_direction' => $position['direction']],
         )];
     }
 }

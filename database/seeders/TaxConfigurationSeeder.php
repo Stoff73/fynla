@@ -259,6 +259,10 @@ class TaxConfigurationSeeder extends Seeder
                 // £3,600 gross (£2,880 net + 20% basic-rate relief). The £60,000
                 // annual allowance is otherwise capped at 100% of earnings.
                 'relevant_earnings_minimum' => 3600,
+                // No relief on contributions paid after the member reaches 75:
+                // Finance Act 2004 s188(3)(a),
+                // https://www.legislation.gov.uk/ukpga/2004/12/section/188
+                'relief_max_age' => 75,
                 'money_purchase_annual_allowance' => 10000,
                 'mpaa' => 10000,
                 // 55 until 5 April 2028, 57 from 6 April 2028 (FA 2022 s10)

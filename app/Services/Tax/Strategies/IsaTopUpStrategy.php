@@ -124,7 +124,7 @@ final class IsaTopUpStrategy implements TaxStrategy
             category: StrategyCategory::Allowance,
             priority: StrategyPriority::High,
             title: sprintf(
-                'Wrap £%s of cash savings inside an ISA before April 5',
+                'Wrap £%s of cash savings inside an ISA before 5 April',
                 number_format((int) round($reportedTransfer)),
             ),
             description: sprintf(

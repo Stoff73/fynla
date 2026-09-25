@@ -151,7 +151,7 @@
           <li>• <strong>30-Day Rule:</strong> You cannot repurchase the same security within 30 days</li>
           <li>• <strong>Bed and Breakfasting:</strong> Avoid triggering this rule by waiting 31 days</li>
           <li>• <strong>Loss Carryforward:</strong> Losses can be carried forward indefinitely</li>
-          <li>• <strong>Tax Year End:</strong> Consider harvesting before April 5 to use current year allowance</li>
+          <li>• <strong>Tax Year End:</strong> Consider harvesting before 5 April to use current year allowance</li>
         </ul>
       </div>
 

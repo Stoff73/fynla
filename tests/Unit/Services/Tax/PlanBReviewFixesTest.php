@@ -112,8 +112,6 @@ it('voices only the spouse savings that count toward the plan total', function (
 it('points Fyn at the pension relief items on every tax path', function () {
     $sections = (new ReflectionClassConstant(OnboardingChatDirector::class, 'SECTION_STRATEGY_TYPES'))->getValue();
 
-    foreach (['pension_relief_higher_rate', 'pension_relief_basic_rate'] as $type) {
-        expect($sections['pensions'])->toContain($type)
-            ->and(QuerySchemas::RELEVANT_TRIGGERS[QuerySchemas::TAX_OPTIMISATION])->toContain('strategy_'.$type);
-    }
+    expect($sections['pensions'])->toContain('pension_tax_relief')
+        ->and(QuerySchemas::RELEVANT_TRIGGERS[QuerySchemas::TAX_OPTIMISATION])->toContain('strategy_pension_tax_relief');
 });

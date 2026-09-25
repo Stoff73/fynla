@@ -19,8 +19,8 @@ beforeEach(function () {
 function reliefRecs(User $user): array
 {
     return collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
-        ->whereIn('type', ['pension_relief_higher_rate', 'pension_relief_basic_rate'])
-        ->keyBy('type')->all();
+        ->where('type', 'pension_tax_relief')
+        ->keyBy('tax_band')->all();
 }
 
 function reliefUser(float $income, array $extra = []): User
@@ -40,19 +40,19 @@ it('sizes a higher-rate item to the slice taxed at the higher rate', function ()
     $slice = 60000 - $math->bandThresholdsFor($user)['higher'];
     $display = (int) (round($slice / 100) * 100);
 
-    $rec = reliefRecs($user)['pension_relief_higher_rate'] ?? null;
+    $rec = reliefRecs($user)['higher'] ?? null;
 
     expect($rec)->not->toBeNull()
         ->and($rec['suggested_contribution'])->toBe((float) $display)
         ->and($rec['estimated_annual_tax_saved'])->toBe(round($display * $math->bandRateForBand('higher'), 2))
-        ->and(reliefRecs($user))->not->toHaveKey('pension_relief_basic_rate');
+        ->and(reliefRecs($user))->not->toHaveKey('basic');
 });
 
 it('gives a basic-rate earner an item sized at a tenth of their earnings', function () {
     $user = reliefUser(30000);
     $basic = app(TaxStrategyMath::class)->bandRateForBand('basic');
 
-    $rec = reliefRecs($user)['pension_relief_basic_rate'] ?? null;
+    $rec = reliefRecs($user)['basic'] ?? null;
 
     expect($rec)->not->toBeNull()
         ->and($rec['suggested_contribution'])->toBe(3000.0)
@@ -94,7 +94,7 @@ it('sizes the higher-rate slice after what the user already pays in (review I1)'
     $math = app(TaxStrategyMath::class);
     $slice = 60000 - 3000 - $math->bandThresholds()['higher'];
 
-    $rec = reliefRecs($user)['pension_relief_higher_rate'] ?? null;
+    $rec = reliefRecs($user)['higher'] ?? null;
 
     expect($rec)->not->toBeNull()
         ->and($rec['suggested_contribution'])->toBe((float) (floor($slice / 100) * 100));
@@ -105,7 +105,7 @@ it('never rounds the contribution above the tax the user pays', function () {
     // that is never paid.
     $pa = (float) app(TaxConfigService::class)->getIncomeTax()['personal_allowance'];
 
-    $rec = reliefRecs(reliefUser($pa + 450))['pension_relief_basic_rate'] ?? null;
+    $rec = reliefRecs(reliefUser($pa + 450))['basic'] ?? null;
 
     expect($rec)->not->toBeNull()
         ->and($rec['suggested_contribution'])->toBe(400.0);

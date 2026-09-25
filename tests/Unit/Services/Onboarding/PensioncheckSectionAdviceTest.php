@@ -143,7 +143,7 @@ it('savetax pensions section still uses the tax plan (backward compatibility)', 
 
     $advice = pensioncheckSectionAdviceFor($user->fresh(), 'pensions');
     $taxItem = collect(app(ComposedTaxPlanService::class)->forUser($user->fresh())['items'])
-        ->firstWhere('type', 'pension_relief_basic_rate');
+        ->firstWhere('type', 'pension_tax_relief');
 
     expect($taxItem)->not->toBeNull()
         ->and($advice)->toContain($taxItem['title']);

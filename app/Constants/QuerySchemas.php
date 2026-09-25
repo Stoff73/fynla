@@ -571,8 +571,7 @@ final class QuerySchemas
             'tax_relief',
             'annual_allowance_exceeded',
             'strategy_pa_taper_rescue',
-            'strategy_pension_relief_higher_rate',
-            'strategy_pension_relief_basic_rate',
+            'strategy_pension_tax_relief',
         ],
         self::RETIREMENT_READINESS => [
             'contribution_increase',
@@ -660,8 +659,7 @@ final class QuerySchemas
             // Composed tax plan strategies (F11): the seeded strategy_* rows, not the disabled agent rows.
             'strategy_pa_taper_rescue',
             'strategy_additional_rate_avoidance',
-            'strategy_pension_relief_higher_rate',
-            'strategy_pension_relief_basic_rate',
+            'strategy_pension_tax_relief',
             'strategy_salary_sacrifice_ni',
             'strategy_isa_topup_vs_psa',
             'strategy_bed_and_isa',

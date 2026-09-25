@@ -36,6 +36,13 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         $user = $context->user;
         $household = $context->household;
 
+        // CSJ ruling 2026-09-25: the top-up counts as household tax saved
+        // because a spouse or civil partner is a legal contract; an unmarried
+        // couple is outside that ruling.
+        if (! $this->math->isMarriedOrCivilPartner($user)) {
+            return [];
+        }
+
         if ($context->mode === 'single_earner_couple') {
             return $this->nonEarnerPath($user, $household);
         }
@@ -54,7 +61,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
     private function nonEarnerPath(User $user, mixed $household): array
     {
         $spouseAge = $this->resolveSpouseAge($user);
-        if ($spouseAge !== null && $spouseAge >= 75) {
+        if ($spouseAge !== null && $spouseAge >= $this->reliefMaxAge()) {
             return [];
         }
 
@@ -134,7 +141,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         }
 
         $spouseAge = $this->resolveSpouseAge($user);
-        if ($spouseAge !== null && $spouseAge >= 75) {
+        if ($spouseAge !== null && $spouseAge >= $this->reliefMaxAge()) {
             return [];
         }
 
@@ -154,8 +161,8 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
             category: StrategyCategory::Household,
             priority: StrategyPriority::Medium,
             title: sprintf(
-                'Max out your spouse\'s pension on their £%s earnings — instant £%s government top-up',
-                number_format((int) $spouseIncome),
+                'Top up your spouse\'s pension by £%s — instant £%s government top-up',
+                number_format((int) $netCost),
                 number_format((int) $uplift),
             ),
             description: sprintf(
@@ -175,6 +182,12 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 'spouse_age' => $spouseAge,
             ],
         )];
+    }
+
+    /** No relief on contributions paid after 75: FA 2004 s188(3)(a), from pension.relief_max_age. */
+    private function reliefMaxAge(): int
+    {
+        return (int) $this->taxConfig->getPensionAllowances()['relief_max_age'];
     }
 
     /**
