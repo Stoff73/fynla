@@ -30,7 +30,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
 
     public function generate(TaxStrategyContext $context): array
     {
-        if ($context->mode !== 'single_earner_couple') {
+        if ($context->mode !== 'single_earner_couple' || ! $this->math->isMarriedOrCivilPartner($context->user)) {
             return [];
         }
 
@@ -127,9 +127,18 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             ];
         }
 
-        // 3. ISA top-up in spouse's name — uses fresh £20k allowance
+        $hasGia = InvestmentAccount::query()
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
+            })
+            ->exists();
+
+        // 3. ISA top-up in spouse's name — uses fresh £20k allowance. Funding
+        // a spouse's ISA needs money to fund it with (ruling a).
+        $hasFundsToGift = $userSavingsTotal > 0 || $hasGia;
         $spouseIsaBalance = $household?->spouse_existing_isa_balance;
-        if ($spouseIsaBalance !== null && (float) $spouseIsaBalance === 0.0) {
+        if ($hasFundsToGift && $spouseIsaBalance !== null && (float) $spouseIsaBalance === 0.0) {
             $suggestions[] = [
                 'type' => 'isa_topup_spouse',
                 'priority' => 'medium',
@@ -140,12 +149,6 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         }
 
         // 4. GIA → spouse for CGT + Dividend allowances (only if user has investment accounts)
-        $hasGia = InvestmentAccount::query()
-            ->where('user_id', $user->id)
-            ->where(function ($q) {
-                $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
-            })
-            ->exists();
         if ($hasGia) {
             $cgtAllowance = (float) ($this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000);
             $div = $this->taxConfig->getDividendTax();

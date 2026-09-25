@@ -26,7 +26,9 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
 
     public function generate(TaxStrategyContext $context): array
     {
-        if ($context->mode !== 'dual_earner' || ! $context->household instanceof TaxStrategyHouseholdInput) {
+        if ($context->mode !== 'dual_earner'
+            || ! $context->household instanceof TaxStrategyHouseholdInput
+            || ! $this->math->isMarriedOrCivilPartner($context->user)) {
             return [];
         }
 
@@ -49,7 +51,10 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
             ->exists();
 
         // Recommend rebalancing GIA / dividend-bearing holdings to the lower-earner spouse
-        if ($hasGia && $userBand !== 'basic' && $spouseBand === 'basic') {
+        // Unknown spouse income is not £0: without it there is no band to
+        // compare (B12).
+        $spouseIncomeKnown = $household->spouse_annual_income !== null;
+        if ($hasGia && $spouseIncomeKnown && $userBand !== 'basic' && $spouseBand === 'basic') {
             $userDivRate = $this->math->dividendRateForBand($userBand);
             $spouseDivRate = $this->math->dividendRateForBand('basic');
             $rateDelta = max(0.0, $userDivRate - $spouseDivRate);
