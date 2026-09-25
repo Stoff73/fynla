@@ -1,3 +1,9 @@
+<?php
+// ISA rule and allowance: gov.uk "How ISAs work"
+// (https://www.gov.uk/individual-savings-accounts/how-isas-work) and
+// isa.annual_allowance in TaxConfigService — never hard-coded (Rule 2).
+$helpIsaAllowance = '£'.number_format((int) (app(\App\Services\TaxConfigService::class)->getISAAllowances()['annual_allowance'] ?? 0));
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -454,7 +460,7 @@
                 ['q' => 'What is the difference between Defined Contribution and Defined Benefit pensions?',
                  'a' => 'Defined Contribution (money purchase) pensions are pot-based — you contribute, it grows, and you draw from the pot. Defined Benefit (final salary) pensions provide guaranteed income based on your salary and years of service.'],
                 ['q' => 'Can I have multiple ISAs?',
-                 'a' => 'Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (6 April to 5 April).'],
+                 'a' => 'Yes. You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA, where only one can be paid into each year. Total contributions across all your ISAs cannot exceed '.$helpIsaAllowance.' per tax year (6 April to 5 April).'],
                 ['q' => 'How do I link my spouse account?',
                  'a' => 'Go to User Profile â†’ Family tab â†’ Add Family Member â†’ Select "spouse" and enter their email. If they have an account, it will link automatically. If not, the system creates an account and emails them login details.'],
                 ['q' => 'Can I export my data?',
