@@ -109,6 +109,7 @@
             <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
             <span v-if="a.available !== false && a.known !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
           </div>
+          <p v-if="budgetNote(a)" class="mts-allow__note">{{ budgetNote(a) }}</p>
         </div>
       </div>
 
@@ -216,6 +217,14 @@ export default {
   methods: {
     fmt(v) { return formatCurrency(v); },
     barWidth(a) { return `${Math.min(Number(a.utilisation_pct) || 0, 100)}%`; },
+    // Server caps pension headroom at a year of affordable surplus
+    // (TaxStrategyService::withAffordablePensionHeadroom); say so when it bites.
+    budgetNote(a) {
+      return a.affordable_this_year !== undefined
+        && Number(a.remaining) < Number(a.amount) - Number(a.used) - 0.5
+        ? 'Limited to what you can afford this year'
+        : null;
+    },
     remainingLabel(a) {
       if (a.available === false) return 'Not available';
       if (a.known === false) return 'Current-year use not confirmed';
@@ -309,6 +318,7 @@ export default {
 .mts-allow__remain--raspberry { color: var(--raspberry-500); }
 .mts-allow__remain--muted { color: var(--neutral-500); }
 .mts-allow__used { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
+.mts-allow__note { font-size: 12px; color: var(--neutral-500); margin: 4px 0 0; }
 
 .mts-household { background: var(--eggshell-500); }
 .mts-household__intro { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin-bottom: 12px; }

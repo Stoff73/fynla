@@ -532,7 +532,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">Can I have multiple ISAs?</h3>
                 <p class="text-body-base text-horizon-500">
-                  Yes. You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA, where only one can be paid into each year. Total contributions across all your ISAs cannot exceed {{ formatCurrency(isaAnnualAllowance) }} per tax year (6 April to 5 April). Fynla automatically tracks your ISA allowance usage.
+                  Yes. You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA or a Junior ISA, where only one of each can be paid into each year. Total contributions across all your ISAs cannot exceed {{ formatCurrency(isaAnnualAllowance) }} per tax year (6 April to 5 April). Fynla automatically tracks your ISA allowance usage.
                 </p>
               </div>
 

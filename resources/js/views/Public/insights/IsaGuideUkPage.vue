@@ -165,7 +165,7 @@
           <div>
             <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">ISA rules you need to know</h2>
             <ul class="text-sm text-neutral-500 leading-relaxed list-disc pl-5 space-y-3">
-              <li><strong class="text-horizon-500">More than one of each type:</strong> You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA, where only one can be paid into each year. All your payments together must stay within your annual allowance, and you can transfer between providers freely.</li>
+              <li><strong class="text-horizon-500">More than one of each type:</strong> You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA or a Junior ISA, where only one of each can be paid into each year. All your payments together must stay within your annual allowance, and you can transfer between providers freely.</li>
               <li><strong class="text-horizon-500">You must be a UK resident</strong> to open and contribute to an ISA. If you move abroad, you can keep existing ISAs but cannot contribute.</li>
               <li><strong class="text-horizon-500">Flexible ISAs:</strong> Some ISAs are &ldquo;flexible,&rdquo; meaning you can withdraw money and put it back in the same tax year without using additional allowance. Not all ISAs offer this &mdash; check with your provider.</li>
               <li><strong class="text-horizon-500">No carry forward:</strong> Unlike pension allowances, unused ISA allowance cannot be carried forward. Use it or lose it.</li>
@@ -257,7 +257,7 @@
 
             <h3 class="text-lg font-semibold text-horizon-500 mb-2 mt-6">Can I have multiple ISAs?</h3>
             <p class="text-sm text-neutral-500 leading-relaxed">
-              Yes. You can pay into more than one ISA of the same type in a tax year &mdash; for example two Cash ISAs and a Stocks and Shares ISA &mdash; as long as your total payments stay within your annual allowance. The exception is the Lifetime ISA: you can only pay into one in a tax year. You can also keep ISAs from previous years running alongside them.
+              Yes. You can pay into more than one ISA of the same type in a tax year &mdash; for example two Cash ISAs and a Stocks and Shares ISA &mdash; as long as your total payments stay within your annual allowance. The exceptions are the Lifetime ISA and the Junior ISA, which are each limited to one a tax year. You can also keep ISAs from previous years running alongside them.
             </p>
 
             <h3 class="text-lg font-semibold text-horizon-500 mb-2 mt-6">What happens if I move abroad?</h3>
@@ -306,7 +306,7 @@
               <li>Your annual allowance is &pound;20,000, shared across all ISA types. Use it or lose it.</li>
               <li>There are four main types: Cash ISA, Stocks and Shares ISA, Lifetime ISA and Innovative Finance ISA, plus Junior ISAs for children.</li>
               <li>Match the ISA type to your goal: Cash for short-term, Stocks and Shares for long-term, Lifetime ISA for first homes.</li>
-              <li>You can pay into more than one ISA of the same type in a tax year (only one Lifetime ISA), and can transfer freely between providers.</li>
+              <li>You can pay into more than one ISA of the same type in a tax year (only one Lifetime ISA and one Junior ISA), and can transfer freely between providers.</li>
               <li>The Lifetime ISA offers a 25% government bonus but carries a harsh 25% withdrawal penalty for early access.</li>
               <li>Compare fees and interest rates &mdash; small differences compound to thousands over time.</li>
               <li>Combine ISAs with pensions for optimal tax efficiency.</li>

@@ -24,6 +24,9 @@
         {{ formatCurrency(allowance.used) }} used
       </span>
     </div>
+    <p v-if="budgetLimited" class="text-caption text-neutral-500 mt-1">
+      Limited to what you can afford this year
+    </p>
   </div>
 </template>
 
@@ -45,6 +48,13 @@ export default {
     // worded as on /m (resources/mobile/views/TaxStrategy.vue).
     known() {
       return this.allowance.known !== false;
+    },
+    // The server caps pension headroom at a year of affordable surplus
+    // (TaxStrategyService::withAffordablePensionHeadroom); say so when it bites.
+    budgetLimited() {
+      const a = this.allowance;
+      return a.affordable_this_year !== undefined
+        && Number(a.remaining) < Number(a.amount) - Number(a.used) - 0.5;
     },
     barClass() {
       return {

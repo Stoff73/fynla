@@ -247,13 +247,7 @@ final class TaxStrategyCalculator
             // showing the whole amount as available would be false precision.
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, 0.0, 'user', true, false),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, min($divAmount, $divUsed), 'user'),
-            $this->position(
-                'pension_annual_allowance',
-                $mpaaApplies ? 'Money Purchase Annual Allowance' : 'Pension Annual Allowance',
-                $aaAmount,
-                $aaUsed,
-                'user',
-            ),
+            $this->pensionPosition($user, $overrides, $aaAmount, $aaUsed, $mpaaApplies),
         ];
 
         // Only surface Starting Rate for Savings when the user actually has
@@ -272,6 +266,43 @@ final class TaxStrategyCalculator
         }
 
         return $positions;
+    }
+
+    /**
+     * The pension tile shows the limit the user can actually use (CSJ
+     * 2026-09-25): relief on the member's own contributions is capped at their
+     * relevant UK earnings, or the basic amount if higher (FA 2004 s190,
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/190). Where that cap
+     * is below the Annual Allowance it is the tile, measured against the user's
+     * own gross contributions; otherwise the Annual Allowance tile is unchanged.
+     * `limit_basis` tells consumers (the allowance milestone) which one it is.
+     */
+    private function pensionPosition(User $user, ?TaxStrategyOverridesDTO $overrides, float $aaAmount, float $aaUsed, bool $mpaaApplies): array
+    {
+        $pension = $this->taxConfig->getPensionAllowances();
+        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        $reliefLimit = max((float) ($pension['relevant_earnings_minimum'] ?? 0), $earnings);
+
+        if ($reliefLimit < $aaAmount) {
+            return $this->position(
+                'pension_annual_allowance',
+                'Pension contribution limit from your earnings',
+                $reliefLimit,
+                // The what-if slider replaces the captured contributions.
+                $overrides?->pensionContributionPercent !== null
+                    ? $this->math->estimatePensionContributionThisYear($user, $overrides)
+                    : $this->math->grossEmployeePensionContributions($user),
+                'user',
+            ) + ['limit_basis' => 'relief'];
+        }
+
+        return $this->position(
+            'pension_annual_allowance',
+            $mpaaApplies ? 'Money Purchase Annual Allowance' : 'Pension Annual Allowance',
+            $aaAmount,
+            $aaUsed,
+            'user',
+        ) + ['limit_basis' => 'annual_allowance'];
     }
 
     /**
