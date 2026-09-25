@@ -1202,6 +1202,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500, // £6,000/yr
             'salary_sacrifice' => false,
             'employer_ni_rebate_pct' => null,
@@ -1228,6 +1229,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500,
             'salary_sacrifice' => false,
             'employer_ni_rebate_pct' => null,
@@ -1247,6 +1249,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 400, // £4,800/yr
             'salary_sacrifice' => false,
             'employer_ni_rebate_pct' => 0.5, // 50% of employer NI rebated back
@@ -1271,6 +1274,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500,
             'salary_sacrifice' => true,
         ]);
@@ -1288,6 +1292,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500,
             'salary_sacrifice' => false,
         ]);

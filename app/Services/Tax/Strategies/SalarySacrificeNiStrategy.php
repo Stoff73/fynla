@@ -7,6 +7,7 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
+use App\Services\Retirement\PensionContributionRule;
 use App\Services\Retirement\SalarySacrificeAnalyzer;
 use App\Services\Stores\PensionStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
@@ -40,16 +41,17 @@ final class SalarySacrificeNiStrategy implements TaxStrategy
             return [];
         }
 
+        $salary = $this->analyzer->payBeforeSacrifice($user);
+
+        // Workplace schemes only: a SIPP or personal pension is paid from
+        // money already received and cannot be salary-sacrificed (B1).
         $eligiblePensions = app(PensionStore::class)
             ->forUserByType($user, 'dc')
-            ->filter(fn ($p) => empty($p->salary_sacrifice)
-                && (float) ($p->monthly_contribution_amount ?? 0) > 0);
+            ->filter(fn ($p) => empty($p->salary_sacrifice) && PensionContributionRule::isWorkplace($p));
 
-        if ($eligiblePensions->isEmpty()) {
-            return [];
-        }
-
-        $annualContribution = (float) $eligiblePensions->sum(fn ($p) => (float) $p->monthly_contribution_amount * 12);
+        $annualContribution = (float) $eligiblePensions->sum(
+            fn ($p) => PensionContributionRule::monthlyEmployee($p, $salary) * 12
+        );
         if ($annualContribution <= 0) {
             return [];
         }
