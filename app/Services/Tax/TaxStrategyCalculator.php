@@ -32,6 +32,7 @@ final class TaxStrategyCalculator
         private readonly TaxStrategyMath $math,
         private readonly IsaAllowanceAllocator $isaAllocator,
         private readonly Strategies\IncomeBandStrategy $incomeBand,
+        private readonly Strategies\PensionTaxReliefStrategy $pensionTaxRelief,
         private readonly Strategies\LifecycleStrategy $lifecycle,
         private readonly Strategies\JointSavingsStrategy $jointSavings,
         private readonly Strategies\IsaTopUpStrategy $isaTopUp,
@@ -69,6 +70,7 @@ final class TaxStrategyCalculator
         // (mode, band, captured-data presence, etc.) aren't met for this user.
         $strategies = [
             $this->incomeBand,
+            $this->pensionTaxRelief,
             $this->lifecycle,
             $this->jointSavings,
             $this->isaTopUp,

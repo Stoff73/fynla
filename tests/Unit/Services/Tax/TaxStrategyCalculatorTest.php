@@ -651,9 +651,11 @@ describe('benchmark', function () {
 
 describe('recommendations contract (canonical)', function () {
     it('exposes an empty recommendations array for single-mode users with no triggering data', function () {
+        // Below the Personal Allowance: since ruling (c) any taxpaying earner
+        // gets a pension relief item, so "no triggering data" means no tax.
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
-            'annual_employment_income' => 50000,
+            'annual_employment_income' => 12000,
             'marital_status' => 'single',
         ]);
 

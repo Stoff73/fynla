@@ -11,7 +11,7 @@ use Illuminate\Database\Seeder;
  * Seed the tax_action_definitions table with all action types.
  *
  * Seeds 5 agent-sourced tax optimisation action definitions (disabled — orphaned
- * TaxActionDefinitionService has zero callers) and 20 strategy-registry metadata
+ * TaxActionDefinitionService has zero callers) and 22 strategy-registry metadata
  * rows (source='strategy') linking to the June Tax/Strategies classes. Priorities
  * follow the canonical catalogue (fynlaBrain April30Updates/savetax-strategy-catalogue.md).
  * Uses updateOrCreate for idempotency.
@@ -83,6 +83,26 @@ class TaxActionDefinitionSeeder extends Seeder
                 'claim_tier' => 'mechanical',
                 'required_data' => ['annual_income'],
                 'sequencing' => ['do_before' => [], 'conflicts_with' => ['pa_taper_rescue']],
+            ],
+
+            // Pension relief below the taper band (CSJ ruling 2026-09-25: every
+            // band). Band-exclusive with the two rows above by construction.
+            [
+                'strategy_type' => 'pension_relief_higher_rate',
+                'category' => 'income_band',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['annual_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
+            [
+                'strategy_type' => 'pension_relief_basic_rate',
+                'category' => 'income_band',
+                'priority' => 'medium',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['annual_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
             ],
 
             [

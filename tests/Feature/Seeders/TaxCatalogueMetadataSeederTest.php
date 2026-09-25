@@ -11,6 +11,8 @@ it('seeds a metadata row for every emitted tax strategy type', function () {
     $expected = [
         'pa_taper_rescue',
         'additional_rate_avoidance',
+        'pension_relief_higher_rate',
+        'pension_relief_basic_rate',
         'isa_topup_vs_psa',
         'bed_and_isa',
         'dividend_allowance_harvest',
