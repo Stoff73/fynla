@@ -427,15 +427,9 @@ final class TaxStrategyMath
             return (float) ($user->annual_employment_income ?? 0) * ($overrides->pensionContributionPercent / 100);
         }
 
-        // Pension input amount (FA 2004 s233(1)): everything paid in by or for
-        // the member — net-pay employee contributions, relief-at-source payments
-        // GROSS of the basic-rate relief the provider claims (s192), and employer
-        // contributions including sacrificed pay. Read from the income
-        // definitions so there is one reading of the captured pensions.
-        // https://www.legislation.gov.uk/ukpga/2004/12/section/233
-        $d = $this->incomeDefinitionsFor($user)['deductions'];
-
-        return (float) ($d['employee_pension_contributions'] + $d['relief_at_source_gross'] + $d['employer_pension_contributions']);
+        // The pension input amount (FA 2004 s233(1)), published once by the
+        // income definitions.
+        return (float) $this->incomeDefinitionsFor($user)['pension_input_amount'];
     }
 
     /**

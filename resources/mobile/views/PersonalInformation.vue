@@ -1,7 +1,7 @@
 <template>
   <MobileChrome
     title="Personal Information"
-    subtitle="Your canonical profile and financial position"
+    subtitle="Your profile and financial position"
     :loading="loading"
     loading-label="your personal information"
     :contextual-request="contextualRequest"

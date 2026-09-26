@@ -151,6 +151,13 @@ class IncomeDefinitionsService
             'threshold_income' => round($thresholdIncome, 2),
             'adjusted_income' => round($adjustedIncome, 2),
             'components' => $components,
+            // Pension input amount (FA 2004 s233(1)): everything paid in by or for
+            // the member this year — net-pay employee contributions, relief-at-source
+            // payments gross of the basic-rate relief the provider claims (s192), and
+            // employer contributions including sacrificed pay. The ONE figure for
+            // Annual Allowance used and for what goes into the pot.
+            // https://www.legislation.gov.uk/ukpga/2004/12/section/233
+            'pension_input_amount' => round($pensionContributions['employee'] + $pensionContributions['relief_at_source_gross'] + $pensionContributions['employer'], 2),
             // W-0189 acceptance 2 — the arrangement the deduction was made under,
             // so the panel can name it instead of the reader having to guess why
             // £11,600 is deducted once rather than at both steps that mention it.
@@ -277,9 +284,8 @@ class IncomeDefinitionsService
         $basicRelief = (float) ($this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'] ?? 0);
 
         foreach ($user->dcPensions as $pension) {
-            $salary = (float) ($pension->annual_salary ?? 0) ?: $userSalary;
             $contribution = PensionContributionRule::monthlyEmployee($pension, $userSalary) * 12;
-            $employer += $salary * ((float) ($pension->employer_contribution_percent ?? 0) / 100);
+            $employer += PensionContributionRule::monthlyEmployer($pension, $userSalary) * 12;
 
             // A personal pension or SIPP is paid from taxed income under relief
             // at source (FA 2004 s192): the member pays net and the provider

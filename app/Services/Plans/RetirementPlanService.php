@@ -15,6 +15,7 @@ use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\IncomeDefinitionsService;
 use Illuminate\Support\Collection;
 
 class RetirementPlanService extends BasePlanService
@@ -430,24 +431,14 @@ class RetirementPlanService extends BasePlanService
     /**
      * Calculate total annual contributions (employee + employer) across all DC pensions.
      */
+    /**
+     * The pension input amount (FA 2004 s233(1)), published once by the income
+     * definitions: relief-at-source payments gross, employer contributions
+     * included, the employment income standing in for a blank scheme salary.
+     */
     private function calculateTotalAnnualContributions(int $userId): float
     {
-        $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
-        $total = 0.0;
-
-        foreach ($dcPensions as $pension) {
-            $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
-            if ($monthly > 0) {
-                $total += $monthly * 12;
-            } else {
-                $salary = (float) ($pension->annual_salary ?? 0);
-                $employeePct = (float) ($pension->employee_contribution_percent ?? 0);
-                $employerPct = (float) ($pension->employer_contribution_percent ?? 0);
-                $total += $salary * ($employeePct + $employerPct) / 100;
-            }
-        }
-
-        return $this->roundToPenny($total);
+        return $this->roundToPenny((float) app(IncomeDefinitionsService::class)->calculate($userId)['pension_input_amount']);
     }
 
     /**

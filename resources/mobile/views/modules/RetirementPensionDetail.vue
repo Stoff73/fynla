@@ -42,7 +42,7 @@
           <span class="m-detail-value">{{ fmt(pension.current_fund_value) }}</span>
         </div>
         <div class="m-detail-row">
-          <span class="m-detail-key">Monthly contribution</span>
+          <span class="m-detail-key">{{ pension.contribution_includes_relief ? 'Monthly contribution (with basic-rate tax relief)' : 'Monthly contribution' }}</span>
           <span class="m-detail-value">{{ fmt(monthlyContributionDc) }}</span>
         </div>
         <div class="m-detail-row">
@@ -119,7 +119,7 @@
             <span class="m-detail-value">{{ fmt(planningProduct.current_value) }}</span>
           </div>
           <div class="m-detail-row">
-            <span class="m-detail-key">Monthly contribution</span>
+            <span class="m-detail-key">{{ pension.contribution_includes_relief ? 'Monthly contribution (with basic-rate tax relief)' : 'Monthly contribution' }}</span>
             <span class="m-detail-value">{{ fmt(planningProduct.monthly_contribution) }}</span>
           </div>
           <div class="m-detail-row">

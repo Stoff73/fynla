@@ -185,7 +185,9 @@ it('at the Free cap the loop question states the limit and offers only the next 
     $quick = collect($events)->firstWhere('type', 'quick_replies');
     expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2)
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE)
-        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 bank and savings accounts, so I can't add another here. You can upgrade after onboarding to add more.")
+        // CSJ 2026-09-26: what was saved is read back before the cap.
+        ->and($quick['prompt_text'])->toStartWith('You have 2 bank and savings accounts on file: ')
+        ->and($quick['prompt_text'])->toEndWith("That's the Free plan's limit of 2 bank and savings accounts, so I can't add another here. You can upgrade after onboarding to add more.")
         ->and(array_column($quick['bubbles'], 'label'))->toBe(['Continue to the next section']);
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, 'Continue to the next section'), false);
@@ -213,7 +215,7 @@ it('a form refused only by the Free cap moves on to the loop question instead of
         ->and($errors['errors']['notice']['message'])->toContain("plan's limit")
         ->and(collect($events)->firstWhere('type', 'capture_complete'))->toBeNull()
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE)
-        ->and($quick['prompt_text'])->toContain("reached the Free plan's limit of 2 bank and savings accounts")
+        ->and($quick['prompt_text'])->toContain("the Free plan's limit of 2 bank and savings accounts")
         ->and(array_column($quick['bubbles'], 'label'))->toBe(['Continue to the next section']);
 });
 
@@ -225,7 +227,7 @@ it('below the cap the loop question still offers another', function (): void {
     ]]);
 
     $quick = collect($events)->firstWhere('type', 'quick_replies');
-    expect($quick['prompt_text'])->toBe('Do you have another investment account to add?')
+    expect($quick['prompt_text'])->toBe("You have 1 ISA or investment account on file: ".collect([\App\Models\Investment\InvestmentAccount::where('user_id', $user->id)->first()])->map(fn ($a) => $a->account_name ?: $a->provider)->first().".\n\nDo you have another investment account to add?")
         ->and(array_column($quick['bubbles'], 'label'))->toBe(['Yes, add another', "No, that's everything"]);
 });
 
@@ -292,6 +294,10 @@ it('saves a workplace pension and a personal pension from the form, then asks fo
         ->and(collect($events)->where('type', 'entity_created')->pluck('entity_type')->all())->toBe(['dc_pension', 'dc_pension'])
         // Two pensions fill the Free cap: the loop states the limit and offers only the next section.
         ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain("Free plan's limit of 2 pensions")
+        // CSJ 2026-09-26: both saved pensions are named before the cap line.
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toStartWith('You have 2 pensions on file: ')
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain('Aviva')
+        ->and(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toContain('Vanguard')
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE);
 
     // Continuing after both pensions (values known, personal pension on file):

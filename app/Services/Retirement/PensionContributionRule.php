@@ -58,6 +58,37 @@ final class PensionContributionRule
     }
 
     /**
+     * What the employer pays in each month: their percentage of the scheme
+     * salary, the member's employment income standing in when the onboarding
+     * form left the scheme salary blank.
+     */
+    public static function monthlyEmployer(DCPension $pension, float $fallbackSalary = 0.0): float
+    {
+        $percent = (float) ($pension->employer_contribution_percent ?? 0);
+        $salary = (float) ($pension->annual_salary ?? 0) ?: $fallbackSalary;
+
+        return $percent > 0 && $salary > 0 ? ($salary * $percent / 100) / 12 : 0.0;
+    }
+
+    /**
+     * What reaches the pot each month: the member's contribution plus the
+     * employer's. A personal pension or SIPP is relief at source (FA 2004 s192):
+     * the member pays net and the provider claims basic-rate relief on top, so
+     * the pot receives the net payment ÷ (1 − basic rate). A workplace scheme is
+     * net pay (s193(2)), paid gross already.
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/192
+     */
+    public static function monthlyIntoPot(DCPension $pension, float $fallbackSalary, float $basicRelief): float
+    {
+        $employee = self::monthlyEmployee($pension, $fallbackSalary);
+        if (! self::isWorkplace($pension) && $basicRelief > 0 && $basicRelief < 1) {
+            $employee /= (1 - $basicRelief);
+        }
+
+        return $employee + self::monthlyEmployer($pension, $fallbackSalary);
+    }
+
+    /**
      * Whether this is an employer-run scheme, the only kind salary sacrifice
      * can apply to. `scheme_type` decides when it is set. The onboarding form
      * records the kind in `pension_type` and leaves `scheme_type` null, so

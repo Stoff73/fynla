@@ -137,3 +137,27 @@ it('counts the Annual Allowance used as the pension input amount, relief at sour
     expect(app(TaxStrategyMath::class)->estimatePensionContributionThisYear($user, null))
         ->toBe(round(3000 + 1800 + 2400 / (1 - $basic), 2));
 });
+
+it('gives the Retirement Annual Allowance check the same pension input amount as Tax Strategy', function () {
+    $user = onboardingPensionUser();
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => null, 'pension_type' => 'occupational', 'salary_sacrifice' => false,
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3,
+    ]);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'personal', 'pension_type' => 'personal', 'salary_sacrifice' => false,
+        'has_flexibly_accessed' => false,
+        'monthly_contribution_amount' => 200, 'annual_salary' => null,
+        'employee_contribution_percent' => null, 'employer_contribution_percent' => null,
+    ]);
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+
+    $checked = app(\App\Services\Retirement\AnnualAllowanceChecker::class)->checkAnnualAllowance($user->id, $taxYear);
+
+    // Before: the checker read the blank scheme salary (workplace £0) and the
+    // personal pension net (£2,400).
+    expect($checked['total_contributions'])
+        ->toBe(app(TaxStrategyMath::class)->estimatePensionContributionThisYear($user, null))
+        ->and($checked['total_contributions'])->toBeGreaterThan(7000.0);
+});

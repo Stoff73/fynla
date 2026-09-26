@@ -679,25 +679,19 @@ export default {
       return classes[this.pensionType] || 'badge-dc';
     },
 
-    // Calculate employee contribution from percentage or fixed amount
+    // Server-computed (DCPension appends, PensionContributionRule): the
+    // employment income stands in for a blank scheme salary, and the total is
+    // what reaches the pot, gross of relief at source (FA 2004 s192).
     monthlyEmployeeContribution() {
-      if (this.pension.employee_contribution_percent && this.pension.annual_salary) {
-        return (this.pension.annual_salary * this.pension.employee_contribution_percent / 100) / 12;
-      }
-      return this.pension.monthly_contribution_amount || 0;
+      return Number(this.pension.monthly_employee_contribution || 0);
     },
 
-    // Calculate employer contribution from percentage
     monthlyEmployerContribution() {
-      if (this.pension.employer_contribution_percent && this.pension.annual_salary) {
-        return (this.pension.annual_salary * this.pension.employer_contribution_percent / 100) / 12;
-      }
-      return 0;
+      return Number(this.pension.monthly_employer_contribution || 0);
     },
 
-    // Total monthly contribution (employee + employer)
     totalMonthlyContribution() {
-      return this.monthlyEmployeeContribution + this.monthlyEmployerContribution;
+      return Number(this.pension.monthly_contribution || 0);
     },
 
     // Annual contribution
