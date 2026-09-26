@@ -31,7 +31,8 @@ use App\Services\TaxConfigService;
  * Surfaces as Warning category (sortWeight 0 — first on the dashboard)
  * and High priority because contributing the untapered AA when the taper
  * applies triggers an HMRC Annual Allowance charge at the user's marginal
- * rate. estimated_annual_tax_saved carries that avoided charge.
+ * rate. extra.annual_allowance_charge_avoided carries that charge; it is not
+ * counted as tax saved.
  */
 final class TaperedAnnualAllowanceStrategy implements TaxStrategy
 {
@@ -95,7 +96,8 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
                 number_format((int) $annualAllowance),
                 number_format((int) round($avoidedCharge)),
             ),
-            estimatedAnnualTaxSaved: round($avoidedCharge, 2),
+            // A warning: the charge is avoided, not tax saved (ruling 2026-09-25).
+            estimatedAnnualTaxSaved: null,
             extra: [
                 'threshold_income' => round($threshold, 2),
                 'adjusted_income' => round($adjusted, 2),
@@ -107,6 +109,7 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
                 'taper_rate' => $taperRate,
                 'aa_reduction' => round($aaReduction, 2),
                 'marginal_rate' => $marginalRate,
+                'annual_allowance_charge_avoided' => round($avoidedCharge, 2),
             ],
         )];
     }

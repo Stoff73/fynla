@@ -60,7 +60,7 @@
                 </tbody>
               </table>
             </div>
-            <p class="text-xs text-neutral-400 mt-2">You can hold one of each type per tax year.</p>
+            <p class="text-xs text-neutral-400 mt-2">You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA or a Junior ISA (one of each per tax year).</p>
           </div>
 
           <!-- Quote callout -->

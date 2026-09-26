@@ -32,6 +32,7 @@ final class TaxStrategyCalculator
         private readonly TaxStrategyMath $math,
         private readonly IsaAllowanceAllocator $isaAllocator,
         private readonly Strategies\IncomeBandStrategy $incomeBand,
+        private readonly Strategies\PensionTaxReliefStrategy $pensionTaxRelief,
         private readonly Strategies\LifecycleStrategy $lifecycle,
         private readonly Strategies\JointSavingsStrategy $jointSavings,
         private readonly Strategies\IsaTopUpStrategy $isaTopUp,
@@ -42,6 +43,7 @@ final class TaxStrategyCalculator
         private readonly Strategies\GiftAidHigherRateReliefStrategy $giftAidHigherRate,
         private readonly Strategies\TaperedAnnualAllowanceStrategy $taperedAnnualAllowance,
         private readonly Strategies\NonEarnerSpousePensionStrategy $nonEarnerSpousePension,
+        private readonly Strategies\MarriageAllowanceStrategy $marriageAllowance,
         private readonly Strategies\AssetShiftingBundleStrategy $assetShifting,
         private readonly Strategies\CrossSpouseBundleStrategy $crossSpouse,
     ) {}
@@ -54,13 +56,13 @@ final class TaxStrategyCalculator
 
         $context = new Strategies\TaxStrategyContext($user, $overrides, $household, $mode);
 
-        $userAllowances = $this->buildUserAllowanceGrid($user, $overrides);
+        $userAllowances = $this->buildUserAllowanceGrid($user, $overrides, $mode, $household);
 
         $spouseAllowances = match ($mode) {
             'dual_earner' => $household instanceof TaxStrategyHouseholdInput
-                ? $this->buildSpouseAllowanceGridDualEarner($user, $household, $this->marriageAllowanceAvailableFor($user))
+                ? $this->buildSpouseAllowanceGridDualEarner($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household))
                 : null,
-            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($user, $household, $this->marriageAllowanceAvailableFor($user)),
+            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household)),
             default => null,
         };
 
@@ -68,6 +70,7 @@ final class TaxStrategyCalculator
         // (mode, band, captured-data presence, etc.) aren't met for this user.
         $strategies = [
             $this->incomeBand,
+            $this->pensionTaxRelief,
             $this->lifecycle,
             $this->jointSavings,
             $this->isaTopUp,
@@ -78,6 +81,7 @@ final class TaxStrategyCalculator
             $this->giftAidHigherRate,
             $this->taperedAnnualAllowance,
             $this->nonEarnerSpousePension,
+            $this->marriageAllowance,
             $this->crossSpouse,
             $this->assetShifting,
         ];
@@ -102,6 +106,8 @@ final class TaxStrategyCalculator
             'lifetime_isa' => fn (float $cap): array => $this->lifecycle->generate($context->withIsaPoolCap($cap)),
         ], $this->userIsaPoolRemaining($user));
 
+        $allRecs = $this->repricePensionReliefForShelteredInterest($allRecs, $context);
+
         usort($allRecs, function (StrategyRecommendation $a, StrategyRecommendation $b): int {
             $cat = $a->categoryEnum()->sortWeight() <=> $b->categoryEnum()->sortWeight();
 
@@ -121,6 +127,49 @@ final class TaxStrategyCalculator
     }
 
     /**
+     * The ISA wrap, the spouse gift and the joint split all shelter the same
+     * sole-name interest, and the plan counts only the largest of them (the
+     * composer's conflict rule, seeded in TaxActionDefinitionSeeder). That
+     * interest then leaves taxed income, so the pension item is re-priced
+     * without it rather than counting the same slice at the higher rate twice.
+     *
+     * @param  list<StrategyRecommendation>  $recs
+     * @return list<StrategyRecommendation>
+     */
+    private function repricePensionReliefForShelteredInterest(array $recs, Strategies\TaxStrategyContext $context): array
+    {
+        $pensionIndex = null;
+        $winner = null;
+        foreach ($recs as $i => $rec) {
+            if ($rec->type === 'pension_tax_relief') {
+                $pensionIndex = $i;
+            }
+            if (in_array($rec->type, ['isa_topup_vs_psa', 'savings_to_spouse', 'joint_savings_psa_split'], true)
+                && ($winner === null || (float) $rec->estimatedAnnualTaxSaved > (float) $winner->estimatedAnnualTaxSaved)) {
+                $winner = $rec;
+            }
+        }
+        if ($pensionIndex === null || $winner === null) {
+            return $recs;
+        }
+
+        $sheltered = (float) ($winner->extra['taxable_interest_sheltered'] ?? $winner->extra['shelterable_interest'] ?? 0);
+        if ($sheltered <= 0) {
+            return $recs;
+        }
+
+        $repriced = $this->pensionTaxRelief->generate($context->withInterestShelteredElsewhere($sheltered));
+        if ($repriced === []) {
+            unset($recs[$pensionIndex]);
+
+            return array_values($recs);
+        }
+        $recs[$pensionIndex] = $repriced[0];
+
+        return $recs;
+    }
+
+    /**
      * The user's remaining overall ISA allowance — the same basis every
      * ISA-consuming evaluator uses internally (no override deposit applied,
      * matching pass-1 sizing).
@@ -135,7 +184,7 @@ final class TaxStrategyCalculator
 
     // ─── Allowance grid builders (output-DTO-bound, kept here) ──────────
 
-    private function buildUserAllowanceGrid(User $user, ?TaxStrategyOverridesDTO $overrides): array
+    private function buildUserAllowanceGrid(User $user, ?TaxStrategyOverridesDTO $overrides, string $mode, ?TaxStrategyHouseholdInput $household): array
     {
         $income = $this->taxConfig->getIncomeTax();
         $isa = $this->taxConfig->getISAAllowances();
@@ -165,7 +214,7 @@ final class TaxStrategyCalculator
         // basic-rate taxpayer. A higher/additional-rate user can't claim it
         // at all — surface "not available" rather than the misleading
         // "fully used" / "headroom" framings.
-        $marriageAllowanceAvailable = $this->marriageAllowanceAvailableFor($user);
+        $marriageAllowanceAvailable = $this->marriageAllowanceAvailableFor($user, $mode, $household);
         // Eligibility is not a completed claim. Only an explicit in-memory
         // claimed override consumes the allowance in this grid.
         $marriageAllowanceUsed = $overrides?->marriageAllowanceClaimed === true
@@ -198,13 +247,7 @@ final class TaxStrategyCalculator
             // showing the whole amount as available would be false precision.
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, 0.0, 'user', true, false),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, min($divAmount, $divUsed), 'user'),
-            $this->position(
-                'pension_annual_allowance',
-                $mpaaApplies ? 'Money Purchase Annual Allowance' : 'Pension Annual Allowance',
-                $aaAmount,
-                $aaUsed,
-                'user',
-            ),
+            $this->pensionPosition($user, $overrides, $aaAmount, $aaUsed, $mpaaApplies),
         ];
 
         // Only surface Starting Rate for Savings when the user actually has
@@ -226,16 +269,51 @@ final class TaxStrategyCalculator
     }
 
     /**
-     * Marriage Allowance availability is decided by the RECIPIENT's band:
-     * the transfer can only be claimed when the working spouse pays no more
-     * than basic-rate tax. The spouse grids mirror the primary's verdict —
-     * a non-earner spouse "with £1,260 of headroom" is misleading when the
-     * primary can't receive the transfer.
+     * The pension tile shows the limit the user can actually use (CSJ
+     * 2026-09-25): relief on the member's own contributions is capped at their
+     * relevant UK earnings, or the basic amount if higher (FA 2004 s190,
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/190). Where that cap
+     * is below the Annual Allowance it is the tile, measured against the user's
+     * own gross contributions; otherwise the Annual Allowance tile is unchanged.
+     * `limit_basis` tells consumers (the allowance milestone) which one it is.
      */
-    private function marriageAllowanceAvailableFor(User $user): bool
+    private function pensionPosition(User $user, ?TaxStrategyOverridesDTO $overrides, float $aaAmount, float $aaUsed, bool $mpaaApplies): array
     {
-        return $this->math->taxableIncomeFor($user)
-            <= (float) $this->taxConfig->get('income_tax.higher_rate_threshold', 50270);
+        $pension = $this->taxConfig->getPensionAllowances();
+        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        $reliefLimit = max((float) ($pension['relevant_earnings_minimum'] ?? 0), $earnings);
+
+        if ($reliefLimit < $aaAmount) {
+            return $this->position(
+                'pension_annual_allowance',
+                'Pension contribution limit from your earnings',
+                $reliefLimit,
+                // The what-if slider replaces the captured contributions.
+                $overrides?->pensionContributionPercent !== null
+                    ? $this->math->estimatePensionContributionThisYear($user, $overrides)
+                    : $this->math->grossEmployeePensionContributions($user),
+                'user',
+            ) + ['limit_basis' => 'relief'];
+        }
+
+        return $this->position(
+            'pension_annual_allowance',
+            $mpaaApplies ? 'Money Purchase Annual Allowance' : 'Pension Annual Allowance',
+            $aaAmount,
+            $aaUsed,
+            'user',
+        ) + ['limit_basis' => 'annual_allowance'];
+    }
+
+    /**
+     * Marriage Allowance is available when the statutory tests in
+     * TaxStrategyMath::marriageAllowance pass in either direction (ITA 2007
+     * Part 3 Chapter 3A). It is the same test the plan item uses, so the grid
+     * and the plan can never disagree.
+     */
+    private function marriageAllowanceAvailableFor(User $user, string $mode, ?TaxStrategyHouseholdInput $household): bool
+    {
+        return $this->math->marriageAllowance($user, $mode, $household) !== null;
     }
 
     private function buildSpouseAllowanceGridDualEarner(User $user, TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array

@@ -14,7 +14,7 @@ use App\Services\Tax\IsaAllowanceAllocator;
  *   - Conflicts (graph-aware): both strategies are kept in the plan. Conflict
  *     pairs are resolved in descending order of each pair's higher saving: the
  *     lower-saving member is excluded from the combined total and carries a
- *     conflict_note naming its preferred alternative — UNLESS that alternative
+ *     conflict_note naming its preferred alternative by title — UNLESS that alternative
  *     is itself already excluded by a stronger pair, in which case the lower
  *     member stays realisable and carries no note from that pair. (Chain
  *     A=300 ↔ B=200 ↔ C=100 excludes only B: C's sole conflict is already out,
@@ -164,6 +164,11 @@ final class StrategyPlanComposer
         // 4. Build output items with annotations. array_merge (NOT the + union
         //    operator): composer-owned fields must win over any same-named keys
         //    leaking in from the DTO's extra[] via toArray().
+        $titleByType = [];
+        foreach ($items as $rec) {
+            $titleByType[$rec->type] = $rec->title;
+        }
+
         $out = [];
         foreach ($items as $index => $rec) {
             // Conflict-pair notes take precedence; otherwise surface the
@@ -171,13 +176,16 @@ final class StrategyPlanComposer
             // render both kinds of annotation identically.
             $isaNote = $rec->extra[IsaAllowanceAllocator::NOTE_FIELD] ?? null;
             $conflictNote = isset($noteFor[$rec->type])
-                ? "Alternative to {$noteFor[$rec->type]} — compare before doing both."
+                ? sprintf('Alternative to "%s" — compare before doing both.', $titleByType[$noteFor[$rec->type]] ?? $noteFor[$rec->type])
                 : (is_string($isaNote) ? $isaNote : null);
 
             $out[] = array_merge($rec->toArray(), [
                 'claim_tier' => $metadata[$rec->type]['claim_tier'] ?? 'judgement',
                 'sequence_position' => $index + 1,
                 'conflict_note' => $conflictNote,
+                // Machine-readable twin of the note: consumers that voice a
+                // figure (Fyn's section turns) must add only what the total does.
+                'counted_in_total' => ! isset($excluded[$rec->type]),
             ]);
         }
 

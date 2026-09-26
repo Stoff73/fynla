@@ -42,7 +42,9 @@ it('returns full payload for an authenticated single user', function () {
     // Marriage Allowance hidden for non-partnered users. See
     // TaxStrategyCalculatorTest 'Path A' for the same contract.
     expect($response->json('data.user_allowances'))->toHaveCount(6);
-    expect($response->json('data.recommendations'))->toBe([]);
+    // CSJ ruling (c) 2026-09-25: pension relief is suggested for every band,
+    // so a £50,000 basic-rate earner gets exactly that one item.
+    expect(collect($response->json('data.recommendations'))->pluck('type')->all())->toBe(['pension_tax_relief']);
 });
 
 it('returns household-category recommendations for single_earner_couple users', function () {
@@ -50,6 +52,9 @@ it('returns household-category recommendations for single_earner_couple users', 
         'household_calculation_mode' => 'single_earner_couple',
         'annual_employment_income' => 100000,
         'marriage_allowance_eligible' => true,
+        // Spouse items need a marriage or civil partnership: ITA 2007
+        // s55C(1)(a) and CSJ ruling (b) 2026-09-25.
+        'marital_status' => 'married',
     ]);
     TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
 
@@ -86,6 +91,9 @@ it('returns household-category recommendations under recommendations[] for singl
         'household_calculation_mode' => 'single_earner_couple',
         'annual_employment_income' => 100000,
         'marriage_allowance_eligible' => true,
+        // Spouse items need a marriage or civil partnership: ITA 2007
+        // s55C(1)(a) and CSJ ruling (b) 2026-09-25.
+        'marital_status' => 'married',
     ]);
     TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Strategies;
 
-use App\Constants\TaxDefaults;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
@@ -65,7 +64,8 @@ final class LifecycleStrategy implements TaxStrategy
                         number_format((int) $bonus),
                         number_format((int) $isaAllowance),
                     ),
-                    estimatedAnnualTaxSaved: round($bonus, 2),
+                    // A government bonus, not tax saved (CSJ ruling 2026-09-25): never in the headline total.
+                    estimatedAnnualTaxSaved: null,
                     extra: [
                         'suggested_contribution' => round($contribution, 2),
                         'government_bonus' => round($bonus, 2),
@@ -118,14 +118,12 @@ final class LifecycleStrategy implements TaxStrategy
                 ],
             );
 
-            // #18 — Junior Pension. £2,880 net per child grossed up to £3,600
-            // by HMRC (£720 = 20% basic-rate relief grossed onto an £2,880 net
-            // contribution; HMRC pension input cap for non-earners). Sourced
-            // from TaxDefaults so every strategy that quotes the figure
-            // updates together; CSJTODO S-3 promotes this to TaxConfigService
-            // once the schema has a non_earner_pension key.
-            $juniorPensionNet = (float) TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
-            $juniorPensionUplift = (float) TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
+            // #18 — Junior Pension. Anyone, including a child with no income,
+            // can hold a personal pension; the non-earner relief-at-source
+            // figures come from TaxConfigService (B13).
+            $figures = $this->math->nonEarnerPensionContribution();
+            $juniorPensionNet = $figures['net'];
+            $juniorPensionUplift = $figures['relief'];
             $totalUplift = $childCount * $juniorPensionUplift;
             $recommendations[] = new StrategyRecommendation(
                 type: 'junior_pension',
@@ -141,7 +139,8 @@ final class LifecycleStrategy implements TaxStrategy
                     number_format((int) ($juniorPensionNet + $juniorPensionUplift)),
                     number_format((int) $juniorPensionUplift),
                 ),
-                estimatedAnnualTaxSaved: round($totalUplift, 2),
+                // A government uplift, not tax saved (CSJ ruling 2026-09-25): never in the headline total.
+                estimatedAnnualTaxSaved: null,
                 extra: [
                     'children_under_18' => $childCount,
                     'net_contribution_per_child' => $juniorPensionNet,

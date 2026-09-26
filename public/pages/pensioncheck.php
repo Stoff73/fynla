@@ -359,9 +359,9 @@
 
       <!-- Q6: Spouse -->
       <section class="qr-screen" id="s-spouse" aria-labelledby="q6-heading">
-        <h2 class="qr-q" id="q6-heading" tabindex="-1">Do you have a spouse?</h2>
+        <h2 class="qr-q" id="q6-heading" tabindex="-1">Do you have a spouse or civil partner?</h2>
         <p class="qr-q-sub">Couples may be able to plan their pensions together to reduce their overall tax bill.</p>
-        <div class="qr-options qr-options--pair" role="group" aria-label="Spouse options">
+        <div class="qr-options qr-options--pair" role="group" aria-label="Spouse or civil partner options">
 
           <button type="button" class="qr-opt qr-opt--square" data-value="yes" aria-pressed="false">
             <span class="qr-opt__label">Yes</span>

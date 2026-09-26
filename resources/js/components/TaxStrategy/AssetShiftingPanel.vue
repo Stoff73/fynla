@@ -2,7 +2,7 @@
   <section class="rounded-card bg-eggshell-500 p-6 mb-6">
     <h2 class="text-h4 font-bold text-horizon-500 mb-2">Move assets to use spouse allowances</h2>
     <p class="text-body-sm text-neutral-500 mb-4 max-w-3xl">
-      The non-working spouse has a full set of unused tax-free allowances. Moving assets into their name uses those allowances without giving up household ownership — spousal transfers between UK-domiciled spouses are exempt from both Capital Gains Tax and Inheritance Tax.
+      Move assets into your spouse's name to use their unused allowances. Transfers between eligible spouses or civil partners can usually be made without an immediate Capital Gains Tax charge, but the recipient normally inherits the original acquisition cost and may pay tax on a later disposal. Inheritance Tax spouse-exemption conditions apply.
     </p>
     <ul class="space-y-3">
       <li

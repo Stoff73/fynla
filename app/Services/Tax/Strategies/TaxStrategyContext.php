@@ -32,10 +32,21 @@ final class TaxStrategyContext
         public readonly ?TaxStrategyHouseholdInput $household,
         public readonly string $mode,
         public readonly ?float $isaPoolCap = null,
+        public readonly float $interestShelteredElsewhere = 0.0,
     ) {}
 
     public function withIsaPoolCap(float $isaPoolCap): self
     {
-        return new self($this->user, $this->overrides, $this->household, $this->mode, $isaPoolCap);
+        return new self($this->user, $this->overrides, $this->household, $this->mode, $isaPoolCap, $this->interestShelteredElsewhere);
+    }
+
+    /**
+     * Taxable interest another plan item already takes out of the user's
+     * income (an ISA wrap or a gift to the spouse), so a pension item is not
+     * priced on income that will no longer be taxed at the higher rate.
+     */
+    public function withInterestShelteredElsewhere(float $interest): self
+    {
+        return new self($this->user, $this->overrides, $this->household, $this->mode, $this->isaPoolCap, $interest);
     }
 }

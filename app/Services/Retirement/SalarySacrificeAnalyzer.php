@@ -136,7 +136,7 @@ class SalarySacrificeAnalyzer
         // Load workplace DC pensions
         $user->loadMissing('dcPensions');
         $workplacePensions = $user->dcPensions->filter(
-            fn (DCPension $pension) => $pension->scheme_type === 'workplace'
+            fn (DCPension $pension) => PensionContributionRule::isWorkplace($pension)
         );
 
         if ($workplacePensions->isEmpty()) {
@@ -180,7 +180,7 @@ class SalarySacrificeAnalyzer
     {
         $salary = $this->payBeforeSacrifice($user);
 
-        if ($salary <= 0 || $pension->scheme_type !== 'workplace') {
+        if ($salary <= 0 || ! PensionContributionRule::isWorkplace($pension)) {
             return [
                 'is_available' => false,
                 'pension_id' => $pension->id,

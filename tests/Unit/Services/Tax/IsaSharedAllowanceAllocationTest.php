@@ -53,7 +53,8 @@ describe('shared ISA allowance allocation across strategies', function () {
         // Winner (Lifetime ISA, £1,000 bonus > £320 wrap saving) keeps its
         // full sizing — and its own £4,000 sub-limit caps its pool draw.
         expect($lisa)->not->toBeNull()
-            ->and($lisa['estimated_annual_tax_saved'])->toBe(1000.0)
+            ->and($lisa['estimated_annual_tax_saved'])->toBeNull() // a bonus, not tax saved (ruling 2026-09-25)
+            ->and($lisa['government_bonus'])->toBe(1000.0)
             ->and($lisa['suggested_contribution'])->toBe(4000.0)
             ->and($lisa)->not->toHaveKey('isa_allowance_excluded');
 
@@ -64,7 +65,7 @@ describe('shared ISA allowance allocation across strategies', function () {
             ->and($topup['estimated_annual_tax_saved'])->toBe(256.0)
             ->and($topup['suggested_transfer_amount'])->toBe(16000.0)
             ->and($topup)->toHaveKey('isa_allowance_note')
-            ->and($topup['isa_allowance_note'])->toContain('lifetime_isa')
+            ->and($topup['isa_allowance_note'])->toContain('Lifetime ISA')->and($topup['isa_allowance_note'])->not->toContain('lifetime_isa')
             ->and($topup)->not->toHaveKey('isa_allowance_excluded');
     });
 
@@ -99,7 +100,8 @@ describe('shared ISA allowance allocation across strategies', function () {
         // Ranking by saving: lifetime_isa £1,000 > bed_and_isa £720 > isa_topup £320.
         // lifetime_isa draws £4,000; bed_and_isa wanted £6,000 ≤ £16,000 remaining
         // so it keeps its pass-1 sizing untouched; isa_topup gets the final £10,000.
-        expect($lisa['estimated_annual_tax_saved'])->toBe(1000.0)
+        expect($lisa['estimated_annual_tax_saved'])->toBeNull() // a bonus, not tax saved (ruling 2026-09-25)
+            ->and($lisa['government_bonus'])->toBe(1000.0)
             ->and($lisa['suggested_contribution'])->toBe(4000.0);
 
         expect($bed)->not->toBeNull()
@@ -147,13 +149,14 @@ describe('shared ISA allowance allocation across strategies', function () {
         $topup = $recs->firstWhere('type', 'isa_topup_vs_psa');
 
         expect($lisa)->not->toBeNull()
-            ->and($lisa['estimated_annual_tax_saved'])->toBe(1000.0);
+            ->and($lisa['estimated_annual_tax_saved'])->toBeNull() // a bonus, not tax saved (ruling 2026-09-25)
+            ->and($lisa['government_bonus'])->toBe(1000.0);
 
         // Kept in the plan (mirrors the conflict mechanism) but flagged so the
         // composer leaves it out of combined_annual_saving.
         expect($topup)->not->toBeNull()
             ->and($topup['isa_allowance_excluded'])->toBeTrue()
-            ->and($topup['isa_allowance_note'])->toContain('lifetime_isa')
+            ->and($topup['isa_allowance_note'])->toContain('Lifetime ISA')->and($topup['isa_allowance_note'])->not->toContain('lifetime_isa')
             ->and($topup['isa_allowance_note'])->toContain('same ISA allowance');
     });
 

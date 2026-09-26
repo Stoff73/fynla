@@ -303,3 +303,26 @@ describe('bandThresholdsFor', function () {
         expect($this->math->bandThresholdsFor($user))->toBe($this->math->bandThresholds());
     });
 });
+
+it('derives the non-earner pension figures from the configured limit and basic-rate relief', function () {
+    $pension = app(TaxConfigService::class)->getPensionAllowances();
+    $gross = (float) $pension['relevant_earnings_minimum'];
+    $relief = $gross * (float) $pension['tax_relief']['basic_rate'];
+
+    $figures = $this->math->nonEarnerPensionContribution();
+
+    expect($figures['gross'])->toBe($gross)
+        ->and($figures['relief'])->toBe(round($relief, 2))
+        ->and($figures['net'])->toBe(round($gross - $relief, 2));
+});
+
+it('derives the Gift Aid reclaim share from the band rates', function () {
+    $math = $this->math;
+    $basic = $math->bandRateForBand('basic');
+
+    expect($math->giftAidReclaimFactor('basic'))->toBe(0.0)
+        ->and($math->giftAidReclaimFactor('higher'))
+        ->toBe(round(($math->bandRateForBand('higher') - $basic) / (1 - $basic), 4))
+        ->and($math->giftAidReclaimFactor('additional'))
+        ->toBe(round(($math->bandRateForBand('additional') - $basic) / (1 - $basic), 4));
+});

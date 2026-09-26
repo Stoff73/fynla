@@ -1,3 +1,21 @@
+<?php
+
+use App\Services\TaxConfigService;
+
+// ISA rule and allowance: gov.uk "How ISAs work"
+// (https://www.gov.uk/individual-savings-accounts/how-isas-work) and
+// isa.annual_allowance in TaxConfigService — never hard-coded (Rule 2).
+$helpTaxConfig = app(TaxConfigService::class);
+$helpIsaAllowance = '£'.number_format((int) ($helpTaxConfig->getISAAllowances()['annual_allowance'] ?? 0));
+// Inheritance Tax: gov.uk "How Inheritance Tax works" (https://www.gov.uk/inheritance-tax)
+// and "Inheritance Tax: residence nil rate band"
+// (https://www.gov.uk/guidance/inheritance-tax-residence-nil-rate-band); values from config.
+$helpIht = $helpTaxConfig->getInheritanceTax();
+$helpIhtRate = (int) round(((float) ($helpIht['standard_rate'] ?? 0)) * 100).'%';
+$helpNrb = '£'.number_format((int) ($helpIht['nil_rate_band'] ?? 0));
+$helpRnrb = '£'.number_format((int) ($helpIht['residence_nil_rate_band'] ?? 0));
+$helpRnrbTaper = '£'.number_format((int) ($helpIht['rnrb_taper_threshold'] ?? 0));
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,7 +92,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -277,13 +295,13 @@
                 <li><strong>Assets:</strong> Property, pensions, investments, savings, business, other assets</li>
                 <li><strong>Liabilities:</strong> Mortgages, loans, credit cards, other debts</li>
                 <li><strong>Net Estate:</strong> Total assets minus liabilities</li>
-                <li><strong>Inheritance Tax Calculation:</strong> Tax-free allowance (&pound;325k), home allowance (&pound;175k for main residence), tax liability</li>
+                <li><strong>Inheritance Tax Calculation:</strong> Tax-free threshold (<?= $helpNrb ?>), residence allowance (up to <?= $helpRnrb ?> for a home left to direct descendants), tax liability</li>
               </ul>
             </div>
 
             <div class="help-section__body">
               <h3 class="help-section__subheading">Inheritance Tax Planning Tab</h3>
-              <p class="help-section__text">For married couples, view Second Death analysis with combined tax-free allowances (up to &pound;650k basic allowance, plus up to &pound;350k home allowance). Includes spouse exemption on first death.</p>
+              <p class="help-section__text">For married couples, view Second Death analysis with combined tax-free allowances (up to <?= '£'.number_format((int) ($helpIht['nil_rate_band'] ?? 0) * 2) ?> of threshold, plus up to <?= '£'.number_format((int) ($helpIht['residence_nil_rate_band'] ?? 0) * 2) ?> of residence allowance). Includes spouse exemption on first death.</p>
             </div>
 
             <div class="help-section__body">
@@ -443,41 +461,41 @@
 
             <?php
             $module = [
-              'id'          => 'help-page-faq',
-              'heading'     => '',
-              'heading_tag' => 'h3',
-              'items'       => [
-                ['q' => 'How do I add a protection policy?',
-                 'a' => 'Go to Protection module â†’ Policy Details tab â†’ click "Add Policy". Select the policy type (Life, Critical Illness, etc.) and fill in the required details including sum assured, premium, and term.'],
-                ['q' => 'How is Inheritance Tax calculated?',
-                 'a' => 'Inheritance Tax is charged at 40% on your estate above the tax-free allowances: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.'],
-                ['q' => 'What is the difference between Defined Contribution and Defined Benefit pensions?',
-                 'a' => 'Defined Contribution (money purchase) pensions are pot-based — you contribute, it grows, and you draw from the pot. Defined Benefit (final salary) pensions provide guaranteed income based on your salary and years of service.'],
-                ['q' => 'Can I have multiple ISAs?',
-                 'a' => 'Yes, but you can only contribute to one Cash ISA and one Stocks & Shares ISA per tax year. Total contributions across all ISAs cannot exceed £20,000 per tax year (6 April to 5 April).'],
-                ['q' => 'How do I link my spouse account?',
-                 'a' => 'Go to User Profile â†’ Family tab â†’ Add Family Member â†’ Select "spouse" and enter their email. If they have an account, it will link automatically. If not, the system creates an account and emails them login details.'],
-                ['q' => 'Can I export my data?',
-                 'a' => 'Yes. You can print or export the Protection Plan and Estate Plan as PDFs. Comprehensive export functionality is available in the account settings.'],
-              ],
+                'id' => 'help-page-faq',
+                'heading' => '',
+                'heading_tag' => 'h3',
+                'items' => [
+                    ['q' => 'How do I add a protection policy?',
+                        'a' => 'In the Protection module, choose Add Policy. Select the policy type (Life, Critical Illness, etc.) and fill in the required details including sum assured, premium, and term.'],
+                    ['q' => 'How is Inheritance Tax calculated?',
+                        'a' => 'Inheritance Tax is charged at '.$helpIhtRate.' on the part of your estate above your tax-free threshold of '.$helpNrb.'. If you leave your home to your direct descendants (children, including adopted, foster and stepchildren, and grandchildren), a residence allowance of up to '.$helpRnrb.' is added; it reduces by £1 for every £2 that your estate is worth over '.$helpRnrbTaper.'. If you are married or in a civil partnership, any threshold or residence allowance left unused on the first death can be added to the survivor\'s.'],
+                    ['q' => 'What is the difference between Defined Contribution and Defined Benefit pensions?',
+                        'a' => 'Defined Contribution (money purchase) pensions are pot-based — you contribute, it grows, and you draw from the pot. Defined Benefit (final salary) pensions provide guaranteed income based on your salary and years of service.'],
+                    ['q' => 'Can I have multiple ISAs?',
+                        'a' => 'Yes. You can pay into more than one ISA of the same type in a tax year, except a Lifetime ISA or a Junior ISA, where only one of each can be paid into each year. Total contributions across all your ISAs cannot exceed '.$helpIsaAllowance.' per tax year (6 April to 5 April).'],
+                    ['q' => 'How do I link my spouse account?',
+                        'a' => 'Go to Settings, then Family, and choose Add Family Member. Select spouse and enter their email address. We send them an invitation, and nothing is shared or linked until they accept it.'],
+                    ['q' => 'Can I export my data?',
+                        'a' => 'Yes. You can print or export the Protection Plan and Estate Plan as PDFs. Comprehensive export functionality is available in the account settings.'],
+                ],
             ];
-            // Render FAQ items directly (not via partial) since heading is empty
-            // and this is embedded within an existing section.
-            ?>
+// Render FAQ items directly (not via partial) since heading is empty
+// and this is embedded within an existing section.
+?>
             <dl class="faq__list help-inline-faq">
-              <?php foreach ($module['items'] as $i => $item): ?>
+              <?php foreach ($module['items'] as $i => $item) { ?>
               <div class="faq__item" data-faq-item>
                 <dt class="faq__question">
-                  <button class="faq__toggle" aria-expanded="false" aria-controls="hfaq-answer-<?= (int)$i ?>">
+                  <button class="faq__toggle" aria-expanded="false" aria-controls="hfaq-answer-<?= (int) $i ?>">
                     <?= htmlspecialchars($item['q'], ENT_QUOTES, 'UTF-8') ?>
                     <span class="faq__icon" aria-hidden="true"></span>
                   </button>
                 </dt>
-                <dd class="faq__answer" id="hfaq-answer-<?= (int)$i ?>" hidden>
+                <dd class="faq__answer" id="hfaq-answer-<?= (int) $i ?>" hidden>
                   <div class="faq__answer-inner"><?= nl2br(htmlspecialchars($item['a'], ENT_QUOTES, 'UTF-8')) ?></div>
                 </dd>
               </div>
-              <?php endforeach; ?>
+              <?php } ?>
             </dl>
           </section>
 
@@ -497,7 +515,7 @@
             <div class="help-section__body">
               <h3 class="help-section__subheading">Inheritance Tax calculation seems wrong</h3>
               <ul class="help-section__list help-section__list--disc">
-                <li>Verify all assets are entered correctly (check Estate â†’ Current Situation)</li>
+                <li>Verify all assets are entered correctly in the Estate module</li>
                 <li>Ensure liabilities are entered (they reduce net estate)</li>
                 <li>Check domicile status (affects Inheritance Tax liability)</li>
                 <li>Verify home allowance eligibility (requires leaving main residence to direct descendants)</li>
@@ -558,20 +576,20 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'help-cta',
-      'heading' => 'Ready to get started?',
-      'subtext' => 'Create your free account and see your complete financial picture.',
-      'actions' => [
-        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
-        ['text' => 'Contact support',       'href' => '/contact',  'primary' => false],
-      ],
+        'id' => 'help-cta',
+        'heading' => 'Ready to get started?',
+        'subtext' => 'Create your free account and see your complete financial picture.',
+        'actions' => [
+            ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
+            ['text' => 'Contact support',       'href' => '/contact',  'primary' => false],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+include __DIR__.'/partials/modules/cta-band.php';
+?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=1" defer></script>
   <script src="/pages/js/help.js?v=1" defer></script>

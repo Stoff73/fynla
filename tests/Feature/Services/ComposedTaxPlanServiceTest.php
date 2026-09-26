@@ -99,7 +99,8 @@ it('never double-counts the shared ISA allowance in combined_annual_saving', fun
     $lisa = $items->firstWhere('type', 'lifetime_isa');
     $topup = $items->firstWhere('type', 'isa_topup_vs_psa');
 
-    expect($lisa['estimated_annual_tax_saved'])->toBe(1000.0)
+    expect($lisa['estimated_annual_tax_saved'])->toBeNull() // a bonus, not tax saved (ruling 2026-09-25)
+        ->and($lisa['government_bonus'])->toBe(1000.0)
         ->and($topup['estimated_annual_tax_saved'])->toBe(256.0)
         ->and($topup['conflict_note'])->toContain('ISA allowance');
 
