@@ -168,6 +168,7 @@ describe('projectPensionPot', function () {
 
     it('uses percentage-based contributions for occupational pensions', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 80000,
             'annual_salary' => 60000,
@@ -186,6 +187,7 @@ describe('projectPensionPot', function () {
 
     it('treats a zero monthly placeholder as absent when percentage contributions exist', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 45000,
             'annual_salary' => 82000,
@@ -204,6 +206,7 @@ describe('projectPensionPot', function () {
 
     it('prefers an explicit monthly contribution over percentage fields', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 80000,
             'annual_salary' => 60000,

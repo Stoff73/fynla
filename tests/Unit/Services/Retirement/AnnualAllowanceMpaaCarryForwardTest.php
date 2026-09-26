@@ -58,6 +58,7 @@ describe('MPAA cap in checkAnnualAllowance', function () {
         $user = aaMpaaWithoutEvents(function () {
             $user = User::factory()->create(['annual_employment_income' => 40000]);
             DCPension::factory()->create([
+                'scheme_type' => 'workplace',
                 'user_id' => $user->id,
                 'annual_salary' => 40000,
                 'employee_contribution_percent' => 5.00,
@@ -86,6 +87,7 @@ describe('MPAA cap in checkAnnualAllowance', function () {
         $user = aaMpaaWithoutEvents(function () {
             $user = User::factory()->create(['annual_employment_income' => 40000]);
             DCPension::factory()->create([
+                'scheme_type' => 'workplace',
                 'user_id' => $user->id,
                 'annual_salary' => 40000,
                 'employee_contribution_percent' => 5.00,

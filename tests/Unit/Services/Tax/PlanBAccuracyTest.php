@@ -135,7 +135,7 @@ it('sizes the higher-rate pension item without the interest the ISA wrap already
     $recs = accRecs($user);
     $math = app(TaxStrategyMath::class);
     $sheltered = (float) $recs['isa_topup_vs_psa']['taxable_interest_sheltered'];
-    $slice = $math->taxableIncomeAfterPensionContributions($user) - $sheltered - $math->bandThresholdsFor($user)['higher'];
+    $slice = $math->taxableIncomeFor($user) - $sheltered - $math->bandThresholdsFor($user)['higher'];
 
     expect($recs['pension_tax_relief']['suggested_contribution'])->toBe((float) (floor($slice / 100) * 100));
 });

@@ -103,6 +103,7 @@ describe('pension_carry_forward_available trigger', function () {
     it('fires when carry forward is available with low contributions', function () {
         // User with low pension contributions = carry forward available
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'monthly_contribution_amount' => 200,
             'employee_contribution_percent' => 5,

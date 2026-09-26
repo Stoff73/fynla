@@ -301,6 +301,7 @@ describe('R1 — a pension with a recorded value reaches the projection', functi
         $without = $this->service->calculate($david, $sarah, true)['projected_cash_shortfall'];
 
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $david->id,
             'current_fund_value' => 500_000,
             'monthly_contribution_amount' => 0,
@@ -344,6 +345,7 @@ describe('R1 — a pension with a recorded value reaches the projection', functi
         [$david, $sarah] = cashFlowHousehold();
 
         $pension = DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $david->id,
             'current_fund_value' => 200_000,
             'monthly_contribution_amount' => 0,
@@ -372,6 +374,7 @@ describe('R1 — a pension with a recorded value reaches the projection', functi
         $without = $this->service->calculate($david, $sarah, true)['projected_net_estate'];
 
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $david->id,
             'current_fund_value' => 500_000,
             'monthly_contribution_amount' => 0,
