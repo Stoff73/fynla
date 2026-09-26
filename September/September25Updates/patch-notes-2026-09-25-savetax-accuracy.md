@@ -1,10 +1,10 @@
-# What's new in Fynla: Save Tax accuracy (on the test site, 25 September 2026)
+# What's new in Fynla: Save Tax accuracy (live on fynla.org, 26 September 2026)
 
 This update makes the Save Tax plan accurate. A suggestion now appears only when you qualify for it, the "you could save" total counts only real tax savings and counts each one once, and every rule comes from its official source.
 
 **Status:**
-- It is running on the test site (csjones.co/fynla) and waiting to be merged and released. It is **not on fynla.org yet**.
-- It was walked through as real users on the desktop web app, the mobile web app and Fyn's chat, both on a local copy and on the test site.
+- Released to fynla.org on 26 September 2026 (release #942, `main` `b81d5fcc2`).
+- Before release it was walked through as real users on the desktop web app, the mobile web app and Fyn's chat, on a local copy and on the test site. After release it was walked again on fynla.org, on web and mobile web: the same plan and the same £3,828 total for the same answers.
 - The iPhone app gets the same plan from the same place, but it has not been walked through.
 
 ## Your Save Tax plan
@@ -53,7 +53,7 @@ This update makes the Save Tax plan accurate. A suggestion now appears only when
   - the residence allowance for a home left to children or grandchildren, and how it reduces for estates over £2 million;
   - passing unused allowances to a surviving spouse or civil partner.
 - **Linking your partner's account is described correctly.** We send them an invitation, and nothing is shared or linked until they accept.
-- **Garbled characters on the Help page are gone.** The live Help page currently shows "Protection module â†’ Policy Details". This update replaces that with plain words.
+- **Garbled characters on the Help page are gone.** The Help page showed "Protection module â†’ Policy Details"; it now uses plain words.
 
 ## Checked, still to do
 
