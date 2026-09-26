@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "data": {
+    "id": "strategy_unlock:bed_and_isa",
+    "type": "unlock",
+    "module": "tax",
+    "module_label": "Tax Strategy",
+    "topic": null,
+    "deadline": null,
+    "title": "Unlock investment info",
+    "description": "Enter your investment details",
+    "why": [],
+    "what_this_changes": [
+      "Your tax plan leaves out the saving this would unlock until it is in."
+    ],
+    "key_figure": null,
+    "how_to": [],
+    "conflict_note": null,
+    "disclaimer": null,
+    "ask_fyn": {
+      "kind": "prompt",
+      "prompt": "Tell me more about: Unlock investment info"
+    },
+    "primary": {
+      "kind": "capture",
+      "prompt": "Help me add my investment details"
+    },
+    "funding": null,
+    "done": false,
+    "completed_at": null
+  }
+}

@@ -58,6 +58,7 @@ describe('MPAA cap in checkAnnualAllowance', function () {
         $user = aaMpaaWithoutEvents(function () {
             $user = User::factory()->create(['annual_employment_income' => 40000]);
             DCPension::factory()->create([
+                'scheme_type' => 'workplace',
                 'user_id' => $user->id,
                 'annual_salary' => 40000,
                 'employee_contribution_percent' => 5.00,
@@ -76,9 +77,12 @@ describe('MPAA cap in checkAnnualAllowance', function () {
         expect($result['mpaa_applies'])->toBeTrue()
             ->and($result['mpaa_amount'])->toBe(10000.0)
             ->and($result['available_allowance'])->toBe(10000.0)
-            ->and($result['total_contributions'])->toBe(15000.0)
+            // £15,000 employee plus the employer's 3% of £40,000 (£1,200): employer
+            // contributions are part of the pension input amount, FA 2004 s233(1)(b),
+            // https://www.legislation.gov.uk/ukpga/2004/12/section/233
+            ->and($result['total_contributions'])->toBe(16200.0)
             ->and($result['carry_forward_available'])->toBe(0.0)
-            ->and($result['excess_contributions'])->toBe(5000.0)
+            ->and($result['excess_contributions'])->toBe(6200.0)
             ->and($result['has_excess'])->toBeTrue();
     });
 
@@ -86,6 +90,7 @@ describe('MPAA cap in checkAnnualAllowance', function () {
         $user = aaMpaaWithoutEvents(function () {
             $user = User::factory()->create(['annual_employment_income' => 40000]);
             DCPension::factory()->create([
+                'scheme_type' => 'workplace',
                 'user_id' => $user->id,
                 'annual_salary' => 40000,
                 'employee_contribution_percent' => 5.00,

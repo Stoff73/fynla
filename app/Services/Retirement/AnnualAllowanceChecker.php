@@ -10,7 +10,6 @@ use App\Services\Stores\PensionStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 /**
  * Annual Allowance Checker Service
@@ -103,15 +102,13 @@ class AnnualAllowanceChecker
         // we have no record of what was contributed then).
         $isCalendarYear = $taxYear === $this->getCalendarTaxYear();
 
-        if ($isCalendarYear) {
-            $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
-            $totalContributions = $this->calculateTotalAnnualContributions($dcPensions);
-        } else {
-            $totalContributions = 0.0;
-        }
-
         // Get user's income definitions (threshold and adjusted income)
         $definitions = $this->incomeDefinitions->calculate($userId);
+
+        // The pension input amount (FA 2004 s233(1)), published once by the
+        // income definitions: relief-at-source payments gross, employer included,
+        // and the employment income standing in where the scheme salary is blank.
+        $totalContributions = $isCalendarYear ? (float) $definitions['pension_input_amount'] : 0.0;
         $thresholdIncome = $definitions['threshold_income'];
         $adjustedIncome = $definitions['adjusted_income'];
 
@@ -310,36 +307,5 @@ class AnnualAllowanceChecker
                 ? 'Money Purchase Annual Allowance triggered - your annual allowance for money purchase contributions is reduced to £'.number_format($mpaaAmount).' per year.'
                 : 'Money Purchase Annual Allowance not triggered - standard annual allowance applies.',
         ];
-    }
-
-    /**
-     * Calculate total annual pension contributions from all DC pensions.
-     * Includes both employee and employer contributions as both count towards annual allowance.
-     *
-     * @param  Collection  $dcPensions
-     */
-    private function calculateTotalAnnualContributions($dcPensions): float
-    {
-        $total = 0.0;
-
-        foreach ($dcPensions as $pension) {
-            // First try monthly_contribution_amount if set
-            if ($pension->monthly_contribution_amount > 0) {
-                $total += (float) $pension->monthly_contribution_amount * 12;
-            } else {
-                // Otherwise calculate from percentages
-                $annualSalary = (float) ($pension->annual_salary ?? 0);
-                $employeePercent = (float) ($pension->employee_contribution_percent ?? 0);
-                $employerPercent = (float) ($pension->employer_contribution_percent ?? 0);
-
-                // Both employee and employer contributions count towards annual allowance
-                $employeeContrib = $annualSalary * ($employeePercent / 100);
-                $employerContrib = $annualSalary * ($employerPercent / 100);
-
-                $total += $employeeContrib + $employerContrib;
-            }
-        }
-
-        return $total;
     }
 }

@@ -224,7 +224,6 @@
 
 <script>
 import api from '@/services/api';
-import { resolveWebDestination } from '@/utils/semanticDestinations';
 import logger from '@/utils/logger';
 import { dashboardFigures } from '@/utils/dashboardCards';
 import TrustsOverviewCard from '@/components/Trusts/TrustsOverviewCard.vue';
@@ -502,41 +501,12 @@ export default {
     goto(route) {
       if (route && this.$route.path !== route) this.$router.push(route);
     },
-    // The aggregator's navigate payloads carry /m app paths; translate to the
-    // equivalent web SPA route (same targets as the finances cards below).
-    webRouteFor(module) {
-      const routes = {
-        tax: '/tax-strategy',
-        retirement: '/net-worth/retirement',
-        savings: '/net-worth/cash',
-        protection: '/protection',
-        investment: '/net-worth/investments',
-        estate: '/estate',
-        goals: '/goals',
-      };
-      return routes[module] || null;
-    },
+    // Every action opens its own card (design C, CSJ 2026-09-26); the card
+    // carries the action's own button (Add it now, Go to it, Mark as done)
+    // and Ask Fyn.
     openRec(rec) {
-      // The server decided the route (RecommendationRouting, the same payload
-      // /m and native read): a recommendation that asks for information opens
-      // Fyn in a recommendation-origin contextual conversation; an unlock card
-      // opens Fyn with the server's capture prompt; everything else deep-links
-      // to the exact record or product page the destination names.
-      const action = rec.action || null;
-      if (action && action.kind === 'fyn_capture' && action.contextual) {
-        this.openFynContextual(action.contextual);
-        return;
-      }
-      // An action the server routes (kind=navigate) deep-links even when it
-      // is an unlock-styled row — the spouse-link action is both.
-      const navigates = action && action.kind === 'navigate';
-      if (!navigates && (rec.type === 'unlock' || (action && action.kind === 'fyn_capture'))) {
-        this.openFynForCapture(action);
-        return;
-      }
-      const route = (action && resolveWebDestination(action.destination)) || this.webRouteFor(rec.module);
-      if (route) {
-        this.goto(route);
+      if (rec && rec.id) {
+        this.goto({ name: 'ActionCard', params: { actionId: rec.id } });
         return;
       }
       this.openFyn();
@@ -546,23 +516,6 @@ export default {
     openFyn() {
       this.$store.dispatch('aiChat/open');
       window.dispatchEvent(new Event('fyn-open-chat'));
-    },
-    // Tapping an unlock row opens Fyn AND pre-seeds a capture prompt so the user
-    // lands in a guided capture rather than a blank chat. Mirrors the /m app's
-    // openFynForCapture; AiChatPanel consumes aiChat/prefilledPrompt on open.
-    openFynForCapture(action) {
-      // The prompt travels with the action (RecommendationRouting::unlockPrompt)
-      // so no surface carries its own wording (Rule 20).
-      this.$store.dispatch('aiChat/prefillPrompt', (action && action.prompt) || 'Help me add my financial details');
-      this.openFyn();
-    },
-    // A recommendation-origin capture: a fresh contextual conversation whose
-    // server-authored opening names the recommendation. When the capture
-    // writes, Fyn asks "anything else?"; "No thanks" ticks it off and sends a
-    // navigation frame for this screen, which closes the dock and refetches.
-    async openFynContextual(request) {
-      await this.$store.dispatch('aiChat/startContextualConversation', request);
-      this.openFyn();
     },
     toggleRec(rec) {
       if (rec.type === 'unlock') return; // unlocks have no completion state

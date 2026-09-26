@@ -56,14 +56,10 @@
             <p class="text-body-sm text-horizon-500">
               <strong>Years UK Resident:</strong> {{ yearsResident }} years
             </p>
-            <p class="mt-2 text-body-sm font-medium text-horizon-500">
-              <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
-            </p>
-            <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-violet-700">
-              You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years. This means you are subject to UK Inheritance Tax on your worldwide assets.
-            </p>
-            <p v-else class="mt-2 text-body-sm text-violet-700">
-              You are not yet deemed domiciled. You only pay UK Inheritance Tax on UK assets. You will need {{ 15 - yearsResident }} more year(s) of UK residence to become deemed domiciled.
+            <!-- The long-term UK residence test (IHTA 1984 s6A) is applied on the
+                 server from tax config once this is saved; this step never decides it. -->
+            <p class="mt-2 text-body-sm text-violet-700">
+              Once saved, your profile shows whether you are a long-term UK resident for Inheritance Tax.
             </p>
           </div>
         </div>
@@ -96,7 +92,7 @@ export default {
 
     const WHY_FIELD_DATA = {
       country_of_birth: { whyWeAsk: 'Your country of birth determines your domicile status, which affects whether UK Inheritance Tax applies to your worldwide assets or only UK assets.' },
-      uk_arrival_date: { whyWeAsk: 'The date you moved to the UK determines your years of residency and whether you are deemed domiciled (15+ years), which affects your Inheritance Tax liability.' },
+      uk_arrival_date: { whyWeAsk: 'The date you moved to the UK tells us how many tax years you have lived here, which decides whether Inheritance Tax applies to your assets worldwide or only to your UK assets.' },
     };
 
     let lastEmittedField = null;
@@ -156,26 +152,10 @@ export default {
       return date.toISOString().split('T')[0];
     });
 
-    const isDeemedDomiciled = computed(() => {
-      return yearsResident.value !== null && yearsResident.value >= 15;
-    });
-
     const shouldShowUKArrivalDate = computed(() => {
       // Show UK arrival date field only if born outside UK
       return formData.value.country_of_birth &&
              !isUKCountry(formData.value.country_of_birth);
-    });
-
-    const domicileStatusLabel = computed(() => {
-      if (isUKCountry(formData.value.country_of_birth)) {
-        return 'UK Domiciled';
-      }
-
-      if (isDeemedDomiciled.value) {
-        return 'Deemed UK Domiciled';
-      }
-
-      return 'Non-UK Domiciled';
     });
 
     const calculateYearsResident = () => {
@@ -190,15 +170,6 @@ export default {
 
       yearsResident.value = Math.max(0, years);
       formData.value.years_uk_resident = yearsResident.value;
-
-      // Calculate deemed domicile date if applicable
-      if (yearsResident.value >= 15) {
-        const deemedDate = new Date(arrival);
-        deemedDate.setFullYear(deemedDate.getFullYear() + 15);
-        formData.value.deemed_domicile_date = deemedDate.toISOString().split('T')[0];
-      } else {
-        formData.value.deemed_domicile_date = null;
-      }
 
       // Auto-determine domicile status
       updateDomicileStatus();
@@ -221,9 +192,6 @@ export default {
     const updateDomicileStatus = () => {
       // Auto-determine domicile status based on country of birth and years resident
       if (isUKCountry(formData.value.country_of_birth)) {
-        formData.value.domicile_status = 'uk_domiciled';
-      } else if (yearsResident.value !== null && yearsResident.value >= 15) {
-        // Deemed domiciled if 15+ years resident
         formData.value.domicile_status = 'uk_domiciled';
       } else {
         formData.value.domicile_status = 'non_uk_domiciled';
@@ -280,8 +248,6 @@ export default {
       error,
       today,
       yearsResident,
-      isDeemedDomiciled,
-      domicileStatusLabel,
       shouldShowUKArrivalDate,
       calculateYearsResident,
       handleCountryChange,

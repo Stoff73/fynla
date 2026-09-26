@@ -1,7 +1,7 @@
 <template>
   <MobileChrome
     title="Personal Information"
-    subtitle="Your canonical profile and financial position"
+    subtitle="Your profile and financial position"
     :loading="loading"
     loading-label="your personal information"
     :contextual-request="contextualRequest"
@@ -56,7 +56,7 @@
       </section>
 
       <section class="m-card profile-card" aria-labelledby="profile-domicile-heading">
-        <h2 id="profile-domicile-heading" class="m-section-label">Domicile</h2>
+        <h2 id="profile-domicile-heading" class="m-section-label">Where you have lived</h2>
         <p class="m-sub profile-copy">{{ domicileLabel }}</p>
         <p v-if="profile.domicile_info?.country_of_birth" class="profile-note">
           Country of birth: {{ profile.domicile_info.country_of_birth }}

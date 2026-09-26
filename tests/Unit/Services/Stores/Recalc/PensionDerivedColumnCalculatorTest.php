@@ -19,6 +19,7 @@ beforeEach(function () {
 it('calculateDc materialises current_fund_value_gbp + annual_contribution + years_to_drawdown', function () {
     $user = User::factory()->create(['date_of_birth' => now()->subYears(45)]);
     $pension = DCPension::factory()->create([
+        'scheme_type' => 'workplace',
         'user_id' => $user->id,
         'current_fund_value' => 50000,
         'annual_salary' => 60000,
@@ -39,6 +40,7 @@ it('calculateDc materialises current_fund_value_gbp + annual_contribution + year
 it('calculateDc projected_value reflects compounded growth + contributions', function () {
     $user = User::factory()->create(['date_of_birth' => now()->subYears(45)]);
     $pension = DCPension::factory()->create([
+        'scheme_type' => 'workplace',
         'user_id' => $user->id,
         'current_fund_value' => 100000,
         'expected_return_percent' => 5,

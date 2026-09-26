@@ -134,7 +134,7 @@
 
           <!-- Domicile Section -->
           <div>
-            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Domicile Status</h3>
+            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Where you have lived</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-body-sm text-neutral-500">Country of Birth:</span>
@@ -145,7 +145,7 @@
                 <span class="text-body-sm text-horizon-500 text-right">{{ formatDisplayDate(form.uk_arrival_date) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Domicile Status:</span>
+                <span class="text-body-sm text-neutral-500">Inheritance Tax residence:</span>
                 <span class="text-body-sm text-horizon-500 text-right">{{ domicileStatusLabel }}</span>
               </div>
               <div v-if="yearsResident !== null" class="flex justify-between">
@@ -154,15 +154,9 @@
               </div>
             </div>
             <!-- Domicile Info Box -->
-            <div v-if="isDeemedDomiciled" class="mt-4 p-3 bg-violet-50 rounded-lg">
-              <p class="text-body-xs text-violet-700">
-                You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years.
-              </p>
-            </div>
-            <div v-else-if="yearsResident !== null && yearsResident < 15" class="mt-4 p-3 bg-violet-50 rounded-lg">
-              <p class="text-body-xs text-violet-700">
-                You will become deemed domiciled after {{ 15 - yearsResident }} more year(s) of UK residence.
-              </p>
+            <!-- The server's long-term UK residence assessment (IHTA 1984 s6A), from tax config. -->
+            <div v-if="residenceExplanation" class="mt-4 p-3 bg-violet-50 rounded-lg">
+              <p class="text-body-xs text-violet-700">{{ residenceExplanation }}</p>
             </div>
           </div>
         </div>
@@ -494,9 +488,9 @@
 
         <!-- Domicile Section -->
         <div v-if="isFieldVisible('country_of_birth')" class="border-t border-light-gray pt-6">
-          <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Domicile Status</h3>
+          <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Where you have lived</h3>
           <p class="text-body-sm text-neutral-500 mb-4">
-            Your domicile status affects UK inheritance tax on your worldwide assets
+            How long you have lived in the UK decides whether Inheritance Tax applies to your assets worldwide or only to your UK assets.
           </p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -532,17 +526,12 @@
             <div class="sm:col-span-2" v-if="form.country_of_birth">
               <div class="bg-eggshell-500 rounded-lg p-4">
                 <p class="text-body-sm text-neutral-500">
-                  <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
+                  <strong>Inheritance Tax residence:</strong> {{ domicileStatusLabel }}
                 </p>
                 <p v-if="yearsResident !== null" class="text-body-sm text-neutral-500 mt-1">
                   <strong>Years UK Resident:</strong> {{ yearsResident }} years
                 </p>
-                <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-violet-700">
-                  You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years.
-                </p>
-                <p v-else-if="yearsResident !== null && yearsResident < 15" class="mt-2 text-body-sm text-violet-700">
-                  You will become deemed domiciled after {{ 15 - yearsResident }} more year(s) of UK residence.
-                </p>
+                <p v-if="residenceExplanation" class="mt-2 text-body-sm text-violet-700">{{ residenceExplanation }}</p>
               </div>
             </div>
           </div>
@@ -686,7 +675,7 @@ export default {
       // Domicile
       country_of_birth: '',
       uk_arrival_date: '',
-      domicile_status: 'uk_domiciled',
+      domicile_status: null,
       // Student-specific fields
       university: '',
       student_number: '',
@@ -698,18 +687,16 @@ export default {
              form.value.country_of_birth !== 'United Kingdom';
     });
 
-    const isDeemedDomiciled = computed(() => {
-      return yearsResident.value !== null && yearsResident.value >= 15;
-    });
+    // Decided once on the server (LongTermResidence, IHTA 1984 s6A) from tax
+    // config; this page never works it out. Refreshed after a save.
+    const domicileInfo = computed(() => store.getters['userProfile/domicileInfo']);
+    const residenceExplanation = computed(() => domicileInfo.value?.explanation || '');
 
     const domicileStatusLabel = computed(() => {
-      if (form.value.country_of_birth === 'United Kingdom') {
-        return 'UK Domiciled';
-      }
-      if (isDeemedDomiciled.value) {
-        return 'Deemed UK Domiciled';
-      }
-      return 'Non-UK Domiciled';
+      const isLongTerm = domicileInfo.value?.is_long_term_uk_resident;
+      if (isLongTerm === true) return 'Long-term UK resident';
+      if (isLongTerm === false) return 'Not yet a long-term UK resident';
+      return 'Not known yet';
     });
 
     // Format date for HTML5 date input (yyyy-MM-dd)
@@ -789,8 +776,6 @@ export default {
     const updateDomicileStatus = () => {
       if (form.value.country_of_birth === 'United Kingdom') {
         form.value.domicile_status = 'uk_domiciled';
-      } else if (yearsResident.value !== null && yearsResident.value >= 15) {
-        form.value.domicile_status = 'uk_domiciled';
       } else {
         form.value.domicile_status = 'non_uk_domiciled';
       }
@@ -833,9 +818,15 @@ export default {
       }
 
       if (user.value) {
-        form.value.country_of_birth = user.value.country_of_birth || 'United Kingdom';
-        form.value.uk_arrival_date = formatDateForInput(user.value.uk_arrival_date) || '';
-        form.value.domicile_status = user.value.domicile_status || 'uk_domiciled';
+        // Never default an unanswered country to "United Kingdom": saved back, it
+        // recorded the user as UK-born and made them a long-term UK resident for
+        // Inheritance Tax without being asked (2026-09-26).
+        // The profile's domicile_info is the server's current record; the auth
+        // user object does not carry these fields fresh after a save.
+        const saved = domicileInfo.value || {};
+        form.value.country_of_birth = saved.country_of_birth || user.value.country_of_birth || '';
+        form.value.uk_arrival_date = formatDateForInput(saved.uk_arrival_date || user.value.uk_arrival_date) || '';
+        form.value.domicile_status = saved.domicile_status || user.value.domicile_status || null;
 
         // Calculate years resident if uk_arrival_date exists
         if (form.value.uk_arrival_date) {
@@ -845,7 +836,7 @@ export default {
     };
 
     // Watch for changes in data and reinitialize form
-    watch([personalInfo, incomeOccupation, user], () => {
+    watch([personalInfo, incomeOccupation, user, domicileInfo], () => {
       initializeForm();
     }, { immediate: true });
 
@@ -939,12 +930,12 @@ export default {
           previous_employment_status: statusChange.hasSignificantChange ? statusChange.previousStatus : null,
         };
 
-        // Prepare domicile data
-        const domicileData = {
-          country_of_birth: form.value.country_of_birth || null,
+        // Domicile is saved only once the user has told us their country of birth.
+        const domicileData = form.value.country_of_birth ? {
+          country_of_birth: form.value.country_of_birth,
           uk_arrival_date: form.value.uk_arrival_date || null,
           domicile_status: form.value.domicile_status,
-        };
+        } : null;
 
         // Update all three in parallel
         await Promise.all([
@@ -958,7 +949,7 @@ export default {
             annual_interest_income: incomeOccupation.value?.annual_interest_income || 0,
             annual_trust_income: incomeOccupation.value?.annual_trust_income || 0,
           }),
-          store.dispatch('userProfile/updateDomicile', domicileData),
+          ...(domicileData ? [store.dispatch('userProfile/updateDomicile', domicileData)] : []),
         ]);
 
         // Check if we're in preview mode
@@ -1029,7 +1020,7 @@ export default {
       today,
       yearsResident,
       shouldShowUKArrivalDate,
-      isDeemedDomiciled,
+      residenceExplanation,
       domicileStatusLabel,
       handleSubmit,
       handleCancel,

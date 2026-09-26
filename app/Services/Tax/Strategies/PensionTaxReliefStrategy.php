@@ -37,16 +37,15 @@ final class PensionTaxReliefStrategy implements TaxStrategy
     {
         $user = $context->user;
 
-        // Band position after what the user already pays in (review I1): a
-        // contribution already made has used that slice of higher-rate income.
-        $taxable = $this->math->taxableIncomeAfterPensionContributions($user);
-        $alreadyRelieved = $this->math->taxableIncomeFor($user) - $taxable;
+        // Net income (after net-pay contributions) against bands extended by
+        // relief-at-source payments, both from IncomeDefinitionsService.
+        $taxable = $this->math->taxableIncomeFor($user);
         // Interest an ISA wrap or spouse gift in the same plan already takes
         // out of taxed income leaves the higher-rate slice with it.
         $taxable = max(0.0, $taxable - $context->interestShelteredElsewhere);
 
         $taperThreshold = (float) ($this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'] ?? 0);
-        if ($this->math->adjustedNetIncomeFor($user) - $alreadyRelieved > $taperThreshold) {
+        if ($this->math->adjustedNetIncomeFor($user) > $taperThreshold) {
             return [];
         }
 

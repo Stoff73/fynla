@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Mobile;
 
 use App\Constants\GateRoutes;
+use App\Services\Coordination\HouseholdFinancialContext;
 
 /**
  * Where a dashboard recommendation goes when tapped (CSJ 2026-09-09).
@@ -196,5 +197,16 @@ final class RecommendationRouting
     public static function unlockPrompt(string $module): string
     {
         return self::UNLOCK_PROMPTS[$module] ?? 'Help me add my financial details';
+    }
+
+    /**
+     * A locked tax strategy's prompt asks Fyn for the exact missing detail
+     * ("pension contributions for the last three tax years"), not a generic
+     * noun — the generic tax prompt drew advice instead of capture (walked
+     * 2026-09-26).
+     */
+    public static function strategyUnlockPrompt(string $missingKey): string
+    {
+        return 'Help me add my '.HouseholdFinancialContext::labelFor($missingKey);
     }
 }

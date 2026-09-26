@@ -62,27 +62,28 @@ class SaveTaxEstimateService
         $savings = [];
 
         // --- Pension / 60% tax trap -----------------------------------------
-        // Only when the user has no pension yet. In the trap band the
-        // contribution clears income down to £100k (reclaiming the Personal
-        // Allowance, ~60% effective relief) and is surfaced as its own "60% Tax
-        // Trap" line; other bands assume 10% of upper income.
+        // Shown whether or not the user already has a pension (CSJ 2026-09-26):
+        // holding a pension says nothing about how much Annual Allowance is
+        // left, and a pension holder was told "save up to £0" while their plan
+        // found real relief. In the trap band the contribution clears income
+        // down to £100k (reclaiming the Personal Allowance, ~60% effective
+        // relief) and is surfaced as its own "60% Tax Trap" line; other bands
+        // assume 10% of upper income.
         $isTrap = $incomeBand === self::TRAP_BAND;
-        if (! $has('pension')) {
-            $contribution = $isTrap
-                ? max(0, $income - $this->taperThreshold())
-                : (int) round($income * 0.10);
+        $contribution = $isTrap
+            ? max(0, $income - $this->taperThreshold())
+            : (int) round($income * 0.10);
 
-            if ($contribution > 0) {
-                $relief = (int) round($this->pensionRelief($income, $contribution));
-                $savings[] = [
-                    'key' => $isTrap ? 'tax_trap_60' : 'pension',
-                    'label' => $isTrap ? '60% Tax Trap' : 'Pension contribution',
-                    'amount' => $relief,
-                    'reason' => $isTrap
-                        ? "You're in the 60% tax trap. Contributing ".$this->money($contribution).' to a pension reclaims your Personal Allowance — relief of up to 60% on that contribution.'
-                        : 'A pension contribution of '.$this->money($contribution).' attracts '.$this->pct($rate).' tax relief.',
-                ];
-            }
+        if ($contribution > 0) {
+            $relief = (int) round($this->pensionRelief($income, $contribution));
+            $savings[] = [
+                'key' => $isTrap ? 'tax_trap_60' : 'pension',
+                'label' => $isTrap ? '60% Tax Trap' : 'Pension contribution',
+                'amount' => $relief,
+                'reason' => $isTrap
+                    ? "You're in the 60% tax trap. Contributing ".$this->money($contribution).' to a pension reclaims your Personal Allowance — relief of up to 60% on that contribution.'
+                    : 'A pension contribution of '.$this->money($contribution).' attracts '.$this->pct($rate).' tax relief.',
+            ];
         }
 
         // --- ISA -------------------------------------------------------------

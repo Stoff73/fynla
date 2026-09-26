@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome :title="source?.label || 'Income details'" subtitle="Canonical income source" :loading="loading" loading-label="this income source" :edit-details="!!source" :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome :title="source?.label || 'Income details'" subtitle="Where this income comes from and how it is taxed" :loading="loading" loading-label="this income source" :edit-details="!!source" :contextual-request="contextualRequest" back @back="goBack">
     <div v-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>

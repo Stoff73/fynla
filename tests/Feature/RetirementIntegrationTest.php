@@ -132,6 +132,7 @@ describe('Full Retirement Analysis Flow', function () {
 
         // Step 2: Add DC pension
         $dcPension = DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'scheme_name' => 'Workplace DC',
             'current_fund_value' => 100000,
@@ -239,6 +240,7 @@ describe('Contribution Optimization Flow', function () {
         ]);
 
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 50000,
             'employee_contribution_percent' => 3, // Low contribution
@@ -265,6 +267,8 @@ describe('Contribution Optimization Flow', function () {
 
     it('identifies employer match opportunities', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $this->user->id,
             'employee_contribution_percent' => 2, // Below typical employer match threshold
             'employer_contribution_percent' => 5, // Employer would match up to 5%

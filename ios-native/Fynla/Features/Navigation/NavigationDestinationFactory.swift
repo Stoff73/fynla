@@ -7,6 +7,8 @@ enum NavigationDestinationFactory {
         switch route {
         case .dashboard: "Dashboard"
         case .achievements: "Achievements"
+        case .actions: "Your actions"
+        case .actionCard: "Action"
         case .conversationHistory: "Conversation History"
         case .personalInformation: "Personal Information"
         case .subscription: "Subscription"
@@ -53,6 +55,7 @@ enum NavigationDestinationFactory {
         goalsModel: GoalsModel,
         taxStrategyModel: TaxStrategyModel,
         holisticPlanModel: HolisticPlanModel,
+        actionsModel: ActionsModel,
         settingsModel: SettingsModel,
         privacySettingsModel: PrivacySettingsModel,
         dataExportModel: DataExportModel,
@@ -244,6 +247,16 @@ enum NavigationDestinationFactory {
                 model: goalsModel,
                 onOpenContextualFyn: onOpenContextualFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case .actions:
+            ActionsListView(model: actionsModel, onRoute: onRoute)
+        case let .actionCard(id):
+            ActionCardView(
+                actionID: id,
+                model: actionsModel,
+                onOpenFyn: onOpenFyn,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onRoute: onRoute
             )
         case .taxStrategy:
             TaxStrategyView(

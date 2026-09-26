@@ -243,9 +243,17 @@ struct TaxStrategyView: View {
                     .padding(.bottom, 6)
             }
             HStack(alignment: .top, spacing: 12) {
-                Text(recommendation.title)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                // Each action opens its own card (design C), as on web and /m.
+                Button {
+                    onRoute(.actionCard(id: recommendation.recommendationID ?? "tax_\(recommendation.type)"))
+                } label: {
+                    Text(recommendation.title)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                        .multilineTextAlignment(.leading)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("tax-strategy.card-link.\(recommendation.id)")
                 Spacer(minLength: 8)
                 if let saving = recommendation.estimatedAnnualTaxSaved, saving > 0 {
                     VStack(alignment: .trailing, spacing: 0) {

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Plans;
 
 use App\Models\Goal;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
-use App\Services\Stores\SavingsStore;
 use App\Traits\FormatsCurrency;
 use App\Traits\ResolvesExpenditure;
 
@@ -100,20 +98,12 @@ abstract class BasePlanService
         ];
     }
 
-    /** Liquid cash account types safe to recommend as a funding source. */
-    private const CASH_ACCOUNT_TYPES = [
-        'current_account',
-        'instant_access',
-        'business_current',
-        'business_savings',
-    ];
-
     /**
      * Resolve the best non-tax-event funding source for a goal top-up.
      *
      * Priority order:
      * 1. Liquid cash accounts (current / instant access, non-ISA) — only if
-     *    withdrawal won't breach the 6-month emergency fund threshold.
+     *    withdrawal won't breach the emergency fund threshold (plan config months).
      * 2. GIA — with a Capital Gains Tax warning explaining why cash wasn't used.
      * 3. null — no suitable source found.
      *
@@ -130,42 +120,30 @@ abstract class BasePlanService
 
         $lumpSumNeeded = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
 
-        // Calculate the 6-month emergency threshold
+        // The emergency threshold, in months from plan config (not a literal 6).
+        $months = app(PlanConfigService::class)->getEmergencyFundTargetMonths();
         $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
-        $emergencyThreshold = $monthlyExpenditure * 6;
+        $emergencyThreshold = $monthlyExpenditure * $months;
 
-        // 1. Try liquid cash accounts (non-ISA, non-premium-bonds, non-notice)
-        $cashAccounts = app(SavingsStore::class)
-            ->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('is_isa', false)
-            ->whereIn('account_type', self::CASH_ACCOUNT_TYPES)
-            ->sortByDesc('current_balance')
-            ->values();
+        // The one list (FundingAccounts): liquid non-ISA cash then general
+        // investment accounts, owner or joint owner, at the user's share (Rule 6).
+        $accounts = app(FundingAccounts::class)->eligibleFor($user);
 
-        foreach ($cashAccounts as $account) {
-            $balance = (float) $account->current_balance;
-            $balanceAfterWithdrawal = $balance - $lumpSumNeeded;
-
-            if ($balanceAfterWithdrawal >= $emergencyThreshold) {
-                return [
-                    'name' => $account->account_name ?? $account->institution ?? null,
-                    'warning' => null,
-                ];
+        // 1. Cash that stays above the emergency threshold after the top-up.
+        foreach ($accounts as $account) {
+            if ($account['type'] === 'savings' && $emergencyThreshold <= $account['balance'] - $lumpSumNeeded) {
+                return ['name' => $account['name'], 'warning' => null];
             }
         }
 
-        // 2. Fall back to GIA only (exclude ISA, pension, VCT, EIS, and employee schemes)
-        $gia = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'gia')
-            ->orderByDesc('current_value')
-            ->first();
-
-        if ($gia) {
-            return [
-                'name' => $gia->account_name ?? $gia->provider ?? null,
-                'warning' => 'Selling investments may trigger a Capital Gains Tax event. Cash accounts were not recommended as withdrawing would reduce your emergency fund below 6 months of expenditure.',
-            ];
+        // 2. Fall back to a general investment account.
+        foreach ($accounts as $account) {
+            if ($account['type'] === 'investment') {
+                return [
+                    'name' => $account['name'],
+                    'warning' => "Selling investments may trigger a Capital Gains Tax event. Cash accounts were not recommended as withdrawing would reduce your emergency fund below {$months} months of expenditure.",
+                ];
+            }
         }
 
         return ['name' => null, 'warning' => null];

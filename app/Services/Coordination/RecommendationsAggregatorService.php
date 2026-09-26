@@ -219,6 +219,7 @@ class RecommendationsAggregatorService
                     'claim_tier' => $item['claim_tier'],
                     'sequence_position' => $item['sequence_position'],
                     'conflict_note' => $item['conflict_note'],
+                    'requires_advice' => (bool) ($item['requires_advice'] ?? false),
                 ], $this->taxPlan->forUser($user)['items']);
             });
         }
@@ -276,6 +277,8 @@ class RecommendationsAggregatorService
             'claim_tier' => $rec['claim_tier'] ?? null,
             'sequence_position' => $rec['sequence_position'] ?? null,
             'conflict_note' => $rec['conflict_note'] ?? null,
+            'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
+            'definition_key' => $rec['definition_key'] ?? null,
             // The record the recommendation is about (an account-scoped
             // savings/pension rule, a goal rule) so the dashboard row can
             // deep-link to THAT record's page (RecommendationRouting).
@@ -324,6 +327,8 @@ class RecommendationsAggregatorService
                 'claim_tier' => $item['claim_tier'] ?? null,
                 'sequence_position' => $item['sequence_position'] ?? null,
                 'conflict_note' => $item['conflict_note'] ?? null,
+                'requires_advice' => (bool) ($item['requires_advice'] ?? false),
+                'definition_key' => $item['definition_key'] ?? null,
                 'account_id' => $item['account_id'] ?? null,
                 'goal_id' => $item['goal_id'] ?? null,
             ];
