@@ -187,9 +187,11 @@ class PlanController extends Controller
         $sourceId = $request->input('funding_source_id');
 
         // Validate the account belongs to this user
+        // Owner or joint owner (CLAUDE.md Rule 6): a joint account is one record.
+        $owned = fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
         $ownsAccount = match ($sourceType) {
-            'savings' => SavingsAccount::where('id', $sourceId)->where('user_id', $user->id)->exists(),
-            'investment' => InvestmentAccount::where('id', $sourceId)->where('user_id', $user->id)->exists(),
+            'savings' => SavingsAccount::where('id', $sourceId)->where($owned)->exists(),
+            'investment' => InvestmentAccount::where('id', $sourceId)->where($owned)->exists(),
             default => false,
         };
 

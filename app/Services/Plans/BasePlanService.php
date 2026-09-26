@@ -100,14 +100,6 @@ abstract class BasePlanService
         ];
     }
 
-    /** Liquid cash account types safe to recommend as a funding source. */
-    private const CASH_ACCOUNT_TYPES = [
-        'current_account',
-        'instant_access',
-        'business_current',
-        'business_savings',
-    ];
-
     /**
      * Resolve the best non-tax-event funding source for a goal top-up.
      *
@@ -130,16 +122,17 @@ abstract class BasePlanService
 
         $lumpSumNeeded = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
 
-        // Calculate the 6-month emergency threshold
+        // The emergency threshold, in months from plan config (not a literal 6).
+        $months = app(PlanConfigService::class)->getEmergencyFundTargetMonths();
         $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
-        $emergencyThreshold = $monthlyExpenditure * 6;
+        $emergencyThreshold = $monthlyExpenditure * $months;
 
         // 1. Try liquid cash accounts (non-ISA, non-premium-bonds, non-notice)
         $cashAccounts = app(SavingsStore::class)
             ->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', false)
-            ->whereIn('account_type', self::CASH_ACCOUNT_TYPES)
+            ->whereIn('account_type', FundingAccounts::CASH_ACCOUNT_TYPES)
             ->sortByDesc('current_balance')
             ->values();
 
@@ -164,7 +157,7 @@ abstract class BasePlanService
         if ($gia) {
             return [
                 'name' => $gia->account_name ?? $gia->provider ?? null,
-                'warning' => 'Selling investments may trigger a Capital Gains Tax event. Cash accounts were not recommended as withdrawing would reduce your emergency fund below 6 months of expenditure.',
+                'warning' => "Selling investments may trigger a Capital Gains Tax event. Cash accounts were not recommended as withdrawing would reduce your emergency fund below {$months} months of expenditure.",
             ];
         }
 

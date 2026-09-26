@@ -25,6 +25,14 @@ final class ActionCardFigures
     ];
 
     /**
+     * Tax actions that move the user's money, so the card offers "Fund from"
+     * (design C; CSJ 2026-09-26).
+     */
+    public const FUNDED_TYPES = [
+        'isa_topup_vs_psa', 'pension_tax_relief', 'non_earner_spouse_pension', 'junior_isa', 'lifetime_isa',
+    ];
+
+    /**
      * @param  array<string, mixed>  $item  a composed tax plan item
      * @return list<string>
      */

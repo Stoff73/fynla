@@ -1084,7 +1084,7 @@ Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
     Route::delete('/{type}/clear-cache', [PlanController::class, 'clearCache'])
         ->where('type', 'investment|protection|retirement|estate|savings');
     Route::put('/{type}/funding-source', [PlanController::class, 'updateFundingSource'])
-        ->where('type', 'investment|protection|retirement|estate|savings');
+        ->where('type', 'investment|protection|retirement|estate|savings|tax');
 });
 
 // Household coordination routes (spousal planning)

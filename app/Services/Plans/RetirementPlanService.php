@@ -6,7 +6,6 @@ namespace App\Services\Plans;
 
 use App\Agents\RetirementAgent;
 use App\Models\DCPension;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\PlanActionFundingSelection;
 use App\Models\RetirementProfile;
@@ -14,7 +13,6 @@ use App\Models\User;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Stores\PensionStore;
-use App\Services\Stores\SavingsStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use Illuminate\Support\Collection;
 
@@ -481,12 +479,6 @@ class RetirementPlanService extends BasePlanService
     ];
 
     /** Liquid cash account types safe to recommend as a funding source. */
-    private const FUNDING_CASH_ACCOUNT_TYPES = [
-        'current_account',
-        'instant_access',
-        'business_current',
-        'business_savings',
-    ];
 
     /**
      * Enrich contribution actions with a recommended funding source and eligible account list.
@@ -512,7 +504,7 @@ class RetirementPlanService extends BasePlanService
         $persistedSelections = PlanActionFundingSelection::getForUser($user->id, 'retirement');
 
         // Build eligible accounts once for the user
-        $eligibleAccounts = $this->buildEligibleFundingAccounts($user);
+        $eligibleAccounts = app(FundingAccounts::class)->eligibleFor($user);
 
         foreach ($actions as &$action) {
             if (! in_array($action['category'] ?? '', self::CONTRIBUTION_CATEGORIES, true)) {
@@ -536,7 +528,7 @@ class RetirementPlanService extends BasePlanService
 
             // Auto-recommend if no valid persisted selection
             if (! $selected) {
-                $selected = $this->autoRecommendFundingAccount($eligibleAccounts);
+                $selected = app(FundingAccounts::class)->recommend($eligibleAccounts);
             }
 
             $action['funding_source'] = [
@@ -550,91 +542,6 @@ class RetirementPlanService extends BasePlanService
         unset($action);
 
         return $actions;
-    }
-
-    /**
-     * Build the list of eligible funding accounts for a user.
-     */
-    private function buildEligibleFundingAccounts(User $user): array
-    {
-        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
-        $emergencyThreshold = $monthlyExpenditure * 6;
-
-        $accounts = [];
-
-        // Cash accounts (non-ISA, liquid types)
-        $cashAccounts = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('is_isa', false)
-            ->whereIn('account_type', self::FUNDING_CASH_ACCOUNT_TYPES)
-            ->sortByDesc('current_balance')
-            ->values();
-
-        foreach ($cashAccounts as $account) {
-            $balance = (float) $account->current_balance;
-            $additionalMonthly = (float) ($account->additional_monthly_savings ?? 0);
-            $balanceAfterYear = $balance - ($additionalMonthly * 12);
-
-            $warning = null;
-            if ($balanceAfterYear < $emergencyThreshold) {
-                $warning = 'Withdrawing would reduce your emergency fund below 6 months of expenditure.';
-            }
-
-            $accounts[] = [
-                'id' => $account->id,
-                'type' => 'savings',
-                'name' => $account->account_name ?? $account->institution ?? 'Cash Account',
-                'balance' => $this->roundToPenny($balance),
-                'warning' => $warning,
-            ];
-        }
-
-        // GIA investment accounts
-        $giaAccounts = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'gia')
-            ->orderByDesc('current_value')
-            ->get();
-
-        foreach ($giaAccounts as $account) {
-            $accounts[] = [
-                'id' => $account->id,
-                'type' => 'investment',
-                'name' => $account->account_name ?? $account->provider ?? 'General Investment Account',
-                'balance' => $this->roundToPenny((float) $account->current_value),
-                'warning' => 'Using this account may cause a tax event.',
-            ];
-        }
-
-        return $accounts;
-    }
-
-    /**
-     * Auto-recommend the best funding account: safe cash first, then cash with warning, then GIA.
-     */
-    private function autoRecommendFundingAccount(array $eligibleAccounts): ?array
-    {
-        // First: cash without warning
-        foreach ($eligibleAccounts as $account) {
-            if ($account['type'] === 'savings' && $account['warning'] === null) {
-                return $account;
-            }
-        }
-
-        // Second: cash with warning
-        foreach ($eligibleAccounts as $account) {
-            if ($account['type'] === 'savings') {
-                return $account;
-            }
-        }
-
-        // Third: GIA
-        foreach ($eligibleAccounts as $account) {
-            if ($account['type'] === 'investment') {
-                return $account;
-            }
-        }
-
-        return null;
     }
 
     /**

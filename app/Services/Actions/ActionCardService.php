@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Actions;
 
+use App\Models\PlanActionFundingSelection;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Mobile\NextActionsService;
+use App\Services\Plans\FundingAccounts;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -90,8 +92,34 @@ final class ActionCardService
                 : ($item['action']['kind'] === 'navigate'
                     ? ['kind' => 'navigate', 'destination' => $item['action']['destination'] ?? null, 'payload' => $item['action']['payload'] ?? null]
                     : ['kind' => 'capture', 'prompt' => (string) ($item['action']['prompt'] ?? '')]),
+            'funding' => $taxItem !== null && in_array($taxItem['type'], ActionCardFigures::FUNDED_TYPES, true)
+                ? $this->funding($user, (string) $taxItem['type'])
+                : null,
             'done' => false,
             'completed_at' => null,
+        ];
+    }
+
+    /**
+     * "Fund from": the user's eligible accounts (FundingAccounts, the one list)
+     * and their saved pick for this action, or the recommended account.
+     *
+     * @return array{accounts: list<array<string, mixed>>, selected_id: int|null, selected_type: string|null}
+     */
+    private function funding(User $user, string $strategyType): array
+    {
+        $funding = app(FundingAccounts::class);
+        $accounts = $funding->eligibleFor($user);
+        $saved = PlanActionFundingSelection::getForUser($user->id, 'tax')->get($strategyType.'_0');
+        $selected = $saved !== null
+            ? collect($accounts)->first(fn ($a) => $a['id'] === (int) $saved->funding_source_id && $a['type'] === $saved->funding_source_type)
+            : null;
+        $selected ??= $funding->recommend($accounts);
+
+        return [
+            'accounts' => $accounts,
+            'selected_id' => $selected['id'] ?? null,
+            'selected_type' => $selected['type'] ?? null,
         ];
     }
 
@@ -118,6 +146,7 @@ final class ActionCardService
             'disclaimer' => null,
             'ask_fyn' => ['kind' => 'prompt', 'prompt' => 'Tell me more about: '.$title],
             'primary' => null,
+            'funding' => null,
             'done' => true,
             'completed_at' => $row->completed_at?->toIso8601String(),
         ];
