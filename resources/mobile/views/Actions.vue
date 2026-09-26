@@ -63,7 +63,6 @@
 import { store } from '../store.js';
 import { apiGet, apiPost } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
-import { resolveMobileDestination, recordUnknownMobileDestination } from '../navigation/semanticDestinations.js';
 import MobileChrome from '../components/MobileChrome.vue';
 import MobileThresholdStrip from '../components/ThresholdStrip.vue';
 
@@ -111,26 +110,12 @@ export default {
       return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB');
     },
 
-    // The server decides where an action leads — the same payload the
-    // dashboard rows and native read.
+    // Every action opens its own card (design C, CSJ 2026-09-26); the card
+    // carries the action's own button and Ask Fyn.
     openItem(item) {
-      if (!item || !item.action) return;
-      if (item.action.kind === 'navigate') {
-        const navigation = this.$router.push(resolveMobileDestination(item.action, recordUnknownMobileDestination));
-        if (navigation?.catch) navigation.catch(() => {});
-        return;
-      }
-      // A capture action belongs to Fyn: open the docked chat this screen
-      // already carries and send the prompt the server composed (Rule 20 —
-      // no surface keeps its own copy of the wording).
-      this.openCapture(item.action);
-    },
-
-    async openCapture(action) {
-      const chrome = this.$refs.chrome;
-      if (!chrome) return;
-      await chrome.openFyn();
-      chrome.send((action && action.prompt) || 'Help me add my financial details');
+      if (!item || !item.id) return;
+      const navigation = this.$router.push({ name: 'm-action-card', params: { id: item.id } });
+      if (navigation?.catch) navigation.catch(() => {});
     },
 
     async markDone(item) {
