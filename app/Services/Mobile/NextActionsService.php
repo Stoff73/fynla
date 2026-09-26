@@ -406,6 +406,7 @@ class NextActionsService
                     'conflict_note' => $rec['conflict_note'] ?? null,
                     'potential_benefit' => $benefit,
                     'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
+                    'definition_key' => $rec['definition_key'] ?? null,
                 ],
             ];
         }, $all);

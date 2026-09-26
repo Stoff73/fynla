@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Actions;
 
+use App\Models\EstateActionDefinition;
+use App\Models\InvestmentActionDefinition;
 use App\Models\PlanActionFundingSelection;
+use App\Models\ProtectionActionDefinition;
 use App\Models\RecommendationTracking;
+use App\Models\RetirementActionDefinition;
+use App\Models\SavingsActionDefinition;
+use App\Models\TaxActionDefinition;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Mobile\NextActionsService;
@@ -81,7 +87,7 @@ final class ActionCardService
                 : [],
             'what_this_changes' => $isRecommendation ? [] : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
             'key_figure' => $this->keyFigure($card['potential_benefit'] ?? null),
-            'how_to' => [],
+            'how_to' => $this->howTo($module, $taxItem['type'] ?? null, $card['definition_key'] ?? null),
             'conflict_note' => $card['conflict_note'] ?? null,
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
@@ -98,6 +104,38 @@ final class ActionCardService
             'done' => false,
             'completed_at' => null,
         ];
+    }
+
+    /** The definition model per module, where its approved how-to steps live. */
+    private const DEFINITIONS = [
+        'tax' => TaxActionDefinition::class,
+        'retirement' => RetirementActionDefinition::class,
+        'investment' => InvestmentActionDefinition::class,
+        'protection' => ProtectionActionDefinition::class,
+        'savings' => SavingsActionDefinition::class,
+        'estate' => EstateActionDefinition::class,
+    ];
+
+    /**
+     * The action's how-to steps — only once CSJ has approved them (ruling
+     * 2026-09-25). A tax action is found by its strategy type, any other by
+     * the definition key its adapter carried.
+     *
+     * @return list<string>
+     */
+    private function howTo(string $module, ?string $strategyType, ?string $definitionKey): array
+    {
+        $model = self::DEFINITIONS[$module] ?? null;
+        if ($model === null || ($strategyType === null && $definitionKey === null)) {
+            return [];
+        }
+        $steps = $model::query()
+            ->where('how_to_status', 'approved')
+            ->where($strategyType !== null ? 'strategy_type' : 'key', $strategyType ?? $definitionKey)
+            ->value('how_to_steps');
+        $steps = is_string($steps) ? json_decode($steps, true) : $steps;
+
+        return is_array($steps) ? array_values(array_filter($steps, 'is_string')) : [];
     }
 
     /**
