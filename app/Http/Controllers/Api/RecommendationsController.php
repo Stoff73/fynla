@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
+use App\Services\Actions\ActionCardService;
 use App\Services\Coordination\RecommendationCompletionService;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Mobile\NextActionsService;
@@ -297,6 +298,23 @@ class RecommendationsController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Fetching unified actions');
         }
+    }
+
+    /**
+     * One action's detail card (ActionCardService). 404 when the id is neither
+     * in this user's open list nor in their completed history.
+     *
+     * GET /api/recommendations/actions/{id}
+     */
+    public function actionCard(Request $request, string $id): JsonResponse
+    {
+        $card = app(ActionCardService::class)->for($request->user(), rawurldecode($id));
+
+        if ($card === null) {
+            return response()->json(['success' => false, 'message' => 'Action not found.'], 404);
+        }
+
+        return response()->json(['success' => true, 'data' => $card]);
     }
 
     /**

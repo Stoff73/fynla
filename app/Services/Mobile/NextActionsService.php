@@ -397,6 +397,16 @@ class NextActionsService
                         ],
                     ]
                     : ['kind' => 'navigate', ...RecommendationRouting::pageFor($ruleKey, $module, $rec)],
+                // What the action's own card needs and the row does not show
+                // (ActionCardService, design C, CSJ 2026-09-26).
+                'card' => [
+                    'category' => $rec['category'] ?? null,
+                    'timeline' => $rec['timeline'] ?? null,
+                    'personalised_context' => array_values(array_filter((array) ($rec['personalised_context'] ?? []), 'is_string')),
+                    'conflict_note' => $rec['conflict_note'] ?? null,
+                    'potential_benefit' => $benefit,
+                    'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
+                ],
             ];
         }, $all);
     }
@@ -411,7 +421,7 @@ class NextActionsService
      *
      * @return array{0: string, 1: string|null}
      */
-    private static function splitHeadline(string $text): array
+    public static function splitHeadline(string $text): array
     {
         $parts = preg_split('/\s+[\x{2014}\x{2013}]\s+/u', $text, 2) ?: [$text];
         $title = trim($parts[0]);
@@ -423,7 +433,7 @@ class NextActionsService
     /**
      * Human-readable category label, preserving "ISA" casing (Rule #9).
      */
-    private function categoryLabel(string $category): string
+    public function categoryLabel(string $category): string
     {
         $label = ucwords(str_replace('_', ' ', $category));
 

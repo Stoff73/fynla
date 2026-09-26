@@ -1122,6 +1122,8 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::get('/completed', [RecommendationsController::class, 'completed']);
     // WP-2 — unified actions payload (open, uncapped + completed history).
     Route::get('/actions', [RecommendationsController::class, 'actions']);
+    // One action's detail card (design C) — ids carry ':' and are url-encoded.
+    Route::get('/actions/{id}', [RecommendationsController::class, 'actionCard'])->where('id', '.*');
 
     // Recommendation tracking actions
     Route::post('/{id}/mark-done', [RecommendationsController::class, 'markDone']);
