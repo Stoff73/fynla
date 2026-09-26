@@ -675,7 +675,7 @@ export default {
       // Domicile
       country_of_birth: '',
       uk_arrival_date: '',
-      domicile_status: 'uk_domiciled',
+      domicile_status: null,
       // Student-specific fields
       university: '',
       student_number: '',
@@ -818,9 +818,12 @@ export default {
       }
 
       if (user.value) {
-        form.value.country_of_birth = user.value.country_of_birth || 'United Kingdom';
+        // Never default an unanswered country to "United Kingdom": saved back, it
+        // recorded the user as UK-born and made them a long-term UK resident for
+        // Inheritance Tax without being asked (2026-09-26).
+        form.value.country_of_birth = user.value.country_of_birth || '';
         form.value.uk_arrival_date = formatDateForInput(user.value.uk_arrival_date) || '';
-        form.value.domicile_status = user.value.domicile_status || 'uk_domiciled';
+        form.value.domicile_status = user.value.domicile_status || null;
 
         // Calculate years resident if uk_arrival_date exists
         if (form.value.uk_arrival_date) {
@@ -924,12 +927,12 @@ export default {
           previous_employment_status: statusChange.hasSignificantChange ? statusChange.previousStatus : null,
         };
 
-        // Prepare domicile data
-        const domicileData = {
-          country_of_birth: form.value.country_of_birth || null,
+        // Domicile is saved only once the user has told us their country of birth.
+        const domicileData = form.value.country_of_birth ? {
+          country_of_birth: form.value.country_of_birth,
           uk_arrival_date: form.value.uk_arrival_date || null,
           domicile_status: form.value.domicile_status,
-        };
+        } : null;
 
         // Update all three in parallel
         await Promise.all([
@@ -943,7 +946,7 @@ export default {
             annual_interest_income: incomeOccupation.value?.annual_interest_income || 0,
             annual_trust_income: incomeOccupation.value?.annual_trust_income || 0,
           }),
-          store.dispatch('userProfile/updateDomicile', domicileData),
+          ...(domicileData ? [store.dispatch('userProfile/updateDomicile', domicileData)] : []),
         ]);
 
         // Check if we're in preview mode
