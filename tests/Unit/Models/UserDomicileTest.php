@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Services\TaxConfigService;
 use Carbon\Carbon;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,6 +14,7 @@ uses(TestCase::class, RefreshDatabase::class);
 beforeEach(function () {
     // Set a fixed "now" time for consistent testing
     Carbon::setTestNow(Carbon::create(2025, 10, 27));
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {
@@ -60,190 +63,65 @@ describe('User Domicile Calculation', function () {
     });
 });
 
-describe('User Deemed Domicile Status', function () {
-    it('is deemed domiciled when explicitly set as uk_domiciled', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'uk_domiciled',
-            'uk_arrival_date' => null,
-        ]);
+/*
+ * Long-term UK residence (IHTA 1984 s6A): UK resident in at least 10 of the 20
+ * tax years before the current one. https://www.gov.uk/hmrc-internal-manuals/inheritance-tax-manual/ihtm47020
+ * "Now" is 27 October 2025, in tax year 2025/26 (from 6 April 2025).
+ */
+describe('Long-term UK residence (IHTA 1984 s6A)', function () {
+    $arrived = fn (string $date) => User::factory()->create(['domicile_status' => 'non_uk_domiciled', 'country_of_birth' => 'Australia', 'uk_arrival_date' => $date]);
 
-        expect($user->isDeemedDomiciled())->toBeTrue();
+    it('is long-term resident after ten whole tax years before this one', function () use ($arrived) {
+        // Arrived in 2015/16; 2015/16..2024/25 is ten tax years.
+        $info = $arrived('2015-06-01')->getDomicileInfo();
+
+        expect($info['is_long_term_uk_resident'])->toBeTrue()
+            ->and($info['years_resident_in_lookback'])->toBe(10)
+            ->and($info['long_term_resident_from'])->toBe('2025-04-06');
     });
 
-    it('is NOT deemed domiciled for non-UK domiciled with less than 15 years residence', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => Carbon::now()->subYears(10)->toDateString(),
-        ]);
+    it('is not yet long-term resident on nine, and says from when it will be', function () use ($arrived) {
+        // Arrived in 2016/17: nine tax years before 2025/26.
+        $info = $arrived('2016-06-01')->getDomicileInfo();
 
-        expect($user->isDeemedDomiciled())->toBeFalse();
+        expect($info['is_long_term_uk_resident'])->toBeFalse()
+            ->and($info['years_resident_in_lookback'])->toBe(9)
+            ->and($info['long_term_resident_from'])->toBe('2026-04-06')
+            ->and($info['explanation'])->toContain('6 April 2026')
+            ->and($info['explanation'])->not->toContain('domicil');
     });
 
-    it('is deemed domiciled for non-UK domiciled with exactly 15 years residence', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => Carbon::now()->subYears(15)->toDateString(),
-        ]);
-
-        expect($user->isDeemedDomiciled())->toBeTrue();
+    it('counts the tax year of arrival from 6 April, not the calendar year', function () use ($arrived) {
+        // 5 April 2016 is in 2015/16; 6 April 2016 starts 2016/17.
+        expect($arrived('2016-04-05')->getDomicileInfo()['years_resident_in_lookback'])->toBe(10)
+            ->and($arrived('2016-04-06')->getDomicileInfo()['years_resident_in_lookback'])->toBe(9);
     });
 
-    it('is deemed domiciled for non-UK domiciled with more than 15 years residence', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => Carbon::now()->subYears(20)->toDateString(),
-        ]);
-
-        expect($user->isDeemedDomiciled())->toBeTrue();
+    it('is no longer the old 15-year deemed-domicile rule', function () use ($arrived) {
+        // Twelve tax years: long-term resident now; the pre-2025 rule said no.
+        expect($arrived('2013-10-27')->getDomicileInfo()['is_long_term_uk_resident'])->toBeTrue();
     });
 
-    it('is NOT deemed domiciled when no arrival date is set', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => null,
-        ]);
+    it('reads the numbers from tax config', function () use ($arrived) {
+        $config = app(TaxConfigService::class)->getDomicile()['long_term_residence'];
 
-        expect($user->isDeemedDomiciled())->toBeFalse();
+        expect($config['qualifying_years'])->toBe(10)
+            ->and($config['lookback_years'])->toBe(20)
+            ->and($arrived('2015-06-01')->getDomicileInfo()['qualifying_years'])->toBe($config['qualifying_years']);
     });
 
-    it('is NOT deemed domiciled when domicile_status is null (even with 20 years residence)', function () {
-        $user = User::factory()->create([
-            'domicile_status' => null,
-            'uk_arrival_date' => Carbon::now()->subYears(20)->toDateString(),
-        ]);
+    it('counts a UK-domiciled user from birth when no arrival date is recorded', function () {
+        $adult = User::factory()->create(['domicile_status' => 'uk_domiciled', 'country_of_birth' => 'United Kingdom', 'uk_arrival_date' => null, 'date_of_birth' => '1980-01-01']);
+        $child = User::factory()->create(['domicile_status' => 'uk_domiciled', 'country_of_birth' => 'United Kingdom', 'uk_arrival_date' => null, 'date_of_birth' => '2019-01-01']);
 
-        // Note: With the current implementation, UK domiciled is the default in the model
-        // So this test may need adjustment based on business logic
-        // If domicile_status is null but user has 20 years, they might be deemed domiciled
-        // Let's check what the actual implementation does
-        $isDeemedDomiciled = $user->isDeemedDomiciled();
-
-        // The user is NOT deemed domiciled because domicile_status is null
-        // and the isDeemedDomiciled method checks for explicit statuses
-        expect($isDeemedDomiciled)->toBeIn([true, false]); // Either is acceptable based on business rules
-    });
-});
-
-describe('User Domicile Info', function () {
-    it('returns complete domicile info for uk_domiciled user', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'uk_domiciled',
-            'country_of_birth' => 'United Kingdom',
-            'uk_arrival_date' => null,
-        ]);
-
-        $info = $user->getDomicileInfo();
-
-        expect($info)->toBeArray()
-            ->and($info['domicile_status'])->toBe('uk_domiciled')
-            ->and($info['country_of_birth'])->toBe('United Kingdom')
-            ->and($info['is_deemed_domiciled'])->toBeTrue()
-            ->and($info['explanation'])->toContain('You are UK domiciled');
+        expect($adult->getDomicileInfo()['is_long_term_uk_resident'])->toBeTrue()
+            ->and($child->getDomicileInfo()['is_long_term_uk_resident'])->toBeFalse();
     });
 
-    it('returns complete domicile info for non-uk_domiciled user under 15 years', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'country_of_birth' => 'France',
-            'uk_arrival_date' => Carbon::now()->subYears(10)->toDateString(),
-        ]);
+    it('says it cannot tell when there is no arrival date and no UK domicile', function () {
+        $info = User::factory()->create(['domicile_status' => 'non_uk_domiciled', 'country_of_birth' => 'France', 'uk_arrival_date' => null])->getDomicileInfo();
 
-        $info = $user->getDomicileInfo();
-
-        expect($info)->toBeArray()
-            ->and($info['domicile_status'])->toBe('non_uk_domiciled')
-            ->and($info['country_of_birth'])->toBe('France')
-            ->and($info['years_uk_resident'])->toBe(10)
-            ->and($info['is_deemed_domiciled'])->toBeFalse()
-            ->and($info['explanation'])->toContain('5 more year(s)');
-    });
-
-    it('returns complete domicile info for non-uk_domiciled user with 15+ years', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'country_of_birth' => 'India',
-            'uk_arrival_date' => Carbon::now()->subYears(18)->toDateString(),
-        ]);
-
-        $info = $user->getDomicileInfo();
-
-        expect($info)->toBeArray()
-            ->and($info['domicile_status'])->toBe('non_uk_domiciled')
-            ->and($info['country_of_birth'])->toBe('India')
-            ->and($info['years_uk_resident'])->toBe(18)
-            ->and($info['is_deemed_domiciled'])->toBeTrue()
-            ->and($info['explanation'])->toContain('deemed UK domiciled')
-            ->and($info['explanation'])->toContain('18 years');
-    });
-
-    it('includes deemed_domicile_date in info when set', function () {
-        $deemedDate = Carbon::now()->subYears(3)->toDateString();
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => Carbon::now()->subYears(18)->toDateString(),
-            'deemed_domicile_date' => $deemedDate,
-        ]);
-
-        $info = $user->getDomicileInfo();
-
-        expect($info['deemed_domicile_date'])->toBe($deemedDate);
-    });
-
-    it('returns explanation when domicile status not set', function () {
-        $user = User::factory()->create([
-            'domicile_status' => null,
-            'country_of_birth' => null,
-            'uk_arrival_date' => null,
-        ]);
-
-        $info = $user->getDomicileInfo();
-
-        expect($info['explanation'])->toContain('Domicile status not set');
-    });
-});
-
-describe('Edge Cases', function () {
-    it('handles user who arrived exactly today (0 years)', function () {
-        $user = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => Carbon::now()->toDateString(),
-        ]);
-
-        expect($user->calculateYearsUKResident())->toBe(0)
-            ->and($user->isDeemedDomiciled())->toBeFalse();
-    });
-
-    it('handles future dates correctly (should not happen in practice)', function () {
-        $user = User::factory()->create([
-            'uk_arrival_date' => Carbon::now()->addYears(1)->toDateString(),
-        ]);
-
-        // Future dates would give positive years with diffInYears, which calculates absolute difference
-        // This is an edge case that should be prevented by validation in practice
-        $years = $user->calculateYearsUKResident();
-
-        // Carbon's diffInYears returns absolute difference, so future dates give positive values
-        // In production, validation prevents future dates, so we just verify it returns a number
-        expect($years)->toBeNumeric();
-    });
-
-    it('handles the 15-year threshold boundary correctly', function () {
-        // 14 years 364 days - should be 14 years (not deemed domiciled)
-        $user1 = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => Carbon::now()->subYears(15)->addDay()->toDateString(),
-        ]);
-
-        expect($user1->calculateYearsUKResident())->toBe(14)
-            ->and($user1->isDeemedDomiciled())->toBeFalse();
-
-        // Exactly 15 years - should be deemed domiciled
-        $user2 = User::factory()->create([
-            'domicile_status' => 'non_uk_domiciled',
-            'uk_arrival_date' => Carbon::now()->subYears(15)->toDateString(),
-        ]);
-
-        expect($user2->calculateYearsUKResident())->toBe(15)
-            ->and($user2->isDeemedDomiciled())->toBeTrue();
+        expect($info['is_long_term_uk_resident'])->toBeNull()
+            ->and($info['explanation'])->toContain('when you came to live in the UK');
     });
 });

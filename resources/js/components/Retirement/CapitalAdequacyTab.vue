@@ -386,21 +386,10 @@ export default {
     },
 
     currentAnnualContributions() {
-      // Sum of all DC pension contributions (employee + employer) annualised
-      // Includes both percentage-based (occupational) and flat monthly contributions
-      return this.dcPensions.reduce((sum, p) => {
-        // Percentage-based contributions (occupational pensions)
-        const salary = parseFloat(p.annual_salary || 0);
-        const employeePercent = parseFloat(p.employee_contribution_percent || 0);
-        const employerPercent = parseFloat(p.employer_contribution_percent || 0);
-        const percentBasedAnnual = salary * (employeePercent + employerPercent) / 100;
-
-        // Flat monthly contributions (personal pensions, SIPPs)
-        const monthlyFlat = parseFloat(p.monthly_contribution_amount || 0);
-        const flatAnnual = monthlyFlat * 12;
-
-        return sum + percentBasedAnnual + flatAnnual;
-      }, 0);
+      // Server-computed per pension (DCPension `monthly_contribution`,
+      // PensionContributionRule): employee plus employer, relief at source
+      // grossed (FA 2004 s192), employment income for a blank scheme salary.
+      return this.dcPensions.reduce((sum, p) => sum + Number(p.monthly_contribution || 0) * 12, 0);
     },
 
     currentMonthlyContributions() {

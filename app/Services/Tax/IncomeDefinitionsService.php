@@ -6,6 +6,7 @@ namespace App\Services\Tax;
 
 use App\Models\User;
 use App\Services\Property\PropertyService;
+use App\Services\Retirement\PensionContributionRule;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesIncome;
 
@@ -89,7 +90,10 @@ class IncomeDefinitionsService
         // W-0511 — one place answers the entitlement question, and the tax calculator
         // reads the same one. The panel below shows this figure; the calculator gives it.
         $bpa = $this->taxConfig->blindPersonsAllowanceFor($user);
-        $adjustedNetIncome = $netIncome - $giftAidGross;
+        // ITA 2007 s58 Step 3: relief-at-source contributions (FA 2004 s192) come
+        // off gross here, not at net income.
+        $reliefAtSourceGross = $pensionContributions['relief_at_source_gross'];
+        $adjustedNetIncome = $netIncome - $giftAidGross - $reliefAtSourceGross;
 
         // 4. Threshold Income (FA 2004 s228ZA) — total income less net-pay
         // employee contributions only, deducted once. Gift Aid and the Blind
@@ -123,7 +127,8 @@ class IncomeDefinitionsService
         // recorded it (see the basis resolution above), so the two readings converge
         // here rather than giving two different thresholds. That is what made the
         // ambiguity survivable: it changes net income, not this.
-        $thresholdIncome = $totalIncome - $pensionContributions['employee'] + $sacrificed;
+        // FA 2004 s228ZA(5)(c): relief-at-source contributions come off, gross.
+        $thresholdIncome = $totalIncome - $pensionContributions['employee'] + $sacrificed - $reliefAtSourceGross;
 
         // 5. Adjusted Income (FA 2004 s228ZA) — total income plus employer
         // contributions (equivalently threshold income plus both the employee
@@ -146,6 +151,13 @@ class IncomeDefinitionsService
             'threshold_income' => round($thresholdIncome, 2),
             'adjusted_income' => round($adjustedIncome, 2),
             'components' => $components,
+            // Pension input amount (FA 2004 s233(1)): everything paid in by or for
+            // the member this year — net-pay employee contributions, relief-at-source
+            // payments gross of the basic-rate relief the provider claims (s192), and
+            // employer contributions including sacrificed pay. The ONE figure for
+            // Annual Allowance used and for what goes into the pot.
+            // https://www.legislation.gov.uk/ukpga/2004/12/section/233
+            'pension_input_amount' => round($pensionContributions['employee'] + $pensionContributions['relief_at_source_gross'] + $pensionContributions['employer'], 2),
             // W-0189 acceptance 2 — the arrangement the deduction was made under,
             // so the panel can name it instead of the reader having to guess why
             // £11,600 is deducted once rather than at both steps that mention it.
@@ -168,6 +180,9 @@ class IncomeDefinitionsService
                 // adjusted-net-income block for that reason.
                 'blind_persons_allowance' => round($bpa, 2),
                 'employee_pension_contributions' => round($pensionContributions['employee'], 2),
+                // FA 2004 s192: gross of personal pension/SIPP payments. Deducted at
+                // s58 Step 3 and s228ZA(5)(c); extends the tax bands (s192(4)).
+                'relief_at_source_gross' => round($reliefAtSourceGross, 2),
                 'employer_pension_contributions' => round($pensionContributions['employer'], 2),
                 // W-0204 — named separately from the employer total it now sits inside,
                 // because it is the figure added back at s228ZA(3) and the reader has to
@@ -254,18 +269,34 @@ class IncomeDefinitionsService
      *                 definition is struck, so both readings converge on one threshold
      *                 figure and the taper decision does not turn on the guess.
      *
-     * @return array{employee: float, employer: float, sacrificed: float, arrangement: string}
+     * @return array{employee: float, relief_at_source_gross: float, employer: float, sacrificed: float, arrangement: string}
      */
     private function getPensionContributions(User $user): array
     {
         $employee = 0.0;
         $employer = 0.0;
         $sacrificed = 0.0;
+        $reliefAtSourceGross = 0.0;
+        // The onboarding form records percentages without a scheme salary; the
+        // user's employment income stands in, as PensionContributionRule does
+        // everywhere else (W-0424).
+        $userSalary = (float) ($user->annual_employment_income ?? 0);
+        $basicRelief = (float) ($this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'] ?? 0);
 
         foreach ($user->dcPensions as $pension) {
-            $salary = (float) ($pension->annual_salary ?? 0);
-            $contribution = $salary * ((float) ($pension->employee_contribution_percent ?? 0) / 100);
-            $employer += $salary * ((float) ($pension->employer_contribution_percent ?? 0) / 100);
+            $contribution = PensionContributionRule::monthlyEmployee($pension, $userSalary) * 12;
+            $employer += PensionContributionRule::monthlyEmployer($pension, $userSalary) * 12;
+
+            // A personal pension or SIPP is paid from taxed income under relief
+            // at source (FA 2004 s192): the member pays net and the provider
+            // claims basic rate, so the gross is net ÷ (1 − basic rate).
+            if (! PensionContributionRule::isWorkplace($pension)) {
+                if ($contribution > 0 && $basicRelief < 1) {
+                    $reliefAtSourceGross += $contribution / (1 - $basicRelief);
+                }
+
+                continue;
+            }
 
             // W-0204 — under salary sacrifice the pay is given up before it is ever
             // earned, so the contribution is legally the EMPLOYER'S. Keeping it in the
@@ -277,6 +308,7 @@ class IncomeDefinitionsService
                 continue;
             }
 
+            // Net pay (FA 2004 s193(2)): deducted from employment income.
             $employee += $contribution;
         }
 
@@ -285,6 +317,7 @@ class IncomeDefinitionsService
 
         return [
             'employee' => $employee,
+            'relief_at_source_gross' => round($reliefAtSourceGross, 2),
             // The sacrificed pay is an employer contribution for every purpose that
             // counts one, adjusted income included.
             'employer' => round($employer + $sacrificed, 2),

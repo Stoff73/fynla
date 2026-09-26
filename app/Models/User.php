@@ -12,6 +12,7 @@ use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Investment\InvestmentAccount;
+use App\Services\Tax\LongTermResidence;
 use App\Traits\Auditable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -989,76 +990,20 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is deemed domiciled under the 15/20 year rule
-     *
-     * UK residence-based system (post-April 2025):
-     * - User is deemed domiciled if they have been UK resident for at least 15 of the last 20 years
-     * - For simplicity, we calculate based on continuous residence from uk_arrival_date
-     *
-     * @return bool True if deemed domiciled, false otherwise
-     */
-    public function isDeemedDomiciled(): bool
-    {
-        // If explicitly set as UK domiciled, return true
-        if ($this->domicile_status === 'uk_domiciled') {
-            return true;
-        }
-
-        // If no UK arrival date, cannot calculate deemed domicile
-        if (! $this->uk_arrival_date) {
-            return false;
-        }
-
-        $yearsResident = $this->calculateYearsUKResident();
-
-        // Deemed domiciled if resident for 15+ years
-        return $yearsResident !== null && $yearsResident >= 15;
-    }
-
-    /**
-     * Get domicile status with explanation
+     * Where the user was born and when they came to live in the UK, and whether
+     * that makes them a long-term UK resident for Inheritance Tax — decided once,
+     * by App\Services\Tax\LongTermResidence from the tax config (IHTA 1984 s6A).
+     * Web, /m and iOS all display `explanation` as sent.
      */
     public function getDomicileInfo(): array
     {
-        $yearsResident = $this->calculateYearsUKResident();
-        $isDeemedDomiciled = $this->isDeemedDomiciled();
-
         return [
             'domicile_status' => $this->domicile_status,
             'country_of_birth' => $this->country_of_birth,
             'uk_arrival_date' => $this->uk_arrival_date?->format('Y-m-d'),
-            'years_uk_resident' => $yearsResident,
-            'is_deemed_domiciled' => $isDeemedDomiciled,
-            'deemed_domicile_date' => $this->deemed_domicile_date?->format('Y-m-d'),
-            'explanation' => $this->getDomicileExplanation($yearsResident, $isDeemedDomiciled),
+            'years_uk_resident' => $this->calculateYearsUKResident(),
+            ...app(LongTermResidence::class)->assess($this),
         ];
-    }
-
-    /**
-     * Get human-readable explanation of domicile status
-     */
-    private function getDomicileExplanation(?int $yearsResident, bool $isDeemedDomiciled): string
-    {
-        if ($this->domicile_status === 'uk_domiciled') {
-            return 'You are UK domiciled.';
-        }
-
-        if ($this->domicile_status === 'non_uk_domiciled') {
-            if ($isDeemedDomiciled) {
-                return "You are deemed UK domiciled for tax purposes. You have been UK resident for {$yearsResident} years, which exceeds the 15-year threshold.";
-            }
-
-            if ($yearsResident !== null) {
-                $yearsRemaining = max(0, 15 - $yearsResident);
-                if ($yearsRemaining > 0) {
-                    return "You are non-UK domiciled. You need {$yearsRemaining} more year(s) of UK residence to become deemed domiciled (15 of 20 year rule).";
-                }
-            }
-
-            return 'You are non-UK domiciled.';
-        }
-
-        return 'Domicile status not set. Please update your profile.';
     }
 
     /**

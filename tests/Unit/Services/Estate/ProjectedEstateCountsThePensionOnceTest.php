@@ -65,6 +65,7 @@ function pensionHolder(int $fundValue): User
         // death — and therefore whether the caveat below is published at all. A fixture
         // that re-rolls the variable under test cannot hold a contract.
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'current_fund_value' => $fundValue,
             'monthly_contribution_amount' => 0,

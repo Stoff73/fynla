@@ -58,25 +58,34 @@ final class PensionContributionRule
     }
 
     /**
-     * Whether this pension's contribution comes out of pay.
-     *
-     * **W-0424, and a second fault found while fixing the first.** The old test
-     * was `in_array($pension->scheme_type, ['workplace', 'occupational',
-     * 'auto_enrolment'])` — but the column is
-     * `enum('workplace','sipp','personal')`, so **two of the three permitted
-     * values could never match**, and the live data also carries NULL. David's
-     * workplace pension has a null `scheme_type`, so the tax side returned £0 for
-     * an 8%-of-£145,000 record.
-     *
-     * Stated as an EXCLUSION rather than an allowlist for that reason: a SIPP or
-     * a personal pension is funded by the member from money they have already
-     * received, so it is not a salary deduction. Anything else with a salary and
-     * a percentage on it is one by construction — a personal pension has no
-     * employer salary basis to compute against.
+     * What the employer pays in each month: their percentage of the scheme
+     * salary, the member's employment income standing in when the onboarding
+     * form left the scheme salary blank.
      */
-    public static function isSalaryDeducted(DCPension $pension): bool
+    public static function monthlyEmployer(DCPension $pension, float $fallbackSalary = 0.0): float
     {
-        return ! in_array($pension->scheme_type, ['sipp', 'personal'], true);
+        $percent = (float) ($pension->employer_contribution_percent ?? 0);
+        $salary = (float) ($pension->annual_salary ?? 0) ?: $fallbackSalary;
+
+        return $percent > 0 && $salary > 0 ? ($salary * $percent / 100) / 12 : 0.0;
+    }
+
+    /**
+     * What reaches the pot each month: the member's contribution plus the
+     * employer's. A personal pension or SIPP is relief at source (FA 2004 s192):
+     * the member pays net and the provider claims basic-rate relief on top, so
+     * the pot receives the net payment ÷ (1 − basic rate). A workplace scheme is
+     * net pay (s193(2)), paid gross already.
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/192
+     */
+    public static function monthlyIntoPot(DCPension $pension, float $fallbackSalary, float $basicRelief): float
+    {
+        $employee = self::monthlyEmployee($pension, $fallbackSalary);
+        if (! self::isWorkplace($pension) && $basicRelief > 0 && $basicRelief < 1) {
+            $employee /= (1 - $basicRelief);
+        }
+
+        return $employee + self::monthlyEmployer($pension, $fallbackSalary);
     }
 
     /**

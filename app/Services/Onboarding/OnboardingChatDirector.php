@@ -1220,12 +1220,20 @@ final class OnboardingChatDirector
             // onboarding, and offers the next section. One bubble; its label
             // does not start with "yes", so the nextFrom…More branch treats
             // it as the "no" path.
+            // CSJ 2026-09-26: say what is on file before asking for another or
+            // stating the cap. The cap line alone, straight after a save, read
+            // as "your pensions were not added". Read back from the records,
+            // so it is true however the step was reached.
+            $onFile = $this->recordsOnFileAtLoop($user, $stateId);
             $cap = $this->capReachedAtLoop($user, $stateId);
             if ($cap !== null) {
-                $promptText = "You've reached the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add another here. You can upgrade after onboarding to add more.";
+                $promptText = "That's the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add another here. You can upgrade after onboarding to add more.";
                 $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') === 'continue'));
             } else {
                 $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') !== 'continue'));
+            }
+            if ($onFile !== null) {
+                $promptText = $onFile."\n\n".$promptText;
             }
 
             $event = [
@@ -1764,6 +1772,55 @@ final class OnboardingChatDirector
      *
      * @return array{limit: int, noun: string}|null
      */
+    /**
+     * "You have 2 pensions on file: Nest workplace pension and Vanguard
+     * personal pension or SIPP." for a capture loop state, read from the same
+     * rows the plan cap counts; null for other states or when nothing is on
+     * file.
+     */
+    private function recordsOnFileAtLoop(User $user, string $stateId): ?string
+    {
+        $label = static fn (array $candidates, string $fallback): string => (string) (collect($candidates)->first(fn ($v) => is_string($v) && trim($v) !== '') ?? $fallback);
+
+        [$names, $singular, $plural] = match ($stateId) {
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE => [
+                app(PensionStore::class)->dcPensionsFor($user)->map(fn ($p) => $label([$p->scheme_name, $p->provider], 'a pension'))
+                    ->concat(app(PensionStore::class)->dbPensionsFor($user)->map(fn ($p) => $label([$p->scheme_name], 'a defined benefit pension')))->all(),
+                'pension', 'pensions',
+            ],
+            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE => [
+                app(PropertyStore::class)->forUser($user)->map(fn ($p) => $label([$p->address_line_1], match ($p->property_type) {
+                    'main_residence' => 'your main home',
+                    'secondary_residence' => 'a second home',
+                    'buy_to_let' => 'a buy-to-let property',
+                    default => 'a property',
+                }))->all(),
+                'property', 'properties',
+            ],
+            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [
+                app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->where('is_isa', false)
+                    ->map(fn ($a) => $label([$a->account_name, $a->institution], 'an account'))->all(),
+                'bank or savings account', 'bank and savings accounts',
+            ],
+            OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE, OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [
+                app(InvestmentAccountStore::class)->forUser($user)->where('user_id', $user->id)
+                    ->map(fn ($a) => $label([$a->account_name, $a->provider], 'an investment account'))
+                    ->concat(app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->where('is_isa', true)
+                        ->map(fn ($a) => $label([$a->account_name, $a->institution], 'a cash ISA')))->all(),
+                'ISA or investment account', 'ISAs and investment accounts',
+            ],
+            default => [[], '', ''],
+        };
+        $names = array_values($names);
+        if ($names === []) {
+            return null;
+        }
+
+        $count = count($names);
+
+        return sprintf('You have %d %s on file: %s.', $count, $count === 1 ? $singular : $plural, $this->joinClauses($names));
+    }
+
     private function capReachedAtLoop(User $user, string $stateId): ?array
     {
         [$entityKey, $count, $noun] = match ($stateId) {
