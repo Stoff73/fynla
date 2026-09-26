@@ -1,39 +1,32 @@
-# Tech Debt Report — Session 2026-09-24 (PR #937 + memory/vector plan)
+# Tech Debt Report — Session 2026-09-25
 
-**Files analysed:** 7 (4 code/config, 3 docs)
-**Issues found:** 5
-**Severity breakdown:** 0 critical, 3 warnings, 2 suggestions (1, 2 and 4 are fixed in the plan text; 3 and 5 are deferred)
+**Scope:** the branch diff of #939, Save Tax-only onboarding (`76c941898..d6650eb93`). It covers 9 files, with 410 lines added and 55 removed.
+
+**Files analysed:** 9
+**Issues found:** 7
+**Severity breakdown:** 0 critical, 2 warnings, 5 suggestions
+
+No hardcoded tax figures, debug output, hex colours, banned colour classes or dead code were found in the diff. Spouse-income band labels come from `FunnelIncomeBand::label()`, which reads `TaxConfigService`.
 
 ## Warnings
 
-1. **`docs/superpowers/plans/2026-09-24-fyn-typed-memory-and-dense-recall.md` Task 1, `MemoryFactGuard::CANONICAL_TOPICS`**
-   - **Category:** Complexity & Maintainability (correctness risk)
-   - **What's wrong:** Topic matching uses `str_contains`, so `'isa'` matches "disadvantage" and "visa", and `'child'` matches "childhood". A durable fact such as "Sees a disadvantage in locking money away" would be rejected as `canonical_field`.
-   - **Suggested fix:** Match on word boundaries (`preg_match('/\b'.preg_quote($topic).'\b/u', $t)`), and add a false-positive case to the Task 1 test before implementing.
+1. **The forced-entry rule lives in two places.**
+   - Where: `app/Http/Controllers/Api/AiChatController.php:817-821`, and `OnboardingStateMachine::forcedCampaignEntry()` at `app/Services/Onboarding/OnboardingStateMachine.php:1066`. Category: duplicate code (Rule 20).
+   - What: the controller works out "first missing funnel question, else `campaignEntryFor(entry)`" inline, and `forcedCampaignEntry()` does the same for restart and the first turn.
+   - Fix: have the controller call `forcedCampaignEntry($user)` when a fresh campaign starts. Keep the paused-step and re-entry branches as they are.
 
-2. **Same plan, Task 8, `HybridRecallScorer` query memoisation**
-   - **Category:** Inconsistency with Existing Patterns
-   - **What's wrong:** The plan memoises the query embedding "on the instance", but `RecallScorer` is bound with `bind()` (`app/Providers/AppServiceProvider.php:171`). `SemanticRetriever` and `EpisodeRecallService` would each get their own instance, which means two OpenAI calls per turn.
-   - **Suggested fix:** Bind `HybridRecallScorer` with `$this->app->scoped(...)`, so it has one instance per request.
-
-3. **`tests/Pest.php:111`: per-test temp memory directories are never removed**
-   - **Category:** Dead & Redundant Code (resource leak)
-   - **What's wrong:** A `fyn-test-memory-*` directory is created only when a test writes to it (6 exist after today's runs), but none are ever deleted, so they accumulate in the system temp directory across runs.
-   - **Suggested fix:** Add a matching global `afterEach` that removes `$memoryTmp` when it exists. Or accept it until Task 5 removes `episodic_path` and Task 4 removes `user_semantic_path`, when the hook goes away.
+2. **Resume greetings have no labels for the new states.**
+   - Where: `OnboardingChatDirector::describeStep` (around `app/Services/Onboarding/OnboardingChatDirector.php:982-1023`). Category: inconsistency with existing patterns.
+   - What: resuming at `campaign_funnel_*` says "Last time we were mid-onboarding".
+   - Fix: add labels such as "noting your employment situation", "noting whether you have a spouse" and "noting what you hold".
 
 ## Suggestions
 
-4. **Plan Task 4, Step 3: service location inside `SemanticRetriever`**
-   - **Category:** Inconsistency with Existing Patterns
-   - **What's wrong:** The step says to use `app(UserMemoryRepository::class)` plus `User::findOrFail($userId)` inside `retrieveForUser`. The class already uses constructor injection.
-   - **Suggested fix:** Inject `UserMemoryRepository` through the constructor, replacing `UserSemanticStore`.
-
-5. **`deploy/DEPLOY.md` step 6 and `.claude/skills/release/SKILL.md:42`: temporary rsync exclude**
-   - **Category:** Info
-   - **What's wrong:** The `--exclude 'fyn-memory/episodic/episodes/'` note is correct today, but it becomes obsolete when plan Task 5 deletes the folder.
-   - **Suggested fix:** None needed now. Task 5, Step 5 already removes it.
-
-No hardcoded tax values, acronyms, scores, icons or banned colours were found in the changed files. `declare(strict_types=1)` is present in the PHP test files.
+3. **A paused Pension Check pointer is never consumed while Save Tax is forced.** Where: `AiChatController.php:665-669`. The user restarts Save Tax, but `paused_at_step` stays set, so `onboarding_fyn_paused` stays true. Fix: clear `paused_at_step` when the forced campaign overrides a paused selection.
+4. **Restart keeps `funnel_answers`,** so a restart mid-assets goes to `base_work` and the user can't add more assets. Restart has no UI trigger today. Where: `OnboardingChatDirector::handleRestartAction`.
+5. **`emitFirstTurn` changed with forcing off.** It now falls back to the user's current step even when `forced_campaign` is null (`OnboardingChatDirector.php:166-171`). Production always passes the state, so this is theoretical.
+6. **Two sources of band label wording.** The chat uses `FunnelIncomeBand::label()` ("£50,271–£100,000"), while the funnel page uses `pageLabels()` ("£50,271 to £100,000"). Where: `OnboardingStateMachine::bubblesFor`. Fix: use one wording.
+7. **Typed text at the first question leaves onboarding.** Text that matches no bubble ("I'm employed") pauses the walk with no `paused_at_step`, so the next dashboard load starts onboarding again. Where: `OnboardingChatDirector.php` front-door branch. This was a deliberate ruling (same as `path_choice`); it is listed for review only.
 
 ---
-*Generated by tech-debt-session skill*
+*Generated by tech-debt-session skill. Items 2–7 match the deferred minors from the final whole-branch review of #939.*

@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section v-if="items.length || completedItems.length || !hasActionsElsewhere">
     <div class="flex items-baseline justify-between mb-4">
       <h2 class="text-h3 font-bold text-horizon-500">Recommended actions</h2>
       <span v-if="items.length" class="text-caption text-neutral-500">
@@ -7,12 +7,11 @@
       </span>
     </div>
 
-    <div v-if="!items.length" class="rounded-card bg-white border border-light-gray p-6 text-body-sm text-neutral-500">
-      Nothing to act on right now — allowances are well-utilised and there's no
-      tax-band optimisation to make at the current income.
+    <div v-if="!items.length && !hasActionsElsewhere" class="rounded-card bg-white border border-light-gray p-6 text-body-sm text-neutral-500">
+      {{ emptyMessage }}
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div v-else-if="items.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <article
         v-for="rec in items"
         :key="rec.type"
@@ -132,9 +131,27 @@ export default {
     return { marking: null };
   },
   computed: {
-    ...mapGetters('taxStrategy', ['recommendations']),
+    ...mapGetters('taxStrategy', ['recommendations', 'userAllowances']),
+    // Same rule and words as /m (resources/mobile/views/TaxStrategy.vue
+    // emptyRecommendationsMessage): "well-utilised" only when no allowance has
+    // known headroom.
+    emptyMessage() {
+      const headroom = (this.userAllowances || []).filter(
+        (a) => a.available !== false && a.known !== false && Number(a.remaining) > 0,
+      ).length;
+      return headroom > 0
+        ? 'No additional recommended actions are available from the information on file right now. Your unused allowances are shown below.'
+        : 'Your allowances are well-utilised — nothing to act on right now.';
+    },
     // Open (not completed) items only — completed ones move to the Done
     // group so the page keeps the overview (WP-2).
+    // The empty state says there is nothing to act on; that is false while
+    // an excluded category (household, shown in its own panel) has actions.
+    hasActionsElsewhere() {
+      return this.recommendations.some(
+        (rec) => this.excludeCategories.includes(rec.category ?? 'household') && !rec.completed,
+      );
+    },
     items() {
       const filtered = this.recommendations.filter(
         (rec) => !this.excludeCategories.includes(rec.category ?? 'household') && !rec.completed,

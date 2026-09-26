@@ -11,7 +11,7 @@ use Illuminate\Database\Seeder;
  * Seed the tax_action_definitions table with all action types.
  *
  * Seeds 5 agent-sourced tax optimisation action definitions (disabled — orphaned
- * TaxActionDefinitionService has zero callers) and 20 strategy-registry metadata
+ * TaxActionDefinitionService has zero callers) and 21 strategy-registry metadata
  * rows (source='strategy') linking to the June Tax/Strategies classes. Priorities
  * follow the canonical catalogue (fynlaBrain April30Updates/savetax-strategy-catalogue.md).
  * Uses updateOrCreate for idempotency.
@@ -54,6 +54,10 @@ class TaxActionDefinitionSeeder extends Seeder
             );
         }
 
+        // Superseded by pension_tax_relief before release (PR #941); remove the
+        // rows from any environment that seeded the first version.
+        TaxActionDefinition::whereIn('strategy_type', ['pension_relief_higher_rate', 'pension_relief_basic_rate'])->delete();
+
         // The March 'agent' evaluators duplicate the strategy registry and their
         // service (TaxActionDefinitionService) is orphaned — disable, don't delete.
         TaxActionDefinition::where('source', 'agent')->update(['is_enabled' => false]);
@@ -85,6 +89,19 @@ class TaxActionDefinitionSeeder extends Seeder
                 'sequencing' => ['do_before' => [], 'conflicts_with' => ['pa_taper_rescue']],
             ],
 
+            // Pension relief below the taper band (CSJ ruling 2026-09-25: every
+            // band). Band-exclusive with the two rows above by construction.
+            // One type for every band so a user's action state survives a band
+            // change.
+            [
+                'strategy_type' => 'pension_tax_relief',
+                'category' => 'income_band',
+                'priority' => 'high',
+                'claim_tier' => 'mechanical',
+                'required_data' => ['annual_income'],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => []],
+            ],
+
             [
                 'strategy_type' => 'salary_sacrifice_ni',
                 'category' => 'income_band',
@@ -97,12 +114,13 @@ class TaxActionDefinitionSeeder extends Seeder
             // ── B. Allowance harvesting (single-user) ─────────────────────
 
             [
+                // All three shelter the same sole-name interest; only the largest counts (B4).
                 'strategy_type' => 'isa_topup_vs_psa',
                 'category' => 'allowance',
                 'priority' => 'high',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['savings_balances', 'isa_subscriptions_ytd'],
-                'sequencing' => ['do_before' => ['savings_to_spouse'], 'conflicts_with' => []],
+                'sequencing' => ['do_before' => ['savings_to_spouse'], 'conflicts_with' => ['savings_to_spouse', 'joint_savings_psa_split']],
             ],
 
             [
@@ -158,7 +176,7 @@ class TaxActionDefinitionSeeder extends Seeder
                 'priority' => 'high',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['marital_status', 'savings_balances', 'spouse_income'],
-                'sequencing' => ['do_before' => [], 'conflicts_with' => ['joint_savings_psa_split']],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['joint_savings_psa_split', 'isa_topup_vs_psa']],
             ],
 
             [
@@ -212,7 +230,7 @@ class TaxActionDefinitionSeeder extends Seeder
                 'priority' => 'low',
                 'claim_tier' => 'mechanical',
                 'required_data' => ['marital_status', 'savings_balances', 'spouse_income'],
-                'sequencing' => ['do_before' => [], 'conflicts_with' => ['savings_to_spouse']],
+                'sequencing' => ['do_before' => [], 'conflicts_with' => ['savings_to_spouse', 'isa_topup_vs_psa']],
             ],
 
             // ── D. Warning strategies ──────────────────────────────────────

@@ -993,6 +993,12 @@ class MilestoneDetectionService
             if ($position === null || ! ($position['available'] ?? true) || (float) ($position['amount'] ?? 0) <= 0) {
                 continue;
             }
+            // The pension tile may show the earnings relief limit, not the
+            // Annual Allowance (FA 2004 s190); "used all of your Annual
+            // Allowance" would then be false.
+            if ($positionKey === 'pension_annual_allowance' && ($position['limit_basis'] ?? 'annual_allowance') !== 'annual_allowance') {
+                continue;
+            }
             $pct = (float) ($position['utilisation_pct'] ?? 0);
 
             foreach (self::ALLOWANCE_USED_PERCENTS as $threshold) {

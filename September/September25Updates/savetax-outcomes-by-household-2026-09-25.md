@@ -81,3 +81,26 @@ Most likely to show a user something wrong first.
 - **B2 Carry-forward unreachable** — needs three years of pension contribution history the walk never asks for.
 - **B3 Bed & ISA unreachable** — needs holdings with a purchase cost; the investment form captures only value and dividends.
 - **B11–B14 smaller:** step-children counted by childcare but not by Junior ISA; unknown spouse income treated as £0 (basic rate); Gift Aid 25% / 31.25% factors and the £2,880 / £720 pension figures hardcoded rather than from `TaxConfigService`; property answers feed no item.
+
+---
+
+## Plan B status (branch `fix/savetax-strategy-engine`, plan `docs/superpowers/plans/2026-09-25-savetax-strategy-engine-fixes.md`)
+
+| Bug | Status | Commit |
+|---|---|---|
+| B1 salary sacrifice on the wrong pension | Fixed. Workplace schemes only, priced from the captured percentages | `ecbf93a` |
+| B4 headline total double-counts | Fixed:<br>- the Lifetime ISA bonus, junior pension uplift, unused Dividend Allowance and tapered allowance charge are no longer counted;<br>- ISA top-up, gift-to-spouse and joint split count once between them;<br>- Marriage Allowance takes its slice of the spouse's Personal Allowance before any gift. | `ce2b511`, `a59c856` |
+| B5 spouse pension top-up ignores what is paid | Fixed. Only the remainder is suggested | `e952c8e` |
+| B6 Marriage Allowance with no taxable income | Fixed. The saving is capped at the tax actually paid | `ce2b511` |
+| B7 Marriage Allowance blocked for an earning spouse | Fixed. It is offered when the spouse's known income is below the Personal Allowance | `ce2b511` |
+| B8 partners treated as spouses | Fixed:<br>- Marriage Allowance and spouse transfers go to married couples and civil partners only;<br>- the public funnel asks "spouse or civil partner". | `ce2b511`, `f21f247`, `01203d0` |
+| B9 funnel promises a pension saving the plan can't deliver | Fixed. New items: "Pay £X more into your pension and save £Y in tax" at basic rate (10% of earnings less what is already paid in) and higher rate (the slice taxed at 40%) | `813c217` |
+| B12 unknown spouse income treated as £0 | Fixed. There is no non-ISA investment rebalance without known spouse income | `f21f247` |
+| B13 hardcoded £2,880 / £720 and Gift Aid factors | Fixed. Derived from `TaxConfigService` | `cfd6e04` |
+| B11 step-children not counted for the Junior ISA | **Not a bug.** `FamilyMember::RELATIONSHIP_ALIASES` stores step-children as `child`, which the Junior ISA check counts. Local data has no `step_child` rows | none |
+| B2 carry-forward, B3 Bed & ISA | Open. Each needs new capture questions in the walk | none |
+| B14 property answers feed no item | Open. There is no rule to invent one | none |
+
+Also fixed on the way:
+- Conflict notes and ISA-allowance notes named items by internal id (for example "Alternative to isa_topup_vs_psa"), and the holistic plan showed those notes to users on web, `/m` and iOS. They now quote the item's title.
+- The ISA allowance still goes to the Lifetime ISA first when its bonus is worth more than the tax saved elsewhere.

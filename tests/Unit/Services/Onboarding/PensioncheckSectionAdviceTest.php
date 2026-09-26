@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\User;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\RetirementActionDefinitionSeeder;
@@ -132,14 +133,18 @@ it('campaignSectionAdvice routes retirement_goals to its own advice state', func
 
 it('savetax pensions section still uses the tax plan (backward compatibility)', function () {
     // A savetax user must NOT see retirement-plan advice for the pensions section.
-    // Since the tax plan has no pensions-section strategies for a user with no ISAs
-    // or savings, the advice is null — just as it was before.
+    // Since ruling (c) (2026-09-25) a basic-rate earner's tax plan carries a
+    // pension relief item, so the section voices THAT tax-plan item.
     $user = User::factory()->create([
         'onboarding_fyn_selection' => 'savetax',
         'annual_employment_income' => 25000,
         'marital_status' => 'single',
     ]);
 
-    // No salary_sacrifice_ni or pension_aa_carry_forward fires for a basic-rate earner.
-    expect(pensioncheckSectionAdviceFor($user->fresh(), 'pensions'))->toBeNull();
+    $advice = pensioncheckSectionAdviceFor($user->fresh(), 'pensions');
+    $taxItem = collect(app(ComposedTaxPlanService::class)->forUser($user->fresh())['items'])
+        ->firstWhere('type', 'pension_tax_relief');
+
+    expect($taxItem)->not->toBeNull()
+        ->and($advice)->toContain($taxItem['title']);
 });

@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-24: Neo4j/vector research; Fyn memory checked against the agreed CoALA design; PR #937 (test episodes leaked to prod) merged into dev; typed-memory and dense-recall plan written. prod main `df14df1e2`; dev `67ca3793f` (#937 is tests and docs only, no release needed).*
+*Last updated: 2026-09-25: Save Tax-only onboarding (#939) released with #935–#937 as #940; prod main `9bc414107` == dev `d6650eb93` (+ patch notes `39cb1d02f`). Next session: Plan B (strategy fixes) then Plan C (how-to pages).*
 
 ## The board position
 
@@ -66,6 +66,22 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       and `/m`: MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55 (subject to MB-44). Unskip
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
+
+## NEXT — Tax strategy: Plan B, then Plan C (CSJ 2026-09-25)
+
+CSJ's 2026-09-25 request (five items). Items 3, 4 and 5 are done: the threshold strip placement is unchanged, the outcomes list is in `September/September25Updates/savetax-outcomes-by-household-2026-09-25.md`, and Save Tax-only onboarding shipped as #940. Plans B and C are still to write and run. Run them inline with `superpowers:executing-plans`; write each plan first with `superpowers:writing-plans`.
+
+- [ ] **Plan B: fix the strategy engine** (bugs B1–B14 in the outcomes file). CSJ's rulings:
+  - the headline total is as accurate as possible: a suggestion appears only when the user qualifies or has the income or asset, and only real tax saved counts (LISA bonus, junior pension uplift, unused dividend allowance and the "charge avoided" are not "tax saved"; no double counting);
+  - "spouse or civil partner" on the public Save Tax funnel page too (partners must not get Marriage Allowance or spouse-transfer advice);
+  - pension relief suggested for **every** tax band.
+  The clear correctness fixes: salary sacrifice on workplace pensions only (B1); spouse top-up counts what is already paid (B5); no Marriage Allowance with no taxable income (B6), and Marriage Allowance allowed when the spouse earns below the Personal Allowance (B7); `TaxDefaults` and Gift Aid factors from `TaxConfigService` (B13).
+- [ ] **Plan C: how-to pages** (CSJ items 1 and 2).
+  - Fixed steps written by us and reviewed by CSJ, with the user's figures filled in, stored once in a catalogue.
+  - Detail page in the approved decision-card design C (canvas `https://claude.ai/artifact/6mqya3ujQRPjZkAjfqbYor`): heading, description, why this matters for you, how to do it, Ask Fyn, Mark as done. On web, `/m` and iOS.
+  - The Tax Strategy plan shows headed actions, each opening its how-to.
+  - "See all actions" opens a list of every action, and every action (all modules, about 160 definitions) links to its own how-to. `/m` has `/actions`; iOS needs the list built (it goes to Achievements today).
+  - Order: tax items first (after Plan B lands), then other modules in batches for CSJ to review.
 
 ## QUEUED — Fyn memory and dense-recall plan (starts only on CSJ's go)
 
@@ -225,7 +241,9 @@ Three small decisions, all optional:
   - 432 test-output episode files deleted from production `fyn-memory/episodic/episodes/`.
   - csjones pulled `dev` at `67ca3793f`. It still has `FYN_LEARNING_ENABLED=true` and 206 pending figure-laden rows in `proposed_semantic_facts` (test accounts); plan Task 3 retires that path.
 
-- **csjones is on `dev` at a4ce28120 (2026-09-22 21:00)**, both bundles uploaded. Test accounts left there: users 419–421 `brett-a/c/d-2026-09-22@example.com` and 397 `formwalk-0915@example.com` (all `Password1!`), disposable.
+- **csjones is on `dev` at d6650eb93 (2026-09-25 13:07)**, both bundles uploaded (built from the #939 branch, same frontend as dev). Test accounts left there: 422 `savetax-only-2026-09-25@example.com`, users 419–421 `brett-a/c/d-2026-09-22@example.com` and 397 `formwalk-0915@example.com` (all `Password1!`), disposable.
+- **2026-09-25: prod (fynla.org) = main `9bc414107` (#940).** Save Tax-only onboarding (#939) plus #935–#937. No migrations or seeders; corpus rsynced with episodes excluded; learning stays off. Walked live on web and `/m` (account 751, purged). Backup `~/release-backups/2026-09-25/`. Auto mode blocks prod deploys: the deploy ran as a script CSJ executed with `!`.
+- **iOS test red since at least 2026-09-22:** `AuthenticationCoordinatorTests.refreshAuthenticatedUserReplacesTheCachedUserWithoutTouchingTheSession` gets `passwordChangeRequired` after `verifyLogin`, although the 96d8dfdfc test fix is in. Not a gate; needs a real look.
 - **2026-09-22: prod (fynla.org) = main `df14df1e2`.** Three releases, all walked live on `/m` with fresh registrations, since purged; nothing unreleased. Backups `~/release-backups/2026-09-22{a,b,c}/`.
   - `904364c31` (#924) — threshold position, RSU value and labels, free-tier childcare and Gift Aid, Gift Aid one-write, green gate (#919–#923).
   - `f2f880fc7` (#926) — disabled-child flag, taper copy, `serialize_precision` at boot (#925); migration `2026_09_22_150000` ran.

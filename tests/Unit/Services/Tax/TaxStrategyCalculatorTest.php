@@ -651,9 +651,11 @@ describe('benchmark', function () {
 
 describe('recommendations contract (canonical)', function () {
     it('exposes an empty recommendations array for single-mode users with no triggering data', function () {
+        // Below the Personal Allowance: since ruling (c) any taxpaying earner
+        // gets a pension relief item, so "no triggering data" means no tax.
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
-            'annual_employment_income' => 50000,
+            'annual_employment_income' => 12000,
             'marital_status' => 'single',
         ]);
 
@@ -879,7 +881,9 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
         $rec = collect($output->recommendations)->firstWhere('type', 'dividend_allowance_harvest');
         expect($rec)->not->toBeNull()
             ->and($rec['category'])->toBe('allowance')
-            ->and($rec['priority'])->toBe('low');
+            ->and($rec['priority'])->toBe('low')
+            // Unused allowance is not tax saved (ruling 2026-09-25).
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull();
     });
 });
 
@@ -1104,7 +1108,9 @@ describe('Phase 2 — lifecycle strategies (#16, #17, #18)', function () {
         expect($rec)->not->toBeNull()
             ->and($rec['category'])->toBe('lifecycle')
             ->and($rec['priority'])->toBe('medium')
-            ->and($rec['estimated_annual_tax_saved'])->toBe(1000.0); // £4k × 25% bonus
+            // A bonus, not tax saved (ruling 2026-09-25): shown, never totalled.
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull()
+            ->and($rec['government_bonus'])->toBe(1000.0); // £4k × 25% bonus
     });
 
     it('omits Lifetime ISA for a user past 40', function () {
@@ -1149,7 +1155,9 @@ describe('Phase 2 — lifecycle strategies (#16, #17, #18)', function () {
 
         expect($jpension)->not->toBeNull()
             ->and($jpension['children_under_18'])->toBe(2)
-            ->and($jpension['estimated_annual_tax_saved'])->toBe(1440.0); // 2 × £720
+            // An uplift, not tax saved (ruling 2026-09-25): shown, never totalled.
+            ->and($jpension['estimated_annual_tax_saved'])->toBeNull()
+            ->and($jpension['total_government_uplift'])->toBe(1440.0); // 2 × £720
     });
 });
 
@@ -1202,6 +1210,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500, // £6,000/yr
             'salary_sacrifice' => false,
             'employer_ni_rebate_pct' => null,
@@ -1228,6 +1237,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500,
             'salary_sacrifice' => false,
             'employer_ni_rebate_pct' => null,
@@ -1247,6 +1257,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 400, // £4,800/yr
             'salary_sacrifice' => false,
             'employer_ni_rebate_pct' => 0.5, // 50% of employer NI rebated back
@@ -1271,6 +1282,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500,
             'salary_sacrifice' => true,
         ]);
@@ -1288,6 +1300,7 @@ describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
             'marital_status' => 'single',
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'monthly_contribution_amount' => 500,
             'salary_sacrifice' => false,
         ]);
@@ -1952,7 +1965,10 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             ->and($rec['standard_annual_allowance'])->toBe(60000.0)
             ->and($rec['minimum_allowance'])->toBe(10000.0)
             ->and($rec['taper_rate'])->toBe(0.5)
-            ->and($rec['marginal_rate'])->toBe(0.45);
+            ->and($rec['marginal_rate'])->toBe(0.45)
+            // A warning: the charge avoided is carried, never counted as tax saved.
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull()
+            ->and($rec['annual_allowance_charge_avoided'])->toBeGreaterThan(0.0);
     });
 
     it('adds the employee contributions back into adjusted income (FA 2004 s228ZA)', function () {

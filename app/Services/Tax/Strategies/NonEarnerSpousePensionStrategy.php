@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Strategies;
 
-use App\Constants\TaxDefaults;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
@@ -19,7 +18,7 @@ use App\Services\TaxConfigService;
  *
  * Fires when household_calculation_mode = single_earner_couple AND the
  * spouse is under 75. £2,880 net contribution → £3,600 gross via 25%
- * basic-rate uplift = £720/yr direct saving. Spouse age is resolved from
+ * basic-rate uplift (figures from TaxConfigService) = the direct saving. Spouse age is resolved from
  * a family_members row (relationship in spouse/partner/wife/husband/
  * civil_partner) or, failing that, a linked spouse user — when no DOB is
  * known we keep firing because single_earner_couple normally implies a
@@ -37,6 +36,13 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         $user = $context->user;
         $household = $context->household;
 
+        // CSJ ruling 2026-09-25: the top-up counts as household tax saved
+        // because a spouse or civil partner is a legal contract; an unmarried
+        // couple is outside that ruling.
+        if (! $this->math->isMarriedOrCivilPartner($user)) {
+            return [];
+        }
+
         if ($context->mode === 'single_earner_couple') {
             return $this->nonEarnerPath($user, $household);
         }
@@ -50,19 +56,24 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
 
     /**
      * Original non-earner path (single_earner_couple mode): flat £2,880 net
-     * → £3,600 gross → £720 government uplift per TaxDefaults constants.
+     * net → gross via basic-rate relief at source (TaxStrategyMath::nonEarnerPensionContribution).
      */
     private function nonEarnerPath(User $user, mixed $household): array
     {
         $spouseAge = $this->resolveSpouseAge($user);
-        if ($spouseAge !== null && $spouseAge >= 75) {
+        if ($spouseAge !== null && $spouseAge >= $this->reliefMaxAge()) {
             return [];
         }
 
-        // M9 — sourced from TaxDefaults; promote to TaxConfigService once
-        // the schema gains a non_earner_pension key (CSJTODO S-3).
-        $netContribution = (float) TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
-        $governmentUplift = (float) TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
+        $figures = $this->math->nonEarnerPensionContribution();
+        // What the spouse already pays in (stored net for a non-earner, the
+        // relief-at-source shape the capture writes) comes off the top (B5).
+        $alreadyPaid = (float) ($household?->spouse_pension_input_annual ?? 0);
+        $netContribution = round(max(0.0, $figures['net'] - $alreadyPaid), 2);
+        if ($netContribution < 1) {
+            return [];
+        }
+        $governmentUplift = round($netContribution * $figures['relief'] / $figures['net'], 2);
         $existingBalance = (float) ($household?->spouse_existing_pension_balance ?? 0);
 
         $balanceLine = $existingBalance > 0
@@ -130,13 +141,18 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         }
 
         $spouseAge = $this->resolveSpouseAge($user);
-        if ($spouseAge !== null && $spouseAge >= 75) {
+        if ($spouseAge !== null && $spouseAge >= $this->reliefMaxAge()) {
             return [];
         }
 
         // Basic-rate relief at source — from TaxConfigService, not hardcoded.
         $basicRate = $this->math->bandRateForBand('basic');
-        $grossCapacity = $spouseIncome; // relevant UK earnings = contribution cap
+        // Relevant earnings cap the gross contribution; what they already pay
+        // in (gross in this mode) has used part of it (B5).
+        $grossCapacity = max(0.0, $spouseIncome - (float) ($household->spouse_pension_input_annual ?? 0));
+        if ($grossCapacity < 1) {
+            return [];
+        }
         $uplift = round($grossCapacity * $basicRate, 2);
         $netCost = round($grossCapacity * (1.0 - $basicRate), 2);
 
@@ -145,8 +161,8 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
             category: StrategyCategory::Household,
             priority: StrategyPriority::Medium,
             title: sprintf(
-                'Max out your spouse\'s pension on their £%s earnings — instant £%s government top-up',
-                number_format((int) $spouseIncome),
+                'Top up your spouse\'s pension by £%s — instant £%s government top-up',
+                number_format((int) $netCost),
                 number_format((int) $uplift),
             ),
             description: sprintf(
@@ -166,6 +182,12 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 'spouse_age' => $spouseAge,
             ],
         )];
+    }
+
+    /** No relief on contributions paid after 75: FA 2004 s188(3)(a), from pension.relief_max_age. */
+    private function reliefMaxAge(): int
+    {
+        return (int) $this->taxConfig->getPensionAllowances()['relief_max_age'];
     }
 
     /**

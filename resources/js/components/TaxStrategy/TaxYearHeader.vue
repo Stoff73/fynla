@@ -20,7 +20,14 @@ export default {
   name: 'TaxYearHeader',
   mixins: [currencyMixin],
   computed: {
-    ...mapGetters('taxStrategy', ['taxYear', 'recommendations', 'composedPlan']),
+    ...mapGetters('taxStrategy', ['taxYear', 'recommendations', 'composedPlan', 'userAllowances']),
+    // "well-utilised" is only true when no allowance has known headroom (the
+    // /m rule, resources/mobile/views/TaxStrategy.vue).
+    knownHeadroomCount() {
+      return (this.userAllowances || []).filter(
+        (a) => a.available !== false && a.known !== false && Number(a.remaining) > 0,
+      ).length;
+    },
     ...mapGetters('auth', ['currentUser']),
     firstName() {
       return this.currentUser?.first_name || 'there';
@@ -53,7 +60,9 @@ export default {
       if (this.warningCount > 0) {
         return `${this.firstName}, there's something to watch out for this year`;
       }
-      return `${this.firstName}, the allowances are well-utilised`;
+      return this.knownHeadroomCount > 0
+        ? `${this.firstName}, you have unused allowances this year`
+        : `${this.firstName}, the allowances are well-utilised`;
     },
     subline() {
       const n = this.actionableCount;
@@ -63,7 +72,9 @@ export default {
         return `No immediate savings to lock in — but there's ${wsuffix} on a pension contribution.`;
       }
       if (n === 0) {
-        return 'Allowances and pension contributions are tracking well — keep going.';
+        return this.knownHeadroomCount > 0
+          ? 'No additional recommended actions are available from the information on file right now. Your unused allowances are shown below.'
+          : 'Your allowances are well-utilised — nothing to act on right now.';
       }
       const base = n === 1
         ? "We've found 1 way to cut the tax bill"

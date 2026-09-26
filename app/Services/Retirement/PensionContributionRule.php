@@ -37,7 +37,7 @@ final class PensionContributionRule
      * The explicit amount wins where it is set, because it is what the member
      * actually told us. The percentage is the fallback, not the other way round.
      */
-    public static function monthlyEmployee(DCPension $pension): float
+    public static function monthlyEmployee(DCPension $pension, float $fallbackSalary = 0.0): float
     {
         $stated = (float) ($pension->monthly_contribution_amount ?? 0);
 
@@ -46,7 +46,9 @@ final class PensionContributionRule
         }
 
         $percent = (float) ($pension->employee_contribution_percent ?? 0);
-        $salary = (float) ($pension->annual_salary ?? 0);
+        // The onboarding form captures the percentage but not the scheme's
+        // salary; the caller's own pay figure stands in for it.
+        $salary = (float) ($pension->annual_salary ?? 0) ?: $fallbackSalary;
 
         if ($percent <= 0 || $salary <= 0) {
             return 0.0;
@@ -75,5 +77,20 @@ final class PensionContributionRule
     public static function isSalaryDeducted(DCPension $pension): bool
     {
         return ! in_array($pension->scheme_type, ['sipp', 'personal'], true);
+    }
+
+    /**
+     * Whether this is an employer-run scheme, the only kind salary sacrifice
+     * can apply to. `scheme_type` decides when it is set. The onboarding form
+     * records the kind in `pension_type` and leaves `scheme_type` null, so
+     * 'occupational' there counts as workplace too.
+     */
+    public static function isWorkplace(DCPension $pension): bool
+    {
+        if ((string) ($pension->scheme_type ?? '') !== '') {
+            return $pension->scheme_type === 'workplace';
+        }
+
+        return $pension->pension_type === 'occupational';
     }
 }

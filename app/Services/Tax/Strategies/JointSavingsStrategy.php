@@ -95,6 +95,11 @@ final class JointSavingsStrategy implements TaxStrategy
         $income = $this->taxConfig->getIncomeTax();
         $spousePsa = $this->math->psaForBand('basic');
         $spousePersonalAllowance = $this->math->personalAllowanceForIncome(0.0);
+        // A Marriage Allowance transfer takes that slice of the spouse's
+        // Personal Allowance first (B4).
+        if ($this->math->marriageAllowanceTransfer($user, $mode, $household) > 0) {
+            $spousePersonalAllowance -= $this->math->marriageAllowanceAmount();
+        }
         $spouseStartingRate = (float) ($income['starting_rate_for_savings']['band']
             ?? $income['starting_rate_for_savings']['amount']
             ?? 0);

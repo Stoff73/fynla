@@ -53,6 +53,17 @@ final class IsaAllowanceAllocator
     ];
 
     /**
+     * What a consumer is worth to the user a year: its tax saving, or for the
+     * Lifetime ISA (whose bonus is not tax saved and so carries no saving)
+     * its government bonus. Ranking on value keeps the pool going where it is
+     * worth most; the headline total still counts tax saved only.
+     */
+    private function annualValue(StrategyRecommendation $rec): float
+    {
+        return (float) ($rec->estimatedAnnualTaxSaved ?? $rec->extra['government_bonus'] ?? 0.0);
+    }
+
+    /**
      * @param  list<StrategyRecommendation>  $recommendations  Pass-1 output of every strategy.
      * @param  array<string, callable(float): list<StrategyRecommendation>>  $reEvaluators  type → re-run its evaluator with the given remaining pool capacity.
      * @param  float  $pool  The user's remaining overall ISA allowance for the year.
@@ -75,8 +86,8 @@ final class IsaAllowanceAllocator
 
         $ranked = array_keys($consumers);
         usort($ranked, function (string $a, string $b) use ($recommendations, $consumers): int {
-            $bySaving = ($recommendations[$consumers[$b]]->estimatedAnnualTaxSaved ?? 0.0)
-                <=> ($recommendations[$consumers[$a]]->estimatedAnnualTaxSaved ?? 0.0);
+            $bySaving = $this->annualValue($recommendations[$consumers[$b]])
+                <=> $this->annualValue($recommendations[$consumers[$a]]);
 
             return $bySaving !== 0 ? $bySaving : ($consumers[$a] <=> $consumers[$b]);
         });
@@ -101,7 +112,11 @@ final class IsaAllowanceAllocator
                 continue;
             }
 
-            $usedBy = $drawers === [] ? $ranked[0] : implode(' and ', $drawers);
+            // Users read this note, so it names the items by their titles.
+            $usedBy = implode(' and ', array_map(
+                fn (string $t): string => '"'.$recommendations[$consumers[$t]]->title.'"',
+                $drawers === [] ? [$ranked[0]] : $drawers,
+            ));
 
             if ($remaining <= 0.0) {
                 $recommendations[$idx] = $this->withExtra($rec, [

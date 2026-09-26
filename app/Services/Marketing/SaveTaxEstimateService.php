@@ -135,12 +135,18 @@ class SaveTaxEstimateService
             $spousePsa = $this->personalSavingsAllowance(0); // basic band → full PSA
             $startingRate = $this->taxInt('income_tax.starting_rate_for_savings.band');
             $marriage = $this->taxInt('income_tax.marriage_allowance.amount');
+            // A Marriage Allowance transfer takes that slice out of the spouse's
+            // Personal Allowance (ITA 2007 s55B(6),
+            // https://www.legislation.gov.uk/ukpga/2007/3/section/55B), so it
+            // cannot also shelter moved income: count only what is left.
+            $marriageClaimed = $this->isBasicRate($income);
+            $spousePaLeft = $marriageClaimed ? $pa - $marriage : $pa;
 
             $savings[] = [
                 'key' => 'spouse_pa',
                 'label' => "Use your spouse's Personal Allowance",
-                'amount' => (int) round($pa * $rate),
-                'reason' => 'Your spouse earns nothing, so moving income or savings to them uses their '.$this->money($pa).' tax-free allowance.',
+                'amount' => (int) round($spousePaLeft * $rate),
+                'reason' => 'Your spouse earns nothing, so moving income or savings to them uses their '.$this->money($spousePaLeft).' of tax-free allowance'.($marriageClaimed ? ' left after Marriage Allowance.' : '.'),
             ];
             $savings[] = [
                 'key' => 'spouse_psa',
@@ -157,7 +163,7 @@ class SaveTaxEstimateService
             // Formal Marriage Allowance only applies when the recipient is a
             // basic-rate taxpayer — higher/additional earners are not eligible.
             // (The full-PA transfer lever above works at any rate.)
-            if ($this->isBasicRate($income)) {
+            if ($marriageClaimed) {
                 $savings[] = [
                     'key' => 'marriage_allowance',
                     'label' => 'Marriage Allowance',

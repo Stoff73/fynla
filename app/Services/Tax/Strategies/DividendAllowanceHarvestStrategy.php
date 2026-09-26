@@ -61,7 +61,8 @@ final class DividendAllowanceHarvestStrategy implements TaxStrategy
                 number_format((int) $dividendAllowance),
                 number_format((int) round($saving)),
             ),
-            estimatedAnnualTaxSaved: round($saving, 2),
+            // Unused allowance saves nothing until dividends exist to use it (ruling 2026-09-25).
+            estimatedAnnualTaxSaved: null,
             extra: [
                 'unused_allowance' => round($headroom, 2),
                 'dividend_rate' => $divRate,
