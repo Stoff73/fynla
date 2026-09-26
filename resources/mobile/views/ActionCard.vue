@@ -66,6 +66,7 @@
 
       <div class="mac-actions">
         <button type="button" class="m-btn-ghost" data-testid="ask-fyn" @click="askFyn">Ask Fyn about this</button>
+        <button v-if="!card.done && card.go_to" type="button" class="m-btn-ghost" data-testid="go-to" @click="goTo">Go to it</button>
         <button
           v-if="!card.done && card.primary && card.primary.kind === 'mark_done'"
           type="button"
@@ -203,6 +204,11 @@ export default {
       await this.sendToFyn(ask && ask.prompt);
     },
 
+    goTo() {
+      const navigation = this.$router.push(resolveMobileDestination(this.card.go_to, recordUnknownMobileDestination));
+      if (navigation?.catch) navigation.catch(() => {});
+    },
+
     navigate() {
       const navigation = this.$router.push(resolveMobileDestination(this.card.primary, recordUnknownMobileDestination));
       if (navigation?.catch) navigation.catch(() => {});
@@ -223,10 +229,10 @@ export default {
 .mac-figure__value { margin: 0; font-size: 20px; font-weight: 800; color: var(--horizon-500); }
 .mac-fund { display: flex; align-items: flex-start; gap: 10px; margin-top: 6px; padding: 10px; border: 1px solid var(--horizon-200); border-radius: 10px; }
 .mac-fund__name { display: block; font-size: 14px; font-weight: 700; color: var(--horizon-500); }
-.mac-fund__warn { display: block; margin-top: 2px; font-size: 12px; color: var(--violet-600); }
+.mac-fund__warn { display: block; margin-top: 2px; font-size: 12px; color: var(--violet-500); }
 .mac-disclaimer { margin: 12px 0 0; font-size: 12px; color: var(--neutral-600); }
 .mac-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.mac-chip { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--violet-600); background: var(--violet-50); }
+.mac-chip { padding: 1px 9px; border: 1px solid var(--violet-500); border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--violet-500); background: var(--white); }
 .mac-chip--done { color: var(--spring-600); background: var(--spring-200); }
 .mac-error { margin: 0 4px 12px; font-size: 13px; color: var(--raspberry-600); }
 </style>

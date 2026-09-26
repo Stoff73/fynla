@@ -80,6 +80,13 @@
         <div class="mt-8 flex flex-wrap gap-3">
           <button type="button" class="btn-secondary" data-testid="ask-fyn" @click="askFyn">Ask Fyn about this</button>
           <button
+            v-if="!card.done && card.go_to"
+            type="button"
+            class="btn-secondary"
+            data-testid="go-to"
+            @click="goTo"
+          >Go to it</button>
+          <button
             v-if="!card.done && card.primary && card.primary.kind === 'mark_done'"
             type="button"
             class="btn-primary"
@@ -211,6 +218,11 @@ export default {
         return;
       }
       this.openFynWith(ask && ask.prompt);
+    },
+
+    goTo() {
+      const route = resolveWebDestination(this.card.go_to.destination);
+      if (route) this.$router.push(route);
     },
 
     navigate() {

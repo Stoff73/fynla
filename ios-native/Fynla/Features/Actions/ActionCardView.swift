@@ -34,7 +34,7 @@ struct ActionCardView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     if card.done {
-                        chip("Done", foreground: FynlaColor.Token.spring600.color, background: FynlaColor.Token.spring100.color)
+                        chip(card.doneLabel, foreground: FynlaColor.Token.spring600.color, background: FynlaColor.Token.spring100.color)
                     } else if let deadline = card.deadline {
                         chip(deadline.label, foreground: FynlaColor.Token.violet500.color, background: FynlaColor.Token.violet500.color.opacity(0.12))
                     }
@@ -95,6 +95,14 @@ struct ActionCardView: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(FynlaColor.Token.raspberry500.color)
                         .accessibilityIdentifier("action-card.ask-fyn")
+                    if !card.done, let goTo = card.goTo {
+                        Button("Go to it") {
+                            onRoute(SemanticDestinationResolver.route(for: goTo.destination, legacyPath: goTo.payload))
+                        }
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                        .accessibilityIdentifier("action-card.go-to")
+                    }
                     Spacer(minLength: 0)
                     primaryButton(card)
                 }

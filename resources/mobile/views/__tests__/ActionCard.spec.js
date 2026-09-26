@@ -104,4 +104,11 @@ describe('/m action card', () => {
     await flushPromises();
     expect(chrome.send).toHaveBeenCalledWith('Help me add my pension details');
   });
+
+  it('offers Go to it when the card carries the page the action is done on', async () => {
+    const w = mountCard(card({ go_to: { destination: { screen: 'tax_strategy', params: {} }, payload: '/tax-strategy' } }));
+    await flushPromises();
+
+    expect(w.find('[data-testid="go-to"]').exists()).toBe(true);
+  });
 });

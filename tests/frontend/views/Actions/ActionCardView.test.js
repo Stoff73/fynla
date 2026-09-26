@@ -145,4 +145,12 @@ describe('ActionCardView', () => {
     await wrapper.get('[data-testid="primary-capture"]').trigger('click');
     expect(dispatch).toHaveBeenCalledWith('aiChat/prefillPrompt', 'Help me add my pension details');
   });
+
+  it('offers Go to it when the card carries the page the action is done on', async () => {
+    const { wrapper } = mountCard(card({ go_to: { destination: { screen: 'tax_strategy', params: {} }, payload: '/tax-strategy' } }));
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="go-to"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="mark-done"]').exists()).toBe(true);
+  });
 });

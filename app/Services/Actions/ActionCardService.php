@@ -103,7 +103,7 @@ final class ActionCardService
                 ? ($taxItem !== null ? ActionCardFigures::why($taxItem) : (array) ($card['personalised_context'] ?? []))
                 : [],
             'what_this_changes' => $isRecommendation ? [] : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
-            'key_figure' => $this->keyFigure($card['potential_benefit'] ?? null),
+            'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null),
             'how_to' => $this->howTo($module, $taxItem['type'] ?? null, $card['definition_key'] ?? null),
             'conflict_note' => $card['conflict_note'] ?? null,
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
@@ -115,6 +115,11 @@ final class ActionCardService
                 : ($item['action']['kind'] === 'navigate'
                     ? ['kind' => 'navigate', 'destination' => $item['action']['destination'] ?? null, 'payload' => $item['action']['payload'] ?? null]
                     : ['kind' => 'capture', 'prompt' => (string) ($item['action']['prompt'] ?? '')]),
+            // Where a recommendation is actioned (the row's old destination),
+            // shown as "Go to it" beside Mark as done (review I5).
+            'go_to' => $isRecommendation && ($item['action']['kind'] ?? '') === 'navigate'
+                ? ['destination' => $item['action']['destination'] ?? null, 'payload' => $item['action']['payload'] ?? null]
+                : null,
             'funding' => $taxItem !== null && in_array($taxItem['type'], ActionCardFigures::FUNDED_TYPES, true)
                 ? $this->funding($user, (string) $taxItem['type'])
                 : null,
@@ -201,6 +206,7 @@ final class ActionCardService
             'disclaimer' => null,
             'ask_fyn' => ['kind' => 'prompt', 'prompt' => 'Tell me more about: '.$title],
             'primary' => null,
+            'go_to' => null,
             'funding' => null,
             'done' => true,
             'completed_at' => $row->completed_at?->toIso8601String(),
@@ -238,11 +244,22 @@ final class ActionCardService
         return ['label' => 'Worth reviewing', 'closes_on' => null];
     }
 
-    /** @return array{label: string, value: string, sub: string|null}|null */
-    private function keyFigure(mixed $benefit): ?array
+    /**
+     * The key figure from the action's benefit. An estate benefit is a one-off
+     * Inheritance Tax saving (EstateRecommendationAdapter), never "a year";
+     * every other module's benefit is an annual tax saving.
+     *
+     * @return array{label: string, value: string, sub: string|null}|null
+     */
+    public static function keyFigureFor(string $module, mixed $benefit): ?array
     {
-        return is_numeric($benefit) && (float) $benefit > 0
-            ? ['label' => 'Saves about', 'value' => '£'.number_format((float) $benefit).' a year', 'sub' => null]
-            : null;
+        if (! is_numeric($benefit) || (float) $benefit <= 0) {
+            return null;
+        }
+        $pounds = '£'.number_format((float) $benefit);
+
+        return $module === 'estate'
+            ? ['label' => 'Could reduce Inheritance Tax by about', 'value' => $pounds, 'sub' => null]
+            : ['label' => 'Saves about', 'value' => $pounds.' a year', 'sub' => null];
     }
 }

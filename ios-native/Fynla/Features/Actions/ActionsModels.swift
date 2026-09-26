@@ -50,6 +50,12 @@ struct ActionCard: Decodable, Sendable, Equatable, Identifiable {
         case navigate(destination: SemanticDestination?, payload: String?)
     }
 
+    /// Where a recommendation is actioned — "Go to it" beside Mark as done.
+    struct GoTo: Decodable, Sendable, Equatable {
+        let destination: SemanticDestination?
+        let payload: String?
+    }
+
     enum AskFyn: Sendable, Equatable {
         case prompt(String)
         case contextual(FynContextualConversationRequest)
@@ -72,13 +78,24 @@ struct ActionCard: Decodable, Sendable, Equatable, Identifiable {
     let askFyn: AskFyn
     let primary: Primary?
     var funding: Funding?
+    let goTo: GoTo?
     let done: Bool
     let completedAt: String?
 
     var eyebrow: String { [moduleLabel, topic].compactMap { $0 }.joined(separator: " · ") }
 
+    /// "Done · 26/09/2026", as web and /m show it (review I2).
+    var doneLabel: String {
+        guard let completedAt, let date = ISO8601DateFormatter().date(from: completedAt) else { return "Done" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_GB")
+        formatter.dateFormat = "dd/MM/yyyy"
+        return "Done · \(formatter.string(from: date))"
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id, type, module, topic, deadline, title, description, why, done, funding, primary
+        case goTo = "go_to"
         case moduleLabel = "module_label"
         case whatThisChanges = "what_this_changes"
         case keyFigure = "key_figure"
@@ -126,6 +143,7 @@ struct ActionCard: Decodable, Sendable, Equatable, Identifiable {
         disclaimer = try c.decodeIfPresent(String.self, forKey: .disclaimer)
         // A malformed optional block must not take the whole card down.
         funding = try? c.decodeIfPresent(Funding.self, forKey: .funding)
+        goTo = try? c.decodeIfPresent(GoTo.self, forKey: .goTo)
         done = try c.decodeIfPresent(Bool.self, forKey: .done) ?? false
         completedAt = try c.decodeIfPresent(String.self, forKey: .completedAt)
 

@@ -7,7 +7,7 @@ use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 
 /*
- * docs/action-how-to/<module>.md is the one source of how-to steps. The seeder
+ * database/seeders/data/action-how-to/<module>.md is the one source of how-to steps. The seeder
  * writes every entry's steps and status, so an entry CSJ has not approved stays
  * draft and never reaches a card.
  */
@@ -41,4 +41,17 @@ it('writes the repository file to the tax definitions, leaving every draft as dr
 
     expect($row->how_to_status)->toBe('draft')
         ->and(json_decode((string) $row->getRawOriginal('how_to_steps'), true))->toBeArray()->not->toBeEmpty();
+});
+
+it('reads its source from the database folder every deploy ships, and fails loudly without it', function () {
+    // Review I3: docs/ is not deployed (deploy/DEPLOY.md rsync list), so a
+    // source there would leave production with no steps and no error.
+    expect(ActionHowToSeeder::sourcePath('tax'))->toStartWith(database_path())
+        ->and(is_file(ActionHowToSeeder::sourcePath('tax')))->toBeTrue();
+
+    expect(fn () => (new ActionHowToSeeder)->loadModule('missing_module_for_test'))->toThrow(RuntimeException::class);
+});
+
+it('runs with the main database seeder', function () {
+    expect(file_get_contents(database_path('seeders/DatabaseSeeder.php')))->toContain('ActionHowToSeeder::class');
 });

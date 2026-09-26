@@ -120,3 +120,17 @@ it('puts the strategy own figures in the why bullets, never a guessed sentence',
         ->and($card['why'][0])->toContain((string) ($pension['relief_rate'] * 100).'%')
         ->and($card['key_figure']['value'])->toBe('£'.number_format($pension['estimated_annual_tax_saved']).' a year');
 });
+
+it('keeps the page where a recommendation is actioned as the card go-to link', function () {
+    // Review I5: rows now open the card, so the card carries the row's old
+    // destination beside Mark as done.
+    $user = actionCardUserWithIsaHeadroom();
+    Sanctum::actingAs($user);
+    $item = collect(openActions($this))->first(fn ($i) => $i['type'] === 'recommendation' && ($i['action']['kind'] ?? '') === 'navigate');
+    expect($item)->not->toBeNull();
+
+    $card = $this->getJson('/api/recommendations/actions/'.rawurlencode($item['id']))->assertOk()->json('data');
+
+    expect($card['go_to'])->toBe(['destination' => $item['action']['destination'] ?? null, 'payload' => $item['action']['payload'] ?? null])
+        ->and($card['primary']['kind'])->toBe('mark_done');
+});

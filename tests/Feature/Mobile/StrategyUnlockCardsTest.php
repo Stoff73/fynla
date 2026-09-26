@@ -104,9 +104,14 @@ it('asks Fyn for the missing detail by name, not for tax strategy details in gen
         fn ($a) => str_starts_with((string) ($a['id'] ?? ''), 'strategy_unlock:'),
     ));
 
+    // Review I6: the precise missing detail (HouseholdFinancialContext
+    // ::labelFor), from RecommendationRouting — the one home for unlock prompts.
     expect($unlocks)->not->toBeEmpty();
     foreach ($unlocks as $item) {
-        $noun = substr($item['meta'], strlen('Enter your '), -strlen(' details'));
-        expect($item['action']['prompt'])->toBe('Help me add my '.$noun.' details');
+        $type = substr($item['id'], strlen('strategy_unlock:'));
+        $locked = collect(app(\App\Services\Coordination\ComposedTaxPlanService::class)->forUser($user)['locked'])->firstWhere('strategy_type', $type);
+        $label = \App\Services\Coordination\HouseholdFinancialContext::labelFor((string) $locked['missing'][0]);
+        expect($item['action']['prompt'])->toBe(\App\Services\Mobile\RecommendationRouting::strategyUnlockPrompt((string) $locked['missing'][0]))
+            ->and($item['action']['prompt'])->toBe('Help me add my '.$label);
     }
 });

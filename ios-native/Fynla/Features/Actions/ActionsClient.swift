@@ -56,10 +56,13 @@ struct LiveActionsClient: ActionsClient {
             fundingSourceID: account.accountID
         ))
         _ = try await apiClient.send(
+            // The reply is {success, message} with no `data`, so it is read raw;
+            // the envelope decoder would throw on a save that succeeded (review C2).
             APIRequest<ActionEmptyResponse>(
                 path: "api/plans/tax/funding-source",
                 method: .put,
-                body: body
+                body: body,
+                responseDecoding: .raw
             )
         )
     }

@@ -17,6 +17,7 @@ struct ActionCardTests {
         #expect(card.funding?.accounts.first?.name == "Nationwide")
         #expect(card.primary == .markDone(recommendationID: "tax_pension_tax_relief"))
         #expect(card.done == false)
+        #expect(card.goTo != nil)
     }
 
     @Test
@@ -64,6 +65,44 @@ struct ActionCardTests {
             "/fynla/api/recommendations/actions/strategy_unlock:bed_and_isa",
             "/fynla/api/recommendations/actions",
         ])
+    }
+
+    @Test
+    func saveFundingAcceptsTheSuccessReplyWithNoDataKey() async throws {
+        // Review C2: the funding-source reply is {success, message}; decoding
+        // it through the envelope threw on a save that had succeeded.
+        let card = try decode(ActionCardEnvelope.self, "action-card").data
+        let transport = TestHTTPTransport([
+            .response(status: 200, body: Data(#"{"success":true,"message":"Funding source updated"}"#.utf8)),
+        ])
+        let client = LiveActionsClient(apiClient: APIClient(
+            environment: try AppEnvironment.values([
+                "FYNLA_ENVIRONMENT": "staging",
+                "FYNLA_API_BASE_URL": "https://csjones.co/fynla",
+                "FYNLA_WEB_BASE_URL": "https://csjones.co/fynla",
+            ]),
+            version: "1.0.0",
+            build: "12",
+            transport: transport,
+            tokenProvider: ActionCardTokenProvider(),
+            requestID: { "action-card-request" }
+        ))
+
+        try await client.saveFunding(card, account: try #require(card.funding?.accounts.first))
+
+        #expect((await transport.requests()).map(\.url?.path) == ["/fynla/api/plans/tax/funding-source"])
+    }
+
+    @Test
+    func doneCardShowsItsCompletionDate() throws {
+        var json = try JSONSerialization.jsonObject(with: try fixture("action-card")) as! [String: Any]
+        var data = json["data"] as! [String: Any]
+        data["done"] = true
+        data["completed_at"] = "2026-09-26T10:00:00+00:00"
+        json["data"] = data
+        let card = try JSONDecoder().decode(ActionCardEnvelope.self, from: try JSONSerialization.data(withJSONObject: json)).data
+
+        #expect(card.doneLabel == "Done · 26/09/2026")
     }
 
     @Test

@@ -572,9 +572,7 @@ class NextActionsService
                 'meta' => 'Enter your '.$noun.' details',
                 'value' => $weight,
                 'done' => false,
-                // Ask for the missing detail by name: the generic tax prompt
-                // made Fyn answer with advice instead (walked 2026-09-26).
-                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax', 'prompt' => 'Help me add my '.$noun.' details'],
+                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax', 'prompt' => RecommendationRouting::strategyUnlockPrompt((string) ($locked['missing'][0] ?? ''))],
             ];
         }
 
