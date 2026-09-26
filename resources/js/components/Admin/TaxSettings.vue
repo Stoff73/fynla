@@ -2398,10 +2398,18 @@
           <!-- Domicile Rules -->
           <div class="card">
             <div class="px-6 py-4 border-b border-light-gray">
-              <h3 class="text-lg font-semibold text-horizon-500">Domicile Rules</h3>
+              <h3 class="text-lg font-semibold text-horizon-500">Inheritance Tax Residence Rules</h3>
             </div>
             <div class="px-6 py-4">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- From 6 April 2025: long-term UK residence (IHTA 1984 s6A). -->
+              <div v-if="currentConfig.domicile?.long_term_residence" class="space-y-2">
+                <p class="text-sm"><span class="text-neutral-500">Long-term UK resident:</span> <span class="font-medium">UK resident in at least {{ currentConfig.domicile.long_term_residence.qualifying_years }} of the previous {{ currentConfig.domicile.long_term_residence.lookback_years }} tax years</span></p>
+                <p class="text-sm"><span class="text-neutral-500">Inheritance Tax Scope:</span> <span class="font-medium">Worldwide assets for a long-term resident; UK assets only otherwise</span></p>
+                <p class="text-sm"><span class="text-neutral-500">Spouse Exemption Limit (spouse not long-term resident):</span> <span class="font-medium">£{{ formatNumber(currentConfig.domicile.long_term_residence.spouse_exemption_limit) }}</span></p>
+                <p class="text-sm"><span class="text-neutral-500">Source:</span> <span class="font-medium">{{ currentConfig.domicile.long_term_residence.source }}</span></p>
+              </div>
+              <!-- Tax years before 6 April 2025: domicile. -->
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 class="font-medium text-horizon-500 mb-3">UK Domiciled</h4>
                   <div class="space-y-2">

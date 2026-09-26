@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Carbon\Carbon;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
     // Set a fixed "now" time for consistent testing
     Carbon::setTestNow(Carbon::create(2025, 10, 27));
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {
@@ -81,43 +83,29 @@ describe('Domicile Info API', function () {
         expect($user->years_uk_resident)->toBe(18);
     });
 
-    it('automatically sets deemed_domicile_date when user has 15+ years residence', function () {
+    it('stores the date the user became a long-term UK resident (IHTA 1984 s6A)', function () {
         $user = User::factory()->create();
-        $arrivalDate = Carbon::now()->subYears(18)->toDateString();
 
-        $response = $this->actingAs($user, 'sanctum')
-            ->putJson('/api/user/profile/domicile', [
-                'domicile_status' => 'non_uk_domiciled',
-                'country_of_birth' => 'Australia',
-                'uk_arrival_date' => $arrivalDate,
-            ]);
+        $this->actingAs($user, 'sanctum')->putJson('/api/user/profile/domicile', [
+            'domicile_status' => 'non_uk_domiciled',
+            'country_of_birth' => 'Australia',
+            'uk_arrival_date' => '2007-10-27',
+        ])->assertStatus(200);
 
-        $response->assertStatus(200);
-
-        $user->refresh();
-        expect($user->deemed_domicile_date)->not->toBeNull();
-
-        // Should be 15 years after arrival
-        $expectedDeemedDate = Carbon::parse($arrivalDate)->addYears(15);
-        expect($user->deemed_domicile_date->format('Y-m-d'))
-            ->toBe($expectedDeemedDate->format('Y-m-d'));
+        // Resident from 2007/08; ten tax years later is 6 April 2017.
+        expect($user->refresh()->deemed_domicile_date->format('Y-m-d'))->toBe('2017-04-06');
     });
 
-    it('does NOT set deemed_domicile_date when user has less than 15 years residence', function () {
+    it('stores no date while the user is not yet a long-term UK resident', function () {
         $user = User::factory()->create();
-        $arrivalDate = Carbon::now()->subYears(10)->toDateString();
 
-        $response = $this->actingAs($user, 'sanctum')
-            ->putJson('/api/user/profile/domicile', [
-                'domicile_status' => 'non_uk_domiciled',
-                'country_of_birth' => 'Canada',
-                'uk_arrival_date' => $arrivalDate,
-            ]);
+        $this->actingAs($user, 'sanctum')->putJson('/api/user/profile/domicile', [
+            'domicile_status' => 'non_uk_domiciled',
+            'country_of_birth' => 'Canada',
+            'uk_arrival_date' => '2018-10-27',
+        ])->assertStatus(200);
 
-        $response->assertStatus(200);
-
-        $user->refresh();
-        expect($user->deemed_domicile_date)->toBeNull();
+        expect($user->refresh()->deemed_domicile_date)->toBeNull();
     });
 
     it('returns domicile_info in response', function () {
@@ -142,15 +130,18 @@ describe('Domicile Info API', function () {
                         'country_of_birth',
                         'uk_arrival_date',
                         'years_uk_resident',
-                        'is_deemed_domiciled',
+                        'is_long_term_uk_resident',
+                        'years_resident_in_lookback',
+                        'long_term_resident_from',
                         'explanation',
                     ],
                 ],
             ]);
 
         $domicileInfo = $response->json('data.domicile_info');
+        // Twelve years: a long-term UK resident under s6A (the old 15-year rule said no).
         expect($domicileInfo['years_uk_resident'])->toBe(12)
-            ->and($domicileInfo['is_deemed_domiciled'])->toBeFalse();
+            ->and($domicileInfo['is_long_term_uk_resident'])->toBeTrue();
     });
 });
 

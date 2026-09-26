@@ -26,6 +26,7 @@ use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\LongTermResidence;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
@@ -220,7 +221,8 @@ class UserProfileService
     }
 
     /**
-     * Update domicile information and calculate deemed domicile status
+     * Update where the user was born and when they came to live in the UK, and
+     * record when they became a long-term UK resident (IHTA 1984 s6A)
      */
     public function updateDomicileInfo(User $user, array $data): User
     {
@@ -240,17 +242,11 @@ class UserProfileService
             $user->years_uk_resident = $yearsResident;
         }
 
-        // Calculate and set deemed_domicile_date if applicable
-        if ($user->isDeemedDomiciled() && ! $user->deemed_domicile_date && $user->uk_arrival_date) {
-            // Calculate the date when they became deemed domiciled (15 years after arrival)
-            $arrivalDate = Carbon::parse($user->uk_arrival_date);
-            $user->deemed_domicile_date = $arrivalDate->copy()->addYears(15);
-        }
-
-        // If they are no longer deemed domiciled (e.g., status changed to uk_domiciled), clear the date
-        if (! $user->isDeemedDomiciled() && $user->domicile_status !== 'uk_domiciled') {
-            $user->deemed_domicile_date = null;
-        }
+        // `deemed_domicile_date` now holds the date the user became (or becomes) a
+        // long-term UK resident for Inheritance Tax (IHTA 1984 s6A), from the one
+        // assessment; null when it cannot be worked out.
+        $assessment = app(LongTermResidence::class)->assess($user);
+        $user->deemed_domicile_date = $assessment['is_long_term_uk_resident'] ? $assessment['long_term_resident_from'] : null;
 
         $user->save();
 

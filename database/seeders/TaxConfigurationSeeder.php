@@ -80,6 +80,14 @@ class TaxConfigurationSeeder extends Seeder
      */
     private function getTaxConfig202526(): array
     {
+        $config = $this->baseTaxConfig202526();
+        $config['domicile']['long_term_residence']['spouse_exemption_limit'] = $config['inheritance_tax']['nil_rate_band'];
+
+        return $config;
+    }
+
+    private function baseTaxConfig202526(): array
+    {
         return [
             'tax_year' => '2025/26',
             'effective_from' => '2025-04-06',
@@ -1080,16 +1088,24 @@ class TaxConfigurationSeeder extends Seeder
                 ],
             ],
 
-            // Domicile rules
+            // Inheritance Tax scope from 6 April 2025: long-term UK residence, not
+            // domicile (IHTA 1984 s6A, inserted by FA 2025 Sch 13;
+            // https://www.gov.uk/hmrc-internal-manuals/inheritance-tax-manual/ihtm47020).
+            // Read by App\Services\Tax\LongTermResidence and briefed to Fyn.
             'domicile' => [
-                'uk_domiciled' => [
-                    'worldwide_assets_subject_to_iht' => true,
-                    'spouse_exemption_unlimited' => true,
-                ],
-                'non_uk_domiciled' => [
-                    'uk_assets_only_subject_to_iht' => true,
-                    'spouse_exemption_limit' => 325000,          // £325,000 limit for non-dom spouse
-                    'deemed_domicile_years' => 15,               // Deemed UK domiciled after 15 of last 20 years
+                'long_term_residence' => [
+                    'effective_from' => '2025-04-06',
+                    'qualifying_years' => 10,                    // UK resident in at least 10...
+                    'lookback_years' => 20,                      // ...of the previous 20 tax years
+                    // Years a leaver stays in scope, by tax years resident (IHTM47020 table).
+                    'tail_years_by_years_resident' => ['13' => 3, '14' => 4, '15' => 5, '16' => 6, '17' => 7, '18' => 8, '19' => 9, '20' => 10],
+                    'long_term_resident' => ['worldwide_assets_subject_to_iht' => true],
+                    'not_long_term_resident' => ['uk_assets_only_subject_to_iht' => true],
+                    // IHTA 1984 s18(2),(2A): a long-term resident's gift to a spouse or civil
+                    // partner who is not one is exempt only up to the nil-rate band. Set from
+                    // inheritance_tax.nil_rate_band below, never repeated as a figure.
+                    'spouse_exemption_limit' => null,
+                    'source' => 'IHTA 1984 s6A; IHTM47020',
                 ],
             ],
 
@@ -1533,6 +1549,7 @@ class TaxConfigurationSeeder extends Seeder
         $config['effective_from'] = '2024-04-06';
         $config['effective_to'] = '2025-04-05';
         $config['notes'] = 'UK Tax Year 2024/25 - Historical configuration';
+        $config['domicile'] = $this->domicileBeforeLongTermResidence($config);
 
         // 2024/25 Blind Person's Allowance was £3,070
         $config['income_tax']['blind_persons_allowance'] = 3070;
@@ -1557,6 +1574,7 @@ class TaxConfigurationSeeder extends Seeder
         $config['effective_from'] = '2023-04-06';
         $config['effective_to'] = '2024-04-05';
         $config['notes'] = 'UK Tax Year 2023/24 - Historical configuration';
+        $config['domicile'] = $this->domicileBeforeLongTermResidence($config);
 
         // 2023/24 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 6000;
@@ -1577,6 +1595,7 @@ class TaxConfigurationSeeder extends Seeder
         $config['effective_from'] = '2022-04-06';
         $config['effective_to'] = '2023-04-05';
         $config['notes'] = 'UK Tax Year 2022/23 - Historical configuration';
+        $config['domicile'] = $this->domicileBeforeLongTermResidence($config);
 
         // 2022/23 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 12300;
@@ -1597,6 +1616,7 @@ class TaxConfigurationSeeder extends Seeder
         $config['effective_from'] = '2021-04-06';
         $config['effective_to'] = '2022-04-05';
         $config['notes'] = 'UK Tax Year 2021/22 - Historical configuration';
+        $config['domicile'] = $this->domicileBeforeLongTermResidence($config);
 
         // 2021/22 had different Additional Rate threshold (£150k)
         $config['income_tax']['bands'][1]['upper_limit'] = 150000;
@@ -1612,5 +1632,23 @@ class TaxConfigurationSeeder extends Seeder
         $config['income_tax']['blind_persons_allowance'] = 2600;
 
         return $config;
+    }
+
+    /**
+     * Before 6 April 2025 Inheritance Tax scope turned on domicile: deemed UK
+     * domiciled after 15 of the previous 20 tax years (IHTA 1984 s267(1)(b) as
+     * it stood before FA 2025); the non-domiciled spouse limit was the nil-rate
+     * band (s18(2),(2A)).
+     */
+    private function domicileBeforeLongTermResidence(array $config): array
+    {
+        return [
+            'uk_domiciled' => ['worldwide_assets_subject_to_iht' => true, 'spouse_exemption_unlimited' => true],
+            'non_uk_domiciled' => [
+                'uk_assets_only_subject_to_iht' => true,
+                'spouse_exemption_limit' => $config['inheritance_tax']['nil_rate_band'],
+                'deemed_domicile_years' => 15,
+            ],
+        ];
     }
 }
