@@ -117,3 +117,23 @@ it('counts a form-captured workplace contribution on the income tab', function (
 
     expect((float) $profile['income_occupation']['annual_pension_contributions'])->toBe(3000.0);
 });
+
+it('counts the Annual Allowance used as the pension input amount, relief at source gross (FA 2004 s233)', function () {
+    $user = onboardingPensionUser();
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => null, 'pension_type' => 'occupational', 'salary_sacrifice' => false,
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3,
+    ]);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'personal', 'pension_type' => 'personal', 'salary_sacrifice' => false,
+        'monthly_contribution_amount' => 200, 'annual_salary' => null,
+        'employee_contribution_percent' => null, 'employer_contribution_percent' => null,
+    ]);
+    $basic = (float) app(TaxConfigService::class)->getPensionAllowances()['tax_relief']['basic_rate'];
+
+    // 3,000 net pay + 1,800 employer + 2,400 paid net grossed to 3,000. The old
+    // sum read the personal pension at the 2,400 the member paid.
+    expect(app(TaxStrategyMath::class)->estimatePensionContributionThisYear($user, null))
+        ->toBe(round(3000 + 1800 + 2400 / (1 - $basic), 2));
+});

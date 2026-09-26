@@ -427,27 +427,15 @@ final class TaxStrategyMath
             return (float) ($user->annual_employment_income ?? 0) * ($overrides->pensionContributionPercent / 100);
         }
 
-        $userIncome = (float) ($user->annual_employment_income ?? 0);
+        // Pension input amount (FA 2004 s233(1)): everything paid in by or for
+        // the member — net-pay employee contributions, relief-at-source payments
+        // GROSS of the basic-rate relief the provider claims (s192), and employer
+        // contributions including sacrificed pay. Read from the income
+        // definitions so there is one reading of the captured pensions.
+        // https://www.legislation.gov.uk/ukpga/2004/12/section/233
+        $d = $this->incomeDefinitionsFor($user)['deductions'];
 
-        // Sum each pension's input separately. monthly_contribution_amount
-        // takes precedence when set; otherwise fall back to the captured
-        // employee+employer percentages applied to the pension's
-        // annual_salary (the user's earnings at that employer) — the
-        // SaveTax onboarding writes %s, not a £ monthly figure.
-        return (float) app(PensionStore::class)
-            ->forUserByType($user, 'dc')
-            ->sum(function ($pension) use ($userIncome) {
-                $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
-                if ($monthly > 0) {
-                    return $monthly * 12;
-                }
-
-                $salary = (float) ($pension->annual_salary ?? 0) ?: $userIncome;
-                $employee = (float) ($pension->employee_contribution_percent ?? 0);
-                $employer = (float) ($pension->employer_contribution_percent ?? 0);
-
-                return $salary * (($employee + $employer) / 100);
-            });
+        return (float) ($d['employee_pension_contributions'] + $d['relief_at_source_gross'] + $d['employer_pension_contributions']);
     }
 
     /**
