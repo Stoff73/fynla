@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-25: Save Tax-only onboarding (#939) released with #935–#937 as #940; prod main `9bc414107` == dev `d6650eb93` (+ patch notes `39cb1d02f`). Next session: Plan B (strategy fixes) then Plan C (how-to pages).*
+*Last updated: 2026-09-26: Save Tax accuracy (Plan B + accuracy batch, #941) released as #942; prod main `b81d5fcc2`. Next: IncomeDefinitionsService fix (branch pushed, regression pending), help-page audit, Estate long-term residence (needs CSJ spec), then Plan C.*
 
 ## The board position
 
@@ -67,21 +67,31 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
-## NEXT — Tax strategy: Plan B, then Plan C (CSJ 2026-09-25)
+## NEXT — accuracy follow-ups, then Plan C (CSJ 2026-09-26)
 
-CSJ's 2026-09-25 request (five items). Items 3, 4 and 5 are done: the threshold strip placement is unchanged, the outcomes list is in `September/September25Updates/savetax-outcomes-by-household-2026-09-25.md`, and Save Tax-only onboarding shipped as #940. Plans B and C are still to write and run. Run them inline with `superpowers:executing-plans`; write each plan first with `superpowers:writing-plans`.
+Plan B and the accuracy batch are **live** (#941 → release #942, 2026-09-26). Every rule has a cited source (CLAUDE.md Rule 23). Patch notes: `September/September25Updates/patch-notes-2026-09-25-savetax-accuracy.md`.
 
-- [ ] **Plan B: fix the strategy engine** (bugs B1–B14 in the outcomes file). CSJ's rulings:
-  - the headline total is as accurate as possible: a suggestion appears only when the user qualifies or has the income or asset, and only real tax saved counts (LISA bonus, junior pension uplift, unused dividend allowance and the "charge avoided" are not "tax saved"; no double counting);
-  - "spouse or civil partner" on the public Save Tax funnel page too (partners must not get Marriage Allowance or spouse-transfer advice);
-  - pension relief suggested for **every** tax band.
-  The clear correctness fixes: salary sacrifice on workplace pensions only (B1); spouse top-up counts what is already paid (B5); no Marriage Allowance with no taxable income (B6), and Marriage Allowance allowed when the spouse earns below the Personal Allowance (B7); `TaxDefaults` and Gift Aid factors from `TaxConfigService` (B13).
+- [ ] **IncomeDefinitionsService: onboarding pension contributions** (CSJ: "next, with the rest of the outstanding stuff").
+  - Branch `fix/income-definitions-pension-contributions` @ `196f90abc`, pushed; no PR yet.
+  - Net pay per FA 2004 s193(2); relief at source per s192, deducted at ITA 2007 s58 Step 3 and s228ZA(5)(c) and extending the bands (s192(4)).
+  - The strategies band on net income; the stopgap `taxableIncomeAfterPensionContributions` is removed. The `UserProfileService` income tab is fixed too.
+  - To do: finish the full Unit+Feature regression, update tests that pin the old wrong behaviour (with cited reasons), open the PR, deploy to csjones, walk web + /m, then release.
+- [ ] **Help pages: full accuracy audit.**
+  - `public/pages/help.php` and `resources/js/views/Help.vue` still name screens and tabs that no longer exist (e.g. "Current Situation Tab", "Policy Details tab").
+  - They still say domicile drives Inheritance Tax.
+  - Verify every statement against the live UI and a cited source.
+- [ ] **Estate: long-term UK residence (BLOCKED ON CSJ SPEC).**
+  - `User::isDeemedDomiciled` still applies the pre-April-2025 "15 years" deemed-domicile rule. It drives the profile Domicile section, `EstateDataReadinessService:172` requires `domicile_status`, and Fyn gets `TaxConfigService::getDomicile()`.
+  - Law since 6 April 2025: long-term UK resident = UK resident in at least 10 of the previous 20 tax years (IHTA 1984 s6A, HMRC IHTM47020). The IHT calculation itself does not use domicile. Domicile still matters for wills (`WillDocumentService`).
+  - Needs a CSJ decision on the profile section, onboarding question and Fyn's briefing.
+- [ ] **Scottish income tax: a separate programme** (CSJ 2026-09-25). The app has no Scottish-taxpayer field and no Scottish bands anywhere.
 - [ ] **Plan C: how-to pages** (CSJ items 1 and 2).
   - Fixed steps written by us and reviewed by CSJ, with the user's figures filled in, stored once in a catalogue.
-  - Detail page in the approved decision-card design C (canvas `https://claude.ai/artifact/6mqya3ujQRPjZkAjfqbYor`): heading, description, why this matters for you, how to do it, Ask Fyn, Mark as done. On web, `/m` and iOS.
-  - The Tax Strategy plan shows headed actions, each opening its how-to.
-  - "See all actions" opens a list of every action, and every action (all modules, about 160 definitions) links to its own how-to. `/m` has `/actions`; iOS needs the list built (it goes to Achievements today).
-  - Order: tax items first (after Plan B lands), then other modules in batches for CSJ to review.
+  - Detail page in the approved decision-card design C (canvas `https://claude.ai/artifact/6mqya3ujQRPjZkAjfqbYor`), on web, `/m` and iOS.
+  - The Tax Strategy plan shows headed actions, each opening its how-to. Fix web `StrategyRecommendationList.vue` rendering `dashboard.recommendations` instead of `composed_plan.items`.
+  - **Design the overlap note (`conflict_note`, `counted_in_total`) into the layout.** CSJ ruled this is not bolted on now.
+  - "See all actions" lists every action (about 160 definitions); iOS needs the list built.
+  - Order: tax items first, then other modules in batches.
 
 ## QUEUED — Fyn memory and dense-recall plan (starts only on CSJ's go)
 
