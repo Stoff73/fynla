@@ -65,4 +65,13 @@ describe('PersonalInformation — country of birth and Inheritance Tax residence
     expect(call[1]).toMatchObject({ country_of_birth: 'Australia', uk_arrival_date: '2015-06-01', domicile_status: 'non_uk_domiciled' });
     expect(wrapper.text()).toContain('Long-term UK resident');
   });
+
+  it('shows the saved country from the server record, not the stale session user', () => {
+    // After a save and reload the auth user did not carry country_of_birth;
+    // the profile's domicile_info is the server's record.
+    const info = { country_of_birth: 'Australia', uk_arrival_date: '2015-06-01', domicile_status: 'non_uk_domiciled', is_long_term_uk_resident: true, explanation: 'You are a long-term UK resident for Inheritance Tax.' };
+    const { wrapper } = mountWith({ id: 1 }, info);
+
+    expect(wrapper.text()).toContain('Australia');
+  });
 });

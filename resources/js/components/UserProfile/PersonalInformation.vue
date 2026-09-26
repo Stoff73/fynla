@@ -821,9 +821,12 @@ export default {
         // Never default an unanswered country to "United Kingdom": saved back, it
         // recorded the user as UK-born and made them a long-term UK resident for
         // Inheritance Tax without being asked (2026-09-26).
-        form.value.country_of_birth = user.value.country_of_birth || '';
-        form.value.uk_arrival_date = formatDateForInput(user.value.uk_arrival_date) || '';
-        form.value.domicile_status = user.value.domicile_status || null;
+        // The profile's domicile_info is the server's current record; the auth
+        // user object does not carry these fields fresh after a save.
+        const saved = domicileInfo.value || {};
+        form.value.country_of_birth = saved.country_of_birth || user.value.country_of_birth || '';
+        form.value.uk_arrival_date = formatDateForInput(saved.uk_arrival_date || user.value.uk_arrival_date) || '';
+        form.value.domicile_status = saved.domicile_status || user.value.domicile_status || null;
 
         // Calculate years resident if uk_arrival_date exists
         if (form.value.uk_arrival_date) {
@@ -833,7 +836,7 @@ export default {
     };
 
     // Watch for changes in data and reinitialize form
-    watch([personalInfo, incomeOccupation, user], () => {
+    watch([personalInfo, incomeOccupation, user, domicileInfo], () => {
       initializeForm();
     }, { immediate: true });
 
