@@ -33,6 +33,14 @@
       "kind": "mark_done",
       "recommendation_id": "tax_pension_tax_relief"
     },
+    "go_to": {
+      "destination": {
+        "screen": "tax_strategy",
+        "params": {},
+        "fallback": "dashboard"
+      },
+      "payload": "/tax-strategy"
+    },
     "funding": {
       "accounts": [
         {
