@@ -434,7 +434,7 @@ class NextActionsService
     /**
      * Human-readable category label, preserving "ISA" casing (Rule #9).
      */
-    public function categoryLabel(string $category): string
+    private function categoryLabel(string $category): string
     {
         $label = ucwords(str_replace('_', ' ', $category));
 
@@ -572,7 +572,9 @@ class NextActionsService
                 'meta' => 'Enter your '.$noun.' details',
                 'value' => $weight,
                 'done' => false,
-                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax', 'prompt' => RecommendationRouting::unlockPrompt('tax')],
+                // Ask for the missing detail by name: the generic tax prompt
+                // made Fyn answer with advice instead (walked 2026-09-26).
+                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax', 'prompt' => 'Help me add my '.$noun.' details'],
             ];
         }
 

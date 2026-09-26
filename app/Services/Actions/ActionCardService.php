@@ -47,6 +47,23 @@ final class ActionCardService
         private readonly TaxConfigService $taxConfig,
     ) {}
 
+    /** Engine categories that describe severity or nothing, not a topic. */
+    private const NOT_A_TOPIC = ['warning', 'general', 'recommended'];
+
+    /**
+     * The card's topic from the engine category ("Income Band", "ISA
+     * Allowance"), or null for a category that is not a topic ("Warning").
+     */
+    public static function topicFor(?string $category): ?string
+    {
+        if ($category === null || $category === '' || in_array(strtolower($category), self::NOT_A_TOPIC, true)) {
+            return null;
+        }
+        $label = ucwords(str_replace('_', ' ', $category));
+
+        return preg_replace('/\bIsa\b/', 'ISA', $label) ?? $label;
+    }
+
     /** @return array<string, mixed>|null null when the id is not this user's */
     public function for(User $user, string $id): ?array
     {
@@ -78,7 +95,7 @@ final class ActionCardService
             'type' => (string) $item['type'],
             'module' => $module,
             'module_label' => (string) ($item['module_label'] ?? NextActionsService::moduleDisplayLabel($module)),
-            'topic' => isset($card['category']) ? $this->actions->categoryLabel((string) $card['category']) : null,
+            'topic' => self::topicFor(isset($card['category']) ? (string) $card['category'] : null),
             'deadline' => $isRecommendation ? $this->deadline($taxItem, $card) : null,
             'title' => (string) $item['title'],
             'description' => (string) ($taxItem['description'] ?? $item['detail'] ?? $item['meta'] ?? ''),

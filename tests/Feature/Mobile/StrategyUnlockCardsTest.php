@@ -89,3 +89,24 @@ it('surfaces at most two strategy unlock cards so the four-slot list is not crow
 
     expect(count($strategyUnlocks))->toBeLessThanOrEqual(2);
 });
+
+it('asks Fyn for the missing detail by name, not for tax strategy details in general', function () {
+    // Walked on csjones 2026-09-26: "Unlock savings info" sent "Help me complete
+    // my tax strategy details" and Fyn answered with tax advice instead of
+    // asking for the savings.
+    $user = User::factory()->create([
+        'date_of_birth' => '1982-02-19', 'marital_status' => 'married', 'employment_status' => 'full_time',
+        'annual_employment_income' => 110000, 'monthly_expenditure' => 3000,
+    ]);
+
+    $unlocks = array_values(array_filter(
+        app(NextActionsService::class)->buildAll($user->id),
+        fn ($a) => str_starts_with((string) ($a['id'] ?? ''), 'strategy_unlock:'),
+    ));
+
+    expect($unlocks)->not->toBeEmpty();
+    foreach ($unlocks as $item) {
+        $noun = substr($item['meta'], strlen('Enter your '), -strlen(' details'));
+        expect($item['action']['prompt'])->toBe('Help me add my '.$noun.' details');
+    }
+});
