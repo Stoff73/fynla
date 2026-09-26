@@ -134,7 +134,7 @@
 
           <!-- Domicile Section -->
           <div>
-            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Domicile Status</h3>
+            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Where you have lived</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-body-sm text-neutral-500">Country of Birth:</span>

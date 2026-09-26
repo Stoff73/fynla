@@ -79,7 +79,7 @@ struct PersonalInformationView: View {
                         }
                     }
 
-                    informationCard(title: "Domicile") {
+                    informationCard(title: "Where you have lived") {
                         Text(profile.domicileInfo?.display ?? "Not recorded")
                             .font(.system(size: 14))
                             .foregroundStyle(FynlaColor.Token.neutral500.color)
