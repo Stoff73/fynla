@@ -28,6 +28,7 @@ struct FynlaApp: App {
     @State private var goalsModel: GoalsModel
     @State private var taxStrategyModel: TaxStrategyModel
     @State private var holisticPlanModel: HolisticPlanModel
+    @State private var actionsModel: ActionsModel
     @State private var settingsModel: SettingsModel
     @State private var privacySettingsModel: PrivacySettingsModel
     @State private var dataExportModel: DataExportModel
@@ -343,6 +344,11 @@ struct FynlaApp: App {
             )
         )
         #endif
+        let actionsModel = ActionsModel(
+            client: LiveActionsClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
         #if FYNLA_UI_TESTING
         let subscriptionModel: SubscriptionModel
         let appleSubscriptionManager: any AppleSubscriptionManaging
@@ -571,6 +577,7 @@ struct FynlaApp: App {
         _goalsModel = State(initialValue: goalsModel)
         _taxStrategyModel = State(initialValue: taxStrategyModel)
         _holisticPlanModel = State(initialValue: holisticPlanModel)
+        _actionsModel = State(initialValue: actionsModel)
         _settingsModel = State(initialValue: settingsModel)
         _privacySettingsModel = State(initialValue: privacySettingsModel)
         _dataExportModel = State(initialValue: dataExportModel)
@@ -632,6 +639,7 @@ struct FynlaApp: App {
             goalsModel: goalsModel,
             taxStrategyModel: taxStrategyModel,
             holisticPlanModel: holisticPlanModel,
+            actionsModel: actionsModel,
             settingsModel: settingsModel,
             privacySettingsModel: privacySettingsModel,
             dataExportModel: dataExportModel,
