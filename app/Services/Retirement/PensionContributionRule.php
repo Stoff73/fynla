@@ -58,28 +58,6 @@ final class PensionContributionRule
     }
 
     /**
-     * Whether this pension's contribution comes out of pay.
-     *
-     * **W-0424, and a second fault found while fixing the first.** The old test
-     * was `in_array($pension->scheme_type, ['workplace', 'occupational',
-     * 'auto_enrolment'])` — but the column is
-     * `enum('workplace','sipp','personal')`, so **two of the three permitted
-     * values could never match**, and the live data also carries NULL. David's
-     * workplace pension has a null `scheme_type`, so the tax side returned £0 for
-     * an 8%-of-£145,000 record.
-     *
-     * Stated as an EXCLUSION rather than an allowlist for that reason: a SIPP or
-     * a personal pension is funded by the member from money they have already
-     * received, so it is not a salary deduction. Anything else with a salary and
-     * a percentage on it is one by construction — a personal pension has no
-     * employer salary basis to compute against.
-     */
-    public static function isSalaryDeducted(DCPension $pension): bool
-    {
-        return ! in_array($pension->scheme_type, ['sipp', 'personal'], true);
-    }
-
-    /**
      * Whether this is an employer-run scheme, the only kind salary sacrifice
      * can apply to. `scheme_type` decides when it is set. The onboarding form
      * records the kind in `pension_type` and leaves `scheme_type` null, so

@@ -368,13 +368,18 @@ class UserProfileService
     private function calculateAnnualPensionContributions(User $user): float
     {
         $totalContributions = 0.0;
+        // The onboarding form captures a percentage without a scheme salary, so
+        // the user's employment income stands in (as in IncomeDefinitionsService).
+        $salary = (float) ($user->annual_employment_income ?? 0);
 
         foreach ($user->dcPensions as $pension) {
-            if (! PensionContributionRule::isSalaryDeducted($pension)) {
+            // Only workplace (net pay) contributions come out of pay before tax
+            // (FA 2004 s193(2)); a personal pension is relief at source (s192).
+            if (! PensionContributionRule::isWorkplace($pension)) {
                 continue;
             }
 
-            $totalContributions += PensionContributionRule::monthlyEmployee($pension) * 12;
+            $totalContributions += PensionContributionRule::monthlyEmployee($pension, $salary) * 12;
         }
 
         return $totalContributions;
