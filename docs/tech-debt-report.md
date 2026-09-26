@@ -1,32 +1,46 @@
-# Tech Debt Report — Session 2026-09-25
+# Tech Debt Report — Session 2026-09-25/26 (Plan B, accuracy batch, pension tile, income definitions)
 
-**Scope:** the branch diff of #939, Save Tax-only onboarding (`76c941898..d6650eb93`). It covers 9 files, with 410 lines added and 55 removed.
-
-**Files analysed:** 9
-**Issues found:** 7
-**Severity breakdown:** 0 critical, 2 warnings, 5 suggestions
-
-No hardcoded tax figures, debug output, hex colours, banned colour classes or dead code were found in the diff. Spouse-income band labels come from `FunnelIncomeBand::label()`, which reads `TaxConfigService`.
+**Files analysed:** 44 (`git diff --name-only 88170adcd..481fac0be`: app, resources, public/pages, seeders)
+**Issues found:** 9
+**Severity breakdown:** 0 critical, 4 warnings, 5 suggestions
 
 ## Warnings
 
-1. **The forced-entry rule lives in two places.**
-   - Where: `app/Http/Controllers/Api/AiChatController.php:817-821`, and `OnboardingStateMachine::forcedCampaignEntry()` at `app/Services/Onboarding/OnboardingStateMachine.php:1066`. Category: duplicate code (Rule 20).
-   - What: the controller works out "first missing funnel question, else `campaignEntryFor(entry)`" inline, and `forcedCampaignEntry()` does the same for restart and the first turn.
-   - Fix: have the controller call `forcedCampaignEntry($user)` when a fresh campaign starts. Keep the paused-step and re-entry branches as they are.
-
-2. **Resume greetings have no labels for the new states.**
-   - Where: `OnboardingChatDirector::describeStep` (around `app/Services/Onboarding/OnboardingChatDirector.php:982-1023`). Category: inconsistency with existing patterns.
-   - What: resuming at `campaign_funnel_*` says "Last time we were mid-onboarding".
-   - Fix: add labels such as "noting your employment situation", "noting whether you have a spouse" and "noting what you hold".
+1. **`app/Services/Tax/TaxStrategyService.php` (`withAffordablePensionHeadroom`): performance.**
+   - **Category:** Complexity/maintainability.
+   - **What's wrong:** `recalculate()` (called on every what-if slider move) now calls `CompositePlanService::financials()`, which calls `UserProfileService::getCompleteProfile()` through `DisposableIncomeAccessor`. The calculator was kept out of this for speed, but the slider path still pays for it.
+   - **Suggested fix:** memoise the affordable figure per request, or apply the cap only in `getDashboardPayload()` and pass it through the slider response unchanged.
+2. **`app/Services/Tax/TaxStrategyMath.php` is 762 lines: size.**
+   - **Category:** Complexity.
+   - **What's wrong:** It now holds Marriage Allowance statute logic (`marriageAllowance`, `incomePartsFor`, `incomeTaxOn`, `extraTaxFromLosingAllowance`) next to band and allowance maths.
+   - **Suggested fix:** extract a `MarriageAllowanceCalculator` service (ITA 2007 Part 3 Chapter 3A) that `MarriageAllowanceStrategy`, `AssetShiftingBundleStrategy`, `JointSavingsStrategy` and the calculator's grid inject.
+3. **`app/Services/Tax/TaxStrategyMath.php` `marriageAllowance()`: repeated tax calculations.**
+   - **Category:** Complexity.
+   - **What's wrong:** It calls `UKTaxCalculator::calculateDetailedNetIncome` up to 5 times per call, and the method itself is called from 4 places per `calculate()`: the strategy, the grid (twice), and `AssetShifting`/`JointSavings` via `marriageAllowanceTransfer`.
+   - **Suggested fix:** memoise per user id for the request, as `taxableIncomeCache` already does.
+4. **Two copies of the "Limited to what you can afford this year" rule.**
+   - **Where:** `resources/js/components/TaxStrategy/AllowanceCard.vue:28` (`budgetLimited`) and `resources/mobile/views/TaxStrategy.vue:225` (`budgetNote`).
+   - **Category:** Duplication.
+   - **What's wrong:** The same threshold (`remaining < amount − used − 0.5`) and the same string are written in both bundles.
+   - **Suggested fix:** have the server set `budget_limited: true` (and the copy) in `withAffordablePensionHeadroom`, so both surfaces read one field.
 
 ## Suggestions
 
-3. **A paused Pension Check pointer is never consumed while Save Tax is forced.** Where: `AiChatController.php:665-669`. The user restarts Save Tax, but `paused_at_step` stays set, so `onboarding_fyn_paused` stays true. Fix: clear `paused_at_step` when the forced campaign overrides a paused selection.
-4. **Restart keeps `funnel_answers`,** so a restart mid-assets goes to `base_work` and the user can't add more assets. Restart has no UI trigger today. Where: `OnboardingChatDirector::handleRestartAction`.
-5. **`emitFirstTurn` changed with forcing off.** It now falls back to the user's current step even when `forced_campaign` is null (`OnboardingChatDirector.php:166-171`). Production always passes the state, so this is theoretical.
-6. **Two sources of band label wording.** The chat uses `FunnelIncomeBand::label()` ("£50,271–£100,000"), while the funnel page uses `pageLabels()` ("£50,271 to £100,000"). Where: `OnboardingStateMachine::bubblesFor`. Fix: use one wording.
-7. **Typed text at the first question leaves onboarding.** Text that matches no bubble ("I'm employed") pauses the walk with no `paused_at_step`, so the next dashboard load starts onboarding again. Where: `OnboardingChatDirector.php` front-door branch. This was a deliberate ruling (same as `path_choice`); it is listed for review only.
+5. **Hardcoded fallbacks in touched tax files (Rule 2).**
+   - **Where:** `TaxStrategyMath.php:259` (`?? 12570`), `:283` (`?? 200000`); `AssetShiftingBundleStrategy.php` and `IncomeBandStrategy.php` `?:125140`; `bandRateForBand` 0.20/0.40/0.45. In total 29 `?? <tax figure>` fallbacks across `app/Services/Tax/Strategies/` and the math/calculator. All pre-existing; config always has the keys.
+   - **Suggested fix:** replace with `?? 0` plus a guard, or read the key strictly.
+6. **`app/Constants/TaxDefaults.php` still has `NON_EARNER_PENSION_NET_CONTRIBUTION` and `NON_EARNER_PENSION_GOVERNMENT_UPLIFT`.**
+   - **What's wrong:** They are read by `SpouseOptimisationService.php:457` and `RetirementActionDefinitionService.php:658` (other modules).
+   - **Suggested fix:** switch both to `TaxStrategyMath::nonEarnerPensionContribution()` and delete the constants.
+7. **`app/Services/Tax/Strategies/PensionTaxReliefStrategy.php`: magic numbers.**
+   - **What's wrong:** `100` (display rounding step) and `0.5` in the budget tolerance are unnamed.
+   - **Suggested fix:** name them as constants.
+8. **`public/pages/help.php` (598 lines): size and content.**
+   - **What's wrong:** It hand-maintains a full copy of the in-app `Help.vue` content, so two copies drift (the ISA and Inheritance Tax answers had to be fixed in both).
+   - **Suggested fix:** one source (a data file both render).
+9. **`app/Services/Tax/IncomeDefinitionsService.php` `getPensionContributions` docblock: out of date.**
+   - **What's wrong:** It still says "the application has no relief-at-source flag, so net pay is the treatment". As of `481fac0be`, relief at source is read.
+   - **Suggested fix:** update the `arrangement` description.
 
 ---
-*Generated by tech-debt-session skill. Items 2–7 match the deferred minors from the final whole-branch review of #939.*
+*Generated by tech-debt-session skill*
