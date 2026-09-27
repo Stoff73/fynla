@@ -99,7 +99,7 @@ class RetirementProjectionService
 
         foreach ($user->dcPensions as $pension) {
             $totalCurrentValue += (float) ($pension->current_fund_value ?? 0);
-            $totalMonthlyContribution += $this->calculateMonthlyContribution($pension);
+            $totalMonthlyContribution += $this->calculateMonthlyContribution($pension, $user);
         }
 
         // Get risk parameters and track source
@@ -178,7 +178,7 @@ class RetirementProjectionService
         $yearsToRetirement = max(1, $retirementAge - $currentAge);
 
         $currentValue = (float) ($pension->current_fund_value ?? 0);
-        $monthlyContribution = $this->calculateMonthlyContribution($pension);
+        $monthlyContribution = $this->calculateMonthlyContribution($pension, $user);
 
         // Get risk parameters - use pension's risk preference if set, otherwise user's
         $riskSource = 'default';
@@ -815,22 +815,19 @@ class RetirementProjectionService
         ];
     }
 
-    private function calculateMonthlyContribution($pension): float
+    /**
+     * What reaches the pot each month — one rule, PensionContributionRule: the
+     * onboarding form's blank scheme salary falls back to employment income, a
+     * personal pension counts gross of relief at source (FA 2004 s192), and the
+     * employer's contribution counts alongside a stated monthly amount.
+     */
+    private function calculateMonthlyContribution($pension, User $user): float
     {
-        if ((float) $pension->monthly_contribution_amount > 0) {
-            return (float) $pension->monthly_contribution_amount;
-        }
-
-        if ($pension->employee_contribution_percent && $pension->annual_salary) {
-            $employeeMonthly = ($pension->annual_salary * $pension->employee_contribution_percent / 100) / 12;
-            $employerMonthly = $pension->employer_contribution_percent
-                ? ($pension->annual_salary * $pension->employer_contribution_percent / 100) / 12
-                : 0;
-
-            return $employeeMonthly + $employerMonthly;
-        }
-
-        return 0.0;
+        return PensionContributionRule::monthlyIntoPot(
+            $pension,
+            (float) ($user->annual_employment_income ?? 0),
+            (float) ($this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'] ?? 0),
+        );
     }
 
     private function getTotalDBIncome(User $user): float

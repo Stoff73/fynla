@@ -123,6 +123,8 @@ it('takes sacrificed pay out of the employment figure when the recorded pay is g
         'employment_income_basis' => 'gross',
     ]);
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
+        'monthly_contribution_amount' => null,
         'user_id' => $user->id,
         'annual_salary' => 145000,
         'employee_contribution_percent' => 20,

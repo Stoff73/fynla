@@ -97,7 +97,10 @@ final class TaxStrategyMath
      */
     public function bandThresholdsFor(User $user): array
     {
-        $extension = (float) ($this->incomeDefinitionsFor($user)['deductions']['gift_aid_gross'] ?? 0);
+        // Gift Aid (ITA 2007 s414) and relief-at-source pension contributions
+        // (FA 2004 s192(4)) both raise the basic and higher rate limits.
+        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
+        $extension = (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
         $raw = $this->bandThresholds();
 
         return [
@@ -200,9 +203,13 @@ final class TaxStrategyMath
     }
 
     /**
-     * Total taxable income from every captured source. When the user has no
-     * explicit annual-interest figure, use the interest implied by captured
-     * savings balances and rates rather than silently treating it as zero.
+     * Net income (ITA 2007 s23 Step 2): every captured source, less net-pay
+     * pension contributions taken from pay (FA 2004 s193(2)). This is the
+     * income the tax bands are applied to; relief-at-source contributions do
+     * not reduce it and instead extend the bands (bandThresholdsFor). When the
+     * user has no explicit annual-interest figure, use the interest implied by
+     * captured savings balances and rates rather than silently treating it as
+     * zero.
      */
     public function taxableIncomeFor(User $user): float
     {
@@ -211,7 +218,7 @@ final class TaxStrategyMath
             $definitions = $this->incomeDefinitionsFor($user);
             $this->taxableIncomeCache[$key] = max(
                 0.0,
-                (float) ($definitions['total_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
+                (float) ($definitions['net_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
             );
         }
 
@@ -420,27 +427,9 @@ final class TaxStrategyMath
             return (float) ($user->annual_employment_income ?? 0) * ($overrides->pensionContributionPercent / 100);
         }
 
-        $userIncome = (float) ($user->annual_employment_income ?? 0);
-
-        // Sum each pension's input separately. monthly_contribution_amount
-        // takes precedence when set; otherwise fall back to the captured
-        // employee+employer percentages applied to the pension's
-        // annual_salary (the user's earnings at that employer) — the
-        // SaveTax onboarding writes %s, not a £ monthly figure.
-        return (float) app(PensionStore::class)
-            ->forUserByType($user, 'dc')
-            ->sum(function ($pension) use ($userIncome) {
-                $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
-                if ($monthly > 0) {
-                    return $monthly * 12;
-                }
-
-                $salary = (float) ($pension->annual_salary ?? 0) ?: $userIncome;
-                $employee = (float) ($pension->employee_contribution_percent ?? 0);
-                $employer = (float) ($pension->employer_contribution_percent ?? 0);
-
-                return $salary * (($employee + $employer) / 100);
-            });
+        // The pension input amount (FA 2004 s233(1)), published once by the
+        // income definitions.
+        return (float) $this->incomeDefinitionsFor($user)['pension_input_amount'];
     }
 
     /**
@@ -495,27 +484,6 @@ final class TaxStrategyMath
                     ? $paid
                     : $paid / (1 - $basicRelief);
             });
-    }
-
-    /**
-     * Taxable income once every pension contribution has done its work.
-     * IncomeDefinitionsService only sees contributions recorded as
-     * annual_salary × employee % — the onboarding form never writes
-     * annual_salary, and relief-at-source payments are not read at all — so
-     * the rest are taken off here: a net-pay contribution comes out of taxed
-     * pay, and a relief-at-source one extends the basic-rate band, which is
-     * the same thing for the band position.
-     *
-     * ponytail: corrects the band position for the strategies only; if
-     * IncomeDefinitionsService learns to read these contributions, the
-     * max(0, …) below stops this double counting.
-     */
-    public function taxableIncomeAfterPensionContributions(User $user): float
-    {
-        $seen = (float) ($this->incomeDefinitionsFor($user)['deductions']['employee_pension_contributions'] ?? 0);
-        $unseen = max(0.0, $this->grossEmployeePensionContributions($user) - $seen);
-
-        return max(0.0, $this->taxableIncomeFor($user) - $unseen);
     }
 
     /** Tax treats spouses and civil partners alike; unmarried partners get neither transfer. */
@@ -581,7 +549,7 @@ final class TaxStrategyMath
 
         $options = [];
         if ($spouseNet < $personalAllowance
-            && $this->bandFromIncomeFor($user, $this->taxableIncomeAfterPensionContributions($user)) === 'basic') {
+            && $this->bandFromIncomeFor($user, $this->taxableIncomeFor($user)) === 'basic') {
             $options['to_user'] = min($maxReduction, $this->incomeTaxOn($user_))
                 - $this->extraTaxFromLosingAllowance($spouse, $amount);
         }
@@ -616,8 +584,7 @@ final class TaxStrategyMath
      * The user's income split the way the tax engine stacks it (ITA 2007 s16).
      * The total comes from IncomeDefinitionsService, so salary sacrifice is
      * already resolved. Net-pay contributions are the workplace contributions
-     * taken from pay, including those IncomeDefinitionsService cannot see (see
-     * taxableIncomeAfterPensionContributions).
+     * taken from pay.
      *
      * @return array{non_savings: float, interest: float, dividends: float, trust: float, net_pay: float}
      */

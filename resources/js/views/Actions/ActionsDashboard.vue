@@ -113,22 +113,7 @@ import ThresholdStrip from '@/components/Actions/ThresholdStrip.vue';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import logger from '@/utils/logger';
-import { resolveWebDestination } from '@/utils/semanticDestinations';
 
-// Desktop route per module, the fallback behind the server destination.
-// Still reachable: the fyn_capture unlock rows (NextActionsService
-// lines 261/506/552) carry a prompt, not a destination, so a click on
-// one lands here (verified 2026-09-17).
-const MODULE_ROUTES = {
-  protection: '/protection',
-  savings: '/savings',
-  investment: '/investments',
-  retirement: '/pension',
-  estate: '/estate',
-  goals: '/goals',
-  tax: '/tax-strategy',
-  household: '/settings/family',
-};
 
 export default {
   name: 'ActionsDashboard',
@@ -168,10 +153,10 @@ export default {
     // The server decides where an action leads (RecommendationRouting — the
     // same payload /m and native read); the module map is the fallback for
     // rows that carry no destination.
+    // Every action opens its own card (design C); the card carries the
+    // action's own button (capture, navigate or mark done).
     goToAction(action) {
-      const route = (action.action && resolveWebDestination(action.action.destination))
-        || MODULE_ROUTES[action.module];
-      if (route) this.$router.push(route);
+      this.$router.push({ name: 'ActionCard', params: { actionId: action.id } });
     },
 
     doneDate(row) {

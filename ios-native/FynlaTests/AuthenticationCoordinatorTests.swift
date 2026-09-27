@@ -482,6 +482,8 @@ struct AuthenticationCoordinatorTests {
                 outcome: login,
                 mustChangePassword: mustChange
             ),
+            // The coordinator takes the flag from the verify-login response, not the login one.
+            verifyMustChange: mustChange ?? true,
             exchangeError: exchangeError,
             mfaError: mfaError,
             loginGate: loginGate,
@@ -620,6 +622,7 @@ private actor AsyncGate {
 private actor ScriptedAuthClient: AuthCompletionClient {
     private let events: EventLog
     private let loginValue: LoginCompletion
+    private let verifyMustChange: Bool?
     private let exchangeError: (any Error)?
     private let mfaError: (any Error)?
     private let loginGate: AsyncGate?
@@ -628,6 +631,7 @@ private actor ScriptedAuthClient: AuthCompletionClient {
     init(
         events: EventLog,
         login: LoginCompletion,
+        verifyMustChange: Bool?,
         exchangeError: (any Error)?,
         mfaError: (any Error)?,
         loginGate: AsyncGate?,
@@ -635,6 +639,7 @@ private actor ScriptedAuthClient: AuthCompletionClient {
     ) {
         self.events = events
         self.loginValue = login
+        self.verifyMustChange = verifyMustChange
         self.exchangeError = exchangeError
         self.mfaError = mfaError
         self.loginGate = loginGate
@@ -675,7 +680,7 @@ private actor ScriptedAuthClient: AuthCompletionClient {
         await events.append("verify-login")
         return BootstrapAuthentication(
             bootstrapAccessToken: "bootstrap-verification",
-            mustChangePassword: true
+            mustChangePassword: verifyMustChange
         )
     }
 

@@ -102,6 +102,13 @@ The handover must carry: the task as dispatched verbatim plus amendments; what i
 **Where:** alongside the work — test runs in `tests/Persona/<run>/reports/`, fix batches in `workforce/branches/` — and linked from the run log or board item.
 *Owned by CSJ (2026-08-21). This section is the one home for the rule; it is not copied into agent definitions.*
 
+**23. GOLDEN RULE — never assume, never make it up: every claim is sourced.**
+- **What needs a source:** any idea, way forward, fix, issue, bug, rule or figure you state, whether in chat, a plan, code, a comment, a PR or a report.
+- **How to cite:** name the source, cite it and link it. That means the HMRC manual or gov.uk page, FCA/PRA rule or handbook section, legislation section, or the exact `TaxConfigService` key or `file:line` it rests on.
+- **What to leave out:** no source means don't say it, don't code it and don't propose it. Look it up first.
+- **Figures:** a figure or eligibility rule that cannot be traced to its source is a defect, not a detail. Any wrong, missing or outdated-rule figure a user could see is app-breaking and is never "minor". Examples: a jurisdiction gap such as Scottish rates, or a boundary off by one.
+*Owned by CSJ (2026-09-25). No plan, PR, sub-agent or reviewer label overrides it.*
+
 ## Working style
 
 - **Scope.** Change only what was asked. **Fix defects in the path you are working on; report unrelated issues rather than silently fixing them.** Validate at system boundaries only — trust internal code and framework guarantees.

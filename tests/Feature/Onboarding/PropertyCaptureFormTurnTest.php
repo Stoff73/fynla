@@ -309,7 +309,8 @@ it('advances to campaign_property_more with a quick_replies event after a succes
         ->and($quick)->not->toBeNull()
         // Two properties fill the Free cap (CSJ 2026-09-16): the loop question
         // states the limit and offers only the next section.
-        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 properties, so I can't add another here. You can upgrade after onboarding to add more.")
+        ->and($quick['prompt_text'])->toStartWith('You have 2 properties on file: ')
+        ->and($quick['prompt_text'])->toEndWith("That's the Free plan's limit of 2 properties, so I can't add another here. You can upgrade after onboarding to add more.")
         ->and(array_column($quick['bubbles'] ?? [], 'label'))->toBe(['Continue to the next section'])
         ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_property_more');
 });
@@ -323,7 +324,8 @@ it('below the cap the property loop question offers another', function (): void 
     $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise($form), null, true, $form), false);
 
     $quick = collect($events)->firstWhere('type', 'quick_replies');
-    expect($quick['prompt_text'])->toBe('Do you have another property to add?')
+    // CSJ 2026-09-26: the saved property is read back before the loop question.
+    expect($quick['prompt_text'])->toBe("You have 1 property on file: Main residence.\n\nDo you have another property to add?")
         ->and(array_column($quick['bubbles'] ?? [], 'label'))->toBe(['Yes, add another', "No, that's everything"]);
 });
 

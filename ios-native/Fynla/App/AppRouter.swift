@@ -3,6 +3,8 @@ import Observation
 enum AppRoute: Hashable, Sendable {
     case dashboard
     case achievements
+    case actions
+    case actionCard(id: String)
     case conversationHistory
     case personalInformation
     case subscription
@@ -34,6 +36,8 @@ enum AppRoute: Hashable, Sendable {
         switch self {
         case .dashboard: "/dashboard"
         case .achievements: "/achievements"
+        case .actions: "/actions"
+        case let .actionCard(id): "/actions/\(id)"
         case .conversationHistory: "/conversation-history"
         case .personalInformation: "/personal-information"
         case .subscription: "/subscription"

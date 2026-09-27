@@ -1084,7 +1084,7 @@ Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
     Route::delete('/{type}/clear-cache', [PlanController::class, 'clearCache'])
         ->where('type', 'investment|protection|retirement|estate|savings');
     Route::put('/{type}/funding-source', [PlanController::class, 'updateFundingSource'])
-        ->where('type', 'investment|protection|retirement|estate|savings');
+        ->where('type', 'investment|protection|retirement|estate|savings|tax');
 });
 
 // Household coordination routes (spousal planning)
@@ -1122,6 +1122,8 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::get('/completed', [RecommendationsController::class, 'completed']);
     // WP-2 — unified actions payload (open, uncapped + completed history).
     Route::get('/actions', [RecommendationsController::class, 'actions']);
+    // One action's detail card (design C) — ids carry ':' and are url-encoded.
+    Route::get('/actions/{id}', [RecommendationsController::class, 'actionCard'])->where('id', '.*');
 
     // Recommendation tracking actions
     Route::post('/{id}/mark-done', [RecommendationsController::class, 'markDone']);

@@ -52,6 +52,7 @@ function sacrificeEarner(int $income, bool $sacrifices, ?string $basis = null): 
     ]);
 
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
         'user_id' => $user->id,
         'annual_salary' => $income,
         'employee_contribution_percent' => 8,
@@ -99,6 +100,7 @@ it('tapers the Annual Allowance where sacrifice used to hide the threshold', fun
         'marital_status' => 'single',
     ]);
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
         'user_id' => $user->id,
         'annual_salary' => 300_000,
         'employee_contribution_percent' => 20,
@@ -147,6 +149,7 @@ it('reaches the same threshold income whichever basis the user recorded', functi
         ]);
 
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'annual_salary' => 210_000,
             'employee_contribution_percent' => 8,

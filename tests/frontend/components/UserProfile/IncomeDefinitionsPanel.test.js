@@ -287,3 +287,46 @@ describe('W-0485 — the Blind Person\'s Allowance sits below Adjusted Net Incom
     expect(mountPanel(SARAH).text()).not.toContain("Blind Person's Allowance");
   });
 });
+
+// Onboarding capture, measured from `IncomeDefinitionsService::calculate(426)` on
+// csjones 2026-09-26: £60,000 salary, a 5%/3% workplace pension (net pay) and a
+// £200-a-month personal pension (relief at source, £2,400 grossed to £3,000).
+const IDEF = {
+  ...SARAH,
+  total_income: 60000,
+  net_income: 57000,
+  adjusted_net_income: 54000,
+  threshold_income: 54000,
+  adjusted_income: 61800,
+  components: { employment: 60000 },
+  pension_arrangement: 'net_pay',
+  deductions: {
+    pension_relief: 3000,
+    gift_aid_gross: 0,
+    blind_persons_allowance: 0,
+    employee_pension_contributions: 3000,
+    relief_at_source_gross: 3000,
+    employer_pension_contributions: 1800,
+  },
+};
+
+describe('IncomeDefinitionsPanel — relief-at-source pension contributions (FA 2004 s192)', () => {
+  it('deducts the grossed-up personal pension between Net Income and Adjusted Net Income', () => {
+    const wrapper = mountPanel(IDEF);
+
+    const personal = rowFigure(wrapper, 'Less personal pension contributions (grossed up)');
+    expect(personal).toBe(3000);
+    expect(rowFigure(wrapper, 'Net Income') - personal).toBe(rowFigure(wrapper, 'Adjusted Net Income'));
+  });
+
+  it('states Threshold Income with both deductions, and the subtraction lands on the figure printed', () => {
+    const wrapper = mountPanel(IDEF);
+
+    const working = wrapper.text().match(/Your Total Income of £[\d,.]+, less the £[\d,.]+ you paid into your pension from your pay and the £[\d,.]+ paid into your personal pension \(grossed up\)\./);
+    expect(working).not.toBeNull();
+
+    const [base, employee, personal] = poundsIn(working[0]);
+    expect(base).toBe(rowFigure(wrapper, 'Total Income'));
+    expect(base - employee - personal).toBe(rowFigure(wrapper, 'Threshold Income'));
+  });
+});

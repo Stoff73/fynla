@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Investment\Holding;
+use App\Services\Retirement\PensionContributionRule;
+use App\Services\TaxConfigService;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -102,23 +104,49 @@ class DCPension extends Model
      *
      * @var list<string>
      */
-    protected $appends = ['monthly_contribution'];
+    protected $appends = ['monthly_contribution', 'monthly_employee_contribution', 'monthly_employer_contribution', 'contribution_includes_relief'];
+
+    /**
+     * Whether `monthly_contribution` includes basic-rate relief the provider
+     * claims on top of the member's payment (relief at source, FA 2004 s192),
+     * so a surface can say so rather than show a figure the user never typed.
+     */
+    public function getContributionIncludesReliefAttribute(): bool
+    {
+        return ! PensionContributionRule::isWorkplace($this)
+            && PensionContributionRule::monthlyEmployee($this) > 0;
+    }
 
     public function getMonthlyContributionAttribute(): float
     {
-        if ((float) ($this->monthly_contribution_amount ?? 0) > 0) {
-            return round((float) $this->monthly_contribution_amount, 2);
-        }
+        $basic = (float) (app(TaxConfigService::class)->getPensionAllowances()['tax_relief']['basic_rate'] ?? 0);
 
-        $salary = (float) ($this->annual_salary ?? 0);
-        if ($salary <= 0) {
-            return 0.0;
-        }
+        return round(PensionContributionRule::monthlyIntoPot($this, $this->ownerSalary(), $basic), 2);
+    }
 
-        $percent = (float) ($this->employee_contribution_percent ?? 0)
-            + (float) ($this->employer_contribution_percent ?? 0);
+    /** What the member pays each month, as they pay it (net for relief at source). */
+    public function getMonthlyEmployeeContributionAttribute(): float
+    {
+        return round(PensionContributionRule::monthlyEmployee($this, $this->ownerSalary()), 2);
+    }
 
-        return round($salary * $percent / 100 / 12, 2);
+    public function getMonthlyEmployerContributionAttribute(): float
+    {
+        return round(PensionContributionRule::monthlyEmployer($this, $this->ownerSalary()), 2);
+    }
+
+    private ?float $ownerSalaryMemo = null;
+
+    /**
+     * The owner's employment income, standing in for the scheme salary the
+     * onboarding form leaves blank. ponytail: one query per pension serialised
+     * when `user` is not loaded; eager-load it on the caller if lists grow.
+     */
+    private function ownerSalary(): float
+    {
+        return $this->ownerSalaryMemo ??= $this->relationLoaded('user')
+            ? (float) ($this->user?->annual_employment_income ?? 0)
+            : (float) (User::query()->whereKey($this->user_id)->value('annual_employment_income') ?? 0);
     }
 
     protected $casts = [

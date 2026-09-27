@@ -426,8 +426,8 @@ class TaxConfigServiceTest extends TestCase
 
         // Assert
         $this->assertIsArray($domicile);
-        $this->assertArrayHasKey('uk_domiciled', $domicile);
-        $this->assertArrayHasKey('non_uk_domiciled', $domicile);
+        $this->assertSame(10, $domicile['long_term_residence']['qualifying_years']);
+        $this->assertSame(20, $domicile['long_term_residence']['lookback_years']);
     }
 
     /**
@@ -628,12 +628,11 @@ class TaxConfigServiceTest extends TestCase
                     ],
                 ],
 
+                // The seeded shape since 6 April 2025 (IHTA 1984 s6A).
                 'domicile' => [
-                    'uk_domiciled' => [
-                        'iht_on_worldwide_assets' => true,
-                    ],
-                    'non_uk_domiciled' => [
-                        'iht_on_uk_assets_only' => true,
+                    'long_term_residence' => [
+                        'qualifying_years' => 10,
+                        'lookback_years' => 20,
                     ],
                 ],
             ],

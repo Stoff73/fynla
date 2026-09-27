@@ -28,7 +28,11 @@
                 Watch out
               </span>
               <h3 class="font-bold text-horizon-500 leading-snug text-body">
-                {{ rec.title }}
+                <!-- Each action opens its own card (design C). -->
+                <router-link
+                  :to="{ name: 'ActionCard', params: { actionId: rec.recommendation_id || 'tax_' + rec.type } }"
+                  class="hover:text-raspberry-500"
+                >{{ rec.title }}</router-link>
               </h3>
             </div>
             <div v-if="rec.estimated_annual_tax_saved" class="text-right shrink-0">
@@ -131,7 +135,13 @@ export default {
     return { marking: null };
   },
   computed: {
-    ...mapGetters('taxStrategy', ['recommendations', 'userAllowances']),
+    ...mapGetters('taxStrategy', ['recommendations', 'composedPlan', 'userAllowances']),
+    // The composed plan is the list /m and iOS render and the actions list
+    // carries (handover 2026-09-25, Plan C); the calculator's own list is the
+    // fallback only while a payload without it is loaded.
+    planItems() {
+      return this.composedPlan?.items ?? this.recommendations;
+    },
     // Same rule and words as /m (resources/mobile/views/TaxStrategy.vue
     // emptyRecommendationsMessage): "well-utilised" only when no allowance has
     // known headroom.
@@ -148,12 +158,12 @@ export default {
     // The empty state says there is nothing to act on; that is false while
     // an excluded category (household, shown in its own panel) has actions.
     hasActionsElsewhere() {
-      return this.recommendations.some(
+      return this.planItems.some(
         (rec) => this.excludeCategories.includes(rec.category ?? 'household') && !rec.completed,
       );
     },
     items() {
-      const filtered = this.recommendations.filter(
+      const filtered = this.planItems.filter(
         (rec) => !this.excludeCategories.includes(rec.category ?? 'household') && !rec.completed,
       );
       return [...filtered].sort((a, b) => {
@@ -165,7 +175,7 @@ export default {
       });
     },
     completedItems() {
-      return this.recommendations.filter(
+      return this.planItems.filter(
         (rec) => !this.excludeCategories.includes(rec.category ?? 'household') && rec.completed,
       );
     },

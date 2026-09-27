@@ -397,6 +397,17 @@ class NextActionsService
                         ],
                     ]
                     : ['kind' => 'navigate', ...RecommendationRouting::pageFor($ruleKey, $module, $rec)],
+                // What the action's own card needs and the row does not show
+                // (ActionCardService, design C, CSJ 2026-09-26).
+                'card' => [
+                    'category' => $rec['category'] ?? null,
+                    'timeline' => $rec['timeline'] ?? null,
+                    'personalised_context' => array_values(array_filter((array) ($rec['personalised_context'] ?? []), 'is_string')),
+                    'conflict_note' => $rec['conflict_note'] ?? null,
+                    'potential_benefit' => $benefit,
+                    'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
+                    'definition_key' => $rec['definition_key'] ?? null,
+                ],
             ];
         }, $all);
     }
@@ -411,7 +422,7 @@ class NextActionsService
      *
      * @return array{0: string, 1: string|null}
      */
-    private static function splitHeadline(string $text): array
+    public static function splitHeadline(string $text): array
     {
         $parts = preg_split('/\s+[\x{2014}\x{2013}]\s+/u', $text, 2) ?: [$text];
         $title = trim($parts[0]);
@@ -561,7 +572,7 @@ class NextActionsService
                 'meta' => 'Enter your '.$noun.' details',
                 'value' => $weight,
                 'done' => false,
-                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax', 'prompt' => RecommendationRouting::unlockPrompt('tax')],
+                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax', 'prompt' => RecommendationRouting::strategyUnlockPrompt((string) ($locked['missing'][0] ?? ''))],
             ];
         }
 

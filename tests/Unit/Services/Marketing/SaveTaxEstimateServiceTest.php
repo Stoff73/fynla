@@ -146,10 +146,15 @@ it('shows a non-earning spouse the Pension Annual Allowance and explains the con
         ->and(itemOn($earning, 'spouse_starting_rate'))->toBeFalse();
 });
 
-it('omits the pension line when the user already has a pension', function () {
-    $result = $this->service->estimate(['income' => '50271_100000', 'assets' => ['pension', 'savings']]);
+it('keeps the pension line when the user already has a pension (CSJ 2026-09-26)', function () {
+    // Holding a pension says nothing about unused Annual Allowance; a pension
+    // holder at £50,271–£100,000 was shown "up to £0".
+    $with = $this->service->estimate(['income' => '50271_100000', 'assets' => ['pension']]);
+    $without = $this->service->estimate(['income' => '50271_100000', 'assets' => ['savings']]);
 
-    expect(lineAmount($result, 'pension'))->toBe(0);
+    expect(lineAmount($with, 'pension'))->toBe(lineAmount($without, 'pension'))
+        ->and(lineAmount($with, 'pension'))->toBeGreaterThan(0)
+        ->and($with['savings_total'])->toBeGreaterThan(0);
 });
 
 it('computes ISA, PSA, dividend and CGT savings for a higher-rate saver-investor', function () {
@@ -492,8 +497,13 @@ it('highlights the correct allowances and keeps the math consistent for every po
 
                 // --- Saving-line presence correctness ---
                 // In the trap band the pension lever is surfaced as tax_trap_60.
-                expect(hasSaving($r, 'pension'))->toBe(! $isTrap && ! $has('pension'), "pension saving presence wrong [$label]");
-                expect(hasSaving($r, 'tax_trap_60'))->toBe($isTrap && ! $has('pension'), "trap saving presence wrong [$label]");
+                // Whether or not a pension is held (CSJ 2026-09-26).
+                expect(hasSaving($r, 'pension'))->toBe(! $isTrap && $income > 0, "pension saving presence wrong [$label]");
+                expect(hasSaving($r, 'tax_trap_60'))->toBe($isTrap, "trap saving presence wrong [$label]");
+                // A working band never promises "up to £0".
+                if ($income > 0) {
+                    expect($r['savings_total'])->toBeGreaterThan(0, "zero headline saving [$label]");
+                }
                 expect(hasSaving($r, 'isa'))->toBe($hasFinancial, "ISA saving presence wrong [$label]");
                 expect(hasSaving($r, 'psa'))->toBe(($has('savings', 'bank') && $psaBand > 0), "PSA saving presence wrong [$label]");
                 expect(hasSaving($r, 'dividend'))->toBe($has('investments'), "dividend saving presence wrong [$label]");

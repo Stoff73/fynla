@@ -9,7 +9,6 @@ struct DashboardView: View {
     let model: DashboardModel
     let shareClient: any ShareContentClient
     let onRoute: (AppRoute) -> Void
-    let onFynCapture: (DashboardAction) -> Void
     // The banked level climb, spent on the hero wheel. Fyn presented over the
     // dashboard holds it back (CSJ 2026-09-17).
     var celebrateFrom: Int = 1
@@ -100,20 +99,10 @@ struct DashboardView: View {
                         areas: snapshot.focusAreas,
                         percentile: snapshot.percentile,
                         onAction: { action in
-                            switch action.action.kind {
-                            case .navigate:
-                                onRoute(
-                                    SemanticDestinationResolver.route(
-                                        for: action.action.destination,
-                                        legacyPath: action.action.payload
-                                    )
-                                )
-                            case .fynCapture:
-                                onFynCapture(action)
-                            case .unknown:
-                                // /m ignores unrecognised action kinds.
-                                break
-                            }
+                            // Every action opens its own card (design C, CSJ
+                            // 2026-09-26), as on web and /m; the card carries
+                            // Add it now / Go to it / Mark as done and Ask Fyn.
+                            onRoute(.actionCard(id: action.id))
                         },
                         onComplete: { action in
                             Task { await model.complete(action) }
@@ -127,7 +116,7 @@ struct DashboardView: View {
                             )
                         },
                         onSeeAllActions: {
-                            onRoute(.achievements)
+                            onRoute(.actions)
                         },
                         completingActionIDs: model.completingActionIDs
                     )

@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-25: Save Tax-only onboarding (#939) released with #935–#937 as #940; prod main `9bc414107` == dev `d6650eb93` (+ patch notes `39cb1d02f`). Next session: Plan B (strategy fixes) then Plan C (how-to pages).*
+*Last updated: 2026-09-27: PR #943 (pension contributions, long-term residence, walk defects) and PR #944 (action detail cards, web//m/iOS) open against dev, both walked on csjones; TestFlight builds 11–12 uploaded. Next: merge and release, CSJ review of the tax how-tos, help rewrite.*
 
 ## The board position
 
@@ -67,21 +67,43 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
-## NEXT — Tax strategy: Plan B, then Plan C (CSJ 2026-09-25)
+## NEXT — two PRs to merge and release, then the help rewrite (updated 2026-09-27)
 
-CSJ's 2026-09-25 request (five items). Items 3, 4 and 5 are done: the threshold strip placement is unchanged, the outcomes list is in `September/September25Updates/savetax-outcomes-by-household-2026-09-25.md`, and Save Tax-only onboarding shipped as #940. Plans B and C are still to write and run. Run them inline with `superpowers:executing-plans`; write each plan first with `superpowers:writing-plans`.
+Plan B and the accuracy batch are **live** (#941 → release #942). Every rule has a cited source (CLAUDE.md Rule 23).
 
-- [ ] **Plan B: fix the strategy engine** (bugs B1–B14 in the outcomes file). CSJ's rulings:
-  - the headline total is as accurate as possible: a suggestion appears only when the user qualifies or has the income or asset, and only real tax saved counts (LISA bonus, junior pension uplift, unused dividend allowance and the "charge avoided" are not "tax saved"; no double counting);
-  - "spouse or civil partner" on the public Save Tax funnel page too (partners must not get Marriage Allowance or spouse-transfer advice);
-  - pension relief suggested for **every** tax band.
-  The clear correctness fixes: salary sacrifice on workplace pensions only (B1); spouse top-up counts what is already paid (B5); no Marriage Allowance with no taxable income (B6), and Marriage Allowance allowed when the spouse earns below the Personal Allowance (B7); `TaxDefaults` and Gift Aid factors from `TaxConfigService` (B13).
-- [ ] **Plan C: how-to pages** (CSJ items 1 and 2).
-  - Fixed steps written by us and reviewed by CSJ, with the user's figures filled in, stored once in a catalogue.
-  - Detail page in the approved decision-card design C (canvas `https://claude.ai/artifact/6mqya3ujQRPjZkAjfqbYor`): heading, description, why this matters for you, how to do it, Ask Fyn, Mark as done. On web, `/m` and iOS.
-  - The Tax Strategy plan shows headed actions, each opening its how-to.
-  - "See all actions" opens a list of every action, and every action (all modules, about 160 definitions) links to its own how-to. `/m` has `/actions`; iOS needs the list built (it goes to Achievements today).
-  - Order: tax items first (after Plan B lands), then other modules in batches for CSJ to review.
+- [ ] **Merge and release PR #943** (`fix/income-definitions-pension-contributions`). Merging is CSJ's call.
+  - Onboarding pension contributions reach every income definition; `pension_input_amount` is the one reading (FA 2004 s192/s193/s233, ITA 2007 s58, s228ZA).
+  - One `PensionContributionRule` for the projection, the Annual Allowance check, cards and details.
+  - `/savetax` never says "up to £0".
+  - Fyn reads back what it saved before the plan-cap line.
+  - Long-term UK residence (IHTA 1984 s6A) from tax config, replacing the repealed 15-year deemed-domicile rule.
+  - Profile no longer defaults an unanswered country to "United Kingdom".
+  - Full Pest suite green; walked on web and /m.
+  - Release needs `TaxConfigurationSeeder`.
+- [ ] **Merge and release PR #944** (`feat/action-detail-cards`). It contains #943, so merge #943 first or merge #944 alone.
+  - Every action opens its own card (design C) on web, /m and iOS, with Fund from (one `FundingAccounts` list) and approved-only how-to steps.
+  - Release needs the migration `2026_09_27_000001_add_how_to_to_action_definitions` and `ActionHowToSeeder`.
+  - TestFlight builds 11 and 12 (Fynla Dev) are uploaded. Cards load on iOS only once this backend is on fynla.org. iOS unit tests compiled but were not run (CSJ: no simulator).
+- [ ] **CSJ: review the 21 tax how-tos** in `database/seeders/data/action-how-to/tax.md`.
+  - Change `draft` to `approved` per entry; nothing shows until then.
+  - Seven are flagged `unverified`. Review notes: SIPP not spelled out; `savings_to_spouse` step 2 is unsourced; `lifetime_isa` omits the age-60 rule.
+  - Then draft the other modules' batches in this order: savings, protection, retirement, investment, estate.
+- [ ] **Help pages: rewrite from the audit** (`docs/help-audit-2026-09-26.md`).
+  - Of 58 sections, 7 are accurate, 36 describe stale UI, 12 are wrong facts, and there are 13 hardcoded figures.
+  - 24 live screens have no help at all.
+  - Users only ever see `public/pages/help.php`; `Help.vue` is unreachable.
+  - Proposal: one source, rewritten against the live screens, every statement sourced.
+- [ ] **Fyn narration from "Ask Fyn about this"** is a Rule 20 fix in one place.
+  - It left the personal pension out of the £7,800 explanation.
+  - It called the ISA action a "mechanical-tier strategy", which exposes `claim_tier` jargon.
+- [ ] **Deferred minors from the #944 review.**
+  - Web and /m card error states.
+  - Clients derive `action_category` and `tax_` ids.
+  - The deadline ignores `timeline`.
+  - Zero-balance accounts are dropped from Fund from.
+  - The emergency warning uses whole-account monthly saving against the user's share.
+- [ ] **Scottish income tax: a separate programme** (CSJ 2026-09-25). No Scottish-taxpayer field and no bands anywhere.
+- [ ] **Estate residence follow-up:** the profile records no UK departure date, so the leaver "tail" (IHTM47020 table, now in config) is not applied.
 
 ## QUEUED — Fyn memory and dense-recall plan (starts only on CSJ's go)
 

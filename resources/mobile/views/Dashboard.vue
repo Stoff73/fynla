@@ -357,10 +357,6 @@ const CONFETTI_COLOURS = ['var(--spring-500)', 'var(--raspberry-500)', 'var(--vi
 // docked Fyn bar (MobileChrome) so the campaign verify flow can hand the chat
 // between screens. The dashboard keeps its own initFyn + pulseWheel.
 import onboardingChat from '../mixins/onboardingChat.js';
-import {
-  recordUnknownMobileDestination,
-  resolveMobileDestination,
-} from '../navigation/semanticDestinations.js';
 import { primaryNavigationSections } from '../navigation/navigationModel.js';
 import { issueWebHandoff } from '../navigation/webHandoff.js';
 // Shared with the web dashboard by relative path — the ownership.js precedent
@@ -834,18 +830,10 @@ export default {
     // origin contextual conversation (the server-composed request travels in
     // action.contextual); anything else deep-links to the page it names.
     onActionTap(item) {
-      if (!item || !item.action) return;
-      if (item.action.kind === 'fyn_capture' && item.action.contextual) {
-        this.openFynContextual(item.action.contextual);
-      } else if (item.action.kind === 'fyn_capture') {
-        this.openFynForCapture(item.action);
-      } else if (item.action.kind === 'navigate') {
-        // Recommendation → deep-link to the module screen where it's actioned.
-        this.goto(resolveMobileDestination(
-          item.action,
-          recordUnknownMobileDestination,
-        ));
-      }
+      // Every action opens its own card (design C, CSJ 2026-09-26); the card
+      // carries Add it now / Go to it / Mark as done and Ask Fyn.
+      if (!item || !item.id) return;
+      this.goto({ name: 'm-action-card', params: { id: item.id } });
     },
     dismissUnlockBubble() {
       this.unlockBubbleDismissed = true;
@@ -865,22 +853,6 @@ export default {
       // The prompt is served with the action (RecommendationRouting::unlockPrompt)
       // so no surface carries its own copy of the wording (Rule 20).
       this.send((action && action.prompt) || 'Help me add my financial details');
-    },
-    // A recommendation-origin capture: a fresh contextual conversation whose
-    // server-authored opening names the recommendation; when the capture
-    // writes, Fyn asks "anything else?", and "No thanks" ticks it off and
-    // routes back here (a navigation frame closes the chat).
-    async openFynContextual(request) {
-      this.fynMounted = true;
-      await this.$nextTick();
-      this.fynOpen = true;
-      this.scrollFyn();
-      const conversationId = await this.createContextualConversation(request);
-      if (!conversationId) {
-        if (!store.token) return;
-        this.messages.push({ role: 'fyn', text: 'Sorry, I could not start that conversation just now.', bubbles: [] });
-      }
-      this.$nextTick(() => { this.$refs.fynInput?.focus(); this.scrollFyn(); });
     },
     // Mark / unmark a recommendation action complete. Optimistic toggle, then
     // persist so the shared gamification engine awards points (mark-done ->

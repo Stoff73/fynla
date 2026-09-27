@@ -38,6 +38,13 @@ class DCPensionResource extends JsonResource
             'employer_contribution_percent' => $this->employer_contribution_percent,
             'employer_matching_limit' => $this->employer_matching_limit,
             'monthly_contribution_amount' => $this->monthly_contribution_amount,
+            // Server-computed through PensionContributionRule (DCPension appends): the
+            // employment income stands in for a blank scheme salary, and
+            // monthly_contribution is what reaches the pot, gross of relief at source.
+            'monthly_contribution' => $this->monthly_contribution,
+            'monthly_employee_contribution' => $this->monthly_employee_contribution,
+            'monthly_employer_contribution' => $this->monthly_employer_contribution,
+            'contribution_includes_relief' => $this->contribution_includes_relief,
             'lump_sum_contribution' => $this->lump_sum_contribution,
             'investment_strategy' => $this->investment_strategy,
             'platform_fee_percent' => $this->platform_fee_percent,

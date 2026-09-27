@@ -96,12 +96,16 @@ it('lists each DC pension by scheme name with pot value when known', function ()
     $user = recapUser(['annual_employment_income' => 60000]);
 
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
+        'monthly_contribution_amount' => null,
         'user_id' => $user->id,
         'scheme_name' => 'Aviva Workplace Pension',
         'current_fund_value' => 34500,
         'employee_contribution_percent' => 5.00,
     ]);
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
+        'monthly_contribution_amount' => null,
         'user_id' => $user->id,
         'scheme_name' => 'Old Employer Pension',
         'current_fund_value' => 12000,
@@ -120,6 +124,8 @@ it('lists DC pension contribution percentage when known', function (): void {
     $user = recapUser(['annual_employment_income' => 45000]);
 
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
+        'monthly_contribution_amount' => null,
         'user_id' => $user->id,
         'scheme_name' => 'NEST',
         'current_fund_value' => 0,
@@ -203,6 +209,8 @@ it('builds a complete recap for a user with two pensions and a spouse', function
     ]);
 
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
+        'monthly_contribution_amount' => null,
         'user_id' => $user->id,
         'scheme_name' => 'HSBC Pension',
         'current_fund_value' => 47000,
