@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-26: Save Tax accuracy (Plan B + accuracy batch, #941) released as #942; prod main `b81d5fcc2`. Next: IncomeDefinitionsService fix (branch pushed, regression pending), help-page audit, Estate long-term residence (needs CSJ spec), then Plan C.*
+*Last updated: 2026-09-27: PR #943 (pension contributions, long-term residence, walk defects) and PR #944 (action detail cards, web//m/iOS) open against dev, both walked on csjones; TestFlight builds 11–12 uploaded. Next: merge and release, CSJ review of the tax how-tos, help rewrite.*
 
 ## The board position
 
@@ -67,31 +67,43 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
-## NEXT — accuracy follow-ups, then Plan C (CSJ 2026-09-26)
+## NEXT — two PRs to merge and release, then the help rewrite (updated 2026-09-27)
 
-Plan B and the accuracy batch are **live** (#941 → release #942, 2026-09-26). Every rule has a cited source (CLAUDE.md Rule 23). Patch notes: `September/September25Updates/patch-notes-2026-09-25-savetax-accuracy.md`.
+Plan B and the accuracy batch are **live** (#941 → release #942). Every rule has a cited source (CLAUDE.md Rule 23).
 
-- [ ] **IncomeDefinitionsService: onboarding pension contributions** (CSJ: "next, with the rest of the outstanding stuff").
-  - Branch `fix/income-definitions-pension-contributions` @ `196f90abc`, pushed; no PR yet.
-  - Net pay per FA 2004 s193(2); relief at source per s192, deducted at ITA 2007 s58 Step 3 and s228ZA(5)(c) and extending the bands (s192(4)).
-  - The strategies band on net income; the stopgap `taxableIncomeAfterPensionContributions` is removed. The `UserProfileService` income tab is fixed too.
-  - To do: finish the full Unit+Feature regression, update tests that pin the old wrong behaviour (with cited reasons), open the PR, deploy to csjones, walk web + /m, then release.
-- [ ] **Help pages: full accuracy audit.**
-  - `public/pages/help.php` and `resources/js/views/Help.vue` still name screens and tabs that no longer exist (e.g. "Current Situation Tab", "Policy Details tab").
-  - They still say domicile drives Inheritance Tax.
-  - Verify every statement against the live UI and a cited source.
-- [ ] **Estate: long-term UK residence (BLOCKED ON CSJ SPEC).**
-  - `User::isDeemedDomiciled` still applies the pre-April-2025 "15 years" deemed-domicile rule. It drives the profile Domicile section, `EstateDataReadinessService:172` requires `domicile_status`, and Fyn gets `TaxConfigService::getDomicile()`.
-  - Law since 6 April 2025: long-term UK resident = UK resident in at least 10 of the previous 20 tax years (IHTA 1984 s6A, HMRC IHTM47020). The IHT calculation itself does not use domicile. Domicile still matters for wills (`WillDocumentService`).
-  - Needs a CSJ decision on the profile section, onboarding question and Fyn's briefing.
-- [ ] **Scottish income tax: a separate programme** (CSJ 2026-09-25). The app has no Scottish-taxpayer field and no Scottish bands anywhere.
-- [ ] **Plan C: how-to pages** (CSJ items 1 and 2).
-  - Fixed steps written by us and reviewed by CSJ, with the user's figures filled in, stored once in a catalogue.
-  - Detail page in the approved decision-card design C (canvas `https://claude.ai/artifact/6mqya3ujQRPjZkAjfqbYor`), on web, `/m` and iOS.
-  - The Tax Strategy plan shows headed actions, each opening its how-to. Fix web `StrategyRecommendationList.vue` rendering `dashboard.recommendations` instead of `composed_plan.items`.
-  - **Design the overlap note (`conflict_note`, `counted_in_total`) into the layout.** CSJ ruled this is not bolted on now.
-  - "See all actions" lists every action (about 160 definitions); iOS needs the list built.
-  - Order: tax items first, then other modules in batches.
+- [ ] **Merge and release PR #943** (`fix/income-definitions-pension-contributions`). Merging is CSJ's call.
+  - Onboarding pension contributions reach every income definition; `pension_input_amount` is the one reading (FA 2004 s192/s193/s233, ITA 2007 s58, s228ZA).
+  - One `PensionContributionRule` for the projection, the Annual Allowance check, cards and details.
+  - `/savetax` never says "up to £0".
+  - Fyn reads back what it saved before the plan-cap line.
+  - Long-term UK residence (IHTA 1984 s6A) from tax config, replacing the repealed 15-year deemed-domicile rule.
+  - Profile no longer defaults an unanswered country to "United Kingdom".
+  - Full Pest suite green; walked on web and /m.
+  - Release needs `TaxConfigurationSeeder`.
+- [ ] **Merge and release PR #944** (`feat/action-detail-cards`). It contains #943, so merge #943 first or merge #944 alone.
+  - Every action opens its own card (design C) on web, /m and iOS, with Fund from (one `FundingAccounts` list) and approved-only how-to steps.
+  - Release needs the migration `2026_09_27_000001_add_how_to_to_action_definitions` and `ActionHowToSeeder`.
+  - TestFlight builds 11 and 12 (Fynla Dev) are uploaded. Cards load on iOS only once this backend is on fynla.org. iOS unit tests compiled but were not run (CSJ: no simulator).
+- [ ] **CSJ: review the 21 tax how-tos** in `database/seeders/data/action-how-to/tax.md`.
+  - Change `draft` to `approved` per entry; nothing shows until then.
+  - Seven are flagged `unverified`. Review notes: SIPP not spelled out; `savings_to_spouse` step 2 is unsourced; `lifetime_isa` omits the age-60 rule.
+  - Then draft the other modules' batches in this order: savings, protection, retirement, investment, estate.
+- [ ] **Help pages: rewrite from the audit** (`docs/help-audit-2026-09-26.md`).
+  - Of 58 sections, 7 are accurate, 36 describe stale UI, 12 are wrong facts, and there are 13 hardcoded figures.
+  - 24 live screens have no help at all.
+  - Users only ever see `public/pages/help.php`; `Help.vue` is unreachable.
+  - Proposal: one source, rewritten against the live screens, every statement sourced.
+- [ ] **Fyn narration from "Ask Fyn about this"** is a Rule 20 fix in one place.
+  - It left the personal pension out of the £7,800 explanation.
+  - It called the ISA action a "mechanical-tier strategy", which exposes `claim_tier` jargon.
+- [ ] **Deferred minors from the #944 review.**
+  - Web and /m card error states.
+  - Clients derive `action_category` and `tax_` ids.
+  - The deadline ignores `timeline`.
+  - Zero-balance accounts are dropped from Fund from.
+  - The emergency warning uses whole-account monthly saving against the user's share.
+- [ ] **Scottish income tax: a separate programme** (CSJ 2026-09-25). No Scottish-taxpayer field and no bands anywhere.
+- [ ] **Estate residence follow-up:** the profile records no UK departure date, so the leaver "tail" (IHTM47020 table, now in config) is not applied.
 
 ## QUEUED — Fyn memory and dense-recall plan (starts only on CSJ's go)
 
