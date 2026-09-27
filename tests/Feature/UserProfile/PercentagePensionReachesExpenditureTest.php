@@ -40,6 +40,9 @@ it('counts a percentage-only workplace contribution as money leaving the pay pac
 
     $user->dcPensions()->create([
         'scheme_name' => 'Workplace Pension',
+        // pension_type defaults to 'personal' (BUG-02, 2026-08-17 migration), and a
+        // personal pension is relief at source (FA 2004 s192), not a pay deduction.
+        'pension_type' => 'occupational',
         'annual_salary' => 145_000,
         'employee_contribution_percent' => 8,
         'monthly_contribution_amount' => null,
@@ -95,6 +98,8 @@ it('is not defeated by a null scheme_type, which the live data carries', functio
     $user->dcPensions()->create([
         'scheme_name' => 'Employer Scheme',
         'scheme_type' => null,
+        // David's live row: scheme_type null, pension_type 'occupational'.
+        'pension_type' => 'occupational',
         'annual_salary' => 145_000,
         'employee_contribution_percent' => 8,
         'current_fund_value' => 180_000,

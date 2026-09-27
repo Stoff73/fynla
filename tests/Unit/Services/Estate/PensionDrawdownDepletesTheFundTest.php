@@ -38,6 +38,7 @@ function drawdownHolder(float $fundValue, int $currentAge = 45, int $retirementA
     ]);
 
     DCPension::factory()->create([
+        'scheme_type' => 'workplace',
         'user_id' => $user->id,
         'current_fund_value' => $fundValue,
         'monthly_contribution_amount' => 0,

@@ -1,0 +1,67 @@
+{
+  "success": true,
+  "data": {
+    "id": "tax_pension_tax_relief",
+    "type": "recommendation",
+    "module": "tax",
+    "module_label": "Tax Strategy",
+    "topic": "Income Band",
+    "deadline": {
+      "label": "Closes 5 April",
+      "closes_on": "2027-04-05"
+    },
+    "title": "Pay \u00a34,800 more into your pension and save \u00a31,920 in tax",
+    "description": "Pension contributions get tax relief at your highest rate. \u00a34,800 of your income is taxed at 40%, so paying that amount into a pension saves \u00a31,920 this year. A workplace scheme gives the relief through your pay; for a personal pension the provider adds 20% and you claim the rest through Self Assessment.",
+    "why": [
+      "\u00a34,800 of your income is taxed at 40%",
+      "Pension contributions get tax relief at that 40% rate"
+    ],
+    "what_this_changes": [],
+    "key_figure": {
+      "label": "Saves about",
+      "value": "\u00a31,920 a year",
+      "sub": null
+    },
+    "how_to": [],
+    "conflict_note": null,
+    "disclaimer": null,
+    "ask_fyn": {
+      "kind": "prompt",
+      "prompt": "Tell me more about: Pay \u00a34,800 more into your pension and save \u00a31,920 in tax"
+    },
+    "primary": {
+      "kind": "mark_done",
+      "recommendation_id": "tax_pension_tax_relief"
+    },
+    "go_to": {
+      "destination": {
+        "screen": "tax_strategy",
+        "params": {},
+        "fallback": "dashboard"
+      },
+      "payload": "/tax-strategy"
+    },
+    "funding": {
+      "accounts": [
+        {
+          "id": 805,
+          "type": "savings",
+          "name": "Nationwide",
+          "balance": 40000,
+          "warning": null
+        },
+        {
+          "id": 806,
+          "type": "savings",
+          "name": "Santander",
+          "balance": 4200,
+          "warning": null
+        }
+      ],
+      "selected_id": 806,
+      "selected_type": "savings"
+    },
+    "done": false,
+    "completed_at": null
+  }
+}

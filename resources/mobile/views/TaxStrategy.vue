@@ -24,7 +24,7 @@
         <article v-for="rec in householdRecommendations" :key="rec.type" class="mts-rec">
           <div class="mts-rec__top">
             <div class="mts-rec__title-wrap">
-              <h3 class="mts-rec__title">{{ rec.title }}</h3>
+              <h3 class="mts-rec__title"><router-link class="mts-rec__link" :to="{ name: 'm-action-card', params: { id: rec.recommendation_id || 'tax_' + rec.type } }">{{ rec.title }}</router-link></h3>
             </div>
             <div v-if="rec.estimated_annual_tax_saved" class="mts-rec__save">
               <span class="mts-rec__save-cap">Saves</span>
@@ -47,7 +47,7 @@
             <div class="mts-rec__top">
               <div class="mts-rec__title-wrap">
                 <span v-if="rec.category === 'warning'" class="mts-rec__flag">Watch out</span>
-                <h3 class="mts-rec__title">{{ rec.title }}</h3>
+                <h3 class="mts-rec__title"><router-link class="mts-rec__link" :to="{ name: 'm-action-card', params: { id: rec.recommendation_id || 'tax_' + rec.type } }">{{ rec.title }}</router-link></h3>
               </div>
               <div v-if="rec.estimated_annual_tax_saved" class="mts-rec__save">
                 <span class="mts-rec__save-cap">Saves</span>
@@ -78,7 +78,7 @@
           <article v-for="rec in completedRecommendations" :key="rec.type" class="mts-rec mts-rec--done">
             <div class="mts-rec__top">
               <div class="mts-rec__title-wrap">
-                <h3 class="mts-rec__title">{{ rec.title }}</h3>
+                <h3 class="mts-rec__title"><router-link class="mts-rec__link" :to="{ name: 'm-action-card', params: { id: rec.recommendation_id || 'tax_' + rec.type } }">{{ rec.title }}</router-link></h3>
               </div>
               <span class="mts-rec__done-tag">Done{{ doneDate(rec) }}</span>
             </div>
@@ -329,6 +329,7 @@ export default {
 .mts-rec__title-wrap { flex: 1; min-width: 0; }
 .mts-rec__flag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--violet-500); background: color-mix(in srgb, var(--violet-500) 12%, var(--white)); padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 6px; }
 .mts-rec__title { font-size: 15px; font-weight: 700; color: var(--horizon-500); line-height: 1.3; }
+.mts-rec__link { color: inherit; text-decoration: none; }
 .mts-rec__save { text-align: right; flex-shrink: 0; }
 .mts-rec__save-cap { display: block; font-size: 11px; color: var(--neutral-500); line-height: 1.1; }
 .mts-rec__save-amt { display: block; font-size: 18px; font-weight: 900; color: var(--spring-600); line-height: 1.2; }

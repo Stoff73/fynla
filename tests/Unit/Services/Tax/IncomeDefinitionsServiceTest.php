@@ -67,6 +67,8 @@ describe('Net Income', function () {
             'annual_employment_income' => 60000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 60000,
             'employee_contribution_percent' => 5.00,
@@ -143,6 +145,8 @@ describe('Threshold and Adjusted Income', function () {
             'annual_employment_income' => 250000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 250000,
             'employee_contribution_percent' => 5.00,
@@ -161,6 +165,8 @@ describe('Threshold and Adjusted Income', function () {
             'annual_employment_income' => 250000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 250000,
             'employee_contribution_percent' => 5.00,
@@ -182,6 +188,8 @@ describe('Threshold and Adjusted Income', function () {
             'annual_employment_income' => 250000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 250000,
             'employee_contribution_percent' => 5.00,
@@ -226,6 +234,8 @@ describe('Adjusted Allowances', function () {
             'annual_employment_income' => 300000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 300000,
             'employee_contribution_percent' => 2.00,
@@ -289,6 +299,8 @@ describe('W-0189 — which base each definition is built from', function () {
             'annual_charitable_donations' => 4000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 145000,
             'employee_contribution_percent' => 8.00,
@@ -324,6 +336,8 @@ describe('W-0189 — which base each definition is built from', function () {
             'annual_dividend_income' => 14290,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 145000,
             'employee_contribution_percent' => 8.00,
@@ -346,6 +360,8 @@ describe('W-0189 — which base each definition is built from', function () {
     it('names the arrangement as net pay when no workplace pension sacrifices salary', function () {
         $user = User::factory()->create(['annual_employment_income' => 145000]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 145000,
             'employee_contribution_percent' => 8.00,
@@ -359,6 +375,8 @@ describe('W-0189 — which base each definition is built from', function () {
     it('names salary sacrifice where a workplace pension uses it', function () {
         $user = User::factory()->create(['annual_employment_income' => 145000]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
+            'monthly_contribution_amount' => null,
             'user_id' => $user->id,
             'annual_salary' => 145000,
             'employee_contribution_percent' => 8.00,
@@ -485,6 +503,8 @@ describe('W-0205 — Gift Aid is deducted at adjusted net income, not at net inc
 
         foreach ([$donor, $nonDonor] as $person) {
             DCPension::factory()->create([
+                'scheme_type' => 'workplace',
+                'monthly_contribution_amount' => null,
                 'user_id' => $person->id,
                 'annual_salary' => 145000,
                 'employee_contribution_percent' => 8.00,

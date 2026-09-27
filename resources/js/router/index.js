@@ -1063,6 +1063,20 @@ const routes = [
     },
   },
   {
+    // One action's detail card (design C) — ids are the actions list's.
+    path: '/actions/:actionId',
+    name: 'ActionCard',
+    component: () => import('@/views/Actions/ActionCardView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Actions & Recommendations', path: '/actions' },
+        { label: 'Action', path: '' },
+      ],
+    },
+  },
+  {
     path: '/actions/:planType/:actionId',
     name: 'ActionDetail',
     component: () => import('@/views/Actions/ActionDetailView.vue'),

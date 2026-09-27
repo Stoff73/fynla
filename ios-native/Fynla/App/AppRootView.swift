@@ -23,6 +23,7 @@ struct AppRootView: View {
     let goalsModel: GoalsModel
     let taxStrategyModel: TaxStrategyModel
     let holisticPlanModel: HolisticPlanModel
+    let actionsModel: ActionsModel
     let settingsModel: SettingsModel
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
@@ -63,6 +64,7 @@ struct AppRootView: View {
         goalsModel: GoalsModel,
         taxStrategyModel: TaxStrategyModel,
         holisticPlanModel: HolisticPlanModel,
+        actionsModel: ActionsModel,
         settingsModel: SettingsModel,
         privacySettingsModel: PrivacySettingsModel,
         dataExportModel: DataExportModel,
@@ -103,6 +105,7 @@ struct AppRootView: View {
         self.goalsModel = goalsModel
         self.taxStrategyModel = taxStrategyModel
         self.holisticPlanModel = holisticPlanModel
+        self.actionsModel = actionsModel
         self.settingsModel = settingsModel
         self.privacySettingsModel = privacySettingsModel
         self.dataExportModel = dataExportModel
@@ -209,6 +212,7 @@ struct AppRootView: View {
                         goalsModel: goalsModel,
                         taxStrategyModel: taxStrategyModel,
                         holisticPlanModel: holisticPlanModel,
+                        actionsModel: actionsModel,
                         settingsModel: settingsModel,
                         privacySettingsModel: privacySettingsModel,
                         dataExportModel: dataExportModel,
@@ -287,6 +291,7 @@ struct AppRootView: View {
                 goalsModel.stop()
                 taxStrategyModel.stop()
                 holisticPlanModel.stop()
+                actionsModel.stop()
                 privacySettingsModel.stop()
                 await dataExportModel.stop()
                 accountDeletionModel.reset()
@@ -377,6 +382,7 @@ private struct UnlockedView: View {
     let goalsModel: GoalsModel
     let taxStrategyModel: TaxStrategyModel
     let holisticPlanModel: HolisticPlanModel
+    let actionsModel: ActionsModel
     let settingsModel: SettingsModel
     let privacySettingsModel: PrivacySettingsModel
     let dataExportModel: DataExportModel
@@ -586,16 +592,6 @@ private struct UnlockedView: View {
                 onRoute: { route in
                     navigate(to: route)
                 },
-                onFynCapture: { action in
-                    // The server decided the route (RecommendationRouting): a
-                    // recommendation-origin contextual conversation, else the
-                    // unlock card's capture prompt.
-                    if let request = action.action.contextual {
-                        presentContextualFyn(FynContextualAction(request: request))
-                    } else {
-                        presentFyn(prompt: action.action.prompt)
-                    }
-                },
                 celebrateFrom: achievementsModel.celebrateFrom,
                 celebrateTo: achievementsModel.celebrateTo,
                 fynOpen: isPresentingFyn,
@@ -624,6 +620,7 @@ private struct UnlockedView: View {
                     goalsModel: goalsModel,
                     taxStrategyModel: taxStrategyModel,
                     holisticPlanModel: holisticPlanModel,
+                    actionsModel: actionsModel,
                     settingsModel: settingsModel,
                     privacySettingsModel: privacySettingsModel,
                     dataExportModel: dataExportModel,

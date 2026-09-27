@@ -510,6 +510,7 @@ describe('allowance grid availability + dividend usage', function () {
             'annual_employment_income' => 80000,
         ]);
         DCPension::factory()->for($user)->create([
+            'scheme_type' => 'workplace',
             'has_flexibly_accessed' => true,
             'monthly_contribution_amount' => 0,
             'employee_contribution_percent' => 0,
@@ -1889,6 +1890,7 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             'annual_employment_income' => 180000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'annual_salary' => 180000,
             'employer_contribution_percent' => 50, // 90k addback → adjusted = 270k
@@ -1922,6 +1924,7 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             'annual_employment_income' => 200000, // threshold = 200000 (gate)
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'annual_salary' => 200000,
             'employer_contribution_percent' => 30, // +60k → adjusted = 260000 (gate)
@@ -1945,6 +1948,7 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             'annual_employment_income' => 220000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'annual_salary' => 220000,
             'employer_contribution_percent' => round(60000 / 220000 * 100, 4), // ~27.2727 → 60k addback
@@ -1980,6 +1984,7 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             'annual_employment_income' => 300000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'annual_salary' => 300000,
             'employer_contribution_percent' => 10,
@@ -2004,6 +2009,7 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             'annual_employment_income' => 500000,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'annual_salary' => 500000,
             'employer_contribution_percent' => 20, // 100k addback → adjusted = 600k
@@ -2029,6 +2035,7 @@ describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
             'annual_charitable_donations' => 1000, // also fires gift_aid_higher_rate_relief
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $user->id,
             'annual_salary' => 220000,
             'employer_contribution_percent' => round(60000 / 220000 * 100, 4),

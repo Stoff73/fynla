@@ -38,13 +38,6 @@ class InvestmentPlanService extends BasePlanService
     ];
 
     /** Liquid cash account types safe to recommend as a funding source. */
-    private const FUNDING_CASH_ACCOUNT_TYPES = [
-        'current_account',
-        'instant_access',
-        'business_current',
-        'business_savings',
-    ];
-
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
         private readonly SavingsAgent $savingsAgent,
@@ -683,7 +676,7 @@ class InvestmentPlanService extends BasePlanService
         $persistedSelections = PlanActionFundingSelection::getForUser($user->id, 'investment');
 
         // Build eligible accounts once for the user
-        $eligibleAccounts = $this->buildEligibleFundingAccounts($user);
+        $eligibleAccounts = app(FundingAccounts::class)->eligibleFor($user);
 
         foreach ($actions as &$action) {
             if (! in_array($action['category'] ?? '', self::CONTRIBUTION_CATEGORIES, true)) {
@@ -707,7 +700,7 @@ class InvestmentPlanService extends BasePlanService
 
             // Auto-recommend if no valid persisted selection
             if (! $selected) {
-                $selected = $this->autoRecommendFundingAccount($eligibleAccounts);
+                $selected = app(FundingAccounts::class)->recommend($eligibleAccounts);
             }
 
             $action['funding_source'] = [
@@ -721,93 +714,6 @@ class InvestmentPlanService extends BasePlanService
         unset($action);
 
         return $actions;
-    }
-
-    /**
-     * Build the list of eligible funding accounts for a user.
-     */
-    private function buildEligibleFundingAccounts(User $user): array
-    {
-        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
-        $targetMonths = $this->planConfig->getEmergencyFundTargetMonths();
-        $emergencyThreshold = $monthlyExpenditure * $targetMonths;
-
-        $accounts = [];
-
-        // Cash accounts (non-ISA, liquid types)
-        $cashAccounts = app(SavingsStore::class)
-            ->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('is_isa', false)
-            ->whereIn('account_type', self::FUNDING_CASH_ACCOUNT_TYPES)
-            ->sortByDesc('current_balance')
-            ->values();
-
-        foreach ($cashAccounts as $account) {
-            $balance = (float) $account->current_balance;
-            $additionalMonthly = (float) ($account->additional_monthly_savings ?? 0);
-            $balanceAfterYear = $balance - ($additionalMonthly * 12);
-
-            $warning = null;
-            if ($balanceAfterYear < $emergencyThreshold) {
-                $warning = "Withdrawing would reduce your emergency fund below {$targetMonths} months of expenditure.";
-            }
-
-            $accounts[] = [
-                'id' => $account->id,
-                'type' => 'savings',
-                'name' => $account->account_name ?? $account->institution ?? 'Cash Account',
-                'balance' => $this->roundToPenny($balance),
-                'warning' => $warning,
-            ];
-        }
-
-        // GIA investment accounts
-        $giaAccounts = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'gia')
-            ->orderByDesc('current_value')
-            ->get();
-
-        foreach ($giaAccounts as $account) {
-            $accounts[] = [
-                'id' => $account->id,
-                'type' => 'investment',
-                'name' => $account->account_name ?? $account->provider ?? 'General Investment Account',
-                'balance' => $this->roundToPenny((float) $account->current_value),
-                'warning' => 'Using this account may trigger a Capital Gains Tax event.',
-            ];
-        }
-
-        return $accounts;
-    }
-
-    /**
-     * Auto-recommend the best funding account: safe cash first, then cash with warning, then GIA.
-     */
-    private function autoRecommendFundingAccount(array $eligibleAccounts): ?array
-    {
-        // First: cash without warning
-        foreach ($eligibleAccounts as $account) {
-            if ($account['type'] === 'savings' && $account['warning'] === null) {
-                return $account;
-            }
-        }
-
-        // Second: cash with warning
-        foreach ($eligibleAccounts as $account) {
-            if ($account['type'] === 'savings') {
-                return $account;
-            }
-        }
-
-        // Third: GIA
-        foreach ($eligibleAccounts as $account) {
-            if ($account['type'] === 'investment') {
-                return $account;
-            }
-        }
-
-        return null;
     }
 
     /**

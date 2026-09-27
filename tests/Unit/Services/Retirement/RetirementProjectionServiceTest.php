@@ -87,6 +87,8 @@ beforeEach(function () {
     $this->mockTaxConfig->shouldReceive('get')->with('retirement.monte_carlo_iterations', 1000)->andReturn(1000);
     $this->mockTaxConfig->shouldReceive('get')->with('assumptions.inflation', 0.025)->andReturn(0.025);
     $this->mockTaxConfig->shouldReceive('get')->with('retirement.target_income_percent', 0.75)->andReturn(0.75);
+    // Relief at source grosses a personal pension payment (FA 2004 s192).
+    $this->mockTaxConfig->shouldReceive('getPensionAllowances')->andReturn(['tax_relief' => ['basic_rate' => 0.20]]);
 
     $this->service = new RetirementProjectionService(
         $this->mockSimulator,
@@ -114,9 +116,11 @@ describe('projectPensionPot', function () {
     it('projects DC pension pot correctly', function () {
         // Create DC pension for user
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 100000,
             'monthly_contribution_amount' => 500,
+            'employer_contribution_percent' => null,
         ]);
 
         $this->user->load('dcPensions');
@@ -147,14 +151,18 @@ describe('projectPensionPot', function () {
 
     it('handles multiple DC pensions', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 75000,
             'monthly_contribution_amount' => 400,
+            'employer_contribution_percent' => null,
         ]);
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 50000,
             'monthly_contribution_amount' => 300,
+            'employer_contribution_percent' => null,
         ]);
 
         $this->user->load('dcPensions');
@@ -168,6 +176,7 @@ describe('projectPensionPot', function () {
 
     it('uses percentage-based contributions for occupational pensions', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 80000,
             'annual_salary' => 60000,
@@ -186,6 +195,7 @@ describe('projectPensionPot', function () {
 
     it('treats a zero monthly placeholder as absent when percentage contributions exist', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 45000,
             'annual_salary' => 82000,
@@ -204,6 +214,7 @@ describe('projectPensionPot', function () {
 
     it('prefers an explicit monthly contribution over percentage fields', function () {
         DCPension::factory()->create([
+            'scheme_type' => 'workplace',
             'user_id' => $this->user->id,
             'current_fund_value' => 80000,
             'annual_salary' => 60000,
@@ -214,7 +225,47 @@ describe('projectPensionPot', function () {
 
         $this->user->load('dcPensions');
 
+        // The stated £250 is the member's; the employer's 3% of £60,000 (£150 a
+        // month) is paid in as well — FA 2004 s233(1)(b),
+        // https://www.legislation.gov.uk/ukpga/2004/12/section/233
+        expect($this->service->projectPensionPot($this->user)['monthly_contribution'])->toBe(400.0);
+    });
+
+    it('projects a personal pension gross of relief at source (FA 2004 s192)', function () {
+        DCPension::factory()->create([
+            'scheme_type' => 'personal',
+            'pension_type' => 'personal',
+            'user_id' => $this->user->id,
+            'current_fund_value' => 15000,
+            'annual_salary' => null,
+            'employee_contribution_percent' => null,
+            'employer_contribution_percent' => null,
+            'monthly_contribution_amount' => 200,
+        ]);
+
+        $this->user->load('dcPensions');
+
+        // £200 paid net; the provider claims 20% on top, so £250 reaches the pot.
         expect($this->service->projectPensionPot($this->user)['monthly_contribution'])->toBe(250.0);
+    });
+
+    it('uses employment income when the onboarding form left the scheme salary blank', function () {
+        $this->user->update(['annual_employment_income' => 60000]);
+        DCPension::factory()->create([
+            'scheme_type' => null,
+            'pension_type' => 'occupational',
+            'user_id' => $this->user->id,
+            'current_fund_value' => 25000,
+            'annual_salary' => null,
+            'employee_contribution_percent' => 5,
+            'employer_contribution_percent' => 3,
+            'monthly_contribution_amount' => null,
+        ]);
+
+        $this->user->load('dcPensions');
+
+        // 8% of £60,000 = £400 a month; it was £0 with a blank scheme salary.
+        expect($this->service->projectPensionPot($this->user->fresh()->load('dcPensions'))['monthly_contribution'])->toBe(400.0);
     });
 
     it('uses the retirement profile target age when the user mirror is missing', function () {

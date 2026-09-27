@@ -113,7 +113,7 @@ final class ParityScreenshotTests: XCTestCase {
         attach(app, name: "16-history-tab")
     }
 
-    // Level-up fireworks takeover + onboarding nudge, opted in by launch
+    // Level climb in the wheel + onboarding nudge, opted in by launch
     // arguments so they never cover the ordinary journey tests.
     @MainActor
     func testCapturesCelebrationAndOnboardingNudge() throws {
@@ -125,16 +125,16 @@ final class ParityScreenshotTests: XCTestCase {
         ]
         app.launch()
 
-        // Cold first launches under instrumentation can take >5s to reach
-        // the shell; wait on the CTA button — the modal container itself
-        // (animating, children-contained) does not resolve as an element.
+        // The level climbs in the dashboard wheel; there is no takeover to
+        // dismiss (d5bb0c9bb). Cold first launches under instrumentation can
+        // take >5s to reach the shell.
         XCTAssertTrue(
-            app.buttons["achievements.celebration.continue"].waitForExistence(timeout: 20)
+            app.descendants(matching: .any)["dashboard.level"].waitForExistence(timeout: 20)
         )
+        XCTAssertFalse(app.buttons["achievements.celebration.continue"].exists)
         sleep(1)
-        attach(app, name: "17-level-up-fireworks")
+        attach(app, name: "17-level-climb")
 
-        app.buttons["achievements.celebration.continue"].tap()
         XCTAssertTrue(
             app.buttons["dashboard.fyn-nudge"].waitForExistence(timeout: 3)
         )

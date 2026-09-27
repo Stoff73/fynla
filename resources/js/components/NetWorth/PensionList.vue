@@ -275,9 +275,10 @@
                         <span class="detail-label">Current Value</span>
                         <span class="detail-value">{{ formatCurrency(pension.current_fund_value) }}</span>
                       </div>
-                      <div v-if="pension.monthly_contribution_amount" class="detail-row">
-                        <span class="detail-label">Monthly Contribution</span>
-                        <span class="detail-value text-spring-600">{{ formatCurrency(pension.monthly_contribution_amount) }}</span>
+                      <!-- Server-computed: employee plus employer, gross of relief at source (FA 2004 s192). -->
+                      <div v-if="pension.monthly_contribution > 0" class="detail-row">
+                        <span class="detail-label">{{ pension.contribution_includes_relief ? 'Monthly Contribution (with basic-rate tax relief)' : 'Monthly Contribution' }}</span>
+                        <span class="detail-value text-spring-600">{{ formatCurrency(pension.monthly_contribution) }}</span>
                       </div>
                     </div>
                   </div>
@@ -352,7 +353,7 @@
                   <!-- W-0259 — the median leads; the conservative band stands beside it. -->
                   <div class="summary-item purple">
                     <span class="summary-item-label">Projected Value (middle outcome)</span>
-                    <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_50_at_retirement) }}</span>
+                    <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.median_at_retirement) }}</span>
                   </div>
                   <div class="summary-item purple">
                     <span class="summary-item-label">Lower outcome (4 in 5 do better)</span>
@@ -663,25 +664,6 @@ export default {
         return 'green';
       }
       return 'red';
-    },
-
-    allowanceUsedThisYear() {
-      // Calculate pension contributions made this tax year
-      // Sum of all DC pension contributions (annual basis)
-      // Includes both percentage-based (occupational) and flat monthly contributions
-      return this.dcPensions.reduce((sum, p) => {
-        // Percentage-based contributions (occupational pensions)
-        const salary = parseFloat(p.annual_salary || 0);
-        const employeePercent = parseFloat(p.employee_contribution_percent || 0);
-        const employerPercent = parseFloat(p.employer_contribution_percent || 0);
-        const percentBasedAnnual = salary * (employeePercent + employerPercent) / 100;
-
-        // Flat monthly contributions (personal pensions, SIPPs)
-        const monthlyFlat = parseFloat(p.monthly_contribution_amount || 0);
-        const flatAnnual = monthlyFlat * 12;
-
-        return sum + percentBasedAnnual + flatAnnual;
-      }, 0);
     },
 
     incomeGap() {

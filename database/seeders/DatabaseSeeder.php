@@ -81,6 +81,10 @@ class DatabaseSeeder extends Seeder
             // Estate action definitions - configurable estate planning action triggers
             EstateActionDefinitionSeeder::class,
 
+            // How-to steps for action cards (after the definitions they update);
+            // only entries CSJ approved are shown.
+            ActionHowToSeeder::class,
+
             // Invoice sequence counter — schema:dump captures DDL only, so the
             // create_invoice_sequences_table migration's seed INSERT is lost
             // when boots load from the SQL dump.
@@ -140,6 +144,7 @@ class DatabaseSeeder extends Seeder
             ProtectionActionDefinitionSeeder::class,
             TaxActionDefinitionSeeder::class,
             EstateActionDefinitionSeeder::class,
+            ActionHowToSeeder::class,
             InvoiceSequenceSeeder::class,
         ]);
     }

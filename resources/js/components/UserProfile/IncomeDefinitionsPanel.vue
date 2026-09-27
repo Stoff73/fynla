@@ -51,6 +51,15 @@
       been struck — so it now sits below the Adjusted Net Income line, where the
       order on the page matches the order in the statute.
     -->
+    <!--
+      Relief at source (FA 2004 s192): a personal pension or SIPP is paid from taxed
+      pay, so it does not reduce Net Income; its gross comes off here, at ITA 2007
+      s58 Step 3.
+    -->
+    <div v-if="definitions.deductions.relief_at_source_gross > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
+      <span>Less personal pension contributions (grossed up)</span>
+      <span>-{{ formatCurrency(definitions.deductions.relief_at_source_gross) }}</span>
+    </div>
     <div v-if="definitions.deductions.gift_aid_gross > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
       <span>Less Gift Aid (grossed up)</span>
       <span>-{{ formatCurrency(definitions.deductions.gift_aid_gross) }}</span>
@@ -193,12 +202,22 @@ export default {
     thresholdIncomeWorking() {
       const total = this.formatCurrency(this.definitions.total_income);
       const employee = this.definitions.deductions.employee_pension_contributions;
+      // FA 2004 s228ZA(5)(c): relief-at-source contributions come off gross too.
+      const reliefAtSource = this.definitions.deductions.relief_at_source_gross;
 
-      if (!(employee > 0)) {
+      if (!(employee > 0) && !(reliefAtSource > 0)) {
         return `The same as your Total Income of ${total} — you have no employee pension contributions to deduct.`;
       }
 
-      return `Your Total Income of ${total}, less the ${this.formatCurrency(employee)} you paid into your pension.`;
+      if (!(reliefAtSource > 0)) {
+        return `Your Total Income of ${total}, less the ${this.formatCurrency(employee)} you paid into your pension.`;
+      }
+
+      const personal = `the ${this.formatCurrency(reliefAtSource)} paid into your personal pension (grossed up)`;
+
+      return employee > 0
+        ? `Your Total Income of ${total}, less the ${this.formatCurrency(employee)} you paid into your pension from your pay and ${personal}.`
+        : `Your Total Income of ${total}, less ${personal}.`;
     },
 
     /**
