@@ -67,43 +67,19 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
-## NEXT — two PRs to merge and release, then the help rewrite (updated 2026-09-27)
+## NEXT — help pages, then Fyn narration (updated 2026-09-27 evening)
 
-Plan B and the accuracy batch are **live** (#941 → release #942). Every rule has a cited source (CLAUDE.md Rule 23).
+Released today: #945 (#943 pension contributions + long-term residence, #944 action cards) and #947 (#946 tax engine and strategy figures, audit 2026-09-27). Both walked live on fynla.org.
 
-- [ ] **Merge and release PR #943** (`fix/income-definitions-pension-contributions`). Merging is CSJ's call.
-  - Onboarding pension contributions reach every income definition; `pension_input_amount` is the one reading (FA 2004 s192/s193/s233, ITA 2007 s58, s228ZA).
-  - One `PensionContributionRule` for the projection, the Annual Allowance check, cards and details.
-  - `/savetax` never says "up to £0".
-  - Fyn reads back what it saved before the plan-cap line.
-  - Long-term UK residence (IHTA 1984 s6A) from tax config, replacing the repealed 15-year deemed-domicile rule.
-  - Profile no longer defaults an unanswered country to "United Kingdom".
-  - Full Pest suite green; walked on web and /m.
-  - Release needs `TaxConfigurationSeeder`.
-- [ ] **Merge and release PR #944** (`feat/action-detail-cards`). It contains #943, so merge #943 first or merge #944 alone.
-  - Every action opens its own card (design C) on web, /m and iOS, with Fund from (one `FundingAccounts` list) and approved-only how-to steps.
-  - Release needs the migration `2026_09_27_000001_add_how_to_to_action_definitions` and `ActionHowToSeeder`.
-  - TestFlight builds 11 and 12 (Fynla Dev) are uploaded. Cards load on iOS only once this backend is on fynla.org. iOS unit tests compiled but were not run (CSJ: no simulator).
-- [ ] **CSJ: review the 21 tax how-tos** in `database/seeders/data/action-how-to/tax.md`.
-  - Change `draft` to `approved` per entry; nothing shows until then.
-  - Seven are flagged `unverified`. Review notes: SIPP not spelled out; `savings_to_spouse` step 2 is unsourced; `lifetime_isa` omits the age-60 rule.
-  - Then draft the other modules' batches in this order: savings, protection, retirement, investment, estate.
-- [ ] **Help pages: rewrite from the audit** (`docs/help-audit-2026-09-26.md`).
-  - Of 58 sections, 7 are accurate, 36 describe stale UI, 12 are wrong facts, and there are 13 hardcoded figures.
-  - 24 live screens have no help at all.
-  - Users only ever see `public/pages/help.php`; `Help.vue` is unreachable.
-  - Proposal: one source, rewritten against the live screens, every statement sourced.
-- [ ] **Fyn narration from "Ask Fyn about this"** is a Rule 20 fix in one place.
-  - It left the personal pension out of the £7,800 explanation.
-  - It called the ISA action a "mechanical-tier strategy", which exposes `claim_tier` jargon.
-- [ ] **Deferred minors from the #944 review.**
-  - Web and /m card error states.
-  - Clients derive `action_category` and `tax_` ids.
-  - The deadline ignores `timeline`.
-  - Zero-balance accounts are dropped from Fund from.
-  - The emergency warning uses whole-account monthly saving against the user's share.
-- [ ] **Scottish income tax: a separate programme** (CSJ 2026-09-25). No Scottish-taxpayer field and no bands anywhere.
-- [ ] **Estate residence follow-up:** the profile records no UK departure date, so the leaver "tail" (IHTM47020 table, now in config) is not applied.
+- [ ] **CSJ: review the 21 tax how-tos** in `database/seeders/data/action-how-to/tax.md` (now on `dev` and prod). Change `draft` to `approved` per entry; nothing shows until then. Seven are `unverified`. Fix before review: SIPP not spelled out; `savings_to_spouse` step 2 unsourced; `lifetime_isa` omits the age-60 rule.
+- [ ] **Help pages: rewrite from the audit** (`docs/help-audit-2026-09-26.md`). Make `public/pages/help.php` the one source; delete `Help.vue` and its unreachable route (`router/index.js:1411-1418`). Wrong-fact sections first (12), then stale UI (36), then the 24 screens with no help. Every figure from tax config, every rule sourced.
+- [ ] **Fyn narration from "Ask Fyn about this"** (Rule 20, one place; load `fyn-architecture`). It left the personal pension out of the £7,800 explanation and said "mechanical-tier strategy" (`claim_tier` jargon).
+- [ ] **Intermittent iOS UI test:** `testPR7ParityClosureJourney` fails "not hittable ... Keyboard Focused" on `net-worth.forecast.rate.property` (dev run on `3520df133`); passed on the branch run. The simulator hardware-keyboard trap (`ios-simulator` skill).
+- [ ] **Other modules' how-to batches** after the tax batch is approved: savings (54), protection (32), retirement (26), investment (17), estate (12). Add `SOURCES` entries to `ActionHowToSeeder`.
+- [ ] **#944 review minors:** web and /m card error states; clients derive `action_category` and `tax_` ids; `UNLOCK_CONSEQUENCES` lives in `ActionCardService`; about ten places compute the 6 April tax-year start separately.
+- [ ] **In-app purchase (parked until App Store review, CSJ 2026-09-27):** scripts in the 2026-09-27 session scratchpad — `asc-iap-setup.sh` (group + £6.99 monthly / £59.99 annual, GBR, needs the Paid Applications Agreement) and `prod-apple-bridge-install.sh` (venv outside `public_html`, then seven `.env` lines incl. `APPLE_STORE_BUNDLE_ID=org.fynla.app.dev`, `APPLE_STORE_ENVIRONMENT=sandbox`). Follow-up: verify production then fall back to sandbox.
+- [ ] **Scottish income tax: a separate programme** (CSJ 2026-09-25).
+- [ ] **Estate residence follow-up:** no UK departure date is captured, so the leaver "tail" (in config) is not applied.
 
 ## QUEUED — Fyn memory and dense-recall plan (starts only on CSJ's go)
 
@@ -258,6 +234,8 @@ Three small decisions, all optional:
 
 ## Deploy state
 
+- **2026-09-27: prod (fynla.org) = main `569957ef8` (#947).** Morning #945 (`a675058bd`: migration `2026_09_27_000001`, `TaxConfigurationSeeder`, `ActionHowToSeeder`, both bundles); evening #947 (PHP only). Backups `~/release-backups/2026-09-27/` and `2026-09-27b/`. Walked live on web and `/m`; accounts 754 and the evening walk account purged. csjones back on `dev` at `a21778c18`; test account 428 `psa-walk-2026-09-27@example.com` left there. Prod `route:list` crashes on the Apple bridge (`invalid_configuration`) — harmless until IAP; never use it as a deploy check.
+
 - **2026-09-24:**
   - Production `.env` now carries `FYN_LEARNING_ENABLED=false` (it was on 08:35–16:41, and nothing was staged). Backup: `.env.bak-2026-09-24-learning`.
   - 432 test-output episode files deleted from production `fyn-memory/episodic/episodes/`.
@@ -265,7 +243,6 @@ Three small decisions, all optional:
 
 - **csjones is on `dev` at d6650eb93 (2026-09-25 13:07)**, both bundles uploaded (built from the #939 branch, same frontend as dev). Test accounts left there: 422 `savetax-only-2026-09-25@example.com`, users 419–421 `brett-a/c/d-2026-09-22@example.com` and 397 `formwalk-0915@example.com` (all `Password1!`), disposable.
 - **2026-09-25: prod (fynla.org) = main `9bc414107` (#940).** Save Tax-only onboarding (#939) plus #935–#937. No migrations or seeders; corpus rsynced with episodes excluded; learning stays off. Walked live on web and `/m` (account 751, purged). Backup `~/release-backups/2026-09-25/`. Auto mode blocks prod deploys: the deploy ran as a script CSJ executed with `!`.
-- **iOS test red since at least 2026-09-22:** `AuthenticationCoordinatorTests.refreshAuthenticatedUserReplacesTheCachedUserWithoutTouchingTheSession` gets `passwordChangeRequired` after `verifyLogin`, although the 96d8dfdfc test fix is in. Not a gate; needs a real look.
 - **2026-09-22: prod (fynla.org) = main `df14df1e2`.** Three releases, all walked live on `/m` with fresh registrations, since purged; nothing unreleased. Backups `~/release-backups/2026-09-22{a,b,c}/`.
   - `904364c31` (#924) — threshold position, RSU value and labels, free-tier childcare and Gift Aid, Gift Aid one-write, green gate (#919–#923).
   - `f2f880fc7` (#926) — disabled-child flag, taper copy, `serialize_precision` at boot (#925); migration `2026_09_22_150000` ran.
