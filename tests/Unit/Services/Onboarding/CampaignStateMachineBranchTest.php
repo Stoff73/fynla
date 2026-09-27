@@ -196,7 +196,7 @@ describe('STATE_CAMPAIGN_INTRO prompt builder', function () {
 
         expect($prompt)->toStartWith('Thanks Verify for that information.')
             ->and($prompt)->not->toContain('spouse')
-            ->and($prompt)->toEndWith('is that okay?');
+            ->and($prompt)->toEndWith(', is that okay?');
     });
 
     it('includes the linked spouse first name for married users', function () {

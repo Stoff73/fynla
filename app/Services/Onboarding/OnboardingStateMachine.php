@@ -2447,7 +2447,9 @@ final class OnboardingStateMachine
         }
 
         $isMarried = in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
-        $spousePhrase = '';
+        // Married users get ", including …'s where it makes sense,"; everyone
+        // else still needs the comma before "is that okay?".
+        $spousePhrase = ',';
 
         if ($isMarried) {
             $spouseFirstName = null;
