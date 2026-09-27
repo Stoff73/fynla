@@ -40,12 +40,12 @@ final class MarriageAllowanceStrategy implements TaxStrategy
                 ? sprintf(
                     'Your spouse or civil partner can transfer £%s of their unused Personal Allowance to you, saving your household around £%s a year in income tax.',
                     number_format((int) $amount),
-                    number_format((int) round($saving)),
+                    number_format((int) floor($saving)),
                 )
                 : sprintf(
                     'You can transfer £%s of your unused Personal Allowance to your spouse or civil partner, saving your household around £%s a year in income tax.',
                     number_format((int) $amount),
-                    number_format((int) round($saving)),
+                    number_format((int) floor($saving)),
                 ),
             estimatedAnnualTaxSaved: $saving,
             extra: ['amount_transferred' => $amount, 'transfer_direction' => $position['direction']],

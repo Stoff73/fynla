@@ -57,19 +57,18 @@ final class FundingAccounts
                 'type' => 'savings',
                 'name' => (string) ($account->account_name ?: $account->institution ?: 'Cash account'),
                 'balance' => round($this->calculateUserShare($account, $user->id), 2),
-                'monthly_saving' => (float) ($account->additional_monthly_savings ?? 0),
             ])
             ->filter(fn (array $a) => $a['balance'] > 0)
-            ->sortByDesc('balance')
-            ->map(fn (array $a) => [
-                'id' => $a['id'],
-                'type' => $a['type'],
-                'name' => $a['name'],
-                'balance' => $a['balance'],
-                'warning' => $threshold > $a['balance'] - $a['monthly_saving'] * 12
-                    ? "Withdrawing would reduce your emergency fund below {$months} months of expenditure."
-                    : null,
-            ]);
+            ->sortByDesc('balance');
+        // The emergency fund is all the user's cash (their share of joint
+        // accounts); drawing on one account only breaches it when the cash
+        // left in the others falls below the target (audit 2026-09-27).
+        $totalCash = (float) $cash->sum('balance');
+        $cash = $cash->map(fn (array $a) => $a + [
+            'warning' => $totalCash - $a['balance'] < $threshold
+                ? "Withdrawing would reduce your emergency fund below {$months} months of expenditure."
+                : null,
+        ]);
 
         $gia = InvestmentAccount::where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
             ->where('account_type', 'gia')

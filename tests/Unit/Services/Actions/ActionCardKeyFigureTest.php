@@ -14,5 +14,7 @@ it('labels an annual tax saving per year and an Inheritance Tax saving as one-of
         ->and(ActionCardService::keyFigureFor('estate', 140000))->toBe(['label' => 'Could reduce Inheritance Tax by about', 'value' => '£140,000', 'sub' => null])
         ->and(ActionCardService::keyFigureFor('estate', 140000)['value'])->not->toContain('a year')
         ->and(ActionCardService::keyFigureFor('savings', 0))->toBeNull()
-        ->and(ActionCardService::keyFigureFor('savings', null))->toBeNull();
+        ->and(ActionCardService::keyFigureFor('savings', null))->toBeNull()
+        ->and(ActionCardService::keyFigureFor('tax', 1920.99)['value'])->toBe('£1,920 a year')
+        ->and(ActionCardService::keyFigureFor('tax', 4000, 'pension_aa_carry_forward')['value'])->toBe('£4,000');
 });

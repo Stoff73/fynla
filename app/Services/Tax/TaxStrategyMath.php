@@ -121,8 +121,8 @@ final class TaxStrategyMath
         $thresholds = $this->bandThresholds();
 
         return match (true) {
-            $income >= $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
-            $income >= $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
+            $income > $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
+            $income > $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
             default => 'basic',
         };
     }
@@ -132,8 +132,8 @@ final class TaxStrategyMath
         $thresholds = $this->bandThresholdsFor($user);
 
         return match (true) {
-            $income >= $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
-            $income >= $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
+            $income > $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
+            $income > $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
             default => 'basic',
         };
     }
@@ -178,12 +178,9 @@ final class TaxStrategyMath
             }
         }
 
-        return match ($needle) {
-            'basic' => 0.20,
-            'higher' => 0.40,
-            'additional' => 0.45,
-            default => 0.20,
-        };
+        // Rule 2: a rate missing from tax config is a configuration fault, not
+        // a reason to fall back to an old hardcoded figure.
+        throw new \RuntimeException("Income tax band '{$needle}' is missing from the tax configuration.");
     }
 
     public function personalSavingsAllowanceFor(float $income): float
@@ -256,8 +253,8 @@ final class TaxStrategyMath
     public function personalAllowanceForIncome(float $adjustedNetIncome): float
     {
         $income = $this->taxConfig->getIncomeTax();
-        $full = (float) ($income['personal_allowance'] ?? 12570);
-        $threshold = (float) ($income['personal_allowance_taper_threshold'] ?? 100000);
+        $full = (float) $income['personal_allowance'];
+        $threshold = (float) $income['personal_allowance_taper_threshold'];
 
         if ($adjustedNetIncome <= $threshold) {
             return $full;
@@ -278,12 +275,12 @@ final class TaxStrategyMath
     public function effectiveAnnualAllowanceFor(User $user): float
     {
         $pension = $this->taxConfig->getPensionAllowances();
-        $allowance = (float) ($pension['annual_allowance'] ?? 60000);
+        $allowance = (float) $pension['annual_allowance'];
         $taper = $pension['tapered_annual_allowance'] ?? [];
-        $thresholdLimit = (float) ($taper['threshold_income'] ?? 200000);
-        $adjustedLimit = (float) ($taper['adjusted_income_threshold'] ?? $taper['adjusted_income'] ?? 260000);
-        $minimum = (float) ($taper['minimum_allowance'] ?? 10000);
-        $rate = (float) ($taper['taper_rate'] ?? 0.5);
+        $thresholdLimit = (float) $taper['threshold_income'];
+        $adjustedLimit = (float) $taper['adjusted_income_threshold'];
+        $minimum = (float) $taper['minimum_allowance'];
+        $rate = (float) $taper['taper_rate'];
         $thresholdIncome = $this->thresholdIncomeFor($user);
         $adjustedIncome = $this->adjustedIncomeFor($user);
         if ($thresholdIncome > $thresholdLimit && $adjustedIncome > $adjustedLimit) {
@@ -632,6 +629,81 @@ final class TaxStrategyMath
     }
 
     /**
+     * Income tax saved by a further gross pension contribution of $gross: the
+     * tax on the user's income now less the tax once it is paid, both from the
+     * one tax engine (incomeTaxOn), so the Personal Allowance taper, the
+     * Personal Savings Allowance and the dividend rates are all priced as
+     * HMRC would. Relief-at-source contributions and Gift Aid already made
+     * reduce adjusted net income and move the bands just as a net-pay
+     * contribution does (FA 2004 s192(4), ITA 2007 s414, s58), so they sit
+     * in the same deduction. $interestSheltered is interest another item in
+     * the same plan already moves into an ISA.
+     */
+    public function pensionContributionSaving(User $user, float $gross, float $interestSheltered = 0.0): float
+    {
+        $parts = $this->pricingPartsFor($user, $interestSheltered);
+        $after = $parts;
+        $after['net_pay'] += $gross;
+
+        return max(0.0, $this->incomeTaxOn($parts) - $this->incomeTaxOn($after));
+    }
+
+    /**
+     * Income tax saved when $interest of the user's interest stops being
+     * theirs (wrapped in an ISA, or given to a spouse), priced by the tax
+     * engine: the starting rate for savings (ITA 2007 s12), the Personal
+     * Savings Allowance (s12B) and every band the interest spans are applied
+     * as HMRC would, not a flat marginal rate.
+     */
+    public function interestRemovalSaving(User $user, float $interest, float $interestSheltered = 0.0): float
+    {
+        $parts = $this->pricingPartsFor($user, $interestSheltered);
+        $after = $parts;
+        $after['interest'] = max(0.0, $after['interest'] - $interest);
+
+        return max(0.0, $this->incomeTaxOn($parts) - $this->incomeTaxOn($after));
+    }
+
+    /**
+     * What the donor reclaims on their Gift Aid: the tax the grossed-up gift
+     * saves them (band extension, ITA 2007 s414, and the Personal Allowance it
+     * wins back through adjusted net income, s58) less the basic-rate tax the
+     * charity already claimed. Priced by the tax engine, so the Personal
+     * Savings Allowance and any taper are applied as HMRC would.
+     */
+    public function giftAidDonorReclaim(User $user): float
+    {
+        $gross = (float) ($this->incomeDefinitionsFor($user)['deductions']['gift_aid_gross'] ?? 0);
+        if ($gross <= 0) {
+            return 0.0;
+        }
+        $with = $this->pricingPartsFor($user, 0.0);
+        $without = $with;
+        $without['net_pay'] = max(0.0, $without['net_pay'] - $gross);
+
+        return max(0.0, $this->incomeTaxOn($without) - $this->incomeTaxOn($with) - $gross * $this->bandRateForBand('basic'));
+    }
+
+    /**
+     * The user's income parts for pricing a change: interest another item in
+     * the same plan already moves is taken out, and relief-at-source
+     * contributions and Gift Aid already made sit with the net-pay deduction
+     * because they reduce adjusted net income and move the bands the same way
+     * (FA 2004 s192(4), ITA 2007 s414, s58).
+     *
+     * @return array{non_savings: float, interest: float, dividends: float, trust: float, net_pay: float}
+     */
+    private function pricingPartsFor(User $user, float $interestSheltered): array
+    {
+        $parts = $this->incomePartsFor($user);
+        $parts['interest'] = max(0.0, $parts['interest'] - $interestSheltered);
+        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
+        $parts['net_pay'] += (float) ($deductions['relief_at_source_gross'] ?? 0) + (float) ($deductions['gift_aid_gross'] ?? 0);
+
+        return $parts;
+    }
+
+    /**
      * Extra tax a transferor pays once their Personal Allowance falls by
      * $amount (s55B(6)). A smaller allowance taxes exactly the income that
      * $amount of extra non-savings income would, because non-savings income
@@ -691,9 +763,9 @@ final class TaxStrategyMath
         $div = $this->taxConfig->getDividendTax();
 
         return match (strtolower($band)) {
-            'higher' => (float) ($div['higher_rate'] ?? 0.3375),
-            'additional' => (float) ($div['additional_rate'] ?? 0.3935),
-            default => (float) ($div['basic_rate'] ?? 0.0875),
+            'higher' => (float) $div['higher_rate'],
+            'additional' => (float) $div['additional_rate'],
+            default => (float) $div['basic_rate'],
         };
     }
 

@@ -139,6 +139,17 @@ class TaxBandTracker
     }
 
     /**
+     * Allocate income taxed at 0% that still occupies band space: the
+     * starting rate for savings (ITA 2007 s12), the Personal Savings
+     * Allowance (s12B) and the dividend allowance (s13A) all do. Consumes the
+     * Personal Allowance first, then the bands, and returns no tax.
+     */
+    public function allocateZeroRated(float $income): void
+    {
+        $this->allocateIncome($income);
+    }
+
+    /**
      * Get current band position for determining PSA and dividend rates
      */
     public function getCurrentBandPosition(): string

@@ -38,7 +38,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         $household = $context->household;
         $suggestions = [];
         $income = $this->taxConfig->getIncomeTax();
-        $isaAmount = (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000);
+        $isaAmount = (float) $this->taxConfig->getISAAllowances()['annual_allowance'];
 
         // M11 — HMRC band uses TOTAL taxable income (employment + dividends +
         // savings interest), not employment alone. Computed once because
@@ -67,13 +67,13 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         });
         $userAvgRate = $userSavingsTotal > 0 ? $annualInterest / $userSavingsTotal : 0.0;
 
-        $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
+        $personalAllowance = (float) $income['personal_allowance'];
         // A Marriage Allowance transfer takes that slice of the spouse's
         // Personal Allowance; it cannot also shelter gifted interest (B4).
         $spousePersonalAllowance = $this->math->marriageAllowanceTransfer($user, $context->mode, $household) > 0
             ? $personalAllowance - $this->math->marriageAllowanceAmount()
             : $personalAllowance;
-        $startingRate = (float) ($income['starting_rate_for_savings']['band'] ?? 5000);
+        $startingRate = (float) $income['starting_rate_for_savings']['band'];
         $spouseInterestCapacity = $spousePersonalAllowance + $startingRate + $this->math->psaForBand('basic');
         $spouseSavingsKnownZero = $household?->spouse_existing_savings_balance !== null
             && (float) $household->spouse_existing_savings_balance === 0.0;
@@ -86,7 +86,6 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             // Marginal rate on savings interest follows the same total-income
             // band as MA above. bandRateFor() uses raw employment so we resolve
             // via the cached $userBand instead.
-            $userBandRate = $this->math->bandRateForBand($userBand);
             $psaBasic = $this->math->psaForBand('basic');
             $stackedCapacity = $spousePersonalAllowance + $startingRate + $psaBasic;
             $userPersonalAllowance = $this->math->personalAllowanceFor($user);
@@ -98,7 +97,8 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             $taxableInterestBefore = max(0.0, $annualInterest - $userTaxFreeInterest);
             $annualInterestMoved = min($annualInterest, $suggestedTransfer * $userAvgRate);
             $taxableInterestSheltered = min($taxableInterestBefore, $annualInterestMoved);
-            $estimatedAnnualTaxSaved = $taxableInterestSheltered * $userBandRate;
+            // Priced by the tax engine, not a flat band rate (audit 2026-09-27).
+            $estimatedAnnualTaxSaved = floor($this->math->interestRemovalSaving($user, $annualInterestMoved));
             $reportedTransfer = round($suggestedTransfer, 2);
             $suggestions[] = [
                 'type' => 'savings_to_spouse',
@@ -128,7 +128,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         }
 
         $hasGia = InvestmentAccount::query()
-            ->where('user_id', $user->id)
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
             ->where(function ($q) {
                 $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
             })

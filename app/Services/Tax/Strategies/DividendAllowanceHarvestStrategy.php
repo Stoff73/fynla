@@ -31,13 +31,14 @@ final class DividendAllowanceHarvestStrategy implements TaxStrategy
         $div = $this->taxConfig->getDividendTax();
         $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
 
-        $dividendAllowanceRaw = $div['allowance'] ?? 500;
+        $dividendAllowanceRaw = $div['allowance'];
         $dividendAllowance = is_array($dividendAllowanceRaw)
-            ? (float) ($dividendAllowanceRaw['amount'] ?? 500)
+            ? (float) $dividendAllowanceRaw['amount']
             : (float) $dividendAllowanceRaw;
-        $userDividends = (float) ($user->annual_dividend_income ?? 0);
+        // Every captured dividend, from the income definitions (audit 2026-09-27).
+        $userDividends = (float) $this->math->incomePartsFor($user)['dividends'];
         $hasNonIsaInvestments = InvestmentAccount::query()
-            ->where('user_id', $user->id)
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
             ->where(function ($q) {
                 $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
             })
@@ -49,7 +50,6 @@ final class DividendAllowanceHarvestStrategy implements TaxStrategy
 
         $headroom = $dividendAllowance - $userDividends;
         $divRate = $this->math->dividendRateForBand($userBand);
-        $saving = $headroom * $divRate;
 
         return [new StrategyRecommendation(
             type: 'dividend_allowance_harvest',
@@ -57,9 +57,10 @@ final class DividendAllowanceHarvestStrategy implements TaxStrategy
             priority: StrategyPriority::Low,
             title: sprintf('You have £%s of unused Dividend Allowance', number_format((int) $headroom)),
             description: sprintf(
-                'The first £%s of dividend income is tax-free. Holding income-paying shares outside your ISA up to that amount returns the full payout — about £%s a year at your tax band.',
+                'The first £%s of dividend income each year is tax-free, and you have £%s of it unused. Dividends from shares held outside an ISA use it first, so up to that amount they pay no tax; above it they are taxed at %s%% at your tax band.',
                 number_format((int) $dividendAllowance),
-                number_format((int) round($saving)),
+                number_format((int) $headroom),
+                rtrim(rtrim(number_format($divRate * 100, 2), '0'), '.'),
             ),
             // Unused allowance saves nothing until dividends exist to use it (ruling 2026-09-25).
             estimatedAnnualTaxSaved: null,

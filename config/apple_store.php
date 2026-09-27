@@ -15,7 +15,10 @@ if ($configuredAppAppleId !== null && $configuredAppAppleId !== '') {
 }
 
 return [
-    'bundle_id' => 'org.fynla.app',
+    // The app testers and the App Store get is the org.fynla.app.dev record,
+    // named "Fynla" (CSJ 2026-09-07: one app), so production sets
+    // APPLE_STORE_BUNDLE_ID=org.fynla.app.dev; org.fynla.app is the legacy record.
+    'bundle_id' => env('APPLE_STORE_BUNDLE_ID', 'org.fynla.app'),
     'allowed_product_ids' => [
         'org.fynla.premium.monthly',
         'org.fynla.premium.annual',

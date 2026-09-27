@@ -72,7 +72,7 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             : min(
                 $earnings * self::BASIC_RATE_SHARE_OF_EARNINGS - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
                 $availableAA,
-                $aboveAllowance,
+                $this->basicRateTaxedIncome($user, $taxable, $context->interestShelteredElsewhere),
             );
 
         // Down, never up: rounding up would relieve tax the user does not pay.
@@ -92,15 +92,15 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             type: 'pension_tax_relief',
             category: StrategyCategory::IncomeBand,
             priority: $band === 'higher' ? StrategyPriority::High : StrategyPriority::Medium,
-            title: sprintf('Pay £%s more into your pension and save £%s in tax', number_format($display), number_format((int) round($saving))),
+            title: sprintf('Pay £%s more into your pension and save £%s in tax', number_format($display), number_format((int) floor($saving))),
             description: $band === 'higher'
                 ? sprintf(
                     'Pension contributions get tax relief at your highest rate. £%s of your income is taxed at %d%%, so paying that amount into a pension saves £%s this year. A workplace scheme gives the relief through your pay; for a personal pension the provider adds %d%% and you claim the rest through Self Assessment.',
-                    number_format($display), $ratePct, number_format((int) round($saving)), $basicPct,
+                    number_format($display), $ratePct, number_format((int) floor($saving)), $basicPct,
                 )
                 : sprintf(
                     'Every £%s you pay into a pension gets %d%% tax relief. Paying in £%s more this year saves £%s of income tax.',
-                    number_format(100), $ratePct, number_format($display), number_format((int) round($saving)),
+                    number_format(100), $ratePct, number_format($display), number_format((int) floor($saving)),
                 ),
             estimatedAnnualTaxSaved: $saving,
             extra: [
@@ -129,5 +129,25 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $allowanceLeft = max(0.0, $this->math->psaForBand('higher') - ($interest - $interestAbove));
 
         return max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
+    }
+
+    /**
+     * Income actually taxed at the basic rate: non-savings income above the
+     * Personal Allowance, plus interest left after any unused allowance, the
+     * starting rate for savings (ITA 2007 s12) and the Personal Savings
+     * Allowance (s12B). Dividends are taxed at the dividend rate (s8), not the
+     * basic rate, so relief on them is not claimed here.
+     */
+    private function basicRateTaxedIncome(User $user, float $taxable, float $sheltered): float
+    {
+        $parts = $this->math->incomePartsFor($user);
+        $interest = max(0.0, $parts['interest'] - $sheltered);
+        $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
+        $allowance = $this->math->personalAllowanceFor($user);
+        $nonSavingsAbove = max(0.0, $nonSavings - $allowance);
+        $startingRate = max(0.0, (float) $this->taxConfig->getIncomeTax()['starting_rate_for_savings']['band'] - $nonSavingsAbove);
+        $interestTaxed = max(0.0, $interest - max(0.0, $allowance - $nonSavings) - $startingRate - $this->math->psaForBand('basic'));
+
+        return $nonSavingsAbove + $interestTaxed;
     }
 }

@@ -19,7 +19,7 @@ use App\Services\TaxConfigService;
  *
  * Fires when the user is in the higher or additional band, has not maxed
  * the current year's AA, AND has unused AA from the previous three tax years.
- * Saving = unused_carry_forward × user_marginal_rate.
+ * Saving = the tax engine's saving on the part beyond this year's headroom.
  *
  * Carry-forward window: HMRC allows looking back 3 tax years. We sum
  * max(0, AA_for_year - input_for_year) over pension_input_history entries
@@ -62,7 +62,7 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             return [];
         }
 
-        $aa = (float) ($this->taxConfig->getPensionAllowances()['annual_allowance'] ?? 60000);
+        $aa = (float) $this->taxConfig->getPensionAllowances()['annual_allowance'];
         $currentInput = $this->math->estimatePensionContributionThisYear($user, $context->overrides);
         if ($currentInput >= $aa) {
             return [];
@@ -97,7 +97,12 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
         $grossIncome = (float) ($user->annual_employment_income ?? 0)
             + (float) ($user->annual_self_employment_income ?? 0);
         $taxReliefHeadroom = max(0, $grossIncome - $currentInput);
-        $usableThisYear = min($unused, $taxReliefHeadroom);
+        // This year's allowance is used before any carried forward (FA 2004
+        // s228A(2), https://www.legislation.gov.uk/ukpga/2004/12/section/228A),
+        // and the other pension items already cover that headroom; this item
+        // is only the part beyond it, so nothing is counted twice.
+        $currentYearHeadroom = max(0.0, $aa - $currentInput);
+        $usableThisYear = min($unused, $taxReliefHeadroom - $currentYearHeadroom);
 
         if ($usableThisYear <= 0) {
             return [];
@@ -120,7 +125,7 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
         // conservative slice of the user's liquid wealth (1/2 of cash —
         // leaves room for emergency fund, won't suggest emptying their
         // bank account into a pension).
-        $affordableCap = $liquidWealth * 0.5;
+        $affordableCap = $liquidWealth * 0.5 - $currentYearHeadroom;
         $recommended = min($usableThisYear, $affordableCap);
 
         // Round DOWN to the nearest £1,000 so the headline never overstates.
@@ -129,8 +134,10 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             return [];
         }
 
-        $marginalRate = $this->math->bandRateFor($user);
-        $saving = $recommended * $marginalRate;
+        // Priced by the tax engine: the tax the carried-forward part saves
+        // once this year's headroom is already paid in.
+        $saving = floor($this->math->pensionContributionSaving($user, $currentYearHeadroom + $recommended)
+            - $this->math->pensionContributionSaving($user, $currentYearHeadroom));
 
         if ($saving < 1) {
             return [];
@@ -141,15 +148,16 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             category: StrategyCategory::Allowance,
             priority: StrategyPriority::Medium,
             title: sprintf(
-                'Top up your pension by up to £%s using carry-forward',
+                'Top up your pension by up to £%s more using carry-forward',
                 number_format((int) $recommended),
             ),
             description: sprintf(
-                'You\'ve contributed below the £%s Pension Annual Allowance in each of the last 3 tax years. Based on your current earnings and savings you could put up to £%s into your pension this year and reclaim around £%s in income tax. Your full unused allowance over the lookback window is £%s, but contributions only get tax relief up to your gross UK earnings.',
+                'You\'ve contributed below the £%s Pension Annual Allowance in each of the last 3 tax years. Once this year\'s £%s allowance is used, carry-forward lets you pay up to £%s more into your pension, reclaiming around £%s more in income tax. Your full unused allowance over the lookback window is £%s, but contributions only get tax relief up to your gross UK earnings.',
                 number_format((int) $aa),
+                number_format((int) $currentYearHeadroom),
                 number_format((int) $recommended),
-                number_format((int) round($saving)),
-                number_format((int) round($unused / 1000) * 1000),
+                number_format((int) $saving),
+                number_format((int) (floor($unused / 1000) * 1000)),
             ),
             estimatedAnnualTaxSaved: round($saving, 2),
             extra: [
@@ -157,7 +165,6 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
                 'recommended_contribution' => round($recommended, 2),
                 'tax_relief_headroom' => round($taxReliefHeadroom, 2),
                 'liquid_wealth' => round($liquidWealth, 2),
-                'marginal_rate' => $marginalRate,
                 'lookback_years' => self::LOOKBACK_YEARS,
                 'current_year_input' => round($currentInput, 2),
                 'annual_allowance' => $aa,

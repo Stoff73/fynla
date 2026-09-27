@@ -44,7 +44,10 @@ final class GiftAidHigherRateReliefStrategy implements TaxStrategy
             return [];
         }
 
-        $saving = $donations * $factor;
+        // Priced by the tax engine rather than a flat factor (audit 2026-09-27):
+        // the Personal Savings Allowance, dividends and the allowance won back
+        // in the taper band all change what the donor reclaims.
+        $saving = floor($this->math->giftAidDonorReclaim($user));
         if ($saving < 1) {
             return [];
         }
@@ -55,13 +58,13 @@ final class GiftAidHigherRateReliefStrategy implements TaxStrategy
             priority: StrategyPriority::Medium,
             title: sprintf(
                 'Reclaim £%s on your Gift Aid donations via Self Assessment',
-                number_format((int) round($saving)),
+                number_format((int) floor($saving)),
             ),
             description: sprintf(
                 'You give around £%s a year through Gift Aid. The charity already reclaims basic-rate tax — but as a %s-rate taxpayer you can claim back another £%s yourself when you file your Self Assessment.',
                 number_format((int) $donations),
                 $band === 'additional' ? 'additional' : 'higher',
-                number_format((int) round($saving)),
+                number_format((int) floor($saving)),
             ),
             estimatedAnnualTaxSaved: round($saving, 2),
             extra: [
