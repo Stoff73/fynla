@@ -312,7 +312,10 @@ final class FynlaUITests: XCTestCase {
             "This explanation must remain readable across multiple lines on a narrow mobile screen."
         ))
 
+        // Every action opens its own card; "Go to it" follows the semantic destination.
         action.tap()
+        XCTAssertTrue(element("action-card.title", in: app).waitForExistence(timeout: 5))
+        app.buttons["action-card.go-to"].tap()
 
         XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
         XCTAssertFalse(element("tax-strategy.screen", in: app).exists)
@@ -462,6 +465,8 @@ final class FynlaUITests: XCTestCase {
         assertReachable(recommendation, in: app)
         XCTAssertTrue(recommendation.label.contains("workplace pension contributions"))
         recommendation.tap()
+        XCTAssertTrue(element("action-card.title", in: app).waitForExistence(timeout: 5))
+        app.buttons["action-card.go-to"].tap()
         XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
 
         openDrawerItem("navigation.bank-accounts", in: app)

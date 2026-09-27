@@ -344,11 +344,21 @@ struct FynlaApp: App {
             )
         )
         #endif
+        #if FYNLA_UI_TESTING
+        let actionsModel = uiTestMode == nil
+            ? ActionsModel(
+                client: LiveActionsClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ActionsUITestComposition.model()
+        #else
         let actionsModel = ActionsModel(
             client: LiveActionsClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         #if FYNLA_UI_TESTING
         let subscriptionModel: SubscriptionModel
         let appleSubscriptionManager: any AppleSubscriptionManaging
