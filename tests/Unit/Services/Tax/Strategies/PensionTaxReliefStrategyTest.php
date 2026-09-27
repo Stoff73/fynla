@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\DCPension;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\TaxStrategyMath;
@@ -109,4 +110,29 @@ it('never rounds the contribution above the tax the user pays', function () {
 
     expect($rec)->not->toBeNull()
         ->and($rec['suggested_contribution'])->toBe(400.0);
+});
+
+it('leaves interest the Personal Savings Allowance covers out of the higher-rate slice', function () {
+    // Release walk 2026-09-27: interest inside the Personal Savings Allowance
+    // is taxed at 0% (ITA 2007 s12B), so it is not income "taxed at 40%".
+    // Interest set to exactly the higher-rate allowance so no ISA wrap runs.
+    $user = reliefUser(72000);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3,
+        'salary_sacrifice' => false,
+    ]);
+    $math = app(TaxStrategyMath::class);
+    SavingsAccount::factory()->for($user)->create([
+        'current_balance' => $math->psaForBand('higher') / 0.04, 'interest_rate' => 4, 'is_isa' => false,
+    ]);
+    $slice = 72000 - 3600 - $math->bandThresholds()['higher'];
+    $display = floor($slice / 100) * 100;
+
+    $rec = reliefRecs($user)['higher'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['suggested_contribution'])->toBe((float) $display)
+        ->and($rec['estimated_annual_tax_saved'])->toBe(round($display * $math->bandRateForBand('higher'), 2));
 });

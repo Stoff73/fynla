@@ -29,17 +29,26 @@ final class IncomeBandStrategy implements TaxStrategy
         $overrides = $context->overrides;
 
         $income = $this->taxConfig->getIncomeTax();
-        $taperThreshold = (float) ($income['personal_allowance_taper_threshold'] ?? 100000);
-        $additionalRateThreshold = $this->math->bandThresholdsFor($user)['additional'] ?: 125140;
+        $taperThreshold = (float) $income['personal_allowance_taper_threshold'];
+        $additionalRateThreshold = $this->math->bandThresholdsFor($user)['additional'];
+        $higherRateThreshold = $this->math->bandThresholdsFor($user)['higher'];
         // Where the 60% band ends: the allowance is gone £1 for every £2 over the
         // threshold, so at threshold + 2 × allowance. Adjusted net income is
         // already net of Gift Aid, so the band top is NOT extended by it the way
         // the additional-rate threshold is; the strip says the same figure.
-        $taperEnd = $taperThreshold + 2 * (float) ($income['personal_allowance'] ?? 12570);
+        $taperEnd = $taperThreshold + 2 * (float) $income['personal_allowance'];
 
         $taxableIncome = $this->math->taxableIncomeFor($user);
         $adjustedNetIncome = $this->math->adjustedNetIncomeFor($user);
         $availableAA = $this->math->availableAnnualAllowance($user, $overrides);
+        // Relief is only given on contributions up to the greater of relevant
+        // UK earnings and the basic amount (FA 2004 s190,
+        // https://www.legislation.gov.uk/ukpga/2004/12/section/190), less what
+        // the user already pays in; a large dividend income earns none.
+        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        $reliefLimit = max($earnings, (float) $this->taxConfig->getPensionAllowances()['relevant_earnings_minimum'])
+            - $this->math->grossEmployeePensionContributions($user);
+        $availableAA = min($availableAA, max(0.0, $reliefLimit));
         if ($availableAA <= 0) {
             return [];
         }
@@ -49,7 +58,6 @@ final class IncomeBandStrategy implements TaxStrategy
         // multiplied by 1.5 (every £1 earned = £0.40 tax + £0.50 PA reduction
         // taxed at higher rate = £0.40 + £0.20 = £0.60).
         $higherRate = $this->math->bandRateForBand('higher');
-        $additionalRate = $this->math->bandRateForBand('additional');
         $taperEffectiveRate = $higherRate * 1.5;
 
         $recommendations = [];
@@ -70,13 +78,23 @@ final class IncomeBandStrategy implements TaxStrategy
                 // figure derives from the same rounded contribution so the two
                 // parts always sum to the headline total. Rates from
                 // TaxConfigService (Rule #2) — never hardcoded.
-                $displayContribution = (int) (round($contribution / 100) * 100);
+                // Down, never up: rounding up would relieve tax the user does
+                // not pay. The total comes from the tax engine, so interest in
+                // the Personal Savings Allowance and dividends are priced at
+                // their own rates; the direct relief is what the reclaimed
+                // allowance does not account for.
+                $displayContribution = (int) (floor($contribution / 100) * 100);
                 $paReclaimed = (int) ($displayContribution / 2);
                 $paReclaimSaving = (int) round($paReclaimed * $higherRate);
-                $directRelief = (int) round($displayContribution * $higherRate);
-                $totalSaving = $paReclaimSaving + $directRelief;
+                $totalSaving = (int) round($this->math->pensionContributionSaving($user, $displayContribution, $context->interestShelteredElsewhere));
+                $directRelief = max(0, $totalSaving - $paReclaimSaving);
+                // The agreed wording names the rate; it only holds when the
+                // engine agrees the relief is at that rate (not when the top
+                // slice is dividends or allowance-covered interest).
+                $directLine = $directRelief === (int) round($displayContribution * $higherRate)
+                    ? sprintf("Reduce your income tax at %d%% by £%s.\n\n", (int) round($higherRate * 100), number_format($directRelief))
+                    : sprintf("Reduce the rest of your income tax by £%s.\n\n", number_format($directRelief));
                 $paReclaimPct = (int) round($higherRate * 50);
-                $higherRatePct = (int) round($higherRate * 100);
                 $effectivePct = (int) round($taperEffectiveRate * 100);
 
                 $recommendations[] = new StrategyRecommendation(
@@ -87,15 +105,14 @@ final class IncomeBandStrategy implements TaxStrategy
                     description: sprintf(
                         "For your income of £%s, a £%s pension contribution would:\n\n"
                         ."Reclaim £%s of your Personal Allowance, saving £%s (%d%% of your contribution).\n\n"
-                        ."Reduce your income tax at %d%% by £%s.\n\n"
+                        .'%s'
                         ."Together that's £%s back this year — income between £%s and £%s is taxed at %d%%.",
                         number_format((int) round($adjustedNetIncome)),
                         number_format($displayContribution),
                         number_format($paReclaimed),
                         number_format($paReclaimSaving),
                         $paReclaimPct,
-                        $higherRatePct,
-                        number_format($directRelief),
+                        $directLine,
                         number_format($totalSaving),
                         number_format((int) $taperThreshold),
                         number_format((int) $taperEnd),
@@ -110,20 +127,19 @@ final class IncomeBandStrategy implements TaxStrategy
             }
         }
 
-        // #2 — Additional-Rate Avoidance (45% → 40%/60% bands).
-        // Piecewise saving: top slice 45 → 40 (5pp), middle slice 40 → 60 swing
-        // (gain), but the gain only materialises when contribution dips into
-        // the £100k-£125,140 band. Approximate as: above-AR slice × 5pp +
-        // continuation into taper band × 60pp differential vs nothing.
-        if ($taxableIncome > $additionalRateThreshold) {
+        // #2 — Additional-Rate Avoidance. The contribution covers the slice
+        // above the additional-rate threshold, then the taper band, then the
+        // higher-rate band down to its threshold (never below it: relief there
+        // is only the basic rate). The saving is priced by the tax engine.
+        if ($additionalRateThreshold > 0 && $taxableIncome > $additionalRateThreshold) {
             $additionalSlice = min($taxableIncome - $additionalRateThreshold, $availableAA);
             $remaining = max(0, $availableAA - $additionalSlice);
             $taperSlice = min($remaining, $additionalRateThreshold - $taperThreshold);
             $remainingAfterTaper = max(0, $remaining - $taperSlice);
-            $belowTaperSlice = min($remainingAfterTaper, max(0, $taperThreshold - max(0, $taxableIncome - $availableAA)));
+            $belowTaperSlice = min($remainingAfterTaper, max(0, $taperThreshold - $higherRateThreshold));
 
-            $saving = ($additionalSlice * $additionalRate) + ($taperSlice * $taperEffectiveRate) + ($belowTaperSlice * $higherRate);
-            $contribution = $additionalSlice + $taperSlice + $belowTaperSlice;
+            $contribution = floor(($additionalSlice + $taperSlice + $belowTaperSlice) / 100) * 100;
+            $saving = $this->math->pensionContributionSaving($user, $contribution, $context->interestShelteredElsewhere);
 
             if ($contribution > 0) {
                 $recommendations[] = new StrategyRecommendation(
@@ -134,8 +150,8 @@ final class IncomeBandStrategy implements TaxStrategy
                     description: sprintf(
                         'Income above £%s is taxed at 45%%. A £%s pension contribution moves that slice into the 40%% band and reclaims part of your Personal Allowance, saving around £%s in tax this year.',
                         number_format((int) $additionalRateThreshold),
-                        number_format((int) round($contribution / 100) * 100),
-                        number_format((int) round($saving)),
+                        number_format((int) $contribution),
+                        number_format((int) floor($saving)),
                     ),
                     estimatedAnnualTaxSaved: round($saving, 2),
                     extra: [

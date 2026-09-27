@@ -256,6 +256,7 @@ it('the three account steps are form turns owned by the corpus with short lead-i
 it('offers a workplace pension and a personal pension or SIPP, both through create_pension', function (): void {
     $schema = CaptureForms::schema('pension');
     expect(array_column($schema['kinds'], 'key'))->toBe(['workplace', 'personal'])
+        ->and($schema['kinds_prompt'])->toBe('A SIPP is a Self-Invested Personal Pension.')
         ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP'])
         ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_pension'])
         ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice'])

@@ -44,7 +44,7 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
             + (float) ($household->spouse_annual_dividends ?? 0);
         $spouseBand = $this->math->bandFromIncome($spouseIncome);
         $hasGia = InvestmentAccount::query()
-            ->where('user_id', $user->id)
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
             ->where(function ($query) {
                 $query->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
             })

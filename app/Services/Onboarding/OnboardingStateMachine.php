@@ -2447,7 +2447,9 @@ final class OnboardingStateMachine
         }
 
         $isMarried = in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
-        $spousePhrase = '';
+        // Married users get ", including …'s where it makes sense,"; everyone
+        // else still needs the comma before "is that okay?".
+        $spousePhrase = ',';
 
         if ($isMarried) {
             $spouseFirstName = null;
@@ -2474,23 +2476,29 @@ final class OnboardingStateMachine
         }
 
         // Name only the asset groups the user ticked on the funnel's final screen
-        // (CSJ 2026-09-11: Fyn must ask only about what was chosen). The generic
-        // wording stays for a funnel that recorded no assets.
+        // (CSJ 2026-09-11: Fyn must ask only about what was chosen), in the order
+        // the walk asks them; with no funnel answer, name every group the walk
+        // covers, in that order (CSJ 2026-09-27). Within the savings section
+        // ISAs come before bank accounts (STATE_CAMPAIGN_ISA_HOLDINGS first).
+        $groupFor = [
+            'isa' => ['ISAs', 'savings', 0],
+            'bank' => ['bank and savings accounts', 'savings', 1],
+            'savings' => ['bank and savings accounts', 'savings', 1],
+            'investments' => ['investments', 'investments', 0],
+            'property' => ['property', 'property', 0],
+            'pension' => ['pensions', 'pensions', 0],
+        ];
+        $order = array_flip(self::sectionOrderFor($user->onboarding_fyn_selection ?? 'savetax'));
+        $chosen = (array) ($user->funnel_answers['assets'] ?? []);
         $groups = [];
-        foreach ((array) ($user->funnel_answers['assets'] ?? []) as $asset) {
-            $label = match ($asset) {
-                'bank', 'savings' => 'bank and savings accounts',
-                'isa' => 'ISAs',
-                'investments' => 'investments',
-                'pension' => 'pensions',
-                'property' => 'property',
-                default => null,
-            };
-            if ($label !== null && ! in_array($label, $groups, true)) {
-                $groups[] = $label;
+        foreach ($chosen === [] ? array_keys($groupFor) : $chosen as $asset) {
+            [$label, $section, $within] = $groupFor[$asset] ?? [null, null, 0];
+            if ($label !== null && isset($order[$section])) {
+                $groups[$label] = $order[$section] * 10 + $within;
             }
         }
-        $subjects = $groups === [] ? 'pensions, accounts and investments' : self::joinWithAnd($groups);
+        asort($groups);
+        $subjects = self::joinWithAnd(array_keys($groups));
 
         return "Thanks {$firstName} for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your {$subjects}{$spousePhrase} is that okay?";
     }

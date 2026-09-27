@@ -131,7 +131,7 @@ it('marks isa_subscriptions_ytd available when user owns an ISA account', functi
 
 it('marks gia_holdings available when user has a non-ISA investment account', function () {
     $user = User::factory()->create();
-    InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+    InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
 
     expect($this->svc->availability($user)['gia_holdings'])->toBeTrue();
 });

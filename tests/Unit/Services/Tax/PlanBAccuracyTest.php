@@ -135,7 +135,10 @@ it('sizes the higher-rate pension item without the interest the ISA wrap already
     $recs = accRecs($user);
     $math = app(TaxStrategyMath::class);
     $sheltered = (float) $recs['isa_topup_vs_psa']['taxable_interest_sheltered'];
-    $slice = $math->taxableIncomeFor($user) - $sheltered - $math->bandThresholdsFor($user)['higher'];
+    // The Personal Savings Allowance is a 0% rate (ITA 2007 s12B), so the
+    // interest it covers is not part of the slice taxed at the higher rate.
+    $slice = $math->taxableIncomeFor($user) - $sheltered - $math->bandThresholdsFor($user)['higher']
+        - $math->psaForBand('higher');
 
     expect($recs['pension_tax_relief']['suggested_contribution'])->toBe((float) (floor($slice / 100) * 100));
 });

@@ -107,10 +107,13 @@ final class JointSavingsStrategy implements TaxStrategy
         $userRate = $this->math->bandRateForBand($userBand);
         $spouseRate = $this->math->bandRateForBand('basic');
         $interestPerPerson = $interest / 2;
-        $taxBefore = max(0.0, $interest - $userPsa) * $userRate;
-        $taxAfter = max(0.0, $interestPerPerson - $userPsa) * $userRate
-            + max(0.0, $interestPerPerson - $spouseTaxFreeInterestCapacity) * $spouseRate;
-        $saving = max(0.0, $taxBefore - $taxAfter);
+        // The user's side is priced by the tax engine (starting rate, allowance
+        // and every band the interest spans); the spouse, who has no income in
+        // this mode, pays basic rate on anything above their tax-free capacity.
+        $saving = max(0.0, floor(
+            $this->math->interestRemovalSaving($user, $interestPerPerson)
+            - max(0.0, $interestPerPerson - $spouseTaxFreeInterestCapacity) * $spouseRate
+        ));
         $shelterableSlice = $userRate > 0 ? $saving / $userRate : 0.0;
 
         if ($saving < 1) {
@@ -127,7 +130,7 @@ final class JointSavingsStrategy implements TaxStrategy
                 number_format((int) $balance),
                 number_format((int) round($interest)),
                 number_format((int) round($interestPerPerson)),
-                number_format((int) round($saving)),
+                number_format((int) floor($saving)),
             ),
             estimatedAnnualTaxSaved: round($saving, 2),
             requiresAdvice: true,
