@@ -227,7 +227,7 @@ it('below the cap the loop question still offers another', function (): void {
     ]]);
 
     $quick = collect($events)->firstWhere('type', 'quick_replies');
-    expect($quick['prompt_text'])->toBe("You have 1 ISA or investment account on file: ".collect([\App\Models\Investment\InvestmentAccount::where('user_id', $user->id)->first()])->map(fn ($a) => $a->account_name ?: $a->provider)->first().".\n\nDo you have another investment account to add?")
+    expect($quick['prompt_text'])->toBe('You have 1 ISA or investment account on file: '.collect([InvestmentAccount::where('user_id', $user->id)->first()])->map(fn ($a) => $a->account_name ?: $a->provider)->first().".\n\nDo you have another investment account to add?")
         ->and(array_column($quick['bubbles'], 'label'))->toBe(['Yes, add another', "No, that's everything"]);
 });
 

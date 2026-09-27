@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\DCPension;
 use App\Models\User;
+use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -153,7 +154,7 @@ it('gives the Retirement Annual Allowance check the same pension input amount as
     ]);
     $taxYear = app(TaxConfigService::class)->getTaxYear();
 
-    $checked = app(\App\Services\Retirement\AnnualAllowanceChecker::class)->checkAnnualAllowance($user->id, $taxYear);
+    $checked = app(AnnualAllowanceChecker::class)->checkAnnualAllowance($user->id, $taxYear);
 
     // Before: the checker read the blank scheme salary (workplace £0) and the
     // personal pension net (£2,400).

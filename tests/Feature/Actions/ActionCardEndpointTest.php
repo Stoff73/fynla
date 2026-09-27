@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Coordination\ComposedTaxPlanService;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
@@ -110,7 +111,7 @@ it('gives an unlock item the waiting-on-you shape', function () {
 it('puts the strategy own figures in the why bullets, never a guessed sentence', function () {
     $user = actionCardUserWithIsaHeadroom();
     Sanctum::actingAs($user);
-    $items = collect(app(\App\Services\Coordination\ComposedTaxPlanService::class)->forUser($user)['items'])->keyBy('type');
+    $items = collect(app(ComposedTaxPlanService::class)->forUser($user)['items'])->keyBy('type');
     expect($items->has('pension_tax_relief'))->toBeTrue();
     $pension = $items['pension_tax_relief'];
 

@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Mobile\NextActionsService;
+use App\Services\Mobile\RecommendationRouting;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 
@@ -109,9 +112,9 @@ it('asks Fyn for the missing detail by name, not for tax strategy details in gen
     expect($unlocks)->not->toBeEmpty();
     foreach ($unlocks as $item) {
         $type = substr($item['id'], strlen('strategy_unlock:'));
-        $locked = collect(app(\App\Services\Coordination\ComposedTaxPlanService::class)->forUser($user)['locked'])->firstWhere('strategy_type', $type);
-        $label = \App\Services\Coordination\HouseholdFinancialContext::labelFor((string) $locked['missing'][0]);
-        expect($item['action']['prompt'])->toBe(\App\Services\Mobile\RecommendationRouting::strategyUnlockPrompt((string) $locked['missing'][0]))
+        $locked = collect(app(ComposedTaxPlanService::class)->forUser($user)['locked'])->firstWhere('strategy_type', $type);
+        $label = HouseholdFinancialContext::labelFor((string) $locked['missing'][0]);
+        expect($item['action']['prompt'])->toBe(RecommendationRouting::strategyUnlockPrompt((string) $locked['missing'][0]))
             ->and($item['action']['prompt'])->toBe('Help me add my '.$label);
     }
 });
