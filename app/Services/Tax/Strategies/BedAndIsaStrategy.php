@@ -12,6 +12,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 
 /**
  * Strategy #6 — Bed & ISA Capital Gains Harvest within the Annual Exempt Amount.
@@ -23,6 +24,8 @@ use App\Services\TaxConfigService;
  */
 final class BedAndIsaStrategy implements TaxStrategy
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private readonly TaxStrategyMath $math,
         private readonly TaxConfigService $taxConfig,
@@ -33,8 +36,8 @@ final class BedAndIsaStrategy implements TaxStrategy
         $user = $context->user;
         $isa = $this->taxConfig->getISAAllowances();
         $cgt = $this->taxConfig->getCapitalGainsTax();
-        $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
-        $aea = (float) ($cgt['annual_exempt_amount'] ?? 3000);
+        $isaAllowance = (float) $isa['annual_allowance'];
+        $aea = (float) $cgt['annual_exempt_amount'];
 
         $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
         $isaRemaining = max(0, $isaAllowance - $isaUsed);
@@ -52,18 +55,21 @@ final class BedAndIsaStrategy implements TaxStrategy
 
         $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
         $cgtRate = match ($userBand) {
-            'basic' => (float) ($cgt['basic_rate'] ?? 0.18),
-            'higher', 'additional' => (float) ($cgt['higher_rate'] ?? 0.24),
-            default => 0.18,
+            'basic' => (float) $cgt['basic_rate'],
+            default => (float) $cgt['higher_rate'],
         };
 
-        $nonIsaAccountIds = InvestmentAccount::query()
-            ->where('user_id', $user->id)
+        // Joint accounts count at the user's share only (Rule 6): the other
+        // owner's half of a gain is theirs to realise, not this user's.
+        $shareById = InvestmentAccount::query()
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
             ->where(function ($q) {
                 $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
             })
-            ->pluck('id')
+            ->get()
+            ->mapWithKeys(fn (InvestmentAccount $account) => [$account->id => $this->userShareFraction($account, $user->id)])
             ->all();
+        $nonIsaAccountIds = array_keys($shareById);
 
         if (empty($nonIsaAccountIds)) {
             return [];
@@ -72,7 +78,7 @@ final class BedAndIsaStrategy implements TaxStrategy
         $holdings = Holding::query()
             ->where('holdable_type', InvestmentAccount::class)
             ->whereIn('holdable_id', $nonIsaAccountIds)
-            ->get(['quantity', 'purchase_price', 'current_price', 'current_value', 'cost_basis']);
+            ->get(['holdable_id', 'quantity', 'purchase_price', 'current_price', 'current_value', 'cost_basis']);
 
         if ($holdings->isEmpty()) {
             return [];
@@ -92,7 +98,9 @@ final class BedAndIsaStrategy implements TaxStrategy
             if ($current <= 0 || $costBasis <= 0) {
                 continue;
             }
-            $gain = $current - $costBasis;
+            $share = (float) ($shareById[$h->holdable_id] ?? 0);
+            $gain = ($current - $costBasis) * $share;
+            $current *= $share;
             if ($gain > 0) {
                 $totalUnrealisedGain += $gain;
                 $totalCurrentValueWithGain += $current;
@@ -138,7 +146,7 @@ final class BedAndIsaStrategy implements TaxStrategy
                 number_format((int) round($totalUnrealisedGain)),
                 number_format((int) round($proceeds)),
                 number_format((int) round($realisableGains)),
-                number_format((int) round($saving)),
+                number_format((int) floor($saving)),
             ),
             estimatedAnnualTaxSaved: round($saving, 2),
             requiresAdvice: true,

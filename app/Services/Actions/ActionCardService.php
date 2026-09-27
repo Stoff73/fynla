@@ -103,7 +103,7 @@ final class ActionCardService
                 ? ($taxItem !== null ? ActionCardFigures::why($taxItem) : (array) ($card['personalised_context'] ?? []))
                 : [],
             'what_this_changes' => $isRecommendation ? [] : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
-            'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null),
+            'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null),
             'how_to' => $this->howTo($module, $taxItem['type'] ?? null, $card['definition_key'] ?? null),
             'conflict_note' => $card['conflict_note'] ?? null,
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
@@ -241,6 +241,10 @@ final class ActionCardService
             return ['label' => 'Closes '.$date->format('j F'), 'closes_on' => $date->toDateString()];
         }
 
+        if (($card['timeline'] ?? null) === 'immediate') {
+            return ['label' => 'Immediate action', 'closes_on' => null];
+        }
+
         return ['label' => 'Worth reviewing', 'closes_on' => null];
     }
 
@@ -251,15 +255,18 @@ final class ActionCardService
      *
      * @return array{label: string, value: string, sub: string|null}|null
      */
-    public static function keyFigureFor(string $module, mixed $benefit): ?array
+    public static function keyFigureFor(string $module, mixed $benefit, ?string $type = null): ?array
     {
-        if (! is_numeric($benefit) || (float) $benefit <= 0) {
+        if (! is_numeric($benefit) || (float) $benefit < 1) {
             return null;
         }
-        $pounds = '£'.number_format((float) $benefit);
+        // Down, never up: the figure never promises more than was worked out.
+        $pounds = '£'.number_format(floor((float) $benefit));
 
-        return $module === 'estate'
-            ? ['label' => 'Could reduce Inheritance Tax by about', 'value' => $pounds, 'sub' => null]
-            : ['label' => 'Saves about', 'value' => $pounds.' a year', 'sub' => null];
+        return match (true) {
+            $module === 'estate' => ['label' => 'Could reduce Inheritance Tax by about', 'value' => $pounds, 'sub' => null],
+            in_array($type, ActionCardFigures::ONE_OFF_TYPES, true) => ['label' => 'Saves about', 'value' => $pounds, 'sub' => null],
+            default => ['label' => 'Saves about', 'value' => $pounds.' a year', 'sub' => null],
+        };
     }
 }

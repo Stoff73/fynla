@@ -175,7 +175,7 @@ class UKTaxCalculator
 
         // Interest income (uses same bands but has PSA - keep separate for clarity)
         if ($interestIncome > 0) {
-            $interestBreakdown = $this->calculateInterestTaxDetailed($interestIncome, $tracker);
+            $interestBreakdown = $this->calculateInterestTaxDetailed($interestIncome, $dividendIncome, $tracker);
 
             $incomeBreakdowns[] = [
                 'income_type' => 'interest',
@@ -401,27 +401,47 @@ class UKTaxCalculator
     }
 
     /**
-     * Calculate interest tax with PSA consideration
+     * Tax on interest, in the order ITA 2007 s16 and s12 set: any Personal
+     * Allowance left after non-savings income, then the 0% starting rate for
+     * savings (£5,000 in config, less non-savings income above the allowance),
+     * then the Personal Savings Allowance, then the band rates. The 0% slices
+     * still occupy band space. The allowance is sized by the band the
+     * individual's whole income reaches, dividends included (s12B(3)):
+     * https://www.legislation.gov.uk/ukpga/2007/3/section/12B
      */
-    private function calculateInterestTaxDetailed(float $interestIncome, TaxBandTracker $tracker): array
+    private function calculateInterestTaxDetailed(float $interestIncome, float $dividendIncome, TaxBandTracker $tracker): array
     {
         $config = $tracker->getConfig();
-        $bandPosition = $tracker->getCurrentBandPosition();
+        $allocatedBefore = $tracker->getTotalAllocated();
 
-        // Determine PSA based on current band position (from TaxConfigService)
-        $psaConfig = $this->taxConfig->getPersonalSavingsAllowance();
-        $psa = match ($bandPosition) {
-            'personal_allowance', 'basic' => (int) ($psaConfig['basic'] ?? 1000),
-            'higher' => (int) ($psaConfig['higher'] ?? 500),
-            default => 0,
+        $wholeIncome = $allocatedBefore + $interestIncome + $dividendIncome;
+        $band = match (true) {
+            $wholeIncome <= $config['basic_rate_limit'] => 'basic',
+            $wholeIncome <= $config['higher_rate_limit'] => 'higher',
+            default => 'additional',
         };
+        $psa = (float) $this->taxConfig->getPersonalSavingsAllowance($band);
 
-        $taxableInterest = max(0, $interestIncome - $psa);
-        $taxAllocation = $tracker->allocateIncome($taxableInterest);
+        $remaining = $interestIncome;
+        $inAllowance = min($remaining, $tracker->getRemainingPersonalAllowance());
+        $tracker->allocateZeroRated($inAllowance);
+        $remaining -= $inAllowance;
 
-        // Add PSA info to breakdown
+        $srsBand = (float) ($this->taxConfig->getIncomeTax()['starting_rate_for_savings']['band'] ?? 0);
+        $nonSavingsAboveAllowance = max(0.0, $allocatedBefore - $config['personal_allowance']);
+        $startingRate = min($remaining, max(0.0, $srsBand - $nonSavingsAboveAllowance));
+        $tracker->allocateZeroRated($startingRate);
+        $remaining -= $startingRate;
+
+        $psaUsed = min($remaining, $psa);
+        $tracker->allocateZeroRated($psaUsed);
+        $remaining -= $psaUsed;
+
+        $taxAllocation = $tracker->allocateIncome($remaining);
+        $taxAllocation['personal_allowance_used'] = $inAllowance;
+        $taxAllocation['starting_rate_for_savings_used'] = $startingRate;
         $taxAllocation['personal_savings_allowance'] = $psa;
-        $taxAllocation['taxable_after_psa'] = $taxableInterest;
+        $taxAllocation['taxable_after_psa'] = $remaining;
 
         return $taxAllocation;
     }
@@ -439,7 +459,14 @@ class UKTaxCalculator
         $higherRate = $dividendTax['higher_rate'];
         $additionalRate = $dividendTax['additional_rate'];
 
-        $taxableDividends = max(0, $dividendIncome - $allowance);
+        // Any Personal Allowance still unused covers dividends (ITA 2007 s25),
+        // and the dividend allowance is a 0% rate that still occupies band
+        // space (s13A): https://www.legislation.gov.uk/ukpga/2007/3/section/13A
+        $inPersonalAllowance = min($dividendIncome, $tracker->getRemainingPersonalAllowance());
+        $tracker->allocateZeroRated($inPersonalAllowance);
+        $allowanceUsed = min($dividendIncome - $inPersonalAllowance, (float) $allowance);
+        $tracker->allocateZeroRated($allowanceUsed);
+        $taxableDividends = max(0, $dividendIncome - $inPersonalAllowance - $allowanceUsed);
 
         $breakdown = [
             'dividend_allowance' => $allowance,
@@ -799,95 +826,42 @@ class UKTaxCalculator
             }
         }
 
-        // Step 2: Calculate tax on interest income with Starting Rate for Savings + PSA
-        // Order (HMRC ITA 2007 s12): non-savings consumes PA → SRS 0% band → PSA 0% band → standard bands.
-        // SRS is £5,000 reduced £1-for-£1 by non-savings income above the PA.
-        if ($interestIncome > 0) {
-            $srsBand = (float) ($incomeTax['starting_rate_for_savings']['band'] ?? 5000);
-            $nonSavingsAbovePA = max(0.0, $nonDividendNonInterestIncome - $personalAllowance);
-            $srsAvailable = max(0.0, $srsBand - $nonSavingsAbovePA);
+        // Steps 2 and 3: savings then dividends stack on top of non-savings
+        // income (ITA 2007 s16). Each slice starts where the last one ended; any
+        // part below the Personal Allowance is 0% (s25), and the 0% slices
+        // (starting rate for savings s12, Personal Savings Allowance s12B,
+        // dividend allowance s13A) still occupy band space.
+        $slice = static function (float $from, float $amount, array $rates) use ($personalAllowance, $basicRateLimit, $higherRateLimit): float {
+            $to = $from + $amount;
+            $in = static fn (float $lo, float $hi): float => max(0.0, min($to, $hi) - max($from, $lo));
 
+            return $in($personalAllowance, $basicRateLimit) * $rates[0]
+                + $in($basicRateLimit, $higherRateLimit) * $rates[1]
+                + $in($higherRateLimit, PHP_FLOAT_MAX) * $rates[2];
+        };
+        $position = $nonDividendNonInterestIncome;
+
+        if ($interestIncome > 0) {
+            $inAllowance = min($interestIncome, max(0.0, $personalAllowance - $position));
+            $srsBand = (float) ($incomeTax['starting_rate_for_savings']['band'] ?? 0);
+            $startingRate = min($interestIncome - $inAllowance, max(0.0, $srsBand - max(0.0, $nonDividendNonInterestIncome - $personalAllowance)));
             $psaBand = match (true) {
                 $totalIncome <= $basicRateLimit => 'basic',
                 $totalIncome <= $higherRateLimit => 'higher',
                 default => 'additional',
             };
-            $personalSavingsAllowance = $this->taxConfig->getPersonalSavingsAllowance($psaBand);
-
-            $srsUsed = min($interestIncome, $srsAvailable);
-            $interestAfterSrs = $interestIncome - $srsUsed;
-            $psaUsed = min($interestAfterSrs, (float) $personalSavingsAllowance);
-            $taxableInterest = max(0.0, $interestAfterSrs - $psaUsed);
-
-            if ($taxableInterest > 0) {
-                // The 0%-rated portions (SRS + PSA) still occupy band space, so the taxable
-                // remainder sits above non-savings + SRS used + PSA used.
-                $incomeBeforeInterest = $nonDividendNonInterestIncome + $srsUsed + $psaUsed;
-
-                // Tax interest at appropriate rate(s)
-                if ($incomeBeforeInterest + $taxableInterest <= $basicRateLimit) {
-                    // All interest in basic rate band
-                    $tax += $taxableInterest * $basicRate;
-                } elseif ($incomeBeforeInterest >= $basicRateLimit && $incomeBeforeInterest + $taxableInterest <= $higherRateLimit) {
-                    // All interest in higher rate band
-                    $tax += $taxableInterest * $higherRate;
-                } elseif ($incomeBeforeInterest >= $higherRateLimit) {
-                    // All interest in additional rate band
-                    $tax += $taxableInterest * $additionalRate;
-                } else {
-                    // Interest spans multiple bands
-                    $remaining = $taxableInterest;
-
-                    // Basic rate portion
-                    if ($incomeBeforeInterest < $basicRateLimit) {
-                        $basicPortion = min($remaining, $basicRateLimit - $incomeBeforeInterest);
-                        $tax += $basicPortion * $basicRate;
-                        $remaining -= $basicPortion;
-                        $incomeBeforeInterest += $basicPortion;
-                    }
-
-                    // Higher rate portion
-                    if ($remaining > 0 && $incomeBeforeInterest < $higherRateLimit) {
-                        $higherPortion = min($remaining, $higherRateLimit - $incomeBeforeInterest);
-                        $tax += $higherPortion * $higherRate;
-                        $remaining -= $higherPortion;
-                        $incomeBeforeInterest += $higherPortion;
-                    }
-
-                    // Additional rate portion
-                    if ($remaining > 0) {
-                        $tax += $remaining * $additionalRate;
-                    }
-                }
-            }
+            $psaUsed = min($interestIncome - $inAllowance - $startingRate, (float) $this->taxConfig->getPersonalSavingsAllowance($psaBand));
+            $position += $inAllowance + $startingRate + $psaUsed;
+            $taxableInterest = $interestIncome - $inAllowance - $startingRate - $psaUsed;
+            $tax += $slice($position, $taxableInterest, [$basicRate, $higherRate, $additionalRate]);
+            $position += $taxableInterest;
         }
 
-        // Step 3: Calculate dividend tax
-        if ($dividendIncome > $dividendAllowance) {
-            $taxableDividends = $dividendIncome - $dividendAllowance;
-            $incomeBeforeDividends = $nonDividendNonInterestIncome + $interestIncome;
-
-            // Determine dividend tax rate based on total income band
-            if ($totalIncome <= $basicRateLimit) {
-                // Basic rate dividend tax
-                $tax += $taxableDividends * $basicDividendRate;
-            } elseif ($totalIncome <= $higherRateLimit) {
-                // Dividends may span basic and higher rate
-                $basicRateDividends = max(0, $basicRateLimit - $incomeBeforeDividends);
-                $higherRateDividends = $taxableDividends - $basicRateDividends;
-
-                $tax += $basicRateDividends * $basicDividendRate;
-                $tax += max(0, $higherRateDividends) * $higherDividendRate;
-            } else {
-                // Dividends may span all three bands
-                $basicRateDividends = max(0, $basicRateLimit - $incomeBeforeDividends);
-                $higherRateDividends = max(0, min($taxableDividends - $basicRateDividends, $higherRateLimit - max($incomeBeforeDividends, $basicRateLimit)));
-                $additionalRateDividends = $taxableDividends - $basicRateDividends - $higherRateDividends;
-
-                $tax += $basicRateDividends * $basicDividendRate;
-                $tax += $higherRateDividends * $higherDividendRate;
-                $tax += max(0, $additionalRateDividends) * $additionalDividendRate;
-            }
+        if ($dividendIncome > 0) {
+            $inAllowance = min($dividendIncome, max(0.0, $personalAllowance - $position));
+            $allowanceUsed = min($dividendIncome - $inAllowance, (float) $dividendAllowance);
+            $position += $inAllowance + $allowanceUsed;
+            $tax += $slice($position, $dividendIncome - $inAllowance - $allowanceUsed, [$basicDividendRate, $higherDividendRate, $additionalDividendRate]);
         }
 
         return $tax;

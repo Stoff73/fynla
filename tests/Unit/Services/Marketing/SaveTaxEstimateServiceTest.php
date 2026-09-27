@@ -157,16 +157,18 @@ it('keeps the pension line when the user already has a pension (CSJ 2026-09-26)'
         ->and($with['savings_total'])->toBeGreaterThan(0);
 });
 
-it('computes ISA, PSA, dividend and CGT savings for a higher-rate saver-investor', function () {
+it('prices the ISA line on interest and never counts automatic allowances as savings (CSJ 2026-09-27)', function () {
     $result = $this->service->estimate([
         'income' => '50271_100000',
         'assets' => ['savings', 'investments'],
     ]);
 
-    expect(lineAmount($result, 'isa'))->toBe(4000)        // 10% of £100k × 40%
-        ->and(lineAmount($result, 'psa'))->toBe(200)      // £500 × 40%
-        ->and(lineAmount($result, 'dividend'))->toBe(179) // £500 × 35.75%
-        ->and(lineAmount($result, 'cgt'))->toBe(720);     // £3,000 × 24%
+    // £10,000 at the easy-access benchmark earns less than the £500 higher-rate
+    // Personal Savings Allowance, so an ISA saves no tax and shows no line.
+    expect(lineAmount($result, 'isa'))->toBe(0)
+        ->and(lineAmount($result, 'psa'))->toBe(0)
+        ->and(lineAmount($result, 'dividend'))->toBe(0)
+        ->and(lineAmount($result, 'cgt'))->toBe(0);
 });
 
 it('drops the Personal Savings Allowance saving at additional rate', function () {
@@ -504,10 +506,12 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 if ($income > 0) {
                     expect($r['savings_total'])->toBeGreaterThan(0, "zero headline saving [$label]");
                 }
-                expect(hasSaving($r, 'isa'))->toBe($hasFinancial, "ISA saving presence wrong [$label]");
-                expect(hasSaving($r, 'psa'))->toBe(($has('savings', 'bank') && $psaBand > 0), "PSA saving presence wrong [$label]");
-                expect(hasSaving($r, 'dividend'))->toBe($has('investments'), "dividend saving presence wrong [$label]");
-                expect(hasSaving($r, 'cgt'))->toBe($has('investments', 'property'), "CGT saving presence wrong [$label]");
+                if (hasSaving($r, 'isa')) {
+                    expect($hasFinancial)->toBeTrue("ISA saving without savings [$label]");
+                }
+                expect(hasSaving($r, 'psa'))->toBeFalse("PSA is automatic, not a saving [$label]");
+                expect(hasSaving($r, 'dividend'))->toBeFalse("dividend allowance is automatic, not a saving [$label]");
+                expect(hasSaving($r, 'cgt'))->toBeFalse("CGT allowance is automatic, not a saving [$label]");
 
                 $spouseZero = $married && $spouseOpt === 'zero';
                 expect(hasSaving($r, 'spouse_pa'))->toBe($spouseZero, "spouse_pa saving presence wrong [$label]");

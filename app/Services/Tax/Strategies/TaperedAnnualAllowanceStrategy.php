@@ -45,15 +45,13 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
     {
         $user = $context->user;
         $pension = $this->taxConfig->getPensionAllowances();
-        $taper = $pension['tapered_annual_allowance'] ?? [];
+        $taper = $pension['tapered_annual_allowance'];
 
-        $thresholdGate = (float) ($taper['threshold_income'] ?? 200000);
-        $adjustedGate = (float) ($taper['adjusted_income_threshold']
-            ?? $taper['adjusted_income']
-            ?? 260000);
-        $minimumAllowance = (float) ($taper['minimum_allowance'] ?? 10000);
-        $taperRate = (float) ($taper['taper_rate'] ?? 0.5);
-        $annualAllowance = (float) ($pension['annual_allowance'] ?? 60000);
+        $thresholdGate = (float) $taper['threshold_income'];
+        $adjustedGate = (float) $taper['adjusted_income_threshold'];
+        $minimumAllowance = (float) $taper['minimum_allowance'];
+        $taperRate = (float) $taper['taper_rate'];
+        $annualAllowance = (float) $pension['annual_allowance'];
 
         $threshold = $this->math->thresholdIncomeFor($user);
         if ($threshold <= $thresholdGate) {
@@ -65,6 +63,9 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
             return [];
         }
 
+        // Shown to the pound and rounded down: rounding to the nearest £1,000
+        // could show more allowance than the user has and invite a
+        // contribution that triggers the charge (FA 2004 s228ZA).
         $excessAdjusted = $adjusted - $adjustedGate;
         $taperedAa = max($minimumAllowance, $annualAllowance - $taperRate * $excessAdjusted);
         $aaReduction = $annualAllowance - $taperedAa;
@@ -82,7 +83,7 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
             priority: StrategyPriority::High,
             title: sprintf(
                 'Your Pension Annual Allowance is tapered to £%s',
-                number_format((int) round($taperedAa / 1000) * 1000),
+                number_format((int) floor($taperedAa)),
             ),
             description: sprintf(
                 'Your adjusted income of £%s exceeds the £%s tapered Annual Allowance threshold and your threshold income of £%s exceeds £%s, so HMRC reduces your Pension Annual Allowance by £1 for every £2 over £%s — down to £%s this year (floor £%s). Contributing the standard £%s allowance would trigger an Annual Allowance charge of around £%s at your marginal rate.',
@@ -91,10 +92,10 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
                 number_format((int) $threshold),
                 number_format((int) $thresholdGate),
                 number_format((int) $adjustedGate),
-                number_format((int) round($taperedAa / 1000) * 1000),
+                number_format((int) floor($taperedAa)),
                 number_format((int) $minimumAllowance),
                 number_format((int) $annualAllowance),
-                number_format((int) round($avoidedCharge)),
+                number_format((int) floor($avoidedCharge)),
             ),
             // A warning: the charge is avoided, not tax saved (ruling 2026-09-25).
             estimatedAnnualTaxSaved: null,

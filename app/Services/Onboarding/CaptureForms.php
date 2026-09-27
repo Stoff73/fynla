@@ -824,6 +824,8 @@ final class CaptureForms
         return [
             'name' => self::PENSION,
             'submit_label' => 'Save',
+            // Rule 9: spell SIPP out before the button uses it (CSJ 2026-09-27).
+            'kinds_prompt' => 'A SIPP is a Self-Invested Personal Pension.',
             'kinds' => [
                 ['key' => 'workplace', 'label' => 'Workplace pension', 'scheme_type' => 'occupational',
                     'tool' => 'create_pension', 'entity_type' => 'dc_pension',

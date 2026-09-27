@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
-use RuntimeException;
 
 beforeEach(function (): void {
     $this->corpus = sys_get_temp_dir().'/proc-'.uniqid();

@@ -196,7 +196,26 @@ describe('STATE_CAMPAIGN_INTRO prompt builder', function () {
 
         expect($prompt)->toStartWith('Thanks Verify for that information.')
             ->and($prompt)->not->toContain('spouse')
-            ->and($prompt)->toEndWith('is that okay?');
+            ->and($prompt)->toEndWith(', is that okay?');
+    });
+
+    it('follows the walk order, not the order the funnel boxes were ticked', function () {
+        // Release walk 2026-09-27: ticking Pension before Savings named
+        // pensions first, then the walk asked about bank accounts.
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'marital_status' => 'single',
+            'onboarding_fyn_selection' => 'savetax',
+            'funnel_answers' => ['assets' => ['pension', 'savings']],
+        ]);
+
+        expect(OnboardingStateMachine::buildCampaignIntroPrompt('', $user, null))
+            ->toContain('ask about your bank and savings accounts and pensions, is that okay?');
+
+        $user->forceFill(['onboarding_fyn_selection' => 'pensioncheck'])->save();
+
+        expect(OnboardingStateMachine::buildCampaignIntroPrompt('', $user->fresh(), null))
+            ->toContain('ask about your pensions, is that okay?');
     });
 
     it('includes the linked spouse first name for married users', function () {
@@ -281,7 +300,7 @@ describe('STATE_CAMPAIGN_INTRO names only the assets the funnel selected', funct
             ->and($prompt)->toEndWith('is that okay?');
     });
 
-    it('lists every chosen group in funnel order and keeps the generic wording when nothing was chosen', function () {
+    it('lists every chosen group in the order the walk asks them, and every group when nothing was chosen', function () {
         $all = User::factory()->create([
             'first_name' => 'Chris',
             'marital_status' => 'single',
@@ -290,9 +309,9 @@ describe('STATE_CAMPAIGN_INTRO names only the assets the funnel selected', funct
         $none = User::factory()->create(['first_name' => 'Chris', 'marital_status' => 'single', 'funnel_answers' => null]);
 
         expect(OnboardingStateMachine::buildCampaignIntroPrompt('', $all, null))
-            ->toContain('your pensions, ISAs and investments');
+            ->toContain('your ISAs, investments and pensions');
         expect(OnboardingStateMachine::buildCampaignIntroPrompt('', $none, null))
-            ->toContain('your pensions, accounts and investments');
+            ->toContain('your ISAs, bank and savings accounts, investments, property and pensions');
     });
 });
 

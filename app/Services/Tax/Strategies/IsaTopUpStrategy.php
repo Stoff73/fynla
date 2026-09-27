@@ -33,7 +33,7 @@ final class IsaTopUpStrategy implements TaxStrategy
     {
         $user = $context->user;
         $isa = $this->taxConfig->getISAAllowances();
-        $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
+        $isaAllowance = (float) $isa['annual_allowance'];
         $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
 
         $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
@@ -112,8 +112,12 @@ final class IsaTopUpStrategy implements TaxStrategy
             return [];
         }
 
-        $marginalRate = $this->math->bandRateFor($user);
-        $saving = $interestSheltered * $marginalRate;
+        // Priced by the tax engine: the interest wrapped may sit partly in the
+        // starting rate, the allowance or a lower band (audit 2026-09-27).
+        $saving = floor($this->math->interestRemovalSaving($user, $interestSheltered));
+        if ($saving < 1) {
+            return [];
+        }
         $reportedTransfer = round($transferable, 2);
         $accountDirection = $targetAccounts === []
             ? ''
@@ -134,7 +138,7 @@ final class IsaTopUpStrategy implements TaxStrategy
                 number_format($interestSheltered, 2),
                 number_format((int) $psa),
                 number_format((int) round($reportedTransfer)),
-                number_format((int) round($saving)),
+                number_format((int) floor($saving)),
                 $accountDirection,
             ),
             estimatedAnnualTaxSaved: round($saving, 2),

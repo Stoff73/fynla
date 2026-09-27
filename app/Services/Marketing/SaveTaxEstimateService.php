@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Marketing;
 
 use App\Services\Onboarding\FunnelIncomeBand;
+use App\Services\Stores\SavingsMarketRateStore;
 use App\Services\TaxConfigService;
 use LogicException;
 
@@ -87,48 +88,29 @@ class SaveTaxEstimateService
         }
 
         // --- ISA -------------------------------------------------------------
+        // An ISA saves the tax on the interest, not the money moved (audit
+        // 2026-09-27): interest at the admin-managed easy-access benchmark, less
+        // the Personal Savings Allowance that already covers it (ITA 2007
+        // s12B), at the marginal rate. No line when nothing is taxed.
         if ($hasFinancial) {
             $isaAssumed = (int) round($income * 0.10);
-            $savings[] = [
-                'key' => 'isa',
-                'label' => 'ISA allowance',
-                'amount' => (int) round($isaAssumed * $rate),
-                'reason' => 'Sheltering '.$this->money($isaAssumed).' in an ISA keeps the growth and income tax-free.',
-            ];
+            $store = app(SavingsMarketRateStore::class);
+            $benchmark = (float) ($store->findByKeyAndTaxYear('easy_access', (string) $store->latestTaxYear())?->rate ?? 0);
+            $taxedInterest = max(0.0, $isaAssumed * $benchmark - $this->personalSavingsAllowance($income));
+            $isaSaving = (int) floor($taxedInterest * $rate);
+            if ($isaSaving > 0) {
+                $savings[] = [
+                    'key' => 'isa',
+                    'label' => 'ISA allowance',
+                    'amount' => $isaSaving,
+                    'reason' => 'Interest on '.$this->money($isaAssumed).' of savings held in an ISA is tax-free.',
+                ];
+            }
         }
 
-        // --- Personal Savings Allowance (own) --------------------------------
-        $psa = $this->personalSavingsAllowance($income);
-        if ($has('savings', 'bank') && $psa > 0) {
-            $savings[] = [
-                'key' => 'psa',
-                'label' => 'Personal Savings Allowance',
-                'amount' => (int) round($psa * $rate),
-                'reason' => 'Your first '.$this->money($psa).' of savings interest is tax-free.',
-            ];
-        }
-
-        // --- Dividend allowance ----------------------------------------------
-        if ($has('investments')) {
-            $divAllowance = $this->taxInt('dividend_tax.allowance');
-            $savings[] = [
-                'key' => 'dividend',
-                'label' => 'Dividend allowance',
-                'amount' => (int) round($divAllowance * $this->dividendRate($income)),
-                'reason' => 'Your first '.$this->money($divAllowance).' of dividends is tax-free.',
-            ];
-        }
-
-        // --- Capital Gains Tax allowance -------------------------------------
-        if ($has('investments', 'property')) {
-            $cgtAllowance = $this->taxInt('capital_gains_tax.annual_exempt_amount');
-            $savings[] = [
-                'key' => 'cgt',
-                'label' => 'Capital Gains Tax allowance',
-                'amount' => (int) round($cgtAllowance * $this->cgtRate($income)),
-                'reason' => 'The first '.$this->money($cgtAllowance).' of gains each year is tax-free.',
-            ];
-        }
+        // Own Personal Savings, Dividend and Capital Gains Tax allowances are
+        // given automatically, so they are not savings the user can make
+        // (CSJ 2026-09-27; plan ruling 2026-09-25). They stay in 'allowances'.
 
         // --- Spouse transfer levers (spouse earns £0) ------------------------
         if ($married && $spouseBand === 'zero') {
@@ -566,30 +548,6 @@ class SaveTaxEstimateService
         }
 
         return $this->requiredArrayInt($psa, 'basic', 'income_tax.personal_savings_allowance.basic');
-    }
-
-    private function dividendRate(int $income): float
-    {
-        $higherStart = $this->taxInt('income_tax.higher_rate_threshold');
-        $additionalStart = $this->taxInt('income_tax.additional_rate_threshold');
-
-        if ($income > $additionalStart) {
-            return $this->taxNumber('dividend_tax.additional_rate');
-        }
-        if ($income > $higherStart) {
-            return $this->taxNumber('dividend_tax.higher_rate');
-        }
-
-        return $this->taxNumber('dividend_tax.basic_rate');
-    }
-
-    private function cgtRate(int $income): float
-    {
-        $higherStart = $this->taxInt('income_tax.higher_rate_threshold');
-
-        return $income > $higherStart
-            ? $this->taxNumber('capital_gains_tax.higher_rate')
-            : $this->taxNumber('capital_gains_tax.basic_rate');
     }
 
     private function normaliseBand(?string $band, ?string $default): ?string

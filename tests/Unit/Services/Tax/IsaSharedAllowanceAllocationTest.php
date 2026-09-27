@@ -81,7 +81,7 @@ describe('shared ISA allowance allocation across strategies', function () {
             'current_balance' => 50000,
             'interest_rate' => 0.04,
         ]);
-        $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
         Holding::factory()->forAccount($gia)->create([
             'quantity' => 100,
             'purchase_price' => 50,

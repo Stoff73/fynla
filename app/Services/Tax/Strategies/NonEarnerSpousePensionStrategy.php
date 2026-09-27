@@ -130,7 +130,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         }
 
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $personalAllowance = (float) $incomeTax['personal_allowance'];
 
         // Modest-earner heuristic: below twice the Personal Allowance (~£25,140)
         // means the spouse is likely a non- or basic-rate taxpayer both now and
@@ -149,7 +149,11 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         $basicRate = $this->math->bandRateForBand('basic');
         // Relevant earnings cap the gross contribution; what they already pay
         // in (gross in this mode) has used part of it (B5).
-        $grossCapacity = max(0.0, $spouseIncome - (float) ($household->spouse_pension_input_annual ?? 0));
+        // Relief is on contributions up to the greater of relevant earnings and
+        // the basic amount (FA 2004 s190), so a spouse earning under it can
+        // still pay in the basic amount (audit 2026-09-27).
+        $reliefLimit = max($spouseIncome, (float) $this->taxConfig->getPensionAllowances()['relevant_earnings_minimum']);
+        $grossCapacity = max(0.0, $reliefLimit - (float) ($household->spouse_pension_input_annual ?? 0));
         if ($grossCapacity < 1) {
             return [];
         }
@@ -166,7 +170,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 number_format((int) $uplift),
             ),
             description: sprintf(
-                'Your spouse earns £%s, which counts as relevant UK earnings for pension purposes. Paying in £%s net gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
+                'Your spouse earns £%s, and relief is given on pension contributions up to their relevant UK earnings or the basic amount, whichever is higher. Paying in £%s net gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
                 number_format((int) $spouseIncome),
                 number_format((int) $netCost),
                 number_format((int) $grossCapacity),
