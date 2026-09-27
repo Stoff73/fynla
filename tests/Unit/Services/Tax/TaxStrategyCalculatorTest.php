@@ -97,7 +97,7 @@ describe('Path B — dual_earner', function () {
             'annual_dividend_income' => 5000,
             'marital_status' => 'married',
         ]);
-        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_annual_income' => 30000,
@@ -188,7 +188,7 @@ describe('Path C — single_earner_couple', function () {
             'spouse_existing_investment_balance' => 0,
             'spouse_existing_dividend_holdings_value' => 0,
         ]);
-        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
 
         $recommendation = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
             ->firstWhere('type', 'gia_to_spouse');
@@ -678,7 +678,7 @@ describe('recommendations contract (canonical)', function () {
             'spouse_isa_balance' => 5000,
             'spouse_psa_band' => 'basic',
         ]);
-        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
@@ -875,7 +875,7 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
             'annual_dividend_income' => 100,
             'marital_status' => 'single',
         ]);
-        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
@@ -932,7 +932,7 @@ describe('Phase 2 — household strategy refinements (#9, #11)', function () {
             'spouse_annual_income' => 25000,
             'spouse_psa_band' => 'basic',
         ]);
-        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
