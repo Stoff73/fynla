@@ -626,7 +626,6 @@ export default {
     const originalEmploymentStatus = ref(null); // Track original status for change detection
     let messageTimeout = null;
 
-    const profile = computed(() => store.getters['userProfile/profile']);
     const personalInfo = computed(() => store.getters['userProfile/personalInfo']);
     const incomeOccupation = computed(() => store.getters['userProfile/incomeOccupation']);
     const user = computed(() => store.getters['userProfile/user']);
@@ -712,7 +711,7 @@ export default {
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     };
@@ -728,7 +727,7 @@ export default {
           month: 'long',
           year: 'numeric',
         });
-      } catch (e) {
+      } catch {
         return '—';
       }
     };
@@ -1030,7 +1029,6 @@ export default {
       formatDisplayDate,
       formatEmploymentStatus,
       isFieldVisible,
-      context: props.context,
     };
   },
 };

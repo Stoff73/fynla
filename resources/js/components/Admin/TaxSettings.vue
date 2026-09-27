@@ -2811,7 +2811,6 @@ export default {
       }
 
       // Validate SDLT rates (decimals 0-1)
-      const sdltRates = [];
       if (config.stamp_duty?.residential?.standard?.bands) {
         config.stamp_duty.residential.standard.bands.forEach((band, i) => {
           if (band.rate < 0 || band.rate > 1) {
