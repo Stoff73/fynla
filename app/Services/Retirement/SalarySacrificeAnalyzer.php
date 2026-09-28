@@ -392,7 +392,7 @@ class SalarySacrificeAnalyzer
     /** Employee Class 1 National Insurance on a year's pay, from the one calculator. */
     private function classOne(float $pay): float
     {
-        return (float) ($this->calculator->calculateNetIncome(max(0.0, $pay))['breakdown']['class_1_ni'] ?? 0);
+        return $this->calculator->employeeClass1Ni($pay);
     }
 
     /**

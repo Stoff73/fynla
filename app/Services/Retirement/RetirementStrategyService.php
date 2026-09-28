@@ -1200,7 +1200,7 @@ class RetirementStrategyService
                 $already = PensionContributionRule::monthlyEmployee($pension, $pay) * 12;
                 $exempt = min($additionalAnnual, max(0.0, $cap - $already));
             }
-            $ni = fn (float $p): float => (float) (app(UKTaxCalculator::class)->calculateNetIncome(max(0.0, $p))['breakdown']['class_1_ni'] ?? 0);
+            $ni = fn (float $p): float => app(UKTaxCalculator::class)->employeeClass1Ni($p);
             $niSaved = max(0.0, $ni($pay) - $ni($pay - $exempt));
         }
 

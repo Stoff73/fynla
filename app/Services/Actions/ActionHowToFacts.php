@@ -7,6 +7,7 @@ namespace App\Services\Actions;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Stores\PensionStore;
@@ -73,7 +74,7 @@ final class ActionHowToFacts
         $facts['above_basic'] = $band !== 'basic';
         $text['band'] = $band.' rate';
         $text['basic_rate'] = self::percent($basic);
-        $facts['employed'] = in_array((string) $user->employment_status, ['employed', 'full_time', 'part_time'], true);
+        $facts['employed'] = in_array((string) $user->employment_status, OnboardingStateMachine::WORKPLACE_PENSION_STATUSES, true);
         $this->autoEnrolmentFacts($user, $facts, $text);
 
         // The outcome: Income Tax this year now, and once this action alone is
@@ -117,7 +118,7 @@ final class ActionHowToFacts
             $niSaved = 0.0;
             if (! empty($facts['has_salary_sacrifice'])) {
                 $pay = (float) ($user->annual_employment_income ?? 0);
-                $ni = fn (float $p): float => (float) (app(UKTaxCalculator::class)->calculateNetIncome(max(0.0, $p))['breakdown']['class_1_ni'] ?? 0);
+                $ni = fn (float $p): float => app(UKTaxCalculator::class)->employeeClass1Ni($p);
                 $niSaved = max(0.0, $ni($pay) - $ni($pay - $gross));
             }
             $netCost = max(0.0, $gross - floor((float) ($item['estimated_annual_tax_saved'] ?? 0)) - $niSaved);

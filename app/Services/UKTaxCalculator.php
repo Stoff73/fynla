@@ -662,6 +662,16 @@ class UKTaxCalculator
     }
 
     /**
+     * Employee Class 1 National Insurance on a year's employment pay — the ONE
+     * lookup every salary sacrifice figure uses (the card, the affordability
+     * check, the analyser and the threshold line all asked this separately).
+     */
+    public function employeeClass1Ni(float $pay): float
+    {
+        return (float) ($this->calculateNetIncome(max(0.0, $pay))['breakdown']['class_1_ni'] ?? 0);
+    }
+
+    /**
      * Calculate net income after income tax and National Insurance.
      *
      * @param  float  $employmentIncome  Employment income (PAYE)

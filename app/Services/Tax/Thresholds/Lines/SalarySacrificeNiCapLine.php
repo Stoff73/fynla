@@ -84,6 +84,6 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
 
     private function classOne(float $employment): float
     {
-        return (float) ($this->calculator->calculateNetIncome(max(0.0, $employment))['breakdown']['class_1_ni'] ?? 0);
+        return $this->calculator->employeeClass1Ni($employment);
     }
 }
