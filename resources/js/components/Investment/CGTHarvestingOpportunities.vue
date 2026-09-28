@@ -41,7 +41,7 @@
         <div v-if="opportunities.harvesting_strategy.harvest_now.length > 0" class="mb-4">
           <h5 class="text-sm font-semibold text-neutral-500 mb-2 flex items-center">
             <span class="inline-block w-3 h-3 bg-raspberry-600 rounded-full mr-2"></span>
-            Harvest Now ({{ opportunities.harvesting_strategy.harvest_now.length }})
+            Losses to use now ({{ opportunities.harvesting_strategy.harvest_now.length }})
           </h5>
           <div class="space-y-2">
             <div
