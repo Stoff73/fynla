@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\SavingsAccount;
 use App\Models\TaxActionDefinition;
@@ -145,4 +146,21 @@ it('gives a basic-rate payer the saving as the reason, said once', function () {
             $pounds((float) $item['suggested_contribution']), $pounds((float) $item['estimated_annual_tax_saved'])))
         ->and($card['why'][1])->toBe('A pension payment gets tax relief at 20%, so money that would have gone in tax goes into your pension instead.')
         ->and(implode(' ', $card['how_to']))->not->toContain('as below');
+});
+
+// CSJ 2026-09-28: a defined benefit member's pension card links to the help
+// on additional voluntary contributions; nobody else's does.
+it('links a defined benefit member to the help on paying more in', function () {
+    $user = higherRateEarnerWithApprovedPensionSteps();
+    DBPension::factory()->create(['user_id' => $user->id]);
+
+    $card = app(ActionCardService::class)->for($user->fresh(), 'tax_pension_tax_relief');
+
+    expect($card['learn_more'])->toBe([['label' => 'Paying more in alongside a defined benefit pension', 'url' => '/help#avcs']]);
+});
+
+it('shows no help link to someone without a defined benefit pension', function () {
+    $user = higherRateEarnerWithApprovedPensionSteps();
+
+    expect(app(ActionCardService::class)->for($user, 'tax_pension_tax_relief')['learn_more'])->toBe([]);
 });

@@ -310,7 +310,7 @@ class GiftingStrategyOptimizer
             // charges less than the full rate, so moving the schedule moves this.
             'taper_relief_from_year' => $this->taperReliefStartYear(),
             'implementation_steps' => [
-                'Gift £'.number_format($amountPerCycle, 0).' every '.$this->petWindowYears().' years to maximize IHT efficiency',
+                'Gift £'.number_format($amountPerCycle, 0).' every '.$this->petWindowYears().' years to maximize Inheritance Tax efficiency',
                 'Consider gifting to discretionary trust for flexibility',
                 'Gifts must not have reservation of benefit',
                 'Keep detailed gift records with dates and amounts',

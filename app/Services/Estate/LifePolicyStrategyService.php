@@ -148,7 +148,7 @@ class LifePolicyStrategyService
                 $spouseGender
             );
             $policyType = 'Joint Life Second Death';
-            $policyDescription = 'Pays out on the second death only. Specifically designed for IHT planning for married couples.';
+            $policyDescription = 'Pays out on the second death only. Specifically designed for Inheritance Tax planning for married couples.';
         } else {
             // Single life policy
             $monthlyPremiumPerThousand = $this->getPremiumRate($currentAge, $gender);
@@ -217,7 +217,7 @@ class LifePolicyStrategyService
 
         return [
             'strategy_name' => 'Self-Insurance (Invest Premiums)',
-            'description' => 'Instead of buying insurance, invest the equivalent premium amount and build your own fund to cover IHT liability.',
+            'description' => 'Instead of buying insurance, invest the equivalent premium amount and build your own fund to cover Inheritance Tax liability.',
 
             'monthly_investment' => round($annualPremium / 12, 2),
             'annual_investment' => round($annualPremium, 2),
@@ -251,7 +251,7 @@ class LifePolicyStrategyService
                 'No guaranteed payout like insurance provides',
                 'Requires financial discipline to maintain contributions',
                 'Early death means insufficient time to accumulate funds',
-                'Inflation risk - target IHT may increase over time',
+                'Inflation risk - target Inheritance Tax may increase over time',
                 'Temptation to access funds for other purposes',
             ],
 
@@ -262,12 +262,12 @@ class LifePolicyStrategyService
                 '4. Review quarterly and rebalance portfolio',
                 '5. Increase contributions for inflation (3-4% annually)',
                 '6. Monitor progress vs. target - adjust if underperforming',
-                '7. Ring-fence funds specifically for IHT (don\'t raid for other goals)',
+                '7. Ring-fence funds specifically for Inheritance Tax (don\'t raid for other goals)',
             ],
 
             'recommended_investment_approach' => [
                 'Asset allocation' => 'Balanced portfolio (60% equities, 40% bonds) for long-term growth',
-                'Tax wrapper' => 'Investment Bond (for IHT planning) or ISA (if allowance available)',
+                'Tax wrapper' => 'Investment Bond (for Inheritance Tax planning) or ISA (if allowance available)',
                 'Review frequency' => 'Quarterly portfolio review, annual contribution increase',
                 'Risk management' => 'De-risk portfolio as you age (shift to bonds in final 10 years)',
             ],
@@ -290,7 +290,7 @@ class LifePolicyStrategyService
             $recommendations[] = [
                 'priority' => 1,
                 'option' => 'Self-Insurance',
-                'rationale' => 'Projected investment returns cover '.round($selfInsuranceData['coverage_percentage'], 0).'% of IHT liability. You keep control of funds and potential surplus.',
+                'rationale' => 'Projected investment returns cover '.round($selfInsuranceData['coverage_percentage'], 0).'% of Inheritance Tax liability. You keep control of funds and potential surplus.',
                 'suitability' => 'Best if you have financial discipline and comfortable with investment risk',
             ];
             $recommendedApproach = 'Self-Insurance';
@@ -302,7 +302,7 @@ class LifePolicyStrategyService
                 'priority' => $selfInsuranceData['coverage_percentage'] >= 100 ? 2 : 1,
                 'option' => 'Whole of Life Insurance',
                 'rationale' => 'Excellent value - you get £'.number_format($policyData['cost_benefit_ratio'], 2).' of cover for every £1 of premiums paid. Guaranteed payout.',
-                'suitability' => 'Best if you want certainty and guaranteed IHT coverage',
+                'suitability' => 'Best if you want certainty and guaranteed Inheritance Tax coverage',
             ];
 
             if ($recommendedApproach === '') {
@@ -325,7 +325,7 @@ class LifePolicyStrategyService
         $recommendations[] = [
             'priority' => 3,
             'option' => 'Hybrid Approach',
-            'rationale' => 'Buy reduced insurance (e.g., 50% of IHT) AND invest remaining premium equivalent. Balances certainty with flexibility.',
+            'rationale' => 'Buy reduced insurance (e.g., 50% of Inheritance Tax) AND invest remaining premium equivalent. Balances certainty with flexibility.',
             'suitability' => 'Best of both worlds - guaranteed base cover plus investment upside',
         ];
 
@@ -512,7 +512,7 @@ class LifePolicyStrategyService
 
             'Self-Insurance' => sprintf(
                 'Self-insurance appears viable for your situation. Investing £%s annually at %s%% returns '.
-                'is projected to accumulate £%s by expected death - covering %d%% of your IHT liability. '.
+                'is projected to accumulate £%s by expected death - covering %d%% of your Inheritance Tax liability. '.
                 'This approach offers flexibility and potential surplus for beneficiaries.',
                 number_format($selfInsuranceData['annual_investment'], 0),
                 number_format($selfInsuranceData['assumed_return_percentage'], 1),

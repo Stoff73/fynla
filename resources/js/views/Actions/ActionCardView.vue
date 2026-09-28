@@ -74,6 +74,16 @@
           </ol>
         </section>
 
+        <section v-if="card.learn_more && card.learn_more.length" class="mt-6">
+          <h2 class="section-title">Find out more</h2>
+          <ul class="space-y-1 text-body-sm">
+            <!-- Fynla's own help pages; the router hands server-rendered pages to a full load. -->
+            <li v-for="link in card.learn_more" :key="link.url">
+              <router-link :to="link.url" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more">{{ link.label }}</router-link>
+            </li>
+          </ul>
+        </section>
+
         <p v-if="card.conflict_note" class="mt-6 text-body-sm text-neutral-600">{{ card.conflict_note }}</p>
         <p v-if="card.disclaimer" class="mt-6 text-xs text-neutral-500">{{ card.disclaimer }}</p>
 

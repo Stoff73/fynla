@@ -333,7 +333,7 @@
             </div>
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Small Gift Allowance:</span>
-              <span class="font-semibold text-horizon-500">£250 per person</span>
+              <span class="font-semibold text-horizon-500">{{ formatCurrency(smallGiftExemption || 0) }} per person</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">7-Year Potentially Exempt Transfer:</span>
@@ -784,7 +784,7 @@ export default {
     },
   },
 
-  emits: ['switch-tab', 'will-updated'],
+  emits: ['will-updated'],
 
   mixins: [currencyMixin],
 
@@ -820,7 +820,7 @@ export default {
   computed: {
     ...mapState('estate', ['analysis', 'gifts', 'lifeEvents', 'lifeEventImpact', 'lpas']),
     ...mapGetters('estate', ['netWorthValue', 'ihtLiability', 'ihtExemptAssets']),
-    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'ihtRnrbTaperThreshold', 'annualGiftExemption']),
+    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'ihtRnrbTaperThreshold', 'annualGiftExemption', 'smallGiftExemption']),
     ...mapGetters('auth', ['currentUser']),
 
     hasSpouseLinked() {
@@ -1756,8 +1756,7 @@ export default {
     },
 
     navigateToGiftingTab() {
-      // Emit event to parent EstateDashboard to switch to Gifting tab
-      this.$emit('switch-tab', 'gifting');
+      this.$router.push('/estate/gifting');
     },
 
     navigateToWillTab() {
@@ -1765,13 +1764,11 @@ export default {
     },
 
     navigateToProtectionModule() {
-      // Emit event to parent EstateDashboard to switch to Life Policy Strategy tab
-      this.$emit('switch-tab', 'life-policy');
+      this.$router.push('/estate/life-policy');
     },
 
     navigateToTrustsTab() {
-      // Emit event to parent EstateDashboard to switch to Trusts tab
-      this.$emit('switch-tab', 'trusts');
+      this.$router.push('/trusts');
     },
 
     navigateToLpa() {

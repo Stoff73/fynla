@@ -999,6 +999,34 @@ const routes = [
     },
   },
   {
+    path: '/estate/gifting',
+    name: 'EstateGifting',
+    component: () => import('@/views/Estate/GiftingView.vue'),
+    beforeEnter: requireFullEstateAccess,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Estate Planning', path: '/estate' },
+        { label: 'Gifting', path: '' },
+      ],
+    },
+  },
+  {
+    path: '/estate/life-policy',
+    name: 'EstateLifePolicy',
+    component: () => import('@/views/Estate/LifePolicyView.vue'),
+    beforeEnter: requireFullEstateAccess,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Estate Planning', path: '/estate' },
+        { label: 'Life Policy', path: '' },
+      ],
+    },
+  },
+  {
     path: '/estate/will-builder',
     name: 'WillBuilder',
     component: () => import('@/views/Estate/WillBuilderView.vue'),
