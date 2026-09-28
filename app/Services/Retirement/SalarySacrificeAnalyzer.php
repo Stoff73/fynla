@@ -211,7 +211,7 @@ class SalarySacrificeAnalyzer
                     'From April %d, only the first £%s of employee salary sacrifice will be exempt from National Insurance. '
                     .'Your sacrifice of £%s exceeds this cap. Current National Insurance saving: £%s per year. '
                     .'Post-%d National Insurance saving: £%s per year (a reduction of £%s). '
-                    .'Employer contributions remain fully exempt. Income Tax relief is unaffected.',
+                    .'Your employer also pays National Insurance on the amount above it. Income Tax relief is unaffected.',
                     $niSavings['nic_cap_effective_year'],
                     number_format($niSavings['nic_exemption_cap'], 0),
                     number_format($contribution, 0),
@@ -285,7 +285,7 @@ class SalarySacrificeAnalyzer
                     'From April %d, only the first £%s of employee salary sacrifice will be exempt from National Insurance. '
                     .'Your total sacrifice of £%s exceeds this cap. Current National Insurance saving: £%s per year. '
                     .'Post-%d National Insurance saving: £%s per year (a reduction of £%s). '
-                    .'Employer contributions remain fully exempt. Income Tax relief is unaffected.',
+                    .'Your employer also pays National Insurance on the amount above it. Income Tax relief is unaffected.',
                     $aggregateNI['nic_cap_effective_year'],
                     number_format($aggregateNI['nic_exemption_cap'], 0),
                     number_format($totalContribution, 0),
@@ -342,9 +342,9 @@ class SalarySacrificeAnalyzer
      *
      * Current rules: Full NIC exemption on the entire sacrificed amount.
      * From the cap's effective date, in config: Only the first £2,000 of
-     * employee salary sacrifice is exempt from NICs. Amounts above £2,000
-     * are subject to NICs. Employer contributions remain fully NIC-exempt
-     * regardless.
+     * employee salary sacrifice is exempt from NICs. Amounts above it are
+     * subject to employee AND employer NICs (NICs (Employer Pensions Contributions) Act 2026, https://commonslibrary.parliament.uk/research-briefings/cbp-10423/).
+     * No cap in config means no cap, never a £0 one.
      *
      * @return array{employee: float, employer: float, total: float, post_cap_employee: float, post_cap_employer: float, post_cap_total: float, nic_exemption_cap: float, exceeds_nic_cap: bool, nic_cap_effective_year: int}
      */
@@ -352,6 +352,9 @@ class SalarySacrificeAnalyzer
     {
         $nicExemptionCap = (float) $this->taxConfig->get(
             'pension.salary_sacrifice.nic_exemption_cap');
+        if ($nicExemptionCap <= 0) {
+            $nicExemptionCap = INF;
+        }
         $effectiveYear = (int) substr(
             (string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date'),
             0,
@@ -370,8 +373,8 @@ class SalarySacrificeAnalyzer
         // Post-cap rules: only first £2,000 exempt from employee NICs
         $exemptAmount = min($sacrificeAmount, $nicExemptionCap);
         $postCapEmployeeSaving = $this->employeeNiSaving($preSacrificePay, $exemptAmount);
-        // Employer NI savings unaffected — all employer contributions remain NIC-exempt
-        $postCapEmployerSaving = $employerSaving;
+        // Employer NI is charged on the sacrifice above the cap too.
+        $postCapEmployerSaving = $this->employerNiSaving($exemptAmount);
 
         return [
             'employee' => $employeeSaving,
@@ -380,7 +383,7 @@ class SalarySacrificeAnalyzer
             'post_cap_employee' => $postCapEmployeeSaving,
             'post_cap_employer' => $postCapEmployerSaving,
             'post_cap_total' => $postCapEmployeeSaving + $postCapEmployerSaving,
-            'nic_exemption_cap' => $nicExemptionCap,
+            'nic_exemption_cap' => is_finite($nicExemptionCap) ? $nicExemptionCap : 0.0,
             'exceeds_nic_cap' => $sacrificeAmount > $nicExemptionCap,
             'nic_cap_effective_year' => $effectiveYear,
         ];

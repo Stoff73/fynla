@@ -8,6 +8,7 @@ use App\Models\TaxActionDefinition;
 use App\Models\User;
 use App\Services\Actions\ActionCardService;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Tax\TaxStrategyMath;
 use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -77,10 +78,29 @@ it('walks a SIPP holder through paying net into their own SIPP and claiming the 
 
     $steps = app(ActionCardService::class)->for($user, 'tax_pension_tax_relief')['how_to'];
 
-    expect($steps)->toContain(sprintf('Pay %s into Vanguard SIPP. The provider claims %s of basic-rate relief from HMRC and adds it, so %s goes into your pension.', $pounds($gross - $relief), $pounds($relief), $pounds($gross)))
+    expect($steps)->toContain(sprintf('Pay %s into Vanguard SIPP. The provider claims %s of basic-rate relief from HM Revenue and Customs (HMRC) and adds it, so %s goes into your pension.', $pounds($gross - $relief), $pounds($relief), $pounds($gross)))
         ->and(collect($steps)->first(fn ($s) => str_contains($s, 'claim the other')))->toContain($pounds($extra))
-        ->and(collect($steps)->filter(fn ($s) => str_contains($s, 'salary sacrifice') || str_contains($s, 'no pension recorded')))->toBeEmpty()
+        ->and(collect($steps)->filter(fn ($s) => str_contains($s, 'increase your salary sacrifice') || str_contains($s, 'no pension recorded')))->toBeEmpty()
         ->and(implode(' ', $steps))->not->toContain('{');
+});
+
+it('shows a SIPP holder what the payment does to their tax and what it really costs', function () {
+    $user = higherRateEarnerWithApprovedPensionSteps();
+    DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Vanguard SIPP', 'scheme_type' => 'sipp', 'pension_type' => 'sipp',
+        'current_fund_value' => 20000, 'monthly_contribution_amount' => 0]);
+
+    $item = pensionReliefItem($user);
+    $saved = floor((float) $item['estimated_annual_tax_saved']);
+    $now = app(TaxStrategyMath::class)->incomeTaxNow($user);
+    $gross = (float) $item['suggested_contribution'];
+    $pounds = fn (float $v) => '£'.number_format(floor($v + 0.001));
+
+    $card = app(ActionCardService::class)->for($user, 'tax_pension_tax_relief');
+
+    expect($card['what_this_changes'])->toBe([
+        sprintf('Doing this alone, your Income Tax for the year falls from %s to %s: %s less.', $pounds($now), $pounds($now - $saved), $pounds($saved)),
+        sprintf('%s goes into your pension, and after the tax relief it costs you %s.', $pounds($gross), $pounds($gross - $saved)),
+    ])->and(implode(' ', $card['how_to']))->not->toContain('Doing this alone');
 });
 
 it('sends a salary sacrifice member to payroll, with nothing to claim', function () {
@@ -100,5 +120,7 @@ it('tells someone with no pension recorded to open one first', function () {
 
     $steps = app(ActionCardService::class)->for($user, 'tax_pension_tax_relief')['how_to'];
 
-    expect($steps[0])->toStartWith('You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP)');
+    // Employed with no workplace pension: automatic enrolment comes first.
+    expect($steps[0])->toStartWith('As an employee, your employer must usually enrol you in a workplace pension')
+        ->and($steps[1])->toStartWith('You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP)');
 });

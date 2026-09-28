@@ -54,3 +54,14 @@ it('reads zero as false and a positive figure as true', function () {
         ->and(ActionHowTo::holds('children_under_18 is not 1', ['children_under_18' => 1.0]))->toBeFalse()
         ->and(ActionHowTo::holds('children_under_18 is not 1', ['children_under_18' => 3.0]))->toBeTrue();
 });
+
+it('renders the outcome lines on their own, and never among the steps', function () {
+    $steps = [
+        ['when' => null, 'text' => 'Pay it in.'],
+        ['when' => null, 'text' => 'Your Income Tax falls from {tax_now} to {tax_after}.', 'part' => 'outcome'],
+    ];
+    $text = ['tax_now' => '£17,432', 'tax_after' => '£7,552'];
+
+    expect(ActionHowTo::render($steps, [], $text))->toBe(['Pay it in.'])
+        ->and(ActionHowTo::render($steps, [], $text, 'outcome'))->toBe(['Your Income Tax falls from £17,432 to £7,552.']);
+});

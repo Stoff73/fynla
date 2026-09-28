@@ -15,6 +15,12 @@ namespace App\Services\Actions;
  *   2. Claim the other {extra_relief} on your Self Assessment return.
  *   always:
  *   3. Pay it in by {tax_year_end}.
+ *   outcome:
+ *   1. Your Income Tax falls from {tax_now} to {tax_after}.
+ *
+ * Steps under `outcome:` (or `outcome when <condition>:`) are what the action
+ * changes for the user, shown on the card's "What this changes"; the rest are
+ * the how-to steps. `when`/`always` switch back to steps.
  *
  * A condition is clauses joined by "and": `fact`, `not fact`,
  * `fact is a or b`, or `fact is not a or b`. A step whose placeholder has no
@@ -23,28 +29,30 @@ namespace App\Services\Actions;
 final class ActionHowTo
 {
     /**
-     * @return array<string, array{status: string, steps: list<array{when: string|null, text: string}>}>
+     * @return array<string, array{status: string, steps: list<array{when: string|null, text: string, part?: string}>}>
      */
     public static function parse(string $markdown): array
     {
         $entries = [];
         $key = null;
         $when = null;
+        $outcome = false;
         foreach (preg_split('/\R/', $markdown) as $line) {
             if (preg_match('/^## ([a-z0-9_]+)\s*$/', $line, $m)) {
                 $key = $m[1];
                 $when = null;
+                $outcome = false;
                 $entries[$key] = ['status' => 'draft', 'steps' => []];
             } elseif ($key === null) {
                 continue;
             } elseif (preg_match('/^status:\s*(draft|approved)\s*$/', $line, $m)) {
                 $entries[$key]['status'] = $m[1];
-            } elseif (preg_match('/^always:\s*$/', $line)) {
-                $when = null;
-            } elseif (preg_match('/^when (.+):\s*$/', $line, $m)) {
-                $when = trim($m[1]);
+            } elseif (preg_match('/^(outcome)?\s*(?:when (.+)|always)?:\s*$/', $line, $m) && trim($line) !== ':') {
+                $outcome = ($m[1] ?? '') === 'outcome';
+                $when = isset($m[2]) && $m[2] !== '' ? trim($m[2]) : null;
             } elseif (preg_match('/^\d+\.\s+(.+)$/', $line, $m)) {
-                $entries[$key]['steps'][] = ['when' => $when, 'text' => trim($m[1])];
+                $step = ['when' => $when, 'text' => trim($m[1])];
+                $entries[$key]['steps'][] = $outcome ? $step + ['part' => 'outcome'] : $step;
             }
         }
 
@@ -55,14 +63,15 @@ final class ActionHowTo
      * @param  list<array{when?: string|null, text: string}|string>  $steps  stored steps (a bare string is unconditional)
      * @param  array<string, mixed>  $facts  raw values, for conditions
      * @param  array<string, string>  $text  display values, for placeholders
+     * @param  string  $part  'steps' for the how-to, 'outcome' for what it changes
      * @return list<string>
      */
-    public static function render(array $steps, array $facts, array $text): array
+    public static function render(array $steps, array $facts, array $text, string $part = 'steps'): array
     {
         $out = [];
         foreach ($steps as $step) {
             $step = is_string($step) ? ['when' => null, 'text' => $step] : $step;
-            if (! self::holds($step['when'] ?? null, $facts)) {
+            if (($step['part'] ?? 'steps') !== $part || ! self::holds($step['when'] ?? null, $facts)) {
                 continue;
             }
             $missing = false;

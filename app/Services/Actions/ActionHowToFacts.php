@@ -12,6 +12,7 @@ use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator;
 use Carbon\Carbon;
 
 /**
@@ -69,7 +70,21 @@ final class ActionHowToFacts
         $band = (string) ($item['tax_band'] ?? $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user)));
         $facts['band'] = $band;
         $facts['above_basic'] = $band !== 'basic';
+        $text['band'] = $band.' rate';
         $text['basic_rate'] = self::percent($basic);
+        $facts['employed'] = in_array((string) $user->employment_status, ['employed', 'full_time', 'part_time'], true);
+
+        // The outcome: Income Tax this year now, and once this action alone is
+        // done — the saving is the one the strategy priced with the tax engine.
+        $saved = floor((float) ($item['estimated_annual_tax_saved'] ?? 0));
+        if ($saved >= 1) {
+            $now = $this->math->incomeTaxNow($user);
+            foreach (['tax_saved' => $saved, 'tax_now' => $now, 'tax_after' => max(0.0, $now - $saved)] as $key => $value) {
+                $facts[$key] = $value;
+                $text[$key] = self::pounds($value);
+            }
+            $text['tax_saved_monthly'] = self::pounds($saved / 12);
+        }
 
         $end = $this->taxConfig->getEffectiveTo();
         $monthsLeft = 1;
@@ -94,7 +109,26 @@ final class ActionHowToFacts
         $grossKey = self::PENSION_GROSS[(string) ($item['type'] ?? '')] ?? null;
         $gross = $grossKey !== null ? (float) ($item[$grossKey] ?? 0) : 0.0;
         if ($gross > 0) {
-            $providerRelief = round($gross * $basic);
+            // What the payment really costs once the tax comes back, and what a
+            // payroll route takes from each month's pay. Under salary sacrifice
+            // National Insurance falls too, priced by the one calculator.
+            $niSaved = 0.0;
+            if (! empty($facts['has_salary_sacrifice'])) {
+                $pay = (float) ($user->annual_employment_income ?? 0);
+                $ni = fn (float $p): float => (float) (app(UKTaxCalculator::class)->calculateNetIncome(max(0.0, $p))['breakdown']['class_1_ni'] ?? 0);
+                $niSaved = max(0.0, $ni($pay) - $ni($pay - $gross));
+            }
+            $netCost = max(0.0, $gross - floor((float) ($item['estimated_annual_tax_saved'] ?? 0)) - $niSaved);
+            foreach ([
+                'ni_saved' => $niSaved,
+                'net_cost' => $netCost,
+                'take_home_per_month_left' => $netCost / $monthsLeft,
+            ] as $key => $value) {
+                $facts[$key] = $value;
+                $text[$key] = self::pounds($value);
+            }
+            // Down, never up: the relief shown is never more than is added.
+            $providerRelief = floor($gross * $basic);
             $extra = max(0.0, floor((float) ($item['estimated_annual_tax_saved'] ?? 0)) - $providerRelief);
             foreach ([
                 'contribution' => $gross,
@@ -106,6 +140,22 @@ final class ActionHowToFacts
             ] as $key => $value) {
                 $facts[$key] = $value;
                 $text[$key] = self::pounds($value);
+            }
+        }
+
+        // Totals the outcome lines name, from figures the strategy published.
+        $sum = static fn (string $a, string $b): ?float => isset($item[$a], $item[$b]) ? (float) $item[$a] + (float) $item[$b] : null;
+        foreach ([
+            'lisa_total' => $sum('suggested_contribution', 'government_bonus'),
+            'employee_ni_saving_monthly' => isset($item['employee_ni_saving']) ? (float) $item['employee_ni_saving'] / 12 : null,
+        ] as $key => $value) {
+            if ($value !== null && $value > 0) {
+                $text[$key] = self::pounds($value);
+            }
+        }
+        foreach (['user_income', 'spouse_income'] as $key) {
+            if (isset($item[$key])) {
+                $facts[$key.'_is_nil'] = (float) $item[$key] <= 0;
             }
         }
 
@@ -172,6 +222,7 @@ final class ActionHowToFacts
         $first = $user->spouse?->first_name
             ?? FamilyMember::query()->where('user_id', $user->id)->where('relationship', 'spouse')->value('first_name');
         $text['spouse'] = trim((string) $first) ?: 'your spouse or civil partner';
+        $text['spouse_start'] = ucfirst($text['spouse']);
     }
 
     /** @param  array<string, mixed>  $facts  @param  array<string, string>  $text */
@@ -184,11 +235,16 @@ final class ActionHowToFacts
             }
         }
         $pension = $this->taxConfig->getPensionAllowances();
-        if (is_numeric($pension['carry_forward_years'] ?? null)) {
-            $text['carry_forward_years'] = (string) (int) $pension['carry_forward_years'];
+        foreach (['carry_forward_years', 'relief_max_age', 'normal_minimum_pension_age'] as $key) {
+            if (is_numeric($pension[$key] ?? null)) {
+                $text[$key] = (string) (int) $pension[$key];
+            }
         }
 
         $income = $this->taxConfig->getIncomeTax();
+        if (is_numeric($income['personal_allowance'] ?? null)) {
+            $text['personal_allowance'] = self::pounds((float) $income['personal_allowance']);
+        }
         if (is_numeric($income['personal_allowance_taper_threshold'] ?? null)) {
             $text['taper_threshold'] = self::pounds((float) $income['personal_allowance_taper_threshold']);
         }
@@ -208,6 +264,12 @@ final class ActionHowToFacts
             if (is_numeric($age)) {
                 $text[$key] = (string) (int) $age;
             }
+        }
+        if (is_numeric($lisa['first_home_price_limit'] ?? null)) {
+            $text['lisa_home_price_limit'] = self::pounds((float) $lisa['first_home_price_limit']);
+        }
+        if (is_numeric($lisa['first_home_min_months'] ?? null)) {
+            $text['lisa_home_min_months'] = (string) (int) $lisa['first_home_min_months'];
         }
         if (is_numeric($lisa['withdrawal_penalty'] ?? null)) {
             $text['lisa_withdrawal_charge'] = self::percent((float) $lisa['withdrawal_penalty']);

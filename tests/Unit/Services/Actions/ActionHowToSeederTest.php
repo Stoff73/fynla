@@ -53,6 +53,28 @@ MD);
     ]);
 });
 
+it('keeps outcome lines apart from the steps', function () {
+    $entries = ActionHowToSeeder::parse(<<<'MD'
+## pension_tax_relief
+status: edited
+1. Pay it in.
+outcome:
+1. Your Income Tax falls from {tax_now} to {tax_after}.
+outcome when has_salary_sacrifice:
+2. National Insurance falls by {ni_saved}.
+always:
+2. Pay it in by {tax_year_end}.
+MD);
+
+    // "edited" is CSJ's review mark, not an approval: it stays draft.
+    expect($entries['pension_tax_relief'])->toBe(['status' => 'draft', 'steps' => [
+        ['when' => null, 'text' => 'Pay it in.'],
+        ['when' => null, 'text' => 'Your Income Tax falls from {tax_now} to {tax_after}.', 'part' => 'outcome'],
+        ['when' => 'has_salary_sacrifice', 'text' => 'National Insurance falls by {ni_saved}.', 'part' => 'outcome'],
+        ['when' => null, 'text' => 'Pay it in by {tax_year_end}.'],
+    ]]);
+});
+
 it('refuses a heading that names no strategy, rather than skipping it without a word', function () {
     $path = ActionHowToSeeder::sourcePath('tax');
     $original = file_get_contents($path);

@@ -58,10 +58,13 @@ final class LifecycleStrategy implements TaxStrategy
                     priority: StrategyPriority::Medium,
                     title: sprintf('Open a Lifetime ISA for a £%s government bonus every year', number_format((int) $bonus)),
                     description: sprintf(
-                        'You\'re under %d. Contributing £%s a year to a Lifetime ISA unlocks a £%s government top-up — usable for a first home (up to £450,000) or from age 60. The contribution counts toward your £%s overall ISA allowance.',
+                        'You\'re under %d. Contributing £%s a year to a Lifetime ISA unlocks a £%s government top-up — usable for a first home (up to £%s) or from age %d. The contribution counts toward your £%s overall ISA allowance.',
                         $lisaMaxAgeToOpen + 1,
                         number_format((int) $contribution),
                         number_format((int) $bonus),
+                        // From tax config, never typed in (Rule 2).
+                        number_format((int) $lisa['first_home_price_limit']),
+                        (int) $lisa['penalty_free_withdrawal_age'],
                         number_format((int) $isaAllowance),
                     ),
                     // A government bonus, not tax saved (CSJ ruling 2026-09-25): never in the headline total.

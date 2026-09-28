@@ -1367,22 +1367,25 @@ class RetirementActionDefinitionService
 
             // Step 6: NIC exemption cap (year sourced from config)
             $nicCap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap');
-            $exceedsCap = $annualContribution > $nicCap;
+            // No cap in config means no cap step, never a "£0 from April 0" one.
+            $exceedsCap = $nicCap > 0 && $annualContribution > $nicCap;
             $year = (int) ($analysis['nic_cap_effective_year'] ?? 0);
             // The analyser publishes this, priced through UKTaxCalculator (Rule 20).
             $postCapEmployeeSaving = (float) $analysis['post_cap_employee_ni_saving'];
             $niReduction = $employeeNISaving - $postCapEmployeeSaving;
 
-            $trace[] = [
-                'question' => 'How will the April '.$year.' salary sacrifice changes affect this?',
-                'data_field' => 'April '.$year.' National Insurance exemption cap',
-                'data_value' => 'Annual sacrifice £'.number_format($annualContribution, 0).' vs £'.number_format($nicCap, 0).' cap. '.($exceedsCap ? 'Exceeds cap by £'.number_format($annualContribution - $nicCap, 0) : 'Within cap'),
-                'threshold' => '£'.number_format($nicCap, 0).' annual NIC exemption limit from April '.$year,
-                'passed' => ! $exceedsCap,
-                'explanation' => $exceedsCap
-                    ? 'From April '.$year.', only the first £'.number_format($nicCap, 0).' of employee salary sacrifice will be exempt from National Insurance. '.$userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' exceeds this cap. Current NI saving: £'.number_format($employeeNISaving, 0).'/year. Post-'.$year.' NI saving: £'.number_format($postCapEmployeeSaving, 0).'/year (a reduction of £'.number_format($niReduction, 0).'). Employer contributions and Income Tax relief are unaffected.'
-                    : $userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' is within the £'.number_format($nicCap, 0).' cap — no change after April '.$year.'.',
-            ];
+            if ($nicCap > 0) {
+                $trace[] = [
+                    'question' => 'How will the April '.$year.' salary sacrifice changes affect this?',
+                    'data_field' => 'April '.$year.' National Insurance exemption cap',
+                    'data_value' => 'Annual sacrifice £'.number_format($annualContribution, 0).' vs £'.number_format($nicCap, 0).' cap. '.($exceedsCap ? 'Exceeds cap by £'.number_format($annualContribution - $nicCap, 0) : 'Within cap'),
+                    'threshold' => '£'.number_format($nicCap, 0).' annual NIC exemption limit from April '.$year,
+                    'passed' => ! $exceedsCap,
+                    'explanation' => $exceedsCap
+                        ? 'From April '.$year.', only the first £'.number_format($nicCap, 0).' of employee salary sacrifice will be exempt from National Insurance. '.$userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' exceeds this cap. Current NI saving: £'.number_format($employeeNISaving, 0).'/year. Post-'.$year.' NI saving: £'.number_format($postCapEmployeeSaving, 0).'/year (a reduction of £'.number_format($niReduction, 0).'). The employer also pays National Insurance on the amount above the cap. Income Tax relief is unaffected.'
+                        : $userName.'\'s sacrifice of £'.number_format($annualContribution, 0).' is within the £'.number_format($nicCap, 0).' cap — no change after April '.$year.'.',
+                ];
+            }
 
             $vars = [
                 'scheme_name' => $pension->scheme_name ?: 'workplace pension',

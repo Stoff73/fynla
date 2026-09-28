@@ -53,7 +53,7 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
             position: ['value' => (float) $days, 'distance' => (float) $days, 'unit' => 'days', 'over' => false],
             headline: sprintf('%s · %d days', $date->format('j F Y'), $days),
             body: sprintf('From %s only the first %s of salary sacrifice each year is free of National Insurance. You sacrifice %s.', $date->format('j F Y'), ThresholdCopy::pounds($cap), ThresholdCopy::pounds($sacrificed)),
-            explanation: 'Employer contributions and income tax relief are unchanged. Only employee National Insurance on the excess is affected.',
+            explanation: 'Income tax relief is unchanged. National Insurance is charged on the sacrifice above the cap, for you and for your employer.',
             cost: $cost,
             lever: null,
         );

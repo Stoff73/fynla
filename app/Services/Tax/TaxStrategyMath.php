@@ -514,7 +514,7 @@ final class TaxStrategyMath
      * The spouse's income must be known: a non-earner (single_earner_couple)
      * or captured income (dual_earner). Returns null when nothing is saved.
      *
-     * @return array{saving: float, direction: 'to_user'|'to_spouse'}|null
+     * @return array{saving: float, direction: 'to_user'|'to_spouse', user_income: float, spouse_income: float}|null
      */
     public function marriageAllowance(User $user, string $mode, ?TaxStrategyHouseholdInput $household): ?array
     {
@@ -562,7 +562,12 @@ final class TaxStrategyMath
         }
         arsort($options);
 
-        return ['saving' => round((float) reset($options), 2), 'direction' => (string) key($options)];
+        return [
+            'saving' => round((float) reset($options), 2),
+            'direction' => (string) key($options),
+            'user_income' => round($userNet, 2),
+            'spouse_income' => round($spouseNet, 2),
+        ];
     }
 
     /**
@@ -639,6 +644,12 @@ final class TaxStrategyMath
      * in the same deduction. $interestSheltered is interest another item in
      * the same plan already moves into an ISA.
      */
+    /** The user's Income Tax for the year as things stand, from the one tax engine. */
+    public function incomeTaxNow(User $user): float
+    {
+        return $this->incomeTaxOn($this->pricingPartsFor($user, 0.0));
+    }
+
     public function pensionContributionSaving(User $user, float $gross, float $interestSheltered = 0.0): float
     {
         $parts = $this->pricingPartsFor($user, $interestSheltered);

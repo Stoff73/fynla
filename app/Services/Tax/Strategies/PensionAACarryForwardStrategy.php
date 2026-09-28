@@ -62,6 +62,13 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             return [];
         }
 
+        // Unused allowance cannot be added to the money purchase annual
+        // allowance (HMRC PTM055100,
+        // https://www.gov.uk/hmrc-internal-manuals/pensions-tax-manual/ptm055100).
+        if ($this->math->moneyPurchaseAnnualAllowanceApplies($user)) {
+            return [];
+        }
+
         $aa = (float) $this->taxConfig->getPensionAllowances()['annual_allowance'];
         $currentInput = $this->math->estimatePensionContributionThisYear($user, $context->overrides);
         if ($currentInput >= $aa) {
@@ -167,6 +174,7 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
                 'liquid_wealth' => round($liquidWealth, 2),
                 'lookback_years' => self::LOOKBACK_YEARS,
                 'current_year_input' => round($currentInput, 2),
+                'current_year_headroom' => round($currentYearHeadroom, 2),
                 'annual_allowance' => $aa,
             ],
         )];

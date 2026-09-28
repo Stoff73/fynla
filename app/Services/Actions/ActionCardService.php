@@ -89,6 +89,7 @@ final class ActionCardService
         $card = (array) ($item['card'] ?? []);
         $taxItem = $this->taxItem($user, $id);
         $isRecommendation = ($item['type'] ?? '') === 'recommendation';
+        $howTo = $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null);
 
         return [
             'id' => $id,
@@ -102,9 +103,11 @@ final class ActionCardService
             'why' => $isRecommendation
                 ? ($taxItem !== null ? ActionCardFigures::why($taxItem) : (array) ($card['personalised_context'] ?? []))
                 : [],
-            'what_this_changes' => $isRecommendation ? [] : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
+            'what_this_changes' => $isRecommendation
+                ? $howTo['outcome']
+                : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
             'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null),
-            'how_to' => $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null),
+            'how_to' => $howTo['steps'],
             'conflict_note' => $card['conflict_note'] ?? null,
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
@@ -145,14 +148,15 @@ final class ActionCardService
      * strategy type, any other by the definition key its adapter carried.
      *
      * @param  array<string, mixed>|null  $taxItem
-     * @return list<string>
+     * @return array{steps: list<string>, outcome: list<string>} the steps, and what the action changes for the user
      */
     private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey): array
     {
+        $none = ['steps' => [], 'outcome' => []];
         $model = self::DEFINITIONS[$module] ?? null;
         $strategyType = $taxItem['type'] ?? null;
         if ($model === null || ($strategyType === null && $definitionKey === null)) {
-            return [];
+            return $none;
         }
         $steps = $model::query()
             ->where('how_to_status', 'approved')
@@ -160,11 +164,14 @@ final class ActionCardService
             ->value('how_to_steps');
         $steps = is_string($steps) ? json_decode($steps, true) : $steps;
         if (! is_array($steps) || $steps === []) {
-            return [];
+            return $none;
         }
         ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $taxItem);
 
-        return ActionHowTo::render($steps, $facts, $text);
+        return [
+            'steps' => ActionHowTo::render($steps, $facts, $text),
+            'outcome' => ActionHowTo::render($steps, $facts, $text, 'outcome'),
+        ];
     }
 
     /**

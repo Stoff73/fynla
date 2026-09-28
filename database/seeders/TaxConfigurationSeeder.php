@@ -245,6 +245,10 @@ class TaxConfigurationSeeder extends Seeder
                     // https://www.gov.uk/lifetime-isa/withdrawing-money-from-your-lifetime-isa).
                     'max_age_to_contribute' => 49,
                     'penalty_free_withdrawal_age' => 60,
+                    // First home: price £450,000 or less, bought at least 12 months
+                    // after the first payment (same withdrawing-money page).
+                    'first_home_price_limit' => 450000,
+                    'first_home_min_months' => 12,
                 ],
                 'junior_isa' => [
                     'annual_allowance' => 9000,
