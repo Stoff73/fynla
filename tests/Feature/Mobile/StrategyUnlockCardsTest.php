@@ -113,8 +113,13 @@ it('asks Fyn for the missing detail by name, not for tax strategy details in gen
     foreach ($unlocks as $item) {
         $type = substr($item['id'], strlen('strategy_unlock:'));
         $locked = collect(app(ComposedTaxPlanService::class)->forUser($user)['locked'])->firstWhere('strategy_type', $type);
-        $label = HouseholdFinancialContext::labelFor((string) $locked['missing'][0]);
-        expect($item['action']['prompt'])->toBe(RecommendationRouting::strategyUnlockPrompt((string) $locked['missing'][0]))
-            ->and($item['action']['prompt'])->toBe('Help me add my '.$label);
+        $missing = (string) $locked['missing'][0];
+        // The spouse's income opens the spouse details form instead
+        // (SpouseIncomeUnlockCaptureTest).
+        $expected = in_array($missing, ['spouse_income', 'spouse_income_amount'], true)
+            ? "Update my spouse's income"
+            : 'Help me add my '.HouseholdFinancialContext::labelFor($missing);
+        expect($item['action']['prompt'])->toBe(RecommendationRouting::strategyUnlockPrompt($missing))
+            ->and($item['action']['prompt'])->toBe($expected);
     }
 });
