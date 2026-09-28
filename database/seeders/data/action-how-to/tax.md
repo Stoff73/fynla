@@ -327,7 +327,7 @@ outcome when not uses_gift_aid and tax_saved:
 2. Your Income Tax for the year falls from {tax_now} to {tax_after}: {tax_saved} back.
 
 ## marriage_allowance_transfer
-status: edited
+status: approved
 source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/eligibility; https://www.gov.uk/marriage-allowance/how-to-apply; ITA 2007 s55B (https://www.legislation.gov.uk/ukpga/2007/3/section/55B) and s55C (https://www.legislation.gov.uk/ukpga/2007/3/section/55C); s45 Married Couple's Allowance (https://www.legislation.gov.uk/ukpga/2007/3/section/45)
 figures: amount_transferred, transfer_direction, user_income, spouse_income, estimated_annual_tax_saved
 why:
