@@ -31,7 +31,7 @@ describe('AiChatPanel — Fyn navigation refreshes the destination', () => {
   let route;
   let push;
 
-  const build = () => {
+  const build = (props = {}) => {
     fetchUser = vi.fn(() => Promise.resolve());
     fetchProfile = vi.fn(() => Promise.resolve());
     close = vi.fn();
@@ -70,6 +70,7 @@ describe('AiChatPanel — Fyn navigation refreshes the destination', () => {
       route.fullPath = qs ? `${resolved}?${qs}` : resolved;
     });
     return shallowMount(AiChatPanel, {
+      props,
       global: { plugins: [store], stubs: { RouterLink: true }, mocks: { $router: { push }, $route: route } },
     });
   };
@@ -107,14 +108,28 @@ describe('AiChatPanel — Fyn navigation refreshes the destination', () => {
     window.removeEventListener('fyn-close-chat', closeEvent);
   });
 
-  it('does not fire the refresh or close the chat when the screen changes', async () => {
-    const wrapper = build();
+  it('keeps the docked chat open beside the new screen', async () => {
+    const wrapper = build({ docked: true });
     const refresh = vi.fn();
     window.addEventListener('fyn-screen-refresh', refresh);
     await wrapper.vm.handleNavigation('/retirement');
     await flushPromises();
     expect(refresh).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
+    window.removeEventListener('fyn-screen-refresh', refresh);
+  });
+
+  // Below 1024px the chat is a full-screen overlay (AppLayout renders the
+  // undocked panel), so a verify step's "does it look right?" sat over the very
+  // screen it asked about. Close it, as /m and native do on every navigation.
+  it('closes the full-screen chat so the new screen can be seen', async () => {
+    const wrapper = build();
+    const refresh = vi.fn();
+    window.addEventListener('fyn-screen-refresh', refresh);
+    await wrapper.vm.handleNavigation('/retirement');
+    await flushPromises();
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
     window.removeEventListener('fyn-screen-refresh', refresh);
   });
 });
