@@ -441,11 +441,14 @@ outcome:
 
 ## non_earner_spouse_pension
 status: approved
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s188 relief only before age 75 (https://www.legislation.gov.uk/ukpga/2004/12/section/188); s190 basic amount (https://www.legislation.gov.uk/ukpga/2004/12/section/190)
-figures: net_contribution, gross_contribution, government_uplift, spouse_existing_pension_balance (or net_cost, gross_capacity)
+source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s188 relief only before age 75 (https://www.legislation.gov.uk/ukpga/2004/12/section/188); s189 relevant UK earnings (https://www.legislation.gov.uk/ukpga/2004/12/section/189); s190 basic amount (https://www.legislation.gov.uk/ukpga/2004/12/section/190)
+figures: net_contribution, gross_contribution, government_uplift, spouse_existing_pension_balance (or net_cost, gross_capacity, spouse_annual_earnings)
 why:
 1. {spouse_start} has no earnings, but a pension payment for them still gets basic-rate relief added: {net_contribution} becomes {gross_contribution}.
-2. {spouse_start} has no earnings, but a pension payment for them still gets basic-rate relief added: {net_cost} becomes {gross_capacity}.
+why when net_cost and spouse_annual_earnings:
+1. {spouse_start} earns {spouse_annual_earnings} from work, so a pension payment for them gets basic-rate relief on up to {gross_capacity} a year: {net_cost} becomes {gross_capacity}.
+why when net_cost and not spouse_annual_earnings:
+1. Without earnings from work, a pension payment for {spouse} still gets basic-rate relief on up to {gross_capacity} a year: {net_cost} becomes {gross_capacity}.
 when net_contribution and spouse_existing_pension_balance:
 1. A pension is already recorded for {spouse}. Check with the provider that it takes personal payments, or open a personal pension in their name.
 when net_contribution and not spouse_existing_pension_balance:

@@ -27,6 +27,7 @@ class TaxStrategyHouseholdInput extends Model
         'user_id',
         // dual_earner fields
         'spouse_annual_income',
+        'spouse_annual_earnings',
         'spouse_employment_status',
         'spouse_isa_balance',
         'spouse_psa_band',
@@ -47,6 +48,7 @@ class TaxStrategyHouseholdInput extends Model
     protected $casts = [
         'spouse_holding_transferred_at' => 'datetime',
         'spouse_annual_income' => 'decimal:2',
+        'spouse_annual_earnings' => 'decimal:2',
         'spouse_isa_balance' => 'decimal:2',
         'spouse_unrealised_gains' => 'decimal:2',
         'spouse_annual_dividends' => 'decimal:2',
