@@ -258,7 +258,7 @@
         class="px-6 py-4 bg-white border-l-4 border-violet-500"
       >
         <h4 class="text-sm font-semibold text-violet-900 mb-2">
-          Tax-Loss Harvesting Opportunities
+          Losses you could use against gains
         </h4>
         <p class="text-sm text-violet-800 mb-3">
           {{ taxLossOpportunities.message }}

@@ -41,7 +41,7 @@ it('reports which catalogue data points are available for a user', function () {
         ->and($availability['pension_input_history'])->toBeFalse();
 });
 
-it('returns exactly the 13 canonical vocabulary keys', function () {
+it('returns exactly the 14 canonical vocabulary keys', function () {
     // Only asserts the key set — values vary with factory defaults (e.g. marital_status defaults to 'single' = available).
     $user = User::factory()->create([
         'annual_employment_income' => null,
@@ -60,7 +60,7 @@ it('returns exactly the 13 canonical vocabulary keys', function () {
         'annual_income', 'charitable_giving', 'date_of_birth', 'dividend_income',
         'employment_status', 'gia_holdings', 'isa_subscriptions_ytd', 'marital_status',
         'pension_contributions', 'pension_input_history', 'savings_balances',
-        'spouse_income', 'workplace_pension',
+        'spouse_income', 'spouse_income_amount', 'workplace_pension',
     ]);
 });
 
@@ -175,4 +175,38 @@ it('treats a declared none as available data', function () {
         ->and($availability['pension_input_history'])->toBeTrue()
         ->and($availability['dividend_income'])->toBeTrue()
         ->and($availability['savings_balances'])->toBeFalse();
+});
+
+// Release walk 2026-09-28: a user with a Stocks and Shares ISA was asked for
+// their "ISA info". TaxStrategyMath already counts investment ISA payments
+// towards this year's allowance, so the ISA question is answered.
+it('marks isa_subscriptions_ytd available when user owns a Stocks and Shares ISA', function () {
+    $user = User::factory()->create();
+    InvestmentAccount::factory()->for($user)->create(['account_type' => 'isa', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
+
+    expect($this->svc->availability($user)['isa_subscriptions_ytd'])->toBeTrue();
+});
+
+it('treats a blank childcare and charitable donations form as no charitable giving', function () {
+    $user = User::factory()->create(['onboarding_fyn_context' => ['declared_none' => ['expenditure_tax']]]);
+
+    expect($this->svc->availability($user)['charitable_giving'])->toBeTrue();
+});
+
+// The declarations are read after onboarding (the actions page, the tax
+// plan), so completing onboarding must not drop them with the scratch state.
+it('keeps the none declarations and joint records past onboarding, and nothing else', function () {
+    $context = [
+        'declared_none' => ['investment'],
+        'declared_none_keys' => ['dividend_income'],
+        'spouse_joint_records' => [['type' => 'savings_account', 'id' => 7]],
+        'verify_section' => 'pensions',
+    ];
+
+    expect(HouseholdFinancialContext::outlivingOnboarding($context))->toBe([
+        'spouse_joint_records' => [['type' => 'savings_account', 'id' => 7]],
+        'declared_none' => ['investment'],
+        'declared_none_keys' => ['dividend_income'],
+    ])->and(HouseholdFinancialContext::outlivingOnboarding(['verify_section' => 'pensions']))->toBeNull()
+        ->and(HouseholdFinancialContext::outlivingOnboarding(null))->toBeNull();
 });

@@ -313,7 +313,7 @@ describe('Path C — single_earner_couple', function () {
             'marital_status' => 'married',
             'marriage_allowance_eligible' => true,
         ]);
-        TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
@@ -381,6 +381,7 @@ describe('allowance grid availability + dividend usage', function () {
             'annual_employment_income' => 35000,
             'marriage_allowance_eligible' => true,
         ]);
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
@@ -397,6 +398,7 @@ describe('allowance grid availability + dividend usage', function () {
             'annual_employment_income' => 35000,
             'marriage_allowance_eligible' => true,
         ]);
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
 
         $output = app(TaxStrategyCalculator::class)->calculate(
             $user,
@@ -1785,10 +1787,11 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
 });
 
 describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
-    it('does not fire for basic-rate users', function () {
+    it('does not fire for basic-rate users who already use Gift Aid', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 30000,
+            'is_gift_aid' => true,
             'annual_charitable_donations' => 500,
         ]);
 
@@ -1817,7 +1820,7 @@ describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
         expect(collect($outputNull->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief'))->toBeNull();
     });
 
-    it('does not fire when the donations are not made under Gift Aid', function () {
+    it('shows a donor who does not use Gift Aid what it would add, for the charity and for them (CSJ 2026-09-28)', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
@@ -1826,8 +1829,39 @@ describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
+        $rec = collect($output->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief');
 
-        expect(collect($output->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief'))->toBeNull();
+        // £1,000 net grosses up to £1,250 at the basic rate: the charity claims
+        // £250, and a higher-rate donor reclaims the other 20% of £1,250.
+        expect($rec)->not->toBeNull()
+            ->and($rec['uses_gift_aid'])->toBeFalse()
+            ->and($rec['charity_gift_aid'])->toBe(250.0)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(250.0);
+    });
+
+    it('shows a basic-rate donor the charity\'s gain but counts no tax saved for them', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 30000,
+            'is_gift_aid' => false,
+            'annual_charitable_donations' => 500,
+        ]);
+
+        $rec = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief');
+
+        expect($rec['charity_gift_aid'])->toBe(125.0)
+            ->and($rec['estimated_annual_tax_saved'])->toBeNull();
+    });
+
+    it('does not suggest Gift Aid to a donor who has not paid enough tax to cover it', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 12000,
+            'is_gift_aid' => false,
+            'annual_charitable_donations' => 1000,
+        ]);
+
+        expect(collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief'))->toBeNull();
     });
 
     it('fires for higher-rate user with correct 25% factor', function () {

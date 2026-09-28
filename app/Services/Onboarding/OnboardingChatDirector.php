@@ -39,6 +39,7 @@ use App\Services\AI\WriteIntentClassifier;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
@@ -6424,9 +6425,10 @@ PROMPT;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
-        // The remembered joint records outlive the onboarding scratch: the
-        // invitee usually registers after the plan is delivered.
-        $user->onboarding_fyn_context = SpouseJointRecords::carry($user->onboarding_fyn_context);
+        // The remembered joint records outlive the onboarding scratch (the
+        // invitee usually registers after the plan is delivered), and so do the
+        // "none" declarations: the actions page reads them from then on.
+        $user->onboarding_fyn_context = HouseholdFinancialContext::outlivingOnboarding($user->onboarding_fyn_context);
 
         if (! $wasAlreadyCompleted) {
             $user->onboarding_completed = true;
@@ -7364,7 +7366,9 @@ PROMPT;
             return false;
         }
 
-        $prompt = "Here's your {$form['label']} — change what needs changing and save.";
+        // Some labels already start "Your" ("Your spouse's details").
+        $label = preg_replace('/^your\s+/i', '', (string) $form['label']);
+        $prompt = "Here's your {$label} — change what needs changing and save.";
         $metadata = array_filter([
             'onboarding_step' => $stateId,
             'turn_intent' => FynTurnIntent::VerifyPrompt->value,
@@ -7811,9 +7815,10 @@ PROMPT;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
-        // The remembered joint records outlive the onboarding scratch: the
-        // invitee usually registers after the plan is delivered.
-        $user->onboarding_fyn_context = SpouseJointRecords::carry($user->onboarding_fyn_context);
+        // The remembered joint records outlive the onboarding scratch (the
+        // invitee usually registers after the plan is delivered), and so do the
+        // "none" declarations: the actions page reads them from then on.
+        $user->onboarding_fyn_context = HouseholdFinancialContext::outlivingOnboarding($user->onboarding_fyn_context);
         $user->save();
 
         $this->recordProgress($user, OnboardingStateMachine::STATE_DONE, ['next_route' => $nextRoute]);

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
 use App\Services\Actions\ActionCardService;
+use App\Services\Actions\ActionLanes;
 use App\Services\Coordination\RecommendationCompletionService;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Mobile\NextActionsService;
@@ -283,10 +284,15 @@ class RecommendationsController extends Controller
                 ->orderBy('completed_at', 'desc')
                 ->get();
 
+            // Design B (CSJ 2026-09-17): each open action carries its lane,
+            // and the lane headings come with it, so no client groups.
+            $grouped = app(ActionLanes::class)->group(app(NextActionsService::class)->buildAll($userId));
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'open' => app(NextActionsService::class)->buildAll($userId),
+                    'open' => $grouped['items'],
+                    'lanes' => $grouped['lanes'],
                     // The same module vocabulary the open items carry, so no
                     // client keeps a label map of its own.
                     'completed' => $completed->map(fn (RecommendationTracking $row): array => array_merge(

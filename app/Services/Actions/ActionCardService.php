@@ -89,6 +89,7 @@ final class ActionCardService
         $card = (array) ($item['card'] ?? []);
         $taxItem = $this->taxItem($user, $id);
         $isRecommendation = ($item['type'] ?? '') === 'recommendation';
+        $howTo = $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null);
 
         return [
             'id' => $id,
@@ -96,15 +97,17 @@ final class ActionCardService
             'module' => $module,
             'module_label' => (string) ($item['module_label'] ?? NextActionsService::moduleDisplayLabel($module)),
             'topic' => self::topicFor(isset($card['category']) ? (string) $card['category'] : null),
-            'deadline' => $isRecommendation ? $this->deadline($taxItem, $card) : null,
+            'deadline' => $isRecommendation ? $this->deadline($item, $card) : null,
             'title' => (string) $item['title'],
             'description' => (string) ($taxItem['description'] ?? $item['detail'] ?? $item['meta'] ?? ''),
             'why' => $isRecommendation
-                ? ($taxItem !== null ? ActionCardFigures::why($taxItem) : (array) ($card['personalised_context'] ?? []))
+                ? ($taxItem !== null ? $howTo['why'] : (array) ($card['personalised_context'] ?? []))
                 : [],
-            'what_this_changes' => $isRecommendation ? [] : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
+            'what_this_changes' => $isRecommendation
+                ? $howTo['outcome']
+                : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
             'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null),
-            'how_to' => $this->howTo($module, $taxItem['type'] ?? null, $card['definition_key'] ?? null),
+            'how_to' => $howTo['steps'],
             'conflict_note' => $card['conflict_note'] ?? null,
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
@@ -140,24 +143,36 @@ final class ActionCardService
 
     /**
      * The action's how-to steps — only once CSJ has approved them (ruling
-     * 2026-09-25). A tax action is found by its strategy type, any other by
-     * the definition key its adapter carried.
+     * 2026-09-25) — as the branches the user's own records pick, filled with
+     * their own figures (CSJ 2026-09-28). A tax action is found by its
+     * strategy type, any other by the definition key its adapter carried.
      *
-     * @return list<string>
+     * @param  array<string, mixed>|null  $taxItem
+     * @return array{steps: list<string>, why: list<string>, outcome: list<string>} the steps, why it matters to the user, and what it changes
      */
-    private function howTo(string $module, ?string $strategyType, ?string $definitionKey): array
+    private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey): array
     {
+        $none = ['steps' => [], 'why' => [], 'outcome' => []];
         $model = self::DEFINITIONS[$module] ?? null;
+        $strategyType = $taxItem['type'] ?? null;
         if ($model === null || ($strategyType === null && $definitionKey === null)) {
-            return [];
+            return $none;
         }
         $steps = $model::query()
             ->where('how_to_status', 'approved')
             ->where($strategyType !== null ? 'strategy_type' : 'key', $strategyType ?? $definitionKey)
             ->value('how_to_steps');
         $steps = is_string($steps) ? json_decode($steps, true) : $steps;
+        if (! is_array($steps) || $steps === []) {
+            return $none;
+        }
+        ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $taxItem);
 
-        return is_array($steps) ? array_values(array_filter($steps, 'is_string')) : [];
+        return [
+            'steps' => ActionHowTo::render($steps, $facts, $text),
+            'why' => ActionHowTo::render($steps, $facts, $text, 'why'),
+            'outcome' => ActionHowTo::render($steps, $facts, $text, 'outcome'),
+        ];
     }
 
     /**
@@ -198,7 +213,7 @@ final class ActionCardService
             'deadline' => null,
             'title' => $title,
             'description' => (string) ($taxItem['description'] ?? $detail ?? ''),
-            'why' => $taxItem !== null ? ActionCardFigures::why($taxItem) : [],
+            'why' => $taxItem !== null ? $this->howTo($user, 'tax', $taxItem, null)['why'] : [],
             'what_this_changes' => [],
             'key_figure' => null,
             'how_to' => [],
@@ -228,14 +243,15 @@ final class ActionCardService
      * "Closes 5 April" for an annual allowance that does not carry over, dated
      * from the active tax year's end in tax config; "Worth reviewing" otherwise.
      *
-     * @param  array<string, mixed>|null  $taxItem
+     * @param  array<string, mixed>  $item  the open action
      * @param  array<string, mixed>  $card
      * @return array{label: string, closes_on: string|null}
      */
-    private function deadline(?array $taxItem, array $card): array
+    private function deadline(array $item, array $card): array
     {
         $end = $this->taxConfig->getEffectiveTo();
-        if ($taxItem !== null && in_array($taxItem['type'], ActionCardFigures::ANNUAL_ALLOWANCE_TYPES, true) && $end !== '') {
+        // The same rule that puts the action in the "Before 5 April" lane.
+        if (ActionLanes::laneFor($item) === ActionLanes::BEFORE_TAX_YEAR_END && $end !== '') {
             $date = Carbon::parse($end);
 
             return ['label' => 'Closes '.$date->format('j F'), 'closes_on' => $date->toDateString()];

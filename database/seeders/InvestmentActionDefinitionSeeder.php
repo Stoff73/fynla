@@ -220,7 +220,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
             [
                 'key' => 'tax_loss_harvesting',
                 'source' => 'agent',
-                'title_template' => 'Tax Loss Harvesting Opportunity',
+                'title_template' => 'Losses you could use against gains',
                 'description_template' => '{opportunities_count} holdings have unrealised losses. Potential tax saving: {potential_saving}.',
                 'action_template' => 'Consider selling losing positions to offset capital gains.',
                 'category' => 'Tax Planning',
@@ -232,7 +232,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 80,
-                'notes' => 'Triggers when tax loss harvesting opportunities exist.',
+                'notes' => 'Triggers when holdings with unrealised losses could be set against gains.',
             ],
 
             // ── Agent-sourced: Tax efficiency actions (3) ──────────────

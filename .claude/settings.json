@@ -13,6 +13,12 @@
             "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/dangerous-command-guard.sh",
             "timeout": 10,
             "statusMessage": "Checking command against Fynla NEVER rules..."
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/no-full-pest.sh",
+            "timeout": 10,
+            "statusMessage": "Checking for full test-suite runs..."
           }
         ]
       }
@@ -74,6 +80,17 @@
             "type": "command",
             "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/postcompact-vaultsync.sh",
             "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/handover-priorities.sh",
+            "timeout": 10
           }
         ]
       }

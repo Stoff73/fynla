@@ -30,8 +30,12 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
     public function evaluate(ThresholdContext $context): ?ThresholdResult
     {
         $sacrificed = (float) ($context->definitions['deductions']['salary_sacrificed'] ?? 0);
-        $cap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap', 2000);
-        $date = Carbon::parse((string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date', '2027-04-06'));
+        $cap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap');
+        $dateString = (string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date');
+        if ($cap <= 0 || $dateString === '') {
+            return null;
+        }
+        $date = Carbon::parse($dateString);
         if ($sacrificed <= $cap || $date->isPast()) {
             return null;
         }
@@ -49,7 +53,7 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
             position: ['value' => (float) $days, 'distance' => (float) $days, 'unit' => 'days', 'over' => false],
             headline: sprintf('%s · %d days', $date->format('j F Y'), $days),
             body: sprintf('From %s only the first %s of salary sacrifice each year is free of National Insurance. You sacrifice %s.', $date->format('j F Y'), ThresholdCopy::pounds($cap), ThresholdCopy::pounds($sacrificed)),
-            explanation: 'Employer contributions and income tax relief are unchanged. Only employee National Insurance on the excess is affected.',
+            explanation: 'Income tax relief is unchanged. National Insurance is charged on the sacrifice above the cap, for you and for your employer.',
             cost: $cost,
             lever: null,
         );
@@ -80,6 +84,6 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
 
     private function classOne(float $employment): float
     {
-        return (float) ($this->calculator->calculateNetIncome(max(0.0, $employment))['breakdown']['class_1_ni'] ?? 0);
+        return $this->calculator->employeeClass1Ni($employment);
     }
 }

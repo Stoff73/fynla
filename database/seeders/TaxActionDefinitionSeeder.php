@@ -166,7 +166,8 @@ class TaxActionDefinitionSeeder extends Seeder
                 'category' => 'household',
                 'priority' => 'medium',
                 'claim_tier' => 'mechanical',
-                'required_data' => ['marital_status', 'annual_income', 'spouse_income'],
+                // The spouse's actual income, not "does not work" (CSJ 2026-09-28).
+                'required_data' => ['marital_status', 'annual_income', 'spouse_income_amount'],
                 'sequencing' => ['do_before' => [], 'conflicts_with' => []],
             ],
 

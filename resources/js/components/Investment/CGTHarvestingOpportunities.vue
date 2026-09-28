@@ -1,13 +1,13 @@
 <template>
   <div class="cgt-harvesting-opportunities">
-    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Capital Gains Tax-Loss Harvesting</h3>
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Losses you could use against gains</h3>
 
     <!-- No Data State -->
     <div v-if="!opportunities || opportunities.opportunities.length === 0" class="text-center py-12 text-neutral-500">
       <svg class="mx-auto h-12 w-12 text-horizon-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <p>No tax-loss harvesting opportunities found</p>
+      <p>No losses to use against gains</p>
       <p class="text-sm mt-2">All holdings are showing gains</p>
     </div>
 
@@ -20,7 +20,7 @@
           <p class="text-2xl font-bold text-horizon-500">£{{ formatNumber(opportunities.cgt_allowance) }}</p>
         </div>
         <div class="bg-white rounded-lg p-4 border-l-4 border-raspberry-500">
-          <p class="text-sm text-neutral-500 mb-1">Harvestable Losses</p>
+          <p class="text-sm text-neutral-500 mb-1">Losses you could use</p>
           <p class="text-2xl font-bold text-raspberry-600">£{{ formatNumber(opportunities.total_harvestable_losses) }}</p>
         </div>
         <div class="bg-white rounded-lg p-4 border-l-4 border-violet-500">
@@ -41,7 +41,7 @@
         <div v-if="opportunities.harvesting_strategy.harvest_now.length > 0" class="mb-4">
           <h5 class="text-sm font-semibold text-neutral-500 mb-2 flex items-center">
             <span class="inline-block w-3 h-3 bg-raspberry-600 rounded-full mr-2"></span>
-            Harvest Now ({{ opportunities.harvesting_strategy.harvest_now.length }})
+            Losses to use now ({{ opportunities.harvesting_strategy.harvest_now.length }})
           </h5>
           <div class="space-y-2">
             <div
@@ -151,7 +151,7 @@
           <li>• <strong>30-Day Rule:</strong> You cannot repurchase the same security within 30 days</li>
           <li>• <strong>Bed and Breakfasting:</strong> Avoid triggering this rule by waiting 31 days</li>
           <li>• <strong>Loss Carryforward:</strong> Losses can be carried forward indefinitely</li>
-          <li>• <strong>Tax Year End:</strong> Consider harvesting before 5 April to use current year allowance</li>
+          <li>• <strong>Tax Year End:</strong> Sell before 5 April to set the loss against this tax year's gains</li>
         </ul>
       </div>
 

@@ -174,10 +174,10 @@
         </div>
       </div>
 
-      <!-- Section D: Tax-Loss Harvesting Opportunities -->
+      <!-- Section D: losses to set against gains -->
       <div v-if="taxLossOpportunities.length > 0" class="bg-white rounded-lg border border-light-gray overflow-hidden">
         <div class="px-4 py-3 bg-eggshell-500 border-b border-light-gray flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-horizon-500">Tax-Loss Harvesting Opportunities</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">Losses you could use against gains</h3>
           <span class="px-2 py-1 bg-violet-500 text-white text-xs font-medium rounded">
             {{ taxLossOpportunities.length }} opportunities
           </span>
@@ -214,7 +214,7 @@
                     @click="openHarvestModal(opp)"
                     class="px-3 py-1 bg-violet-500 text-white text-xs rounded hover:bg-raspberry-500"
                   >
-                    Harvest Loss
+                    Use loss
                   </button>
                 </td>
               </tr>
@@ -343,7 +343,7 @@
       @close="showISATransferModal = false"
     />
 
-    <!-- Harvest Loss Modal -->
+    <!-- Use-a-loss modal -->
     <HarvestLossModal
       v-if="showHarvestModal"
       :holding="selectedHolding"

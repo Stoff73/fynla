@@ -42,8 +42,14 @@ final class ComposedModulePlanService
 
         $locked = [];
         foreach ($rows as $row) {
+            $required = (array) ($row->required_data ?? []);
+            // A strategy that needs data which does not apply to this user
+            // (null) cannot apply to them, so it is not waiting on anything.
+            if (array_filter($required, fn (string $key): bool => array_key_exists($key, $availability) && $availability[$key] === null) !== []) {
+                continue;
+            }
             $missing = array_values(array_filter(
-                (array) ($row->required_data ?? []),
+                $required,
                 fn (string $key): bool => ($availability[$key] ?? false) === false
             ));
             if ($missing !== [] && ! in_array($row->strategy_type, $firedTypes, true)) {

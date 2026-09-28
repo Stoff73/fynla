@@ -207,6 +207,14 @@ final class RecommendationRouting
      */
     public static function strategyUnlockPrompt(string $missingKey): string
     {
+        // The spouse's income lives on the spouse details form. "Update"
+        // opens it through the advice-side edit door; an "add" phrasing went
+        // to the write-intent classifier, whose entity match ("pension" in
+        // "including any pension or rent") opened the wrong capture.
+        if (in_array($missingKey, ['spouse_income', 'spouse_income_amount'], true)) {
+            return "Update my spouse's income";
+        }
+
         return 'Help me add my '.HouseholdFinancialContext::labelFor($missingKey);
     }
 }
