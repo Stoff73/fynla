@@ -79,7 +79,7 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
         $userIsaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
         $spouseIsaBalance = $household->spouse_isa_balance;
         $spouseIsaUseKnown = $spouseIsaBalance !== null && (float) $spouseIsaBalance === 0.0;
-        $isaAmount = (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000);
+        $isaAmount = (float) ($this->taxConfig->getISAAllowances()['annual_allowance']);
         if ($userIsaUsed >= $isaAmount && $spouseIsaUseKnown) {
             $suggestions[] = [
                 'type' => 'isa_coordination',

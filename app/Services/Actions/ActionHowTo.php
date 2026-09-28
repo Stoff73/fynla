@@ -18,9 +18,9 @@ namespace App\Services\Actions;
  *   outcome:
  *   1. Your Income Tax falls from {tax_now} to {tax_after}.
  *
- * Steps under `outcome:` (or `outcome when <condition>:`) are what the action
- * changes for the user, shown on the card's "What this changes"; the rest are
- * the how-to steps. `when`/`always` switch back to steps.
+ * Steps under `why:` (or `why when <condition>:`) are "Why this matters for
+ * you"; under `outcome:` they are "What this changes"; the rest are the how-to
+ * steps. `when`/`always` switch back to steps.
  *
  * A condition is clauses joined by "and": `fact`, `not fact`,
  * `fact is a or b`, or `fact is not a or b`. A step whose placeholder has no
@@ -36,23 +36,23 @@ final class ActionHowTo
         $entries = [];
         $key = null;
         $when = null;
-        $outcome = false;
+        $part = 'steps';
         foreach (preg_split('/\R/', $markdown) as $line) {
             if (preg_match('/^## ([a-z0-9_]+)\s*$/', $line, $m)) {
                 $key = $m[1];
                 $when = null;
-                $outcome = false;
+                $part = 'steps';
                 $entries[$key] = ['status' => 'draft', 'steps' => []];
             } elseif ($key === null) {
                 continue;
             } elseif (preg_match('/^status:\s*(draft|approved)\s*$/', $line, $m)) {
                 $entries[$key]['status'] = $m[1];
-            } elseif (preg_match('/^(outcome)?\s*(?:when (.+)|always)?:\s*$/', $line, $m) && trim($line) !== ':') {
-                $outcome = ($m[1] ?? '') === 'outcome';
+            } elseif (preg_match('/^(outcome|why)?\s*(?:when (.+)|always)?:\s*$/', $line, $m) && trim($line) !== ':') {
+                $part = ($m[1] ?? '') !== '' ? $m[1] : 'steps';
                 $when = isset($m[2]) && $m[2] !== '' ? trim($m[2]) : null;
             } elseif (preg_match('/^\d+\.\s+(.+)$/', $line, $m)) {
                 $step = ['when' => $when, 'text' => trim($m[1])];
-                $entries[$key]['steps'][] = $outcome ? $step + ['part' => 'outcome'] : $step;
+                $entries[$key]['steps'][] = $part === 'steps' ? $step : $step + ['part' => $part];
             }
         }
 
@@ -63,7 +63,7 @@ final class ActionHowTo
      * @param  list<array{when?: string|null, text: string}|string>  $steps  stored steps (a bare string is unconditional)
      * @param  array<string, mixed>  $facts  raw values, for conditions
      * @param  array<string, string>  $text  display values, for placeholders
-     * @param  string  $part  'steps' for the how-to, 'outcome' for what it changes
+     * @param  string  $part  'steps' for the how-to, 'why' for why it matters, 'outcome' for what it changes
      * @return list<string>
      */
     public static function render(array $steps, array $facts, array $text, string $part = 'steps'): array

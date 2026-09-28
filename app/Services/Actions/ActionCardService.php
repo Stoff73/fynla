@@ -101,7 +101,7 @@ final class ActionCardService
             'title' => (string) $item['title'],
             'description' => (string) ($taxItem['description'] ?? $item['detail'] ?? $item['meta'] ?? ''),
             'why' => $isRecommendation
-                ? ($taxItem !== null ? ActionCardFigures::why($taxItem) : (array) ($card['personalised_context'] ?? []))
+                ? ($taxItem !== null ? $howTo['why'] : (array) ($card['personalised_context'] ?? []))
                 : [],
             'what_this_changes' => $isRecommendation
                 ? $howTo['outcome']
@@ -148,11 +148,11 @@ final class ActionCardService
      * strategy type, any other by the definition key its adapter carried.
      *
      * @param  array<string, mixed>|null  $taxItem
-     * @return array{steps: list<string>, outcome: list<string>} the steps, and what the action changes for the user
+     * @return array{steps: list<string>, why: list<string>, outcome: list<string>} the steps, why it matters to the user, and what it changes
      */
     private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey): array
     {
-        $none = ['steps' => [], 'outcome' => []];
+        $none = ['steps' => [], 'why' => [], 'outcome' => []];
         $model = self::DEFINITIONS[$module] ?? null;
         $strategyType = $taxItem['type'] ?? null;
         if ($model === null || ($strategyType === null && $definitionKey === null)) {
@@ -170,6 +170,7 @@ final class ActionCardService
 
         return [
             'steps' => ActionHowTo::render($steps, $facts, $text),
+            'why' => ActionHowTo::render($steps, $facts, $text, 'why'),
             'outcome' => ActionHowTo::render($steps, $facts, $text, 'outcome'),
         ];
     }
@@ -212,7 +213,7 @@ final class ActionCardService
             'deadline' => null,
             'title' => $title,
             'description' => (string) ($taxItem['description'] ?? $detail ?? ''),
-            'why' => $taxItem !== null ? ActionCardFigures::why($taxItem) : [],
+            'why' => $taxItem !== null ? $this->howTo($user, 'tax', $taxItem, null)['why'] : [],
             'what_this_changes' => [],
             'key_figure' => null,
             'how_to' => [],

@@ -31,12 +31,12 @@ final class LifecycleStrategy implements TaxStrategy
         // #16 — Lifetime ISA (under-40s)
         $userAge = $this->math->ageOf($user->date_of_birth);
         $lisa = $isa['lifetime_isa'] ?? [];
-        $lisaMaxAgeToOpen = (int) ($lisa['max_age_to_open'] ?? 39);
-        $lisaAnnual = (float) ($lisa['annual_allowance'] ?? 4000);
-        $lisaBonusRate = (float) ($lisa['government_bonus_rate'] ?? 0.25);
+        $lisaMaxAgeToOpen = (int) $lisa['max_age_to_open'];
+        $lisaAnnual = (float) $lisa['annual_allowance'];
+        $lisaBonusRate = (float) $lisa['government_bonus_rate'];
 
-        if ($userAge !== null && $userAge >= 18 && $userAge <= $lisaMaxAgeToOpen) {
-            $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
+        if ($userAge !== null && $userAge >= (int) $lisa['min_age_to_open'] && $userAge <= $lisaMaxAgeToOpen) {
+            $isaAllowance = (float) $isa['annual_allowance'];
             $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
             $isaRemaining = max(0, $isaAllowance - $isaUsed);
 
@@ -80,8 +80,8 @@ final class LifecycleStrategy implements TaxStrategy
 
         // #17 + #18 — count dependant children under 18
         $juniorIsa = $isa['junior_isa'] ?? [];
-        $juniorIsaMaxAge = (int) ($juniorIsa['max_age'] ?? 17);
-        $juniorIsaAnnual = (float) ($juniorIsa['annual_allowance'] ?? 9000);
+        $juniorIsaMaxAge = (int) $juniorIsa['max_age'];
+        $juniorIsaAnnual = (float) $juniorIsa['annual_allowance'];
 
         $children = FamilyMember::query()
             ->where('user_id', $user->id)
@@ -112,7 +112,7 @@ final class LifecycleStrategy implements TaxStrategy
                 description: sprintf(
                     'Each child under 18 has a £%s annual Junior ISA allowance — separate from your own £%s. All interest, dividends and capital gains inside the wrapper are tax-free until they turn 18.',
                     number_format((int) $juniorIsaAnnual),
-                    number_format((int) ($isa['annual_allowance'] ?? 20000)),
+                    number_format((int) $isa['annual_allowance']),
                 ),
                 estimatedAnnualTaxSaved: null,
                 extra: [

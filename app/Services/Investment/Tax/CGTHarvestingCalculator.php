@@ -52,7 +52,7 @@ class CGTHarvestingCalculator
             return [
                 'success' => true,
                 'opportunities' => [],
-                'message' => 'No unrealized losses found for tax-loss harvesting',
+                'message' => 'No unrealised losses to use against gains',
                 'total_harvestable_losses' => 0,
             ];
         }
@@ -258,14 +258,14 @@ class CGTHarvestingCalculator
     private function getRecoveryRecommendation(string $potential, float $lossPercent): string
     {
         if ($potential === 'low' && $lossPercent > 50) {
-            return 'Consider harvesting loss and reinvesting elsewhere';
+            return 'Consider selling at a loss and reinvesting elsewhere';
         }
 
         if ($potential === 'medium') {
-            return 'Harvest loss if needed to offset gains, consider repurchasing after 30 days';
+            return 'Sell to use the loss against gains if needed; buying the same shares back within 30 days cancels the loss';
         }
 
-        return 'Temporary decline - consider holding or harvest and immediately repurchase';
+        return 'Temporary decline - consider holding; selling and buying back within 30 days does not release the loss';
     }
 
     /**
@@ -381,7 +381,7 @@ class CGTHarvestingCalculator
 
         if ($taxableGains <= 0 && $expectedGains <= $cgtAllowance) {
             // No immediate need to harvest losses
-            $strategy['explanation'][] = 'No taxable gains expected - harvesting losses can be deferred';
+            $strategy['explanation'][] = 'No taxable gains expected - using losses can wait';
 
             // But still recommend harvesting poor performers
             foreach ($opportunities as $opp) {
@@ -389,7 +389,7 @@ class CGTHarvestingCalculator
                     $strategy['harvest_now'][] = $opp;
                     $strategy['total_losses_to_harvest'] += $opp['loss_amount'];
                     $strategy['explanation'][] = sprintf(
-                        'Harvest %s due to poor recovery outlook',
+                        'Sell %s to use the loss (poor recovery outlook)',
                         $opp['security_name']
                     );
                 }
@@ -420,7 +420,7 @@ class CGTHarvestingCalculator
             $remainingGains -= $lossToUse;
 
             $strategy['explanation'][] = sprintf(
-                'Harvest %s (£%s loss) to save £%s in CGT',
+                'Sell %s to use the £%s loss and save £%s in Capital Gains Tax',
                 $opp['security_name'],
                 number_format($opp['loss_amount'], 0),
                 number_format($taxSaving, 0)
@@ -444,8 +444,8 @@ class CGTHarvestingCalculator
         if (empty($strategy['harvest_now'])) {
             $recommendations[] = [
                 'priority' => 'low',
-                'action' => 'No immediate tax-loss harvesting needed',
-                'reason' => 'No taxable gains expected or no suitable losses to harvest',
+                'action' => 'No need to use losses now',
+                'reason' => 'No taxable gains expected or no suitable losses to use',
             ];
 
             return $recommendations;
@@ -474,7 +474,7 @@ class CGTHarvestingCalculator
         if ($monthsToYearEnd <= 2 && count($strategy['harvest_now']) > 0) {
             array_unshift($recommendations, [
                 'priority' => 'high',
-                'action' => sprintf('Harvest losses before tax year end (%d months remaining)', $monthsToYearEnd),
+                'action' => sprintf('Use losses before the tax year ends (%d months remaining)', $monthsToYearEnd),
                 'reason' => 'Maximize tax efficiency for current tax year',
             ]);
         }

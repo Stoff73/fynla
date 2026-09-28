@@ -582,14 +582,14 @@ class InvestmentActionDefinitionService
         $trace = [];
 
         $trace[] = [
-            'question' => 'Are there tax loss harvesting opportunities in the portfolio?',
+            'question' => 'Are there losses in the portfolio that could be set against gains?',
             'data_field' => 'investmentAnalysis.tax_efficiency.harvesting_opportunities',
             'data_value' => $count.' opportunity(s), potential saving £'.number_format($saving, 0),
             'threshold' => 'At least 1 opportunity',
             'passed' => $count > 0,
             'explanation' => $count > 0
-                ? $count.' harvesting opportunity(s) identified with £'.number_format($totalLosses, 0).' in unrealised losses. Crystallising these losses could save £'.number_format($saving, 0).' in Capital Gains Tax by offsetting gains elsewhere in the portfolio.'
-                : 'No tax loss harvesting opportunities identified — all holdings are in profit or losses are too small to be material.',
+                ? $count.' holding(s) with £'.number_format($totalLosses, 0).' in unrealised losses. Crystallising these losses could save £'.number_format($saving, 0).' in Capital Gains Tax by offsetting gains elsewhere in the portfolio.'
+                : 'No losses to use against gains — all holdings are in profit or losses are too small to be material.',
         ];
 
         if ($count <= 0) {

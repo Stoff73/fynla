@@ -2,83 +2,81 @@
 
 declare(strict_types=1);
 
+use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Retirement\RetirementStrategyService;
+use App\Services\Tax\TaxStrategyMath;
+use App\Services\UKTaxCalculator;
 use Carbon\Carbon;
 use Database\Seeders\TaxConfigurationSeeder;
 
 /**
- * Pins the salary-sacrifice NIC-exemption cap's date-gated behaviour.
+ * What an extra employee pension contribution costs in take-home pay: the
+ * contribution less the Income Tax it saves, less — under salary sacrifice —
+ * the employee National Insurance it saves. From 6 April 2029 only the first
+ * £2,000 a year of sacrifice is free of National Insurance (National Insurance
+ * Contributions (Employer Pensions Contributions) Act 2026; CSJ 2026-09-28).
+ * Cap and date from TaxConfigService.
  *
- * From 2029-04-06 (National Insurance Contributions (Employer Pensions
- * Contributions) Act 2026; date confirmed by CSJ 2026-09-28), only the first £2,000/year of employee salary sacrifice
- * into a pension is exempt from NICs. Before that date, the full sacrificed
- * amount is NIC-exempt and treated as zero-cost in `calculateNetCostOfContribution`.
- *
- * The cap value (£2,000) and effective date are sourced from TaxConfigService
- * (`pension.salary_sacrifice.nic_exemption_cap` / `*_effective_date`), so this
- * behaviour activates automatically when the clock crosses the threshold —
- * no code change required at the boundary.
- *
- * Audit reference: review-tax-compliance Tier 1 #4 / memory
- * `project_salary_sacrifice_2k_upcoming_law.md`.
+ * Replaces tests that pinned the old model: every contribution "zero-cost"
+ * before the cap, and the excess "via relief at source" after it.
  */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->service = app(RetirementStrategyService::class);
-    $this->reflection = new ReflectionClass(RetirementStrategyService::class);
-    $this->method = $this->reflection->getMethod('calculateNetCostOfContribution');
+    $this->method = (new ReflectionClass(RetirementStrategyService::class))->getMethod('calculateNetCostOfContribution');
     $this->method->setAccessible(true);
+    $this->ni = fn (float $pay): float => (float) app(UKTaxCalculator::class)->calculateNetIncome($pay)['breakdown']['class_1_ni'];
 });
 
 afterEach(function () {
     Carbon::setTestNow();
 });
 
-describe('Salary sacrifice NIC-exemption cap — date-gated', function () {
-    it('treats the entire contribution as zero-cost before the cap effective date', function () {
-        Carbon::setTestNow('2028-12-31');
+function sacrificer(float $pay, float $employeePercent): array
+{
+    $user = User::factory()->create(['annual_employment_income' => $pay]);
+    $pension = DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Work', 'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'current_fund_value' => 10000, 'annual_salary' => $pay, 'employee_contribution_percent' => $employeePercent, 'salary_sacrifice' => true]);
 
-        // Basic-rate user, £5,000 contribution. Before 6 April 2029 the cap is inactive,
-        // so the whole sacrifice is NIC-exempt and treated as zero-cost.
-        $user = User::factory()->create(['annual_employment_income' => 30_000]);
+    return [$user, $pension];
+}
 
-        $cost = $this->method->invoke($this->service, 5_000.0, $user);
+it('never treats a contribution as free: without salary sacrifice it costs the contribution less the tax it saves', function () {
+    Carbon::setTestNow('2028-12-31');
+    $user = User::factory()->create(['annual_employment_income' => 30000]);
 
-        expect($cost)->toBe(0.0);
-    });
+    $cost = $this->method->invoke($this->service, 1000.0, $user, null);
 
-    it('caps salary-sacrificed zero-cost portion at £2,000 on the effective date', function () {
-        Carbon::setTestNow('2029-04-06');
+    expect($cost)->toBe(1000.0 - app(TaxStrategyMath::class)->pensionContributionSaving($user, 1000.0))
+        ->and($cost)->toBeGreaterThan(0.0);
+});
 
-        // Basic-rate user (20% marginal), £5,000 contribution.
-        // First £2k zero-cost; remaining £3k via relief at source costs £3,000 × 0.80 = £2,400.
-        $user = User::factory()->create(['annual_employment_income' => 30_000]);
+it('takes National Insurance off too under salary sacrifice, before the cap', function () {
+    Carbon::setTestNow('2028-12-31');
+    [$user, $pension] = sacrificer(30000, 5);
+    $taxSaved = app(TaxStrategyMath::class)->pensionContributionSaving($user, 1000.0);
+    $niSaved = ($this->ni)(30000) - ($this->ni)(29000);
 
-        $cost = $this->method->invoke($this->service, 5_000.0, $user);
+    expect($this->method->invoke($this->service, 1000.0, $user, $pension))->toBe(1000.0 - $taxSaved - $niSaved);
+});
 
-        expect($cost)->toBe(2_400.0);
-    });
+it('stops the National Insurance saving at the cap from 6 April 2029', function () {
+    Carbon::setTestNow('2029-04-06');
+    // 10% of £30,000 = £3,000 already sacrificed: above the £2,000 cap, so an
+    // extra £1,000 saves no National Insurance.
+    [$user, $pension] = sacrificer(30000, 10);
+    $taxSaved = app(TaxStrategyMath::class)->pensionContributionSaving($user, 1000.0);
 
-    it('keeps the cap active after the effective date', function () {
-        Carbon::setTestNow('2030-01-01');
+    expect($this->method->invoke($this->service, 1000.0, $user, $pension))->toBe(1000.0 - $taxSaved);
+});
 
-        // Higher-rate user (40% marginal), £6,000 contribution.
-        // First £2k zero-cost; remaining £4k via relief at source costs £4,000 × 0.60 = £2,400.
-        $user = User::factory()->create(['annual_employment_income' => 80_000]);
+it('saves National Insurance only on what is left under the cap', function () {
+    Carbon::setTestNow('2029-04-06');
+    // 5% of £30,000 = £1,500 already sacrificed: £500 left under the cap.
+    [$user, $pension] = sacrificer(30000, 5);
+    $taxSaved = app(TaxStrategyMath::class)->pensionContributionSaving($user, 1000.0);
+    $niSaved = ($this->ni)(30000) - ($this->ni)(29500);
 
-        $cost = $this->method->invoke($this->service, 6_000.0, $user);
-
-        expect($cost)->toBe(2_400.0);
-    });
-
-    it('returns zero when the contribution stays within the cap on/after the effective date', function () {
-        Carbon::setTestNow('2029-04-06');
-
-        $user = User::factory()->create(['annual_employment_income' => 50_000]);
-
-        $cost = $this->method->invoke($this->service, 1_500.0, $user);
-
-        expect($cost)->toBe(0.0);
-    });
+    expect($this->method->invoke($this->service, 1000.0, $user, $pension))->toBe(1000.0 - $taxSaved - $niSaved);
 });

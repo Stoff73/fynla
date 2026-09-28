@@ -264,7 +264,7 @@ class TaxAwareRebalancer
             return [
                 'opportunities' => [],
                 'potential_tax_saving' => 0,
-                'message' => 'No taxable gains - tax-loss harvesting not beneficial',
+                'message' => 'No taxable gains - using losses would not save tax',
             ];
         }
 
@@ -315,11 +315,11 @@ class TaxAwareRebalancer
             'potential_tax_saving' => round($potentialTaxSaving, 2),
             'message' => count($opportunities) > 0
                 ? sprintf(
-                    'Found %d tax-loss harvesting opportunity/opportunities with potential £%s tax saving',
+                    'Found %d holding(s) with losses you could use, potentially saving £%s in tax',
                     count($opportunities),
                     number_format($potentialTaxSaving, 2)
                 )
-                : 'No tax-loss harvesting opportunities identified',
+                : 'No losses to use against gains',
         ];
     }
 
@@ -403,7 +403,7 @@ class TaxAwareRebalancer
         // Tax-loss harvesting
         if ($taxLossOpportunities['potential_tax_saving'] > 0) {
             $parts[] = sprintf(
-                'Potential tax saving from loss harvesting: £%s',
+                'Potential tax saving from using losses: £%s',
                 number_format($taxLossOpportunities['potential_tax_saving'], 2)
             );
         }

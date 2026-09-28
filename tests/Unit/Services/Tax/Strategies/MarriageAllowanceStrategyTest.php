@@ -181,9 +181,12 @@ it('never asks a single person for a spouse\'s income', function () {
     $user = User::factory()->create(['marital_status' => 'single', 'annual_employment_income' => 35000]);
 
     $plan = app(ComposedTaxPlanService::class)->forUser($user);
-    $spouseLocks = collect($plan['locked'])->filter(fn ($l) => array_intersect($l['missing'], ['spouse_income', 'spouse_income_amount']) !== []);
+    $spouseStrategies = ['marriage_allowance_transfer', 'savings_to_spouse', 'isa_topup_spouse', 'gia_to_spouse',
+        'gia_rebalance', 'isa_coordination', 'non_earner_spouse_pension', 'joint_savings_psa_split'];
 
-    expect($spouseLocks)->toBeEmpty();
+    // Not waiting on a spouse's income, and not waiting on anything else either:
+    // none of them can apply to someone with no spouse.
+    expect(collect($plan['locked'])->pluck('strategy_type')->intersect($spouseStrategies)->all())->toBe([]);
 });
 
 it('warns a recipient above the Scottish limit that it does not apply if they live in Scotland', function () {

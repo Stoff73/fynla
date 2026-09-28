@@ -39,7 +39,7 @@ final class HouseholdFinancialContext
      * Returns a map of every catalogue data-point key to a boolean indicating
      * whether that data is available for the given user.
      *
-     * @return array<string, bool>
+     * @return array<string, bool|null>
      */
     public function availability(User $user): array
     {
@@ -74,11 +74,12 @@ final class HouseholdFinancialContext
             }
         }
         // Someone with no spouse or civil partner has no spouse data to give:
-        // the spouse strategies do not apply to them, so nothing waits on it
-        // (a single user was being asked for a spouse's income).
+        // the spouse strategies do not apply to them at all (null), so none of
+        // them waits on anything (a single user was being asked for a spouse's
+        // income, then for ISA details for a spouse ISA).
         if (! $this->math->isMarriedOrCivilPartner($user)) {
-            $availability['spouse_income'] = true;
-            $availability['spouse_income_amount'] = true;
+            $availability['spouse_income'] = null;
+            $availability['spouse_income_amount'] = null;
         }
 
         return $availability;

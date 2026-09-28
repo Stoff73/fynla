@@ -39,9 +39,11 @@ interface ModuleStrategySource
     public function metadataRows(): Collection;
 
     /**
-     * Data-availability map keyed by the required_data vocabulary.
+     * Data-availability map keyed by the required_data vocabulary. null means
+     * the data does not apply to this user (a spouse's income for someone with
+     * no spouse): strategies needing it are neither shown nor waiting.
      *
-     * @return array<string, bool>
+     * @return array<string, bool|null>
      */
     public function availability(User $user): array;
 }

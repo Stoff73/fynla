@@ -3,6 +3,7 @@
 This file is the one source for the steps on each tax action's detail card. `ActionHowToSeeder` reads it, and only entries marked `status: approved` ever reach a user. CSJ reviews each entry and changes `draft` to `approved`, or edits it.
 
 **How an entry works (CSJ 2026-09-28).** The user's own records pick which steps they see, and their own figures fill them in (`app/Services/Actions/ActionHowTo.php`, `ActionHowToFacts.php`).
+- `why:` (or `why when <condition>:`) starts the lines for "Why this matters for you" on the card.
 - `outcome:` (or `outcome when <condition>:`) starts the lines for "What this changes" on the card: the user's tax before and after, what it costs them, what their pay does. `when`/`always` go back to steps.
 - `when <condition>:` starts a branch. Its steps show only when the condition holds for this user. `always:` starts steps everyone sees.
 - A condition is `fact`, `not fact`, `fact is a or b`, or `fact is not a or b`, joined with `and`.
@@ -34,6 +35,9 @@ Rules for these steps:
 status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (net pay and relief at source; relief at source in some workplace pensions); https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; The Pensions Regulator, AVCs alongside defined benefit schemes (https://helpfiles.thepensionsregulator.gov.uk/members/dbschememembership); Finance Act 2004 s192 relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/192); s188 relief for the tax year paid (https://www.legislation.gov.uk/ukpga/2004/12/section/188)
 figures: contribution, net_payment, provider_relief, extra_relief, relief_rate, tax_band
+why:
+1. {contribution} of your income is taxed at {relief_rate}.
+2. A pension payment gets tax relief at that rate, so money that would have gone in tax goes into your pension instead.
 when has_salary_sacrifice:
 1. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year. Your cash pay after the sacrifice must not fall below the National Minimum Wage. The amount comes off your pay before tax, so there is no relief to claim.
 when has_workplace_pension and not has_salary_sacrifice:
@@ -69,6 +73,9 @@ outcome when has_salary_sacrifice:
 status: approved
 source: https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye; National Insurance Contributions (Employer Pensions Contributions) Act 2026 (https://commonslibrary.parliament.uk/research-briefings/cbp-10423/)
 figures: annual_contribution, employee_ni_saving, employer_ni_rebate_pct, employer_ni_rebate_saving
+why:
+1. You pay {annual_contribution} a year into {workplace_pension} from your pay, after National Insurance has been taken.
+2. Through salary sacrifice that pay is not subject to your National Insurance, which saves you {employee_ni_saving} a year.
 always:
 1. You pay {annual_contribution} a year into {workplace_pension} from your pay. Ask your employer whether they offer salary sacrifice for pension contributions.
 2. If they do, agree the change in writing. Your contract must show your new cash pay, {annual_contribution} lower, and the same amount paid in by your employer instead. Your cash pay must not fall below the National Minimum Wage.
@@ -93,6 +100,9 @@ outcome when employer_ni_rebate_pct:
 status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work
 figures: suggested_transfer_amount, isa_remaining, taxable_interest_sheltered, target_accounts
+why:
+1. Your {non_isa_balance} of savings outside an ISA earns about {annual_interest} a year in interest.
+2. As a {band} taxpayer your Personal Savings Allowance is {personal_savings_allowance}, so interest above it is taxed.
 when has_cash_isa:
 1. Pay {suggested_transfer_amount} into your cash ISA with {cash_isa}.
 when not has_cash_isa:
@@ -108,6 +118,8 @@ outcome:
 status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/inheritance-tax/gifts
 figures: available_allowance
+why:
+1. You told us {spouse} has no ISA, so their {available_allowance} ISA allowance for this tax year is unused.
 always:
 1. You told us {spouse} has no ISA, so they open a cash ISA in their own name.
 2. They can pay in up to {available_allowance} this tax year, from their own savings or from money you give them.
@@ -122,6 +134,8 @@ outcome when tax_saved:
 status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/tax-sell-shares; https://www.gov.uk/capital-gains-tax/rates; https://www.gov.uk/capital-gains-tax/allowances; TCGA 1992 s106A(3) and (5), the 30-day rule and "same capacity" (https://www.legislation.gov.uk/ukpga/1992/12/section/106A); HMRC CG51560 (https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg51560); TCGA 1992 s151, ISA gains outside Capital Gains Tax (https://www.legislation.gov.uk/ukpga/1992/12/section/151)
 figures: estimated_proceeds_to_transfer, realisable_within_aea, annual_exempt_amount, isa_remaining, cgt_rate
+why:
+1. Your investments outside an ISA hold about {total_unrealised_gain} of gains, and their dividends and gains stay taxable for as long as they are there.
 always:
 1. A "Bed and ISA" sells investments you hold in your general investment account and buys them back inside your stocks and shares ISA. Once inside, their dividends and gains are free of tax.
 when isa_with_gia_provider:
@@ -144,6 +158,8 @@ outcome:
 status: approved
 source: https://www.gov.uk/tax-on-dividends; https://www.gov.uk/tax-on-dividends/how-much-tax-youll-pay; https://www.gov.uk/individual-savings-accounts/how-isas-work
 figures: unused_allowance, dividend_rate
+why:
+1. Your dividends outside an ISA are {unused_allowance} below your dividend allowance this tax year.
 always:
 1. You have {unused_allowance} of your dividend allowance unused this tax year. Dividends from shares you hold outside an ISA pay no tax up to your allowance.
 when has_gia:
@@ -158,6 +174,9 @@ outcome:
 status: approved
 source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/tax-on-your-private-pension/annual-allowance; Finance Act 2004 s228A (https://www.legislation.gov.uk/ukpga/2004/12/section/228A); s190 relief limited to earnings (https://www.legislation.gov.uk/ukpga/2004/12/section/190); HMRC PTM055100, carry forward cannot raise the money purchase annual allowance (https://www.gov.uk/hmrc-internal-manuals/pensions-tax-manual/ptm055100)
 figures: current_year_input, annual_allowance, current_year_headroom, unused_carry_forward_total, lookback_years, contribution, net_payment, provider_relief, extra_relief
+why:
+1. You have {unused_carry_forward_total} of pension allowance unused from the last {lookback_years} tax years.
+2. The earliest year's unused allowance can no longer be carried forward after {tax_year_end}.
 always:
 1. Your pension payments this tax year come to {current_year_input}, against an annual allowance of {annual_allowance}. You also have {unused_carry_forward_total} unused from the last {lookback_years} tax years.
 when current_year_headroom:
@@ -193,6 +212,8 @@ outcome:
 status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance; Finance Act 2004 s228ZA (https://www.legislation.gov.uk/ukpga/2004/12/section/228ZA); s229-s234 pension input amounts (https://www.legislation.gov.uk/ukpga/2004/12/section/234)
 figures: threshold_income, adjusted_income, threshold_income_gate, adjusted_income_gate, standard_annual_allowance, tapered_annual_allowance, annual_allowance_charge_avoided
+why:
+1. Your adjusted income of {adjusted_income} cuts your annual allowance from {standard_annual_allowance} to {tapered_annual_allowance}.
 always:
 1. Your threshold income is {threshold_income} and your adjusted income is {adjusted_income}. Both are over the limits of {threshold_income_gate} and {adjusted_income_gate}, so your annual allowance falls from {standard_annual_allowance} to {tapered_annual_allowance}.
 2. Keep your pension savings this tax year within {tapered_annual_allowance}. That counts payments by you and your employer into defined contribution pensions, plus the growth in any defined benefit pension. Unused allowance from the last {carry_forward_years} tax years can be added on top.
@@ -207,6 +228,8 @@ outcome:
 status: approved
 source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/income-tax-rates/income-over-100000; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58)
 figures: contribution, effective_marginal_rate, net_payment, provider_relief, extra_relief
+why:
+1. Above {taper_threshold} you lose £1 of Personal Allowance for every {taper_per_pound}, so that income is taxed at an effective {effective_marginal_rate}.
 always:
 1. Your adjusted net income is above {taper_threshold}, so your Personal Allowance goes down by £1 for every {taper_per_pound} over it. Income in that range is taxed at an effective {effective_marginal_rate}.
 2. Pension payments reduce your adjusted net income. For a pension that uses relief at source, the amount taken off is the gross {contribution}, not just what you pay.
@@ -244,6 +267,8 @@ outcome when has_salary_sacrifice:
 status: approved
 source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); Finance Act 2004 s192 (https://www.legislation.gov.uk/ukpga/2004/12/section/192)
 figures: contribution, additional_rate_slice, net_payment, provider_relief, extra_relief
+why:
+1. {additional_rate_slice} of your income is taxed at the additional rate, the highest rate of Income Tax.
 always:
 1. {additional_rate_slice} of your income is taxed at the additional rate. A pension payment gets relief at the rate the income it covers is taxed at, so the part covering that slice gets additional-rate relief.
 when has_salary_sacrifice:
@@ -280,6 +305,10 @@ outcome when has_salary_sacrifice:
 status: approved
 source: https://www.gov.uk/donating-to-charity/gift-aid; ITA 2007 s414 gift aid (https://www.legislation.gov.uk/ukpga/2007/3/section/414)
 figures: annual_donations, uses_gift_aid, charity_gift_aid, estimated_annual_tax_saved
+why when uses_gift_aid:
+1. The charity claims basic-rate tax on your {annual_donations} of gifts. Because you pay a higher rate, the rest of the relief is yours to claim.
+why when not uses_gift_aid:
+1. You give about {annual_donations} a year without Gift Aid, so the charity misses {charity_gift_aid} it could claim.
 when uses_gift_aid:
 1. You give about {annual_donations} a year with Gift Aid. Make sure you have given a Gift Aid declaration to each charity you give to.
 2. The charity claims basic-rate tax on your gifts. Because you pay tax above the basic rate, you can claim the difference yourself: about {tax_saved} a year.
@@ -301,6 +330,8 @@ outcome when not uses_gift_aid and tax_saved:
 status: edited
 source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/eligibility; https://www.gov.uk/marriage-allowance/how-to-apply; ITA 2007 s55B (https://www.legislation.gov.uk/ukpga/2007/3/section/55B) and s55C (https://www.legislation.gov.uk/ukpga/2007/3/section/55C); s45 Married Couple's Allowance (https://www.legislation.gov.uk/ukpga/2007/3/section/45)
 figures: amount_transferred, transfer_direction, user_income, spouse_income, estimated_annual_tax_saved
+why:
+1. One of you has Personal Allowance going unused while the other pays Income Tax at the basic rate.
 eligibility (checked before the action is shown, TaxStrategyMath::marriageAllowance): married or in a civil partnership; the person giving it has income below the Personal Allowance; the person receiving it pays no rate above the basic rate, dividends counted in full (s55B(2)(b), (ba)). The spouse's income must be known: a linked spouse's own records or an amount entered. "Does not work" alone leaves the action waiting on "Add your spouse's income" (CSJ 2026-09-28). Scottish rates are not modelled, so recipients above the Scottish limit get a caveat line (CSJ 2026-09-28).
 when transfer_direction is to_user:
 1. The claim is made by {spouse}. They transfer {amount_transferred} of their Personal Allowance to you.
@@ -335,6 +366,9 @@ outcome:
 status: approved
 source: ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626); ITA 2007 s12B (https://www.legislation.gov.uk/ukpga/2007/3/section/12B); https://www.gov.uk/inheritance-tax/gifts
 figures: suggested_transfer_amount, annual_interest_moved, spouse_stacked_interest_capacity
+why:
+1. Your savings earn about {annual_interest_moved} a year in interest that is taxed at your rate.
+2. {spouse_start} has allowances that would cover that interest.
 always:
 1. Move {suggested_transfer_amount} into an account in {spouse}'s own name.
 2. The gift must be outright, with no conditions and no way for the money to come back to you. The {annual_interest_moved} a year of interest it earns is then theirs, taxed under their own allowances.
@@ -347,6 +381,8 @@ outcome:
 status: approved
 source: https://www.gov.uk/capital-gains-tax/gifts; TCGA 1992 s58 no gain, no loss between spouses (https://www.legislation.gov.uk/ukpga/1992/12/section/58); ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626); https://www.gov.uk/inheritance-tax/gifts
 figures: (none published; names only)
+why:
+1. Dividends and gains on your investments outside an ISA use only your allowances. {spouse_start} has their own dividend and Capital Gains Tax allowances.
 when has_gia:
 1. Ask {gia} to transfer the investments into {spouse}'s name.
 always:
@@ -361,6 +397,8 @@ outcome when tax_saved:
 status: approved
 source: https://www.gov.uk/tax-on-dividends/how-much-tax-youll-pay; https://www.gov.uk/capital-gains-tax/gifts; ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626)
 figures: user_dividend_rate, spouse_dividend_rate
+why:
+1. You pay {user_dividend_rate} on dividends above your allowance, and {spouse} pays {spouse_dividend_rate}.
 always:
 1. On the income recorded, you pay {user_dividend_rate} on dividends above your allowance, and {spouse} pays {spouse_dividend_rate}. The rate depends on each person's own Income Tax band.
 2. Investments given outright to {spouse} pay dividends that are theirs, taxed at their rate.
@@ -374,6 +412,8 @@ outcome when tax_saved:
 status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/inheritance-tax/gifts
 figures: (none published; tax config only)
+why:
+1. You have used your ISA allowance this tax year, and {spouse}'s {isa_allowance} allowance is unused.
 always:
 1. You have used your ISA allowance this tax year. No ISA is recorded for {spouse}, who has their own {isa_allowance} allowance.
 2. They can open a cash or stocks and shares ISA in their own name and pay in, from their own money or money you give them. There is no Inheritance Tax on gifts between spouses or civil partners who live in the UK permanently.
@@ -386,6 +426,8 @@ outcome:
 status: approved
 source: ITA 2007 s836 jointly held property (https://www.legislation.gov.uk/ukpga/2007/3/section/836); s837 declarations of unequal interests (https://www.legislation.gov.uk/ukpga/2007/3/section/837); https://www.gov.uk/apply-tax-free-interest-on-savings; ITA 2007 s12B (https://www.legislation.gov.uk/ukpga/2007/3/section/12B)
 figures: sole_balance, annual_interest, user_psa, estimated_annual_tax_saved
+why:
+1. Your {sole_balance} in your sole name earns about {annual_interest} a year, more than your {user_psa} Personal Savings Allowance.
 always:
 1. Your {sole_balance} of savings in your sole name earns about {annual_interest} a year, more than your {user_psa} Personal Savings Allowance.
 2. Hold the money in a joint account in both your names. While you and {spouse} live together, the interest is taxed as half each.
@@ -398,6 +440,9 @@ outcome:
 status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s188 relief only before age 75 (https://www.legislation.gov.uk/ukpga/2004/12/section/188); s190 basic amount (https://www.legislation.gov.uk/ukpga/2004/12/section/190)
 figures: net_contribution, gross_contribution, government_uplift, spouse_existing_pension_balance (or net_cost, gross_capacity)
+why:
+1. {spouse_start} has no earnings, but a pension payment for them still gets basic-rate relief added: {net_contribution} becomes {gross_contribution}.
+2. {spouse_start} has no earnings, but a pension payment for them still gets basic-rate relief added: {net_cost} becomes {gross_capacity}.
 when net_contribution and spouse_existing_pension_balance:
 1. A pension is already recorded for {spouse}. Check with the provider that it takes personal payments, or open a personal pension in their name.
 when net_contribution and not spouse_existing_pension_balance:
@@ -417,6 +462,8 @@ outcome:
 status: approved
 source: https://www.gov.uk/lifetime-isa; https://www.gov.uk/lifetime-isa/withdrawing-money-from-your-lifetime-isa
 figures: suggested_contribution, government_bonus, user_age
+why:
+1. At {user_age} you can still open a Lifetime ISA. On {suggested_contribution} paid in, the government adds {government_bonus}.
 when has_lifetime_isa_account:
 1. Pay {suggested_contribution} into your Lifetime ISA with {lifetime_isa_account}.
 when not has_lifetime_isa_account:
@@ -433,6 +480,8 @@ outcome:
 status: approved
 source: https://www.gov.uk/junior-individual-savings-accounts
 figures: children_under_18, total_jisa_capacity
+why:
+1. Money saved for {each_child} in a Junior ISA grows free of tax.
 always:
 when children_under_18 is 1:
 1. Your child can have a Junior ISA, with up to {junior_isa_allowance} paid in each tax year.
@@ -453,6 +502,8 @@ outcome when children_under_18 is not 1:
 status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s189(1)(b) (https://www.legislation.gov.uk/ukpga/2004/12/section/189): relief covers anyone resident in the UK, with no minimum age; s279 normal minimum pension age (https://www.legislation.gov.uk/ukpga/2004/12/section/279)
 figures: children_under_18, net_contribution_per_child, gross_contribution_per_child, total_government_uplift
+why:
+1. Pension payments for {each_child} get basic-rate relief added even with no earnings: {net_contribution_per_child} becomes {gross_contribution_per_child}.
 always:
 1. Open a personal pension for {each_child} with a provider that offers one for children.
 when children_under_18 is 1:

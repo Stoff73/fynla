@@ -251,6 +251,7 @@ class TaxConfigurationSeeder extends Seeder
                 'annual_allowance' => 20000,
                 'lifetime_isa' => [
                     'annual_allowance' => 4000,
+                    'min_age_to_open' => 18,                  // https://www.gov.uk/lifetime-isa
                     'max_age_to_open' => 39,
                     'government_bonus_rate' => 0.25,
                     'withdrawal_penalty' => 0.25,

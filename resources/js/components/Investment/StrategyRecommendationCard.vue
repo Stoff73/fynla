@@ -123,7 +123,7 @@ export default {
         case 'bed_and_isa':
           return 'View Plan';
         case 'harvest_loss':
-          return 'Harvest Loss';
+          return 'Use loss';
         case 'navigate':
           return 'View Details';
         case 'info':
