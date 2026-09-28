@@ -7,6 +7,7 @@ namespace App\Services\Retirement;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
@@ -515,7 +516,7 @@ class RetirementStrategyService
                 $additionalAnnualEmployee = $additionalMonthlyEmployee * 12;
 
                 // AFFORDABILITY CHECK: Calculate net cost considering salary sacrifice
-                $netCost = $this->calculateNetCostOfContribution($additionalAnnualEmployee, $user);
+                $netCost = $this->calculateNetCostOfContribution($additionalAnnualEmployee, $user, $pension);
                 $canAfford = $affordability['disposable_income'] >= $netCost;
 
                 // Calculate realistic impact on retirement income
@@ -1171,45 +1172,41 @@ class RetirementStrategyService
     }
 
     /**
-     * Calculate the net cost of additional pension contributions.
+     * What an extra employee pension contribution really costs in take-home
+     * pay: the contribution, less the Income Tax it saves (priced by the one
+     * tax engine), less — under salary sacrifice — the employee National
+     * Insurance it saves. From the cap's date only the first
+     * `pension.salary_sacrifice.nic_exemption_cap` a year of sacrifice is free
+     * of National Insurance (National Insurance Contributions (Employer
+     * Pensions Contributions) Act 2026, from 6 April 2029; CSJ 2026-09-28), so
+     * the saving stops at what is left under the cap.
      *
-     * From the NIC-exemption cap's effective date (2027-04-06 per Budget 2024 / CSJ
-     * confirmed 2026-05-12), only the first £2,000/year of employee salary sacrifice
-     * is exempt from NICs — beyond it, contributions flow via relief at source and
-     * cost the employee `contribution × (1 - marginal_tax_rate)`. Before that date
-     * the full sacrificed amount is NIC-exempt and treated as zero-cost.
-     *
-     * Cap value + effective date sourced from TaxConfigService
-     * (`pension.salary_sacrifice.nic_exemption_cap` / `*_effective_date`).
+     * $pension is the workplace pension the contribution goes into (untyped:
+     * the pensions store boundary keeps the model out of this service).
      */
-    private function calculateNetCostOfContribution(float $additionalAnnual, User $user): float
+    private function calculateNetCostOfContribution(float $additionalAnnual, User $user, ?object $pension = null): float
     {
-        $sacrificeConfig = $this->taxConfig->getPensionAllowances()['salary_sacrifice'] ?? [];
-        $cap = (float) ($sacrificeConfig['nic_exemption_cap'] ?? 0);
-        $effectiveDateString = $sacrificeConfig['nic_exemption_cap_effective_date'] ?? null;
-
-        $capActive = $effectiveDateString
-            && now()->gte(Carbon::parse($effectiveDateString));
-        $salarySacrificeLimit = $capActive ? $cap : INF;
-
-        // Salary-sacrificed portion (within the cap when active) is zero-cost.
-        $viaReliefAtSource = max(0, $additionalAnnual - $salarySacrificeLimit);
-
-        if ($viaReliefAtSource <= 0) {
-            // All contribution is within salary sacrifice limit - zero cost
+        if ($additionalAnnual <= 0) {
             return 0.0;
         }
+        $taxSaved = app(TaxStrategyMath::class)->pensionContributionSaving($user, $additionalAnnual);
 
-        // Get user's marginal tax rate
-        $marginalRate = $this->getMarginalTaxRate($user);
+        $niSaved = 0.0;
+        if ($pension !== null && ! empty($pension->salary_sacrifice)) {
+            $pay = (float) ($user->annual_employment_income ?? 0);
+            $exempt = $additionalAnnual;
+            $sacrifice = $this->taxConfig->getPensionAllowances()['salary_sacrifice'] ?? [];
+            $cap = (float) ($sacrifice['nic_exemption_cap'] ?? 0);
+            $from = $sacrifice['nic_exemption_cap_effective_date'] ?? null;
+            if ($cap > 0 && $from !== null && now()->gte(Carbon::parse($from))) {
+                $already = PensionContributionRule::monthlyEmployee($pension, $pay) * 12;
+                $exempt = min($additionalAnnual, max(0.0, $cap - $already));
+            }
+            $ni = fn (float $p): float => app(UKTaxCalculator::class)->employeeClass1Ni($p);
+            $niSaved = max(0.0, $ni($pay) - $ni($pay - $exempt));
+        }
 
-        // Relief at source: employee pays net (after tax relief)
-        // Basic rate (20%): cost = contribution × 0.80
-        // Higher rate (40%): cost = contribution × 0.60
-        // Additional rate (45%): cost = contribution × 0.55
-        $netCostReliefAtSource = $viaReliefAtSource * (1 - $marginalRate);
-
-        return $netCostReliefAtSource;
+        return max(0.0, $additionalAnnual - $taxSaved - $niSaved);
     }
 
     /**
@@ -1219,30 +1216,15 @@ class RetirementStrategyService
      */
     private function getMarginalTaxRate(User $user): float
     {
+        // The rate of the band the user's income reaches, from tax config via
+        // the one band lookup (Rule 2) — not typed-in percentages.
         $grossIncome = (float) ($user->annual_employment_income ?? 0)
             + (float) ($user->annual_self_employment_income ?? 0);
-
-        $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = $incomeTax['personal_allowance'];
-        $bands = $incomeTax['bands'];
-
-        // Absolute thresholds — prefer top-level aliases (derived from bands[i].upper_limit).
-        // The legacy `PA + bands[1].max` was wrong because bands[1].max stores the absolute
-        // £125,140 additional-rate threshold rather than a band width. Audit finding #5.
-        $basicLimit = (float) ($incomeTax['higher_rate_threshold']
-            ?? ($personalAllowance + $bands[0]['max'])); // £50,270
-        $higherLimit = (float) ($incomeTax['additional_rate_threshold']
-            ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max']))); // £125,140
-
-        if ($grossIncome <= $personalAllowance) {
+        if ($grossIncome <= (float) $this->taxConfig->getIncomeTax()['personal_allowance']) {
             return 0.0;
-        } elseif ($grossIncome <= $basicLimit) {
-            return 0.20;
-        } elseif ($grossIncome <= $higherLimit) {
-            return 0.40;
-        } else {
-            return 0.45;
         }
+
+        return app(TaxStrategyMath::class)->bandRateFromIncome($grossIncome);
     }
 
     /**

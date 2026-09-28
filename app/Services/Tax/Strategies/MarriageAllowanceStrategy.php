@@ -48,7 +48,13 @@ final class MarriageAllowanceStrategy implements TaxStrategy
                     number_format((int) floor($saving)),
                 ),
             estimatedAnnualTaxSaved: $saving,
-            extra: ['amount_transferred' => $amount, 'transfer_direction' => $position['direction']],
+            extra: [
+                'amount_transferred' => $amount,
+                'transfer_direction' => $position['direction'],
+                // Each partner's income, so the steps can say why this way round.
+                'user_income' => $position['user_income'],
+                'spouse_income' => $position['spouse_income'],
+            ],
         )];
     }
 }

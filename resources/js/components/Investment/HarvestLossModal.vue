@@ -9,7 +9,7 @@
         <!-- Header -->
         <div class="bg-violet-500 px-6 py-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-white">Harvest Tax Loss</h3>
+            <h3 class="text-lg font-semibold text-white">Use this loss against gains</h3>
             <button @click="$emit('close')" class="text-white hover:text-violet-200">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -61,7 +61,7 @@
 
           <!-- Execution Steps -->
           <div class="bg-eggshell-500 rounded-lg p-4">
-            <h4 class="font-semibold text-violet-800 mb-3">How to Harvest This Loss</h4>
+            <h4 class="font-semibold text-violet-800 mb-3">How to use this loss</h4>
             <ol class="text-sm text-violet-700 space-y-2 list-decimal list-inside">
               <li>Sell the holding in your General Investment Account</li>
               <li>Record the loss for your tax records</li>

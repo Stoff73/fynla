@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
+use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
@@ -109,6 +110,8 @@ it('gives an unlock item the waiting-on-you shape', function () {
 });
 
 it('puts the strategy own figures in the why bullets, never a guessed sentence', function () {
+    // The why lines live in the reviewed how-to file (CSJ 2026-09-28).
+    $this->seed(ActionHowToSeeder::class);
     $user = actionCardUserWithIsaHeadroom();
     Sanctum::actingAs($user);
     $items = collect(app(ComposedTaxPlanService::class)->forUser($user)['items'])->keyBy('type');

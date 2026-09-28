@@ -132,7 +132,10 @@ final class RecordEditForms
                 }
                 break;
             case 'spouse':
-                if (TaxStrategyHouseholdInput::where('user_id', $user->id)->exists()) {
+                // A married user can give their spouse's details before any
+                // are saved: the form's write is an upsert.
+                if (in_array((string) $user->marital_status, ['married', 'civil_partnership'], true)
+                    || TaxStrategyHouseholdInput::where('user_id', $user->id)->exists()) {
                     $rows[] = ['type' => 'spouse_household', 'id' => (int) $user->id, 'label' => "Your spouse's details"];
                 }
                 break;
@@ -552,7 +555,7 @@ final class RecordEditForms
             'critical_illness' => CriticalIllnessPolicy::where('id', $id)->where('user_id', $user->id)->first(),
             'income_protection' => IncomeProtectionPolicy::where('id', $id)->where('user_id', $user->id)->first(),
             'employment' => $user->employments()->where('id', $id)->first(),
-            'spouse_household' => TaxStrategyHouseholdInput::where('user_id', $user->id)->first(),
+            'spouse_household' => TaxStrategyHouseholdInput::firstOrNew(['user_id' => $user->id]),
             'expenditure', 'personal' => $user,
             default => null,
         };

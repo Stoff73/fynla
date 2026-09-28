@@ -1317,6 +1317,14 @@ export default {
                 query[key] = value;
             });
             await this.$router.push({ path, query });
+            // Undocked, the chat covers the screen (below 1024px it is full
+            // screen), so a verify step's "does it look right?" would sit over
+            // the page it asks about. Close it, as /m's handleOnboardingNavigation
+            // and native's settleNavigation do; reopening shows the question.
+            const sameScreen = this.$route?.fullPath === before;
+            if (sameScreen || !this.docked) {
+                this.$store.dispatch('aiChat/close');
+            }
             // A route that resolves to the screen already shown (a verify edit
             // re-sending /investment while on /net-worth/investments; the
             // recommendation follow-up's "No thanks" routing to /dashboard from
@@ -1325,8 +1333,7 @@ export default {
             // what /m's handleOnboardingNavigation and native's settleNavigation
             // do for the same frame. Compared after the push so redirect
             // aliases resolve the way the router resolves them.
-            if (this.$route?.fullPath === before) {
-                this.$store.dispatch('aiChat/close');
+            if (sameScreen) {
                 window.dispatchEvent(new Event('fyn-close-chat'));
                 window.dispatchEvent(new Event('fyn-screen-refresh'));
             }

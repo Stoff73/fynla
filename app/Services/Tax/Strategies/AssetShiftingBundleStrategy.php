@@ -150,11 +150,11 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
 
         // 4. GIA → spouse for CGT + Dividend allowances (only if user has investment accounts)
         if ($hasGia) {
-            $cgtAllowance = (float) ($this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000);
+            $cgtAllowance = (float) ($this->taxConfig->getCapitalGainsTax()['annual_exempt_amount']);
             $div = $this->taxConfig->getDividendTax();
-            $divAllowanceRaw = $div['allowance'] ?? 500;
+            $divAllowanceRaw = $div['allowance'];
             $divAllowance = is_array($divAllowanceRaw)
-                ? (float) ($divAllowanceRaw['amount'] ?? 500)
+                ? (float) $divAllowanceRaw['amount']
                 : (float) $divAllowanceRaw;
 
             $suggestions[] = [

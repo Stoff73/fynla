@@ -552,7 +552,7 @@ class TaxOptimizationAnalyzer
             $deduction = min(20, ($currentPosition['unrealized_losses'] / 10000) * 20);
             $score -= $deduction;
             $deductions[] = [
-                'reason' => 'Unharvested tax losses',
+                'reason' => 'Unused losses',
                 'points' => round($deduction, 1),
             ];
         }

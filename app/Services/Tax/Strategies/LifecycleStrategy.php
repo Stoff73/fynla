@@ -31,12 +31,12 @@ final class LifecycleStrategy implements TaxStrategy
         // #16 — Lifetime ISA (under-40s)
         $userAge = $this->math->ageOf($user->date_of_birth);
         $lisa = $isa['lifetime_isa'] ?? [];
-        $lisaMaxAgeToOpen = (int) ($lisa['max_age_to_open'] ?? 39);
-        $lisaAnnual = (float) ($lisa['annual_allowance'] ?? 4000);
-        $lisaBonusRate = (float) ($lisa['government_bonus_rate'] ?? 0.25);
+        $lisaMaxAgeToOpen = (int) $lisa['max_age_to_open'];
+        $lisaAnnual = (float) $lisa['annual_allowance'];
+        $lisaBonusRate = (float) $lisa['government_bonus_rate'];
 
-        if ($userAge !== null && $userAge >= 18 && $userAge <= $lisaMaxAgeToOpen) {
-            $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
+        if ($userAge !== null && $userAge >= (int) $lisa['min_age_to_open'] && $userAge <= $lisaMaxAgeToOpen) {
+            $isaAllowance = (float) $isa['annual_allowance'];
             $isaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
             $isaRemaining = max(0, $isaAllowance - $isaUsed);
 
@@ -58,10 +58,13 @@ final class LifecycleStrategy implements TaxStrategy
                     priority: StrategyPriority::Medium,
                     title: sprintf('Open a Lifetime ISA for a £%s government bonus every year', number_format((int) $bonus)),
                     description: sprintf(
-                        'You\'re under %d. Contributing £%s a year to a Lifetime ISA unlocks a £%s government top-up — usable for a first home (up to £450,000) or from age 60. The contribution counts toward your £%s overall ISA allowance.',
+                        'You\'re under %d. Contributing £%s a year to a Lifetime ISA unlocks a £%s government top-up — usable for a first home (up to £%s) or from age %d. The contribution counts toward your £%s overall ISA allowance.',
                         $lisaMaxAgeToOpen + 1,
                         number_format((int) $contribution),
                         number_format((int) $bonus),
+                        // From tax config, never typed in (Rule 2).
+                        number_format((int) $lisa['first_home_price_limit']),
+                        (int) $lisa['penalty_free_withdrawal_age'],
                         number_format((int) $isaAllowance),
                     ),
                     // A government bonus, not tax saved (CSJ ruling 2026-09-25): never in the headline total.
@@ -77,8 +80,8 @@ final class LifecycleStrategy implements TaxStrategy
 
         // #17 + #18 — count dependant children under 18
         $juniorIsa = $isa['junior_isa'] ?? [];
-        $juniorIsaMaxAge = (int) ($juniorIsa['max_age'] ?? 17);
-        $juniorIsaAnnual = (float) ($juniorIsa['annual_allowance'] ?? 9000);
+        $juniorIsaMaxAge = (int) $juniorIsa['max_age'];
+        $juniorIsaAnnual = (float) $juniorIsa['annual_allowance'];
 
         $children = FamilyMember::query()
             ->where('user_id', $user->id)
@@ -109,7 +112,7 @@ final class LifecycleStrategy implements TaxStrategy
                 description: sprintf(
                     'Each child under 18 has a £%s annual Junior ISA allowance — separate from your own £%s. All interest, dividends and capital gains inside the wrapper are tax-free until they turn 18.',
                     number_format((int) $juniorIsaAnnual),
-                    number_format((int) ($isa['annual_allowance'] ?? 20000)),
+                    number_format((int) $isa['annual_allowance']),
                 ),
                 estimatedAnnualTaxSaved: null,
                 extra: [

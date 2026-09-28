@@ -55,6 +55,7 @@ Custom commands: `php artisan list | grep -E 'fyn:|preview:|audit:|subscriptions
 **8. No amber or orange, ever.** Warnings → `violet-*`; errors → `raspberry-*`; success → `spring-*`.
 
 **9. No cold acronyms in user-facing text.** Spell out on first use *on the surface the user is looking at* — "the Alternative Investment Market (AIM)", then "AIM" freely. A definition in another component or module does not count. ISA is always fine.
+**Banned words in user-facing text:** "harvest" / "harvesting" (CSJ 2026-09-28). Say what the action does instead ("use your dividend allowance").
 
 **10. Design system.** `./fynlaDesignGuide.md` (v1.3.1) is the source of truth for colour, type, components and charts. **Where Rules 12 and 15 conflict with it, these rules win** — the guide predates them.
 

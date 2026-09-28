@@ -6,6 +6,7 @@ namespace App\Services\Coordination;
 
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -17,11 +18,16 @@ use App\Services\Tax\TaxStrategyMath;
  * seeded on tax_action_definitions — a strategy whose required_data are not
  * all true is "locked": surfaced as an unlock prompt, never silently skipped.
  *
- * The 13 vocabulary keys are fixed to match the seeds:
+ * The 14 vocabulary keys are fixed to match the seeds:
  *   annual_income, charitable_giving, date_of_birth, dividend_income,
  *   employment_status, gia_holdings, isa_subscriptions_ytd, marital_status,
  *   pension_contributions, pension_input_history, savings_balances,
- *   spouse_income, workplace_pension
+ *   spouse_income, spouse_income_amount, workplace_pension
+ *
+ * spouse_income is "we know how the spouse stands" (a non-working spouse
+ * counts). spouse_income_amount is the figure itself — a linked spouse's
+ * records or an amount captured — which Marriage Allowance needs because a
+ * non-working spouse can still have a pension or rent (CSJ 2026-09-28).
  */
 final class HouseholdFinancialContext
 {
@@ -34,7 +40,7 @@ final class HouseholdFinancialContext
      * Returns a map of every catalogue data-point key to a boolean indicating
      * whether that data is available for the given user.
      *
-     * @return array<string, bool>
+     * @return array<string, bool|null>
      */
     public function availability(User $user): array
     {
@@ -59,12 +65,22 @@ final class HouseholdFinancialContext
             'pension_input_history' => collect(app(PensionStore::class)->pensionInputHistory($user))->isNotEmpty(),
             'savings_balances' => $this->hasSavingsBalance($user),
             'spouse_income' => $this->spouseIncomeKnown($user),
+            'spouse_income_amount' => $user->liveSpouse() !== null
+                || TaxStrategyHouseholdInput::where('user_id', $user->id)->whereNotNull('spouse_annual_income')->exists(),
             'workplace_pension' => $hasDcPension,
         ];
         foreach ($declared as $key) {
             if (array_key_exists($key, $availability)) {
                 $availability[$key] = true;
             }
+        }
+        // Someone with no spouse or civil partner has no spouse data to give:
+        // the spouse strategies do not apply to them at all (null), so none of
+        // them waits on anything (a single user was being asked for a spouse's
+        // income, then for ISA details for a spouse ISA).
+        if (! $this->math->isMarriedOrCivilPartner($user)) {
+            $availability['spouse_income'] = null;
+            $availability['spouse_income_amount'] = null;
         }
 
         return $availability;
@@ -84,11 +100,31 @@ final class HouseholdFinancialContext
                 'investment' => ['gia_holdings'],
                 'savings', 'isa' => ['savings_balances', 'isa_subscriptions_ytd'],
                 'pension', 'pension_personal' => ['pension_contributions', 'workplace_pension', 'pension_input_history'],
+                'expenditure_tax' => ['charitable_giving'],
                 default => [],
             });
         }
 
         return array_values(array_unique($keys));
+    }
+
+    /**
+     * What of onboarding_fyn_context survives the end of onboarding: the
+     * remembered joint records (the invitee usually registers after the plan)
+     * and the "none" declarations, which availability() reads for the rest of
+     * the user's life. Everything else is walk scratch.
+     *
+     * @param  array<string, mixed>|null  $context
+     * @return array<string, mixed>|null
+     */
+    public static function outlivingOnboarding(?array $context): ?array
+    {
+        $kept = array_merge(
+            SpouseJointRecords::carry($context) ?? [],
+            array_intersect_key($context ?? [], array_flip(['declared_none', 'declared_none_keys'])),
+        );
+
+        return $kept === [] ? null : $kept;
     }
 
     /**
@@ -109,6 +145,7 @@ final class HouseholdFinancialContext
             'savings_balances' => 'savings accounts',
             'charitable_giving' => 'charitable giving',
             'spouse_income' => "spouse's income",
+            'spouse_income_amount' => "spouse's total income a year, including any pension or rent (enter 0 if none)",
             'marital_status' => 'marital status',
             'employment_status' => 'employment status',
             'date_of_birth' => 'date of birth',
@@ -176,7 +213,7 @@ final class HouseholdFinancialContext
     }
 
     /**
-     * Any user-owned ISA savings account — the subscription amount lives per
+     * Any user-owned ISA, cash or stocks and shares — the subscription amount lives per
      * account; an ISA existing means the question is answerable.
      * Uses forUser() (joint-aware) then filters to user_id owned accounts,
      * mirroring IsaTopUpStrategy's pattern.
@@ -186,7 +223,12 @@ final class HouseholdFinancialContext
         return $this->savingsStore->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', true)
-            ->isNotEmpty();
+            ->isNotEmpty()
+            // A Stocks and Shares ISA answers it too: TaxStrategyMath counts
+            // its isa_subscription_current_year towards the allowance used.
+            || app(InvestmentAccountStore::class)->forUser($user)
+                ->filter(fn ($a) => (int) $a->user_id === (int) $user->id && $a->account_type === 'isa')
+                ->isNotEmpty();
     }
 
     /**

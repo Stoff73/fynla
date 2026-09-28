@@ -24,46 +24,59 @@
              plus the completed history that previously had no home. -->
         <ThresholdStrip :data="thresholds" />
 
+        <!-- Design B, deadline lanes (CSJ 2026-09-17): the server puts each
+             action in its lane (ActionLanes) and sends the headings. -->
         <div class="top-priorities module-gradient">
-          <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center gap-2">
+          <h3 class="text-lg font-bold text-horizon-500 mb-1 flex items-center gap-2">
             Your actions
             <span class="text-xs font-bold text-white bg-raspberry-500 px-2 py-0.5 rounded-full">{{ openActions.length }}</span>
           </h3>
+          <p class="text-body-sm text-neutral-500 mb-5">Grouped by when they need doing. Open any action for the reasoning behind it.</p>
 
           <div v-if="!openActions.length" class="text-body-sm text-neutral-500">
             You're all caught up — nothing to action right now.
           </div>
 
-          <div v-else class="space-y-2.5">
-            <div
-              v-for="(action, index) in openActions"
-              :key="action.id"
-              class="action-row"
-            >
-              <div class="flex items-center gap-3.5 min-w-0 cursor-pointer" @click="goToAction(action)">
-                <div class="order-num">{{ index + 1 }}</div>
-                <div class="min-w-0">
+          <section
+            v-for="lane in lanes"
+            :key="lane.key"
+            class="lane"
+            :aria-labelledby="'lane-' + lane.key"
+          >
+            <div class="flex items-baseline gap-2">
+              <h4 :id="'lane-' + lane.key" class="text-body font-bold text-horizon-500">{{ lane.title }}</h4>
+              <span class="text-xs font-bold text-horizon-500 bg-savannah-100 px-2 py-0.5 rounded-full">{{ lane.count }}</span>
+            </div>
+            <p class="text-caption text-neutral-500 mt-0.5 mb-3">{{ lane.sub }}</p>
+
+            <div class="space-y-2.5">
+              <div
+                v-for="action in actionsIn(lane.key)"
+                :key="action.id"
+                class="action-row"
+              >
+                <div class="min-w-0 cursor-pointer" @click="goToAction(action)">
                   <div class="text-[15px] font-semibold text-horizon-500">{{ action.title }}</div>
                   <div class="text-xs text-neutral-500 mt-0.5">{{ moduleLabel(action) }}<span v-if="action.meta"> · {{ action.meta }}</span></div>
                 </div>
-              </div>
-              <div class="flex items-center gap-2.5 flex-shrink-0">
-                <span
-                  v-if="action.type !== 'recommendation'"
-                  class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700"
-                >Unlock</span>
-                <button
-                  v-if="action.type === 'recommendation'"
-                  type="button"
-                  class="text-xs font-semibold text-spring-700 border border-spring-500 rounded-full px-3 py-1 hover:bg-spring-50 transition-colors disabled:opacity-60"
-                  :disabled="marking === action.id"
-                  @click.stop="markDone(action)"
-                >
-                  Mark as done
-                </button>
+                <div class="flex items-center gap-2.5 flex-shrink-0">
+                  <span
+                    v-if="action.type !== 'recommendation'"
+                    class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700"
+                  >Unlock</span>
+                  <button
+                    v-if="action.type === 'recommendation'"
+                    type="button"
+                    class="text-xs font-semibold text-spring-700 border border-spring-500 rounded-full px-3 py-1 hover:bg-spring-50 transition-colors disabled:opacity-60"
+                    :disabled="marking === action.id"
+                    @click.stop="markDone(action)"
+                  >
+                    Mark as done
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
         <!-- Done — the completed history (recommendation_tracking), newest first. -->
@@ -130,6 +143,7 @@ export default {
       loading: true,
       marking: null,
       openActions: [],
+      lanes: [],
       completedActions: [],
       activity: [],
       thresholds: { strip: null, lines: [] },
@@ -155,6 +169,10 @@ export default {
     // rows that carry no destination.
     // Every action opens its own card (design C); the card carries the
     // action's own button (capture, navigate or mark done).
+    actionsIn(laneKey) {
+      return this.openActions.filter((action) => action.lane === laneKey);
+    },
+
     goToAction(action) {
       this.$router.push({ name: 'ActionCard', params: { actionId: action.id } });
     },
@@ -197,6 +215,7 @@ export default {
           api.get('/thresholds').catch(() => null),
         ]);
         this.openActions = data?.data?.open ?? [];
+        this.lanes = data?.data?.lanes ?? [];
         this.completedActions = data?.data?.completed ?? [];
         this.activity = activityRes?.data?.data ?? [];
         this.thresholds = thresholdRes?.data?.data ?? { strip: null, lines: [] };
@@ -222,17 +241,8 @@ export default {
   @apply bg-white rounded-card border border-light-gray p-6;
 }
 
-.order-num {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  @apply bg-horizon-500 text-white;
-  font-size: 16px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.lane + .lane {
+  @apply mt-6 pt-5 border-t border-light-gray;
 }
 
 .action-row {

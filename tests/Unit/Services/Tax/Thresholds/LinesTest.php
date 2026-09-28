@@ -452,7 +452,7 @@ describe('date lines', function () {
 
         expect($result)->not->toBeNull()
             ->and($result->position['unit'])->toBe('days')
-            ->and($result->position['value'])->toBe((float) Carbon::today()->diffInDays(Carbon::parse('2027-04-06')))
+            ->and($result->position['value'])->toBe((float) Carbon::today()->diffInDays(Carbon::parse('2029-04-06')))
             ->and($result->lever)->toBeNull()
             ->and($result->cost->total())->toBe($expected)
             ->and($result->cost->total())->not->toBe($ifMainRateWereUsed)

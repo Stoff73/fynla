@@ -71,7 +71,8 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 
 Released today: #945 (#943 pension contributions + long-term residence, #944 action cards) and #947 (#946 tax engine and strategy figures, audit 2026-09-27). Both walked live on fynla.org.
 
-- [ ] **CSJ: review the 21 tax how-tos** in `database/seeders/data/action-how-to/tax.md` (now on `dev` and prod). Change `draft` to `approved` per entry; nothing shows until then. Seven are `unverified`. Fix before review: SIPP not spelled out; `savings_to_spouse` step 2 unsourced; `lifetime_isa` omits the age-60 rule.
+- [ ] **CSJ: approve Marriage Allowance** in `database/seeders/data/action-how-to/tax.md` (the other 20 approved 2026-09-28). Each entry carries why, steps and outcome, filled with the user's figures.
+- [ ] **Scottish income tax is not modelled anywhere** (`TaxConfigurationSeeder.php:139`, `scotland.enabled = false`; no "lives in Scotland" field). Every tax figure is at rest-of-UK rates. Marriage Allowance carries a caveat line for now (CSJ 2026-09-28).
 - [ ] **Help pages: rewrite from the audit** (`docs/help-audit-2026-09-26.md`). Make `public/pages/help.php` the one source; delete `Help.vue` and its unreachable route (`router/index.js:1411-1418`). Wrong-fact sections first (12), then stale UI (36), then the 24 screens with no help. Every figure from tax config, every rule sourced.
 - [ ] **Fyn narration from "Ask Fyn about this"** (Rule 20, one place; load `fyn-architecture`). It left the personal pension out of the £7,800 explanation and said "mechanical-tier strategy" (`claim_tier` jargon).
 - [ ] **Intermittent iOS UI test:** `testPR7ParityClosureJourney` fails "not hittable ... Keyboard Focused" on `net-worth.forecast.rate.property` (dev run on `3520df133`); passed on the branch run. The simulator hardware-keyboard trap (`ios-simulator` skill).

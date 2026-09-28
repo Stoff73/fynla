@@ -159,6 +159,20 @@ class TaxConfigurationSeeder extends Seeder
                 // basic-rate taxpayer.
                 'marriage_allowance' => [
                     'amount' => 1260,
+                    // A Scottish recipient must pay no more than the intermediate
+                    // rate, "usually ... income between £12,571 and £43,662"
+                    // (https://www.gov.uk/marriage-allowance/eligibility; ITA 2007
+                    // s55B(2)(b)). Scottish bands are not modelled, so the how-to
+                    // warns recipients above this (CSJ 2026-09-28).
+                    'scottish_recipient_upper_limit' => 43662,
+                ],
+
+                // Married Couple's Allowance: one of the couple born before this
+                // date (ITA 2007 s45(2)(c), s46,
+                // https://www.legislation.gov.uk/ukpga/2007/3/section/45). It cannot
+                // be had with Marriage Allowance (s55B(2)(d)).
+                'married_couples_allowance' => [
+                    'born_before' => '1935-04-06',
                 ],
 
                 // Blind Person's Allowance
@@ -237,13 +251,25 @@ class TaxConfigurationSeeder extends Seeder
                 'annual_allowance' => 20000,
                 'lifetime_isa' => [
                     'annual_allowance' => 4000,
+                    'min_age_to_open' => 18,                  // https://www.gov.uk/lifetime-isa
                     'max_age_to_open' => 39,
                     'government_bonus_rate' => 0.25,
                     'withdrawal_penalty' => 0.25,
+                    // Pay in until 50; withdraw without the charge from 60
+                    // (https://www.gov.uk/lifetime-isa,
+                    // https://www.gov.uk/lifetime-isa/withdrawing-money-from-your-lifetime-isa).
+                    'max_age_to_contribute' => 49,
+                    'penalty_free_withdrawal_age' => 60,
+                    // First home: price £450,000 or less, bought at least 12 months
+                    // after the first payment (same withdrawing-money page).
+                    'first_home_price_limit' => 450000,
+                    'first_home_min_months' => 12,
                 ],
                 'junior_isa' => [
                     'annual_allowance' => 9000,
                     'max_age' => 17,
+                    // The child takes control at 16 (https://www.gov.uk/junior-individual-savings-accounts).
+                    'manage_from_age' => 16,
                 ],
             ],
 
@@ -343,12 +369,22 @@ class TaxConfigurationSeeder extends Seeder
                         'apprentice' => 7.55,
                     ],
                     'conservative_proxy_floor' => 10000,         // Use auto-enrolment earnings trigger as proxy
-                    'nic_exemption_cap' => 2000,                 // From April 2027: only first £2,000 of employee salary sacrifice exempt from NICs
-                    'nic_exemption_cap_effective_date' => '2027-04-06', // Start of 2027/28 tax year — CSJ confirmed 2026-05-12
+                    // From 6 April 2029 only the first £2,000 a year of employee salary
+                    // sacrifice is free of NICs: National Insurance Contributions
+                    // (Employer Pensions Contributions) Act 2026,
+                    // https://commonslibrary.parliament.uk/research-briefings/cbp-10423/
+                    // (date confirmed by CSJ 2026-09-28; the earlier 2027 date was wrong).
+                    'nic_exemption_cap' => 2000,
+                    'nic_exemption_cap_effective_date' => '2029-04-06',
                 ],
 
                 // Auto-enrolment thresholds
                 'auto_enrolment' => [
+                    // An employer must enrol a worker aged 22 to State Pension age
+                    // who earns at least the trigger and usually works in the UK
+                    // (Pensions Act 2008 s3, https://www.legislation.gov.uk/ukpga/2008/30/section/3;
+                    // https://www.gov.uk/workplace-pensions/joining-a-workplace-pension).
+                    'min_age' => 22,
                     'earnings_trigger' => 10000,                 // £10,000 — must auto-enrol above this
                     'lower_qualifying_earnings' => 6240,         // £6,240 — lower limit of qualifying earnings band
                     'upper_qualifying_earnings' => 50270,        // £50,270 — upper limit of qualifying earnings band

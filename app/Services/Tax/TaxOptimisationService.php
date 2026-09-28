@@ -350,7 +350,7 @@ class TaxOptimisationService
             return [
                 'type' => 'cgt_loss_harvesting',
                 'priority' => 'medium',
-                'title' => 'Tax-Loss Harvesting Opportunity',
+                'title' => 'Losses you could use against gains',
                 'description' => sprintf(
                     'You have %s in unrealised losses that could offset %s in gains above your annual exempt amount.',
                     '£'.number_format($cgtPosition['unrealised_losses'], 0),

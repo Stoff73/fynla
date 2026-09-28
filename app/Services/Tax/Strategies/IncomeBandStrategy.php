@@ -120,7 +120,7 @@ final class IncomeBandStrategy implements TaxStrategy
                     ),
                     estimatedAnnualTaxSaved: (float) $totalSaving,
                     extra: [
-                        'suggested_contribution' => round($contribution, 2),
+                        'suggested_contribution' => (float) $displayContribution,
                         'effective_marginal_rate' => round($taperEffectiveRate, 4),
                     ],
                 );
@@ -146,11 +146,14 @@ final class IncomeBandStrategy implements TaxStrategy
                     type: 'additional_rate_avoidance',
                     category: StrategyCategory::IncomeBand,
                     priority: StrategyPriority::High,
-                    title: 'Shift income out of the 45% additional-rate band',
+                    // Rates from tax config, never typed in (Rule 2).
+                    title: sprintf('Shift income out of the %d%% additional-rate band', (int) round($this->math->bandRateForBand('additional') * 100)),
                     description: sprintf(
-                        'Income above £%s is taxed at 45%%. A £%s pension contribution moves that slice into the 40%% band and reclaims part of your Personal Allowance, saving around £%s in tax this year.',
+                        'Income above £%s is taxed at %d%%. A £%s pension contribution moves that slice into the %d%% band and reclaims part of your Personal Allowance, saving around £%s in tax this year.',
                         number_format((int) $additionalRateThreshold),
+                        (int) round($this->math->bandRateForBand('additional') * 100),
                         number_format((int) $contribution),
+                        (int) round($this->math->bandRateForBand('higher') * 100),
                         number_format((int) floor($saving)),
                     ),
                     estimatedAnnualTaxSaved: round($saving, 2),

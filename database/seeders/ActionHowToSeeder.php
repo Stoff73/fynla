@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\TaxActionDefinition;
+use App\Services\Actions\ActionHowTo;
 use Illuminate\Database\Seeder;
 
 /**
@@ -43,7 +44,14 @@ class ActionHowToSeeder extends Seeder
             throw new \RuntimeException("Action how-to source missing for '{$module}': {$path}");
         }
         [$model, $column] = self::SOURCES[$module];
-        foreach (self::parse((string) file_get_contents($path)) as $key => $entry) {
+        $entries = self::parse((string) file_get_contents($path));
+        // A heading that names no definition would be skipped without a word
+        // (a renamed key did exactly that), so it stops the seed instead.
+        $unknown = array_diff(array_keys($entries), $model::query()->pluck($column)->all());
+        if ($unknown !== []) {
+            throw new \RuntimeException("Action how-to headings in {$module}.md match no {$column}: ".implode(', ', $unknown));
+        }
+        foreach ($entries as $key => $entry) {
             $model::query()->where($column, $key)->update([
                 'how_to_steps' => json_encode($entry['steps']),
                 'how_to_status' => $entry['status'],
@@ -52,25 +60,10 @@ class ActionHowToSeeder extends Seeder
     }
 
     /**
-     * "## key" then "status: draft|approved" then numbered steps.
-     *
-     * @return array<string, array{status: string, steps: list<string>}>
+     * @return array<string, array{status: string, steps: list<array{when: string|null, text: string}>}>
      */
     public static function parse(string $markdown): array
     {
-        $entries = [];
-        $key = null;
-        foreach (preg_split('/\R/', $markdown) as $line) {
-            if (preg_match('/^## ([a-z0-9_]+)\s*$/', $line, $m)) {
-                $key = $m[1];
-                $entries[$key] = ['status' => 'draft', 'steps' => []];
-            } elseif ($key !== null && preg_match('/^status:\s*(draft|approved)\s*$/', $line, $m)) {
-                $entries[$key]['status'] = $m[1];
-            } elseif ($key !== null && preg_match('/^\d+\.\s+(.+)$/', $line, $m)) {
-                $entries[$key]['steps'][] = trim($m[1]);
-            }
-        }
-
-        return $entries;
+        return ActionHowTo::parse($markdown);
     }
 }

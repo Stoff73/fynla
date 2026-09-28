@@ -62,7 +62,7 @@ it('caps the Marriage Allowance saving at the recipient\'s actual income tax (s2
         'annual_employment_income' => accPa() + 130,
         'marital_status' => 'married',
     ]);
-    TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
     SavingsAccount::factory()->for($user)->create([
         'current_balance' => 20000, 'interest_rate' => 4, 'is_isa' => false,
         'ownership_type' => 'individual', 'joint_owner_id' => null,
