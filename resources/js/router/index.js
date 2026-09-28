@@ -150,7 +150,6 @@ const PipelineArticleEditor = () => import('@/views/Admin/Pipeline/ArticleEditor
 const PipelinePublisherManager = () => import('@/views/Admin/Pipeline/PublisherManager.vue');
 const PipelineClipApprovalQueue = () => import('@/views/Admin/Pipeline/ClipApprovalQueue.vue');
 const Version = () => import('@/views/Version.vue');
-const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
 const ValuableInfo = () => import('@/views/ValuableInfo.vue');
 
@@ -1418,14 +1417,6 @@ const routes = [
     path: '/version',
     name: 'Version',
     component: Version,
-    meta: {
-      requiresAuth: false,
-    },
-  },
-  {
-    path: '/help',
-    name: 'Help',
-    component: Help,
     meta: {
       requiresAuth: false,
     },
