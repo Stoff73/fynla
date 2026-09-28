@@ -365,6 +365,11 @@ class TaxConfigurationSeeder extends Seeder
 
                 // Auto-enrolment thresholds
                 'auto_enrolment' => [
+                    // An employer must enrol a worker aged 22 to State Pension age
+                    // who earns at least the trigger and usually works in the UK
+                    // (Pensions Act 2008 s3, https://www.legislation.gov.uk/ukpga/2008/30/section/3;
+                    // https://www.gov.uk/workplace-pensions/joining-a-workplace-pension).
+                    'min_age' => 22,
                     'earnings_trigger' => 10000,                 // £10,000 — must auto-enrol above this
                     'lower_qualifying_earnings' => 6240,         // £6,240 — lower limit of qualifying earnings band
                     'upper_qualifying_earnings' => 50270,        // £50,270 — upper limit of qualifying earnings band

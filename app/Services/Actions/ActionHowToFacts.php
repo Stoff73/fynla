@@ -8,6 +8,7 @@ use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
@@ -73,6 +74,7 @@ final class ActionHowToFacts
         $text['band'] = $band.' rate';
         $text['basic_rate'] = self::percent($basic);
         $facts['employed'] = in_array((string) $user->employment_status, ['employed', 'full_time', 'part_time'], true);
+        $this->autoEnrolmentFacts($user, $facts, $text);
 
         // The outcome: Income Tax this year now, and once this action alone is
         // done — the saving is the one the strategy priced with the tax engine.
@@ -162,6 +164,32 @@ final class ActionHowToFacts
         return ['facts' => $facts, 'text' => $text];
     }
 
+    /**
+     * Whether the law makes the employer enrol this user in a workplace
+     * pension: a worker aged from the minimum age to State Pension age who
+     * earns at least the trigger (Pensions Act 2008 s3). Thresholds from tax
+     * config; State Pension age from the statutory schedule.
+     *
+     * @param  array<string, mixed>  $facts  @param  array<string, string>  $text
+     */
+    private function autoEnrolmentFacts(User $user, array &$facts, array &$text): void
+    {
+        $ae = $this->taxConfig->getPensionAllowances()['auto_enrolment'] ?? [];
+        $age = $this->math->ageOf($user->date_of_birth);
+        $pay = (float) ($user->annual_employment_income ?? 0);
+        if (! isset($ae['min_age'], $ae['earnings_trigger']) || $age === null || ! $facts['employed']) {
+            return;
+        }
+        $spa = app(StatePensionAgeResolver::class)->forDateOfBirth($user->date_of_birth);
+        $facts['auto_enrolled'] = $age >= (int) $ae['min_age'] && $age < $spa && $pay >= (float) $ae['earnings_trigger'];
+        $text['age'] = (string) $age;
+        $text['employment_pay'] = self::pounds($pay);
+        $text['ae_earnings_trigger'] = self::pounds((float) $ae['earnings_trigger']);
+        if (is_numeric($ae['minimum_employer_contribution'] ?? null)) {
+            $text['ae_min_employer'] = self::percent((float) $ae['minimum_employer_contribution']);
+        }
+    }
+
     /** @param  array<string, mixed>  $facts  @param  array<string, string>  $text */
     private function pensionFacts(User $user, array &$facts, array &$text): void
     {
@@ -174,6 +202,7 @@ final class ActionHowToFacts
         $facts['has_salary_sacrifice'] = $workplace->contains(fn ($p) => ! empty($p->salary_sacrifice));
         $facts['has_personal_pension'] = $personal->isNotEmpty();
         $db = $this->pensions->dbPensionsFor($user);
+        $facts['has_db_pension'] = $db->isNotEmpty();
         $facts['has_db_pension_only'] = $dc->isEmpty() && $db->isNotEmpty();
         $facts['has_no_pension'] = $dc->isEmpty() && $db->isEmpty();
         if ($db->isNotEmpty()) {

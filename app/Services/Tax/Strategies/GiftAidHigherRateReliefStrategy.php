@@ -7,20 +7,21 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
+use App\Models\User;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 
 /**
- * Strategy #13 — Gift Aid Higher-Rate Relief.
+ * Strategy #13 — Gift Aid.
  *
- * Fires when the user is in the higher or additional band AND gives under
- * Gift Aid (is_gift_aid) AND has captured a positive annual_charitable_donations
- * figure. Without the declaration the charity reclaims nothing, so there is no
- * higher-rate relief to extend — the same gate IncomeDefinitionsService applies. Personal saving is the
- * extra relief they can reclaim via Self Assessment on top of basic-rate
- * Gift Aid the charity already reclaims:
- *   donations × (band rate − basic rate) ÷ (1 − basic rate), from the
- *   configured rates (25% at higher rate, 31.25% at additional in 2026/27).
+ * Two cases, one action (CSJ 2026-09-28: a donor who does not use Gift Aid
+ * should see what it would give them):
+ *   - Donates under Gift Aid and pays above the basic rate: the extra relief
+ *     they reclaim through Self Assessment, priced by the tax engine.
+ *   - Donates without Gift Aid: what declaring it adds — 25p per £1 to the
+ *     charity, and any higher-rate relief back to them. Offered only when
+ *     they paid enough tax this year to cover what the charity claims
+ *     (https://www.gov.uk/donating-to-charity/gift-aid).
  */
 final class GiftAidHigherRateReliefStrategy implements TaxStrategy
 {
@@ -33,13 +34,21 @@ final class GiftAidHigherRateReliefStrategy implements TaxStrategy
         $user = $context->user;
 
         $donations = (float) ($user->annual_charitable_donations ?? 0);
-        if (! $user->is_gift_aid || $donations <= 0) {
+        if ($donations <= 0) {
             return [];
         }
 
         $band = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
-        $factor = $this->math->giftAidReclaimFactor($band);
 
+        return $user->is_gift_aid
+            ? $this->declared($user, $donations, $band)
+            : $this->notDeclared($user, $donations, $band);
+    }
+
+    /** @return list<StrategyRecommendation> */
+    private function declared(User $user, float $donations, string $band): array
+    {
+        $factor = $this->math->giftAidReclaimFactor($band);
         if ($factor <= 0) {
             return [];
         }
@@ -69,7 +78,48 @@ final class GiftAidHigherRateReliefStrategy implements TaxStrategy
             estimatedAnnualTaxSaved: round($saving, 2),
             extra: [
                 'annual_donations' => round($donations, 2),
+                'uses_gift_aid' => true,
                 'reclaim_factor' => $factor,
+                'tax_band' => $band,
+            ],
+        )];
+    }
+
+    /** @return list<StrategyRecommendation> */
+    private function notDeclared(User $user, float $donations, string $band): array
+    {
+        $basic = $this->math->bandRateForBand('basic');
+        if ($basic <= 0 || $basic >= 1) {
+            return [];
+        }
+        // What the charity claims: the basic-rate tax on the grossed-up gift.
+        $charityGets = floor($donations / (1 - $basic) - $donations);
+        // Only a donor who paid at least that much tax this year qualifies.
+        if ($charityGets < 1 || $this->math->incomeTaxNow($user) < $charityGets) {
+            return [];
+        }
+        $saving = floor($this->math->giftAidReclaimIfDeclared($user, $donations));
+
+        return [new StrategyRecommendation(
+            type: 'gift_aid_higher_rate_relief',
+            category: StrategyCategory::Allowance,
+            priority: StrategyPriority::Medium,
+            title: $saving >= 1
+                ? sprintf('Add Gift Aid to your donations: the charity gets £%s more and you get £%s back', number_format($charityGets), number_format($saving))
+                : sprintf('Add Gift Aid to your donations: the charity gets £%s more', number_format($charityGets)),
+            description: sprintf(
+                'You give around £%s a year without Gift Aid. With a Gift Aid declaration the charity claims £%s from HM Revenue and Customs (HMRC) on top, at no cost to you.%s',
+                number_format((int) $donations),
+                number_format($charityGets),
+                $saving >= 1 ? sprintf(' As a %s-rate taxpayer you can also claim back £%s yourself.', $band, number_format($saving)) : '',
+            ),
+            // A charity's gain is not the user's tax saved; only their own
+            // reclaim counts in the headline total.
+            estimatedAnnualTaxSaved: $saving >= 1 ? round($saving, 2) : null,
+            extra: [
+                'annual_donations' => round($donations, 2),
+                'uses_gift_aid' => false,
+                'charity_gift_aid' => $charityGets,
                 'tax_band' => $band,
             ],
         )];

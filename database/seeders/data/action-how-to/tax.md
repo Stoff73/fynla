@@ -32,7 +32,7 @@ Rules for these steps:
 
 ## pension_tax_relief
 status: edited
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (net pay and relief at source; relief at source in some workplace pensions); https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); https://www.gov.uk/workplace-pensions (automatic enrolment); The Pensions Regulator, AVCs alongside defined benefit schemes (https://helpfiles.thepensionsregulator.gov.uk/members/dbschememembership); Finance Act 2004 s192 relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/192); s188 relief for the tax year paid (https://www.legislation.gov.uk/ukpga/2004/12/section/188)
+source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (net pay and relief at source; relief at source in some workplace pensions); https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; The Pensions Regulator, AVCs alongside defined benefit schemes (https://helpfiles.thepensionsregulator.gov.uk/members/dbschememembership); Finance Act 2004 s192 relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/192); s188 relief for the tax year paid (https://www.legislation.gov.uk/ukpga/2004/12/section/188)
 figures: contribution, net_payment, provider_relief, extra_relief, relief_rate, tax_band
 when has_salary_sacrifice:
 1. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year. Your cash pay after the sacrifice must not fall below the National Minimum Wage. The amount comes off your pay before tax, so there is no relief to claim.
@@ -40,14 +40,16 @@ when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
 2. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
 3. Ask payroll how the scheme gives tax relief. Most workplace schemes take your contribution before Income Tax, so the relief comes through your pay. Some use relief at source instead: your contribution comes out after tax, the scheme adds {provider_relief} of basic-rate relief, and you claim the rest as below.
-when employed and not has_workplace_pension:
-1. As an employee, your employer must usually enrol you in a workplace pension if you meet the conditions on GOV.UK. Ask whether you are in one, and whether they offer salary sacrifice, before paying in elsewhere.
+when auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
+when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. Your employer does not have to enrol you automatically, but you can usually ask to join their pension and they cannot refuse. Ask payroll, and whether they offer salary sacrifice.
 when has_personal_pension and not has_workplace_pension:
 4. Pay {net_payment} into {personal_pension}. The provider claims {provider_relief} of basic-rate relief from HM Revenue and Customs (HMRC) and adds it, so {contribution} goes into your pension.
 when has_personal_pension and has_workplace_pension:
 5. Or pay {net_payment} into {personal_pension} instead. The provider claims {provider_relief} of basic-rate relief from HM Revenue and Customs (HMRC) and adds it, so {contribution} goes into your pension.
 when has_db_pension_only:
-1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. Some schemes let you buy extra pension; most offer additional voluntary contributions (AVCs), paid into a separate defined contribution pot, often with another provider.
+1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 2. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
 when has_no_pension:
 6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP) with a provider, then pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
@@ -118,7 +120,7 @@ outcome when tax_saved:
 
 ## bed_and_isa
 status: edited
-source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/tax-sell-shares; https://www.gov.uk/capital-gains-tax/rates; https://www.gov.uk/capital-gains-tax/allowances
+source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/tax-sell-shares; https://www.gov.uk/capital-gains-tax/rates; https://www.gov.uk/capital-gains-tax/allowances; TCGA 1992 s106A(3) and (5), the 30-day rule and "same capacity" (https://www.legislation.gov.uk/ukpga/1992/12/section/106A); HMRC CG51560 (https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg51560); TCGA 1992 s151, ISA gains outside Capital Gains Tax (https://www.legislation.gov.uk/ukpga/1992/12/section/151)
 figures: estimated_proceeds_to_transfer, realisable_within_aea, annual_exempt_amount, isa_remaining, cgt_rate
 always:
 1. A "Bed and ISA" sells investments you hold in your general investment account and buys them back inside your stocks and shares ISA. Once inside, their dividends and gains are free of tax.
@@ -130,6 +132,7 @@ when not has_stocks_isa:
 3. You have no stocks and shares ISA recorded. Ask {gia} whether they offer one with a "Bed and ISA" transfer, or open one with another provider.
 always:
 4. Shares you already own cannot be moved into an ISA unless they come from an employee share scheme. So they are sold in your general account and bought back inside the ISA.
+4. There is no 30-day wait. The 30-day rule matches a sale with a purchase of the same shares within 30 days only when both are made in the same capacity. Shares bought inside your ISA are held in the ISA, where gains are outside Capital Gains Tax, so the provider can buy them back straight away.
 4. Before you go ahead, ask the provider how long your money is out of the market between the sale and the purchase, and what they charge. Prices can move in between.
 5. Move up to {estimated_proceeds_to_transfer}. The sale then makes a gain of about {realisable_within_aea}, which your {annual_exempt_amount} Capital Gains Tax allowance covers if you have no other gains this tax year. It also fits within the {isa_remaining} of ISA allowance you have left.
 6. Selling more than that makes gains above your allowance, taxed at {cgt_rate}.
@@ -153,7 +156,7 @@ outcome:
 
 ## pension_aa_carry_forward
 status: edited
-source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance; Finance Act 2004 s228A (https://www.legislation.gov.uk/ukpga/2004/12/section/228A); s190 relief limited to earnings (https://www.legislation.gov.uk/ukpga/2004/12/section/190); HMRC PTM055100, carry forward cannot raise the money purchase annual allowance (https://www.gov.uk/hmrc-internal-manuals/pensions-tax-manual/ptm055100)
+source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/tax-on-your-private-pension/annual-allowance; Finance Act 2004 s228A (https://www.legislation.gov.uk/ukpga/2004/12/section/228A); s190 relief limited to earnings (https://www.legislation.gov.uk/ukpga/2004/12/section/190); HMRC PTM055100, carry forward cannot raise the money purchase annual allowance (https://www.gov.uk/hmrc-internal-manuals/pensions-tax-manual/ptm055100)
 figures: current_year_input, annual_allowance, current_year_headroom, unused_carry_forward_total, lookback_years, contribution, net_payment, provider_relief, extra_relief
 always:
 1. Your pension payments this tax year come to {current_year_input}, against an annual allowance of {annual_allowance}. You also have {unused_carry_forward_total} unused from the last {lookback_years} tax years.
@@ -165,12 +168,16 @@ always:
 4. Unused allowance from earlier years is used earliest year first. Only years in which you were a member of a registered pension scheme count.
 5. Before you pay, ask each pension provider for your pension input amounts in those years, to confirm the unused allowance.
 6. Paying in {contribution} beyond this year's allowance uses carried-forward allowance. Tax relief only covers payments up to your earnings for the year, so the amount stops there.
+when auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
+when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. Your employer does not have to enrol you automatically, but you can usually ask to join their pension and they cannot refuse. Ask payroll, and whether they offer salary sacrifice.
 when has_workplace_pension:
 7. Ask your employer whether {workplace_pension} takes a one-off payment of {contribution}.
 when has_personal_pension:
 8. Or pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when has_db_pension_only:
-9. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. Some schemes let you buy extra pension; most offer additional voluntary contributions (AVCs), paid into a separate defined contribution pot, often with another provider.
+9. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 9. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
 when has_no_pension:
 10. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
@@ -198,7 +205,7 @@ outcome:
 
 ## pa_taper_rescue
 status: edited
-source: https://www.gov.uk/income-tax-rates/income-over-100000; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58)
+source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/income-tax-rates/income-over-100000; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58)
 figures: contribution, effective_marginal_rate, net_payment, provider_relief, extra_relief
 always:
 1. Your adjusted net income is above {taper_threshold}, so your Personal Allowance goes down by £1 for every {taper_per_pound} over it. Income in that range is taxed at an effective {effective_marginal_rate}.
@@ -208,14 +215,16 @@ when has_salary_sacrifice:
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
 4. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
-when employed and not has_workplace_pension:
-1. As an employee, your employer must usually enrol you in a workplace pension if you meet the conditions on GOV.UK. Ask whether you are in one, and whether they offer salary sacrifice, before paying in elsewhere.
+when auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
+when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. Your employer does not have to enrol you automatically, but you can usually ask to join their pension and they cannot refuse. Ask payroll, and whether they offer salary sacrifice.
 when has_personal_pension and not has_workplace_pension:
 5. Pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when has_personal_pension and has_workplace_pension:
 6. Or pay {net_payment} into {personal_pension} instead. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when has_db_pension_only:
-1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. Some schemes let you buy extra pension; most offer additional voluntary contributions (AVCs), paid into a separate defined contribution pot, often with another provider.
+1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 2. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
 when has_no_pension:
 7. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
@@ -233,7 +242,7 @@ outcome when has_salary_sacrifice:
 
 ## additional_rate_avoidance
 status: approved
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); Finance Act 2004 s192 (https://www.legislation.gov.uk/ukpga/2004/12/section/192)
+source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); Finance Act 2004 s192 (https://www.legislation.gov.uk/ukpga/2004/12/section/192)
 figures: contribution, additional_rate_slice, net_payment, provider_relief, extra_relief
 always:
 1. {additional_rate_slice} of your income is taxed at the additional rate. A pension payment gets relief at the rate the income it covers is taxed at, so the part covering that slice gets additional-rate relief.
@@ -242,12 +251,16 @@ when has_salary_sacrifice:
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
 3. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
+when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
+1. Your employer does not have to enrol you automatically, but you can usually ask to join their pension and they cannot refuse. Ask payroll, and whether they offer salary sacrifice.
 when has_personal_pension and not has_workplace_pension:
 4. Pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when has_personal_pension and has_workplace_pension:
 5. Or pay {net_payment} into {personal_pension} instead. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when has_db_pension_only:
-1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. Some schemes let you buy extra pension; most offer additional voluntary contributions (AVCs), paid into a separate defined contribution pot, often with another provider.
+1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 2. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
 when has_no_pension:
 6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
@@ -265,14 +278,24 @@ outcome when has_salary_sacrifice:
 
 ## gift_aid_higher_rate_relief
 status: edited
-source: https://www.gov.uk/donating-to-charity/gift-aid
-figures: annual_donations, estimated_annual_tax_saved
-always:
+source: https://www.gov.uk/donating-to-charity/gift-aid; ITA 2007 s414 gift aid (https://www.legislation.gov.uk/ukpga/2007/3/section/414)
+figures: annual_donations, uses_gift_aid, charity_gift_aid, estimated_annual_tax_saved
+when uses_gift_aid:
 1. You give about {annual_donations} a year with Gift Aid. Make sure you have given a Gift Aid declaration to each charity you give to.
-2. The charity claims basic-rate tax on your gifts. Because you pay tax above the basic rate, you can claim the difference yourself: about {estimated_annual_tax_saved} a year.
+2. The charity claims basic-rate tax on your gifts. Because you pay tax above the basic rate, you can claim the difference yourself: about {tax_saved} a year.
 3. Claim it on your Self Assessment tax return, or ask HM Revenue and Customs (HMRC) to change your tax code.
-outcome:
+when not uses_gift_aid:
+1. You give about {annual_donations} a year without Gift Aid. Give each charity a Gift Aid declaration: a short form saying you are a UK taxpayer. It can cover future gifts and some earlier ones.
+2. The charity then claims {charity_gift_aid} a year on top from HM Revenue and Customs (HMRC), at no cost to you.
+3. You must have paid at least that much Income Tax or Capital Gains Tax in the tax year. If you pay less, HMRC may ask you to pay the difference.
+when not uses_gift_aid and tax_saved:
+4. Because you pay tax above the basic rate, you can also claim {tax_saved} back yourself on your Self Assessment tax return, or by asking HMRC to change your tax code.
+outcome when uses_gift_aid:
 1. Once claimed, your Income Tax for the year falls from {tax_now} to {tax_after}: {tax_saved} back.
+outcome when not uses_gift_aid:
+1. The charities get {charity_gift_aid} a year more from the same gifts.
+outcome when not uses_gift_aid and tax_saved:
+2. Your Income Tax for the year falls from {tax_now} to {tax_after}: {tax_saved} back.
 
 ## marriage_allowance_transfer
 status: edited

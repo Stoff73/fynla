@@ -696,6 +696,22 @@ final class TaxStrategyMath
     }
 
     /**
+     * What a donor who does not yet use Gift Aid would reclaim once they do:
+     * the net gifts grossed up at the basic rate (ITA 2007 s414) extend their
+     * bands and win back Personal Allowance (s58), less the basic-rate tax the
+     * charity claims. 0 for a basic-rate donor. Priced by the tax engine.
+     */
+    public function giftAidReclaimIfDeclared(User $user, float $netDonations): float
+    {
+        $gross = $netDonations / (1 - $this->bandRateForBand('basic'));
+        $without = $this->pricingPartsFor($user, 0.0);
+        $with = $without;
+        $with['net_pay'] += $gross;
+
+        return max(0.0, $this->incomeTaxOn($without) - $this->incomeTaxOn($with) - $gross * $this->bandRateForBand('basic'));
+    }
+
+    /**
      * The user's income parts for pricing a change: interest another item in
      * the same plan already moves is taken out, and relief-at-source
      * contributions and Gift Aid already made sit with the net-pay deduction

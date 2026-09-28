@@ -49,6 +49,7 @@ function higherRateEarnerWithApprovedPensionSteps(): User
         'employment_status' => 'employed', 'annual_employment_income' => 60000,
         'annual_self_employment_income' => 0, 'annual_dividend_income' => 0, 'annual_interest_income' => 0,
         'annual_rental_income' => 0, 'annual_other_income' => 0, 'onboarding_completed' => true, 'marital_status' => 'single',
+        'date_of_birth' => now()->subYears(40)->subDays(10)->toDateString(),
     ]);
     $entry = ActionHowToSeeder::parse((string) file_get_contents(ActionHowToSeeder::sourcePath('tax')))['pension_tax_relief'];
     TaxActionDefinition::where('strategy_type', 'pension_tax_relief')->update([
@@ -120,7 +121,8 @@ it('tells someone with no pension recorded to open one first', function () {
 
     $steps = app(ActionCardService::class)->for($user, 'tax_pension_tax_relief')['how_to'];
 
-    // Employed with no workplace pension: automatic enrolment comes first.
-    expect($steps[0])->toStartWith('As an employee, your employer must usually enrol you in a workplace pension')
+    // 40, employed on £60,000 with no workplace pension: the law requires
+    // enrolment (Pensions Act 2008 s3), so that comes first.
+    expect($steps[0])->toStartWith('You are 40, employed and earn £60,000, so the law requires your employer to enrol you in a workplace pension and pay in at least 3% of your qualifying earnings.')
         ->and($steps[1])->toStartWith('You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP)');
 });
