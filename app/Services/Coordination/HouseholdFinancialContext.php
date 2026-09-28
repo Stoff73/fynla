@@ -6,6 +6,7 @@ namespace App\Services\Coordination;
 
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -99,11 +100,31 @@ final class HouseholdFinancialContext
                 'investment' => ['gia_holdings'],
                 'savings', 'isa' => ['savings_balances', 'isa_subscriptions_ytd'],
                 'pension', 'pension_personal' => ['pension_contributions', 'workplace_pension', 'pension_input_history'],
+                'expenditure_tax' => ['charitable_giving'],
                 default => [],
             });
         }
 
         return array_values(array_unique($keys));
+    }
+
+    /**
+     * What of onboarding_fyn_context survives the end of onboarding: the
+     * remembered joint records (the invitee usually registers after the plan)
+     * and the "none" declarations, which availability() reads for the rest of
+     * the user's life. Everything else is walk scratch.
+     *
+     * @param  array<string, mixed>|null  $context
+     * @return array<string, mixed>|null
+     */
+    public static function outlivingOnboarding(?array $context): ?array
+    {
+        $kept = array_merge(
+            SpouseJointRecords::carry($context) ?? [],
+            array_intersect_key($context ?? [], array_flip(['declared_none', 'declared_none_keys'])),
+        );
+
+        return $kept === [] ? null : $kept;
     }
 
     /**
@@ -192,7 +213,7 @@ final class HouseholdFinancialContext
     }
 
     /**
-     * Any user-owned ISA savings account — the subscription amount lives per
+     * Any user-owned ISA, cash or stocks and shares — the subscription amount lives per
      * account; an ISA existing means the question is answerable.
      * Uses forUser() (joint-aware) then filters to user_id owned accounts,
      * mirroring IsaTopUpStrategy's pattern.
@@ -202,7 +223,12 @@ final class HouseholdFinancialContext
         return $this->savingsStore->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', true)
-            ->isNotEmpty();
+            ->isNotEmpty()
+            // A Stocks and Shares ISA answers it too: TaxStrategyMath counts
+            // its isa_subscription_current_year towards the allowance used.
+            || app(InvestmentAccountStore::class)->forUser($user)
+                ->filter(fn ($a) => (int) $a->user_id === (int) $user->id && $a->account_type === 'isa')
+                ->isNotEmpty();
     }
 
     /**
