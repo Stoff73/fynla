@@ -61,6 +61,12 @@ Today's work makes every action personal. Each action card now says why it matte
 - **Two headings still said "harvest"** on the investment screens. They now read "Losses to use now" and "Losses you could use against gains".
 - **A form introduction read "Here's your Your spouse's details".** Fixed.
 
+## Second release, 28 September at about 16:26 (#951, release #952)
+
+- **Your spouse's pension top-up is limited to what they earn from work.** Tax relief on a pension payment is limited to the person's earnings from work, or £3,600 a year if that is more (Finance Act 2004 sections 189 and 190). Fynla used their total income, so a spouse whose £9,000 came from rent or a pension was shown a £7,200 top-up. The spouse form now asks "Of that, earnings from work"; with no earnings, the top-up is £2,880 (£3,600 with the relief added).
+- **The pension card for basic-rate taxpayers says why once.** "Why this matters" now opens with the saving ("Paying in £900 more this year saves £180 of income tax"), and the summary above no longer repeats it. A step that said "claim the rest as below", with nothing below it, is fixed.
+- **Fynla only asks for your past pension payments when they could matter.** They are used to carry forward unused allowance from earlier years, which only helps someone who earns more than this year's pension allowance and has the savings to pay more than it. Everyone else no longer sees "Unlock pension info".
+
 ## Decisions taken
 
 - **How-to steps follow the user's records and use their figures,** with the outcome shown on every action.
@@ -71,9 +77,6 @@ Today's work makes every action personal. Each action card now says why it matte
 
 ## Still to do
 
-- **Spouse pension top-up and earnings.** "Top up your spouse's pension" treats all of the spouse's income as earnings. Tax relief is limited to their earnings, or £3,600 if more (Finance Act 2004 s189–190), so a spouse whose income is from rent or a pension could be shown too much. Fixing it needs a separate question about earnings; waiting on a decision.
-- **Two wording questions on the pension card for basic-rate payers.** "£900 of your income is taxed at 20%" does not explain why the figure is £900 (it brings the pension to 10% of pay), and one step says "claim the rest as below" when no step follows. Both are approved wording, so they wait for a decision.
-- **"Unlock pension info"** asks for the last three years of pension payments, but reads as if Fynla has no pension for you. It may need renaming.
 - **Scottish income tax rates** are not yet applied anywhere in Fynla; this is its own piece of work.
 - **Rewrite the help pages** from the audit.
 - **Fix Fyn's "Ask Fyn about this" explanation** of the pension figure.
@@ -99,7 +102,8 @@ Today's work makes every action personal. Each action card now says why it matte
     - The rows for these allowances said "Closes 5 April".
     - "Claim Marriage Allowance: you could save £252" appeared after the spouse's income was saved, and its card showed the approved steps (£1,260 transferred, £9,000 below the £12,570 Personal Allowance).
 - **On the test site first,** the same checks passed with two new accounts, the chat was checked on a narrow window as well, and "Add it now" was checked on the mobile web app too.
-- **The automated checks all passed** on the final update, including the iPhone app's tests.
+- **The automated checks all passed** on the first release's final update, including the iPhone app's tests. The second release went out at CSJ's call while its automated checks were still running, after the test site walk and every changed test file had passed.
+- **Second release, live on fynla.org with a new account:** the spouse step in setup asked "Of that, earnings from work"; with none given the top-up was £2,880 (£3,600 with relief); after saving £9,000 of earnings it was £7,200 (£9,000) and the card said "earns £9,000 from work". The pension card's "why" read "Paying in £4,500 more this year saves £900 of income tax", and "Unlock pension info" was gone.
 - **Not tested on screen:**
   - the reworded investment tax pages, which only appear for accounts with holdings; the wording was checked in the code instead;
   - the iPhone app.
