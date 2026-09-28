@@ -95,13 +95,16 @@ it('names a real strategy in every heading of the repository file', function () 
         ->and($keys)->toHaveCount(21);
 });
 
-it('writes the repository file to the tax definitions, leaving every draft as draft', function () {
+it('writes the repository file to the tax definitions, each with the status CSJ gave it', function () {
     $this->seed(ActionHowToSeeder::class);
+    $entries = ActionHowToSeeder::parse((string) file_get_contents(ActionHowToSeeder::sourcePath('tax')));
 
-    $row = TaxActionDefinition::where('strategy_type', 'pension_tax_relief')->first();
-
-    expect($row->how_to_status)->toBe('draft')
-        ->and(json_decode((string) $row->getRawOriginal('how_to_steps'), true))->toBeArray()->not->toBeEmpty();
+    foreach ($entries as $type => $entry) {
+        $row = TaxActionDefinition::where('strategy_type', $type)->first();
+        expect($row->how_to_status)->toBe($entry['status'], $type)
+            // A MySQL JSON column reorders object keys, so compare by value.
+            ->and(json_decode((string) $row->getRawOriginal('how_to_steps'), true))->toEqual($entry['steps']);
+    }
 });
 
 it('reads its source from the database folder every deploy ships, and fails loudly without it', function () {

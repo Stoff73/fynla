@@ -248,9 +248,21 @@ final class ActionHowToFacts
         if (! $facts['has_spouse']) {
             return;
         }
-        $first = $user->spouse?->first_name
-            ?? FamilyMember::query()->where('user_id', $user->id)->where('relationship', 'spouse')->value('first_name');
+        $linked = $user->liveSpouse();
+        $member = FamilyMember::query()->where('user_id', $user->id)->where('relationship', 'spouse')->first(['first_name', 'date_of_birth']);
+        $first = $linked?->first_name ?? $member?->first_name;
         $text['spouse'] = trim((string) $first) ?: 'your spouse or civil partner';
+
+        // Either of them born before the Married Couple's Allowance date may do
+        // better with that allowance, and cannot have both.
+        $bornBefore = $this->taxConfig->getIncomeTax()['married_couples_allowance']['born_before'] ?? null;
+        if ($bornBefore !== null) {
+            $cutoff = Carbon::parse($bornBefore);
+            $facts['mca_possible'] = collect([$user->date_of_birth, $linked?->date_of_birth, $member?->date_of_birth])
+                ->filter()
+                ->contains(fn ($dob) => Carbon::parse($dob)->lt($cutoff));
+            $text['mca_born_before'] = $cutoff->format('j F Y');
+        }
         $text['spouse_start'] = ucfirst($text['spouse']);
     }
 

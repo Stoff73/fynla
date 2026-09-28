@@ -96,3 +96,62 @@ it('shrinks the spouse Personal Allowance used for the savings gift by the trans
     expect(maRec($user))->not->toBeNull()
         ->and($gift['spouse_personal_allowance'])->toBe($pa - $math->marriageAllowanceAmount());
 });
+
+/*
+ * Eligibility, pinned to the law (CSJ 2026-09-28: show it only to people who
+ * qualify). ITA 2007 s55B(2)(b) and (ba): the person receiving it pays no rate
+ * above the basic rate, with dividends counted in full; s55C and GOV.UK: the
+ * person giving it has income below the Personal Allowance.
+ */
+it('does not offer it to a recipient who pays the higher rate', function () {
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 60000]);
+
+    expect(maRec($user))->toBeNull();
+});
+
+it('offers it to a recipient exactly at the higher-rate threshold, which is still basic rate (ITA 2007 s10)', function () {
+    $limit = (float) collect(app(TaxConfigService::class)->getIncomeTax()['bands'])->firstWhere('name', 'Basic Rate')['upper_limit'];
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => $limit]);
+
+    expect(maRec($user))->not->toBeNull();
+});
+
+it('does not offer it when dividends take the recipient into the higher rate (s55B(2)(ba))', function () {
+    $user = maUser([
+        'household_calculation_mode' => 'single_earner_couple',
+        'annual_employment_income' => 45000,
+        'annual_dividend_income' => 10000,
+    ]);
+
+    expect(maRec($user))->toBeNull();
+});
+
+it('uses a linked spouse\'s own income: a "non-working" spouse with income above the allowance cannot give any', function () {
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 35000]);
+    $spouse = User::factory()->create(['marital_status' => 'married', 'annual_employment_income' => 20000, 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    expect(maRec($user->fresh()))->toBeNull();
+});
+
+it('uses a linked spouse\'s own income when it is below the allowance, and publishes both incomes', function () {
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 35000]);
+    $spouse = User::factory()->create(['marital_status' => 'married', 'annual_employment_income' => 6000, 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    $rec = maRec($user->fresh());
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['transfer_direction'])->toBe('to_user')
+        ->and($rec['spouse_income'])->toBe(6000.0)
+        ->and($rec['estimated_annual_tax_saved'])->toBe(maBasicSaving());
+});
+
+it('runs the other way when the user is the one below the allowance and the spouse pays basic rate', function () {
+    $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 5000], ['spouse_annual_income' => 35000]);
+
+    $rec = maRec($user);
+
+    expect($rec['transfer_direction'])->toBe('to_spouse')
+        ->and($rec['user_income'])->toBe(5000.0);
+});

@@ -161,6 +161,14 @@ class TaxConfigurationSeeder extends Seeder
                     'amount' => 1260,
                 ],
 
+                // Married Couple's Allowance: one of the couple born before this
+                // date (ITA 2007 s45(2)(c), s46,
+                // https://www.legislation.gov.uk/ukpga/2007/3/section/45). It cannot
+                // be had with Marriage Allowance (s55B(2)(d)).
+                'married_couples_allowance' => [
+                    'born_before' => '1935-04-06',
+                ],
+
                 // Blind Person's Allowance
                 'blind_persons_allowance' => 3130,
             ],

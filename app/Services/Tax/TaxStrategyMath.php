@@ -522,27 +522,38 @@ final class TaxStrategyMath
             return null;
         }
 
-        $spouse = match ($mode) {
-            'single_earner_couple' => ['non_savings' => 0.0, 'dividends' => 0.0],
-            'dual_earner' => $household?->spouse_annual_income === null ? null : [
-                'non_savings' => (float) $household->spouse_annual_income,
-                'dividends' => (float) ($household->spouse_annual_dividends ?? 0),
-            ],
-            default => null,
-        };
-        if ($spouse === null) {
-            return null;
+        // A linked spouse's own records beat the onboarding answers: "does not
+        // work" is not "has no income", and a spouse with a pension or rent at
+        // or above the Personal Allowance cannot give any of it away.
+        $linked = $user->liveSpouse();
+        if ($linked !== null) {
+            $spouse = $this->incomePartsFor($linked);
+            $spouseBand = $this->bandFromIncomeFor($linked, $this->taxableIncomeFor($linked));
+        } else {
+            $spouse = match ($mode) {
+                'single_earner_couple' => ['non_savings' => 0.0, 'dividends' => 0.0],
+                'dual_earner' => $household?->spouse_annual_income === null ? null : [
+                    'non_savings' => (float) $household->spouse_annual_income,
+                    'dividends' => (float) ($household->spouse_annual_dividends ?? 0),
+                ],
+                default => null,
+            };
+            if ($spouse === null) {
+                return null;
+            }
+            $spouse['interest'] = $this->estimateSpouseJointInterest($user);
+            $spouse['net_pay'] = 0.0;
+            $spouse['trust'] = 0.0;
+            $spouseBand = null;
         }
-        $spouse['interest'] = $this->estimateSpouseJointInterest($user);
-        $spouse['net_pay'] = 0.0;
-        $spouse['trust'] = 0.0;
 
         $user_ = $this->incomePartsFor($user);
         $personalAllowance = (float) ($this->taxConfig->getIncomeTax()['personal_allowance'] ?? 0);
         $amount = $this->marriageAllowanceAmount();
         $maxReduction = $amount * $this->bandRateForBand('basic');
         $userNet = $user_['non_savings'] + $user_['interest'] + $user_['dividends'] + $user_['trust'] - $user_['net_pay'];
-        $spouseNet = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'];
+        $spouseNet = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'] + $spouse['trust'] - $spouse['net_pay'];
+        $spouseBand ??= $this->bandFromIncome($spouseNet);
 
         $options = [];
         if ($spouseNet < $personalAllowance
@@ -550,8 +561,10 @@ final class TaxStrategyMath
             $options['to_user'] = min($maxReduction, $this->incomeTaxOn($user_))
                 - $this->extraTaxFromLosingAllowance($spouse, $amount);
         }
-        if ($mode === 'dual_earner' && $userNet < $personalAllowance
-            && $this->bandFromIncome($spouseNet) === 'basic') {
+        // The recipient may pay no rate above the basic rate, dividends counted
+        // in full (ITA 2007 s55B(2)(b), (ba)).
+        if (($mode === 'dual_earner' || $linked !== null) && $userNet < $personalAllowance
+            && $spouseBand === 'basic') {
             $options['to_spouse'] = min($maxReduction, $this->incomeTaxOn($spouse))
                 - $this->extraTaxFromLosingAllowance($user_, $amount);
         }

@@ -31,7 +31,7 @@ Rules for these steps:
 - **No banned words** (Rule 9): never "harvest".
 
 ## pension_tax_relief
-status: edited
+status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (net pay and relief at source; relief at source in some workplace pensions); https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; The Pensions Regulator, AVCs alongside defined benefit schemes (https://helpfiles.thepensionsregulator.gov.uk/members/dbschememembership); Finance Act 2004 s192 relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/192); s188 relief for the tax year paid (https://www.legislation.gov.uk/ukpga/2004/12/section/188)
 figures: contribution, net_payment, provider_relief, extra_relief, relief_rate, tax_band
 when has_salary_sacrifice:
@@ -90,7 +90,7 @@ outcome when employer_ni_rebate_pct:
 2. Your pension also gets {employer_ni_rebate_saving} a year from your employer's own saving.
 
 ## isa_topup_vs_psa
-status: edited
+status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work
 figures: suggested_transfer_amount, isa_remaining, taxable_interest_sheltered, target_accounts
 when has_cash_isa:
@@ -105,7 +105,7 @@ outcome:
 1. About {taxable_interest_sheltered} a year of interest stops being taxed. Your Income Tax for the year falls from {tax_now} to {tax_after}: {tax_saved} less.
 
 ## isa_topup_spouse
-status: edited
+status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/inheritance-tax/gifts
 figures: available_allowance
 always:
@@ -119,7 +119,7 @@ outcome when tax_saved:
 2. Your household pays about {tax_saved} less tax a year.
 
 ## bed_and_isa
-status: edited
+status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/tax-sell-shares; https://www.gov.uk/capital-gains-tax/rates; https://www.gov.uk/capital-gains-tax/allowances; TCGA 1992 s106A(3) and (5), the 30-day rule and "same capacity" (https://www.legislation.gov.uk/ukpga/1992/12/section/106A); HMRC CG51560 (https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg51560); TCGA 1992 s151, ISA gains outside Capital Gains Tax (https://www.legislation.gov.uk/ukpga/1992/12/section/151)
 figures: estimated_proceeds_to_transfer, realisable_within_aea, annual_exempt_amount, isa_remaining, cgt_rate
 always:
@@ -141,7 +141,7 @@ outcome:
 1. About {tax_saved} of Capital Gains Tax is avoided on these investments, and from then on their dividends and gains are tax-free inside the ISA.
 
 ## dividend_allowance_harvest
-status: edited
+status: approved
 source: https://www.gov.uk/tax-on-dividends; https://www.gov.uk/tax-on-dividends/how-much-tax-youll-pay; https://www.gov.uk/individual-savings-accounts/how-isas-work
 figures: unused_allowance, dividend_rate
 always:
@@ -155,7 +155,7 @@ outcome:
 1. Up to {unused_allowance} more of dividends outside an ISA would pay no tax this year.
 
 ## pension_aa_carry_forward
-status: edited
+status: approved
 source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/tax-on-your-private-pension/annual-allowance; Finance Act 2004 s228A (https://www.legislation.gov.uk/ukpga/2004/12/section/228A); s190 relief limited to earnings (https://www.legislation.gov.uk/ukpga/2004/12/section/190); HMRC PTM055100, carry forward cannot raise the money purchase annual allowance (https://www.gov.uk/hmrc-internal-manuals/pensions-tax-manual/ptm055100)
 figures: current_year_input, annual_allowance, current_year_headroom, unused_carry_forward_total, lookback_years, contribution, net_payment, provider_relief, extra_relief
 always:
@@ -204,7 +204,7 @@ outcome:
 1. Staying within {tapered_annual_allowance} avoids an annual allowance charge of about {annual_allowance_charge_avoided}.
 
 ## pa_taper_rescue
-status: edited
+status: approved
 source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/income-tax-rates/income-over-100000; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58)
 figures: contribution, effective_marginal_rate, net_payment, provider_relief, extra_relief
 always:
@@ -277,7 +277,7 @@ outcome when has_salary_sacrifice:
 3. National Insurance falls by {ni_saved} as well, so your take-home pay drops by about {take_home_per_month_left} a month for the {months_left} months left, not by the full amount.
 
 ## gift_aid_higher_rate_relief
-status: edited
+status: approved
 source: https://www.gov.uk/donating-to-charity/gift-aid; ITA 2007 s414 gift aid (https://www.legislation.gov.uk/ukpga/2007/3/section/414)
 figures: annual_donations, uses_gift_aid, charity_gift_aid, estimated_annual_tax_saved
 when uses_gift_aid:
@@ -299,24 +299,31 @@ outcome when not uses_gift_aid and tax_saved:
 
 ## marriage_allowance_transfer
 status: edited
-source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/how-to-apply
-figures: amount_transferred, transfer_direction, estimated_annual_tax_saved
+source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/eligibility; https://www.gov.uk/marriage-allowance/how-to-apply; ITA 2007 s55B (https://www.legislation.gov.uk/ukpga/2007/3/section/55B) and s55C (https://www.legislation.gov.uk/ukpga/2007/3/section/55C); s45 Married Couple's Allowance (https://www.legislation.gov.uk/ukpga/2007/3/section/45)
+figures: amount_transferred, transfer_direction, user_income, spouse_income, estimated_annual_tax_saved
+eligibility (checked before the action is shown, TaxStrategyMath::marriageAllowance): married or in a civil partnership; the person giving it has income below the Personal Allowance; the person receiving it pays no rate above the basic rate, dividends counted in full (s55B(2)(b), (ba)); a linked spouse's own income is used, otherwise the income given in onboarding.
 when transfer_direction is to_user:
 1. The claim is made by {spouse}. They transfer {amount_transferred} of their Personal Allowance to you.
 when transfer_direction is to_user and spouse_income_is_nil:
-1. {spouse_start} has no income recorded, so their {personal_allowance} Personal Allowance goes unused.
+2. {spouse_start} has no income recorded, so their {personal_allowance} Personal Allowance goes unused.
 when transfer_direction is to_user and not spouse_income_is_nil:
-1. {spouse_start}'s income of {spouse_income} is below the {personal_allowance} Personal Allowance, so part of it goes unused.
+2. {spouse_start}'s income of {spouse_income} is below the {personal_allowance} Personal Allowance, so part of it goes unused.
+when transfer_direction is to_user:
+3. You qualify to receive it because you pay Income Tax at the basic rate and no higher.
 when transfer_direction is to_spouse:
-2. You make the claim. You transfer {amount_transferred} of your Personal Allowance to {spouse}.
+1. You make the claim. You transfer {amount_transferred} of your Personal Allowance to {spouse}.
 when transfer_direction is to_spouse and user_income_is_nil:
 2. You have no income recorded, so your {personal_allowance} Personal Allowance goes unused.
 when transfer_direction is to_spouse and not user_income_is_nil:
 2. Your income of {user_income} is below the {personal_allowance} Personal Allowance, so part of it goes unused.
+when transfer_direction is to_spouse:
+3. {spouse_start} qualifies to receive it because, on their income of {spouse_income}, they pay Income Tax at the basic rate and no higher.
+when mca_possible:
+4. One of you was born before {mca_born_before}, so Married Couple's Allowance may give you more. You cannot have both, so check it on GOV.UK before you apply.
 always:
-3. Apply online on GOV.UK, or through the Marriage Allowance section of a Self Assessment return.
-4. You can also backdate the claim for earlier tax years you were eligible, as far back as GOV.UK allows.
-5. It carries on each year until it is cancelled or your circumstances change.
+5. Apply online on GOV.UK, or through the Marriage Allowance section of a Self Assessment return.
+6. You can also backdate the claim for earlier tax years you were eligible, as far back as GOV.UK allows.
+7. It carries on each year until it is cancelled or your circumstances change.
 outcome:
 1. Your household pays about {tax_saved} less Income Tax a year.
 
@@ -333,7 +340,7 @@ outcome:
 1. Your household pays about {tax_saved} less tax a year.
 
 ## gia_to_spouse
-status: edited
+status: approved
 source: https://www.gov.uk/capital-gains-tax/gifts; TCGA 1992 s58 no gain, no loss between spouses (https://www.legislation.gov.uk/ukpga/1992/12/section/58); ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626); https://www.gov.uk/inheritance-tax/gifts
 figures: (none published; names only)
 when has_gia:
@@ -439,7 +446,7 @@ outcome when children_under_18 is not 1:
 1. Up to {total_jisa_capacity} a year can grow free of tax for your children.
 
 ## junior_pension
-status: edited
+status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s189(1)(b) (https://www.legislation.gov.uk/ukpga/2004/12/section/189): relief covers anyone resident in the UK, with no minimum age; s279 normal minimum pension age (https://www.legislation.gov.uk/ukpga/2004/12/section/279)
 figures: children_under_18, net_contribution_per_child, gross_contribution_per_child, total_government_uplift
 always:
