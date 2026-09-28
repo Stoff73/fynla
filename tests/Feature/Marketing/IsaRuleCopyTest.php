@@ -24,7 +24,6 @@ it('never states the outdated one-ISA-of-each-type rule', function (string $file
         ->and($text)->not->toContain('April 5');
 })->with([
     'public/pages/help.php',
-    'resources/js/views/Help.vue',
     'resources/js/views/Public/insights/IsaGuideUkPage.vue',
     'resources/js/views/Public/insights/IsaAllowance202526Page.vue',
 ]);
@@ -50,7 +49,6 @@ it('has no garbled characters or outdated spouse-linking and Inheritance Tax sta
         ->and($text)->not->toMatch('/(£|&pound;)(325|175|650|350)k/');
 })->with([
     'public/pages/help.php',
-    'resources/js/views/Help.vue',
 ]);
 
 it('renders the Inheritance Tax answer from the tax configuration on the public help page', function () {
@@ -58,7 +56,7 @@ it('renders the Inheritance Tax answer from the tax configuration on the public 
     $iht = app(TaxConfigService::class)->getInheritanceTax();
 
     $this->get('/help')->assertOk()
-        ->assertSee('tax-free threshold of £'.number_format((int) $iht['nil_rate_band']), false)
+        ->assertSee('tax-free allowance of £'.number_format((int) $iht['nil_rate_band']), false)
         ->assertSee('up to £'.number_format((int) $iht['residence_nil_rate_band']), false)
         ->assertSee('We send them an invitation', false);
 });

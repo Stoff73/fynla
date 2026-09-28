@@ -157,3 +157,9 @@
   .help-toc { width: 18rem; }
   .help-section { padding: 2rem; }
 }
+
+/* Deep links such as /help#avcs land below the sticky header (4rem). */
+.help-section,
+.help-section__body[id] {
+  scroll-margin-top: 5rem;
+}
