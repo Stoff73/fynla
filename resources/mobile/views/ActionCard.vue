@@ -61,6 +61,15 @@
         <ol class="mac-list mac-list--steps"><li v-for="(step, i) in card.how_to" :key="i">{{ step }}</li></ol>
       </section>
 
+      <section v-if="card.learn_more && card.learn_more.length" class="mac-section">
+        <h2 class="m-section-label">Find out more</h2>
+        <ul class="mac-list">
+          <li v-for="link in card.learn_more" :key="link.url">
+            <button type="button" class="mac-link" data-testid="learn-more" @click="openPublicWebPath(link.url)">{{ link.label }}</button>
+          </li>
+        </ul>
+      </section>
+
       <p v-if="card.conflict_note" class="m-sub mac-section">{{ card.conflict_note }}</p>
       <p v-if="card.disclaimer" class="mac-disclaimer">{{ card.disclaimer }}</p>
 
@@ -100,6 +109,7 @@ import { apiGet, apiPost, apiPut } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import { resolveMobileDestination, recordUnknownMobileDestination } from '../navigation/semanticDestinations.js';
 import { formatCurrency } from '../utils/currency.js';
+import { openPublicWebPath } from '../navigation/webHandoff.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
 export default {
@@ -126,6 +136,7 @@ export default {
   },
 
   methods: {
+    openPublicWebPath,
     formatCurrency,
 
     goBack() {
@@ -224,6 +235,7 @@ export default {
 .mac-section { margin-top: 12px; }
 .mac-list { margin: 0; padding-left: 18px; list-style: disc; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 1.5; color: var(--horizon-500); }
 .mac-list--steps { list-style: decimal; }
+.mac-link { padding: 4px 0; min-height: 44px; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--raspberry-600); text-decoration: underline; text-align: left; cursor: pointer; }
 .mac-figure { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--eggshell-500); }
 .mac-figure__label { margin: 0; font-size: 12px; color: var(--neutral-600); }
 .mac-figure__value { margin: 0; font-size: 20px; font-weight: 800; color: var(--horizon-500); }

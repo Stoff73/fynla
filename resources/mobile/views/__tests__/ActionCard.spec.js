@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 
 vi.mock('../../api.js', () => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPut: vi.fn(), apiStream: vi.fn() }));
-vi.mock('../../navigation/webHandoff.js', () => ({ issueWebHandoff: vi.fn() }));
+vi.mock('../../navigation/webHandoff.js', () => ({ issueWebHandoff: vi.fn(), openPublicWebPath: vi.fn() }));
 
 import { apiGet, apiPost, apiPut } from '../../api.js';
+import { openPublicWebPath } from '../../navigation/webHandoff.js';
 import { store } from '../../store.js';
 import ActionCard from '../ActionCard.vue';
 
@@ -52,6 +53,17 @@ describe('/m action card', () => {
     expect(apiGet).toHaveBeenCalledWith('/api/recommendations/actions/tax_pension_tax_relief', 'live-token');
     ['Closes 5 April', 'Tax · Income Band', card().title, 'Why this matters for you', card().why[0], '£1,480 a year', 'Fund from', 'Nationwide Instant Access', 'How to do it', 'Decide how much.']
       .forEach((s) => expect(text).toContain(s));
+  });
+
+  // CSJ 2026-09-28: a how-to can point to Fynla's own help, opened as a web page.
+  it('opens a Find out more link on the help page', async () => {
+    const w = mountCard(card({ learn_more: [{ label: 'Paying more in alongside a defined benefit pension', url: '/help#avcs' }] }));
+    await flushPromises();
+
+    const link = w.find('[data-testid="learn-more"]');
+    expect(link.text()).toBe('Paying more in alongside a defined benefit pension');
+    await link.trigger('click');
+    expect(openPublicWebPath).toHaveBeenCalledWith('/help#avcs');
   });
 
   it('marks the action done', async () => {

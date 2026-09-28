@@ -13,7 +13,7 @@
     <!-- Personalized Asset-Based Gifting Strategy Section -->
     <div v-if="personalizedStrategy" class="mb-8 bg-white rounded-lg p-6 border border-light-gray">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
-        <h2 class="text-xl sm:text-2xl font-bold text-horizon-500">Your Personalized Gifting Strategy</h2>
+        <h2 class="text-xl sm:text-2xl font-bold text-horizon-500">Your Personalised Gifting Strategy</h2>
         <button
           @click="refreshPersonalizedStrategy"
           class="text-sm text-spring-500 hover:text-spring-700 flex items-center"
@@ -265,7 +265,7 @@
         <div>
           <p class="font-medium">{{ personalizedStrategyError }}</p>
           <p v-if="requiresAssets" class="text-sm mt-1">
-            Please add assets in the Estate Planning module to generate your personalized gifting strategy.
+            Please add assets in the Estate Planning module to generate your personalised gifting strategy.
             <router-link to="/estate" class="underline font-medium">Go to Estate Planning</router-link>
           </p>
         </div>

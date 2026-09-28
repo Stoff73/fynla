@@ -5,6 +5,7 @@ This file is the one source for the steps on each tax action's detail card. `Act
 **How an entry works (CSJ 2026-09-28).** The user's own records pick which steps they see, and their own figures fill them in (`app/Services/Actions/ActionHowTo.php`, `ActionHowToFacts.php`).
 - `why:` (or `why when <condition>:`) starts the lines for "Why this matters for you" on the card.
 - `outcome:` (or `outcome when <condition>:`) starts the lines for "What this changes" on the card: the user's tax before and after, what it costs them, what their pay does. `when`/`always` go back to steps.
+- `learn:` (or `learn when <condition>:`) starts "Find out more" links, written `Label | /path` to a page of Fynla's own help, such as `/help#avcs`.
 - `when <condition>:` starts a branch. Its steps show only when the condition holds for this user. `always:` starts steps everyone sees.
 - A condition is `fact`, `not fact`, `fact is a or b`, or `fact is not a or b`, joined with `and`.
 - `{name}` is filled from the user's figures. A step whose figure is missing is left out, so no one ever sees a blank.
@@ -58,6 +59,8 @@ when has_personal_pension and has_workplace_pension:
 when has_db_pension_only:
 1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 2. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+learn when has_db_pension:
+1. Paying more in alongside a defined benefit pension | /help#avcs
 when has_no_pension:
 6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP) with a provider, then pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
 when above_basic and not has_salary_sacrifice:
@@ -201,6 +204,8 @@ when has_personal_pension:
 when has_db_pension_only:
 9. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 9. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+learn when has_db_pension:
+1. Paying more in alongside a defined benefit pension | /help#avcs
 when has_no_pension:
 10. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when above_basic:
@@ -252,6 +257,8 @@ when has_personal_pension and has_workplace_pension:
 when has_db_pension_only:
 1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 2. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+learn when has_db_pension:
+1. Paying more in alongside a defined benefit pension | /help#avcs
 when has_no_pension:
 7. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when not has_salary_sacrifice:
@@ -290,6 +297,8 @@ when has_personal_pension and has_workplace_pension:
 when has_db_pension_only:
 1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
 2. If the scheme offers neither, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+learn when has_db_pension:
+1. Paying more in alongside a defined benefit pension | /help#avcs
 when has_no_pension:
 6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when not has_salary_sacrifice:
