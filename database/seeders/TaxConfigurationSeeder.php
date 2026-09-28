@@ -240,10 +240,17 @@ class TaxConfigurationSeeder extends Seeder
                     'max_age_to_open' => 39,
                     'government_bonus_rate' => 0.25,
                     'withdrawal_penalty' => 0.25,
+                    // Pay in until 50; withdraw without the charge from 60
+                    // (https://www.gov.uk/lifetime-isa,
+                    // https://www.gov.uk/lifetime-isa/withdrawing-money-from-your-lifetime-isa).
+                    'max_age_to_contribute' => 49,
+                    'penalty_free_withdrawal_age' => 60,
                 ],
                 'junior_isa' => [
                     'annual_allowance' => 9000,
                     'max_age' => 17,
+                    // The child takes control at 16 (https://www.gov.uk/junior-individual-savings-accounts).
+                    'manage_from_age' => 16,
                 ],
             ],
 
@@ -343,8 +350,13 @@ class TaxConfigurationSeeder extends Seeder
                         'apprentice' => 7.55,
                     ],
                     'conservative_proxy_floor' => 10000,         // Use auto-enrolment earnings trigger as proxy
-                    'nic_exemption_cap' => 2000,                 // From April 2027: only first £2,000 of employee salary sacrifice exempt from NICs
-                    'nic_exemption_cap_effective_date' => '2027-04-06', // Start of 2027/28 tax year — CSJ confirmed 2026-05-12
+                    // From 6 April 2029 only the first £2,000 a year of employee salary
+                    // sacrifice is free of NICs: National Insurance Contributions
+                    // (Employer Pensions Contributions) Act 2026,
+                    // https://commonslibrary.parliament.uk/research-briefings/cbp-10423/
+                    // (date confirmed by CSJ 2026-09-28; the earlier 2027 date was wrong).
+                    'nic_exemption_cap' => 2000,
+                    'nic_exemption_cap_effective_date' => '2029-04-06',
                 ],
 
                 // Auto-enrolment thresholds

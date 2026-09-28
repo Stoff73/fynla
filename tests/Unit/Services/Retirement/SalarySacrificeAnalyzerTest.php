@@ -26,7 +26,7 @@ it('names the cap year from config, not a literal', function () {
     $ni = $method->invoke($analyser, 5000.0, 60000.0);
 
     expect($ni['exceeds_nic_cap'])->toBeTrue()
-        ->and($ni['nic_cap_effective_year'])->toBe(2027)
+        ->and($ni['nic_cap_effective_year'])->toBe(2029)
         ->and($ni)->not->toHaveKey('post_2029_employee');
 });
 
@@ -45,10 +45,10 @@ it('carries the renamed cap keys and the config year through the public analyser
     expect($result['current_employee_contribution'])->toBe(5000.0)
         ->and($result)->toHaveKeys(['post_cap_employee_ni_saving', 'post_cap_total_ni_saving', 'exceeds_nic_cap', 'nic_cap_effective_year'])
         ->and($result['exceeds_nic_cap'])->toBeTrue()
-        ->and($result['nic_cap_effective_year'])->toBe(2027);
+        ->and($result['nic_cap_effective_year'])->toBe(2029);
 
     $warningText = collect($result['warnings'])->pluck('message')->implode(' ');
-    expect($warningText)->toContain('From April 2027');
+    expect($warningText)->toContain('From April 2029');
 });
 
 it('prices the employee National Insurance saving through the calculator, not a flat rate', function () {

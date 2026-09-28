@@ -10,8 +10,8 @@ use Database\Seeders\TaxConfigurationSeeder;
 /**
  * Pins the salary-sacrifice NIC-exemption cap's date-gated behaviour.
  *
- * From 2027-04-06 (start of UK tax year 2027/28, per CSJ-confirmed Budget
- * announcement), only the first £2,000/year of employee salary sacrifice
+ * From 2029-04-06 (National Insurance Contributions (Employer Pensions
+ * Contributions) Act 2026; date confirmed by CSJ 2026-09-28), only the first £2,000/year of employee salary sacrifice
  * into a pension is exempt from NICs. Before that date, the full sacrificed
  * amount is NIC-exempt and treated as zero-cost in `calculateNetCostOfContribution`.
  *
@@ -37,9 +37,9 @@ afterEach(function () {
 
 describe('Salary sacrifice NIC-exemption cap — date-gated', function () {
     it('treats the entire contribution as zero-cost before the cap effective date', function () {
-        Carbon::setTestNow('2026-12-31');
+        Carbon::setTestNow('2028-12-31');
 
-        // Basic-rate user, £5,000 contribution. Pre-2027 the cap is inactive,
+        // Basic-rate user, £5,000 contribution. Before 6 April 2029 the cap is inactive,
         // so the whole sacrifice is NIC-exempt and treated as zero-cost.
         $user = User::factory()->create(['annual_employment_income' => 30_000]);
 
@@ -49,7 +49,7 @@ describe('Salary sacrifice NIC-exemption cap — date-gated', function () {
     });
 
     it('caps salary-sacrificed zero-cost portion at £2,000 on the effective date', function () {
-        Carbon::setTestNow('2027-04-06');
+        Carbon::setTestNow('2029-04-06');
 
         // Basic-rate user (20% marginal), £5,000 contribution.
         // First £2k zero-cost; remaining £3k via relief at source costs £3,000 × 0.80 = £2,400.
@@ -61,7 +61,7 @@ describe('Salary sacrifice NIC-exemption cap — date-gated', function () {
     });
 
     it('keeps the cap active after the effective date', function () {
-        Carbon::setTestNow('2028-01-01');
+        Carbon::setTestNow('2030-01-01');
 
         // Higher-rate user (40% marginal), £6,000 contribution.
         // First £2k zero-cost; remaining £4k via relief at source costs £4,000 × 0.60 = £2,400.
@@ -73,7 +73,7 @@ describe('Salary sacrifice NIC-exemption cap — date-gated', function () {
     });
 
     it('returns zero when the contribution stays within the cap on/after the effective date', function () {
-        Carbon::setTestNow('2027-04-06');
+        Carbon::setTestNow('2029-04-06');
 
         $user = User::factory()->create(['annual_employment_income' => 50_000]);
 

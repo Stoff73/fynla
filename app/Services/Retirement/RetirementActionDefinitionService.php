@@ -1366,9 +1366,9 @@ class RetirementActionDefinitionService
             ];
 
             // Step 6: NIC exemption cap (year sourced from config)
-            $nicCap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap', 2000);
+            $nicCap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap');
             $exceedsCap = $annualContribution > $nicCap;
-            $year = (int) ($analysis['nic_cap_effective_year'] ?? 2027);
+            $year = (int) ($analysis['nic_cap_effective_year'] ?? 0);
             // The analyser publishes this, priced through UKTaxCalculator (Rule 20).
             $postCapEmployeeSaving = (float) $analysis['post_cap_employee_ni_saving'];
             $niReduction = $employeeNISaving - $postCapEmployeeSaving;

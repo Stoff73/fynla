@@ -2,160 +2,332 @@
 
 This file is the one source for the steps on each tax action's detail card. `ActionHowToSeeder` reads it, and only entries marked `status: approved` ever reach a user. CSJ reviews each entry and changes `draft` to `approved`, or edits it.
 
-An entry marked `unverified:` has a step that goes beyond what I checked on the named page. Confirm or change it before approving.
+**How an entry works (CSJ 2026-09-28).** The user's own records pick which steps they see, and their own figures fill them in (`app/Services/Actions/ActionHowTo.php`, `ActionHowToFacts.php`).
+- `when <condition>:` starts a branch. Its steps show only when the condition holds for this user. `always:` starts steps everyone sees.
+- A condition is `fact`, `not fact`, `fact is a or b`, or `fact is not a or b`, joined with `and`.
+- `{name}` is filled from the user's figures. A step whose figure is missing is left out, so no one ever sees a blank.
+- Figures come from the strategy that raised the action, the user's accounts, and tax config. None is typed into this file (Rule 2).
+
+**What you can branch on.**
+- **Everyone:** `band` (basic, higher or additional); `above_basic`; `has_workplace_pension`, `has_salary_sacrifice`, `has_personal_pension`, `has_no_pension`; `has_cash_isa`, `has_stocks_isa`, `has_lifetime_isa_account`, `has_gia`, `isa_with_gia_provider`; `has_spouse`; `months_left`.
+- **Each action:** the figures its strategy publishes, named in its entry below.
+
+**What you can fill in.**
+- **Names:** `{workplace_pension}`, `{personal_pension}`, `{cash_isa}`, `{stocks_isa}`, `{lifetime_isa_account}`, `{gia}`, `{spouse}`.
+- **Dates:** `{tax_year_end}`, `{months_left}`.
+- **Pension payments:**
+  - `{contribution}`: the gross amount going into the pension.
+  - `{contribution_per_month_left}`: the same, spread over the months left in the tax year.
+  - `{net_payment}`: what you pay to a personal pension.
+  - `{provider_relief}`: the basic-rate relief the provider adds.
+  - `{extra_relief}`: the relief above the basic rate that you claim back.
+- **Tax config:** `{basic_rate}`, `{carry_forward_years}`, `{isa_allowance}`, `{junior_isa_allowance}`, `{taper_threshold}`, `{taper_per_pound}`, `{sacrifice_cap}`, `{sacrifice_cap_date}`, and the Lifetime ISA and Junior ISA ages.
 
 Rules for these steps:
-- **No figures.** The card shows the user's own figures beside the steps (CLAUDE.md Rule 2).
-- **Every step rests on the source named under its heading** (Rule 23).
+- **Every step rests on the sources named under its heading** (Rule 23).
 - **Guidance, not advice.** The steps say how, not whether.
+- **No banned words** (Rule 9): never "harvest".
 
 ## pension_tax_relief
 status: draft
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief
-1. Decide how much more to pay in, up to the amount on this card.
-2. For a workplace pension, ask your employer to increase your contribution through payroll. The relief is given through your pay.
-3. For a personal pension or SIPP, pay into it directly. Your provider claims basic-rate relief and adds it to your pot.
-4. If you pay tax above the basic rate, claim the extra relief on your Self Assessment tax return, or through HMRC's online service if you do not file one.
+source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s192 relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/192); s188 relief for the tax year paid (https://www.legislation.gov.uk/ukpga/2004/12/section/188)
+figures: contribution, net_payment, provider_relief, extra_relief, relief_rate, tax_band
+when has_salary_sacrifice:
+1. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or by a one-off {contribution} if the scheme allows it. The amount comes off your pay before tax, so there is no relief to claim.
+when has_workplace_pension and not has_salary_sacrifice:
+2. Ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+3. Ask whether the scheme takes contributions before tax. If it does, the relief is given through your pay. If it uses relief at source, the scheme adds {provider_relief} of basic-rate relief and you claim the rest as below.
+when has_personal_pension and not has_workplace_pension:
+4. Pay {net_payment} into {personal_pension}. The provider claims {provider_relief} of basic-rate relief from HMRC and adds it, so {contribution} goes into your pension.
+when has_personal_pension and has_workplace_pension:
+5. Or pay {net_payment} into {personal_pension} instead. The provider claims {provider_relief} of basic-rate relief from HMRC and adds it, so {contribution} goes into your pension.
+when has_db_pension_only:
+1. Your {db_pension} is a defined benefit scheme. Ask it whether you can pay in more. If not, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+when has_no_pension:
+6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP) with a provider, then pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+when above_basic and not has_salary_sacrifice:
+7. If the money goes into a pension that uses relief at source, claim the other {extra_relief} on your Self Assessment tax return, or through HMRC's online service if you do not file one.
+always:
+8. Pay it in by {tax_year_end}. Relief goes to the tax year you pay in.
 
 ## salary_sacrifice_ni
 status: draft
-source: https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye
-1. Ask your employer whether they offer salary sacrifice for pension contributions.
-2. If they do, agree the change in writing. Your contract must show your new cash pay and the pension contribution your employer makes instead.
-3. Ask whether your employer passes on any of their own National Insurance saving to your pension.
-4. Check your first payslip after the change, to see that your pay and your pension contribution match what you agreed.
+source: https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye; National Insurance Contributions (Employer Pensions Contributions) Act 2026 (https://commonslibrary.parliament.uk/research-briefings/cbp-10423/)
+figures: annual_contribution, employee_ni_saving, employer_ni_rebate_pct, employer_ni_rebate_saving
+always:
+1. You pay {annual_contribution} a year into {workplace_pension} from your pay. Ask your employer whether they offer salary sacrifice for pension contributions.
+2. If they do, agree the change in writing. Your contract must show your new cash pay, {annual_contribution} lower, and the same amount paid in by your employer instead.
+3. National Insurance is then worked out on the lower pay, which saves you {employee_ni_saving} a year.
+when employer_ni_rebate_pct:
+4. Your employer passes on {employer_ni_rebate_pct} of their own National Insurance saving, which adds {employer_ni_rebate_saving} a year to your pension. Ask them to confirm it in writing.
+when not employer_ni_rebate_pct:
+5. Ask whether your employer passes on any of their own National Insurance saving to your pension.
+always:
+6. A lower cash salary can reduce earnings-related benefits and statutory pay, such as Maternity Allowance. Ask your employer how it affects yours.
+7. Check your first payslip after the change, to see that your pay and your pension contribution match what you agreed.
+when over_sacrifice_cap:
+8. From {sacrifice_cap_date}, only the first {sacrifice_cap} a year of salary sacrifice pension contributions is free of National Insurance. You pay {annual_contribution} a year, so National Insurance will be charged on the amount above {sacrifice_cap} from then.
+when not over_sacrifice_cap:
+9. From {sacrifice_cap_date}, only the first {sacrifice_cap} a year of salary sacrifice pension contributions is free of National Insurance. Your {annual_contribution} a year is within it.
 
 ## isa_topup_vs_psa
 status: draft
-source: https://www.gov.uk/individual-savings-accounts
-1. Choose a cash ISA, or use one you already have.
-2. Move the amount shown from the account you pick under "Fund from".
-3. Pay it in before the tax year ends. The allowance is set per tax year.
+source: https://www.gov.uk/individual-savings-accounts/how-isas-work
+figures: suggested_transfer_amount, isa_remaining, taxable_interest_sheltered, target_accounts
+when has_cash_isa:
+1. Pay {suggested_transfer_amount} into your cash ISA with {cash_isa}.
+when not has_cash_isa:
+2. Open a cash ISA with a bank or building society, then pay {suggested_transfer_amount} into it.
+always:
+3. Take the money from {target_accounts}, where its interest is taxed.
+4. That moves about {taxable_interest_sheltered} a year of taxed interest into the ISA. You do not pay tax on interest on cash in an ISA.
+5. You have {isa_remaining} of your {isa_allowance} ISA allowance left. The allowance is set per tax year, so pay in by {tax_year_end}.
 
 ## isa_topup_spouse
 status: draft
-source: https://www.gov.uk/individual-savings-accounts
-1. Your spouse or civil partner opens a cash ISA in their own name, or uses one they already have.
-2. They pay in the amount shown from their savings, or from money you give them. Gifts between spouses and civil partners are not taxed.
-3. The ISA allowance is set per tax year, so pay in before it ends.
+source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/inheritance-tax/gifts
+figures: available_allowance
+always:
+1. Ask {spouse} to open a cash ISA in their own name, or to use one they already have.
+2. They can pay in up to {available_allowance} this tax year, from their own savings or from money you give them.
+3. There is no Inheritance Tax on gifts between spouses or civil partners who live in the UK permanently. Once it is given, the money belongs to them.
+4. You do not pay tax on interest on cash in an ISA. The allowance is set per tax year, so pay in by {tax_year_end}.
 
 ## bed_and_isa
 status: draft
-unverified: I did not fetch the source page for this entry.
-source: https://www.gov.uk/capital-gains-tax
-1. Ask your platform or provider whether they offer a "Bed and ISA" transfer.
-2. They sell the investments in your general account and buy them back inside your stocks and shares ISA, up to your remaining ISA allowance.
-3. Any gain on the sale counts for Capital Gains Tax in this tax year, so check it against your annual exempt amount before you go ahead.
+source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/tax-sell-shares; https://www.gov.uk/capital-gains-tax/rates
+figures: estimated_proceeds_to_transfer, realisable_within_aea, annual_exempt_amount, isa_remaining, cgt_rate
+when isa_with_gia_provider:
+1. Ask {gia} for a "Bed and ISA" transfer from your general investment account into your stocks and shares ISA with them.
+when has_stocks_isa and not isa_with_gia_provider:
+2. Your general investment account is with {gia} and your stocks and shares ISA is with {stocks_isa}. Ask {gia} whether they can do a "Bed and ISA" into an ISA with them. If not, sell with {gia}, move the cash and buy the same investments in your ISA with {stocks_isa}.
+when not has_stocks_isa:
+3. You have no stocks and shares ISA recorded. Ask {gia} whether they offer one with a "Bed and ISA" transfer, or open one with another provider.
+always:
+4. Shares you already own cannot be moved into an ISA unless they come from an employee share scheme. So they are sold in your general account and bought back inside the ISA.
+5. Move up to {estimated_proceeds_to_transfer}. The sale then makes a gain of about {realisable_within_aea}, which your {annual_exempt_amount} Capital Gains Tax allowance covers. It also fits within the {isa_remaining} of ISA allowance you have left.
+6. Selling more than that makes gains above your allowance, taxed at {cgt_rate}.
+7. Both allowances are set per tax year, so do it by {tax_year_end}.
 
 ## dividend_allowance_harvest
 status: draft
-unverified: I did not fetch the source page. Step 2 reads close to advice, so it needs your wording.
-source: https://www.gov.uk/tax-on-dividends
-1. Look at the dividends your investments outside an ISA pay each year.
-2. Hold the investments that pay dividends up to your allowance outside the ISA, and keep the rest inside ISAs and pensions, where dividends are not taxed.
+source: https://www.gov.uk/tax-on-dividends; https://www.gov.uk/tax-on-dividends/how-much-tax-youll-pay; https://www.gov.uk/individual-savings-accounts/how-isas-work
+figures: unused_allowance, dividend_rate
+always:
+1. You have {unused_allowance} of your dividend allowance unused this tax year. Dividends from shares you hold outside an ISA pay no tax up to your allowance.
+when has_gia:
+2. Your investments outside an ISA are with {gia}. Their dividends use the allowance first.
+always:
+3. Dividends above the allowance are taxed at {dividend_rate} at your Income Tax band.
+4. You do not pay tax on dividends from shares in an ISA.
 
 ## pension_aa_carry_forward
 status: draft
-unverified: The source confirms three years of carry forward. It does not confirm the order of use (step 2) or that unused allowance is lost at the end of the tax year (step 3).
-source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance
-1. Ask your pension provider or providers for your contributions in each of the last three tax years.
-2. Use this year's annual allowance first, then any unused allowance from the earliest of the three years.
-3. Pay in the extra before the tax year ends. The oldest year's unused allowance is lost after that.
+source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance; Finance Act 2004 s228A (https://www.legislation.gov.uk/ukpga/2004/12/section/228A); s190 relief limited to earnings (https://www.legislation.gov.uk/ukpga/2004/12/section/190)
+figures: current_year_input, annual_allowance, unused_carry_forward_total, lookback_years, contribution, net_payment, provider_relief, extra_relief
+always:
+1. Your pension payments this tax year come to {current_year_input}, against an annual allowance of {annual_allowance}. You also have {unused_carry_forward_total} unused from the last {lookback_years} tax years.
+2. This year's allowance is used first. Unused allowance from earlier years is then used, earliest year first. Only years in which you were a member of a registered pension scheme count.
+3. Before you pay, ask each pension provider for your pension input amounts in those years, to confirm the unused allowance.
+4. Paying in {contribution} uses it. Tax relief only covers payments up to your earnings for the year, so the amount stops there.
+when has_workplace_pension:
+5. Ask your employer whether {workplace_pension} takes a one-off payment of {contribution}.
+when has_personal_pension:
+6. Or pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when has_db_pension_only:
+1. Your {db_pension} is a defined benefit scheme. Ask it whether you can pay in more. If not, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+when has_no_pension:
+7. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when above_basic:
+8. If the money goes into a pension that uses relief at source, claim the other {extra_relief} on your Self Assessment tax return.
+always:
+9. Pay it in by {tax_year_end}. After that, the earliest of the {lookback_years} years drops out and its unused allowance can no longer be carried forward.
 
 ## tapered_annual_allowance
 status: draft
-source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance
-1. Work out your threshold income and your adjusted income for this tax year. Your pension provider or an adviser can help.
-2. If both are over the limits, your annual allowance is reduced. Keep your total contributions, including your employer's, within the reduced amount.
-3. If you go over it, report the charge in the "Pension savings tax charges" section of your Self Assessment return.
+source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance; Finance Act 2004 s228ZA (https://www.legislation.gov.uk/ukpga/2004/12/section/228ZA)
+figures: threshold_income, adjusted_income, threshold_income_gate, adjusted_income_gate, standard_annual_allowance, tapered_annual_allowance, annual_allowance_charge_avoided
+always:
+1. Your threshold income is {threshold_income} and your adjusted income is {adjusted_income}. Both are over the limits of {threshold_income_gate} and {adjusted_income_gate}, so your annual allowance falls from {standard_annual_allowance} to {tapered_annual_allowance}.
+2. Keep everything paid into your pensions this tax year, including your employer's payments, within {tapered_annual_allowance}. Unused allowance from the last {carry_forward_years} tax years can be added on top.
+when has_workplace_pension:
+3. Ask your employer what they and you will have paid into {workplace_pension} by {tax_year_end}, and reduce future payments if the total would go over.
+always:
+4. Staying within it avoids a charge of about {annual_allowance_charge_avoided}. If you do go over, report the charge in the "Pension savings tax charges" section of your Self Assessment return.
 
 ## pa_taper_rescue
 status: draft
-source: https://www.gov.uk/income-tax-rates/income-over-100000; ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58)
-1. Your Personal Allowance is reduced once your adjusted net income goes above the limit.
-2. Pension contributions and Gift Aid donations reduce your adjusted net income.
-3. Pay the amount shown into your pension. For a workplace pension, ask your employer; for a personal pension, pay the provider directly and claim the extra relief on your Self Assessment return.
+source: https://www.gov.uk/income-tax-rates/income-over-100000; https://www.gov.uk/guidance/adjusted-net-income; ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58)
+figures: contribution, effective_marginal_rate, net_payment, provider_relief, extra_relief
+always:
+1. Your adjusted net income is above {taper_threshold}, so your Personal Allowance goes down by £1 for every {taper_per_pound} over it. Income in that range is taxed at an effective {effective_marginal_rate}.
+2. Pension payments reduce your adjusted net income. For a pension that uses relief at source, the amount taken off is the gross {contribution}, not just what you pay.
+when has_salary_sacrifice:
+3. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or by a one-off {contribution} if the scheme allows it.
+when has_workplace_pension and not has_salary_sacrifice:
+4. Ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when has_personal_pension and not has_workplace_pension:
+5. Pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when has_personal_pension and has_workplace_pension:
+6. Or pay {net_payment} into {personal_pension} instead. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when has_db_pension_only:
+1. Your {db_pension} is a defined benefit scheme. Ask it whether you can pay in more. If not, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+when has_no_pension:
+7. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when not has_salary_sacrifice:
+8. If the money goes into a pension that uses relief at source, claim the other {extra_relief} on your Self Assessment tax return. That claim also gives back the Personal Allowance.
+always:
+9. Pay it in by {tax_year_end}. Relief goes to the tax year you pay in.
 
 ## additional_rate_avoidance
 status: draft
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief
-1. Paying into a pension gives relief at your highest rate.
-2. Pay the amount shown, using the same routes as for pension tax relief.
-3. Claim the extra relief on your Self Assessment tax return.
+source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; https://www.gov.uk/guidance/adjusted-net-income; Finance Act 2004 s192 (https://www.legislation.gov.uk/ukpga/2004/12/section/192)
+figures: contribution, additional_rate_slice, net_payment, provider_relief, extra_relief
+always:
+1. {additional_rate_slice} of your income is taxed at the additional rate. Pension payments get relief at your highest rate.
+when has_salary_sacrifice:
+2. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or by a one-off {contribution} if the scheme allows it.
+when has_workplace_pension and not has_salary_sacrifice:
+3. Ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when has_personal_pension and not has_workplace_pension:
+4. Pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when has_personal_pension and has_workplace_pension:
+5. Or pay {net_payment} into {personal_pension} instead. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when has_db_pension_only:
+1. Your {db_pension} is a defined benefit scheme. Ask it whether you can pay in more. If not, open a personal pension or self-invested personal pension (SIPP) and pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
+when has_no_pension:
+6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
+when not has_salary_sacrifice:
+7. If the money goes into a pension that uses relief at source, claim the other {extra_relief} on your Self Assessment tax return.
+always:
+8. Pay it in by {tax_year_end}. Relief goes to the tax year you pay in.
 
 ## gift_aid_higher_rate_relief
 status: draft
 source: https://www.gov.uk/donating-to-charity/gift-aid
-1. Make sure you have given a Gift Aid declaration to each charity you give to.
-2. Claim the extra relief on your Self Assessment tax return, or ask HMRC to change your tax code.
+figures: annual_donations, estimated_annual_tax_saved
+always:
+1. You give about {annual_donations} a year with Gift Aid. Make sure you have given a Gift Aid declaration to each charity you give to.
+2. The charity claims basic-rate tax on your gifts. Because you pay tax above the basic rate, you can claim the difference yourself: about {estimated_annual_tax_saved} a year.
+3. Claim it on your Self Assessment tax return, or ask HMRC to change your tax code.
 
 ## marriage_allowance_transfer
 status: draft
-source: https://www.gov.uk/marriage-allowance/how-to-apply
-1. The partner who earns less makes the claim.
-2. Apply online on GOV.UK, or through the Marriage Allowance section of a Self Assessment return.
-3. If the claim succeeds, the change is backdated to the start of the tax year.
+source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/how-to-apply
+figures: amount_transferred, transfer_direction, estimated_annual_tax_saved
+when transfer_direction is to_user:
+1. The claim is made by {spouse}, because they earn less. They transfer {amount_transferred} of their Personal Allowance to you.
+when transfer_direction is to_spouse:
+2. You make the claim, because you earn less. You transfer {amount_transferred} of your Personal Allowance to {spouse}.
+always:
+3. Apply online on GOV.UK, or through the Marriage Allowance section of a Self Assessment return.
+4. It saves your household about {estimated_annual_tax_saved} a year. You can also backdate the claim for earlier tax years you were eligible, as far back as GOV.UK allows.
+5. It carries on each year until it is cancelled.
 
 ## savings_to_spouse
 status: draft
-source: https://www.gov.uk/capital-gains-tax/gifts; https://www.gov.uk/apply-tax-free-interest-on-savings
-1. Move the amount shown into an account in your spouse's or civil partner's name.
-2. The interest is then theirs and uses their allowances.
-3. A gift between spouses or civil partners who live together is not taxed. Once it is given, the money belongs to them.
+source: ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626); ITA 2007 s12B (https://www.legislation.gov.uk/ukpga/2007/3/section/12B); https://www.gov.uk/inheritance-tax/gifts
+figures: suggested_transfer_amount, annual_interest_moved, spouse_stacked_interest_capacity
+always:
+1. Move {suggested_transfer_amount} into an account in {spouse}'s own name.
+2. The gift must be outright, with no conditions and no way for the money to come back to you. The {annual_interest_moved} a year of interest it earns is then theirs, taxed under their own allowances.
+3. With no other income recorded for them, their Personal Allowance, starting rate for savings and Personal Savings Allowance cover up to {spouse_stacked_interest_capacity} of interest a year.
+4. There is no Inheritance Tax on gifts between spouses or civil partners who live in the UK permanently. Once it is given, the money belongs to them.
 
 ## gia_to_spouse
 status: draft
-source: https://www.gov.uk/capital-gains-tax/gifts
-1. Ask your platform to transfer the investments shown into your spouse's or civil partner's name.
+source: https://www.gov.uk/capital-gains-tax/gifts; ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626); https://www.gov.uk/inheritance-tax/gifts
+figures: (none published; names only)
+when has_gia:
+1. Ask {gia} to transfer the investments into {spouse}'s name.
+always:
 2. You pay no Capital Gains Tax on a gift to a spouse or civil partner you live with.
-3. If they sell later, their gain is worked out from what you originally paid.
+3. Their dividends are then theirs, taxed at their rates, as long as the gift is outright with no way for it to come back to you.
+4. If they sell later, their gain is worked out from what you originally paid. Give them your records of the purchase price.
+5. There is no Inheritance Tax on gifts between spouses or civil partners who live in the UK permanently.
 
 ## gia_rebalance
 status: draft
-unverified: Step 1 (comparing rates) is my wording, not from the source.
-source: https://www.gov.uk/capital-gains-tax/gifts
-1. Compare which of you pays the lower rate on dividends and gains.
-2. Transfer investments to that partner. A transfer between spouses or civil partners who live together is not taxed.
+source: https://www.gov.uk/tax-on-dividends/how-much-tax-youll-pay; https://www.gov.uk/capital-gains-tax/gifts; ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626)
+figures: user_dividend_rate, spouse_dividend_rate
+always:
+1. On the income recorded, you pay {user_dividend_rate} on dividends above your allowance, and {spouse} pays {spouse_dividend_rate}. The rate depends on each person's own Income Tax band.
+2. Investments given outright to {spouse} pay dividends that are theirs, taxed at their rate.
+3. A transfer between spouses or civil partners who live together is free of Capital Gains Tax. If they sell later, their gain is worked out from what you originally paid.
+when has_gia:
+4. Ask {gia} to transfer the holdings into {spouse}'s name.
 
 ## isa_coordination
 status: draft
-unverified: The ordering in step 2 is my wording.
-source: https://www.gov.uk/individual-savings-accounts
-1. Each of you has your own ISA allowance every tax year.
-2. Use both before the tax year ends, starting with the savings or investments that would be taxed.
+source: https://www.gov.uk/individual-savings-accounts/how-isas-work; https://www.gov.uk/inheritance-tax/gifts
+figures: (none published; tax config only)
+always:
+1. You have used your ISA allowance this tax year. No ISA is recorded for {spouse}, who has their own {isa_allowance} allowance.
+2. They can open a cash or stocks and shares ISA in their own name and pay in, from their own money or money you give them. There is no Inheritance Tax on gifts between spouses or civil partners who live in the UK permanently.
+3. You do not pay tax on interest, dividends or gains in an ISA.
+4. The allowance is set per tax year, so pay in by {tax_year_end}.
 
 ## joint_savings_psa_split
 status: draft
-unverified: Step 3 is my wording.
-source: https://www.gov.uk/apply-tax-free-interest-on-savings
-1. HMRC splits interest on a joint account equally between the account holders.
-2. If the money should be split differently, contact HMRC.
-3. Hold savings so that each of you uses your own Personal Savings Allowance.
+source: https://www.gov.uk/apply-tax-free-interest-on-savings; ITA 2007 s12B (https://www.legislation.gov.uk/ukpga/2007/3/section/12B)
+figures: sole_balance, annual_interest, user_psa, estimated_annual_tax_saved
+always:
+1. Your {sole_balance} of savings in your sole name earns about {annual_interest} a year, more than your {user_psa} Personal Savings Allowance.
+2. If the money is held in a joint account with {spouse}, HMRC splits the interest equally between you. Contact HMRC if it should be split differently.
+3. Each of you has your own Personal Savings Allowance, and your share of the interest uses yours. That saves about {estimated_annual_tax_saved} a year.
 
 ## non_earner_spouse_pension
 status: draft
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief
-1. Open a personal pension in your spouse's or civil partner's name, or use one they already have.
-2. Pay in up to the amount shown. The provider claims basic-rate relief and adds it to the pot, even with no earnings.
-3. Ask the provider to confirm that the relief has been claimed.
+source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s190 (https://www.legislation.gov.uk/ukpga/2004/12/section/190)
+figures: net_contribution, gross_contribution, government_uplift, spouse_existing_pension_balance (or net_cost, gross_capacity)
+when spouse_existing_pension_balance:
+1. A pension is already recorded for {spouse}. Check with the provider that it takes personal payments, or open a personal pension in their name.
+when not spouse_existing_pension_balance:
+2. Open a personal pension in {spouse}'s name.
+always:
+3. Pay in {net_contribution}. The provider claims {government_uplift} of basic-rate relief and adds it, so {gross_contribution} goes in, even with no earnings.
+4. Pay in {net_cost}. The provider claims {government_uplift} of basic-rate relief and adds it, so {gross_capacity} goes in.
+5. Pay it in by {tax_year_end}, and ask the provider to confirm that the relief has been claimed.
 
 ## lifetime_isa
 status: draft
-source: https://www.gov.uk/lifetime-isa
-1. Open a Lifetime ISA with a provider. There is an age limit for the first payment, so check it on GOV.UK first.
-2. Pay in from the account shown under "Fund from". The government adds a bonus to what you pay in.
-3. It counts towards your overall ISA allowance, and you can use it for a first home or for later life.
+source: https://www.gov.uk/lifetime-isa; https://www.gov.uk/lifetime-isa/withdrawing-money-from-your-lifetime-isa
+figures: suggested_contribution, government_bonus, user_age
+when has_lifetime_isa_account:
+1. Pay {suggested_contribution} into your Lifetime ISA with {lifetime_isa_account}.
+when not has_lifetime_isa_account:
+2. Open a Lifetime ISA with a provider and pay in {suggested_contribution}. You are {user_age}; the first payment must be made before you are {lisa_first_payment_before}.
+always:
+3. The government adds {government_bonus} to what you pay in. You can keep paying in until you are {lisa_pay_in_until}.
+4. It counts towards your {isa_allowance} overall ISA allowance.
+5. You can take money out without a charge to buy your first home, from age {lisa_free_withdrawal_age}, or if you are terminally ill. Taking it out for any other reason means a {lisa_withdrawal_charge} withdrawal charge.
+6. The allowance is set per tax year, so pay in by {tax_year_end}.
 
 ## junior_isa
 status: draft
 source: https://www.gov.uk/junior-individual-savings-accounts
-1. A parent or guardian with parental responsibility opens a Junior ISA for the child. They can have a cash one, a stocks and shares one, or both.
-2. Pay in up to the yearly limit, from the account shown under "Fund from".
-3. The child can take control of the account, and later withdraw the money, at the ages set out on GOV.UK.
+figures: children_under_18, total_jisa_capacity
+always:
+when children_under_18 is 1:
+1. Your child can have a Junior ISA, with up to {junior_isa_allowance} paid in each tax year.
+when children_under_18 is not 1:
+2. Each of your {children_under_18} children under 18 can have a Junior ISA, with up to {junior_isa_allowance} paid in for each child every tax year: {total_jisa_capacity} across them all.
+always:
+2. A parent or guardian with parental responsibility opens it. It can be a cash one, a stocks and shares one, or both.
+3. Pay in from the account shown under "Fund from". The money belongs to the child.
+4. A child can take control of their account at {jisa_control_age}, and can take the money out from {jisa_withdraw_age}.
+5. The allowance is set per tax year, so pay in by {tax_year_end}.
 
 ## junior_pension
 status: draft
-unverified: The source covers relief at source generally. It does not say that pensions for children qualify.
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief
-1. Open a personal pension for the child with a provider that offers one.
-2. Pay in up to the amount shown. The provider claims basic-rate relief and adds it to the pot.
+source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s189(1)(b) (https://www.legislation.gov.uk/ukpga/2004/12/section/189): relief covers anyone resident in the UK, with no minimum age; s279 normal minimum pension age (https://www.legislation.gov.uk/ukpga/2004/12/section/279)
+figures: children_under_18, net_contribution_per_child, gross_contribution_per_child, total_government_uplift
+always:
+1. Open a personal pension for {each_child} with a provider that offers one for children.
+when children_under_18 is 1:
+2. Pay in up to {net_contribution_per_child} a year. The provider claims basic-rate relief and adds it, so {gross_contribution_per_child} goes in.
+when children_under_18 is not 1:
+3. Pay in up to {net_contribution_per_child} a year for each child. The provider claims basic-rate relief and adds it, so {gross_contribution_per_child} goes in for each: {total_government_uplift} of relief in all.
+always:
+4. A child cannot take money out of their pension until they reach the normal minimum pension age.
+4. Pay it in by {tax_year_end}. Relief goes to the tax year you pay in.

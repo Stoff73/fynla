@@ -104,7 +104,7 @@ final class ActionCardService
                 : [],
             'what_this_changes' => $isRecommendation ? [] : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
             'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null),
-            'how_to' => $this->howTo($module, $taxItem['type'] ?? null, $card['definition_key'] ?? null),
+            'how_to' => $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null),
             'conflict_note' => $card['conflict_note'] ?? null,
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
@@ -140,14 +140,17 @@ final class ActionCardService
 
     /**
      * The action's how-to steps — only once CSJ has approved them (ruling
-     * 2026-09-25). A tax action is found by its strategy type, any other by
-     * the definition key its adapter carried.
+     * 2026-09-25) — as the branches the user's own records pick, filled with
+     * their own figures (CSJ 2026-09-28). A tax action is found by its
+     * strategy type, any other by the definition key its adapter carried.
      *
+     * @param  array<string, mixed>|null  $taxItem
      * @return list<string>
      */
-    private function howTo(string $module, ?string $strategyType, ?string $definitionKey): array
+    private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey): array
     {
         $model = self::DEFINITIONS[$module] ?? null;
+        $strategyType = $taxItem['type'] ?? null;
         if ($model === null || ($strategyType === null && $definitionKey === null)) {
             return [];
         }
@@ -156,8 +159,12 @@ final class ActionCardService
             ->where($strategyType !== null ? 'strategy_type' : 'key', $strategyType ?? $definitionKey)
             ->value('how_to_steps');
         $steps = is_string($steps) ? json_decode($steps, true) : $steps;
+        if (! is_array($steps) || $steps === []) {
+            return [];
+        }
+        ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $taxItem);
 
-        return is_array($steps) ? array_values(array_filter($steps, 'is_string')) : [];
+        return ActionHowTo::render($steps, $facts, $text);
     }
 
     /**

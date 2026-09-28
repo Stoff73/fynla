@@ -351,11 +351,9 @@ class SalarySacrificeAnalyzer
     private function calculateNISavings(float $sacrificeAmount, float $preSacrificePay): array
     {
         $nicExemptionCap = (float) $this->taxConfig->get(
-            'pension.salary_sacrifice.nic_exemption_cap',
-            2000
-        );
+            'pension.salary_sacrifice.nic_exemption_cap');
         $effectiveYear = (int) substr(
-            (string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date', '2027-04-06'),
+            (string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date'),
             0,
             4,
         );

@@ -1173,8 +1173,9 @@ class RetirementStrategyService
     /**
      * Calculate the net cost of additional pension contributions.
      *
-     * From the NIC-exemption cap's effective date (2027-04-06 per Budget 2024 / CSJ
-     * confirmed 2026-05-12), only the first £2,000/year of employee salary sacrifice
+     * From the NIC-exemption cap's effective date (6 April 2029: National
+     * Insurance Contributions (Employer Pensions Contributions) Act 2026; CSJ
+     * confirmed 2026-09-28), only the first £2,000/year of employee salary sacrifice
      * is exempt from NICs — beyond it, contributions flow via relief at source and
      * cost the employee `contribution × (1 - marginal_tax_rate)`. Before that date
      * the full sacrificed amount is NIC-exempt and treated as zero-cost.

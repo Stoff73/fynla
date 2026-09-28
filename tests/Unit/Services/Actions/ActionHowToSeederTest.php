@@ -30,8 +30,47 @@ source: https://example.gov.uk
 1. Ask your employer.
 MD);
 
-    expect($entries['pension_tax_relief'])->toBe(['status' => 'approved', 'steps' => ['Decide how much.', 'Pay it in.']])
-        ->and($entries['salary_sacrifice_ni'])->toBe(['status' => 'draft', 'steps' => ['Ask your employer.']]);
+    expect($entries['pension_tax_relief'])->toBe(['status' => 'approved', 'steps' => [
+        ['when' => null, 'text' => 'Decide how much.'],
+        ['when' => null, 'text' => 'Pay it in.'],
+    ]])
+        ->and($entries['salary_sacrifice_ni'])->toBe(['status' => 'draft', 'steps' => [['when' => null, 'text' => 'Ask your employer.']]]);
+});
+
+it('keeps each step with the branch it sits under', function () {
+    $entries = ActionHowToSeeder::parse(<<<'MD'
+## pension_tax_relief
+status: draft
+when has_personal_pension and above_basic:
+1. Pay {net_payment} into {personal_pension}.
+always:
+2. Pay it in by {tax_year_end}.
+MD);
+
+    expect($entries['pension_tax_relief']['steps'])->toBe([
+        ['when' => 'has_personal_pension and above_basic', 'text' => 'Pay {net_payment} into {personal_pension}.'],
+        ['when' => null, 'text' => 'Pay it in by {tax_year_end}.'],
+    ]);
+});
+
+it('refuses a heading that names no strategy, rather than skipping it without a word', function () {
+    $path = ActionHowToSeeder::sourcePath('tax');
+    $original = file_get_contents($path);
+    file_put_contents($path, $original."\n## dividend_allowance_check\nstatus: draft\n1. A step.\n");
+
+    try {
+        expect(fn () => (new ActionHowToSeeder)->loadModule('tax'))
+            ->toThrow(RuntimeException::class, 'dividend_allowance_check');
+    } finally {
+        file_put_contents($path, $original);
+    }
+});
+
+it('names a real strategy in every heading of the repository file', function () {
+    $keys = array_keys(ActionHowToSeeder::parse((string) file_get_contents(ActionHowToSeeder::sourcePath('tax'))));
+
+    expect(array_diff($keys, TaxActionDefinition::pluck('strategy_type')->all()))->toBe([])
+        ->and($keys)->toHaveCount(21);
 });
 
 it('writes the repository file to the tax definitions, leaving every draft as draft', function () {

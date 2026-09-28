@@ -30,8 +30,12 @@ final class SalarySacrificeNiCapLine implements ThresholdLine
     public function evaluate(ThresholdContext $context): ?ThresholdResult
     {
         $sacrificed = (float) ($context->definitions['deductions']['salary_sacrificed'] ?? 0);
-        $cap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap', 2000);
-        $date = Carbon::parse((string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date', '2027-04-06'));
+        $cap = (float) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap');
+        $dateString = (string) $this->taxConfig->get('pension.salary_sacrifice.nic_exemption_cap_effective_date');
+        if ($cap <= 0 || $dateString === '') {
+            return null;
+        }
+        $date = Carbon::parse($dateString);
         if ($sacrificed <= $cap || $date->isPast()) {
             return null;
         }
