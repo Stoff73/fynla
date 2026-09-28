@@ -13,6 +13,7 @@ use App\Services\Shared\DependantsReach;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\TaxStrategyMath;
 use App\Traits\ResolvesExpenditure;
 
 /**
@@ -37,14 +38,17 @@ final class ModuleAvailabilityProvider
     ) {}
 
     /**
-     * @return array<string, bool>
+     * @return array<string, bool|null>
      */
     public function forModule(string $module, User $user): array
     {
         return match ($module) {
             'retirement' => [
                 'dc_pension_exists' => $this->hasDcPension($user),
-                'pension_input_history' => collect($this->pensionStore->pensionInputHistory($user))->isNotEmpty(),
+                // Past pension payments only matter for carry forward.
+                'pension_input_history' => app(TaxStrategyMath::class)->carryForwardCouldApply($user)
+                    ? collect($this->pensionStore->pensionInputHistory($user))->isNotEmpty()
+                    : null,
                 'retirement_age_set' => $user->target_retirement_age !== null,
             ],
             'savings' => [
