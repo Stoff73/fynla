@@ -2,7 +2,7 @@
 
 Today's work makes every action personal. Each action card now says why it matters to you, how to do it for your own pensions and accounts, and what it will change: your Income Tax before and after, what it really costs you, and what happens to your take-home pay. The actions page is now grouped into the lanes that were agreed in the design, and several tax rules have been corrected along the way.
 
-This is ready but **not yet live**. It sits in one update (pull request #948) waiting to go to the test site and then fynla.org. It was checked on a local copy of the app, on the desktop web app and the mobile web app, with real test accounts.
+**This is live on fynla.org** from 28 September 2026 at about 15:28, through release pull request #949 (update #948). It was walked on the test site and then on fynla.org itself, on the desktop web app and the mobile web app, with new accounts registered for the purpose.
 
 ## Every action speaks to you
 
@@ -18,7 +18,7 @@ This is ready but **not yet live**. It sits in one update (pull request #948) wa
   - "Doing this alone, your Income Tax for the year falls from £17,432 to £7,552: £9,880 less. £24,700 goes into your pension, and after the tax relief it costs you £14,820."
   - "Your take-home pay rises by £132 a year, about £11 a month, and the same £1,650 still goes into Scottish Widows Workplace Pension."
 - **A step with a figure Fynla doesn't have is left out,** so nobody sees a blank or a placeholder.
-- **Every step is checked against its source** (GOV.UK, HMRC's manuals or the legislation). Twenty of the 21 tax actions have been reviewed and approved. Marriage Allowance is waiting for a final review.
+- **Every step is checked against its source** (GOV.UK, HMRC's manuals or the legislation). All 21 tax actions have been reviewed and approved, Marriage Allowance last.
 
 ## The actions page is grouped
 
@@ -51,6 +51,16 @@ This is ready but **not yet live**. It sits in one update (pull request #948) wa
 - **"Harvest" is gone from every screen.** "Tax loss harvesting" now reads "Losses you could use against gains", across the investment pages, the dashboard alert and the action list.
 - **One piece of advice was wrong and is corrected.** A suggestion to sell and "immediately repurchase" is defeated by the 30-day rule. It now says that buying back within 30 days does not release the loss.
 
+## Found and fixed on the release walk
+
+- **Fyn now shows you the screen it asks about on a narrow browser window.** Below tablet width the chat fills the screen. When Fyn said "Here's your investments page — does it look right?", the page opened behind the chat, where you could not see it. The chat now closes so the page shows, as the mobile app already did. On a full-size screen the chat stays beside the page.
+- **"Waiting on you" no longer asks for things you have already given.**
+  - A Stocks and Shares ISA now counts as your ISA details. Before, only a cash ISA did.
+  - Answering "none" (no investments, no charitable donations) now stays answered after you finish setting up. Before, the answers were thrown away at the end of setup, so the same questions reappeared as waiting items. Accounts set up before this release have already lost those answers and will still see them.
+- **"Add it now" for your spouse's income works.** It opened Fyn with a request that mentioned "pension", so Fyn tried to add a pension and then refused. It now opens the form for your spouse's details, starting with their income. Saving it turns the waiting item into "Claim Marriage Allowance".
+- **Two headings still said "harvest"** on the investment screens. They now read "Losses to use now" and "Losses you could use against gains".
+- **A form introduction read "Here's your Your spouse's details".** Fixed.
+
 ## Decisions taken
 
 - **How-to steps follow the user's records and use their figures,** with the outcome shown on every action.
@@ -61,7 +71,9 @@ This is ready but **not yet live**. It sits in one update (pull request #948) wa
 
 ## Still to do
 
-- **Approve the Marriage Allowance guide.**
+- **Spouse pension top-up and earnings.** "Top up your spouse's pension" treats all of the spouse's income as earnings. Tax relief is limited to their earnings, or £3,600 if more (Finance Act 2004 s189–190), so a spouse whose income is from rent or a pension could be shown too much. Fixing it needs a separate question about earnings; waiting on a decision.
+- **Two wording questions on the pension card for basic-rate payers.** "£900 of your income is taxed at 20%" does not explain why the figure is £900 (it brings the pension to 10% of pay), and one step says "claim the rest as below" when no step follows. Both are approved wording, so they wait for a decision.
+- **"Unlock pension info"** asks for the last three years of pension payments, but reads as if Fynla has no pension for you. It may need renaming.
 - **Scottish income tax rates** are not yet applied anywhere in Fynla; this is its own piece of work.
 - **Rewrite the help pages** from the audit.
 - **Fix Fyn's "Ask Fyn about this" explanation** of the pension figure.
@@ -77,14 +89,17 @@ This is ready but **not yet live**. It sits in one update (pull request #948) wa
 
 ## What we checked
 
-- **Desktop web:** signed in as test users.
-  - The salary sacrifice card showed Chris's own pension name, £1,650, the £132 saving and the 6 April 2029 cap.
-  - The actions page showed the three groups for a married test couple.
-  - "Unlock spouse's income info" opened its card with "Add it now".
-- **Mobile web:** the junior pension and Lifetime ISA cards showed the personal steps and outcome. The actions list showed every waiting item once, and "Closes 5 April".
-- **Every "how to", "why" and outcome line** was printed for the local test users and read through.
-- **The automated tests** for every changed file pass. The full suite runs when the update is merged.
+- **Live on fynla.org, 28 September, with a new account** (married, earning £45,000, a workplace pension paying 5% with 3% from the employer, a Stocks and Shares ISA, spouse's income not known at first):
+  - **Desktop web, full-size window:**
+    - Setup through Fyn took the user to each page it asked about ("does it look right?"), with the chat beside the page.
+    - The actions page showed "Before 5 April" with 189 days left, "Worth doing soon", and "Waiting on you". The waiting list had no ISA, investment or charitable giving items, because those had been answered.
+    - The pension card showed the user's own figures: Income Tax falls from £6,036 to £5,856, £150 a month for the 6 months left, and £720 after tax relief.
+    - "Unlock spouse's income info" → "Add it now" opened the spouse's details form. Saving £9,000 went through.
+  - **Mobile web:**
+    - The rows for these allowances said "Closes 5 April".
+    - "Claim Marriage Allowance: you could save £252" appeared after the spouse's income was saved, and its card showed the approved steps (£1,260 transferred, £9,000 below the £12,570 Personal Allowance).
+- **On the test site first,** the same checks passed with two new accounts, the chat was checked on a narrow window as well, and "Add it now" was checked on the mobile web app too.
+- **The automated checks all passed** on the final update, including the iPhone app's tests.
 - **Not tested on screen:**
-  - the reworded investment pages;
-  - Fyn capturing a spouse's income through "Add it now";
+  - the reworded investment tax pages, which only appear for accounts with holdings; the wording was checked in the code instead;
   - the iPhone app.
