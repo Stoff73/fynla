@@ -307,6 +307,29 @@ final class TaxStrategyMath
      * Purchase Annual Allowance where either applies. Carry-forward is handled
      * separately by PensionAACarryForwardStrategy.
      */
+    /**
+     * Carry forward only helps someone paying in more than this year's
+     * allowance, so it applies only when both hold (CSJ 2026-09-28):
+     * - earnings above this year's allowance: relief is capped at relevant
+     *   UK earnings (FA 2004 s190, https://www.legislation.gov.uk/ukpga/2004/12/section/190);
+     * - cash savings above what they can still pay in this year: carry
+     *   forward starts once this year's allowance is used (FA 2004 s228A,
+     *   https://www.legislation.gov.uk/ukpga/2004/12/section/228A).
+     * Anyone else is never asked for past pension payments.
+     */
+    public function carryForwardCouldApply(User $user): bool
+    {
+        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        if ($earnings <= $this->effectiveAnnualAllowanceFor($user)) {
+            return false;
+        }
+
+        $cash = app(SavingsStore::class)->forUser($user)
+            ->sum(fn ($account): float => $this->calculateUserShare($account, (int) $user->id));
+
+        return $cash > $this->availableAnnualAllowance($user, null);
+    }
+
     public function availableAnnualAllowance(User $user, ?TaxStrategyOverridesDTO $overrides): float
     {
         $aa = $this->effectiveAnnualAllowanceFor($user);

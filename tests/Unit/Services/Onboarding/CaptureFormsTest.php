@@ -292,7 +292,7 @@ it('the pension step is a form turn with the loop question after it', function (
 it('the spouse forms fold every section into one household write', function (): void {
     $schema = CaptureForms::schema('spouse_household');
     expect($schema['tool'])->toBe('capture_spouse_household_data')
-        ->and($schema['lead_fields'])->toBe(['spouse_annual_income'])
+        ->and($schema['lead_fields'])->toBe(['spouse_annual_income', 'spouse_annual_earnings'])
         ->and($schema['kinds_prompt'])->toBe('Do they have any of the following? You can choose more than one, or save with none chosen.')
         ->and(array_column($schema['kinds'], 'label'))->toBe(['ISAs', 'A pension', 'Investments'])
         ->and(CaptureForms::rules('spouse_household'))->toHaveKey('_lead.spouse_annual_income')

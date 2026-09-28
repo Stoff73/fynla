@@ -151,8 +151,11 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         // in (gross in this mode) has used part of it (B5).
         // Relief is on contributions up to the greater of relevant earnings and
         // the basic amount (FA 2004 s190), so a spouse earning under it can
-        // still pay in the basic amount (audit 2026-09-27).
-        $reliefLimit = max($spouseIncome, (float) $this->taxConfig->getPensionAllowances()['relevant_earnings_minimum']);
+        // still pay in the basic amount (audit 2026-09-27). Relevant earnings
+        // are earnings from work (s189), not total income, which can be
+        // pension or rent (CSJ 2026-09-28); unknown earnings count as none.
+        $earnings = $household->spouse_annual_earnings !== null ? (float) $household->spouse_annual_earnings : null;
+        $reliefLimit = max($earnings ?? 0.0, (float) $this->taxConfig->getPensionAllowances()['relevant_earnings_minimum']);
         $grossCapacity = max(0.0, $reliefLimit - (float) ($household->spouse_pension_input_annual ?? 0));
         if ($grossCapacity < 1) {
             return [];
@@ -170,8 +173,10 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 number_format((int) $uplift),
             ),
             description: sprintf(
-                'Your spouse earns £%s, and relief is given on pension contributions up to their relevant UK earnings or the basic amount, whichever is higher. Paying in £%s net gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
-                number_format((int) $spouseIncome),
+                '%s, and relief is given on pension contributions up to their relevant UK earnings or the basic amount, whichever is higher. Paying in £%s net gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
+                ($earnings ?? 0.0) > 0
+                    ? sprintf('Your spouse earns £%s from work', number_format((int) $earnings))
+                    : 'Your spouse has no earnings from work recorded',
                 number_format((int) $netCost),
                 number_format((int) $grossCapacity),
                 number_format((int) $uplift),
@@ -179,6 +184,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
             estimatedAnnualTaxSaved: $uplift,
             extra: [
                 'spouse_annual_income' => $spouseIncome,
+                'spouse_annual_earnings' => $earnings,
                 'gross_capacity' => $grossCapacity,
                 'net_cost' => $netCost,
                 'government_uplift' => $uplift,

@@ -57,6 +57,10 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             return [];
         }
 
+        if (! $this->math->carryForwardCouldApply($user)) {
+            return [];
+        }
+
         $band = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
         if (! in_array($band, ['higher', 'additional'], true)) {
             return [];

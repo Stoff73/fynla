@@ -392,7 +392,10 @@ final class RecordEditForms
     /** @return array<string, array<string, mixed>> */
     private function spouseAnswers(TaxStrategyHouseholdInput $row): array
     {
-        $answers = [CaptureForms::LEAD => ['spouse_annual_income' => self::floatOrNull($row->spouse_annual_income)]];
+        $answers = [CaptureForms::LEAD => array_filter([
+            'spouse_annual_income' => self::floatOrNull($row->spouse_annual_income),
+            'spouse_annual_earnings' => self::floatOrNull($row->spouse_annual_earnings),
+        ], static fn ($v, string $k): bool => $k === 'spouse_annual_income' || $v !== null, ARRAY_FILTER_USE_BOTH)];
         $isa = array_filter(['spouse_isa_balance' => self::floatOrNull($row->spouse_isa_balance), 'spouse_isa_provider' => $row->spouse_isa_provider], static fn ($v): bool => $v !== null && $v !== '');
         if ($isa !== []) {
             $answers['isa'] = $isa;

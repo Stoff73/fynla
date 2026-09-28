@@ -126,3 +126,23 @@ it('tells someone with no pension recorded to open one first', function () {
     expect($steps[0])->toStartWith('You are 40, employed and earn £60,000, so the law requires your employer to enrol you in a workplace pension and pay in at least 3% of your qualifying earnings.')
         ->and($steps[1])->toStartWith('You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP)');
 });
+
+// CSJ 2026-09-28: for a basic-rate payer the saving is the reason, so it moves
+// from the summary into "Why this matters", once; nothing points to a step
+// ("claim the rest as below") that a basic-rate payer never sees.
+it('gives a basic-rate payer the saving as the reason, said once', function () {
+    $user = higherRateEarnerWithApprovedPensionSteps();
+    $user->update(['annual_employment_income' => 45000]);
+    DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Nest', 'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'current_fund_value' => 30000, 'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3, 'salary_sacrifice' => false]);
+
+    $item = pensionReliefItem($user->fresh());
+    $pounds = fn (float $v) => '£'.number_format(floor($v + 0.001));
+    $card = app(ActionCardService::class)->for($user->fresh(), 'tax_pension_tax_relief');
+
+    expect($item['description'])->toBe('Every £100 you pay into a pension gets 20% tax relief.')
+        ->and($card['why'][0])->toBe(sprintf('Paying in %s more this year saves %s of income tax.',
+            $pounds((float) $item['suggested_contribution']), $pounds((float) $item['estimated_annual_tax_saved'])))
+        ->and($card['why'][1])->toBe('A pension payment gets tax relief at 20%, so money that would have gone in tax goes into your pension instead.')
+        ->and(implode(' ', $card['how_to']))->not->toContain('as below');
+});

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\SavingsAccount;
 use App\Models\TaxActionDefinition;
 use App\Models\User;
 use App\Models\UserConsent;
@@ -32,7 +33,10 @@ it('records "I have none of those" against every locked strategy and stops askin
         'scope' => 'portfolio', 'what_if_impact_type' => 'tax_optimisation', 'trigger_config' => [], 'is_enabled' => true,
         'sort_order' => 1, 'claim_tier' => 'mechanical', 'required_data' => ['pension_input_history', 'gia_holdings'],
     ]);
-    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true, 'annual_employment_income' => 60000, 'employment_status' => 'employed', 'date_of_birth' => '1987-02-23']);
+    // Earnings above the annual allowance and the cash to pay in more, so
+    // carry forward applies and past pension payments are asked for.
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true, 'annual_employment_income' => 90000, 'employment_status' => 'employed', 'date_of_birth' => '1987-02-23']);
+    SavingsAccount::factory()->for($user)->create(['current_balance' => 100000, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
     app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
     $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Chat']);
     Sanctum::actingAs($user);

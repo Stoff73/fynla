@@ -45,8 +45,23 @@ it('suggests only the remainder when a non-earning spouse pays part', function (
 });
 
 it('sizes a modest earner by the earnings left after what they already contribute', function () {
-    $rec = spousePensionRec('dual_earner', ['spouse_annual_income' => 8000, 'spouse_pension_input_annual' => 3000]);
+    $rec = spousePensionRec('dual_earner', ['spouse_annual_income' => 8000, 'spouse_annual_earnings' => 8000, 'spouse_pension_input_annual' => 3000]);
 
     expect($rec)->not->toBeNull()
         ->and($rec['gross_capacity'])->toBe(5000.0);
 });
+
+// CSJ 2026-09-28: relief is capped at relevant UK earnings (FA 2004 s189-190),
+// not total income. £9,000 of rent or pension is not earnings.
+it('caps the top-up at earnings from work, or the basic amount when there are none', function (?float $earnings, float $gross) {
+    $rec = spousePensionRec('dual_earner', ['spouse_annual_income' => 9000, 'spouse_annual_earnings' => $earnings]);
+    $basic = app(TaxStrategyMath::class)->bandRateForBand('basic');
+
+    expect($rec['gross_capacity'])->toBe($gross)
+        ->and($rec['net_cost'])->toBe(round($gross * (1 - $basic), 2))
+        ->and($rec['spouse_annual_earnings'])->toBe($earnings);
+})->with([
+    'all of it earned' => [9000.0, 9000.0],
+    'none of it earned' => [0.0, 3600.0],
+    'earnings not given' => [null, 3600.0],
+]);

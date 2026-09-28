@@ -1537,12 +1537,15 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_annual_income' => 8000,
+            // Relief is capped at earnings from work (FA 2004 s189-190), asked separately.
+            'spouse_annual_earnings' => 8000,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
         $rec = collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension');
         expect($rec)->not->toBeNull()
+            ->and($rec['description'])->toContain('earns £8,000 from work')
             ->and($rec['category'])->toBe('household')
             ->and($rec['priority'])->toBe('medium')
             ->and($rec['description'])->not->toContain('£2,880')   // non-earner flat framing must NOT appear
