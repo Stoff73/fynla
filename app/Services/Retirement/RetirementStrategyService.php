@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Stores\SavingsStore;
@@ -1181,8 +1180,11 @@ class RetirementStrategyService
      * of National Insurance (National Insurance Contributions (Employer
      * Pensions Contributions) Act 2026, from 6 April 2029; CSJ 2026-09-28), so
      * the saving stops at what is left under the cap.
+     *
+     * $pension is the workplace pension the contribution goes into (untyped:
+     * the pensions store boundary keeps the model out of this service).
      */
-    private function calculateNetCostOfContribution(float $additionalAnnual, User $user, ?DCPension $pension = null): float
+    private function calculateNetCostOfContribution(float $additionalAnnual, User $user, ?object $pension = null): float
     {
         if ($additionalAnnual <= 0) {
             return 0.0;

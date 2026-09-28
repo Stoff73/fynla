@@ -224,13 +224,6 @@ export default {
       };
       return classes[priority] || 'bg-white border-l-4 border-horizon-400';
     },
-
-    getComponentScore(component) {
-      // Simplified - in reality would calculate from analysis data
-      const score = this.analysis?.efficiency_score?.score || 0;
-      // Return component-specific score or overall score
-      return Math.round(score);
-    },
   },
 };
 </script>

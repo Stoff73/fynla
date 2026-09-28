@@ -381,7 +381,7 @@ describe('allowance grid availability + dividend usage', function () {
             'annual_employment_income' => 35000,
             'marriage_allowance_eligible' => true,
         ]);
-TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
@@ -398,7 +398,7 @@ TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income
             'annual_employment_income' => 35000,
             'marriage_allowance_eligible' => true,
         ]);
-TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
 
         $output = app(TaxStrategyCalculator::class)->calculate(
             $user,
