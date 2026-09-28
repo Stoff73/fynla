@@ -621,6 +621,9 @@ final class CaptureForms
         } elseif ($incomeUnknown) {
             $parts[] = "I don't know what my spouse earns";
         }
+        if (isset($input['spouse_annual_earnings'])) {
+            $parts[] = self::pounds($input['spouse_annual_earnings']).' of it from work';
+        }
         $money = [
             'spouse_isa_balance' => 'ISAs', 'spouse_existing_isa_balance' => 'ISAs',
             'spouse_existing_savings_balance' => 'savings', 'spouse_existing_investment_balance' => 'investments',
@@ -869,7 +872,7 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_spouse_household_data',
             'entity_type' => 'spouse_household',
-            'lead_fields' => ['spouse_annual_income'],
+            'lead_fields' => ['spouse_annual_income', 'spouse_annual_earnings'],
             'allow_empty' => true,
             'kinds_prompt' => 'Do they have any of the following? You can choose more than one, or save with none chosen.',
             'kinds' => [
@@ -881,6 +884,10 @@ final class CaptureForms
                 // Laura, 2026-09-18: she did not know it and had no way to say so.
                 'spouse_annual_income' => ['type' => 'money_or_none', 'label' => 'Their annual income', 'required' => true, 'hint' => 'Before tax',
                     'none_label' => "I don't know"],
+                // Pension relief is capped at earnings from work, not total
+                // income (FA 2004 s189-190; CSJ 2026-09-28).
+                'spouse_annual_earnings' => ['type' => 'money', 'label' => 'Of that, earnings from work', 'required' => false,
+                    'hint' => 'Salary, or profit if self-employed. Not pension or rent. Leave blank if none'],
                 'spouse_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
                 'spouse_isa_provider' => ['type' => 'text', 'label' => 'Who the ISA is with', 'required' => false],
                 'spouse_pension_input_annual' => ['type' => 'money', 'label' => 'They pay in each year', 'required' => false, 'hint' => 'Leave blank if none'],

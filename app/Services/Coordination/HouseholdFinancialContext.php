@@ -78,6 +78,10 @@ final class HouseholdFinancialContext
         // the spouse strategies do not apply to them at all (null), so none of
         // them waits on anything (a single user was being asked for a spouse's
         // income, then for ISA details for a spouse ISA).
+        // Past pension payments only matter for carry forward.
+        if (! $this->math->carryForwardCouldApply($user)) {
+            $availability['pension_input_history'] = null;
+        }
         if (! $this->math->isMarriedOrCivilPartner($user)) {
             $availability['spouse_income'] = null;
             $availability['spouse_income_amount'] = null;

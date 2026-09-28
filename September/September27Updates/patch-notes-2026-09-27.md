@@ -34,7 +34,7 @@ Both releases were walked through as a real user on the test site before they me
 
 We checked every calculation behind the Save Tax plan against the legislation. These are the corrections that went live.
 
-- **Savings interest is taxed the way HMRC taxes it.** Fynla now applies:
+- **Savings interest.** Fynla now applies:
   - the £5,000 starting rate for savings;
   - the right Personal Savings Allowance for your total income;
   - any unused Personal Allowance against interest and dividends.

@@ -22,6 +22,13 @@ effective_from: 2026-06-02
                 ],
                 "description": "Spouse gross annual income in pounds."
             },
+            "spouse_annual_earnings": {
+                "type": [
+                    "number",
+                    "null"
+                ],
+                "description": "The part of the spouse's income that is earnings from work (salary, or self-employed profit), before tax, in pounds. Pension, rent and savings income are not earnings. Pension tax relief is capped at this figure."
+            },
             "spouse_employment_status": {
                 "anyOf": [
                     {

@@ -38,7 +38,9 @@ it('reports which catalogue data points are available for a user', function () {
         ->and($availability['spouse_income'])->toBeTrue()      // single_earner_couple => spouse income known to be £0
         ->and($availability['workplace_pension'])->toBeFalse() // no pension records
         ->and($availability['savings_balances'])->toBeFalse()  // no savings accounts
-        ->and($availability['pension_input_history'])->toBeFalse();
+        // No savings to pay in more than this year's allowance: carry forward
+        // cannot apply, so past pension payments are not asked for.
+        ->and($availability['pension_input_history'])->toBeNull();
 });
 
 it('returns exactly the 14 canonical vocabulary keys', function () {
@@ -154,7 +156,8 @@ it('marks workplace_pension and pension_contributions available when DC pension 
 });
 
 it('marks pension_input_history available when input history rows exist', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['annual_employment_income' => 150000]);
+    SavingsAccount::factory()->for($user)->create(['current_balance' => 100000, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
     PensionInputHistory::create([
         'user_id' => $user->id,
         'tax_year' => '2025/26',
@@ -172,7 +175,7 @@ it('treats a declared none as available data', function () {
 
     expect($availability['gia_holdings'])->toBeTrue()
         ->and($availability['pension_contributions'])->toBeTrue()
-        ->and($availability['pension_input_history'])->toBeTrue()
+        ->and($availability['pension_input_history'])->not->toBeFalse()
         ->and($availability['dividend_income'])->toBeTrue()
         ->and($availability['savings_balances'])->toBeFalse();
 });
@@ -210,3 +213,18 @@ it('keeps the none declarations and joint records past onboarding, and nothing e
     ])->and(HouseholdFinancialContext::outlivingOnboarding(['verify_section' => 'pensions']))->toBeNull()
         ->and(HouseholdFinancialContext::outlivingOnboarding(null))->toBeNull();
 });
+
+// CSJ 2026-09-28: past pension payments are only for carry forward, which
+// needs earnings above this year's allowance AND the cash to pay in more.
+it('asks for past pension payments only when carry forward could apply', function (int $income, float $cash, ?bool $expected) {
+    $user = User::factory()->create(['annual_employment_income' => $income]);
+    if ($cash > 0) {
+        SavingsAccount::factory()->for($user)->create(['current_balance' => $cash, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
+    }
+
+    expect($this->svc->availability($user)['pension_input_history'])->toBe($expected);
+})->with([
+    'basic-rate earner with savings' => [45000, 100000.0, null],
+    'high earner, little cash' => [150000, 5000.0, null],
+    'high earner with the cash' => [150000, 100000.0, false],
+]);

@@ -35,15 +35,18 @@ Rules for these steps:
 status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (net pay and relief at source; relief at source in some workplace pensions); https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; The Pensions Regulator, AVCs alongside defined benefit schemes (https://helpfiles.thepensionsregulator.gov.uk/members/dbschememembership); Finance Act 2004 s192 relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/192); s188 relief for the tax year paid (https://www.legislation.gov.uk/ukpga/2004/12/section/188)
 figures: contribution, net_payment, provider_relief, extra_relief, relief_rate, tax_band
-why:
+why when above_basic:
 1. {contribution} of your income is taxed at {relief_rate}.
 2. A pension payment gets tax relief at that rate, so money that would have gone in tax goes into your pension instead.
+why when not above_basic:
+1. Paying in {contribution} more this year saves {tax_saved} of income tax.
+2. A pension payment gets tax relief at {relief_rate}, so money that would have gone in tax goes into your pension instead.
 when has_salary_sacrifice:
 1. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year. Your cash pay after the sacrifice must not fall below the National Minimum Wage. The amount comes off your pay before tax, so there is no relief to claim.
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
 2. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
-3. Ask payroll how the scheme gives tax relief. Most workplace schemes take your contribution before Income Tax, so the relief comes through your pay. Some use relief at source instead: your contribution comes out after tax, the scheme adds {provider_relief} of basic-rate relief, and you claim the rest as below.
+3. Ask payroll how the scheme gives tax relief. Most workplace schemes take your contribution before Income Tax, so the relief comes through your pay. Some use relief at source instead: your contribution comes out after tax, the scheme adds {provider_relief} of basic-rate relief.
 when auto_enrolled and not has_workplace_pension and not has_db_pension:
 1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
 when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
@@ -438,11 +441,14 @@ outcome:
 
 ## non_earner_spouse_pension
 status: approved
-source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s188 relief only before age 75 (https://www.legislation.gov.uk/ukpga/2004/12/section/188); s190 basic amount (https://www.legislation.gov.uk/ukpga/2004/12/section/190)
-figures: net_contribution, gross_contribution, government_uplift, spouse_existing_pension_balance (or net_cost, gross_capacity)
+source: https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief; Finance Act 2004 s188 relief only before age 75 (https://www.legislation.gov.uk/ukpga/2004/12/section/188); s189 relevant UK earnings (https://www.legislation.gov.uk/ukpga/2004/12/section/189); s190 basic amount (https://www.legislation.gov.uk/ukpga/2004/12/section/190)
+figures: net_contribution, gross_contribution, government_uplift, spouse_existing_pension_balance (or net_cost, gross_capacity, spouse_annual_earnings)
 why:
 1. {spouse_start} has no earnings, but a pension payment for them still gets basic-rate relief added: {net_contribution} becomes {gross_contribution}.
-2. {spouse_start} has no earnings, but a pension payment for them still gets basic-rate relief added: {net_cost} becomes {gross_capacity}.
+why when net_cost and spouse_annual_earnings:
+1. {spouse_start} earns {spouse_annual_earnings} from work, so a pension payment for them gets basic-rate relief on up to {gross_capacity} a year: {net_cost} becomes {gross_capacity}.
+why when net_cost and not spouse_annual_earnings:
+1. Without earnings from work, a pension payment for {spouse} still gets basic-rate relief on up to {gross_capacity} a year: {net_cost} becomes {gross_capacity}.
 when net_contribution and spouse_existing_pension_balance:
 1. A pension is already recorded for {spouse}. Check with the provider that it takes personal payments, or open a personal pension in their name.
 when net_contribution and not spouse_existing_pension_balance:

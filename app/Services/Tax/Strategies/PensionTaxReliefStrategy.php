@@ -98,10 +98,8 @@ final class PensionTaxReliefStrategy implements TaxStrategy
                     'Pension contributions get tax relief at your highest rate. £%s of your income is taxed at %d%%, so paying that amount into a pension saves £%s this year. A workplace scheme gives the relief through your pay; for a personal pension the provider adds %d%% and you claim the rest through Self Assessment.',
                     number_format($display), $ratePct, number_format((int) floor($saving)), $basicPct,
                 )
-                : sprintf(
-                    'Every £%s you pay into a pension gets %d%% tax relief. Paying in £%s more this year saves £%s of income tax.',
-                    number_format(100), $ratePct, number_format($display), number_format((int) floor($saving)),
-                ),
+                // The saving is the card's "why" line, so it is not repeated here (CSJ 2026-09-28).
+                : sprintf('Every £%s you pay into a pension gets %d%% tax relief.', number_format(100), $ratePct),
             estimatedAnnualTaxSaved: $saving,
             extra: [
                 'suggested_contribution' => (float) $display,

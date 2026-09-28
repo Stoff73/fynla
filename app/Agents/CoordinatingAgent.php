@@ -5711,6 +5711,8 @@ class CoordinatingAgent extends BaseAgent
 
         $allowedFields = [
             'spouse_annual_income',
+            // The part that is earnings from work: pension relief is capped at it.
+            'spouse_annual_earnings',
             'spouse_employment_status',
             'spouse_isa_balance',
             'spouse_psa_band',
@@ -5740,7 +5742,7 @@ class CoordinatingAgent extends BaseAgent
             'spouse_pension_provider' => ['sometimes', 'nullable', 'string', 'max:120'],
         ];
         foreach ([
-            'spouse_annual_income', 'spouse_isa_balance', 'spouse_unrealised_gains',
+            'spouse_annual_income', 'spouse_annual_earnings', 'spouse_isa_balance', 'spouse_unrealised_gains',
             'spouse_annual_dividends', 'spouse_pension_input_annual', 'spouse_existing_pension_balance',
         ] as $field) {
             $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
@@ -6768,7 +6770,7 @@ class CoordinatingAgent extends BaseAgent
 
             $allowedFields = [
                 'spouse_works',
-                'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                'spouse_annual_income', 'spouse_annual_earnings', 'spouse_employment_status', 'spouse_isa_balance',
                 'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
                 'spouse_pension_input_annual', 'spouse_existing_isa_balance',
                 'spouse_existing_savings_balance', 'spouse_existing_investment_balance',
@@ -6787,7 +6789,7 @@ class CoordinatingAgent extends BaseAgent
             }
 
             $moneyFields = [
-                'spouse_annual_income', 'spouse_isa_balance', 'spouse_unrealised_gains',
+                'spouse_annual_income', 'spouse_annual_earnings', 'spouse_isa_balance', 'spouse_unrealised_gains',
                 'spouse_annual_dividends', 'spouse_pension_input_annual',
                 'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
                 'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
@@ -6830,7 +6832,7 @@ class CoordinatingAgent extends BaseAgent
                         'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
                         'spouse_existing_pension_balance',
                     ] : [
-                        'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                        'spouse_annual_income', 'spouse_annual_earnings', 'spouse_employment_status', 'spouse_isa_balance',
                         'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
                         'spouse_pension_input_annual',
                     ], null));
