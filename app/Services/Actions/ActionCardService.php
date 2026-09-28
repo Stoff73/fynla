@@ -108,6 +108,7 @@ final class ActionCardService
                 : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
             'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null),
             'how_to' => $howTo['steps'],
+            'learn_more' => $howTo['learn'],
             'conflict_note' => $card['conflict_note'] ?? null,
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
@@ -148,11 +149,11 @@ final class ActionCardService
      * strategy type, any other by the definition key its adapter carried.
      *
      * @param  array<string, mixed>|null  $taxItem
-     * @return array{steps: list<string>, why: list<string>, outcome: list<string>} the steps, why it matters to the user, and what it changes
+     * @return array{steps: list<string>, why: list<string>, outcome: list<string>, learn: list<array{label: string, url: string}>} the steps, why it matters to the user, what it changes, and where to read more
      */
     private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey): array
     {
-        $none = ['steps' => [], 'why' => [], 'outcome' => []];
+        $none = ['steps' => [], 'why' => [], 'outcome' => [], 'learn' => []];
         $model = self::DEFINITIONS[$module] ?? null;
         $strategyType = $taxItem['type'] ?? null;
         if ($model === null || ($strategyType === null && $definitionKey === null)) {
@@ -172,6 +173,12 @@ final class ActionCardService
             'steps' => ActionHowTo::render($steps, $facts, $text),
             'why' => ActionHowTo::render($steps, $facts, $text, 'why'),
             'outcome' => ActionHowTo::render($steps, $facts, $text, 'outcome'),
+            // "Label | /path": a page of Fynla's own help, never an outside site.
+            'learn' => array_values(array_filter(array_map(static function (string $line): ?array {
+                [$label, $url] = array_map('trim', explode('|', $line, 2) + [1 => '']);
+
+                return $label !== '' && str_starts_with($url, '/') ? ['label' => $label, 'url' => $url] : null;
+            }, ActionHowTo::render($steps, $facts, $text, 'learn')))),
         ];
     }
 
@@ -217,6 +224,7 @@ final class ActionCardService
             'what_this_changes' => [],
             'key_figure' => null,
             'how_to' => [],
+            'learn_more' => [],
             'conflict_note' => null,
             'disclaimer' => null,
             'ask_fyn' => ['kind' => 'prompt', 'prompt' => 'Tell me more about: '.$title],

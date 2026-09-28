@@ -19,7 +19,8 @@ namespace App\Services\Actions;
  *   1. Your Income Tax falls from {tax_now} to {tax_after}.
  *
  * Steps under `why:` (or `why when <condition>:`) are "Why this matters for
- * you"; under `outcome:` they are "What this changes"; the rest are the how-to
+ * you"; under `outcome:` they are "What this changes"; under `learn:` they are
+ * "Find out more" links, written `Label | /path`; the rest are the how-to
  * steps. `when`/`always` switch back to steps.
  *
  * A condition is clauses joined by "and": `fact`, `not fact`,
@@ -47,7 +48,7 @@ final class ActionHowTo
                 continue;
             } elseif (preg_match('/^status:\s*(draft|approved)\s*$/', $line, $m)) {
                 $entries[$key]['status'] = $m[1];
-            } elseif (preg_match('/^(outcome|why)?\s*(?:when (.+)|always)?:\s*$/', $line, $m) && trim($line) !== ':') {
+            } elseif (preg_match('/^(outcome|why|learn)?\s*(?:when (.+)|always)?:\s*$/', $line, $m) && trim($line) !== ':') {
                 $part = ($m[1] ?? '') !== '' ? $m[1] : 'steps';
                 $when = isset($m[2]) && $m[2] !== '' ? trim($m[2]) : null;
             } elseif (preg_match('/^\d+\.\s+(.+)$/', $line, $m)) {
@@ -63,7 +64,7 @@ final class ActionHowTo
      * @param  list<array{when?: string|null, text: string}|string>  $steps  stored steps (a bare string is unconditional)
      * @param  array<string, mixed>  $facts  raw values, for conditions
      * @param  array<string, string>  $text  display values, for placeholders
-     * @param  string  $part  'steps' for the how-to, 'why' for why it matters, 'outcome' for what it changes
+     * @param  string  $part  'steps' for the how-to, 'why' for why it matters, 'outcome' for what it changes, 'learn' for links
      * @return list<string>
      */
     public static function render(array $steps, array $facts, array $text, string $part = 'steps'): array
