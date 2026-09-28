@@ -42,7 +42,10 @@ it('opens the spouse details form with the income field for a married user with 
 
     expect($body)->toContain('"type":"capture_form"')
         ->and($body)->toContain('spouse_annual_income')
-        ->and($body)->not->toContain('only help with financial planning');
+        ->and($body)->not->toContain('only help with financial planning')
+        // The form's label already starts "Your": no "your Your".
+        ->and($body)->toContain("Here's your spouse's details")
+        ->and($body)->not->toContain('your Your');
 });
 
 it('saves the spouse income from that form', function (): void {

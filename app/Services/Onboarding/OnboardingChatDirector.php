@@ -7366,7 +7366,9 @@ PROMPT;
             return false;
         }
 
-        $prompt = "Here's your {$form['label']} — change what needs changing and save.";
+        // Some labels already start "Your" ("Your spouse's details").
+        $label = preg_replace('/^your\s+/i', '', (string) $form['label']);
+        $prompt = "Here's your {$label} — change what needs changing and save.";
         $metadata = array_filter([
             'onboarding_step' => $stateId,
             'turn_intent' => FynTurnIntent::VerifyPrompt->value,
