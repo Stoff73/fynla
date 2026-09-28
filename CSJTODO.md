@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-27: PR #943 (pension contributions, long-term residence, walk defects) and PR #944 (action detail cards, web//m/iOS) open against dev, both walked on csjones; TestFlight builds 11–12 uploaded. Next: merge and release, CSJ review of the tax how-tos, help rewrite.*
+*Last updated: 2026-09-28: four releases live (#949 action cards + lanes, #952 spouse earnings cap + carry forward gate, #955 help page, #958 how-to help links + Estate cards). Next: Fyn "Ask Fyn about this" narration.*
 
 ## The board position
 
@@ -67,13 +67,13 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
-## NEXT — help pages, then Fyn narration (updated 2026-09-27 evening)
+## NEXT — Fyn narration (updated 2026-09-28 evening)
 
-Released today: #945 (#943 pension contributions + long-term residence, #944 action cards) and #947 (#946 tax engine and strategy figures, audit 2026-09-27). Both walked live on fynla.org.
+Released 2026-09-28 and walked live: #949, #952, #955, #958 (see `handover/September/28/handover-2026-09-28-session-2.md`).
 
-- [ ] **CSJ: approve Marriage Allowance** in `database/seeders/data/action-how-to/tax.md` (the other 20 approved 2026-09-28). Each entry carries why, steps and outcome, filled with the user's figures.
 - [ ] **Scottish income tax is not modelled anywhere** (`TaxConfigurationSeeder.php:139`, `scotland.enabled = false`; no "lives in Scotland" field). Every tax figure is at rest-of-UK rates. Marriage Allowance carries a caveat line for now (CSJ 2026-09-28).
-- [ ] **Help pages: rewrite from the audit** (`docs/help-audit-2026-09-26.md`). Make `public/pages/help.php` the one source; delete `Help.vue` and its unreachable route (`router/index.js:1411-1418`). Wrong-fact sections first (12), then stale UI (36), then the 24 screens with no help. Every figure from tax config, every rule sourced.
+- [ ] **iOS: render how-to `learn_more` links** (web and /m do since #958; `ActionsModels.swift` ignores the field).
+- [ ] **Help audit leftovers (section 7):** `FamilyMemberFormModal.vue:38-39` still says "A user account will be created for your spouse"; `GET /api/user/letter-to-spouse/spouse` has no client; no web or /m input for `nrb_transferred_from_spouse`; critical illness cover type forced to standalone (`PolicyFormModal.vue:1000`); dead components (`RiskAnalysisSection`, `BenchmarkComparison`, `PerformanceAttribution`, `PortfolioOptimization`, `AnnualAllowanceTracker`, `StrategiesTab`).
 - [ ] **Fyn narration from "Ask Fyn about this"** (Rule 20, one place; load `fyn-architecture`). It left the personal pension out of the £7,800 explanation and said "mechanical-tier strategy" (`claim_tier` jargon).
 - [ ] **Intermittent iOS UI test:** `testPR7ParityClosureJourney` fails "not hittable ... Keyboard Focused" on `net-worth.forecast.rate.property` (dev run on `3520df133`); passed on the branch run. The simulator hardware-keyboard trap (`ios-simulator` skill).
 - [ ] **Other modules' how-to batches** after the tax batch is approved: savings (54), protection (32), retirement (26), investment (17), estate (12). Add `SOURCES` entries to `ActionHowToSeeder`.
