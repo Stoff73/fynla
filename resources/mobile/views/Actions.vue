@@ -27,7 +27,7 @@
             <span class="ma-row__num">{{ index + 1 }}</span>
             <span class="ma-row__text">
               <span class="ma-row__title">{{ item.title }}</span>
-              <span class="ma-row__meta">{{ moduleLabel(item) }}<template v-if="item.meta"> · {{ item.meta }}</template></span>
+              <span class="ma-row__meta">{{ moduleLabel(item) }}<template v-if="item.meta"> · {{ item.meta }}</template><template v-if="item.closes"> · {{ item.closes }}</template></span>
             </span>
           </button>
           <button

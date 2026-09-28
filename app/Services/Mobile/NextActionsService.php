@@ -27,7 +27,11 @@ class NextActionsService
     /** Modules that can produce an unlock prompt, in surfacing priority order. */
     private const UNLOCK_MODULES = ['retirement', 'protection', 'savings', 'investment', 'estate', 'goals'];
 
-    /** Max strategy-level unlock cards to surface — keeps the 4-slot list from being crowded. */
+    /**
+     * Max strategy-level unlock cards on the capped surfaces (the 4-slot
+     * dashboard list and the /m focus carousel). The full actions page shows
+     * every one in its "Waiting on you" lane (design B, CSJ 2026-09-28).
+     */
     private const MAX_STRATEGY_UNLOCKS = 2;
 
     /**
@@ -68,7 +72,7 @@ class NextActionsService
     {
         $user = User::findOrFail($userId);
 
-        return $this->applyCampaignAffinity($user, $this->rankAll($user, $userId));
+        return $this->applyCampaignAffinity($user, $this->rankAll($user, $userId, capStrategyUnlocks: false));
     }
 
     /**
@@ -101,9 +105,9 @@ class NextActionsService
     }
 
     /** @return array<int,array<string,mixed>> */
-    private function unlockFamilyItems(User $user): array
+    private function unlockFamilyItems(User $user, bool $capStrategyUnlocks = true): array
     {
-        return array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
+        return array_merge($this->unlockItems($user), $this->strategyUnlockItems($user, $capStrategyUnlocks ? self::MAX_STRATEGY_UNLOCKS : null));
     }
 
     /**
@@ -114,13 +118,13 @@ class NextActionsService
      *
      * @return array<int,array<string,mixed>>
      */
-    private function openItems(User $user, int $userId): array
+    private function openItems(User $user, int $userId, bool $capStrategyUnlocks = true): array
     {
         $midWalk = $this->midWalk($user);
 
         $items = array_merge(
             $this->recommendationItems($userId),
-            $midWalk ? [] : $this->unlockFamilyItems($user),
+            $midWalk ? [] : $this->unlockFamilyItems($user, $capStrategyUnlocks),
             $midWalk ? [] : $this->spouseLinkItems($user),
         );
 
@@ -132,9 +136,9 @@ class NextActionsService
         }, $items);
     }
 
-    private function rankAll(User $user, int $userId): array
+    private function rankAll(User $user, int $userId, bool $capStrategyUnlocks = true): array
     {
-        $items = $this->openItems($user, $userId);
+        $items = $this->openItems($user, $userId, $capStrategyUnlocks);
 
         usort($items, static function (array $a, array $b): int {
             return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
@@ -547,7 +551,7 @@ class NextActionsService
      *
      * @return array<int,array<string,mixed>>
      */
-    private function strategyUnlockItems(User $user): array
+    private function strategyUnlockItems(User $user, ?int $limit = self::MAX_STRATEGY_UNLOCKS): array
     {
         if ($this->gate->enforce('tax_optimisation', $user)['can_proceed'] !== true) {
             return [];
@@ -557,8 +561,15 @@ class NextActionsService
         $weight = (float) config('gamification.unlock_action_weight', 65) + 5.0;
         $items = [];
 
-        foreach (array_slice($plan['locked'], 0, self::MAX_STRATEGY_UNLOCKS) as $locked) {
+        // One card per missing detail, not per strategy it would unlock:
+        // three strategies waiting on investments are one thing to add.
+        $seen = [];
+        foreach ($plan['locked'] as $locked) {
             $noun = $this->unlockNounFor((string) ($locked['missing'][0] ?? ''));
+            if (isset($seen[$noun]) || ($limit !== null && count($items) >= $limit)) {
+                continue;
+            }
+            $seen[$noun] = true;
 
             $items[] = [
                 'id' => 'strategy_unlock:'.$locked['strategy_type'],

@@ -97,7 +97,7 @@ final class ActionCardService
             'module' => $module,
             'module_label' => (string) ($item['module_label'] ?? NextActionsService::moduleDisplayLabel($module)),
             'topic' => self::topicFor(isset($card['category']) ? (string) $card['category'] : null),
-            'deadline' => $isRecommendation ? $this->deadline($taxItem, $card) : null,
+            'deadline' => $isRecommendation ? $this->deadline($item, $card) : null,
             'title' => (string) $item['title'],
             'description' => (string) ($taxItem['description'] ?? $item['detail'] ?? $item['meta'] ?? ''),
             'why' => $isRecommendation
@@ -242,14 +242,15 @@ final class ActionCardService
      * "Closes 5 April" for an annual allowance that does not carry over, dated
      * from the active tax year's end in tax config; "Worth reviewing" otherwise.
      *
-     * @param  array<string, mixed>|null  $taxItem
+     * @param  array<string, mixed>  $item  the open action
      * @param  array<string, mixed>  $card
      * @return array{label: string, closes_on: string|null}
      */
-    private function deadline(?array $taxItem, array $card): array
+    private function deadline(array $item, array $card): array
     {
         $end = $this->taxConfig->getEffectiveTo();
-        if ($taxItem !== null && in_array($taxItem['type'], ActionCardFigures::ANNUAL_ALLOWANCE_TYPES, true) && $end !== '') {
+        // The same rule that puts the action in the "Before 5 April" lane.
+        if (ActionLanes::laneFor($item) === ActionLanes::BEFORE_TAX_YEAR_END && $end !== '') {
             $date = Carbon::parse($end);
 
             return ['label' => 'Closes '.$date->format('j F'), 'closes_on' => $date->toDateString()];

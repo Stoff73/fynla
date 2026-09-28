@@ -118,3 +118,34 @@ it('includes completed actions in the mobile achievements payload', function () 
         ->and($completed[0]['title'])->toBe('Add critical illness cover')
         ->and($completed[0]['module'])->toBe('protection');
 });
+
+it('sends each open action with its lane and the lane headings (design B)', function () {
+    $this->seed(TaxActionDefinitionSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'single', 'annual_employment_income' => 60000]);
+    Sanctum::actingAs($user);
+
+    $data = $this->getJson('/api/recommendations/actions')->assertOk()->json('data');
+    $laneKeys = array_column($data['lanes'], 'key');
+
+    expect($data['open'])->not->toBeEmpty()
+        ->and(collect($data['open'])->pluck('lane')->unique()->diff($laneKeys)->all())->toBe([])
+        ->and(collect($data['lanes'])->sum('count'))->toBe(count($data['open']));
+});
+
+it('shows every missing detail once on the full list, while the dashboard keeps two', function () {
+    $this->seed(TaxActionDefinitionSeeder::class);
+    // Tax gate open (income + employment status), so strategies can lock.
+    $user = User::factory()->create([
+        'is_preview_user' => false, 'date_of_birth' => '1982-02-19', 'marital_status' => 'single',
+        'employment_status' => 'full_time', 'annual_employment_income' => 60000, 'monthly_expenditure' => 3000,
+    ]);
+
+    $service = app(NextActionsService::class);
+    $strategyUnlocks = fn (array $items) => array_values(array_filter($items, fn ($i) => str_starts_with((string) $i['id'], 'strategy_unlock:')));
+    $all = $strategyUnlocks($service->buildAll($user->id));
+
+    // One card per missing detail, however many strategies wait on it.
+    expect(count($all))->toBeGreaterThan(2)
+        ->and(array_column($all, 'title'))->toBe(array_values(array_unique(array_column($all, 'title'))))
+        ->and(count($strategyUnlocks($service->build($user->id))))->toBeLessThanOrEqual(2);
+});
