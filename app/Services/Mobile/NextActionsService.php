@@ -593,7 +593,7 @@ class NextActionsService
             'dividend_income' => 'dividend',
             'savings_balances' => 'savings',
             'annual_income' => 'income',
-            'spouse_income' => "spouse's income",
+            'spouse_income', 'spouse_income_amount' => "spouse's income",
             default => HouseholdFinancialContext::labelFor($missingKey),
         };
     }

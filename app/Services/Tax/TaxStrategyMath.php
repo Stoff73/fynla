@@ -530,9 +530,11 @@ final class TaxStrategyMath
             $spouse = $this->incomePartsFor($linked);
             $spouseBand = $this->bandFromIncomeFor($linked, $this->taxableIncomeFor($linked));
         } else {
+            // Not working is not the same as no income: a pension or rent can
+            // use the whole allowance. Only a captured figure counts (CSJ
+            // 2026-09-28); until then the action waits for it.
             $spouse = match ($mode) {
-                'single_earner_couple' => ['non_savings' => 0.0, 'dividends' => 0.0],
-                'dual_earner' => $household?->spouse_annual_income === null ? null : [
+                'single_earner_couple', 'dual_earner' => $household?->spouse_annual_income === null ? null : [
                     'non_savings' => (float) $household->spouse_annual_income,
                     'dividends' => (float) ($household->spouse_annual_dividends ?? 0),
                 ],

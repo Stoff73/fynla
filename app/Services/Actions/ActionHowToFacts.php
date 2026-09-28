@@ -160,6 +160,18 @@ final class ActionHowToFacts
                 $facts[$key.'_is_nil'] = (float) $item[$key] <= 0;
             }
         }
+        // Marriage Allowance in Scotland: the recipient may pay no more than the
+        // Scottish intermediate rate, so a recipient above that limit is warned.
+        $scotLimit = $this->taxConfig->getIncomeTax()['marriage_allowance']['scottish_recipient_upper_limit'] ?? null;
+        $recipient = match ($item['transfer_direction'] ?? null) {
+            'to_user' => $item['user_income'] ?? null,
+            'to_spouse' => $item['spouse_income'] ?? null,
+            default => null,
+        };
+        if (is_numeric($scotLimit) && $recipient !== null) {
+            $facts['above_scottish_ma_limit'] = (float) $recipient > (float) $scotLimit;
+            $text['scottish_ma_limit'] = self::pounds((float) $scotLimit);
+        }
 
         return ['facts' => $facts, 'text' => $text];
     }

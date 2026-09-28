@@ -301,7 +301,7 @@ outcome when not uses_gift_aid and tax_saved:
 status: edited
 source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/eligibility; https://www.gov.uk/marriage-allowance/how-to-apply; ITA 2007 s55B (https://www.legislation.gov.uk/ukpga/2007/3/section/55B) and s55C (https://www.legislation.gov.uk/ukpga/2007/3/section/55C); s45 Married Couple's Allowance (https://www.legislation.gov.uk/ukpga/2007/3/section/45)
 figures: amount_transferred, transfer_direction, user_income, spouse_income, estimated_annual_tax_saved
-eligibility (checked before the action is shown, TaxStrategyMath::marriageAllowance): married or in a civil partnership; the person giving it has income below the Personal Allowance; the person receiving it pays no rate above the basic rate, dividends counted in full (s55B(2)(b), (ba)); a linked spouse's own income is used, otherwise the income given in onboarding.
+eligibility (checked before the action is shown, TaxStrategyMath::marriageAllowance): married or in a civil partnership; the person giving it has income below the Personal Allowance; the person receiving it pays no rate above the basic rate, dividends counted in full (s55B(2)(b), (ba)). The spouse's income must be known: a linked spouse's own records or an amount entered. "Does not work" alone leaves the action waiting on "Add your spouse's income" (CSJ 2026-09-28). Scottish rates are not modelled, so recipients above the Scottish limit get a caveat line (CSJ 2026-09-28).
 when transfer_direction is to_user:
 1. The claim is made by {spouse}. They transfer {amount_transferred} of their Personal Allowance to you.
 when transfer_direction is to_user and spouse_income_is_nil:
@@ -318,6 +318,10 @@ when transfer_direction is to_spouse and not user_income_is_nil:
 2. Your income of {user_income} is below the {personal_allowance} Personal Allowance, so part of it goes unused.
 when transfer_direction is to_spouse:
 3. {spouse_start} qualifies to receive it because, on their income of {spouse_income}, they pay Income Tax at the basic rate and no higher.
+when transfer_direction is to_user and above_scottish_ma_limit:
+3. If you live in Scotland, this does not apply to you: there the person receiving it must pay no more than the Scottish intermediate rate, which usually means income up to {scottish_ma_limit}.
+when transfer_direction is to_spouse and above_scottish_ma_limit:
+3. If {spouse} lives in Scotland, this does not apply: there the person receiving it must pay no more than the Scottish intermediate rate, which usually means income up to {scottish_ma_limit}.
 when mca_possible:
 4. One of you was born before {mca_born_before}, so Married Couple's Allowance may give you more. You cannot have both, so check it on GOV.UK before you apply.
 always:

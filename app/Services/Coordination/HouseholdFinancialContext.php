@@ -17,11 +17,16 @@ use App\Services\Tax\TaxStrategyMath;
  * seeded on tax_action_definitions — a strategy whose required_data are not
  * all true is "locked": surfaced as an unlock prompt, never silently skipped.
  *
- * The 13 vocabulary keys are fixed to match the seeds:
+ * The 14 vocabulary keys are fixed to match the seeds:
  *   annual_income, charitable_giving, date_of_birth, dividend_income,
  *   employment_status, gia_holdings, isa_subscriptions_ytd, marital_status,
  *   pension_contributions, pension_input_history, savings_balances,
- *   spouse_income, workplace_pension
+ *   spouse_income, spouse_income_amount, workplace_pension
+ *
+ * spouse_income is "we know how the spouse stands" (a non-working spouse
+ * counts). spouse_income_amount is the figure itself — a linked spouse's
+ * records or an amount captured — which Marriage Allowance needs because a
+ * non-working spouse can still have a pension or rent (CSJ 2026-09-28).
  */
 final class HouseholdFinancialContext
 {
@@ -59,12 +64,21 @@ final class HouseholdFinancialContext
             'pension_input_history' => collect(app(PensionStore::class)->pensionInputHistory($user))->isNotEmpty(),
             'savings_balances' => $this->hasSavingsBalance($user),
             'spouse_income' => $this->spouseIncomeKnown($user),
+            'spouse_income_amount' => $user->liveSpouse() !== null
+                || TaxStrategyHouseholdInput::where('user_id', $user->id)->whereNotNull('spouse_annual_income')->exists(),
             'workplace_pension' => $hasDcPension,
         ];
         foreach ($declared as $key) {
             if (array_key_exists($key, $availability)) {
                 $availability[$key] = true;
             }
+        }
+        // Someone with no spouse or civil partner has no spouse data to give:
+        // the spouse strategies do not apply to them, so nothing waits on it
+        // (a single user was being asked for a spouse's income).
+        if (! $this->math->isMarriedOrCivilPartner($user)) {
+            $availability['spouse_income'] = true;
+            $availability['spouse_income_amount'] = true;
         }
 
         return $availability;
@@ -109,6 +123,7 @@ final class HouseholdFinancialContext
             'savings_balances' => 'savings accounts',
             'charitable_giving' => 'charitable giving',
             'spouse_income' => "spouse's income",
+            'spouse_income_amount' => "spouse's total income a year, including any pension or rent (enter 0 if none)",
             'marital_status' => 'marital status',
             'employment_status' => 'employment status',
             'date_of_birth' => 'date of birth',

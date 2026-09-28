@@ -41,7 +41,7 @@ it('reports which catalogue data points are available for a user', function () {
         ->and($availability['pension_input_history'])->toBeFalse();
 });
 
-it('returns exactly the 13 canonical vocabulary keys', function () {
+it('returns exactly the 14 canonical vocabulary keys', function () {
     // Only asserts the key set — values vary with factory defaults (e.g. marital_status defaults to 'single' = available).
     $user = User::factory()->create([
         'annual_employment_income' => null,
@@ -60,7 +60,7 @@ it('returns exactly the 13 canonical vocabulary keys', function () {
         'annual_income', 'charitable_giving', 'date_of_birth', 'dividend_income',
         'employment_status', 'gia_holdings', 'isa_subscriptions_ytd', 'marital_status',
         'pension_contributions', 'pension_input_history', 'savings_balances',
-        'spouse_income', 'workplace_pension',
+        'spouse_income', 'spouse_income_amount', 'workplace_pension',
     ]);
 });
 

@@ -159,6 +159,12 @@ class TaxConfigurationSeeder extends Seeder
                 // basic-rate taxpayer.
                 'marriage_allowance' => [
                     'amount' => 1260,
+                    // A Scottish recipient must pay no more than the intermediate
+                    // rate, "usually ... income between £12,571 and £43,662"
+                    // (https://www.gov.uk/marriage-allowance/eligibility; ITA 2007
+                    // s55B(2)(b)). Scottish bands are not modelled, so the how-to
+                    // warns recipients above this (CSJ 2026-09-28).
+                    'scottish_recipient_upper_limit' => 43662,
                 ],
 
                 // Married Couple's Allowance: one of the couple born before this

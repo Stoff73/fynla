@@ -38,7 +38,7 @@ it('offers Marriage Allowance when personal pension payments bring the recipient
         'annual_employment_income' => 52000,
         'marital_status' => 'married',
     ]);
-    TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 0]); // captured as none (CSJ 2026-09-28)
     DCPension::factory()->for($user)->create([
         'scheme_type' => 'personal', 'pension_type' => 'personal',
         'monthly_contribution_amount' => 200, 'annual_salary' => null,

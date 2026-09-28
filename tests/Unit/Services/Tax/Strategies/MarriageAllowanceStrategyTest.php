@@ -5,9 +5,14 @@ declare(strict_types=1);
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Actions\ActionHowTo;
+use App\Services\Actions\ActionHowToFacts;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -15,6 +20,8 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    // The locked list reads each strategy's required data from its definition.
+    $this->seed(TaxActionDefinitionSeeder::class);
 });
 
 function maUser(array $attrs, array $household = []): User
@@ -22,6 +29,11 @@ function maUser(array $attrs, array $household = []): User
     // marriage_allowance_eligible mirrors what FunnelAnswersMapper writes for a
     // non-earning spouse, so the old flag-only gate cannot pass these alone.
     $user = User::factory()->create($attrs + ['marital_status' => 'married', 'marriage_allowance_eligible' => true]);
+    // A non-working spouse's income is captured, not assumed (CSJ 2026-09-28):
+    // these fixtures stand for "no income", entered as 0.
+    if (($attrs['household_calculation_mode'] ?? null) === 'single_earner_couple' && ! array_key_exists('spouse_annual_income', $household)) {
+        $household['spouse_annual_income'] = 0;
+    }
     TaxStrategyHouseholdInput::create(['user_id' => $user->id] + $household);
 
     return $user;
@@ -154,4 +166,35 @@ it('runs the other way when the user is the one below the allowance and the spou
 
     expect($rec['transfer_direction'])->toBe('to_spouse')
         ->and($rec['user_income'])->toBe(5000.0);
+});
+
+it('waits for the spouse\'s income when the only thing known is that they do not work', function () {
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 35000], ['spouse_annual_income' => null]);
+
+    $plan = app(ComposedTaxPlanService::class)->forUser($user);
+
+    expect(maRec($user))->toBeNull()
+        ->and(collect($plan['locked'])->firstWhere('strategy_type', 'marriage_allowance_transfer')['missing'] ?? null)->toBe(['spouse_income_amount']);
+});
+
+it('never asks a single person for a spouse\'s income', function () {
+    $user = User::factory()->create(['marital_status' => 'single', 'annual_employment_income' => 35000]);
+
+    $plan = app(ComposedTaxPlanService::class)->forUser($user);
+    $spouseLocks = collect($plan['locked'])->filter(fn ($l) => array_intersect($l['missing'], ['spouse_income', 'spouse_income_amount']) !== []);
+
+    expect($spouseLocks)->toBeEmpty();
+});
+
+it('warns a recipient above the Scottish limit that it does not apply if they live in Scotland', function () {
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 48000]);
+    $rec = maRec($user);
+    $entry = ActionHowToSeeder::parse((string) file_get_contents(ActionHowToSeeder::sourcePath('tax')))['marriage_allowance_transfer'];
+    ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $rec);
+
+    $steps = ActionHowTo::render($entry['steps'], $facts, $text);
+
+    expect($rec)->not->toBeNull()
+        ->and(collect($steps)->first(fn ($s) => str_starts_with($s, 'If you live in Scotland')))
+        ->toContain('£43,662');
 });
