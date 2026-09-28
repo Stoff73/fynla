@@ -11,7 +11,7 @@ branch: dev (work on feat/personalised-how-to, PR #948)
 
 ## Where things stand
 
-All of today's work is in **PR #948** (`feat/personalised-how-to` → `dev`, 9 commits, tip `160cf472b`, pushed). It is **not merged and not released**.
+All of today's work is in **PR #948** (`feat/personalised-how-to` → `dev`, 11 commits, tip `4ceaad9eb`, pushed). It is **not merged and not released**.
 
 It makes every tax action card personal: "why this matters", "how to do it" and "what this changes", all from the user's own records and figures. It builds the approved deadline lanes on `/actions` and fixes the tax rules and wording CSJ raised.
 
@@ -115,7 +115,14 @@ It makes every tax action card personal: "why this matters", "how to do it" and 
   - Tax and retirement: `MarriageAllowanceStrategy`, `TaxStrategyCalculator`, `PlanB*`, `SalarySacrifice*`, `Thresholds/Lines`, `IncomeBandStrategy`.
   - Investment: `InvestmentActionDefinition*`, `TaxAwareRebalancer*`, `TaxOptimisationService`.
   - Plan and actions plumbing: `HouseholdFinancialContext`, `ComposedModulePlanService`, `StrategyUnlockCards`, `NextActionsService`.
-- **CI on PR #948:** GitGuardian, logic-guard and Snyk pass. The Quality Gate and iOS Native were still running at hand-over, so check them first.
+- **CI on PR #948 at `4ceaad9eb` (13:00):**
+  - **All green except two still running:** Unit, Integration, Architecture, Eval, lint, frontend, builds, browser-smoke, apple-store-bridge, GitGuardian, logic-guard and Snyk passed.
+  - **Still running at hand-over:** php-tests (Feature) and iOS Native `test-and-build`, both started 12:19. Full runs take 30 to 42 minutes.
+  - **Check them first** with `gh pr checks 948`, and fix any red on the branch.
+  - The earlier lint and Architecture failures are fixed in `4ceaad9eb`:
+    - Pint style in two test files;
+    - `RetirementStrategyService` no longer names `DCPension` (the pensions store boundary);
+    - the unused `getComponentScore` is removed from `TaxOptimizationOverview.vue`.
 - **Local browser (worktree on :8001):**
   - Web: salary sacrifice card with "What this changes", lanes for Chris and the Plan B married couple, and the "Unlock spouse's income info" card.
   - `/m`: the junior pension and Lifetime ISA cards, and the actions list with "Closes 5 April".
@@ -163,7 +170,7 @@ It makes every tax action card personal: "why this matters", "how to do it" and 
 ## Branch and deploy state
 
 - **Main checkout:** on `dev` `a2dbc66dc`. It is clean apart from files that were already untracked or modified before this session (`workforce/*`, excalidraw, the 27 September patch-notes line above).
-- **Work branch:** `feat/personalised-how-to`, pushed, tip `160cf472b`. Worktree at `/private/tmp/claude-501/-Users-CSJ-Desktop-fynla/08b86b11-68ac-4eb3-899b-27f0b7af7eea/scratchpad/wt-howto`; remove it after merge.
+- **Work branch:** `feat/personalised-how-to`, pushed, tip `4ceaad9eb`. Worktree at `/private/tmp/claude-501/-Users-CSJ-Desktop-fynla/08b86b11-68ac-4eb3-899b-27f0b7af7eea/scratchpad/wt-howto`; remove it after merge.
 - **Deploys:**
   - Production: `main` `569957ef8`, unchanged today.
   - csjones: `dev` `a21778c18`, unchanged today.
