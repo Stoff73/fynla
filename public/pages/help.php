@@ -482,9 +482,9 @@ $helpEducationPerYear = $helpPounds($helpProtection['education_cost_per_year'] ?
                         'a' => 'Your data is encrypted when it travels between your device and Fynla. You can turn on two-factor authentication in Settings, then Security, and download or delete your data at any time.'],
                 ],
             ];
-              // Render FAQ items directly (not via partial) since heading is empty
-              // and this is embedded within an existing section.
-              ?>
+// Render FAQ items directly (not via partial) since heading is empty
+// and this is embedded within an existing section.
+?>
             <dl class="faq__list help-inline-faq">
               <?php foreach ($module['items'] as $i => $item) { ?>
               <div class="faq__item" data-faq-item>
