@@ -153,5 +153,31 @@ it('open-redirect guard: only same-origin campaign paths are framable', function
         ->and($guard('/admin'))->toBeFalse()
         ->and($guard('/savetaxevil'))->toBeFalse()   // prefix-bypass guard
         ->and($guard('/'))->toBeFalse()
-        ->and($guard('savetax'))->toBeFalse();        // must be rooted
+        ->and($guard('savetax'))->toBeFalse()         // must be rooted
+        ->and($guard('/savetax/../admin'))->toBeFalse() // dot segments reach any page
+        ->and($guard('/savetax/./plan'))->toBeFalse()
+        ->and($guard('/register/extra'))->toBeFalse(); // account pages exactly
+});
+
+// Production live test 2026-09-29, defect H2: /m/savetax returned the 404 page.
+// A campaign or account path typed under /m now lands on it inside /m, the same
+// place a phone hitting the plain path is sent.
+it('sends a campaign or account path under /m to that page inside /m', function () {
+    get('/m/savetax', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fsavetax');
+    get('/m/savetax/plan')->assertRedirect('/m?to=%2Fsavetax%2Fplan');
+    get('/m/pensioncheck?utm_source=ad')->assertRedirect('/m?to=%2Fpensioncheck%3Futm_source%3Dad');
+    get('/m/register?invite=abc')->assertRedirect('/m?to=%2Fregister%3Finvite%3Dabc');
+});
+
+it('leaves other /m paths alone', function () {
+    get('/m/app/login')->assertOk()->assertSee('id="m-app"', false);
+    get('/m/landing')->assertOk();
+    expect(get('/m/savetaxevil')->headers->get('Location'))->toBeNull();
+    expect(get('/m/admin')->headers->get('Location'))->toBeNull();
+});
+
+it('never sends /m/register/<anything> to a page the /m host would refuse', function () {
+    // Account pages are framable exactly; the route matches the same set.
+    expect(get('/m/register/extra')->headers->get('Location'))->toBeNull();
+    expect(RedirectPhoneToMobile::framedTarget('savetax/../admin', null))->toBe('/m');
 });
