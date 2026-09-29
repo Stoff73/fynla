@@ -979,7 +979,10 @@ function pensioncheckRecapFor(array $funnel): string
         'funnel_answers' => array_merge(['campaign' => 'pensioncheck'], $funnel),
     ]);
 
-    return SM::buildWorkPrompt('', $user, pensioncheckConversation($user));
+    $conversation = pensioncheckConversation($user);
+
+    // The recap is the lead-in on the first turn (#991), not part of the work prompt.
+    return SM::funnelRecapLeadIn($user, $conversation).SM::buildWorkPrompt('', $user, $conversation);
 }
 
 it('recaps each Pension Check income band in its existing wording, for the user and the spouse', function (string $band, string $phrase): void {

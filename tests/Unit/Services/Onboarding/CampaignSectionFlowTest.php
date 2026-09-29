@@ -182,7 +182,8 @@ it("recaps the partner's employment when the funnel asked it (taper band)", func
         ],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))
+    // The recap is the lead-in on the first turn (#991), not part of the work prompt.
+    expect(SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u))
         ->toContain('spouse or civil partner earning £100,001–£125,140, who is retired');
 });
 
