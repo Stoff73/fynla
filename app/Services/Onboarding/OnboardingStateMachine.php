@@ -1941,6 +1941,21 @@ final class OnboardingStateMachine
         }
     }
 
+    private static function pensioncheckIncomeRecapLabel(mixed $band): string
+    {
+        if (! is_string($band) || ! FunnelIncomeBand::isKnown($band)) {
+            return '';
+        }
+
+        try {
+            return FunnelIncomeBand::pageRecapLabel($band);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return '';
+        }
+    }
+
     /** Join a list into "a, b and c". */
     private static function joinWithAnd(array $items): string
     {
@@ -3242,23 +3257,17 @@ final class OnboardingStateMachine
             $points[] = ucfirst($employmentLabel);
         }
 
-        $incomeLabel = [
-            'upto_50270' => 'earning up to £50,270',
-            '50271_100000' => 'earning £50,271 to £100,000',
-            '100001_125140' => 'earning £100,001 to £125,140',
-            'over_125140' => 'earning above £125,140',
-        ][$funnel['income'] ?? ''] ?? null;
+        // Band figures come from the active tax configuration (Rule 2), in the
+        // pension check page's own option wording. The funnel carries no
+        // income_context (AuthController stamps it for savetax only).
+        $incomeLabel = self::pensioncheckIncomeRecapLabel($funnel['income'] ?? null);
         if ($incomeLabel) {
             $points[] = ucfirst($incomeLabel);
         }
 
         if (($funnel['spouse'] ?? '') === 'yes') {
-            $spouseIncomeSuffix = [
-                'upto_50270' => ' earning up to £50,270',
-                '50271_100000' => ' earning £50,271 to £100,000',
-                '100001_125140' => ' earning £100,001 to £125,140',
-                'over_125140' => ' earning above £125,140',
-            ][$funnel['spouseIncome'] ?? ''] ?? '';
+            $spouseIncomeLabel = self::pensioncheckIncomeRecapLabel($funnel['spouseIncome'] ?? null);
+            $spouseIncomeSuffix = $spouseIncomeLabel ? ' '.$spouseIncomeLabel : '';
             $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix;
         }
 
