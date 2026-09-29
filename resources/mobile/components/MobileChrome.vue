@@ -445,7 +445,11 @@ export default {
         // opening (verifyAnswer) must wait for this to actually
         // finish, not just start.
         return this.resumeOnboardingInDock();
-      } else if (!this.messages.length) {
+      }
+      // A conversation already under way this session (M6) is resumed, not
+      // replaced by a fresh greeting.
+      if (await this.resumeCurrentConversation()) return;
+      if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }
     },

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 
 // Regression coverage for the /m dead-token bug (CSJ report, 2026-07-21): a 401
@@ -566,6 +566,202 @@ describe('onboardingChat mixin — interrupted turns', () => {
     const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
     expect(reply.text).toBe('Here is the answer.');
     expect(reply.bubbles).toEqual([]);
+  });
+});
+
+// M6 (live fynla.org /m, 2026-09-29): after a SaveTax registrant finished
+// onboarding and asked Fyn a question, returning to the dashboard re-opened Fyn
+// full-screen and the conversation was gone. Two causes, both in this mixin's
+// remit: the user snapshot kept onboarding_fyn_needs_start from the first fetch,
+// and the conversation id lived only in component data, which /m (no
+// <keep-alive>) destroys on every route change.
+describe('onboardingChat mixin — M6: onboarding flags stay truthful', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.token = 'live-token';
+    store.subscriptionStatus = { tier: 'free', payment_enabled: false };
+    store.setFynConversation(null);
+  });
+
+  function mountHost() {
+    return mount(Host, {
+      global: { mocks: { $router: { push: vi.fn() }, $route: { path: '/tax-strategy', query: {} } } },
+    });
+  }
+
+  it('onboarding_complete clears needs_start at once and re-reads the user only after the stream ends', async () => {
+    store.user = {
+      id: 7,
+      onboarding_completed: false,
+      onboarding_fyn_step: 'campaign_terminal',
+      onboarding_fyn_needs_start: true,
+      active_campaign: 'savetax',
+    };
+    let userFetchedMidStream = null;
+    apiPost.mockResolvedValueOnce({ ok: true, status: 200, data: { data: { id: 'conv-1' } } });
+    apiStream.mockImplementationOnce(async (_url, _body, _token, _onDelta, onEvent) => {
+      onEvent({ type: 'onboarding_complete', nextRoute: '/tax-strategy' });
+      userFetchedMidStream = apiGet.mock.calls.some(([path]) => path === '/api/auth/user');
+      return { ok: true, status: 200, text: '' };
+    });
+    apiGet.mockImplementation((path) => Promise.resolve(path === '/api/auth/user'
+      ? { ok: true, status: 200, data: { data: { user: { id: 7, onboarding_completed: true, onboarding_fyn_step: null, onboarding_fyn_needs_start: false, active_campaign: null } } } }
+      : { ok: true, status: 200, data: {} }));
+
+    const wrapper = mountHost();
+    await wrapper.vm.send("Yes, that's right");
+
+    expect(userFetchedMidStream).toBe(false);
+    expect(apiGet).toHaveBeenCalledWith('/api/auth/user', 'live-token');
+    await flushPromises();
+    expect(store.user.onboarding_completed).toBe(true);
+    expect(store.user.onboarding_fyn_needs_start).toBe(false);
+    expect(store.user.active_campaign).toBeNull();
+    expect(wrapper.vm.onboardingNeedsStart).toBe(false);
+    expect(wrapper.vm.onboardingActive).toBe(false);
+    apiGet.mockReset();
+    apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: {} }));
+  });
+
+  it('a first onboarding start re-reads the user so a stale needs_start cannot outlive it', async () => {
+    store.user = { id: 7, onboarding_completed: false, onboarding_fyn_step: null, onboarding_fyn_needs_start: true };
+    apiStream.mockImplementationOnce(async (_url, _body, _token, onDelta, onEvent) => {
+      onEvent({ type: 'conversation_created', conversation_id: 'conv-start' });
+      onDelta('Hello');
+      return { ok: true, status: 200, text: '' };
+    });
+    const wrapper = mountHost();
+
+    await wrapper.vm.startOnboarding();
+
+    expect(store.user.onboarding_fyn_needs_start).toBe(false);
+    expect(apiGet).toHaveBeenCalledWith('/api/auth/user', 'live-token');
+  });
+
+  it('does not re-read the user after an ordinary advice turn', async () => {
+    store.user = { id: 7, onboarding_completed: true, onboarding_fyn_step: null, onboarding_fyn_needs_start: false };
+    apiPost.mockResolvedValueOnce({ ok: true, status: 200, data: { data: { id: 'conv-2' } } });
+    apiStream.mockImplementationOnce(async (_url, _body, _token, onDelta) => {
+      onDelta('An answer');
+      return { ok: true, status: 200, text: '' };
+    });
+    const wrapper = mountHost();
+
+    await wrapper.vm.send('How much can I put in my pension?');
+
+    expect(apiGet).not.toHaveBeenCalledWith('/api/auth/user', expect.anything());
+  });
+});
+
+describe('onboardingChat mixin — M6: the current conversation survives a remount', () => {
+  const transcript = {
+    ok: true,
+    status: 200,
+    data: {
+      data: {
+        messages: [
+          { role: 'user', content: 'How much can I put in my pension?', metadata: {} },
+          { role: 'assistant', content: 'Here is how the annual allowance works.', metadata: {} },
+        ],
+      },
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.token = 'live-token';
+    store.subscriptionStatus = { tier: 'free', payment_enabled: false };
+    store.user = { id: 7, onboarding_completed: true, onboarding_fyn_step: null, onboarding_fyn_needs_start: false };
+    store.setFynConversation(null);
+  });
+
+  function mountHost() {
+    return mount(Host, {
+      global: { mocks: { $router: { push: vi.fn() }, $route: { path: '/dashboard', query: {} } } },
+    });
+  }
+
+  it('records the conversation in the store and reloads its transcript in a freshly mounted chat', async () => {
+    apiPost.mockResolvedValueOnce({ ok: true, status: 200, data: { data: { id: 'conv-9' } } });
+    apiStream.mockImplementationOnce(async (_url, _body, _token, onDelta) => {
+      onDelta('Here is how the annual allowance works.');
+      return { ok: true, status: 200, text: '' };
+    });
+    const first = mountHost();
+    await first.vm.send('How much can I put in my pension?');
+    await first.vm.$nextTick();
+    first.unmount();
+
+    expect(store.currentFynConversationId()).toBe('conv-9');
+    expect(JSON.parse(window.sessionStorage.getItem('m_fyn_conversation')).id).toBe('conv-9');
+
+    apiGet.mockImplementation((path) => Promise.resolve(path === '/api/ai-chat/conversations/conv-9'
+      ? transcript
+      : { ok: true, status: 200, data: {} }));
+    const second = mountHost();
+    expect(second.vm.conversationId).toBeNull();
+
+    await expect(second.vm.resumeCurrentConversation()).resolves.toBe(true);
+
+    expect(second.vm.conversationId).toBe('conv-9');
+    expect(second.vm.messages.map((m) => m.text)).toEqual([
+      'How much can I put in my pension?',
+      'Here is how the annual allowance works.',
+    ]);
+    apiGet.mockReset();
+    apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: {} }));
+  });
+
+  it('forgets a conversation that can no longer be loaded and lets the caller greet', async () => {
+    store.setFynConversation('conv-gone');
+    apiGet.mockImplementation(() => Promise.resolve({ ok: false, status: 404, data: {} }));
+    const wrapper = mountHost();
+
+    await expect(wrapper.vm.resumeCurrentConversation()).resolves.toBe(false);
+
+    expect(wrapper.vm.conversationId).toBeNull();
+    expect(wrapper.vm.messages).toEqual([]);
+    expect(store.currentFynConversationId()).toBeNull();
+    apiGet.mockReset();
+    apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: {} }));
+  });
+
+  it('logout clears the current conversation from memory and session storage', () => {
+    store.setFynConversation('conv-9');
+    expect(store.currentFynConversationId()).toBe('conv-9');
+
+    store.logout();
+
+    expect(store.currentFynConversationId()).toBeNull();
+    expect(window.sessionStorage.getItem('m_fyn_conversation')).toBeNull();
+  });
+
+  it('never hands one user\'s conversation to another user on the same device', () => {
+    store.user = { id: 7 };
+    store.setFynConversation('conv-9');
+    store.user = { id: 8 };
+
+    expect(store.currentFynConversationId()).toBeNull();
+  });
+
+  it('a contextual launch opens its own conversation and becomes the current one', async () => {
+    store.setFynConversation('conv-9');
+    apiPost.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: { data: { conversation: { id: 'conv-ctx' }, opening_message: { role: 'assistant', content: 'Which account?' } } },
+    });
+    apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: { data: { messages: [] } } }));
+    const wrapper = mountHost();
+
+    await wrapper.vm.createContextualConversation({ action: 'edit', resource_type: 'savings' });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.conversationId).toBe('conv-ctx');
+    expect(apiGet).not.toHaveBeenCalledWith('/api/ai-chat/conversations/conv-9', expect.anything());
+    expect(store.currentFynConversationId()).toBe('conv-ctx');
+    apiGet.mockReset();
+    apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: {} }));
   });
 });
 
