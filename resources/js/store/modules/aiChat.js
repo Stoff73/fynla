@@ -695,7 +695,8 @@ const actions = {
             if (reader && reader.turnTaken) {
                 commit('REMOVE_MESSAGE', tempId);
                 queuedTurn = true;
-                if (reader.turnTaken === 'in_progress') await waitForTurn();
+                // It may still be finishing: give it a moment, then show it.
+                await waitForTurn();
                 await dispatch('loadConversation', state.currentConversation.id);
                 return;
             }
@@ -1543,6 +1544,10 @@ const actions = {
             dispatch('postAction', retry.action);
             return;
         }
+        if (retry.start) {
+            dispatch('startOnboardingConversation', retry.start);
+            return;
+        }
         // The question is asked again, so its first bubble goes. The same turn
         // id goes with it, so a turn the server already took is not taken twice.
         if (retry.messageId) commit('REMOVE_MESSAGE', retry.messageId);
@@ -1791,7 +1796,11 @@ const actions = {
                 commit('SET_ERROR', 'Onboarding is temporarily unavailable. Please try again.');
             }
         } finally {
-            if (interrupted) commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
+            if (interrupted) {
+                commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
+                // The first turn gets the same "Try again" as any other (review of #976).
+                commit('SET_RETRY_TURN', { start: { from: fromParam ?? null } });
+            }
             commit('SET_STREAMING', false);
             commit('SET_ABORT_CONTROLLER', null);
         }

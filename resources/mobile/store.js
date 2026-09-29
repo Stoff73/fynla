@@ -7,15 +7,17 @@ const KEY = 'm_scaffold_token';
 // The Fyn conversation the user is in during this session (M6, 2026-09-29).
 // /m has no <keep-alive>, so the chat's component state dies on every route
 // change; the id lives here so the dashboard chat and every screen's docked
-// Fyn bar resume the same conversation instead of greeting afresh. Per session
-// only (sessionStorage — survives a reload of this tab, never a new session),
-// bound to the user it belongs to, and cleared on logout so another person
-// signing in on the device never sees it.
+// Fyn bar resume the same conversation instead of greeting afresh. It lasts
+// for as long as the user is signed in (memory feedback_fyn_session_persists_
+// while_logged_in): localStorage, like the /m token itself, so closing and
+// reopening the app resumes it too. Bound to the user it belongs to, and
+// cleared on logout so another person signing in on the device never sees it;
+// the server only ever loads a user's own conversations.
 const FYN_CONVERSATION_KEY = 'm_fyn_conversation';
 
 function readFynConversation() {
   try {
-    const raw = window.sessionStorage.getItem(FYN_CONVERSATION_KEY);
+    const raw = window.localStorage.getItem(FYN_CONVERSATION_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
     return parsed && parsed.id ? parsed : null;
   } catch {
@@ -25,8 +27,8 @@ function readFynConversation() {
 
 function writeFynConversation(value) {
   try {
-    if (value) window.sessionStorage.setItem(FYN_CONVERSATION_KEY, JSON.stringify(value));
-    else window.sessionStorage.removeItem(FYN_CONVERSATION_KEY);
+    if (value) window.localStorage.setItem(FYN_CONVERSATION_KEY, JSON.stringify(value));
+    else window.localStorage.removeItem(FYN_CONVERSATION_KEY);
   } catch {
     /* storage blocked (private mode) — the in-memory copy still serves this session */
   }

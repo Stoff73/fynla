@@ -20,7 +20,8 @@ export function isMultiSelectSubmit(bubble) {
 
 /** True when tapping this bubble toggles it (not the submit, a director action or a link). */
 export function isToggleable(bubble) {
-  return Boolean(bubble) && !isMultiSelectSubmit(bubble) && bubble.action !== true && !bubble.route;
+  // Submit, actions, navigation and "Try again" are never picks.
+  return Boolean(bubble) && !isMultiSelectSubmit(bubble) && bubble.action !== true && !bubble.route && !bubble.retry;
 }
 
 /** The selection with `id` added, or removed if it was already there. */

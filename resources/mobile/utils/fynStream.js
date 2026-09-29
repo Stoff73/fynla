@@ -78,8 +78,9 @@ export function isDroppedConnection(error) {
 export const FYN_INTERRUPTED_MESSAGE = 'Sorry, my reply was cut off before I finished. Please try again.';
 
 /**
- * A fresh id for one user turn. "Try again" re-sends it, so the server
- * (FynTurnLedger) never takes the same turn twice. Web and /m both use this.
+ * A fresh id for one user turn, sent as the Idempotency-Key header. "Try
+ * again" re-sends it, so the server (IdempotencyKeyMiddleware) never takes the
+ * same turn twice. Web and /m both use this; iOS sends the same header.
  */
 export function newTurnId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();

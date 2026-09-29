@@ -10,7 +10,6 @@ use App\Models\TaxConfiguration;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Models\UserConsent;
-use App\Services\AI\Loop\FynTurnLedger;
 use App\Services\AI\XaiClient;
 use App\Services\GDPR\ConsentService;
 use App\Services\TaxConfigService;
@@ -256,32 +255,23 @@ describe('the chat stream', function (): void {
     });
 
     // Review of #976: the server finishes a turn whose client dropped, so "Try
-    // again" re-sending it would answer it twice (and, onboarding, write twice).
-    it('answers a retried turn it has already taken with "answered", never a second run', function () use ($advice): void {
+    // again" re-sending it must not run it twice. Web and /m now send the turn's
+    // Idempotency-Key, as iOS does (IdempotencyKeyMiddleware).
+    it('runs a turn re-sent with the same Idempotency-Key once, and acknowledges the repeat', function () use ($advice): void {
         $runs = 0;
         $conversation = $advice(function () use (&$runs): Generator {
             $runs++;
             yield ['type' => 'content', 'text' => 'Here is the answer.'];
             yield ['type' => 'done'];
         });
-        $payload = ['message' => 'How does the tax trap work?', 'turn_id' => 'turn-7f3a'];
+        $send = fn () => test()->withHeaders(['Idempotency-Key' => 'turn-7f3a'])
+            ->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['message' => 'How does the tax trap work?', 'current_route' => '/dashboard']);
 
-        test()->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", $payload)->streamedContent();
-        $retry = test()->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", $payload);
+        $send()->streamedContent();
+        $retry = $send();
 
-        $retry->assertOk()->assertExactJson(['status' => 'answered']);
+        $retry->assertOk()->assertHeader('X-Idempotent-Replay', '1');
         expect($runs)->toBe(1);
-    });
-
-    it('says a retried turn is still in progress while the first run is going', function () use ($advice): void {
-        $conversation = $advice(function (): Generator {
-            yield ['type' => 'content', 'text' => 'Here is the answer.'];
-        });
-        app(FynTurnLedger::class)->start($conversation, 'turn-8b1c');
-
-        test()->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['message' => 'Hello', 'turn_id' => 'turn-8b1c'])
-            ->assertOk()
-            ->assertExactJson(['status' => 'in_progress']);
     });
 
     it('never adds a second terminal frame to a turn that ended properly', function () use ($advice): void {

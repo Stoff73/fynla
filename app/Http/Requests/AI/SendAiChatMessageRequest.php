@@ -30,9 +30,6 @@ final class SendAiChatMessageRequest extends FormRequest
         return [
             'message' => ['required_without:form', 'nullable', 'string', 'max:2000'],
             'current_route' => ['nullable', 'string', 'max:255'],
-            // The client's id for this turn, re-sent by "Try again" so a turn
-            // the server already took is not taken twice (FynTurnLedger).
-            'turn_id' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'],
             // A structured capture-form answer (CaptureForms). Shape only —
             // business rules live in the store the director writes through.
             'form' => ['sometimes', 'array'],

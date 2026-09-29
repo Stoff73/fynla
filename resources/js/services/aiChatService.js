@@ -90,9 +90,6 @@ const aiChatService = {
         const token = await getToken();
 
         const body = { current_route: currentRoute };
-        // The client's id for this turn: "Try again" re-sends it, so the server
-        // never takes the same turn twice (FynTurnLedger).
-        if (turnId) body.turn_id = turnId;
         if (form) {
             body.form = form;
         } else {
@@ -106,6 +103,10 @@ const aiChatService = {
                 'Accept': 'text/event-stream',
                 'Authorization': `Bearer ${token}`,
                 ...FORMS_HEADER,
+                // One id per turn, re-sent by "Try again": the server's
+                // IdempotencyKeyMiddleware never takes the same turn twice
+                // (the iOS app sends the same header).
+                ...(turnId ? { 'Idempotency-Key': turnId } : {}),
             },
             body: JSON.stringify(body),
             credentials: 'same-origin',
@@ -137,13 +138,11 @@ const aiChatService = {
             return { queued: true, messageId: payload.message_id, queuePosition: payload.queue_position };
         }
 
-        // A retried turn the server has already taken answers in JSON, not SSE:
-        // 'answered' (the reply is stored) or 'in_progress' (still running).
-        if ((response.headers.get('Content-Type') || '').includes('application/json')) {
-            const payload = await response.json().catch(() => ({}));
-            if (payload.status === 'answered' || payload.status === 'in_progress') {
-                return { turnTaken: payload.status };
-            }
+        // A retried turn the server has already taken is acknowledged in JSON
+        // (IdempotencyKeyMiddleware), not streamed again: the reply is stored,
+        // or still being written.
+        if (response.headers.get('X-Idempotent-Replay') === '1') {
+            return { turnTaken: true };
         }
 
         // WKWebView may not support ReadableStream — fall back to text parsing

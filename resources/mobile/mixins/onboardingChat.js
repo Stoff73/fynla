@@ -44,6 +44,7 @@ export default {
       sending: false,
       fynStarted: false,
       transcriptLoadError: '',
+      transcriptLoadStatus: null,
       transcriptFallbackDestination: null,
       // Set when a stream changed the user's onboarding state server-side;
       // settleUserSnapshot() re-reads the user once that stream has ended.
@@ -173,8 +174,10 @@ export default {
       if (!id) return false;
       if (await this.openConversation(id)) return true;
       if (!store.token) return true;
-      // The stored conversation could not be loaded (deleted, or no longer
-      // this user's): forget it and fall back to the greeting.
+      // Offline or a server error: keep the conversation, which shows the
+      // "could not load" message with its retry, rather than lose it.
+      if (![403, 404, 410].includes(this.transcriptLoadStatus)) return true;
+      // Gone (deleted, or no longer this user's): forget it and greet afresh.
       store.setFynConversation(null);
       this.resetConversationState();
       this.fynStarted = true;
@@ -224,6 +227,12 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.handleAuthExpiry(result)) return;
+        // A cut-off first turn is not a greeting: say so and offer it again,
+        // as web does (review of #976).
+        if (result && result.interrupted) {
+          this.markInterrupted(cursor, { start: { from } });
+          return;
+        }
         if (neededStart && this.conversationId) {
           if (store.user) store.user.onboarding_fyn_needs_start = false;
           this.userRefreshPending = true;
@@ -244,8 +253,9 @@ export default {
             && (cursor.got || (cursor.reply.bubbles && cursor.reply.bubbles.length))) {
           store.user.active_campaign = from;
         }
-      } catch {
-        cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
+      } catch (error) {
+        if (isDroppedConnection(error)) this.markInterrupted(cursor, { start: { from } });
+        else cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
       } finally {
         this.sending = false;
         this.settleUserSnapshot();
@@ -310,6 +320,7 @@ export default {
       await loadMobileSubscriptionStatus();
       const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
       if (this.handleAuthExpiry(res)) return false;
+      this.transcriptLoadStatus = res?.ok ? null : (res?.status ?? 0);
       if (!res?.ok) {
         this.transcriptFallbackDestination = res?.status === 410
           && res.data?.error === 'contextual_resource_unavailable'
@@ -606,7 +617,8 @@ export default {
       }
       if (ev.type === 'skip_link' && ev.skip_link?.label) {
         cursor.got = true;
-        cursor.reply.bubbles = [{ id: 'skip', label: ev.skip_link.label }];
+        // An action, never a chip: on a multi-select state "Skip" must not toggle.
+        cursor.reply.bubbles = [{ id: 'skip', label: ev.skip_link.label, action: true }];
         cursor.reply.actionBubbles = true;
         this.$nextTick(this.scrollFyn);
         return;
@@ -744,7 +756,6 @@ export default {
         }
         const body = { current_route: (this.$route && this.$route.path) || '/dashboard' };
         if (form) body.form = form; else body.message = text;
-        body.turn_id = turnId;
         const result = await apiStream(
           `/api/ai-chat/conversations/${cid}/messages`,
           body,
@@ -753,13 +764,14 @@ export default {
             this.appendFynText(cursor, piece);
           },
           (ev) => this.handleFynEvent(cursor, ev),
+          { idempotencyKey: turnId },
         );
         if (this.handleAuthExpiry(result)) return;
         // "Try again" for a turn the server already took (it finishes a turn
         // whose client dropped): show the stored reply rather than ask again.
         // Still running: give it a moment, then show it.
         if (result && result.turnTaken) {
-          if (result.turnTaken === 'in_progress') await new Promise((resolve) => { setTimeout(resolve, TURN_SETTLE_MS); });
+          await new Promise((resolve) => { setTimeout(resolve, TURN_SETTLE_MS); });
           await this.loadTranscript(cid);
           return;
         }
@@ -851,6 +863,10 @@ export default {
       cursor.reply.text = FYN_INTERRUPTED_MESSAGE;
       cursor.reply.bubbles = [{ id: 'fyn_retry', label: 'Try again', retry }];
       cursor.reply.form = null;
+      // A cut-off multi-select turn must not turn "Try again" into a chip
+      // that toggles instead of retrying (review of #979).
+      cursor.reply.multiSelect = false;
+      cursor.reply.actionBubbles = false;
       this.$nextTick(this.scrollFyn);
     },
 
@@ -860,11 +876,15 @@ export default {
       const idx = this.messages.indexOf(message);
       if (idx !== -1) {
         const prev = this.messages[idx - 1];
-        const dropQuestion = !retry.action && prev && prev.role === 'user';
+        const dropQuestion = !retry.action && !retry.start && prev && prev.role === 'user';
         this.messages.splice(dropQuestion ? idx - 1 : idx, dropQuestion ? 2 : 1);
       }
       if (retry.action) {
         this.runFynAction(retry.action);
+        return;
+      }
+      if (retry.start) {
+        this.startOnboarding(retry.start.from || null);
         return;
       }
       this.send(retry.text, retry.form || null, retry.turnId || null);

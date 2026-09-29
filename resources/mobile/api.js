@@ -100,7 +100,7 @@ export async function apiDownload(path, token) {
  * resolves with the full accumulated text. Falls back to a one-shot read when
  * the platform has no streaming body (older WebViews).
  */
-export async function apiStream(path, body, token, onDelta, onEvent) {
+export async function apiStream(path, body, token, onDelta, onEvent, { idempotencyKey = null } = {}) {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     credentials: 'omit', // Bearer-only — see apiPost.
@@ -109,6 +109,8 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
       'Accept': 'text/event-stream',
       'X-Fynla-Forms': '1',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // One id per turn, re-sent by "Try again" (IdempotencyKeyMiddleware).
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -127,13 +129,10 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
     return { ok: true, status: 202, queued: true, data, text: '' };
   }
 
-  // A retried turn the server has already taken answers in JSON, not SSE:
-  // 'answered' (the reply is stored) or 'in_progress' (still running).
-  if ((res.headers.get('Content-Type') || '').includes('application/json')) {
-    const data = await res.json().catch(() => ({}));
-    if (data.status === 'answered' || data.status === 'in_progress') {
-      return { ok: true, status: res.status, turnTaken: data.status, text: '' };
-    }
+  // A retried turn the server has already taken is acknowledged in JSON
+  // (IdempotencyKeyMiddleware), not streamed again.
+  if (res.headers.get('X-Idempotent-Replay') === '1') {
+    return { ok: true, status: res.status, turnTaken: true, text: '' };
   }
 
   // Surface the full parsed event so callers can handle non-text turns,

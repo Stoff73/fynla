@@ -17,6 +17,8 @@ vi.mock('../../api.js', () => ({
 import { apiGet, apiPost, apiStream } from '../../api.js';
 import { store } from '../../store.js';
 import onboardingChat from '../onboardingChat.js';
+import { isToggleable } from '../../utils/fynMultiSelect.js';
+import { TURN_SETTLE_MS } from '../../utils/fynStream.js';
 
 // A minimal host so the shared mixin can be exercised without pulling in a
 // full view (Dashboard.vue / MobileChrome.vue both mix this in as-is).
@@ -596,8 +598,8 @@ describe('onboardingChat mixin — interrupted turns', () => {
     expect(reply.bubbles).toEqual([{
       id: 'fyn_retry',
       label: 'Try again',
-      // The cut-off turn's own id goes with the retry (FynTurnLedger).
-      retry: { text: 'How does the tax trap work?', form: null, turnId: apiStream.mock.calls[0][1].turn_id },
+      // The cut-off turn's own id goes with the retry (Idempotency-Key).
+      retry: { text: 'How does the tax trap work?', form: null, turnId: apiStream.mock.calls[0][5].idempotencyKey },
     }]);
     expect(wrapper.vm.sending).toBe(false);
   });
@@ -617,9 +619,9 @@ describe('onboardingChat mixin — interrupted turns', () => {
 
     expect(apiStream).toHaveBeenCalledTimes(2);
     expect(apiStream.mock.calls[1][1]).toMatchObject({ message: 'How does the tax trap work?' });
-    // The same turn id, so a turn the server already took is not taken twice.
-    expect(apiStream.mock.calls[0][1].turn_id).toBeTruthy();
-    expect(apiStream.mock.calls[1][1].turn_id).toBe(apiStream.mock.calls[0][1].turn_id);
+    // The same Idempotency-Key, so a turn the server already took is not taken twice.
+    expect(apiStream.mock.calls[0][5].idempotencyKey).toBeTruthy();
+    expect(apiStream.mock.calls[1][5].idempotencyKey).toBe(apiStream.mock.calls[0][5].idempotencyKey);
     expect(wrapper.vm.messages.map((m) => [m.role, m.text])).toEqual([
       ['user', 'How does the tax trap work?'],
       ['fyn', 'Above £100,000 you lose £1 of allowance for every £2.'],
@@ -629,12 +631,16 @@ describe('onboardingChat mixin — interrupted turns', () => {
   it('shows the stored reply when the server has already answered the retried turn', async () => {
     apiStream
       .mockResolvedValueOnce({ ok: true, status: 200, text: '', interrupted: true })
-      .mockResolvedValueOnce({ ok: true, status: 200, text: '', turnTaken: 'answered' });
+      .mockResolvedValueOnce({ ok: true, status: 200, text: '', turnTaken: true });
     const loadTranscript = vi.spyOn(wrapper.vm, 'loadTranscript').mockResolvedValue(true);
 
     await wrapper.vm.send('How does the tax trap work?');
     const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
-    await wrapper.vm.chooseBubble(reply.bubbles[0], reply);
+    vi.useFakeTimers();
+    wrapper.vm.chooseBubble(reply.bubbles[0], reply);
+    // The retry waits a moment for a turn that may still be finishing.
+    await vi.advanceTimersByTimeAsync(TURN_SETTLE_MS);
+    vi.useRealTimers();
     await new Promise((r) => { setTimeout(r, 0); });
 
     expect(loadTranscript).toHaveBeenCalledWith(940);
@@ -789,7 +795,7 @@ describe('onboardingChat mixin — M6: the current conversation survives a remou
     first.unmount();
 
     expect(store.currentFynConversationId()).toBe('conv-9');
-    expect(JSON.parse(window.sessionStorage.getItem('m_fyn_conversation')).id).toBe('conv-9');
+    expect(JSON.parse(window.localStorage.getItem('m_fyn_conversation')).id).toBe('conv-9');
 
     apiGet.mockImplementation((path) => Promise.resolve(path === '/api/ai-chat/conversations/conv-9'
       ? transcript
@@ -822,6 +828,20 @@ describe('onboardingChat mixin — M6: the current conversation survives a remou
     apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: {} }));
   });
 
+  it('keeps the conversation when it cannot load for now (offline, server error)', async () => {
+    // Review of #980: any failure used to forget it, so a blip lost the chat.
+    store.setFynConversation('conv-blip');
+    apiGet.mockImplementation(() => Promise.resolve({ ok: false, status: 503, data: {} }));
+    const wrapper = mountHost();
+
+    await expect(wrapper.vm.resumeCurrentConversation()).resolves.toBe(true);
+
+    expect(store.currentFynConversationId()).toBe('conv-blip');
+    expect(wrapper.vm.transcriptLoadError).not.toBe('');
+    apiGet.mockReset();
+    apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: {} }));
+  });
+
   it('logout clears the current conversation from memory and session storage', () => {
     store.setFynConversation('conv-9');
     expect(store.currentFynConversationId()).toBe('conv-9');
@@ -829,7 +849,7 @@ describe('onboardingChat mixin — M6: the current conversation survives a remou
     store.logout();
 
     expect(store.currentFynConversationId()).toBeNull();
-    expect(window.sessionStorage.getItem('m_fyn_conversation')).toBeNull();
+    expect(window.localStorage.getItem('m_fyn_conversation')).toBeNull();
   });
 
   it('never hands one user\'s conversation to another user on the same device', () => {
@@ -896,5 +916,27 @@ describe('multi-select bubbles (M4)', () => {
     w.vm.chooseBubble({ id: 'done', label: "Bank account, ISA, That's everything" }, { bubbles, multiSelect: true });
     expect(send).toHaveBeenCalledTimes(1);
     expect(send).toHaveBeenCalledWith("Bank account, ISA, That's everything");
+  });
+});
+
+// Review of #979: a cut-off multi-select turn put "Try again" into a row still
+// flagged multiSelect, so the chip toggled instead of retrying; a skip link on
+// a multi-select state would toggle the same way.
+describe('bubbles that are never picks', () => {
+  it('turns a cut-off multi-select row into a plain Try again', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [{ id: 'isa', label: 'ISA' }], multiSelect: true }, got: false };
+    w.vm.markInterrupted(cursor, { text: 'ISA', form: null, turnId: 't1' });
+
+    expect(cursor.reply.multiSelect).toBe(false);
+    expect(isToggleable(cursor.reply.bubbles[0])).toBe(false);
+  });
+
+  it('marks a skip link as an action, never a chip', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.handleFynEvent(cursor, { type: 'skip_link', skip_link: { label: 'Skip' } });
+
+    expect(isToggleable(cursor.reply.bubbles[0])).toBe(false);
   });
 });

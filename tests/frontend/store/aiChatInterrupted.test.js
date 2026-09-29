@@ -74,7 +74,7 @@ describe('an interrupted Fyn turn on web', () => {
 
     await aiChat.actions.sendMessage(context, 'How does the tax trap work?');
     const firstId = aiChatService.sendMessageStream.mock.calls[0][3].turnId;
-    aiChatService.sendMessageStream.mockResolvedValue({ turnTaken: 'answered' });
+    aiChatService.sendMessageStream.mockResolvedValue({ turnTaken: true });
     await aiChat.actions.retryInterruptedTurn(context);
 
     const retryCall = aiChatService.sendMessageStream.mock.calls[1];
@@ -84,7 +84,7 @@ describe('an interrupted Fyn turn on web', () => {
   });
 
   it('shows the stored reply when the server has already answered the retried turn', async () => {
-    aiChatService.sendMessageStream.mockResolvedValue({ turnTaken: 'answered' });
+    aiChatService.sendMessageStream.mockResolvedValue({ turnTaken: true });
     const { localState, dispatch, context } = harness();
 
     await aiChat.actions.sendMessage(context, { text: 'How does the tax trap work?', turnId: 'turn-1' });
