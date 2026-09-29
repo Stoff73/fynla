@@ -23,6 +23,12 @@ use App\Models\User;
 class EmploymentIncomeService
 {
     /**
+     * The most one income figure may be: the range capture_work_details
+     * accepts, and within employments.annual_income decimal(12,2).
+     */
+    public const MAX_ANNUAL_INCOME = 99_999_999;
+
+    /**
      * Record what the user just told us about their work.
      *
      * A payload with no income refines the job in hand (multi-turn extraction
@@ -30,6 +36,10 @@ class EmploymentIncomeService
      * job: the same employer and role at a new figure is a correction, anything
      * else is another job. Re-sending an identical payload changes nothing —
      * the LLM emitting the same tool call twice must never double a salary.
+     *
+     * An estimate someone else gave (recordEstimate) is replaced by the
+     * person's own first job, whatever they call it — it is a guess at that
+     * same income, never a second one.
      */
     public function recordJob(User $user, ?string $employer, ?string $occupation, ?float $income): Employment
     {
@@ -41,11 +51,18 @@ class EmploymentIncomeService
         } elseif ($latest && $this->sameRole($latest, $employer, $occupation)) {
             $job = $latest;
         } else {
-            $job = new Employment(['user_id' => $user->id, 'income_type' => $type]);
+            $job = $user->employments()->where('is_estimate', true)->latest('id')->first()
+                ?: new Employment(['user_id' => $user->id, 'income_type' => $type]);
         }
 
         $job->user_id = $user->id;
         $job->income_type = $type;
+        // The flag is about the FIGURE. Naming the job without one leaves the
+        // inviter's guess in place, so it stays an estimate until an income
+        // arrives — otherwise the next full payload lands as a second row.
+        if ($income !== null) {
+            $job->is_estimate = false;
+        }
         if ($employer !== null && $employer !== '') {
             $job->employer = $employer;
         }
@@ -63,6 +80,51 @@ class EmploymentIncomeService
     }
 
     /**
+     * Hold a figure someone else gave for this person's income — the income a
+     * user entered for their spouse, copied across when the spouse's account
+     * links. It counts towards the totals until the person gives their own,
+     * which replaces it (recordJob) instead of being added to it.
+     */
+    public function recordEstimate(User $user, float $income): Employment
+    {
+        if ($income <= 0 || $income > self::MAX_ANNUAL_INCOME) {
+            throw new \InvalidArgumentException('Estimated income out of range');
+        }
+        $type = $this->incomeTypeFor($user);
+        $job = Employment::create([
+            'user_id' => $user->id,
+            'income_type' => $type,
+            'annual_income' => $income,
+            'is_estimate' => true,
+        ]);
+
+        $this->syncTotals($user);
+
+        return $job;
+    }
+
+    /**
+     * The user stated their own total for one income type on the income page.
+     * Someone else's estimate (recordEstimate) no longer stands: it goes, and
+     * when it was the only row of that type the stated figure takes its place,
+     * so syncTotals can never bring the inviter's figure back (C1, 2026-09-29).
+     * Without an estimate on file nothing changes here.
+     */
+    public function replaceEstimateWithStated(User $user, string $type, float $stated): void
+    {
+        $estimates = $user->employments()->where('income_type', $type)->where('is_estimate', true)->get();
+        if ($estimates->isEmpty()) {
+            return;
+        }
+        $estimates->each->delete();
+        $hasOwn = $user->employments()->where('income_type', $type)->exists();
+        if (! $hasOwn && $stated > 0 && $stated <= self::MAX_ANNUAL_INCOME) {
+            Employment::create(['user_id' => $user->id, 'income_type' => $type, 'annual_income' => $stated, 'is_estimate' => false]);
+        }
+        $this->syncTotals($user);
+    }
+
+    /**
      * Change one job the user already told us about (the Fyn edit form,
      * CSJ 2026-09-19). Only the fields given change; the totals follow.
      */
@@ -77,6 +139,7 @@ class EmploymentIncomeService
         if ($income !== null) {
             $job->annual_income = $income;
         }
+        $job->is_estimate = false;
         $job->save();
 
         $this->syncTotals($user);
