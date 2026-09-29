@@ -811,7 +811,7 @@ const actions = {
 
                     case 'onboarding_advance':
                         // The director split a multi-part prompt (e.g. the
-                        // funnel recap → the income question) with this marker.
+                        // funnel recap, then the income question) with this marker.
                         // Flush the current streaming text into its own bubble
                         // so the next part starts fresh — matching the /m dock
                         // and the resume render, where the DB rows are separate
@@ -825,7 +825,7 @@ const actions = {
                             });
                             commit('SET_STREAMING_TEXT', '');
                         }
-                        logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                        logger.debug('[onboarding] advance', event.from_step, 'to', event.to_step);
                         break;
 
                     case 'onboarding_layout_change':
@@ -977,7 +977,7 @@ const actions = {
                         // branch above also flushes streamingText as a
                         // fallback — without this clear, a normal
                         // assistant turn followed by a director-emitted
-                        // quick_replies (e.g. asset_capture → add_more)
+                        // quick_replies (e.g. asset_capture, then add_more)
                         // would commit the same message twice.
                         if (state.streamingText) {
                             commit('ADD_MESSAGE', {
@@ -1411,7 +1411,7 @@ const actions = {
                             });
                             commit('SET_STREAMING_TEXT', '');
                         }
-                        logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                        logger.debug('[onboarding] advance', event.from_step, 'to', event.to_step);
                         break;
 
                     case 'onboarding_layout_change':
@@ -1718,7 +1718,7 @@ const actions = {
                             });
                             commit('SET_STREAMING_TEXT', '');
                         }
-                        logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                        logger.debug('[onboarding] advance', event.from_step, 'to', event.to_step);
                         break;
 
                     case 'level_up':
