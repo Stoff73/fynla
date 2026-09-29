@@ -191,6 +191,15 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_FUNNEL_ASSETS = 'campaign_funnel_assets';
 
+    /** A funnel employment answer (the user's or their partner's) as the recaps say it. */
+    private const FUNNEL_EMPLOYMENT_LABELS = [
+        'full-time' => 'working full-time',
+        'part-time' => 'working part-time',
+        'self-employed' => 'self-employed',
+        'retired' => 'retired',
+        'not-employed' => 'not currently employed',
+    ];
+
     /** Funnel question state → the funnel_answers key it writes, in asking order. */
     public const FUNNEL_STATES = [
         self::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT => 'employment',
@@ -1846,13 +1855,7 @@ final class OnboardingStateMachine
     {
         $points = [];
 
-        $employmentLabel = [
-            'full-time' => 'working full-time',
-            'part-time' => 'working part-time',
-            'self-employed' => 'self-employed',
-            'retired' => 'retired',
-            'not-employed' => 'not currently employed',
-        ][$funnel['employment'] ?? ''] ?? null;
+        $employmentLabel = self::FUNNEL_EMPLOYMENT_LABELS[$funnel['employment'] ?? ''] ?? null;
         if ($employmentLabel) {
             $points[] = ucfirst($employmentLabel);
         }
@@ -1875,7 +1878,10 @@ final class OnboardingStateMachine
                 $funnel['spouse_income_context'] ?? null,
             );
             $spouseIncomeSuffix = $spouseIncomeLabel ? ' '.$spouseIncomeLabel : '';
-            $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix;
+            // Asked only when the partner is in the Personal Allowance taper band.
+            $spouseEmploymentLabel = self::FUNNEL_EMPLOYMENT_LABELS[$funnel['spouseEmployment'] ?? ''] ?? null;
+            $spouseEmploymentSuffix = $spouseEmploymentLabel ? ', who is '.$spouseEmploymentLabel : '';
+            $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix.$spouseEmploymentSuffix;
         }
 
         $assetMap = [
@@ -3231,13 +3237,7 @@ final class OnboardingStateMachine
     {
         $points = [];
 
-        $employmentLabel = [
-            'full-time' => 'working full-time',
-            'part-time' => 'working part-time',
-            'self-employed' => 'self-employed',
-            'retired' => 'retired',
-            'not-employed' => 'not currently employed',
-        ][$funnel['employment'] ?? ''] ?? null;
+        $employmentLabel = self::FUNNEL_EMPLOYMENT_LABELS[$funnel['employment'] ?? ''] ?? null;
         if ($employmentLabel) {
             $points[] = ucfirst($employmentLabel);
         }

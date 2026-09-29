@@ -80,6 +80,22 @@ it('caps a retiree at the non-earner pension limit on the page (F2)', function (
         ->assertSee('An estimated saving of up to <span class="sp4-savings__figure" id="savings-figure">£720</span>', false);
 });
 
+// F10: a partner in the taper band whose income is not from work is capped at
+// the basic amount (FA 2004 s190): £2,160, not the £15,060 a working partner
+// saves. The headline adds the user's own £720 non-earner line to each.
+it("asks the partner's employment and caps a retired partner on the page (F10)", function (): void {
+    $this->get('/savetax')->assertOk()
+        ->assertSee('id="s-spouse-employment"', false)
+        ->assertSee("What is your spouse or civil partner's employment status?", false);
+
+    $this->get('/savetax/plan?employment=not-employed&income=zero&spouse=yes&spouseIncome=100001_125140&spouseEmployment=retired')
+        ->assertOk()
+        ->assertSee('<span class="sp4-savings__figure" id="savings-figure">£2,880</span>', false);
+    $this->get('/savetax/plan?employment=not-employed&income=zero&spouse=yes&spouseIncome=100001_125140&spouseEmployment=full-time')
+        ->assertOk()
+        ->assertSee('<span class="sp4-savings__figure" id="savings-figure">£15,780</span>', false);
+});
+
 it('renders a neutral state when the estimate service is unavailable', function (): void {
     $service = Mockery::mock(SaveTaxEstimateService::class);
     $service->shouldReceive('estimate')->andThrow(new RuntimeException('unavailable'));

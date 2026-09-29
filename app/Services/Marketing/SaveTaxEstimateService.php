@@ -55,7 +55,7 @@ class SaveTaxEstimateService
     ) {}
 
     /**
-     * @param  array{employment?:?string,income?:string,spouse?:string,spouseIncome?:?string,assets?:array<int,string>}  $answers
+     * @param  array{employment?:?string,income?:string,spouse?:string,spouseIncome?:?string,spouseEmployment?:?string,assets?:array<int,string>}  $answers
      * @return array<string,mixed>
      */
     public function estimate(array $answers): array
@@ -121,15 +121,9 @@ class SaveTaxEstimateService
 
         // --- Partner in the 60% tax trap ------------------------------------
         if ($married && $spouseBand === self::TRAP_BAND) {
-            $spouseIncome = $this->incomeForBand($spouseBand);
-            $contribution = $this->taperRescueContribution($spouseIncome);
-            if ($contribution > 0) {
-                $savings[] = [
-                    'key' => 'spouse_tax_trap_60',
-                    'label' => "Your partner's ".$this->trapLabel(),
-                    'amount' => $this->pensionSaving($spouseIncome, $contribution),
-                    'reason' => 'At '.$this->money($spouseIncome).', the top of the band you chose for your partner, paying '.$this->money($contribution).' into their pension reclaims their Personal Allowance, if that income is from work. Income between '.$this->money($this->taperThreshold()).' and '.$this->money($this->taperEnd()).' is taxed at '.$this->pct($this->trapRate()).'.',
-                ];
+            $partnerLine = $this->partnerTrapLine($this->incomeForBand($spouseBand), $answers['spouseEmployment'] ?? null);
+            if ($partnerLine !== null) {
+                $savings[] = $partnerLine;
             }
         }
 
@@ -434,10 +428,7 @@ class SaveTaxEstimateService
             // age in pension.relief_max_age (s188(3)(a)). Basic-rate relief is
             // added at source whether or not tax is paid (s192); the band
             // extension adds any higher-rate relief on top.
-            $nonEarner = $this->math->nonEarnerPensionContribution();
-            $gross = (int) round($nonEarner['gross']);
-            $relief = (int) round($nonEarner['relief']);
-            $saving = (int) round($this->math->reliefAtSourceSavingOn($this->incomeParts($income), (float) $gross));
+            ['gross' => $gross, 'net' => $net, 'relief' => $relief, 'saving' => $saving] = $this->nonEarnerPension($income);
             // Anything above the relief at source is higher-rate relief, given
             // only on a claim (s192(4)), e.g. through Self Assessment.
             $claim = $saving > $relief
@@ -448,7 +439,7 @@ class SaveTaxEstimateService
                 'key' => $this->isTrap($income) ? 'tax_trap_60' : 'pension',
                 'label' => $this->isTrap($income) ? $this->trapLabel() : 'Pension contribution',
                 'amount' => $saving,
-                'reason' => 'Without earnings from work, tax relief is limited to '.$this->money($gross).' a year of pension contributions: pay in '.$this->money((int) round($nonEarner['net'])).' and it is topped up to '.$this->money($gross).', if you are under '.$this->reliefMaxAge().'.'.$claim,
+                'reason' => 'Without earnings from work, tax relief is limited to '.$this->money($gross).' a year of pension contributions: pay in '.$this->money($net).' and it is topped up to '.$this->money($gross).', if you are under '.$this->reliefMaxAge().'.'.$claim,
             ];
         }
 
@@ -476,6 +467,71 @@ class SaveTaxEstimateService
             'label' => $this->isTrap($income) ? $this->trapLabel() : 'Pension contribution',
             'amount' => $this->pensionSaving($income, $contribution),
             'reason' => $reason,
+        ];
+    }
+
+    /**
+     * The partner's side of the 60% trap. The funnel asks the partner's
+     * employment only in this band, because relief is limited to the greater
+     * of relevant UK earnings and the basic amount (FA 2004 s190,
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/190): a retired or
+     * non-working partner is priced as the user is (pensionLine), and a
+     * working one as the plan engine prices their own taper rescue
+     * (IncomeBandStrategy). No answer, from a client that never asked, keeps
+     * the assumption stated in the reason.
+     *
+     * @return array{key:string,label:string,amount:int,reason:string}|null
+     */
+    private function partnerTrapLine(int $spouseIncome, mixed $spouseEmployment): ?array
+    {
+        $band = 'Income between '.$this->money($this->taperThreshold()).' and '.$this->money($this->taperEnd()).' is taxed at '.$this->pct($this->trapRate()).'.';
+
+        if (is_string($spouseEmployment) && in_array($spouseEmployment, self::NON_EARNING_EMPLOYMENT, true)) {
+            ['gross' => $gross, 'net' => $net, 'relief' => $relief, 'saving' => $saving] = $this->nonEarnerPension($spouseIncome);
+            // Relief above the basic rate is given only on a claim (s192(4)).
+            $claim = $saving > $relief
+                ? ' The other '.$this->money($saving - $relief).' they claim back through Self Assessment.'
+                : '';
+
+            return [
+                'key' => 'spouse_tax_trap_60',
+                'label' => "Your partner's ".$this->trapLabel(),
+                'amount' => $saving,
+                'reason' => 'Without earnings from work, your partner gets tax relief on up to '.$this->money($gross).' a year of pension contributions: they pay in '.$this->money($net).' and it is topped up to '.$this->money($gross).', if they are under '.$this->reliefMaxAge().'.'.$claim.' At '.$this->money($spouseIncome).', the top of the band you chose for them, that wins back part of their Personal Allowance. '.$band,
+            ];
+        }
+
+        $contribution = $this->taperRescueContribution($spouseIncome);
+        if ($contribution <= 0) {
+            return null;
+        }
+        $fromWork = is_string($spouseEmployment) && $spouseEmployment !== '' ? '' : ', if that income is from work';
+
+        return [
+            'key' => 'spouse_tax_trap_60',
+            'label' => "Your partner's ".$this->trapLabel(),
+            'amount' => $this->pensionSaving($spouseIncome, $contribution),
+            'reason' => 'At '.$this->money($spouseIncome).', the top of the band you chose for your partner, paying '.$this->money($contribution).' into their pension reclaims their Personal Allowance'.$fromWork.'. '.$band,
+        ];
+    }
+
+    /**
+     * A relief-at-source contribution by someone with no relevant earnings,
+     * limited to the basic amount (FA 2004 s190, pension.relevant_earnings_minimum)
+     * and priced by the plan engine (TaxStrategyMath::reliefAtSourceSavingOn).
+     *
+     * @return array{gross:int,net:int,relief:int,saving:int}
+     */
+    private function nonEarnerPension(int $income): array
+    {
+        $nonEarner = $this->math->nonEarnerPensionContribution();
+        $gross = (int) round($nonEarner['gross']);
+
+        return [
+            'gross' => $gross,
+            'net' => (int) round($nonEarner['net']),
+            'relief' => (int) round($nonEarner['relief']),
+            'saving' => (int) round($this->math->reliefAtSourceSavingOn($this->incomeParts($income), (float) $gross)),
         ];
     }
 

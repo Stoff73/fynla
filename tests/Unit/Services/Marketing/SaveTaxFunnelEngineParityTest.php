@@ -76,3 +76,37 @@ it('promises a retiree exactly the relief the plan finds, in every band', functi
     'trap' => ['100001_125140', 125140],
     'additional' => ['over_125140', 150000],
 ]);
+
+/**
+ * The partner's 60% trap line (F10, tax review of #975). The household plan
+ * never prices it; the partner's own plan does, once they are linked, and
+ * limits relief to earnings from work (FA 2004 s190). The funnel asks the
+ * partner's employment in this band so it can price them as their own plan
+ * would.
+ */
+function funnelPartnerTrapSaving(?string $spouseEmployment): int
+{
+    $result = app(SaveTaxEstimateService::class)->estimate([
+        'employment' => 'full-time',
+        'income' => 'upto_50270',
+        'spouse' => 'yes',
+        'spouseIncome' => '100001_125140',
+        'spouseEmployment' => $spouseEmployment,
+        'assets' => [],
+    ]);
+
+    return (int) collect($result['savings'])->where('key', 'spouse_tax_trap_60')->sum('amount');
+}
+
+it("prices the partner's 60% trap as the partner's own plan does", function (string $spouseEmployment, bool $earns) {
+    $engine = enginePensionSaving(125140, retired: ! $earns);
+
+    expect($engine)->toBeGreaterThan(0.0)
+        ->and((float) funnelPartnerTrapSaving($spouseEmployment))->toEqualWithDelta($engine, 1.0);
+})->with([
+    'full-time' => ['full-time', true],
+    'part-time' => ['part-time', true],
+    'self-employed' => ['self-employed', true],
+    'retired' => ['retired', false],
+    'not employed' => ['not-employed', false],
+]);

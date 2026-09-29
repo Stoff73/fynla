@@ -171,6 +171,21 @@ it('recaps the spouse income band when the spouse has income', function () {
         ->toContain('spouse or civil partner earning £50,271–£100,000');
 });
 
+it("recaps the partner's employment when the funnel asked it (taper band)", function () {
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'funnel_answers' => [
+            'employment' => 'full-time', 'income' => '50271_100000',
+            'spouse' => 'yes', 'spouseIncome' => '100001_125140', 'spouseEmployment' => 'retired', 'assets' => ['savings'],
+        ],
+    ]);
+
+    expect(SM::buildWorkPrompt('', $u))
+        ->toContain('spouse or civil partner earning £100,001–£125,140, who is retired');
+});
+
 it('omits the spouse income line when the spouse has no income', function () {
     $u = campaignUser([
         'first_name' => 'Trapper',

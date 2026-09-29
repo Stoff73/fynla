@@ -248,6 +248,46 @@ it("prices a partner's 60% tax trap on their own card (F3)", function () {
         ->and($result['savings_total'])->toBe(15780);
 });
 
+// Tax review of #975, F10: relief is limited to the greater of relevant UK
+// earnings and the basic amount (FA 2004 s190), so a partner whose £125,140 is
+// a pension or rent is priced at the basic amount, as the user is.
+it('caps a partner without earnings at the non-earner pension limit (F10)', function () {
+    $partner = fn (?string $spouseEmployment): array => $this->service->estimate([
+        'employment' => 'not-employed',
+        'income' => 'zero',
+        'spouse' => 'yes',
+        'spouseIncome' => '100001_125140',
+        'spouseEmployment' => $spouseEmployment,
+        'assets' => [],
+    ]);
+    $reason = fn (array $result): string => collect($result['savings'])->firstWhere('key', 'spouse_tax_trap_60')['reason'];
+
+    // £3,600 gross wins back £1,800 of allowance and moves £3,600 out of the
+    // higher band: 60% of £3,600 = £2,160.
+    foreach (['retired', 'not-employed'] as $employment) {
+        $result = $partner($employment);
+        expect(lineAmount($result, 'spouse_tax_trap_60'))->toBe(2160, $employment)
+            ->and($result['partner_savings_total'])->toBe(2160)
+            ->and($reason($result))->toContain('Without earnings from work')
+            ->and($reason($result))->toContain('£3,600')
+            ->and($reason($result))->toContain('£2,880')
+            // £720 is added at source; the other £1,440 is claimed (s192(4)).
+            ->and($reason($result))->toContain('The other £1,440 they claim back through Self Assessment.');
+    }
+
+    // A working partner is priced as their own plan prices them, and the
+    // reason no longer hedges on where the income comes from.
+    foreach (['full-time', 'part-time', 'self-employed'] as $employment) {
+        $result = $partner($employment);
+        expect(lineAmount($result, 'spouse_tax_trap_60'))->toBe(15060, $employment)
+            ->and($reason($result))->not->toContain('if that income is from work');
+    }
+
+    // Unasked (a client from before the question): the stated assumption stays.
+    expect(lineAmount($partner(null), 'spouse_tax_trap_60'))->toBe(15060)
+        ->and($reason($partner(null)))->toContain('if that income is from work');
+});
+
 it('says which income the headline assumes', function () {
     $banded = $this->service->estimate(['income' => '100001_125140', 'assets' => []]);
     $open = $this->service->estimate(['income' => 'over_125140', 'assets' => []]);
