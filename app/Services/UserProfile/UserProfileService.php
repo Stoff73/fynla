@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Estate\WillAnalysisService;
 use App\Services\Gamification\PointsService;
+use App\Services\Income\EmploymentIncomeService;
 use App\Services\Property\PropertyService;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -185,6 +186,15 @@ class UserProfileService
         $hadIncomeBefore = $this->totalGrossAnnualIncome($user) > 0;
 
         $user->update($data);
+
+        // A figure the user states here replaces an estimate someone else gave
+        // for them, rather than leaving it to be summed back in later (C1).
+        $income = app(EmploymentIncomeService::class);
+        foreach (['annual_employment_income' => 'employment', 'annual_self_employment_income' => 'self_employment'] as $field => $type) {
+            if (array_key_exists($field, $data)) {
+                $income->replaceEstimateWithStated($user, $type, (float) ($data[$field] ?? 0));
+            }
+        }
 
         $fresh = $user->fresh();
 

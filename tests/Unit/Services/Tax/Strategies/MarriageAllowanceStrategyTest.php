@@ -112,8 +112,11 @@ it('shrinks the spouse Personal Allowance used for the savings gift by the trans
 /*
  * Eligibility, pinned to the law (CSJ 2026-09-28: show it only to people who
  * qualify). ITA 2007 s55B(2)(b) and (ba): the person receiving it pays no rate
- * above the basic rate, with dividends counted in full; s55C and GOV.UK: the
- * person giving it has income below the Personal Allowance.
+ * above the basic rate, with dividends counted in full. GOV.UK
+ * (https://www.gov.uk/marriage-allowance): the person giving it has income
+ * below the Personal Allowance. That is narrower than s55C(1)(c),(ca); in the
+ * statute the income test is s55C(2), which binds only a non-resident who
+ * qualifies under s56(3) (s55C(1)(d)).
  */
 it('does not offer it to a recipient who pays the higher rate', function () {
     $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 60000]);

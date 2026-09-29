@@ -8,6 +8,7 @@ use App\Agents\CoordinatingAgent;
 use App\Models\FamilyMember;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Income\EmploymentIncomeService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Log;
  * The moment the spouse's account is linked, this copies them across ONCE
  * (CSJ 2026-09-16): profile facts onto the spouse's profile, balances as
  * records through the same write tools Fyn uses, so every guard applies.
+ * Income is the exception: it is held as an estimate the spouse's own job
+ * replaces (EmploymentIncomeService::recordEstimate).
  * The ISA is assumed to be a Stocks and Shares ISA (CSJ 21:56).
  */
 final class SpouseHoldingTransfer
@@ -58,7 +61,20 @@ final class SpouseHoldingTransfer
         if ($income > 0 && ! $hasIncome) {
             ['pay' => $pay, 'other' => $other] = $this->splitIncome($income, $holding, $spouse);
             if ($pay > 0) {
-                $this->run('capture_work_details', ['annual_income' => $pay], $spouse, $copied, 'income');
+                // Held as an estimate, not through capture_work_details: it is the
+                // requester's figure, and the spouse's own job must replace it
+                // rather than be added to it (production 2026-09-29 summed the
+                // two into £64,000). recordEstimate applies the same income cap
+                // as capture_work_details. This runs after the link has
+                // committed, so a failure is logged and the other copies go on,
+                // as run() does, instead of failing the registration.
+                try {
+                    app(EmploymentIncomeService::class)->recordEstimate($spouse, $pay);
+                    $spouse->refresh();
+                    $copied[] = 'income';
+                } catch (\Throwable $e) {
+                    Log::warning('[SpouseHoldingTransfer] Income copy failed', ['spouse_id' => $spouse->id, 'error' => $e->getMessage()]);
+                }
             }
             if ($other > 0) {
                 $this->run('update_profile', ['section' => 'income_occupation', 'fields' => ['annual_other_income' => $other]], $spouse, $copied, 'other income');

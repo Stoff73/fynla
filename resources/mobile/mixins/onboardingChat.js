@@ -471,6 +471,10 @@ export default {
       }
       if (ev.type === 'entity_created' || ev.type === 'entity_updated' || ev.type === 'entity_deleted') {
         cursor.got = true;
+        // The screen behind the chat shows the record Fyn just wrote; it does
+        // not remount without a route change, so refetch it on the shared tick.
+        store.bumpScreenRefresh();
+        cursor.refreshed = true;
         cursor.createdEntityNames = cursor.createdEntityNames || [];
         if (ev.name && ev.type === 'entity_created') cursor.createdEntityNames.push(ev.name);
         // Never clobber a bubble that already carries prose (a clarifying
@@ -512,6 +516,8 @@ export default {
       }
       if (ev.type === 'capture_complete') {
         cursor.got = true;
+        store.bumpScreenRefresh();
+        cursor.refreshed = true;
         let confirmation = cursor.captureReply;
         if (!confirmation) {
           if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -578,6 +584,7 @@ export default {
         // it would be accepted.
         const latest = [...this.messages].reverse().find((m) => m.form);
         if (latest) latest.form = { ...latest.form, errors: ev.errors || {}, locked: false };
+        cursor.formRefused = true;
         return;
       }
       if (ev.type === 'quick_replies') {
@@ -680,6 +687,11 @@ export default {
           if (await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor)) return;
         }
         this.finalizeCaptureReply(cursor);
+        // A saved form changes the record the screen behind the chat shows. The
+        // edit-form path confirms in plain text with no entity event (the write
+        // happens after form_received), so the end of an unrefused form turn is
+        // the signal (Edit employer benefits on /m Protection, 2026-09-29).
+        if (form && !cursor.formRefused && !cursor.refreshed) store.bumpScreenRefresh();
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble responding just now.';
         } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length) && !cursor.reply.form) {
