@@ -7,7 +7,6 @@ use App\Http\Controllers\Pipeline\ClipApprovalActionController;
 use App\Http\Controllers\Pipeline\DriveWebhookController;
 use App\Http\Controllers\Pipeline\SignedClipDownloadController;
 use App\Http\Controllers\WebHandoffController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -731,13 +730,6 @@ Route::middleware('redirect.authed')->group(function () {
 // placeholder, replaceable as one file); /m/app = the isolated mobile SPA.
 Route::get('/m', function () {
     return view('mobile-host');
-});
-// /savetax is the phone entry (RedirectPhoneToMobile frames it as
-// /m?to=/savetax); a typed or shared /m/savetax lands there too, answers kept.
-Route::get('/m/savetax', function (Request $request) {
-    $query = $request->getQueryString();
-
-    return redirect('/savetax'.($query ? '?'.$query : ''));
 });
 Route::get('/m/landing', function () {
     return view('mobile-landing');
