@@ -23,7 +23,7 @@ Rules for these steps:
 - **Health questions.** Wherever a step sends the user to apply for cover, it says to answer the insurer's questions fully and accurately: the Consumer Insurance (Disclosure and Representations) Act 2012 s2 puts that duty on the customer, and s4 with Schedule 1 lets the insurer refuse or reduce a claim when it is broken.
 
 ## life_insurance_gap, dependants_no_life_cover
-status: draft
+status: approved
 source: Fynla protection shortfall (`CoverageGapAnalyzer`, `/help#protection`: debts, your family's income need, final expenses, education); https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/term-insurance (level term keeps the same cover; single or joint life policies); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4 https://www.legislation.gov.uk/ukpga/2012/6/section/2; the card's own figures
 figures: gap_amount, need_amount, coverage_amount, dependant_count
 why when coverage_amount is £0:
@@ -46,7 +46,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## no_policies_warning
-status: draft
+status: approved
 source: Fynla protection shortfall (`CoverageGapAnalyzer`, `/help#protection`); https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/ (the key types of protection insurance); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4; the card's own figures
 figures: total_gap
 why:
@@ -61,7 +61,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## education_funding_gap
-status: draft
+status: approved
 source: Fynla protection shortfall (`CoverageGapAnalyzer`, `/help#protection`: education for each child to 21); the card's own figures
 figures: gap_amount
 why:
@@ -79,7 +79,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## mortgage_no_decreasing_term
-status: draft
+status: approved
 source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/term-insurance (decreasing term covers a reducing debt such as a repayment mortgage); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4; the card's own figures
 figures: mortgage_amount
 why:
@@ -93,7 +93,7 @@ outcome:
 1. If you died, your mortgage would be paid off.
 
 ## critical_illness_gap, no_ci_with_mortgage
-status: draft
+status: approved
 source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/critical-illness-cover (a tax-free lump sum; every policy covers cancer, heart attack and stroke at set severities; cover varies between insurers); Fynla protection shortfall (`CoverageGapAnalyzer`, `/help#protection`); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4; the card's own figures
 figures: gap_amount, need_amount, coverage_amount, mortgage_amount
 why when coverage_amount is £0:
@@ -115,7 +115,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## income_protection_gap, ip_gap_after_state_benefits
-status: draft
+status: approved
 source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/income-protection (pays when illness or injury stops you working; not on redundancy); https://www.gov.uk/statutory-sick-pay (weekly rate, up to 28 weeks); Statutory Sick Pay rate and weeks from tax config (`benefits.ssp`); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4; the card's own figures
 figures: gap_amount, need_amount, coverage_amount, ssp_total, ssp_weekly, ssp_weeks, ip_gap
 why when coverage_amount is £0:
@@ -137,7 +137,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## self_employed_no_ip
-status: draft
+status: approved
 source: https://www.gov.uk/statutory-sick-pay/eligibility (you must be classed as an employee); https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/income-protection; Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4
 figures: none
 why:
@@ -151,7 +151,7 @@ outcome:
 1. You keep an income if illness or injury stops you working.
 
 ## policy_not_in_trust
-status: draft
+status: approved
 source: HMRC Inheritance Tax Manual IHTM20012 (proceeds of a policy the deceased owned on their own life form part of their estate; settled policies are treated as settled property) https://www.gov.uk/hmrc-internal-manuals/inheritance-tax-manual/ihtm20012; https://www.gov.uk/applying-for-probate (probate before the estate can be dealt with); Fynla policy form ("Is this policy in Trust?")
 figures: provider
 why:
@@ -167,7 +167,7 @@ learn:
 1. Life policies and Inheritance Tax | /help#estate
 
 ## policy_not_joint_married
-status: draft
+status: approved
 source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/term-insurance (single or joint life policies); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4
 figures: provider
 why:
@@ -180,7 +180,7 @@ outcome:
 1. You both have life cover, in the way that costs your household least.
 
 ## policy_expiring_soon, policy_expired
-status: draft
+status: approved
 source: the card's own figures; Fynla protection shortfall (`/help#protection`); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4
 figures: provider, end_date
 why:
@@ -195,7 +195,7 @@ outcome:
 1. You stay covered for as long as your family needs it.
 
 ## ip_any_occupation_definition, group_ip_any_occupation
-status: draft
+status: approved
 source: the card's own figures (the policy's definition, as recorded); https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/income-protection; Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4
 figures: provider
 why:
@@ -209,7 +209,7 @@ outcome:
 1. Your income protection pays if illness or injury stops you doing your own job.
 
 ## ip_short_benefit_period
-status: draft
+status: approved
 source: the card's own figures; https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/income-protection
 figures: benefit_months, provider
 why:
@@ -222,7 +222,7 @@ outcome:
 1. Your income continues for as long as a long illness keeps you off work.
 
 ## ip_long_deferred_period
-status: draft
+status: approved
 source: the card's own figures; https://www.gov.uk/statutory-sick-pay (weekly rate, up to 28 weeks); Statutory Sick Pay from tax config (`benefits.ssp`)
 figures: deferred_weeks, provider
 why:
@@ -236,7 +236,7 @@ outcome:
 1. There is no gap in your income between stopping work and your cover paying out.
 
 ## ci_combined_risk
-status: draft
+status: approved
 source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/critical-illness-cover; the card's own figures
 figures: provider
 why:
@@ -249,7 +249,7 @@ outcome:
 1. A critical illness claim would leave your family's life cover in place.
 
 ## dis_reliance_warning
-status: draft
+status: approved
 source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/group-life-cover (paid by your employer; usually a multiple of salary; ends if you leave); Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4
 figures: none
 why:
@@ -262,7 +262,7 @@ outcome:
 1. Your family keeps its life cover if you change job.
 
 ## non_earning_spouse_no_cover
-status: draft
+status: approved
 source: the card's own figures; Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4
 figures: none
 why:
@@ -275,7 +275,7 @@ outcome:
 1. Your household could pay for childcare and help at home if {spouse} died.
 
 ## review_existing_policies, consolidate_policies
-status: draft
+status: approved
 source: the card's own figures; Fynla protection shortfall (`/help#protection`)
 figures: policy_count
 why:
@@ -290,7 +290,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## high_premium_cost, premium_affordability_warning
-status: draft
+status: approved
 source: the card's own figures; Consumer Insurance (Disclosure and Representations) Act 2012 s2 and s4
 figures: annual_premiums, premium_percent
 why:
