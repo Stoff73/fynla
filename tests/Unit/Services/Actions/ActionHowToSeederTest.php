@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\TaxActionDefinition;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\ProtectionActionDefinitionSeeder;
 use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 
@@ -15,6 +16,7 @@ use Database\Seeders\TaxActionDefinitionSeeder;
 beforeEach(function () {
     $this->seed(TaxActionDefinitionSeeder::class);
     $this->seed(SavingsActionDefinitionSeeder::class);
+    $this->seed(ProtectionActionDefinitionSeeder::class);
 });
 
 it('parses steps and status per strategy from the markdown source', function () {

@@ -95,7 +95,7 @@ it('unlocks trust and review strategies once a life insurance policy exists', fu
  * Collision). Sarah holds £120,000 of her own, less than her £150,000 debt need, so the
  * two hypotheses separate cleanly:
  *
- * | Hypothesis | Sarah's life cover | `protection_life_cover_gap` |
+ * | Hypothesis | Sarah's life cover | a life cover card |
  * |---|---|---|
  * | **Correct** — the joint policy reaches her | **£620,000** | **absent** |
  * | `user_id`-only (the shipped bug) | £120,000 vs £150,000 of debt | **present** |
@@ -189,12 +189,15 @@ it('does not recommend life cover to the spouse a joint-life policy already cove
         ->pluck('type');
 
     // The phantom. Present whenever the source reads the plain user_id relation.
-    expect($types)->not->toContain('protection_life_cover_gap')
-        // NOT empty: `recommendations()` swallows every Throwable and returns [], so an
-        // exception in the routed call would look exactly like "no gaps" and would pass a
-        // naive absence assertion. Her genuine income-protection gap proves the method ran.
+    // Protection cards are the action definitions (CSJ 2026-09-29), so every
+    // life cover rule is checked by its own key.
+    expect($types)->not->toContain('life_insurance_gap')
+        ->and($types)->not->toContain('dependants_no_life_cover')
+        ->and($types)->not->toContain('mortgage_no_decreasing_term')
+        // NOT empty: a source that returns [] on a failure would pass a naive absence
+        // assertion. Her genuine income-protection gap proves the method ran.
         ->and($types)->not->toBeEmpty()
-        ->and($types)->toContain('protection_income_protection_gap');
+        ->and($types)->toContain('income_protection_gap');
 });
 
 it('leaves the policy owner\'s recommendations unchanged', function (): void {
@@ -203,8 +206,44 @@ it('leaves the policy owner\'s recommendations unchanged', function (): void {
     $types = collect(app(ProtectionStrategySource::class)->recommendations($owner->fresh()))
         ->pluck('type');
 
-    // His £500,000 already exceeds his £200,000 debt need, so this holds under both
-    // hypotheses — it is the control that catches a reader pulling his wife's policies in.
-    expect($types)->not->toContain('protection_life_cover_gap')
-        ->and($types)->toContain('protection_income_protection_gap');
+    // The control: his own policies reach him under both hypotheses. His joint policy is
+    // in trust, so no trust card fires for it; her single-life Aviva policy is hers, so a
+    // reader pulling his wife's policies in would raise hers on his list.
+    expect($types)->not->toContain('policy_not_in_trust')
+        ->and($types)->not->toContain('policy_not_joint_married')
+        ->and($types)->toContain('income_protection_gap');
+});
+
+it('builds protection cards from the action definitions, with each card\'s figures', function (): void {
+    // CSJ 2026-09-29: the cards and the Protection Plan page read one catalogue.
+    // A user with a profile, income and a mortgage but no policies gets the plan
+    // page's "no policies" warning as a card, keyed by its definition.
+    test()->seed(TaxConfigurationSeeder::class);
+    $user = User::factory()->create([
+        'date_of_birth' => now()->subYears(40),
+        'employment_status' => 'employed',
+        'annual_employment_income' => 60000,
+        'annual_self_employment_income' => 0,
+        'annual_rental_income' => 0,
+        'annual_dividend_income' => 0,
+        'annual_other_income' => 0,
+        'annual_expenditure' => 30000,
+    ]);
+    ProtectionProfile::factory()->create([
+        'user_id' => $user->id,
+        'annual_income' => 60000,
+        'monthly_expenditure' => 2500,
+        'mortgage_balance' => 200000,
+        'other_debts' => 0,
+        'number_of_dependents' => 0,
+        'dependents_ages' => [],
+    ]);
+
+    $recs = collect(app(ProtectionStrategySource::class)->recommendations($user->fresh()));
+    $noPolicies = $recs->firstWhere('type', 'no_policies_warning');
+
+    expect($noPolicies)->not->toBeNull()
+        ->and($noPolicies->extra['definition_key'])->toBe('no_policies_warning')
+        ->and($noPolicies->extra['figures']['total_gap'] ?? null)->toStartWith('£')
+        ->and($recs->pluck('type'))->toContain('income_protection_gap');
 });

@@ -62,6 +62,20 @@ final class RecommendationRouting
         'protection_protection_critical_illness_gap' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_protection_income_protection_gap' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_protection_policy_in_trust' => ['action' => 'edit', 'resource_type' => 'protection'],
+        // Protection cards are the action definitions (CSJ 2026-09-29), typed by
+        // their key; the category slugs above remain for a rec without one.
+        'protection_protection_profile_missing' => ['action' => 'edit', 'resource_type' => 'protection'],
+        'protection_no_employer_benefits_recorded' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_no_policies_warning' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_life_insurance_gap' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_dependants_no_life_cover' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_mortgage_no_decreasing_term' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_critical_illness_gap' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_no_ci_with_mortgage' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_income_protection_gap' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_ip_gap_after_state_benefits' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_self_employed_no_ip' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_policy_not_in_trust' => ['action' => 'edit', 'resource_type' => 'protection'],
 
         // Investment — holdings are inputs Fyn can create. Investment
         // preferences (the risk profile) have no capture tool, so that rule
