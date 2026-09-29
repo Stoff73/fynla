@@ -1118,7 +1118,16 @@ final class OnboardingChatDirector
             $effectiveState['prompt_text'] = $state['reprompt_text'];
         }
 
-        $promptText = OnboardingStateMachine::resolvePromptText($effectiveState, $user, '', $conversation);
+        // A funnel arrival's first turn opens with the recap of what they told
+        // the funnel, in front of whichever state that turn is (Rule 20: the
+        // one recap, every state, every surface). Resolved before this turn
+        // saves anything, since the first save is what marks it delivered.
+        $recapLeadIn = OnboardingStateMachine::funnelRecapLeadIn($user, $conversation, $stateId);
+        $withRecap = static fn (string $text): string => $recapLeadIn === null
+            ? $text
+            : trim($recapLeadIn.OnboardingStateMachine::BUBBLE_BREAK.$text);
+
+        $promptText = $withRecap(OnboardingStateMachine::resolvePromptText($effectiveState, $user, '', $conversation));
         $layoutMode = (string) ($state['layout'] ?? 'wide');
         $skipLink = $state['skip_link'] ?? null;
 
@@ -1171,6 +1180,7 @@ final class OnboardingChatDirector
                 if ($this->reenteredFromLoopQuestion($conversation, $stateId)) {
                     $formPromptText = '';
                 }
+                $formPromptText = $withRecap($formPromptText);
                 // A form turn is one bubble above the form, so a BUBBLE_BREAK in
                 // its lead-in (the funnel recap) becomes a paragraph break here.
                 // Left in, the control character rendered as a box on iOS
@@ -1225,6 +1235,8 @@ final class OnboardingChatDirector
             // stating the cap. The cap line alone, straight after a save, read
             // as "your pensions were not added". Read back from the records,
             // so it is true however the step was reached.
+            // One bubble above the choices, as on a form turn.
+            $promptText = str_replace(OnboardingStateMachine::BUBBLE_BREAK, "\n\n", $promptText);
             $onFile = $this->recordsOnFileAtLoop($user, $stateId);
             $cap = $this->capReachedAtLoop($user, $stateId);
             if ($cap !== null) {
@@ -3807,11 +3819,13 @@ final class OnboardingChatDirector
         }
         $entered = '£'.number_format($mismatch['entered']);
 
+        // "No income" is not a range to be "in" (Brett 2026-09-29).
+        $none = $mismatch['band'] === 'zero';
         if ($mismatch['field'] === 'spouse') {
-            $whose = "your spouse's income was {$bandLabel}";
+            $whose = $none ? 'your spouse has no income' : "your spouse's income was {$bandLabel}";
             $question = "is {$entered} right for them?";
         } else {
-            $whose = "your income was {$bandLabel}";
+            $whose = $none ? 'you have no income' : "your income was {$bandLabel}";
             $question = "is {$entered} right?";
         }
 
@@ -4109,6 +4123,15 @@ PROMPT;
             $this->recordProgress($user, $currentStateId, ['selection' => (string) ($user->onboarding_fyn_selection ?? 'savetax'), 'raw_message' => mb_substr($message, 0, 500)]);
             yield ['type' => 'done', 'message_id' => $saved->id];
 
+            return;
+        }
+
+        // The same funnel-band cross-check a typed income answer gets (Rule 20).
+        // Without it, web and /m, which both answer by form, took "6500"
+        // against the £100,001 to £125,140 band unchallenged (found 2026-09-29).
+        $user->refresh();
+        $challenged = yield from $this->maybeChallengeIncome($user, $conversation, $currentStateId, $inputs[CaptureForms::LEAD] ?? []);
+        if ($challenged) {
             return;
         }
 

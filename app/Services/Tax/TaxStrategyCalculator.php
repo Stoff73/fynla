@@ -280,13 +280,17 @@ final class TaxStrategyCalculator
     private function pensionPosition(User $user, ?TaxStrategyOverridesDTO $overrides, float $aaAmount, float $aaUsed, bool $mpaaApplies): array
     {
         $pension = $this->taxConfig->getPensionAllowances();
-        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        $earnings = $this->math->relevantEarningsFor($user);
         $reliefLimit = max((float) ($pension['relevant_earnings_minimum'] ?? 0), $earnings);
 
         if ($reliefLimit < $aaAmount) {
             return $this->position(
                 'pension_annual_allowance',
-                'Pension contribution limit from your earnings',
+                // With no earnings the limit is the basic amount (FA 2004 s190),
+                // not a figure "from your earnings" (Brett 2026-09-29).
+                $this->math->isDeclaredNonEarner($user)
+                    ? 'Pension contribution limit without earnings'
+                    : 'Pension contribution limit from your earnings',
                 $reliefLimit,
                 // The what-if slider replaces the captured contributions.
                 $overrides?->pensionContributionPercent !== null

@@ -6,6 +6,7 @@ namespace App\Services\Onboarding;
 
 use App\Constants\QuerySchemas;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
@@ -1779,21 +1780,6 @@ final class OnboardingStateMachine
         $hasDob = ! empty($user->date_of_birth);
         $hasMarital = ! empty($user->marital_status);
 
-        // Funnel arrivals: greet + recap what they told us in the /savetax
-        // funnel, acknowledge the profile we've pre-filled from it, then ask for
-        // the first still-missing field (date of birth). Fires only on the first
-        // base_personal turn (DOB unset); once DOB is captured the standard
-        // branches below take over. This is what makes Fyn open with "here's what
-        // you told us" instead of asking everything cold.
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && ! $hasDob) {
-            $firstName = trim((string) ($user->first_name ?? '')) !== ''
-                ? trim((string) $user->first_name)
-                : 'there';
-
-            return self::buildFunnelRecapPrompt($firstName, $funnel);
-        }
-
         // Campaign welcome — fires only on the very first base_personal turn
         // for users who arrived via config('onboarding.campaign_map'). The
         // welcome is prepended to the existing grouped DOB+marital question
@@ -1836,11 +1822,62 @@ final class OnboardingStateMachine
     }
 
     /**
-     * First-turn greeting for /savetax funnel arrivals: recap the answers they
-     * gave in the funnel, acknowledge that we've started their profile from
-     * those answers, and ask for the first still-missing field (date of birth).
-     * The exact income, expenditure and holdings are gathered by the base/
-     * campaign states that follow. Plain text only (Rule #16).
+     * The one funnel recap (Rule 20): Fyn's greeting and "here's what you've
+     * told me" for a Save Tax or pension check arrival, delivered once, on
+     * Fyn's first onboarding turn, whichever state that is. A retired arrival
+     * opens on the retirement date and a non-working one on their first
+     * section (csjones 2026-09-16), so the greeting cannot live in any one
+     * state's prompt: emitTurnForState prepends it to the state's own question.
+     * Null when this is not that turn, or when the turn is a funnel question
+     * Fyn asks itself (it greets with the question; there is nothing to recap).
+     */
+    public static function funnelRecapLeadIn(User $user, ?AiConversation $conversation = null, ?string $stateId = null): ?string
+    {
+        if (isset(self::FUNNEL_STATES[$stateId ?? '']) || ! self::funnelRecapDue($user, $conversation)) {
+            return null;
+        }
+        $funnel = (array) $user->funnel_answers;
+        $firstName = trim((string) ($user->first_name ?? '')) !== ''
+            ? trim((string) $user->first_name)
+            : 'there';
+
+        return ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
+            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
+            : self::buildFunnelRecapPrompt($firstName, $funnel);
+    }
+
+    /**
+     * Is this Fyn's first onboarding turn for a campaign funnel arrival? Any
+     * assistant message the user already has means Fyn has greeted them,
+     * including a resume or a new conversation opened mid-flow.
+     */
+    private static function funnelRecapDue(User $user, ?AiConversation $conversation): bool
+    {
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === []) {
+            return false;
+        }
+
+        try {
+            $conversations = AiConversation::where('user_id', $user->id)->pluck('id');
+            if ($conversation !== null) {
+                $conversations->push($conversation->id);
+            }
+
+            return ! AiMessage::whereIn('conversation_id', $conversations->unique())
+                ->where('role', 'assistant')
+                ->exists();
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /** The question the recap leads into when the first turn is the income step. */
+    private const FUNNEL_RECAP_INCOME_QUESTION = "**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+
+    /**
+     * Save Tax recap: the answers they gave in the funnel and that we've
+     * started their profile from them. Plain text only (Rule #16).
      */
     private static function buildFunnelRecapPrompt(string $firstName, array $funnel): string
     {
@@ -1861,6 +1898,12 @@ final class OnboardingStateMachine
             $funnel['income'] ?? null,
             $funnel['income_context'] ?? null,
         );
+        // The recap label is an "earning ..." phrase that also suffixes the
+        // spouse line, so "no income" is not one; the user's own "No income"
+        // answer is still read back to them (Brett 2026-09-29).
+        if ($incomeLabel === '' && ($funnel['income'] ?? null) === 'zero') {
+            $incomeLabel = FunnelIncomeBand::label('zero');
+        }
         if ($incomeLabel) {
             $points[] = ucfirst($incomeLabel);
         }
@@ -1899,11 +1942,10 @@ final class OnboardingStateMachine
         $extraMinutes = max(0, count($assetChoices) - 1);
         $estimateLow = 3 + $extraMinutes;
 
-        // First bubble: greet, list the funnel answers as bullet points (one per
-        // line so they read clearly), then the profile/time line. Markdown "- "
-        // bullets render as a list on both surfaces (web AiMessageContent +
-        // /m renderFynText). BUBBLE_BREAK then splits the bold income question
-        // off as its own bubble in the dock.
+        // Greet, list the funnel answers as bullet points (one per line so they
+        // read clearly), then the profile/time line. Markdown "- " bullets
+        // render as a list on both surfaces (web AiMessageContent + /m
+        // renderFynText). The state's own question follows as its own bubble.
         $intro = "Hi {$firstName}, I'm Fyn — thanks for those answers.";
         if ($points !== []) {
             $bullets = implode("\n", array_map(static fn ($p) => "- {$p}", $points));
@@ -1911,9 +1953,7 @@ final class OnboardingStateMachine
         }
 
         return $intro
-            ."\n\nI've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
-            .self::BUBBLE_BREAK
-            ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+            ."\n\nI've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes.";
     }
 
     private static function saveTaxIncomeRecapLabel(mixed $band, mixed $context = null): string
@@ -1988,83 +2028,33 @@ final class OnboardingStateMachine
     }
 
     /**
-     * Builds a personalised work prompt that matches the user's chosen
-     * employment_status (self-employed users get "trade name" wording).
-     */
-    /**
-     * The retirement-date question, opened once with the funnel recap for a
-     * retired campaign arrival (the recap's own income question is dropped).
+     * The retirement-date question. A retired Save Tax arrival opens here, and
+     * emitTurnForState puts the funnel recap in front of it on that first turn.
      */
     public static function buildRetirementDatePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
-        $question = 'When did you retire? A year is fine — something like "2020".';
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! empty($user->retirement_date)
-            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_RETIREMENT_DATE)) {
-            return $question;
-        }
-        $firstName = trim((string) ($user->first_name ?? '')) !== '' ? trim((string) $user->first_name) : 'there';
-        $recap = ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
-            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
-            : self::buildFunnelRecapPrompt($firstName, $funnel);
-
-        return explode(self::BUBBLE_BREAK, $recap)[0].self::BUBBLE_BREAK.$question;
+        return 'When did you retire? A year is fine — something like "2020".';
     }
 
     public static function buildWorkFormPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
-        return self::workFunnelRecap($user, $conversation) ?? 'Now your work and income.';
+        return self::funnelRecapDue($user, $conversation) ? self::FUNNEL_RECAP_INCOME_QUESTION : 'Now your work and income.';
     }
 
     /**
-     * The one-off funnel recap a Save Tax or pension check arrival gets on
-     * its first income turn, or null when this is not that turn.
+     * Builds a personalised work prompt that matches the user's chosen
+     * employment_status (self-employed users get "trade name" wording).
      */
-    private static function workFunnelRecap(User $user, ?AiConversation $conversation): ?string
-    {
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
-        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! $noIncomeYet
-            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)
-            || self::funnelAskedInChat($conversation)) {
-            return null;
-        }
-        $firstName = trim((string) ($user->first_name ?? '')) !== ''
-            ? trim((string) $user->first_name)
-            : 'there';
-
-        return ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
-            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
-            : self::buildFunnelRecapPrompt($firstName, $funnel);
-    }
-
     public static function buildWorkPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         $status = $user->employment_status ?? 'employed';
 
-        // SaveTax campaign funnel arrivals open here (income-first). On the first
-        // work turn — before any income is captured — greet with the funnel recap
-        // (which leads straight into the income question). Employment is already
-        // known from the funnel, so we never re-ask it. Delivered ONCE per
-        // conversation: the welcome-back resume ('continue') re-emits this
-        // state's turn, and without the delivered-check the full recap +
-        // question would repeat as duplicate transcript rows.
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
-        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && $noIncomeYet
-            && ! self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)
-            && ! self::funnelAskedInChat($conversation)) {
-            $firstName = trim((string) ($user->first_name ?? '')) !== ''
-                ? trim((string) $user->first_name)
-                : 'there';
-
-            // Pensioncheck users get a pension-flavoured opening; savetax and all
-            // other campaigns use the original tax-plan recap (byte-identical).
-            if (($user->onboarding_fyn_selection ?? '') === 'pensioncheck') {
-                return self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel);
-            }
-
-            return self::buildFunnelRecapPrompt($firstName, $funnel);
+        // SaveTax campaign funnel arrivals open here (income-first), behind
+        // the funnel recap (funnelRecapLeadIn), which leads straight into the
+        // income question. Employment is already known from the funnel, so we
+        // never re-ask it.
+        if (self::funnelRecapDue($user, $conversation)) {
+            return self::FUNNEL_RECAP_INCOME_QUESTION;
         }
 
         if ($status === 'self_employed') {
@@ -3291,9 +3281,7 @@ final class OnboardingStateMachine
         }
 
         return $intro
-            ."\n\nI've started your profile from what you told us, and to get a clear picture of your pension position I just need a few more details — this usually takes about {$estimateLow} minutes."
-            .self::BUBBLE_BREAK
-            ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+            ."\n\nI've started your profile from what you told us, and to get a clear picture of your pension position I just need a few more details — this usually takes about {$estimateLow} minutes.";
     }
 
     /**
