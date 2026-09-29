@@ -80,6 +80,18 @@ it('caps a retiree at the non-earner pension limit on the page (F2)', function (
         ->assertSee('An estimated saving of up to <span class="sp4-savings__figure" id="savings-figure">£720</span>', false);
 });
 
+it('ignores a hand-edited list in the answers instead of failing', function (): void {
+    // ?assets[]=x once reached a string cast and returned a server error.
+    $this->get('/savetax/plan?assets[]=savings&income[]=zero&employment[]=retired&spouse[]=yes')
+        ->assertOk()
+        ->assertSee('An estimated saving of up to £', false);
+
+    // A list is dropped; the plain answers beside it still count.
+    $this->get('/savetax/plan?income=upto_50270&employment=retired&spouse=no&assets[]=savings')
+        ->assertOk()
+        ->assertSee('An estimated saving of up to <span class="sp4-savings__figure" id="savings-figure">£720</span>', false);
+});
+
 it('renders a neutral state when the estimate service is unavailable', function (): void {
     $service = Mockery::mock(SaveTaxEstimateService::class);
     $service->shouldReceive('estimate')->andThrow(new RuntimeException('unavailable'));

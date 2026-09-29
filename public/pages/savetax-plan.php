@@ -7,13 +7,16 @@ use App\Services\TaxConfigService;
 // (passed as query params by /savetax). All tax values come from
 // TaxConfigService via SaveTaxEstimateService — never hard-coded here.
 // Read through the request, not $_GET, so a test request sees its own answers.
+// Every answer is a plain string or nothing: a hand-edited link can send a
+// list (?assets[]=x), which is ignored rather than turned into a server error.
 $savetaxQuery = request()->query();
-$savetaxAssets = (string) ($savetaxQuery['assets'] ?? '');
+$savetaxAnswer = static fn (string $key): ?string => is_string($savetaxQuery[$key] ?? null) ? $savetaxQuery[$key] : null;
+$savetaxAssets = $savetaxAnswer('assets') ?? '';
 $savetaxAnswers = [
-    'employment' => $savetaxQuery['employment'] ?? null,
-    'income' => $savetaxQuery['income'] ?? null,
-    'spouse' => $savetaxQuery['spouse'] ?? null,
-    'spouseIncome' => $savetaxQuery['spouseIncome'] ?? null,
+    'employment' => $savetaxAnswer('employment'),
+    'income' => $savetaxAnswer('income'),
+    'spouse' => $savetaxAnswer('spouse'),
+    'spouseIncome' => $savetaxAnswer('spouseIncome'),
     'assets' => $savetaxAssets !== ''
         ? array_slice(array_map('trim', explode(',', $savetaxAssets)), 0, 12)
         : [],
