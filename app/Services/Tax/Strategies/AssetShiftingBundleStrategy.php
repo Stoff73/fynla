@@ -119,6 +119,10 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
                 'estimated_annual_tax_saved' => round($estimatedAnnualTaxSaved, 2),
                 'annual_interest_moved' => round($annualInterestMoved, 2),
                 'taxable_interest_sheltered' => round($taxableInterestSheltered, 2),
+                // All the moved interest leaves the user's income, including the
+                // slice their own Savings Allowance covered: that slice still
+                // counted towards adjusted net income (ITA 2007 s58).
+                'interest_removed_from_income' => round($annualInterestMoved, 2),
                 'spouse_personal_allowance' => $spousePersonalAllowance,
                 'spouse_starting_rate_for_savings' => $startingRate,
                 'spouse_personal_savings_allowance' => $psaBasic,

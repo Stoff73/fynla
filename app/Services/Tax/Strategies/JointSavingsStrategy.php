@@ -140,6 +140,9 @@ final class JointSavingsStrategy implements TaxStrategy
                 'user_psa' => $userPsa,
                 'spouse_psa' => $spousePsa,
                 'shelterable_interest' => round($shelterableSlice, 2),
+                // What the saving above takes out of the user's income, read
+                // when the plan re-prices its pension items.
+                'interest_removed_from_income' => round($interestPerPerson, 2),
             ],
         )];
     }

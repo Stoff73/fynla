@@ -122,6 +122,13 @@ final class IsaTopUpStrategy implements TaxStrategy
         $accountDirection = $targetAccounts === []
             ? ''
             : ' Start with '.implode(', ', array_unique($targetAccounts)).', where the captured rate is highest.';
+        // When the ISA allowance (or the cash available) caps the wrap, it
+        // shelters only part of the interest above the Savings Allowance, and
+        // the copy must say both figures rather than print one in the other's
+        // place (SaveTax matrix E6, 2026-09-29).
+        $shelters = $interestSheltered < $excessInterest - 0.005
+            ? sprintf('£%s of that taxable interest', number_format($interestSheltered, 2))
+            : 'that taxable interest';
 
         return [new StrategyRecommendation(
             type: 'isa_topup_vs_psa',
@@ -132,12 +139,13 @@ final class IsaTopUpStrategy implements TaxStrategy
                 number_format((int) round($reportedTransfer)),
             ),
             description: sprintf(
-                'You hold £%s of non-ISA cash producing £%s of annual interest, of which £%s is above your £%s Savings Allowance. Wrapping £%s in an ISA shelters that taxable interest — saving around £%s a year while the captured rates and tax position remain the same.%s',
+                'You hold £%s of non-ISA cash producing £%s of annual interest, of which £%s is above your £%s Savings Allowance. Wrapping £%s in an ISA shelters %s — saving around £%s a year while the captured rates and tax position remain the same.%s',
                 number_format((int) $nonIsaBalance),
                 number_format($annualInterest, 2),
-                number_format($interestSheltered, 2),
+                number_format($excessInterest, 2),
                 number_format((int) $psa),
                 number_format((int) round($reportedTransfer)),
+                $shelters,
                 number_format((int) floor($saving)),
                 $accountDirection,
             ),
@@ -147,7 +155,9 @@ final class IsaTopUpStrategy implements TaxStrategy
                 'isa_remaining' => round($isaRemaining, 2),
                 'non_isa_balance' => round($nonIsaBalance, 2),
                 'annual_interest' => round($annualInterest, 2),
+                'interest_above_savings_allowance' => round($excessInterest, 2),
                 'taxable_interest_sheltered' => round($interestSheltered, 2),
+                'interest_removed_from_income' => round($interestSheltered, 2),
                 'target_accounts' => array_values(array_unique($targetAccounts)),
                 'personal_savings_allowance' => $psa,
             ],
