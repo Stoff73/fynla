@@ -318,7 +318,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## life_cover_position
-status: draft
+status: approved
 source: every source under life_insurance_gap, mortgage_no_decreasing_term, education_funding_gap, dis_reliance_warning and non_earning_spouse_no_cover below (approved 2026-09-29); the cover position (`ProtectionCoverPosition`: need = total need, cover = life policies reaching you plus death in service)
 figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, mortgage_amount, dependant_count, education_gap; reasons: life_insurance_gap, dependants_no_life_cover, mortgage_no_decreasing_term, education_funding_gap, dis_reliance_warning, non_earning_spouse_no_cover
 why when is_short:
@@ -360,7 +360,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## critical_illness_position
-status: draft
+status: approved
 source: every source under critical_illness_gap, no_ci_with_mortgage and ci_combined_risk below (approved 2026-09-29); the cover position (need = gross earned income x `protection.income_multipliers.critical_illness`)
 figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, mortgage_amount, provider; reasons: critical_illness_gap, no_ci_with_mortgage, ci_combined_risk
 why when is_short:
@@ -393,7 +393,7 @@ learn:
 1. How your protection shortfall is worked out | /help#protection
 
 ## income_protection_position
-status: draft
+status: approved
 source: every source under income_protection_gap, ip_gap_after_state_benefits, self_employed_no_ip, ip_any_occupation_definition, ip_short_benefit_period and ip_long_deferred_period below (approved 2026-09-29); the cover position (need = `protection.income_multipliers.income_protection_max_benefit` of gross earned income, a month)
 figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, ssp_weekly, ssp_weeks, ssp_total, provider, benefit_months, deferred_weeks; reasons: income_protection_gap, ip_gap_after_state_benefits, self_employed_no_ip, ip_any_occupation_definition, group_ip_any_occupation, ip_short_benefit_period, ip_long_deferred_period
 why when is_short:
