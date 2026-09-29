@@ -3484,7 +3484,8 @@ class SavingsActionDefinitionService
         $userIsaRemaining = (float) $userStatus['remaining'];
         $userIsaUsed = (float) $userStatus['total_used'];
 
-        $spouse = $user->spouse_id ? User::find($user->spouse_id) : null;
+        // The consented spouse checked above, not a second lookup by id.
+        $spouse = $user->financiallySharedSpouse();
         $spouseStatus = $spouse ? $tracker->getISAAllowanceStatus($spouse->id, $taxYear) : null;
         $spouseIsaUsed = (float) ($spouseStatus['total_used'] ?? 0);
         $spouseIsaRemaining = (float) ($spouseStatus['remaining'] ?? $totalAllowance);

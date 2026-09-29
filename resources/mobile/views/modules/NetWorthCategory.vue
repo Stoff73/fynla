@@ -200,7 +200,10 @@ export default {
     },
     shareLabel(it) {
       if (!isSharedRecord(it) || it.full_value == null) return '';
-      return `Your ${userSharePercent(it).toFixed(2)}% of ${this.fmt(it.full_value)}`;
+      // "Your 50% of £…", not "50.00%": at most two decimals, and only when
+      // the share has them (a 33.33% tenancy in common keeps its decimals).
+      const pct = Number(userSharePercent(it).toFixed(2));
+      return `Your ${pct}% of ${this.fmt(it.full_value)}`;
     },
     liabilityItems() {
       return (this.payload?.liabilities?.items || []).map((item) => ({

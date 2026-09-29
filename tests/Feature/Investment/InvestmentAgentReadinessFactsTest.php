@@ -40,6 +40,20 @@ describe('InvestmentAgent readiness-blocked response', function () {
             ->and($result['fee_analysis'])->toBeNull();
     });
 
+    it('earns no recommendations when blocked, whichever caller asks', function () {
+        // The facts now say "1 account", which a no-holdings rule would read as
+        // holdings; the analysis is withheld, so no advice either.
+        $user = User::factory()->create(['date_of_birth' => null]);
+        InvestmentAccount::factory()->isa()->create([
+            'user_id' => $user->id, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'current_value' => 18000,
+        ]);
+        $agent = app(InvestmentAgent::class);
+        $blocked = $agent->analyze($user->id);
+
+        expect($agent->generateRecommendations($blocked))->toBe(['recommendation_count' => 0, 'recommendations' => []])
+            ->and($agent->generateRecommendations(['data' => $blocked]))->toBe(['recommendation_count' => 0, 'recommendations' => []]);
+    });
+
     it('reports a joint account at the user\'s own share when blocked', function () {
         $user = User::factory()->create(['date_of_birth' => null]);
         $spouse = User::factory()->create();

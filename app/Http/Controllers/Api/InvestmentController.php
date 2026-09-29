@@ -156,7 +156,7 @@ class InvestmentController extends Controller
                 // page, not in the list above, so /m says so beside "X of Y used"
                 // rather than counting accounts the page does not show (SaveTax run
                 // 29 Sep 2026, L1).
-                'cash_isa_count' => app(SavingsStore::class)->isaCountForUser($user),
+                'cash_isa_count' => app(SavingsStore::class)->cashIsaCountForUser($user),
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,
                 'life_events' => $lifeEvents,

@@ -326,6 +326,13 @@ class InvestmentAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysis): array
     {
+        // A readiness-blocked analysis carries the portfolio facts (M3, 29 Sep
+        // 2026) but no analysis, so it earns no recommendations, whichever
+        // caller asks: the controller, the aggregator or the coordinator.
+        if (($analysis['can_proceed'] ?? $analysis['data']['can_proceed'] ?? true) === false) {
+            return ['recommendation_count' => 0, 'recommendations' => []];
+        }
+
         $start = microtime(true);
         $result = $this->actionDefinitionService->evaluateAgentActions(
             $analysis,
