@@ -863,18 +863,20 @@ class ProtectionActionDefinitionService
         // Step 3: State benefit analysis
         $stateBenefits = $this->getNestedValue($comprehensivePlan, 'protection_needs.state_benefits', []);
 
-        $sspTotal = 0.0;
-        // Statutory Sick Pay from tax config only (Rule 2): up to the weekly
-        // rate for up to max_weeks (https://www.gov.uk/statutory-sick-pay).
-        $sspWeekly = (float) $this->taxConfig->get('benefits.ssp.weekly_rate');
-        $sspMaxWeeks = (int) $this->taxConfig->get('benefits.ssp.max_weeks');
-        if ($sspWeekly <= 0 || $sspMaxWeeks <= 0) {
+        // Statutory Sick Pay is the analyser's figure for this person
+        // (CoverageGapAnalyzer::calculateProtectionNeeds, from `benefits.ssp`):
+        // the lower of the weekly rate and 80% of weekly earnings, for up to
+        // max_weeks (https://www.gov.uk/statutory-sick-pay/what-youll-get).
+        // Someone with no entitlement (self-employed, below a lower earnings
+        // limit) gets no Statutory Sick Pay reason.
+        if (! is_array($stateBenefits) || empty($stateBenefits['ssp_eligible'])) {
             return null;
         }
-        if (is_array($stateBenefits) && isset($stateBenefits['ssp_total_entitlement'])) {
-            $sspTotal = (float) $stateBenefits['ssp_total_entitlement'];
-        } else {
-            $sspTotal = $sspWeekly * $sspMaxWeeks;
+        $sspWeekly = (float) ($stateBenefits['ssp_weekly_rate'] ?? 0);
+        $sspMaxWeeks = (int) ($stateBenefits['ssp_max_weeks'] ?? 0);
+        $sspTotal = (float) ($stateBenefits['ssp_total_entitlement'] ?? 0);
+        if ($sspWeekly <= 0 || $sspMaxWeeks <= 0) {
+            return null;
         }
 
         $sspMonthly = ($sspWeekly * 52) / 12;
