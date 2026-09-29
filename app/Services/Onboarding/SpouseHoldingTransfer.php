@@ -21,6 +21,12 @@ use Illuminate\Support\Facades\Log;
  */
 final class SpouseHoldingTransfer
 {
+    /** Employment statuses whose income is earnings from work (tax_strategy_household_inputs / users values). */
+    private const WORKING_STATUSES = ['employed', 'full_time', 'part_time', 'self_employed'];
+
+    /** Employment statuses whose income is not earnings from work. */
+    private const NON_WORKING_STATUSES = ['retired', 'unemployed'];
+
     public function __construct(private readonly CoordinatingAgent $agent) {}
 
     /**
@@ -46,8 +52,17 @@ final class SpouseHoldingTransfer
             $copied[] = 'employment status';
         }
         $income = $holding->spouse_annual_income !== null ? (float) $holding->spouse_annual_income : (float) ($card?->annual_income ?? 0);
-        if ($income > 0 && (float) ($spouse->annual_employment_income ?? 0) <= 0 && (float) ($spouse->annual_self_employment_income ?? 0) <= 0) {
-            $this->run('capture_work_details', ['annual_income' => $income], $spouse, $copied, 'income');
+        $hasIncome = (float) ($spouse->annual_employment_income ?? 0) > 0
+            || (float) ($spouse->annual_self_employment_income ?? 0) > 0
+            || (float) ($spouse->annual_other_income ?? 0) > 0;
+        if ($income > 0 && ! $hasIncome) {
+            ['pay' => $pay, 'other' => $other] = $this->splitIncome($income, $holding, $spouse);
+            if ($pay > 0) {
+                $this->run('capture_work_details', ['annual_income' => $pay], $spouse, $copied, 'income');
+            }
+            if ($other > 0) {
+                $this->run('update_profile', ['section' => 'income_occupation', 'fields' => ['annual_other_income' => $other]], $spouse, $copied, 'other income');
+            }
         }
 
         // ── Records ────────────────────────────────────────────────────────
@@ -102,6 +117,38 @@ final class SpouseHoldingTransfer
     }
 
     /** @param  array<string, mixed>  $input */
+    /**
+     * The partner's income as earnings from work and the rest. Pension tax
+     * relief is capped at relevant UK earnings (FA 2004 s189-190,
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/190), and the plan
+     * reads employment and self-employment income as those earnings, so income
+     * that is a pension or rent must not arrive as pay.
+     *
+     * Earnings given: they are the pay, the rest is other income. Earnings not
+     * given: the partner's employment status decides (CSJ 2026-09-29): working
+     * means all pay, retired or unemployed means none. Neither known: nothing
+     * is copied, so their own onboarding asks rather than a guess being
+     * counted twice.
+     *
+     * @return array{pay: float, other: float}
+     */
+    private function splitIncome(float $income, TaxStrategyHouseholdInput $holding, User $spouse): array
+    {
+        if ($holding->spouse_annual_earnings !== null) {
+            $pay = min($income, max(0.0, (float) $holding->spouse_annual_earnings));
+
+            return ['pay' => $pay, 'other' => $income - $pay];
+        }
+
+        $status = $holding->spouse_employment_status ?? $spouse->employment_status;
+
+        return match (true) {
+            in_array($status, self::WORKING_STATUSES, true) => ['pay' => $income, 'other' => 0.0],
+            in_array($status, self::NON_WORKING_STATUSES, true) => ['pay' => 0.0, 'other' => $income],
+            default => ['pay' => 0.0, 'other' => 0.0],
+        };
+    }
+
     private function run(string $tool, array $input, User $spouse, array &$copied, string $label): void
     {
         // Ownership is a stated fact here (the spouse's own name), so the
@@ -118,7 +165,10 @@ final class SpouseHoldingTransfer
 
             return;
         }
-        $ok = ($result['success'] ?? false) === true || ($result['onboarding_capture'] ?? false) === true;
+        // update_profile answers with 'updated' rather than 'success'.
+        $ok = empty($result['error']) && (($result['success'] ?? false) === true
+            || ($result['onboarding_capture'] ?? false) === true
+            || ($result['updated'] ?? false) === true);
         if ($ok) {
             $copied[] = $label;
             $spouse->refresh();
