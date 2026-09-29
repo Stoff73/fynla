@@ -27,6 +27,9 @@ class SpouseInvitation extends Mailable
         public string $invitedEmail,
         public string $inviterName,
         public ?string $token = null,
+        // The first name the inviter gave for their partner, so the email greets
+        // them by it (SaveTax run 29 Sep 2026, L4). Null falls back to "Hello,".
+        public ?string $inviteeFirstName = null,
     ) {}
 
     public function envelope(): Envelope
@@ -44,6 +47,7 @@ class SpouseInvitation extends Mailable
             with: [
                 'invitedEmail' => $this->invitedEmail,
                 'inviterName' => $this->inviterName,
+                'inviteeFirstName' => $this->inviteeFirstName,
                 // The token opens the registration page with the invitee's
                 // details filled in and links the accounts on sign-up
                 // (CSJ 2026-09-19).

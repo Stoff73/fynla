@@ -6,6 +6,7 @@ namespace App\Services\Onboarding;
 
 use App\Constants\QuerySchemas;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
@@ -45,6 +46,11 @@ use Illuminate\Support\Facades\Log;
  *                 so a one-off introduction sentence in prompt_text is never
  *                 replayed on resume/interruption/retry re-emissions.
  *   bubbles:      array<{id, label}>  — only for turn_type='bubbles', NO ICONS
+ *   multi_select: bool | omitted — a bubbles state whose chips toggle on the
+ *                 client and are submitted together by its `done` bubble in
+ *                 ONE message (wire format: see matchBubbles). Read through
+ *                 isMultiSelect(); emitted as `multi_select: true` on the
+ *                 quick_replies event and in the stored message metadata.
  *   capture_field: 'users.column_name' | null
  *                 (null for scratch-pad-only or FamilyMember-creating states)
  *   value_parser: OnboardingValueInterpreter method name | null
@@ -191,6 +197,21 @@ final class OnboardingStateMachine
     public const STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME = 'campaign_funnel_spouse_income';
 
     public const STATE_CAMPAIGN_FUNNEL_ASSETS = 'campaign_funnel_assets';
+
+    /** A funnel employment answer (the user's or their partner's) as the recaps say it. */
+    private const FUNNEL_EMPLOYMENT_LABELS = [
+        'full-time' => 'working full-time',
+        'part-time' => 'working part-time',
+        'self-employed' => 'self-employed',
+        'retired' => 'retired',
+        'not-employed' => 'not currently employed',
+    ];
+
+    /** A multi-select message joins the picked labels with this (see matchBubbles). */
+    public const MULTI_SELECT_SEPARATOR = ', ';
+
+    /** The bubble id that submits a multi-select state's picks. */
+    public const MULTI_SELECT_SUBMIT = 'done';
 
     /** Funnel question state → the funnel_answers key it writes, in asking order. */
     public const FUNNEL_STATES = [
@@ -1156,7 +1177,7 @@ final class OnboardingStateMachine
 
     public static function nextFromFunnelAssets(string $answer, User $user): string
     {
-        return self::matchBubble(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer) === 'done'
+        return in_array(self::MULTI_SELECT_SUBMIT, self::matchBubbles(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer), true)
             ? self::leaveFunnelQuestions($user)
             : self::STATE_CAMPAIGN_FUNNEL_ASSETS;
     }
@@ -1783,21 +1804,6 @@ final class OnboardingStateMachine
         $hasDob = ! empty($user->date_of_birth);
         $hasMarital = ! empty($user->marital_status);
 
-        // Funnel arrivals: greet + recap what they told us in the /savetax
-        // funnel, acknowledge the profile we've pre-filled from it, then ask for
-        // the first still-missing field (date of birth). Fires only on the first
-        // base_personal turn (DOB unset); once DOB is captured the standard
-        // branches below take over. This is what makes Fyn open with "here's what
-        // you told us" instead of asking everything cold.
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && ! $hasDob) {
-            $firstName = trim((string) ($user->first_name ?? '')) !== ''
-                ? trim((string) $user->first_name)
-                : 'there';
-
-            return self::buildFunnelRecapPrompt($firstName, $funnel);
-        }
-
         // Campaign welcome — fires only on the very first base_personal turn
         // for users who arrived via config('onboarding.campaign_map'). The
         // welcome is prepended to the existing grouped DOB+marital question
@@ -1840,23 +1846,75 @@ final class OnboardingStateMachine
     }
 
     /**
-     * First-turn greeting for /savetax funnel arrivals: recap the answers they
-     * gave in the funnel, acknowledge that we've started their profile from
-     * those answers, and ask for the first still-missing field (date of birth).
-     * The exact income, expenditure and holdings are gathered by the base/
-     * campaign states that follow. Plain text only (Rule #16).
+     * The one funnel recap (Rule 20): Fyn's greeting and "here's what you've
+     * told me" for a Save Tax or pension check arrival, delivered once, on
+     * Fyn's first onboarding turn, whichever state that is. A retired arrival
+     * opens on the retirement date and a non-working one on their first
+     * section (csjones 2026-09-16), so the greeting cannot live in any one
+     * state's prompt: emitTurnForState prepends it to the state's own question.
+     * Null when this is not that turn, or when the turn is a funnel question
+     * Fyn asks itself (it greets with the question; there is nothing to recap).
+     */
+    public static function funnelRecapLeadIn(User $user, ?AiConversation $conversation = null, ?string $stateId = null): ?string
+    {
+        if (isset(self::FUNNEL_STATES[$stateId ?? '']) || ! self::funnelRecapDue($user, $conversation)) {
+            return null;
+        }
+        $funnel = (array) $user->funnel_answers;
+        $firstName = trim((string) ($user->first_name ?? '')) !== ''
+            ? trim((string) $user->first_name)
+            : 'there';
+
+        return ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
+            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
+            : self::buildFunnelRecapPrompt($firstName, $funnel);
+    }
+
+    /**
+     * Is this Fyn's first onboarding turn for a campaign funnel arrival? Any
+     * assistant message the user already has means Fyn has greeted them,
+     * including a resume or a new conversation opened mid-flow.
+     */
+    private static function funnelRecapDue(User $user, ?AiConversation $conversation): bool
+    {
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === []) {
+            return false;
+        }
+
+        try {
+            $conversations = AiConversation::where('user_id', $user->id)->pluck('id');
+            if ($conversation !== null) {
+                $conversations->push($conversation->id);
+            }
+
+            // Any Fyn reply means they have been greeted. Onboarding turns do
+            // not all carry metadata.onboarding_step, so scoping to it put the
+            // recap in front of every later form (15 onboarding tests, #1004).
+            return ! AiMessage::whereIn('conversation_id', $conversations->unique())
+                ->where('role', 'assistant')
+                ->exists();
+        } catch (\Throwable $e) {
+            // The greeting is optional; the turn must not fail for it, but the
+            // failure is reported rather than silently dropping the recap.
+            report($e);
+
+            return false;
+        }
+    }
+
+    /** The question the recap leads into when the first turn is the income step. */
+    private const FUNNEL_RECAP_INCOME_QUESTION = "**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+
+    /**
+     * Save Tax recap: the answers they gave in the funnel and that we've
+     * started their profile from them. Plain text only (Rule #16).
      */
     private static function buildFunnelRecapPrompt(string $firstName, array $funnel): string
     {
         $points = [];
 
-        $employmentLabel = [
-            'full-time' => 'working full-time',
-            'part-time' => 'working part-time',
-            'self-employed' => 'self-employed',
-            'retired' => 'retired',
-            'not-employed' => 'not currently employed',
-        ][$funnel['employment'] ?? ''] ?? null;
+        $employmentLabel = self::FUNNEL_EMPLOYMENT_LABELS[$funnel['employment'] ?? ''] ?? null;
         if ($employmentLabel) {
             $points[] = ucfirst($employmentLabel);
         }
@@ -1865,6 +1923,12 @@ final class OnboardingStateMachine
             $funnel['income'] ?? null,
             $funnel['income_context'] ?? null,
         );
+        // The recap label is an "earning ..." phrase that also suffixes the
+        // spouse line, so "no income" is not one; the user's own "No income"
+        // answer is still read back to them (Brett 2026-09-29).
+        if ($incomeLabel === '' && ($funnel['income'] ?? null) === 'zero') {
+            $incomeLabel = FunnelIncomeBand::label('zero');
+        }
         if ($incomeLabel) {
             $points[] = ucfirst($incomeLabel);
         }
@@ -1879,7 +1943,10 @@ final class OnboardingStateMachine
                 $funnel['spouse_income_context'] ?? null,
             );
             $spouseIncomeSuffix = $spouseIncomeLabel ? ' '.$spouseIncomeLabel : '';
-            $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix;
+            // Asked only when the partner is in the Personal Allowance taper band.
+            $spouseEmploymentLabel = self::FUNNEL_EMPLOYMENT_LABELS[$funnel['spouseEmployment'] ?? ''] ?? null;
+            $spouseEmploymentSuffix = $spouseEmploymentLabel ? ', who is '.$spouseEmploymentLabel : '';
+            $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix.$spouseEmploymentSuffix;
         }
 
         $assetMap = [
@@ -1903,11 +1970,10 @@ final class OnboardingStateMachine
         $extraMinutes = max(0, count($assetChoices) - 1);
         $estimateLow = 3 + $extraMinutes;
 
-        // First bubble: greet, list the funnel answers as bullet points (one per
-        // line so they read clearly), then the profile/time line. Markdown "- "
-        // bullets render as a list on both surfaces (web AiMessageContent +
-        // /m renderFynText). BUBBLE_BREAK then splits the bold income question
-        // off as its own bubble in the dock.
+        // Greet, list the funnel answers as bullet points (one per line so they
+        // read clearly), then the profile/time line. Markdown "- " bullets
+        // render as a list on both surfaces (web AiMessageContent + /m
+        // renderFynText). The state's own question follows as its own bubble.
         $intro = "Hi {$firstName}, I'm Fyn — thanks for those answers.";
         if ($points !== []) {
             $bullets = implode("\n", array_map(static fn ($p) => "- {$p}", $points));
@@ -1915,9 +1981,7 @@ final class OnboardingStateMachine
         }
 
         return $intro
-            ."\n\nI've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes."
-            .self::BUBBLE_BREAK
-            ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+            ."\n\nI've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about {$estimateLow} minutes.";
     }
 
     private static function saveTaxIncomeRecapLabel(mixed $band, mixed $context = null): string
@@ -1942,6 +2006,21 @@ final class OnboardingStateMachine
 
                 return '';
             }
+        }
+    }
+
+    private static function pensioncheckIncomeRecapLabel(mixed $band): string
+    {
+        if (! is_string($band) || ! FunnelIncomeBand::isKnown($band)) {
+            return '';
+        }
+
+        try {
+            return FunnelIncomeBand::pageRecapLabel($band);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return '';
         }
     }
 
@@ -1992,83 +2071,33 @@ final class OnboardingStateMachine
     }
 
     /**
-     * Builds a personalised work prompt that matches the user's chosen
-     * employment_status (self-employed users get "trade name" wording).
-     */
-    /**
-     * The retirement-date question, opened once with the funnel recap for a
-     * retired campaign arrival (the recap's own income question is dropped).
+     * The retirement-date question. A retired Save Tax arrival opens here, and
+     * emitTurnForState puts the funnel recap in front of it on that first turn.
      */
     public static function buildRetirementDatePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
-        $question = 'When did you retire? A year is fine — something like "2020".';
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! empty($user->retirement_date)
-            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_RETIREMENT_DATE)) {
-            return $question;
-        }
-        $firstName = trim((string) ($user->first_name ?? '')) !== '' ? trim((string) $user->first_name) : 'there';
-        $recap = ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
-            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
-            : self::buildFunnelRecapPrompt($firstName, $funnel);
-
-        return explode(self::BUBBLE_BREAK, $recap)[0].self::BUBBLE_BREAK.$question;
+        return 'When did you retire? A year is fine — something like "2020".';
     }
 
     public static function buildWorkFormPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
-        return self::workFunnelRecap($user, $conversation) ?? 'Now your work and income.';
+        return self::funnelRecapDue($user, $conversation) ? self::FUNNEL_RECAP_INCOME_QUESTION : 'Now your work and income.';
     }
 
     /**
-     * The one-off funnel recap a Save Tax or pension check arrival gets on
-     * its first income turn, or null when this is not that turn.
+     * Builds a personalised work prompt that matches the user's chosen
+     * employment_status (self-employed users get "trade name" wording).
      */
-    private static function workFunnelRecap(User $user, ?AiConversation $conversation): ?string
-    {
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
-        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! $noIncomeYet
-            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)
-            || self::funnelAskedInChat($conversation)) {
-            return null;
-        }
-        $firstName = trim((string) ($user->first_name ?? '')) !== ''
-            ? trim((string) $user->first_name)
-            : 'there';
-
-        return ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
-            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
-            : self::buildFunnelRecapPrompt($firstName, $funnel);
-    }
-
     public static function buildWorkPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         $status = $user->employment_status ?? 'employed';
 
-        // SaveTax campaign funnel arrivals open here (income-first). On the first
-        // work turn — before any income is captured — greet with the funnel recap
-        // (which leads straight into the income question). Employment is already
-        // known from the funnel, so we never re-ask it. Delivered ONCE per
-        // conversation: the welcome-back resume ('continue') re-emits this
-        // state's turn, and without the delivered-check the full recap +
-        // question would repeat as duplicate transcript rows.
-        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
-        $noIncomeYet = empty($user->annual_employment_income) && empty($user->annual_self_employment_income);
-        if (($user->onboarding_fyn_path ?? '') === 'campaign' && $funnel !== [] && $noIncomeYet
-            && ! self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_WORK)
-            && ! self::funnelAskedInChat($conversation)) {
-            $firstName = trim((string) ($user->first_name ?? '')) !== ''
-                ? trim((string) $user->first_name)
-                : 'there';
-
-            // Pensioncheck users get a pension-flavoured opening; savetax and all
-            // other campaigns use the original tax-plan recap (byte-identical).
-            if (($user->onboarding_fyn_selection ?? '') === 'pensioncheck') {
-                return self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel);
-            }
-
-            return self::buildFunnelRecapPrompt($firstName, $funnel);
+        // SaveTax campaign funnel arrivals open here (income-first), behind
+        // the funnel recap (funnelRecapLeadIn), which leads straight into the
+        // income question. Employment is already known from the funnel, so we
+        // never re-ask it.
+        if (self::funnelRecapDue($user, $conversation)) {
+            return self::FUNNEL_RECAP_INCOME_QUESTION;
         }
 
         if ($status === 'self_employed') {
@@ -3116,6 +3145,56 @@ final class OnboardingStateMachine
         return self::campaignTerminalFor($selection);
     }
 
+    /** True when the state's chips toggle and are submitted together (corpus `multi_select`). */
+    public static function isMultiSelect(string $stateId): bool
+    {
+        return (self::getState($stateId)['multi_select'] ?? false) === true;
+    }
+
+    /**
+     * Every bubble id a message names, for a multi-select state.
+     *
+     * Wire format (web, /m and iOS send this; CSJ 2026-09-29, M4): the labels
+     * of the chips the user toggled on, in display order, joined with
+     * MULTI_SELECT_SEPARATOR, and the submit bubble's label last — e.g.
+     * "Bank account, ISA, Pension, That's everything". With nothing toggled
+     * the message is the submit label alone. A message naming the submit
+     * bubble ends the step; one that does not (an older client's single tap,
+     * "ISA") records the pick and asks again, exactly as before.
+     *
+     * Each part is matched with matchBubble — one vocabulary. Every part must
+     * match: a part that names no bubble returns [] so the step re-asks
+     * rather than silently dropping a pick. Non-multi-select states (and a
+     * one-part message) return matchBubble's single id, or [].
+     *
+     * @return list<string>
+     */
+    public static function matchBubbles(string $stateId, string $userAnswer): array
+    {
+        $parts = self::isMultiSelect($stateId)
+            ? array_values(array_filter(array_map('trim', explode(trim(self::MULTI_SELECT_SEPARATOR), $userAnswer)), static fn (string $p): bool => $p !== ''))
+            : [$userAnswer];
+
+        if (count($parts) <= 1) {
+            $id = self::matchBubble($stateId, $userAnswer);
+
+            return $id === null ? [] : [$id];
+        }
+
+        $ids = [];
+        foreach ($parts as $part) {
+            $id = self::matchBubble($stateId, $part);
+            if ($id === null) {
+                return [];
+            }
+            if (! in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
     /**
      * Match a bubble click (where the label becomes the next user message)
      * against the current state's bubble config. Case-insensitive, trimmed,
@@ -3261,34 +3340,22 @@ final class OnboardingStateMachine
     {
         $points = [];
 
-        $employmentLabel = [
-            'full-time' => 'working full-time',
-            'part-time' => 'working part-time',
-            'self-employed' => 'self-employed',
-            'retired' => 'retired',
-            'not-employed' => 'not currently employed',
-        ][$funnel['employment'] ?? ''] ?? null;
+        $employmentLabel = self::FUNNEL_EMPLOYMENT_LABELS[$funnel['employment'] ?? ''] ?? null;
         if ($employmentLabel) {
             $points[] = ucfirst($employmentLabel);
         }
 
-        $incomeLabel = [
-            'upto_50270' => 'earning up to £50,270',
-            '50271_100000' => 'earning £50,271 to £100,000',
-            '100001_125140' => 'earning £100,001 to £125,140',
-            'over_125140' => 'earning above £125,140',
-        ][$funnel['income'] ?? ''] ?? null;
+        // Band figures come from the active tax configuration (Rule 2), in the
+        // pension check page's own option wording. The funnel carries no
+        // income_context (AuthController stamps it for savetax only).
+        $incomeLabel = self::pensioncheckIncomeRecapLabel($funnel['income'] ?? null);
         if ($incomeLabel) {
             $points[] = ucfirst($incomeLabel);
         }
 
         if (($funnel['spouse'] ?? '') === 'yes') {
-            $spouseIncomeSuffix = [
-                'upto_50270' => ' earning up to £50,270',
-                '50271_100000' => ' earning £50,271 to £100,000',
-                '100001_125140' => ' earning £100,001 to £125,140',
-                'over_125140' => ' earning above £125,140',
-            ][$funnel['spouseIncome'] ?? ''] ?? '';
+            $spouseIncomeLabel = self::pensioncheckIncomeRecapLabel($funnel['spouseIncome'] ?? null);
+            $spouseIncomeSuffix = $spouseIncomeLabel ? ' '.$spouseIncomeLabel : '';
             $points[] = 'You have a spouse or civil partner'.$spouseIncomeSuffix;
         }
 
@@ -3321,9 +3388,7 @@ final class OnboardingStateMachine
         }
 
         return $intro
-            ."\n\nI've started your profile from what you told us, and to get a clear picture of your pension position I just need a few more details — this usually takes about {$estimateLow} minutes."
-            .self::BUBBLE_BREAK
-            ."**Let's start with your income.** Tell me your gross annual income (this includes bonuses and commissions).";
+            ."\n\nI've started your profile from what you told us, and to get a clear picture of your pension position I just need a few more details — this usually takes about {$estimateLow} minutes.";
     }
 
     /**

@@ -30,6 +30,12 @@ use App\Services\Tax\IsaAllowanceAllocator;
  *     combined total; their isa_allowance_note surfaces via conflict_note.
  *   - Claim tier: attached from metadata for downstream voicing; defaults to
  *     'judgement' when metadata is absent.
+ *   - Alternatives: every item in a conflict pair lists the OTHER in-plan items
+ *     it conflicts with, in both directions, plus one sentence saying which one
+ *     the total counts. conflict_note only marks the excluded side, so the
+ *     item the total counts said nothing about its alternatives, and Fyn told a
+ *     user to do the ISA top-up "and either the gift or the joint split" — all
+ *     three shelter the same interest (L3-3, fynla.org, 29 Sep 2026).
  *
  * This is a PURE function of its inputs — callers are responsible for
  * fetching recommendations (TaxStrategyCalculator) and metadata (DB).
@@ -169,6 +175,17 @@ final class StrategyPlanComposer
             $titleByType[$rec->type] = $rec->title;
         }
 
+        // Every conflict pair, seen from both ends, in plan order.
+        $alternativesOf = [];
+        foreach ($pairList as [$a, $b]) {
+            $alternativesOf[$a][] = $b;
+            $alternativesOf[$b][] = $a;
+        }
+        foreach ($alternativesOf as $type => $others) {
+            usort($others, fn (string $x, string $y): int => $orderIndex[$x] <=> $orderIndex[$y]);
+            $alternativesOf[$type] = $others;
+        }
+
         $out = [];
         foreach ($items as $index => $rec) {
             // Conflict-pair notes take precedence; otherwise surface the
@@ -178,6 +195,16 @@ final class StrategyPlanComposer
             $conflictNote = isset($noteFor[$rec->type])
                 ? sprintf('Alternative to "%s" — compare before doing both.', $titleByType[$noteFor[$rec->type]] ?? $noteFor[$rec->type])
                 : (is_string($isaNote) ? $isaNote : null);
+            // Said once, here, so every page that shows the note (the Tax
+            // Strategy pages, the action cards, the holistic plan) says the
+            // saving is not part of the total the plan headlines (SaveTax
+            // matrix L3-5). What Fyn is told about alternatives is
+            // alternatives_note (L3-3).
+            if ($conflictNote !== null && isset($excluded[$rec->type])) {
+                $conflictNote .= ' Not counted in your total.';
+            }
+
+            $alternatives = $alternativesOf[$rec->type] ?? [];
 
             $out[] = array_merge($rec->toArray(), [
                 'claim_tier' => $metadata[$rec->type]['claim_tier'] ?? 'judgement',
@@ -186,6 +213,8 @@ final class StrategyPlanComposer
                 // Machine-readable twin of the note: consumers that voice a
                 // figure (Fyn's section turns) must add only what the total does.
                 'counted_in_total' => ! isset($excluded[$rec->type]),
+                'alternatives' => array_map(fn (string $type): string => $titleByType[$type], $alternatives),
+                'alternatives_note' => $this->alternativesNote($rec->type, $alternatives, $excluded, $titleByType),
             ]);
         }
 
@@ -202,6 +231,81 @@ final class StrategyPlanComposer
             'combined_annual_saving' => round($total, 2),
             'locked' => array_values($lockedStrategies),
         ];
+    }
+
+    /**
+     * The alternatives sentence a composed item carries, or null. The one
+     * reader of alternatives_note, so every place Fyn is told about or voices
+     * a plan item treats a blank or missing note the same way (Rule 20).
+     *
+     * @param  array<string, mixed>  $item  a compose() item, or a card or context row carrying its alternatives_note
+     */
+    public static function alternativesNoteOf(array $item): ?string
+    {
+        $note = trim((string) ($item['alternatives_note'] ?? ''));
+
+        return $note === '' ? null : $note;
+    }
+
+    /**
+     * $text followed by the item's alternatives sentence, when it has one:
+     * how a plan item is voiced wherever Fyn speaks it.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    public static function withAlternativesNote(string $text, array $item, string $separator = ' '): string
+    {
+        $note = self::alternativesNoteOf($item);
+
+        return $note === null ? $text : $text.$separator.$note;
+    }
+
+    /**
+     * One sentence, for Fyn, saying that an item and its alternatives are a
+     * choice and which of them the total counts. Written from the pair data
+     * alone, so it holds for every plan this composer builds: a conflict pair
+     * is two items whose savings the total never adds together.
+     *
+     * @param  list<string>  $alternatives  conflicting in-plan types, in plan order
+     * @param  array<string, true>  $excluded
+     * @param  array<string, string>  $titleByType
+     */
+    private function alternativesNote(string $type, array $alternatives, array $excluded, array $titleByType): ?string
+    {
+        if ($alternatives === []) {
+            return null;
+        }
+
+        $quoted = static fn (array $types): string => self::joinTitles(array_map(
+            static fn (string $t): string => '"'.$titleByType[$t].'"',
+            $types,
+        ));
+
+        $lead = sprintf(
+            '"%s" is an alternative to %s: doing one changes or removes the saving from the other, so their savings do not add up.',
+            $titleByType[$type],
+            $quoted($alternatives),
+        );
+
+        if (! isset($excluded[$type])) {
+            return $lead.' The plan total counts this one.';
+        }
+
+        $counted = array_values(array_filter($alternatives, static fn (string $t): bool => ! isset($excluded[$t])));
+
+        return $counted === []
+            ? $lead.' The plan total does not count this one.'
+            : $lead.' The plan total counts '.$quoted($counted).' instead of this one.';
+    }
+
+    /** @param  list<string>  $titles */
+    private static function joinTitles(array $titles): string
+    {
+        if (count($titles) <= 1) {
+            return $titles[0] ?? '';
+        }
+
+        return implode(', ', array_slice($titles, 0, -1)).' and '.$titles[count($titles) - 1];
     }
 
     /**

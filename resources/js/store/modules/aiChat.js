@@ -9,6 +9,7 @@ import aiChatService from '@/services/aiChatService';
 import { stripTags } from '@/utils/stripTags';
 
 import logger from '@/utils/logger';
+import { FYN_INTERRUPTED_MESSAGE, TURN_SETTLE_MS, isDroppedConnection, newTurnId, readFynEvents } from '../../../mobile/utils/fynStream.js';
 /**
  * One message shape for every entity write event, used by both stream paths.
  *
@@ -28,6 +29,26 @@ function entityWriteMessage(event) {
             label: event.label || null,
         },
         created_at: new Date().toISOString(),
+    };
+}
+
+// A turn queued behind a lock this client does not hold is streamed once the
+// lock frees, retried on the /m schedule (onboardingChat.js streamQueuedReply).
+const QUEUED_STREAM_ATTEMPTS = 8;
+const QUEUED_STREAM_BACKOFF_MS = 1500;
+
+/**
+ * The metadata of a `quick_replies` row, from a live SSE event or a stored
+ * message's metadata (the same field names). One home for all four stream
+ * paths and loadConversation's normalisation, so a flag added to the event
+ * (multi_select, M4) reaches every path — live and resumed — at once.
+ */
+function quickRepliesMetadata(source) {
+    return {
+        bubbles: source?.bubbles || [],
+        skip_link: source?.skip_link || null,
+        action_bubbles: Boolean(source?.action_bubbles),
+        multi_select: source?.multi_select === true,
     };
 }
 
@@ -87,6 +108,11 @@ function pushCaptureFormTurn(commit, state, event) {
     commit('ADD_MESSAGE', captureFormMessage(event));
 }
 
+/** A turn the server is still finishing: give it a moment before reloading. */
+function waitForTurn() {
+    return new Promise((resolve) => { setTimeout(resolve, TURN_SETTLE_MS); });
+}
+
 const state = {
     isOpen: false,
     conversations: [],
@@ -97,6 +123,9 @@ const state = {
     loading: false,
     loadingConversations: false,
     error: null,
+    // A turn whose stream closed without its terminal frame (L3-2): what to
+    // run again when the user taps "Try again" beside the error.
+    retryTurn: null,
     tokenLimitReached: false,
     tokenResetAt: null,
     secondsUntilReset: null,
@@ -142,6 +171,7 @@ const getters = {
     loading: (state) => state.loading,
     loadingConversations: (state) => state.loadingConversations,
     error: (state) => state.error,
+    retryTurn: (state) => state.retryTurn,
     tokenLimitReached: (state) => state.tokenLimitReached,
     tokenResetAt: (state) => state.tokenResetAt,
     secondsUntilReset: (state) => state.secondsUntilReset,
@@ -246,6 +276,11 @@ const mutations = {
 
     SET_ERROR(state, error) {
         state.error = error;
+        if (error === null) state.retryTurn = null;
+    },
+
+    SET_RETRY_TURN(state, retryTurn) {
+        state.retryTurn = retryTurn;
     },
 
     SET_TOKEN_LIMIT(state, { reached, resetAt, secondsUntilReset }) {
@@ -503,8 +538,6 @@ const actions = {
             const normalised = [];
             for (const m of raw) {
                 const bubbles = m?.metadata?.bubbles;
-                const skipLink = m?.metadata?.skip_link || null;
-                const actionBubbles = Boolean(m?.metadata?.action_bubbles);
                 const presentationActions = Array.isArray(m?.metadata?.actions) ? m.metadata.actions : [];
                 const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
 
@@ -537,7 +570,7 @@ const actions = {
                         id: `qr_${m.id}`,
                         role: 'quick_replies',
                         content: '',
-                        metadata: { bubbles, skip_link: skipLink, action_bubbles: actionBubbles },
+                        metadata: quickRepliesMetadata(m.metadata),
                         created_at: m.created_at,
                     });
                 } else {
@@ -580,12 +613,18 @@ const actions = {
      */
     async sendMessage({ commit, dispatch, state, rootState }, arg) {
         if (!state.currentConversation) return;
+        // Whether this client is already streaming a turn it will finish (and
+        // pop the queue behind), before this send flips `streaming` on.
+        const alreadyStreaming = state.streaming;
 
         // One send path for both a typed message and a structured form
         // answer: `arg` is a string (today) or `{ form }` (a capture_form
         // submission). Only one of message/form is ever sent to the server.
-        const form = arg && typeof arg === 'object' ? (arg.form || null) : null;
-        const message = form ? null : arg;
+        // `arg` may also carry the turn's id: a retry re-sends the same one.
+        const turn = arg && typeof arg === 'object' ? arg : { text: arg };
+        const form = turn.form || null;
+        const message = form ? null : (turn.text ?? null);
+        const turnId = turn.turnId || newTurnId();
 
         // Add user message to local state immediately. Strip HTML tags so the
         // optimistic bubble matches what SanitizeInput middleware writes to
@@ -615,6 +654,8 @@ const actions = {
         // otherwise be invisible to the empty-response check below — the
         // errors ARE Fyn's reply, so mark the turn as having produced one.
         let formErrorsReceived = false;
+        // The stream closed without a terminal frame (see fynStream.js).
+        let interrupted = false;
 
         commit('SET_STREAMING', true);
         commit('SET_STREAMING_TEXT', '');
@@ -633,14 +674,32 @@ const actions = {
         commit('SET_ABORT_CONTROLLER', abortController);
 
         const currentRoute = rootState.route?.path || window.location.pathname;
+        // A queued turn is streamed only once this action's finally has run:
+        // started inside the try, the finally's cleanup reset its streaming
+        // flag and abort controller and showed a false "couldn't generate a
+        // response" banner over it (review of #976).
+        let queuedTurn = false;
+        let streamQueuedAfter = false;
 
         try {
             const reader = await aiChatService.sendMessageStream(
                 state.currentConversation.id,
                 message,
                 currentRoute,
-                { signal: abortController.signal, form },
+                { signal: abortController.signal, form, turnId },
             );
+
+            // "Try again" for a turn the server already took (it finishes a
+            // turn whose client dropped): show the stored reply instead of
+            // asking again. Still running: wait for it, then show it.
+            if (reader && reader.turnTaken) {
+                commit('REMOVE_MESSAGE', tempId);
+                queuedTurn = true;
+                // It may still be finishing: give it a moment, then show it.
+                await waitForTurn();
+                await dispatch('loadConversation', state.currentConversation.id);
+                return;
+            }
 
             // FR-M7 — a turn sent while another is still streaming is QUEUED (or
             // rejected past the depth cap); the service returns a typed marker
@@ -650,6 +709,12 @@ const actions = {
             if (reader && reader.queued) {
                 commit('SET_MESSAGE_STATUS', { id: tempId, status: 'queued', realId: reader.messageId });
                 commit('SET_STREAMING', false);
+                // Queued behind a turn this client is not streaming — another
+                // tab, or one whose connection dropped (the server finishes it
+                // regardless) — so nothing here would ever pop the queue.
+                // Stream it once the lock frees, as /m does.
+                queuedTurn = true;
+                streamQueuedAfter = !alreadyStreaming;
                 return;
             }
             if (reader && reader.rejected) {
@@ -659,336 +724,313 @@ const actions = {
                 return;
             }
 
-            const decoder = new TextDecoder();
-            let buffer = '';
 
-            while (true) {
-                const { done, value } = await reader.read();
+            const { terminal } = await readFynEvents(reader, (event) => {
+                switch (event.type) {
+                    case 'thinking':
+                        // FR-M14 — planner is running; show "Fyn is thinking…".
+                        commit('SET_THINKING', true);
+                        break;
 
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-
-                    try {
-                        const event = JSON.parse(line.slice(6));
-
-                        switch (event.type) {
-                            case 'thinking':
-                                // FR-M14 — planner is running; show "Fyn is thinking…".
-                                commit('SET_THINKING', true);
-                                break;
-
-                            case 'content':
-                                if (state.thinking) {
-                                    commit('SET_THINKING', false);
-                                }
-                                commit('APPEND_STREAMING_TEXT', event.text);
-                                break;
-
-                            case 'title':
-                                commit('UPDATE_CONVERSATION_TITLE', {
-                                    conversationId: state.currentConversation.id,
-                                    title: event.title,
-                                });
-                                break;
-
-                            case 'navigation':
-                                // Only render a visible navigation bubble when the
-                                // event carries a human description (advice-mode
-                                // "taking you to X"). Onboarding navigation sends an
-                                // empty description — it's an action, not a message —
-                                // so it must not render a bubble; rendering it
-                                // previously leaked the internal state id as chat text.
-                                if (event.description) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'nav_' + Date.now(),
-                                        role: 'navigation',
-                                        content: event.description,
-                                        metadata: {
-                                            route_path: event.route_path,
-                                            description: event.description,
-                                        },
-                                        created_at: new Date().toISOString(),
-                                    });
-                                }
-                                commit('SET_PENDING_NAVIGATION', event.route_path);
-                                break;
-
-                            case 'fill_form':
-                                // Hand the fill to aiFormFill. startFill drives navigation
-                                // itself so that multi-entity messages navigate in queue
-                                // order (previously, setting pendingNavigation here clobbered
-                                // the first entity's route when a second fill_form arrived).
-                                dispatch('aiFormFill/startFill', {
-                                    entityType: event.entity_type,
-                                    fields: event.fields,
-                                    route: event.route,
-                                    mode: event.mode || 'create',
-                                    entityId: event.entity_id || null,
-                                }, { root: true });
-                                break;
-
-                            case 'entity_created':
-                            case 'entity_updated':
-                            case 'entity_deleted':
-                                commit('ADD_MESSAGE', entityWriteMessage(event));
-                                break;
-
-                            case 'action':
-                                addPresentationAction(commit, state, event);
-                                break;
-
-                            case 'quick_replies':
-                                // Flush any streaming text into a normal assistant message first
-                                // so the bubbles appear AFTER the intro text Claude wrote.
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'qr_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', {
-                                    id: 'qr_' + Date.now(),
-                                    role: 'quick_replies',
-                                    content: event.prompt_text || '',
-                                    metadata: {
-                                        bubbles: event.bubbles || [],
-                                        skip_link: event.skip_link || null,
-                                        action_bubbles: Boolean(event.action_bubbles),
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
-                                // Phase 10 — propagate skip-link metadata to the
-                                // global getter so persistent affordances (e.g.
-                                // the spouse skip) can be rendered outside the
-                                // bubble list too.
-                                commit('SET_SKIP_LINK', event.skip_link || null);
-                                break;
-
-                            case 'form_received':
-                                // A form submission carries no typed text — rewrite the
-                                // placeholder user bubble with the server's plain-English
-                                // summary of what was captured. Clear any earlier refusal's
-                                // errors too, so a successful retry locks the form cleanly
-                                // instead of re-rendering it open with stale errors.
-                                commit('SET_TEMP_USER_CONTENT', { id: tempId, content: event.text || '' });
-                                commit('SET_CAPTURE_FORM_ERRORS', null);
-                                break;
-
-                            case 'capture_form':
-                                // Fyn's structured capture form (e.g. property) — one
-                                // helper for the flush + prompt-text row + form row,
-                                // shared by all four stream paths.
-                                pushCaptureFormTurn(commit, state, event);
-                                break;
-
-                            case 'capture_form_errors':
-                                // A rejected form submission — re-attach the errors to the
-                                // same form row rather than adding a new one. Mark the turn
-                                // as replied so the empty-response guard in the finally
-                                // block below doesn't overwrite the errors with the
-                                // generic "Fyn couldn't generate a response" banner.
-                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
-                                formErrorsReceived = true;
-                                break;
-
-                            case 'onboarding_advance':
-                                // The director split a multi-part prompt (e.g. the
-                                // funnel recap → the income question) with this marker.
-                                // Flush the current streaming text into its own bubble
-                                // so the next part starts fresh — matching the /m dock
-                                // and the resume render, where the DB rows are separate
-                                // messages. Without this the parts merge into one bubble.
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
-                                break;
-
-                            case 'onboarding_layout_change':
-                                // Phase 13 — director signals layout switch (wide/standard)
-                                // for pause states. FynOnboardingChat.vue watches this
-                                // getter to shrink the chat container and unblur the
-                                // dashboard while in standard mode.
-                                commit('SET_ONBOARDING_LAYOUT', event.mode);
-                                // Entering a profile-review pause — refresh the auth
-                                // user + family members so ProfileReviewPanel has the
-                                // data the director just wrote (FR-M22: "renders
-                                // captured personal / family / employment / expenditure
-                                // fields"). Without this refresh the panel reads stale
-                                // Vuex state from page load and shows only fields that
-                                // existed then.
-                                if (event.mode === 'standard') {
-                                    dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
-                                    dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
-                                }
-                                break;
-
-                            case 'capture_complete':
-                                // Phase 13 — orchestrator fires this after data-capture
-                                // Fyn emits capture_complete. Records are added to the
-                                // message stream as a record-card bubble for the UI.
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'capture_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', {
-                                    id: 'capture_' + Date.now(),
-                                    role: 'capture_complete',
-                                    content: event.summary || '',
-                                    metadata: {
-                                        records_created: event.records_created || [],
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
-                                break;
-
-                            case 'handoff':
-                                // Should never reach here — AdviceFyn::wrapStream strips
-                                // handoff events from the outbound SSE per INV-2.4.1.
-                                // Log only.
-                                logger.debug('[chat] handoff leaked', event);
-                                break;
-
-                            case 'handoff_error':
-                                // April30Updates F-1 / INV-2.4.5 — the LLM emitted a
-                                // delegate_to_capture with a malformed payload. Surface
-                                // a single short message so the user knows the request
-                                // didn't land. Render as a normal assistant content
-                                // bubble (per INV-2.4.3 styling rule — no special chrome).
-                                commit('ADD_MESSAGE', {
-                                    id: 'handoff_error_' + Date.now(),
-                                    role: 'assistant',
-                                    content: event.message || "I couldn't pick up that request — could you try again?",
-                                    created_at: new Date().toISOString(),
-                                });
-                                logger.warn('[chat] handoff_error', {
-                                    reason: event.reason,
-                                });
-                                break;
-
-                            case 'skip_link':
-                                // Phase 10 — director-emitted skip link affordance for
-                                // grouped_extract states (e.g. base_spouse). The bubbles
-                                // path bundles skip_link into the quick_replies event;
-                                // this separate type carries it for non-bubble turns.
-                                commit('SET_SKIP_LINK', event.skip_link || null);
-                                break;
-
-                            case 'preview_cta':
-                                // Phase 13 — orchestrator surfaces a signup CTA after
-                                // short-circuiting a preview user.
-                                commit('SET_PREVIEW_CTA', {
-                                    label: event.label || 'Sign up',
-                                    route: event.route || '/register',
-                                });
-                                break;
-
-                            case 'onboarding_complete':
-                                // Terminal state — the director marked the user as
-                                // onboarded and told us where to navigate next.
-                                // SET_PENDING_NAVIGATION is picked up by AiChatPanel's
-                                // existing navigation handler. Also clear the Fyn
-                                // onboarding flag so the wide-chat/blur layout
-                                // returns to normal.
-                                commit('SET_IS_ONBOARDING_ACTIVE', false);
-                                commit('SET_PENDING_NAVIGATION', event.nextRoute || '/dashboard');
-                                // Refresh dashboard data — onboarding may have created
-                                // goals, family members, income, expenditure, and other
-                                // records that the dashboard's charts and cards display.
-                                // If the user lands on the same route they were on, the
-                                // router push is a no-op and no remount fires — explicit
-                                // refresh below ensures the visible state matches the
-                                // newly captured data.
-                                dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
-                                dispatch('goals/fetchProjection', null, { root: true }).catch(() => {});
-                                dispatch('goals/fetchDashboardOverview', null, { root: true }).catch(() => {});
-                                dispatch('netWorth/refreshNetWorth', null, { root: true }).catch(() => {});
-                                break;
-
-                            case 'token_limit':
-                                commit('SET_TOKEN_LIMIT', {
-                                    reached: true,
-                                    resetAt: event.reset_at,
-                                    secondsUntilReset: event.seconds_until_reset,
-                                });
-                                break;
-
-                            case 'consent_required':
-                                // S0.9 — backend re-checks ai_chat consent on every
-                                // SSE iteration. If the user withdrew consent
-                                // mid-stream the controller emits this terminal
-                                // event and closes the connection. Surface the
-                                // re-consent prompt and stop streaming locally.
-                                commit('SET_CONSENT_REQUIRED', true);
-                                commit('SET_STREAMING', false);
-                                // No user-facing consent toggle exists — AI chat
-                                // consent is granted at registration via the
-                                // privacy policy. If consent has been withdrawn
-                                // (e.g. by support action or a GDPR request),
-                                // the user has to contact support to restore it.
-                                commit('SET_ERROR', 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.');
-                                break;
-
-                            case 'level_up':
-                                // Deliberately ignored. Level-ups are banked
-                                // server-side and spent on the dashboard hero
-                                // circle; nothing may interrupt a Fyn turn
-                                // (CSJ 2026-09-17). The frame stays on the
-                                // wire for older clients.
-                                break;
-
-                            case 'error':
-                                commit('SET_ERROR', event.message);
-                                break;
-
-                            case 'done':
-                                // Finalise assistant message and clear the live
-                                // stream buffer so the next event does not
-                                // re-commit the same text. The quick_replies
-                                // branch above also flushes streamingText as a
-                                // fallback — without this clear, a normal
-                                // assistant turn followed by a director-emitted
-                                // quick_replies (e.g. asset_capture → add_more)
-                                // would commit the same message twice.
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: event.message_id || 'msg_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                break;
+                    case 'content':
+                        if (state.thinking) {
+                            commit('SET_THINKING', false);
                         }
-                    } catch {
-                        // Skip malformed SSE lines
-                    }
+                        commit('APPEND_STREAMING_TEXT', event.text);
+                        break;
+
+                    case 'title':
+                        commit('UPDATE_CONVERSATION_TITLE', {
+                            conversationId: state.currentConversation.id,
+                            title: event.title,
+                        });
+                        break;
+
+                    case 'navigation':
+                        // Only render a visible navigation bubble when the
+                        // event carries a human description (advice-mode
+                        // "taking you to X"). Onboarding navigation sends an
+                        // empty description — it's an action, not a message —
+                        // so it must not render a bubble; rendering it
+                        // previously leaked the internal state id as chat text.
+                        if (event.description) {
+                            commit('ADD_MESSAGE', {
+                                id: 'nav_' + Date.now(),
+                                role: 'navigation',
+                                content: event.description,
+                                metadata: {
+                                    route_path: event.route_path,
+                                    description: event.description,
+                                },
+                                created_at: new Date().toISOString(),
+                            });
+                        }
+                        commit('SET_PENDING_NAVIGATION', event.route_path);
+                        break;
+
+                    case 'fill_form':
+                        // Hand the fill to aiFormFill. startFill drives navigation
+                        // itself so that multi-entity messages navigate in queue
+                        // order (previously, setting pendingNavigation here clobbered
+                        // the first entity's route when a second fill_form arrived).
+                        dispatch('aiFormFill/startFill', {
+                            entityType: event.entity_type,
+                            fields: event.fields,
+                            route: event.route,
+                            mode: event.mode || 'create',
+                            entityId: event.entity_id || null,
+                        }, { root: true });
+                        break;
+
+                    case 'entity_created':
+                    case 'entity_updated':
+                    case 'entity_deleted':
+                        commit('ADD_MESSAGE', entityWriteMessage(event));
+                        break;
+
+                    case 'action':
+                        addPresentationAction(commit, state, event);
+                        break;
+
+                    case 'quick_replies':
+                        // Flush any streaming text into a normal assistant message first
+                        // so the bubbles appear AFTER the intro text Claude wrote.
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'qr_text_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        commit('ADD_MESSAGE', {
+                            id: 'qr_' + Date.now(),
+                            role: 'quick_replies',
+                            content: event.prompt_text || '',
+                            metadata: quickRepliesMetadata(event),
+                            created_at: new Date().toISOString(),
+                        });
+                        // Phase 10 — propagate skip-link metadata to the
+                        // global getter so persistent affordances (e.g.
+                        // the spouse skip) can be rendered outside the
+                        // bubble list too.
+                        commit('SET_SKIP_LINK', event.skip_link || null);
+                        break;
+
+                    case 'form_received':
+                        // A form submission carries no typed text — rewrite the
+                        // placeholder user bubble with the server's plain-English
+                        // summary of what was captured. Clear any earlier refusal's
+                        // errors too, so a successful retry locks the form cleanly
+                        // instead of re-rendering it open with stale errors.
+                        commit('SET_TEMP_USER_CONTENT', { id: tempId, content: event.text || '' });
+                        commit('SET_CAPTURE_FORM_ERRORS', null);
+                        break;
+
+                    case 'capture_form':
+                        // Fyn's structured capture form (e.g. property) — one
+                        // helper for the flush + prompt-text row + form row,
+                        // shared by all four stream paths.
+                        pushCaptureFormTurn(commit, state, event);
+                        break;
+
+                    case 'capture_form_errors':
+                        // A rejected form submission — re-attach the errors to the
+                        // same form row rather than adding a new one. Mark the turn
+                        // as replied so the empty-response guard in the finally
+                        // block below doesn't overwrite the errors with the
+                        // generic "Fyn couldn't generate a response" banner.
+                        commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
+                        formErrorsReceived = true;
+                        break;
+
+                    case 'onboarding_advance':
+                        // The director split a multi-part prompt (e.g. the
+                        // funnel recap, then the income question) with this marker.
+                        // Flush the current streaming text into its own bubble
+                        // so the next part starts fresh — matching the /m dock
+                        // and the resume render, where the DB rows are separate
+                        // messages. Without this the parts merge into one bubble.
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        logger.debug('[onboarding] advance', event.from_step, 'to', event.to_step);
+                        break;
+
+                    case 'onboarding_layout_change':
+                        // Phase 13 — director signals layout switch (wide/standard)
+                        // for pause states. FynOnboardingChat.vue watches this
+                        // getter to shrink the chat container and unblur the
+                        // dashboard while in standard mode.
+                        commit('SET_ONBOARDING_LAYOUT', event.mode);
+                        // Entering a profile-review pause — refresh the auth
+                        // user + family members so ProfileReviewPanel has the
+                        // data the director just wrote (FR-M22: "renders
+                        // captured personal / family / employment / expenditure
+                        // fields"). Without this refresh the panel reads stale
+                        // Vuex state from page load and shows only fields that
+                        // existed then.
+                        if (event.mode === 'standard') {
+                            dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                            dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
+                        }
+                        break;
+
+                    case 'capture_complete':
+                        // Phase 13 — orchestrator fires this after data-capture
+                        // Fyn emits capture_complete. Records are added to the
+                        // message stream as a record-card bubble for the UI.
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'capture_text_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        commit('ADD_MESSAGE', {
+                            id: 'capture_' + Date.now(),
+                            role: 'capture_complete',
+                            content: event.summary || '',
+                            metadata: {
+                                records_created: event.records_created || [],
+                            },
+                            created_at: new Date().toISOString(),
+                        });
+                        break;
+
+                    case 'handoff':
+                        // Should never reach here — AdviceFyn::wrapStream strips
+                        // handoff events from the outbound SSE per INV-2.4.1.
+                        // Log only.
+                        logger.debug('[chat] handoff leaked', event);
+                        break;
+
+                    case 'handoff_error':
+                        // April30Updates F-1 / INV-2.4.5 — the LLM emitted a
+                        // delegate_to_capture with a malformed payload. Surface
+                        // a single short message so the user knows the request
+                        // didn't land. Render as a normal assistant content
+                        // bubble (per INV-2.4.3 styling rule — no special chrome).
+                        commit('ADD_MESSAGE', {
+                            id: 'handoff_error_' + Date.now(),
+                            role: 'assistant',
+                            content: event.message || "I couldn't pick up that request — could you try again?",
+                            created_at: new Date().toISOString(),
+                        });
+                        logger.warn('[chat] handoff_error', {
+                            reason: event.reason,
+                        });
+                        break;
+
+                    case 'skip_link':
+                        // Phase 10 — director-emitted skip link affordance for
+                        // grouped_extract states (e.g. base_spouse). The bubbles
+                        // path bundles skip_link into the quick_replies event;
+                        // this separate type carries it for non-bubble turns.
+                        commit('SET_SKIP_LINK', event.skip_link || null);
+                        break;
+
+                    case 'preview_cta':
+                        // Phase 13 — orchestrator surfaces a signup CTA after
+                        // short-circuiting a preview user.
+                        commit('SET_PREVIEW_CTA', {
+                            label: event.label || 'Sign up',
+                            route: event.route || '/register',
+                        });
+                        break;
+
+                    case 'onboarding_complete':
+                        // Terminal state — the director marked the user as
+                        // onboarded and told us where to navigate next.
+                        // SET_PENDING_NAVIGATION is picked up by AiChatPanel's
+                        // existing navigation handler. Also clear the Fyn
+                        // onboarding flag so the wide-chat/blur layout
+                        // returns to normal.
+                        commit('SET_IS_ONBOARDING_ACTIVE', false);
+                        commit('SET_PENDING_NAVIGATION', event.nextRoute || '/dashboard');
+                        // Refresh dashboard data — onboarding may have created
+                        // goals, family members, income, expenditure, and other
+                        // records that the dashboard's charts and cards display.
+                        // If the user lands on the same route they were on, the
+                        // router push is a no-op and no remount fires — explicit
+                        // refresh below ensures the visible state matches the
+                        // newly captured data.
+                        dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                        dispatch('goals/fetchProjection', null, { root: true }).catch(() => {});
+                        dispatch('goals/fetchDashboardOverview', null, { root: true }).catch(() => {});
+                        dispatch('netWorth/refreshNetWorth', null, { root: true }).catch(() => {});
+                        break;
+
+                    case 'token_limit':
+                        commit('SET_TOKEN_LIMIT', {
+                            reached: true,
+                            resetAt: event.reset_at,
+                            secondsUntilReset: event.seconds_until_reset,
+                        });
+                        break;
+
+                    case 'consent_required':
+                        // S0.9 — backend re-checks ai_chat consent on every
+                        // SSE iteration. If the user withdrew consent
+                        // mid-stream the controller emits this terminal
+                        // event and closes the connection. Surface the
+                        // re-consent prompt and stop streaming locally.
+                        commit('SET_CONSENT_REQUIRED', true);
+                        commit('SET_STREAMING', false);
+                        // No user-facing consent toggle exists — AI chat
+                        // consent is granted at registration via the
+                        // privacy policy. If consent has been withdrawn
+                        // (e.g. by support action or a GDPR request),
+                        // the user has to contact support to restore it.
+                        commit('SET_ERROR', 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.');
+                        break;
+
+                    case 'level_up':
+                        // Deliberately ignored. Level-ups are banked
+                        // server-side and spent on the dashboard hero
+                        // circle; nothing may interrupt a Fyn turn
+                        // (CSJ 2026-09-17). The frame stays on the
+                        // wire for older clients.
+                        break;
+
+                    case 'error':
+                        commit('SET_ERROR', event.message);
+                        break;
+
+                    case 'done':
+                        // Finalise assistant message and clear the live
+                        // stream buffer so the next event does not
+                        // re-commit the same text. The quick_replies
+                        // branch above also flushes streamingText as a
+                        // fallback — without this clear, a normal
+                        // assistant turn followed by a director-emitted
+                        // quick_replies (e.g. asset_capture, then add_more)
+                        // would commit the same message twice.
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: event.message_id || 'msg_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        break;
                 }
-            }
+            });
+            interrupted = terminal === null;
             // FR-M7 — the in-flight turn streamed to completion; the finally
             // pops the next queued turn for this conversation.
-            streamedToCompletion = true;
+            streamedToCompletion = !interrupted;
         } catch (error) {
             // Don't show error if the user intentionally cancelled
             if (error.name === 'AbortError') {
@@ -1001,7 +1043,8 @@ const actions = {
                 return;
             }
             logger.error('Chat streaming error:', error);
-            commit('SET_ERROR', 'Connection lost. Please try again.');
+            if (isDroppedConnection(error)) interrupted = true;
+            else commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
             // Detect empty response — stream completed but Fyn never replied.
             // "Replied" = either streamingText has content OR new messages
@@ -1018,9 +1061,16 @@ const actions = {
             // same shape — capture_form_errors mutates the existing form row
             // rather than pushing a new one, so formErrorsReceived stands in
             // for a produced message.
+            // A cut-off turn is not an answer, however much text arrived before
+            // the stream closed: say so and offer the same turn again (L3-2).
+            if (interrupted && !authExpired) {
+                commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
+                commit('SET_RETRY_TURN', { arg, messageId: tempId, turnId });
+            }
             const producedNewMessages = state.messages.length > preStreamMessageCount || formErrorsReceived;
             if (
                 !authExpired
+                && !queuedTurn
                 && state.streaming
                 && !state.streamingText
                 && !producedNewMessages
@@ -1037,7 +1087,7 @@ const actions = {
 
             // FR-M7 — now the in-flight turn is done, pop the next queued turn
             // (if any). Fire-and-forget: streamNextQueued opens its own stream.
-            if (streamedToCompletion) {
+            if (streamedToCompletion || streamQueuedAfter) {
                 dispatch('streamNextQueued');
             }
         }
@@ -1053,7 +1103,7 @@ const actions = {
      * (the user can cancel it) rather than risk dropping the director's rich
      * bubble events through this advice-focused consumer.
      */
-    async streamNextQueued({ commit, dispatch, state, rootState }) {
+    async streamNextQueued({ commit, dispatch, state, rootState }, attempt = 0) {
         if (!state.currentConversation || state.streaming || state.isOnboardingActive) return;
 
         const queued = state.messages.find((m) => m.status === 'queued');
@@ -1068,6 +1118,7 @@ const actions = {
         commit('SET_ABORT_CONTROLLER', abortController);
         const currentRoute = rootState.route?.path || window.location.pathname;
         let streamedToCompletion = false;
+        let interrupted = false;
 
         try {
             const reader = await aiChatService.streamQueuedMessage(
@@ -1077,160 +1128,154 @@ const actions = {
                 { signal: abortController.signal },
             );
 
-            const decoder = new TextDecoder();
-            let buffer = '';
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            const { terminal } = await readFynEvents(reader, (event) => {
+                switch (event.type) {
+                    case 'thinking':
+                        // FR-M14 — planner is running; show "Fyn is thinking…".
+                        commit('SET_THINKING', true);
+                        break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-
-                    try {
-                        const event = JSON.parse(line.slice(6));
-
-                        switch (event.type) {
-                            case 'thinking':
-                                // FR-M14 — planner is running; show "Fyn is thinking…".
-                                commit('SET_THINKING', true);
-                                break;
-
-                            case 'content':
-                                if (state.thinking) {
-                                    commit('SET_THINKING', false);
-                                }
-                                commit('APPEND_STREAMING_TEXT', event.text);
-                                break;
-                            case 'title':
-                                commit('UPDATE_CONVERSATION_TITLE', {
-                                    conversationId: state.currentConversation.id,
-                                    title: event.title,
-                                });
-                                break;
-                            case 'navigation':
-                                // See the streaming handler above — only advice-mode
-                                // navigation (non-empty description) renders a bubble;
-                                // onboarding navigation is action-only and must not
-                                // leak its state id as chat text.
-                                if (event.description) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'nav_' + Date.now(),
-                                        role: 'navigation',
-                                        content: event.description,
-                                        metadata: { route_path: event.route_path, description: event.description },
-                                        created_at: new Date().toISOString(),
-                                    });
-                                }
-                                commit('SET_PENDING_NAVIGATION', event.route_path);
-                                break;
-                            case 'entity_created':
-                            case 'entity_updated':
-                            case 'entity_deleted':
-                                commit('ADD_MESSAGE', entityWriteMessage(event));
-                                break;
-                            case 'action':
-                                addPresentationAction(commit, state, event);
-                                break;
-                            case 'form_received':
-                                // No placeholder user row exists on this path (a queued
-                                // turn resumes after the fact) — nothing to rewrite.
-                                break;
-                            case 'capture_form':
-                                // Fyn's structured capture form (e.g. property) — one
-                                // helper for the flush + prompt-text row + form row,
-                                // shared by all four stream paths.
-                                pushCaptureFormTurn(commit, state, event);
-                                break;
-                            case 'capture_form_errors':
-                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
-                                break;
-                            case 'capture_complete':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'capture_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', {
-                                    id: 'capture_' + Date.now(),
-                                    role: 'capture_complete',
-                                    content: event.summary || '',
-                                    metadata: {
-                                        records_created: event.records_created || [],
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
-                                break;
-                            case 'handoff_error':
-                                commit('ADD_MESSAGE', {
-                                    id: 'handoff_error_' + Date.now(),
-                                    role: 'assistant',
-                                    content: event.message || "I couldn't pick up that request — could you try again?",
-                                    created_at: new Date().toISOString(),
-                                });
-                                break;
-                            case 'token_limit':
-                                commit('SET_TOKEN_LIMIT', {
-                                    reached: true,
-                                    resetAt: event.reset_at,
-                                    secondsUntilReset: event.seconds_until_reset,
-                                });
-                                break;
-                            case 'consent_required':
-                                commit('SET_CONSENT_REQUIRED', true);
-                                commit('SET_STREAMING', false);
-                                break;
-                            case 'level_up':
-                                // Deliberately ignored. Level-ups are banked
-                                // server-side and spent on the dashboard hero
-                                // circle; nothing may interrupt a Fyn turn
-                                // (CSJ 2026-09-17). The frame stays on the
-                                // wire for older clients.
-                                break;
-
-                            case 'error':
-                                commit('SET_ERROR', event.message);
-                                break;
-                            case 'done':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: event.message_id || 'msg_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                break;
-                            default:
-                                logger.debug('[chat] queued-turn: unhandled event', event.type);
+                    case 'content':
+                        if (state.thinking) {
+                            commit('SET_THINKING', false);
                         }
-                    } catch {
-                        // Skip malformed SSE lines
-                    }
+                        commit('APPEND_STREAMING_TEXT', event.text);
+                        break;
+                    case 'title':
+                        commit('UPDATE_CONVERSATION_TITLE', {
+                            conversationId: state.currentConversation.id,
+                            title: event.title,
+                        });
+                        break;
+                    case 'navigation':
+                        // See the streaming handler above — only advice-mode
+                        // navigation (non-empty description) renders a bubble;
+                        // onboarding navigation is action-only and must not
+                        // leak its state id as chat text.
+                        if (event.description) {
+                            commit('ADD_MESSAGE', {
+                                id: 'nav_' + Date.now(),
+                                role: 'navigation',
+                                content: event.description,
+                                metadata: { route_path: event.route_path, description: event.description },
+                                created_at: new Date().toISOString(),
+                            });
+                        }
+                        commit('SET_PENDING_NAVIGATION', event.route_path);
+                        break;
+                    case 'entity_created':
+                    case 'entity_updated':
+                    case 'entity_deleted':
+                        commit('ADD_MESSAGE', entityWriteMessage(event));
+                        break;
+                    case 'action':
+                        addPresentationAction(commit, state, event);
+                        break;
+                    case 'form_received':
+                        // No placeholder user row exists on this path (a queued
+                        // turn resumes after the fact) — nothing to rewrite.
+                        break;
+                    case 'capture_form':
+                        // Fyn's structured capture form (e.g. property) — one
+                        // helper for the flush + prompt-text row + form row,
+                        // shared by all four stream paths.
+                        pushCaptureFormTurn(commit, state, event);
+                        break;
+                    case 'capture_form_errors':
+                        commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
+                        break;
+                    case 'capture_complete':
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'capture_text_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        commit('ADD_MESSAGE', {
+                            id: 'capture_' + Date.now(),
+                            role: 'capture_complete',
+                            content: event.summary || '',
+                            metadata: {
+                                records_created: event.records_created || [],
+                            },
+                            created_at: new Date().toISOString(),
+                        });
+                        break;
+                    case 'handoff_error':
+                        commit('ADD_MESSAGE', {
+                            id: 'handoff_error_' + Date.now(),
+                            role: 'assistant',
+                            content: event.message || "I couldn't pick up that request — could you try again?",
+                            created_at: new Date().toISOString(),
+                        });
+                        break;
+                    case 'token_limit':
+                        commit('SET_TOKEN_LIMIT', {
+                            reached: true,
+                            resetAt: event.reset_at,
+                            secondsUntilReset: event.seconds_until_reset,
+                        });
+                        break;
+                    case 'consent_required':
+                        commit('SET_CONSENT_REQUIRED', true);
+                        commit('SET_STREAMING', false);
+                        break;
+                    case 'level_up':
+                        // Deliberately ignored. Level-ups are banked
+                        // server-side and spent on the dashboard hero
+                        // circle; nothing may interrupt a Fyn turn
+                        // (CSJ 2026-09-17). The frame stays on the
+                        // wire for older clients.
+                        break;
+
+                    case 'error':
+                        commit('SET_ERROR', event.message);
+                        break;
+                    case 'done':
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: event.message_id || 'msg_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        break;
+                    default:
+                        logger.debug('[chat] queued-turn: unhandled event', event.type);
                 }
-            }
+            });
+            interrupted = terminal === null;
 
             // The queued turn has been answered — flip its bubble to normal
             // (stable id) so it reads like any other answered turn.
             commit('SET_MESSAGE_STATUS', { id: queued.id, status: 'answered' });
-            streamedToCompletion = true;
+            streamedToCompletion = !interrupted;
         } catch (error) {
             if (error.name === 'AbortError') return;
+            // The previous turn still holds the conversation lock: put the turn
+            // back in the queue and try again shortly (the /m backoff: 8 x 1.5s).
+            if (error.status === 409 && attempt < QUEUED_STREAM_ATTEMPTS - 1) {
+                commit('SET_MESSAGE_STATUS', { id: queued.id, status: 'queued' });
+                setTimeout(() => dispatch('streamNextQueued', attempt + 1), QUEUED_STREAM_BACKOFF_MS);
+                return;
+            }
             // aiChatService already redirected to login (handleAuthExpiry) —
             // don't overwrite that with an error banner.
             if (error.authExpired) return;
             logger.error('Queued-turn streaming error:', error);
-            commit('SET_ERROR', 'Connection lost. Please try again.');
+            if (isDroppedConnection(error)) interrupted = true;
+            else commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
+            if (interrupted) {
+                commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
+                commit('SET_RETRY_TURN', { arg: queued.content, messageId: queued.id });
+            }
             commit('SET_STREAMING', false);
             commit('SET_THINKING', false);
             commit('SET_STREAMING_TEXT', '');
@@ -1317,6 +1362,7 @@ const actions = {
         commit('SET_ABORT_CONTROLLER', abortController);
 
         let reader;
+        let interrupted = false;
         try {
             reader = await aiChatService.postActionStream(
                 state.currentConversation.id,
@@ -1334,174 +1380,179 @@ const actions = {
             return;
         }
 
-        const decoder = new TextDecoder();
-        let buffer = '';
 
         try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            const { terminal } = await readFynEvents(reader, (event) => {
+                switch (event.type) {
+                    case 'thinking':
+                        // FR-M14 — planner is running; show "Fyn is thinking…".
+                        commit('SET_THINKING', true);
+                        break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-
-                    try {
-                        const event = JSON.parse(line.slice(6));
-
-                        switch (event.type) {
-                            case 'thinking':
-                                // FR-M14 — planner is running; show "Fyn is thinking…".
-                                commit('SET_THINKING', true);
-                                break;
-
-                            case 'content':
-                                if (state.thinking) {
-                                    commit('SET_THINKING', false);
-                                }
-                                commit('APPEND_STREAMING_TEXT', event.text);
-                                break;
-
-                            case 'quick_replies':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'qr_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', {
-                                    id: 'qr_' + Date.now(),
-                                    role: 'quick_replies',
-                                    content: event.prompt_text || '',
-                                    metadata: {
-                                        bubbles: event.bubbles || [],
-                                        skip_link: event.skip_link || null,
-                                        action_bubbles: Boolean(event.action_bubbles),
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
-                                commit('SET_SKIP_LINK', event.skip_link || null);
-                                break;
-
-                            case 'form_received':
-                                // No placeholder user row exists on this path (a routed
-                                // action, not a direct form submission) — nothing to rewrite.
-                                break;
-
-                            case 'capture_form':
-                                // Fyn's structured capture form (e.g. property) — one
-                                // helper for the flush + prompt-text row + form row,
-                                // shared by all four stream paths.
-                                pushCaptureFormTurn(commit, state, event);
-                                break;
-
-                            case 'capture_form_errors':
-                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
-                                break;
-
-                            case 'onboarding_advance':
-                                // See sendMessage handler — flush the streaming text so
-                                // a split multi-part prompt renders as separate bubbles.
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
-                                break;
-
-                            case 'onboarding_layout_change':
-                                commit('SET_ONBOARDING_LAYOUT', event.mode);
-                                // See sendMessage handler — refresh auth/family when
-                                // entering a profile-review pause so ProfileReviewPanel
-                                // shows the director's latest writes.
-                                if (event.mode === 'standard') {
-                                    dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
-                                    dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
-                                }
-                                break;
-
-                            case 'skip_link':
-                                commit('SET_SKIP_LINK', event.skip_link || null);
-                                break;
-
-                            case 'navigation':
-                                // Mirrors the sendMessage handler: a resumed
-                                // Continue re-emits campaign_verify_navigate,
-                                // whose navigation event was silently dropped
-                                // here — the chat said "Here's your income
-                                // page" while the route never changed (live
-                                // 2026-07-23). Onboarding navigation carries an
-                                // empty description, so no bubble is rendered.
-                                if (event.description) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'nav_' + Date.now(),
-                                        role: 'navigation',
-                                        content: event.description,
-                                        metadata: {
-                                            route_path: event.route_path,
-                                            description: event.description,
-                                        },
-                                        created_at: new Date().toISOString(),
-                                    });
-                                }
-                                commit('SET_PENDING_NAVIGATION', event.route_path);
-                                break;
-
-                            case 'level_up':
-                                // Deliberately ignored. Level-ups are banked
-                                // server-side and spent on the dashboard hero
-                                // circle; nothing may interrupt a Fyn turn
-                                // (CSJ 2026-09-17). The frame stays on the
-                                // wire for older clients.
-                                break;
-
-                            case 'action':
-                                addPresentationAction(commit, state, event);
-                                break;
-
-                            case 'done':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: event.message_id || 'msg_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                break;
-
-                            case 'error':
-                                commit('SET_ERROR', event.message);
-                                break;
+                    case 'content':
+                        if (state.thinking) {
+                            commit('SET_THINKING', false);
                         }
-                    } catch {
-                        // Skip malformed SSE lines
-                    }
+                        commit('APPEND_STREAMING_TEXT', event.text);
+                        break;
+
+                    case 'quick_replies':
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'qr_text_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        commit('ADD_MESSAGE', {
+                            id: 'qr_' + Date.now(),
+                            role: 'quick_replies',
+                            content: event.prompt_text || '',
+                            metadata: quickRepliesMetadata(event),
+                            created_at: new Date().toISOString(),
+                        });
+                        commit('SET_SKIP_LINK', event.skip_link || null);
+                        break;
+
+                    case 'form_received':
+                        // No placeholder user row exists on this path (a routed
+                        // action, not a direct form submission) — nothing to rewrite.
+                        break;
+
+                    case 'capture_form':
+                        // Fyn's structured capture form (e.g. property) — one
+                        // helper for the flush + prompt-text row + form row,
+                        // shared by all four stream paths.
+                        pushCaptureFormTurn(commit, state, event);
+                        break;
+
+                    case 'capture_form_errors':
+                        commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
+                        break;
+
+                    case 'onboarding_advance':
+                        // See sendMessage handler — flush the streaming text so
+                        // a split multi-part prompt renders as separate bubbles.
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        logger.debug('[onboarding] advance', event.from_step, 'to', event.to_step);
+                        break;
+
+                    case 'onboarding_layout_change':
+                        commit('SET_ONBOARDING_LAYOUT', event.mode);
+                        // See sendMessage handler — refresh auth/family when
+                        // entering a profile-review pause so ProfileReviewPanel
+                        // shows the director's latest writes.
+                        if (event.mode === 'standard') {
+                            dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                            dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
+                        }
+                        break;
+
+                    case 'skip_link':
+                        commit('SET_SKIP_LINK', event.skip_link || null);
+                        break;
+
+                    case 'navigation':
+                        // Mirrors the sendMessage handler: a resumed
+                        // Continue re-emits campaign_verify_navigate,
+                        // whose navigation event was silently dropped
+                        // here — the chat said "Here's your income
+                        // page" while the route never changed (live
+                        // 2026-07-23). Onboarding navigation carries an
+                        // empty description, so no bubble is rendered.
+                        if (event.description) {
+                            commit('ADD_MESSAGE', {
+                                id: 'nav_' + Date.now(),
+                                role: 'navigation',
+                                content: event.description,
+                                metadata: {
+                                    route_path: event.route_path,
+                                    description: event.description,
+                                },
+                                created_at: new Date().toISOString(),
+                            });
+                        }
+                        commit('SET_PENDING_NAVIGATION', event.route_path);
+                        break;
+
+                    case 'level_up':
+                        // Deliberately ignored. Level-ups are banked
+                        // server-side and spent on the dashboard hero
+                        // circle; nothing may interrupt a Fyn turn
+                        // (CSJ 2026-09-17). The frame stays on the
+                        // wire for older clients.
+                        break;
+
+                    case 'action':
+                        addPresentationAction(commit, state, event);
+                        break;
+
+                    case 'done':
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: event.message_id || 'msg_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        break;
+
+                    case 'error':
+                        commit('SET_ERROR', event.message);
+                        break;
                 }
-            }
+            });
+            interrupted = terminal === null;
         } catch (error) {
             if (error.name !== 'AbortError') {
                 logger.error('postAction streaming error:', error);
-                commit('SET_ERROR', 'Connection lost. Please try again.');
+                if (isDroppedConnection(error)) interrupted = true;
+                else commit('SET_ERROR', 'Connection lost. Please try again.');
             }
         } finally {
+            if (interrupted) {
+                commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
+                commit('SET_RETRY_TURN', { action });
+            }
             commit('SET_STREAMING', false);
             commit('SET_THINKING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
         }
+    },
+
+    /**
+     * "Try again" beside the interrupted-turn error: run the cut-off turn again.
+     */
+    retryInterruptedTurn({ commit, dispatch, state }) {
+        const retry = state.retryTurn;
+        if (!retry || state.streaming) return;
+        commit('SET_ERROR', null);
+        if (retry.action) {
+            dispatch('postAction', retry.action);
+            return;
+        }
+        if (retry.start) {
+            dispatch('startOnboardingConversation', retry.start);
+            return;
+        }
+        // The question is asked again, so its first bubble goes. The same turn
+        // id goes with it, so a turn the server already took is not taken twice.
+        if (retry.messageId) commit('REMOVE_MESSAGE', retry.messageId);
+        const turn = retry.arg && typeof retry.arg === 'object' ? retry.arg : { text: retry.arg };
+        dispatch('sendMessage', { ...turn, turnId: retry.turnId });
     },
 
     /**
@@ -1601,6 +1652,7 @@ const actions = {
         commit('SET_ABORT_CONTROLLER', abortController);
 
         let reader;
+        let interrupted = false;
         try {
             reader = await aiChatService.startOnboardingStream({
                 signal: abortController.signal,
@@ -1623,145 +1675,132 @@ const actions = {
 
         commit('SET_LOADING', false);
 
-        const decoder = new TextDecoder();
-        let buffer = '';
 
         try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            const { terminal } = await readFynEvents(reader, async (event) => {
+                switch (event.type) {
+                    case 'conversation_created':
+                        // Backend created the AiConversation row — store the
+                        // reference so sendMessage() knows where to POST.
+                        commit('SET_CURRENT_CONVERSATION', {
+                            id: event.conversation_id,
+                            title: event.title || 'Onboarding',
+                            message_count: 0,
+                        });
+                        break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-
-                    try {
-                        const event = JSON.parse(line.slice(6));
-
-                        switch (event.type) {
-                            case 'conversation_created':
-                                // Backend created the AiConversation row — store the
-                                // reference so sendMessage() knows where to POST.
-                                commit('SET_CURRENT_CONVERSATION', {
-                                    id: event.conversation_id,
-                                    title: event.title || 'Onboarding',
-                                    message_count: 0,
-                                });
-                                break;
-
-                            case 'resume':
-                                // User is already mid-flow — switch to the existing
-                                // conversation and load its history.
-                                if (event.conversation_id) {
-                                    await dispatch('loadConversation', event.conversation_id);
-                                }
-                                return;
-
-                            case 'thinking':
-                                // FR-M14 — planner is running; show "Fyn is thinking…".
-                                commit('SET_THINKING', true);
-                                break;
-
-                            case 'content':
-                                if (state.thinking) {
-                                    commit('SET_THINKING', false);
-                                }
-                                commit('APPEND_STREAMING_TEXT', event.text);
-                                break;
-
-                            case 'quick_replies':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'qr_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', {
-                                    id: 'qr_' + Date.now(),
-                                    role: 'quick_replies',
-                                    content: event.prompt_text || '',
-                                    metadata: { bubbles: event.bubbles || [] },
-                                    created_at: new Date().toISOString(),
-                                });
-                                break;
-
-                            case 'form_received':
-                                // No placeholder user row exists on this path (the
-                                // opening onboarding turn, before any user input) —
-                                // nothing to rewrite.
-                                break;
-
-                            case 'capture_form':
-                                // Fyn's structured capture form (e.g. property) — one
-                                // helper for the flush + prompt-text row + form row,
-                                // shared by all four stream paths.
-                                pushCaptureFormTurn(commit, state, event);
-                                break;
-
-                            case 'capture_form_errors':
-                                commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
-                                break;
-
-                            case 'onboarding_advance':
-                                // See sendMessage handler — flush the streaming text so
-                                // a split multi-part prompt renders as separate bubbles.
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
-                                break;
-
-                            case 'level_up':
-                                // Deliberately ignored. Level-ups are banked
-                                // server-side and spent on the dashboard hero
-                                // circle; nothing may interrupt a Fyn turn
-                                // (CSJ 2026-09-17). The frame stays on the
-                                // wire for older clients.
-                                break;
-
-                            case 'action':
-                                addPresentationAction(commit, state, event);
-                                break;
-
-                            case 'done':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: event.message_id || 'msg_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                break;
-
-                            case 'error':
-                                commit('SET_ERROR', event.message);
-                                break;
+                    case 'resume':
+                        // User is already mid-flow — switch to the existing
+                        // conversation and load its history.
+                        if (event.conversation_id) {
+                            await dispatch('loadConversation', event.conversation_id);
                         }
-                    } catch {
-                        // Skip malformed SSE lines
-                    }
+                        return;
+
+                    case 'thinking':
+                        // FR-M14 — planner is running; show "Fyn is thinking…".
+                        commit('SET_THINKING', true);
+                        break;
+
+                    case 'content':
+                        if (state.thinking) {
+                            commit('SET_THINKING', false);
+                        }
+                        commit('APPEND_STREAMING_TEXT', event.text);
+                        break;
+
+                    case 'quick_replies':
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'qr_text_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        commit('ADD_MESSAGE', {
+                            id: 'qr_' + Date.now(),
+                            role: 'quick_replies',
+                            content: event.prompt_text || '',
+                            metadata: quickRepliesMetadata(event),
+                            created_at: new Date().toISOString(),
+                        });
+                        break;
+
+                    case 'form_received':
+                        // No placeholder user row exists on this path (the
+                        // opening onboarding turn, before any user input) —
+                        // nothing to rewrite.
+                        break;
+
+                    case 'capture_form':
+                        // Fyn's structured capture form (e.g. property) — one
+                        // helper for the flush + prompt-text row + form row,
+                        // shared by all four stream paths.
+                        pushCaptureFormTurn(commit, state, event);
+                        break;
+
+                    case 'capture_form_errors':
+                        commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
+                        break;
+
+                    case 'onboarding_advance':
+                        // See sendMessage handler — flush the streaming text so
+                        // a split multi-part prompt renders as separate bubbles.
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        logger.debug('[onboarding] advance', event.from_step, 'to', event.to_step);
+                        break;
+
+                    case 'level_up':
+                        // Deliberately ignored. Level-ups are banked
+                        // server-side and spent on the dashboard hero
+                        // circle; nothing may interrupt a Fyn turn
+                        // (CSJ 2026-09-17). The frame stays on the
+                        // wire for older clients.
+                        break;
+
+                    case 'action':
+                        addPresentationAction(commit, state, event);
+                        break;
+
+                    case 'done':
+                        if (state.streamingText) {
+                            commit('ADD_MESSAGE', {
+                                id: event.message_id || 'msg_' + Date.now(),
+                                role: 'assistant',
+                                content: state.streamingText,
+                                created_at: new Date().toISOString(),
+                            });
+                            commit('SET_STREAMING_TEXT', '');
+                        }
+                        break;
+
+                    case 'error':
+                        commit('SET_ERROR', event.message);
+                        break;
                 }
-            }
+            });
+            interrupted = terminal === null;
         } catch (error) {
             if (error.name !== 'AbortError') {
                 logger.error('[onboarding] stream error', error);
                 commit('SET_ERROR', 'Onboarding is temporarily unavailable. Please try again.');
             }
         } finally {
+            if (interrupted) {
+                commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
+                // The first turn gets the same "Try again" as any other (review of #976).
+                commit('SET_RETRY_TURN', { start: { from: fromParam ?? null } });
+            }
             commit('SET_STREAMING', false);
             commit('SET_ABORT_CONTROLLER', null);
         }

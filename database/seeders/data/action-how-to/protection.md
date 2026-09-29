@@ -11,7 +11,7 @@ This file is the one source for the steps on each protection action's detail car
 **Also available:** everything in `tax.md` ("What you can branch on", "What you can fill in"), and the household: `has_spouse` and `{spouse}` / `{spouse_start}`, `has_children` and `{children}` (under 18: `DependantsReach::minorChildrenOf`), `employed`.
 
 **Not written, on purpose (the card still shows):**
-- `no_employer_benefits_recorded`: the card asks the user to record death in service, group income protection and group critical illness cover, but no web form, `/m` screen or Fyn capture writes those fields (`protection_profiles.death_in_service_multiple`, `group_ip_*`, `group_ci_amount`). A how-to would send the user to a control that does not exist. CSJ to decide: build the input, or stop the card.
+- **Folded into a position card (CSJ 2026-09-29):** `life_insurance_gap`, `dependants_no_life_cover`, `mortgage_no_decreasing_term`, `education_funding_gap`, `dis_reliance_warning`, `non_earning_spouse_no_cover` (life); `critical_illness_gap`, `no_ci_with_mortgage`, `ci_combined_risk` (critical illness); `income_protection_gap`, `ip_gap_after_state_benefits`, `self_employed_no_ip`, `ip_any_occupation_definition`, `group_ip_any_occupation`, `ip_short_benefit_period`, `ip_long_deferred_period` (income). They no longer show as cards; their approved entries below are the source the position entries were built from.
 - `protection_profile_missing`: a data prompt, and it never reaches a card; a user with no protection profile gets no protection cards (`ProtectionStrategySource`).
 - `strategy_protection_*`: the composer's catalogue rows (claim tier, locking), never a card.
 - `increase_life_cover`, `add_critical_illness`, `add_income_protection`: disabled definitions.
@@ -302,3 +302,138 @@ always:
 4. Keep every policy until any new cover has started.
 outcome:
 1. You pay for the cover your family needs, and no more.
+
+## no_employer_benefits_recorded
+status: approved
+source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/group-life-cover (paid by your employer; usually a multiple of salary; ends if you leave); Fynla protection shortfall (`CoverageGapAnalyzer`: death in service x salary counts as life cover, group income protection % of salary as income cover, group critical illness as critical illness cover); the employer benefits form (web Protection page, `/m` Protection screen and Fyn: `EmployerBenefitsWriter`)
+figures: none
+why:
+1. You are employed, and you have not told us what cover your job gives you. Death in service, group income protection and group critical illness cover all count towards your shortfall.
+always:
+1. Check your employer's benefits booklet, staff handbook or HR team for death in service, group income protection, group critical illness cover and private medical insurance.
+2. Enter them under Employer benefits on the Protection page, or tell Fyn. If your job gives you none of these, say so there.
+outcome:
+1. Your protection shortfall counts the cover your job already gives you.
+learn:
+1. How your protection shortfall is worked out | /help#protection
+
+## life_cover_position
+status: approved
+source: every source under life_insurance_gap, mortgage_no_decreasing_term, education_funding_gap, dis_reliance_warning and non_earning_spouse_no_cover below (approved 2026-09-29); the cover position (`ProtectionCoverPosition`: need = total need, cover = life policies reaching you plus death in service)
+figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, mortgage_amount, dependant_count, education_gap; reasons: life_insurance_gap, dependants_no_life_cover, mortgage_no_decreasing_term, education_funding_gap, dis_reliance_warning, non_earning_spouse_no_cover
+why when is_short:
+1. Your family would need {need}. Your own policies give {own_cover} and your job {employer_cover}, so your life cover is {short_by} short.
+why when is_over:
+1. Your family would need {need}. Your own policies give {own_cover} and your job {employer_cover}, so you have {over_by} more life cover than you need.
+why when depends_on_job:
+2. {employer_share}% of your life cover comes through your job. It ends if you leave, change job or are made redundant.
+why when dependants_no_life_cover:
+3. {dependant_count} people depend on your income, and you have no life cover.
+why when mortgage_no_decreasing_term:
+4. You owe {mortgage_amount} on your mortgage, and no life policy you have recorded is set up to pay it off.
+why when education_funding_gap:
+5. Your children's education would be {education_gap} short.
+why when non_earning_spouse_no_cover:
+6. {spouse_start} has no earned income and no life cover. If they died, you would pay for the childcare and running of the home they now provide.
+always:
+1. Check the figures behind your need on the Protection page: your mortgage and other debts, your family's yearly income need, and your children's education.
+when is_short:
+2. Get quotes for level term life cover of about {short_by}, for as long as your family would need it. A protection adviser or a comparison service can quote several insurers at once.
+when is_short and has_spouse:
+3. Ask for quotes on single life policies for each of you and on a joint policy, and compare what each pays out and when.
+when mortgage_no_decreasing_term:
+4. If you already hold life cover for your mortgage, open it on the Protection page and tick "Is this to pay off your mortgage?". For a repayment mortgage, the cover for it can be decreasing term over the years left, falling as the balance does; for interest only, ask for level term.
+when depends_on_job:
+5. Check your employer's benefits booklet for how much the death in service pays, and get quotes for a personal policy that would replace it if you left.
+when non_earning_spouse_no_cover:
+6. Work out what childcare and help at home would cost each year, and get quotes for life cover on {spouse}'s life for that amount. {spouse_start} answers the health questions, fully and accurately.
+when is_over:
+2. Check whether you still need all of it, for example cover taken out for a debt you have since paid off. Do this before the policy next renews, and keep every policy until any change has started.
+when not is_over:
+7. Answer every health and lifestyle question fully and accurately. An insurer can refuse or reduce a claim if an answer was careless or wrong.
+8. Once any new cover starts, add it on the Protection page with Add New Policy.
+outcome when not is_over:
+1. If you died, your family would have a lump sum to clear debts and replace your income, whatever happens to your job.
+outcome when is_over:
+1. You pay for the life cover your family needs, and no more.
+learn:
+1. How your protection shortfall is worked out | /help#protection
+
+## critical_illness_position
+status: approved
+source: every source under critical_illness_gap, no_ci_with_mortgage and ci_combined_risk below (approved 2026-09-29); the cover position (need = gross earned income x `protection.income_multipliers.critical_illness`)
+figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, mortgage_amount, provider; reasons: critical_illness_gap, no_ci_with_mortgage, ci_combined_risk
+why when is_short:
+1. You would need {need} if a serious illness stopped you working. Your own policies give {own_cover} and your job {employer_cover}, so your cover is {short_by} short.
+why when is_over:
+1. You would need {need}. Your own policies give {own_cover} and your job {employer_cover}, so you have {over_by} more critical illness cover than you need.
+why when depends_on_job:
+2. {employer_share}% of your critical illness cover comes through your job, and it ends if you leave.
+why when no_ci_with_mortgage:
+3. You owe {mortgage_amount} on your mortgage.
+why when ci_combined_risk:
+4. Your policy with {provider} combines life and critical illness cover in one policy.
+always:
+1. Critical illness cover pays a tax-free lump sum if you are diagnosed with a condition the policy covers. Every policy covers cancer, heart attack and stroke, and the rest varies between insurers.
+when is_short:
+2. Get quotes for about {short_by} of cover, and compare which conditions each policy covers and how severe each must be to pay.
+when no_ci_with_mortgage:
+3. Include enough to clear your {mortgage_amount} mortgage.
+when ci_combined_risk:
+4. Check in your policy document whether a critical illness claim ends the life cover too. If your family would still need life cover after an illness, compare separate policies with what you pay now.
+when is_over:
+2. Check whether you still need all of it before the policy next renews, and keep every policy until any change has started.
+when not is_over:
+5. Answer every health and lifestyle question fully and accurately, and once any new cover starts, add it on the Protection page.
+outcome when not is_over:
+1. A serious diagnosis would come with a lump sum to clear debts or cover time off work.
+outcome when is_over:
+1. You pay for the critical illness cover you need, and no more.
+learn:
+1. How your protection shortfall is worked out | /help#protection
+
+## income_protection_position
+status: approved
+source: every source under income_protection_gap, ip_gap_after_state_benefits, self_employed_no_ip, ip_any_occupation_definition, ip_short_benefit_period and ip_long_deferred_period below (approved 2026-09-29); the cover position (need = `protection.income_multipliers.income_protection_max_benefit` of gross earned income, a month)
+figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, ssp_weekly, ssp_weeks, ssp_total, provider, benefit_months, deferred_weeks; reasons: income_protection_gap, ip_gap_after_state_benefits, self_employed_no_ip, ip_any_occupation_definition, group_ip_any_occupation, ip_short_benefit_period, ip_long_deferred_period
+why when is_short:
+1. If illness or injury stopped you working, you would need {need} a month. Your own policies give {own_cover} a month and your job {employer_cover} a month, so you are {short_by} a month short.
+why when is_over:
+1. You would need {need} a month. Your own policies give {own_cover} a month and your job {employer_cover} a month, so you have {over_by} a month more than you need.
+why when depends_on_job:
+2. {employer_share}% of your income protection comes through your job, and it ends if you leave.
+why when ip_gap_after_state_benefits:
+3. Statutory Sick Pay pays up to {ssp_weekly} a week for up to {ssp_weeks} weeks, {ssp_total} in all.
+why when self_employed_no_ip:
+3. You are self-employed, so you cannot get Statutory Sick Pay.
+why when ip_any_occupation_definition:
+4. Your income protection with {provider} pays only if you cannot do any job at all, not just your own.
+why when group_ip_any_occupation:
+4. Your employer's income protection pays only if you cannot do any job at all, not just your own.
+why when ip_short_benefit_period:
+5. Your income protection with {provider} pays for up to {benefit_months} months for each claim.
+why when ip_long_deferred_period:
+6. Your income protection with {provider} starts paying {deferred_weeks} weeks after you stop work.
+always:
+1. Check what your employer pays when you are off sick, and for how long. Your contract or staff handbook says.
+when is_short:
+2. Get quotes for income protection of about {short_by} a month. It pays a monthly income while illness or injury stops you working. It does not pay if you are made redundant.
+3. Choose when it starts paying, the deferred period, to begin when your sick pay ends or your savings would run out.
+when ip_any_occupation_definition:
+4. Read the definition of incapacity in your policy document, and ask {provider} whether the policy can change to pay if you cannot do your own job, and what that would cost.
+when group_ip_any_occupation:
+4. Read the definition of incapacity in your employer's scheme booklet, and get quotes for a personal policy that pays if you cannot do your own job.
+when ip_short_benefit_period:
+5. Ask {provider} what it would cost to extend the benefit period, up to your retirement age.
+when ip_long_deferred_period:
+6. Work out whether your sick pay and savings would cover your bills for the {deferred_weeks} weeks, and if not, ask {provider} what a shorter deferred period would cost.
+when is_over:
+2. Check whether you still need all of it before the policy next renews, and keep every policy until any change has started.
+when not is_over:
+7. Answer every health and lifestyle question fully and accurately, and once any new cover starts, add it on the Protection page.
+outcome when not is_over:
+1. Your household keeps an income if you cannot work.
+outcome when is_over:
+1. You pay for the income protection you need, and no more.
+learn:
+1. How your protection shortfall is worked out | /help#protection

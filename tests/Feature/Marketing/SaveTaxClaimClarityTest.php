@@ -43,18 +43,73 @@ beforeEach(function (): void {
     $this->seed(TaxConfigurationSeeder::class);
 });
 
-it('renders the SaveTax estimate as an average rather than a personal promise', function (): void {
+it('renders the SaveTax estimate as an "up to" figure that names the income it assumes', function (): void {
     $response = $this->get('/savetax/plan?income=50271_100000&spouse=no&assets=savings');
 
     $response->assertOk()
-        ->assertSee('An average estimated saving of up to £', false)
+        ->assertSee('An estimated saving of up to £', false)
+        ->assertDontSee('average', false)
         ->assertSee('each year', false)
-        ->assertSee('This is an average based on your answers — not your personal potential savings per year. Register for free and get your personalised tax strategy.', false)
+        ->assertSee('Worked out for an income of £100,000, the top of the band you chose. It uses England, Wales and Northern Ireland Income Tax rates, not Scottish rates. Register for free and get your personalised tax strategy, worked out from your real figures.', false)
         ->assertSee('This is an illustrative estimate, not personal financial advice.', false)
         ->assertSee('Tax year', false);
 
     expect(substr_count($response->getContent(), 'href="#register-form"'))->toBe(2)
         ->and($response->getContent())->not->toContain('href="#hero"');
+});
+
+it("credits the partner only when part of the figure is the partner's", function (): void {
+    $withTrap = $this->get('/savetax/plan?employment=not-employed&income=zero&spouse=yes&spouseIncome=100001_125140')->assertOk();
+    $withTrap->assertSee('Worked out for no income of your own, and it includes £15,060 from your partner&#039;s side.', false);
+
+    $noPartnerLine = $this->get('/savetax/plan?income=upto_50270&spouse=yes&spouseIncome=zero')->assertOk();
+    $noPartnerLine->assertDontSee('partner&#039;s side', false)
+        ->assertDontSee('bigger because of you and your partner', false);
+});
+
+it('calls the open top band an example income, not the top of the band', function (): void {
+    $this->get('/savetax/plan?income=over_125140&spouse=no')
+        ->assertOk()
+        ->assertSee('Worked out for an example income of £150,000 in the band you chose.', false)
+        ->assertDontSee('the top of the band you chose', false);
+});
+
+it('caps a retiree at the non-earner pension limit on the page (F2)', function (): void {
+    $this->get('/savetax/plan?employment=retired&income=upto_50270&spouse=no')
+        ->assertOk()
+        ->assertSee('An estimated saving of up to <span class="sp4-savings__figure" id="savings-figure">£720</span>', false);
+});
+
+// F10: a partner in the taper band whose income is not from work is capped at
+// the basic amount (FA 2004 s190): £2,160, not the £15,060 a working partner
+// saves. The headline adds the user's own £720 non-earner line to each.
+it("asks the partner's employment and caps a retired partner on the page (F10)", function (): void {
+    $this->get('/savetax')->assertOk()
+        ->assertSee('id="s-spouse-employment"', false)
+        ->assertSee("What is your spouse or civil partner's employment status?", false);
+
+    $this->get('/savetax/plan?employment=not-employed&income=zero&spouse=yes&spouseIncome=100001_125140&spouseEmployment=retired')
+        ->assertOk()
+        ->assertSee('<span class="sp4-savings__figure" id="savings-figure">£2,880</span>', false);
+    $this->get('/savetax/plan?employment=not-employed&income=zero&spouse=yes&spouseIncome=100001_125140&spouseEmployment=full-time')
+        ->assertOk()
+        ->assertSee('<span class="sp4-savings__figure" id="savings-figure">£15,780</span>', false);
+});
+
+it('ignores a hand-edited list in the answers instead of failing', function (): void {
+    // ?assets[]=x once reached a string cast and returned a server error.
+    $this->get('/savetax/plan?assets[]=savings&income[]=zero&employment[]=retired&spouse[]=yes')
+        ->assertOk()
+        ->assertSee('An estimated saving of up to £', false);
+
+    // A list is dropped; the plain answers beside it still count.
+    $this->get('/savetax/plan?income=upto_50270&employment=retired&spouse=no&assets[]=savings')
+        ->assertOk()
+        ->assertSee('An estimated saving of up to <span class="sp4-savings__figure" id="savings-figure">£720</span>', false);
+
+    // The partner's employment answer is read the same way.
+    $this->get('/savetax/plan?employment=not-employed&income=zero&spouse=yes&spouseIncome=100001_125140&spouseEmployment[]=retired')
+        ->assertOk();
 });
 
 it('renders a neutral state when the estimate service is unavailable', function (): void {

@@ -28,11 +28,13 @@
             </div>
             <div v-if="rec.estimated_annual_tax_saved" class="mts-rec__save">
               <span class="mts-rec__save-cap">Saves</span>
-              <span class="mts-rec__save-amt">{{ fmt(Math.round(rec.estimated_annual_tax_saved)) }}</span>
+              <span class="mts-rec__save-amt" :class="{ 'mts-rec__save-amt--alt': rec.counted_in_total === false }">{{ fmt(Math.round(rec.estimated_annual_tax_saved)) }}</span>
               <span class="mts-rec__save-cap">a year</span>
             </div>
           </div>
           <p v-if="rec.description" class="mts-rec__desc">{{ rec.description }}</p>
+          <!-- Alternative to another item: the composer's note, same words as web. -->
+          <p v-if="rec.conflict_note" class="mts-rec__alt">{{ rec.conflict_note }}</p>
         </article>
       </div>
 
@@ -51,11 +53,12 @@
               </div>
               <div v-if="rec.estimated_annual_tax_saved" class="mts-rec__save">
                 <span class="mts-rec__save-cap">Saves</span>
-                <span class="mts-rec__save-amt">{{ fmt(Math.round(rec.estimated_annual_tax_saved)) }}</span>
+                <span class="mts-rec__save-amt" :class="{ 'mts-rec__save-amt--alt': rec.counted_in_total === false }">{{ fmt(Math.round(rec.estimated_annual_tax_saved)) }}</span>
                 <span class="mts-rec__save-cap">a year</span>
               </div>
             </div>
             <p v-if="rec.description" class="mts-rec__desc">{{ rec.description }}</p>
+            <p v-if="rec.conflict_note" class="mts-rec__alt">{{ rec.conflict_note }}</p>
             <div class="mts-rec__foot">
               <button v-if="nextStep(rec)" type="button" class="mts-rec__cta" @click="goToNextStep(rec)">
                 {{ nextStep(rec).label }}
@@ -334,6 +337,8 @@ export default {
 .mts-rec__save-cap { display: block; font-size: 11px; color: var(--neutral-500); line-height: 1.1; }
 .mts-rec__save-amt { display: block; font-size: 18px; font-weight: 900; color: var(--spring-600); line-height: 1.2; }
 .mts-rec__desc { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin-top: 4px; }
+.mts-rec__save-amt--alt { color: var(--neutral-500); }
+.mts-rec__alt { font-size: 12px; font-weight: 600; color: var(--horizon-500); background: var(--eggshell-500); border-radius: var(--radius-sm); padding: 4px 8px; margin-top: 8px; line-height: 1.4; }
 .mts-rec__foot { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--horizon-100); flex-wrap: wrap; }
 .mts-rec__cta { background: transparent; border: 0; padding: 0; font-size: 13px; font-weight: 700; color: var(--raspberry-500); cursor: pointer; }
 .mts-rec__advice { font-size: 11px; font-weight: 700; color: var(--violet-500); background: color-mix(in srgb, var(--violet-500) 12%, var(--white)); padding: 2px 8px; border-radius: var(--radius-sm); }

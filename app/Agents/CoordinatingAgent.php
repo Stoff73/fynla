@@ -56,6 +56,7 @@ use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
 use App\Services\AI\WriteIntentClassifier;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -63,6 +64,7 @@ use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Estate\WillDocumentService;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\Expenditure\HouseholdExpenditureWriter;
@@ -75,6 +77,7 @@ use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Payment\SubscriptionStatusService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Protection\EmployerBenefitsWriter;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Shared\DependantsReach;
 use App\Services\Stores\Exceptions\StoreValidationException;
@@ -554,7 +557,10 @@ class CoordinatingAgent extends BaseAgent
                 $investmentResult = $raw;
                 $investmentRecs = [];
 
-                if (($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
+                // A readiness-blocked analysis now carries the portfolio facts (M3,
+                // 29 Sep 2026) but no analysis; it still earns no recommendations.
+                if (($investmentResult['can_proceed'] ?? true) !== false
+                    && ($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
                     try {
                         $recsResult = $this->investmentAgent->generateRecommendations($investmentResult);
                         $investmentRecs = $recsResult['recommendations'] ?? [];
@@ -623,6 +629,9 @@ class CoordinatingAgent extends BaseAgent
                             'claim_tier' => $item['claim_tier'] ?? null,
                             'sequence_position' => $item['sequence_position'] ?? null,
                             'conflict_note' => $item['conflict_note'] ?? null,
+                            // Which items are a choice, from both ends (L3-3).
+                            'counted_in_total' => (bool) ($item['counted_in_total'] ?? true),
+                            'alternatives_note' => StrategyPlanComposer::alternativesNoteOf($item),
                             'requires_advice' => (bool) ($item['requires_advice'] ?? false),
                             'definition_key' => isset($item['type']) ? 'strategy_'.$item['type'] : null,
                         ];
@@ -1184,6 +1193,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_dependants' => $this->handleCaptureDependants($input, $user),
                 'capture_work_details' => $this->handleCaptureWorkDetails($input, $user),
                 'capture_monthly_expenditure' => $this->handleCaptureMonthlyExpenditure($input, $user),
+                'capture_employer_benefits' => $this->handleCaptureEmployerBenefits($input, $user),
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
@@ -1274,8 +1284,8 @@ class CoordinatingAgent extends BaseAgent
             ]);
 
             return ['error' => true, 'error_type' => 'database_error', 'message' => 'Unable to save the record. Please try again.'];
-        } catch (\Exception $e) {
-            Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'exception' => $e::class, 'error' => $e->getMessage()]);
             $this->appendAuditEvent([
                 'user_id' => $user->id,
                 'conversation_id' => $conversationId,
@@ -2095,6 +2105,33 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
+     * capture_employer_benefits — the cover the user's employer provides, or
+     * "none", through EmployerBenefitsWriter: the one write path and the same
+     * bounds as the web form (CSJ 2026-09-29). The form's answers arrive in
+     * its own words ("provides": yes/no, "has_employer_pmi": yes/no).
+     */
+    public function handleCaptureEmployerBenefits(array $input, User $user): array
+    {
+        $fields = array_intersect_key($input, array_flip(EmployerBenefitsWriter::FIELDS));
+        $fields['none'] = ($input['provides'] ?? null) === 'no';
+        if (array_key_exists('has_employer_pmi', $fields)) {
+            $fields['has_employer_pmi'] = $fields['has_employer_pmi'] === 'yes' || $fields['has_employer_pmi'] === true;
+        }
+        if (isset($fields['group_ip_benefit_months'])) {
+            $fields['group_ip_benefit_months'] = (int) $fields['group_ip_benefit_months'];
+        }
+
+        $validator = Validator::make($fields, EmployerBenefitsWriter::rules());
+        if ($validator->fails()) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Some of those figures are outside what we can record.', 'errors' => $validator->errors()->toArray()];
+        }
+
+        app(EmployerBenefitsWriter::class)->save($user, $validator->validated());
+
+        return ['success' => true, 'updated' => true, 'onboarding_capture' => true, 'field_group' => 'employer_benefits', 'message' => 'Employer benefits saved.'];
+    }
+
+    /**
      * capture_monthly_expenditure — the single monthly total (simple entry):
      * users.monthly_expenditure, the entry mode, and the profile mirror, in
      * one transaction. The typed onboarding step and the one-box form both
@@ -2180,7 +2217,7 @@ class CoordinatingAgent extends BaseAgent
         $incomeRaw = $input['annual_income'] ?? null;
         $income = ($incomeRaw === null || $incomeRaw === '') ? null : (float) $incomeRaw;
 
-        if ($income !== null && $income > 99_999_999) {
+        if ($income !== null && $income > EmploymentIncomeService::MAX_ANNUAL_INCOME) {
             return ['error' => true, 'message' => 'annual_income exceeds permitted range'];
         }
         if ($income !== null && $income < 0) {
@@ -5767,6 +5804,15 @@ class CoordinatingAgent extends BaseAgent
         unset($allowed['spouse_psa_band']);
         if ($spouseIncome !== null) {
             $allowed['spouse_psa_band'] = app(TaxStrategyMath::class)->bandFromIncome($spouseIncome + $spouseDividends);
+        }
+
+        // The funnel's answer about the partner's work, when nothing has
+        // recorded it yet.
+        if (! array_key_exists('spouse_employment_status', $allowed) && $existing?->spouse_employment_status === null) {
+            $fromFunnel = FunnelAnswersMapper::spouseEmploymentStatus($user);
+            if ($fromFunnel !== null) {
+                $allowed['spouse_employment_status'] = $fromFunnel;
+            }
         }
 
         TaxStrategyHouseholdInput::updateOrCreate(

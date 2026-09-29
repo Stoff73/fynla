@@ -156,6 +156,7 @@ final class GateRoutes
         'dependants' => self::FAMILY_DETAILS,
         'work' => self::INCOME,
         'expenditure' => self::EXPENDITURE,
+        'employer_benefits' => self::PROTECTION,
         'campaign_charitable_giving' => self::EXPENDITURE,
         'campaign_pension_history' => self::RETIREMENT,
         'campaign_retirement_goals' => self::RETIREMENT,

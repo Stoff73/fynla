@@ -168,7 +168,7 @@ final class SpouseLinkingService
         // A default lookup skipped a closed account, reported "no such user",
         // and then INSERTed straight into a 1062 duplicate-key violation — the
         // user was told to re-send the first name, date of birth and email they
-        // had just sent, forever (live: user 49, isenbret@gmail.com, 17:54, and
+        // had just sent, forever (live: user 49, 17:54, and
         // twice more on 2026-07-23). PR #697 closed this in
         // FamilyMembersController; this is the same hole in the path Fyn uses.
         $spouseUser = User::withTrashed()->where('email', $spouseEmail)->first();
@@ -459,7 +459,7 @@ final class SpouseLinkingService
             'expires_at' => now()->addDays(SpouseInvitationRecord::VALID_DAYS),
         ])->save();
 
-        $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser, $invitation->token);
+        $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser, $invitation->token, $invitation->first_name);
 
         return [
             'family_member' => $familyMember,
@@ -711,10 +711,10 @@ final class SpouseLinkingService
         return $inviter;
     }
 
-    private function sendRegistrationInvitation(string $spouseEmail, User $currentUser, ?string $token = null): bool
+    private function sendRegistrationInvitation(string $spouseEmail, User $currentUser, ?string $token = null, ?string $inviteeFirstName = null): bool
     {
         try {
-            Mail::to($spouseEmail)->send(new SpouseInvitation($spouseEmail, $currentUser->name, $token));
+            Mail::to($spouseEmail)->send(new SpouseInvitation($spouseEmail, $currentUser->name, $token, $inviteeFirstName));
 
             return true;
         } catch (\Throwable $e) {

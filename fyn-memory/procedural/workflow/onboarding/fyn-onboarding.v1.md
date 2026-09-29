@@ -92,6 +92,9 @@ campaign_funnel_spouse_income:
 
 campaign_funnel_assets:
   turn_type: bubbles
+  # Chips toggle on the client; the `done` bubble submits every pick in one
+  # message (wire format: OnboardingStateMachine::matchBubbles).
+  multi_select: true
   prompt_text: { builder: buildFunnelAssetsPrompt }
   bubbles:
     - { id: bank, label: 'Bank account' }

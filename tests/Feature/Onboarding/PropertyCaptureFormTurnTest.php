@@ -29,7 +29,7 @@ afterEach(function (): void {
 
 function formStepUser(string $step = OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY): User
 {
-    return User::factory()->create([
+    $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
         'first_name' => 'Chris',
@@ -39,6 +39,11 @@ function formStepUser(string $step = OnboardingStateMachine::STATE_CAMPAIGN_PROP
         'onboarding_fyn_selection' => 'savetax',
         'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['property', 'investments']],
     ]);
+    // Mid-flow: Fyn greeted them with the funnel recap turns ago.
+    AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])
+        ->messages()->create(['role' => 'assistant', 'content' => 'Earlier turn', 'metadata' => []]);
+
+    return $user;
 }
 
 function formConversation(User $user): AiConversation

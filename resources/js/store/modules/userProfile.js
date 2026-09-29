@@ -103,6 +103,14 @@ const getters = {
   spouseAccounts: (state) => state.spouseAccounts,
   loading: (state) => state.loading,
   error: (state) => state.error,
+  // The Settings pages' own state. `loading` and `error` are also set by every
+  // save action, so gating a page on them swapped the form for a spinner during
+  // each save and for "Error loading profile" when a save was refused (fynla.org,
+  // 2026-09-29). A page waits only until the profile first arrives, and shows a
+  // load error only when there is no profile to show; save errors stay inline
+  // in the form that made them.
+  pageLoading: (state) => state.loading && !state.profile,
+  pageLoadError: (state) => (state.profile ? null : state.error),
 
   /**
    * Get children/dependants eligible for Junior ISA (under 18)

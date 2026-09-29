@@ -2010,6 +2010,14 @@ it('SavingsActionDefinitionService::evaluateSpouseISACoordination spouse cash-IS
     // The seeded condition is spouse_isa_allowance_imbalanced (fyn-wiring
     // Batch A): the user has used the whole allowance while the spouse still
     // has room. Both partners with headroom is not this recommendation.
+    // Both positions now come from ISATracker, not the analysis array, so the
+    // user's full allowance is a real subscription (SaveTax re-run 29 Sep 2026).
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_year' => $taxYear, 'isa_subscription_amount' => 20000,
+        'current_balance' => 20000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
     $result = $reflection->invoke(
         $service,
         $definition,

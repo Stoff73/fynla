@@ -25,6 +25,25 @@ class FunnelAnswersMapper
         'not-employed' => 'unemployed',
     ];
 
+    /**
+     * The partner's employment from the funnel, as a
+     * tax_strategy_household_inputs.spouse_employment_status value, or null
+     * when it was not asked. Asked only when the partner's band is the
+     * Personal Allowance taper, because their pension relief depends on
+     * earnings from work (FA 2004 s189-190). Read when the household row is
+     * first written (capture_spouse_household_data), not at registration:
+     * creating the row early would give the plan a partner with £0 income.
+     */
+    public static function spouseEmploymentStatus(User $user): ?string
+    {
+        $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
+        if (($funnel['spouse'] ?? null) !== 'yes') {
+            return null;
+        }
+
+        return self::EMPLOYMENT_MAP[$funnel['spouseEmployment'] ?? ''] ?? null;
+    }
+
     public function mapToProfile(User $user): void
     {
         $funnel = $user->funnel_answers ?? [];
@@ -61,7 +80,15 @@ class FunnelAnswersMapper
             && is_string($spouseIncome) && $spouseIncome !== '') {
             $spouseWorks = $spouseIncome !== 'zero';
             $user->household_calculation_mode = $spouseWorks ? 'dual_earner' : 'single_earner_couple';
-            $user->marriage_allowance_eligible = ! $spouseWorks;
+            // Marriage Allowance: the one transferring has income below the
+            // Personal Allowance and the partner pays tax at the basic rate
+            // (gov.uk/marriage-allowance; ITA 2007 s55B, s55C). In funnel bands
+            // that is one partner with no income and the other in the band up
+            // to the higher-rate threshold. The user's own income can now be
+            // 'zero' too, so both sides are read.
+            $userIncome = $funnel['income'] ?? null;
+            $user->marriage_allowance_eligible = ($spouseIncome === 'zero' && $userIncome === 'upto_50270')
+                || ($userIncome === 'zero' && $spouseIncome === 'upto_50270');
             $dirty = true;
         }
 

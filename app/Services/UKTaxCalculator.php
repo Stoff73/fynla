@@ -783,7 +783,7 @@ class UKTaxCalculator
         // limits by the gross donation. That is the mechanism delivering higher- and
         // additional-rate relief — more income falls in a lower band. Basic-rate
         // relief already went to the charity at source, so Gift Aid does NOT reduce
-        // taxable income (mirrors SaveTaxEstimateService::incomeTax).
+        // taxable income.
         // W-0511 — the Blind Person's Allowance is given HERE and nowhere else. ITA 2007
         // s38 grants it and s23 Step 3 deducts it, downstream of the taper, so it raises
         // the allowance and carries both limits with it. It must not reach the adjusted

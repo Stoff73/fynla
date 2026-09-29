@@ -85,8 +85,19 @@ final class ActionHowToFacts
         // The outcome: Income Tax this year now, and once this action alone is
         // done — the saving is the one the strategy priced with the tax engine.
         $saved = floor((float) ($item['estimated_annual_tax_saved'] ?? 0));
+        // A savings item the plan priced after its pension item (pension
+        // first, 29 Sep 2026) starts from the tax once that contribution is
+        // paid, not today's, or the before and after would not match the saving.
+        $pensionFirst = (float) ($item['pension_paid_first'] ?? 0);
+        $facts['priced_after_pension'] = $pensionFirst > 0;
+        if ($pensionFirst > 0) {
+            $text['pension_paid_first'] = self::pounds($pensionFirst);
+        }
         if ($saved >= 1) {
             $now = $this->math->incomeTaxNow($user);
+            if ($pensionFirst > 0) {
+                $now -= $this->math->pensionContributionSaving($user, $pensionFirst);
+            }
             foreach (['tax_saved' => $saved, 'tax_now' => $now, 'tax_after' => max(0.0, $now - $saved)] as $key => $value) {
                 $facts[$key] = $value;
                 $text[$key] = self::pounds($value);

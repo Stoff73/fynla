@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { isAuthenticatedPublicUtilityPath } from './publicRoutePolicy.js';
+import { storedSessionIsLive } from './storedSessionPolicy.js';
 import { isTransferableMobileBearer } from '../mScaffoldBridge.js';
 import store from '@/store';
 import { forcedCampaignRedirect } from '@/router/onboardingRoutePolicy.js';
@@ -833,6 +834,20 @@ const routes = [
   {
     path: '/protection',
     name: 'Protection',
+    component: ProtectionDashboard,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Protection', path: '/protection' },
+      ],
+    },
+  },
+  {
+    // The Protection page with the employer benefits form open (the
+    // protection readiness check and Fyn link here).
+    path: '/protection/employer-benefits',
+    name: 'ProtectionEmployerBenefits',
     component: ProtectionDashboard,
     meta: {
       requiresAuth: true,
@@ -1716,7 +1731,7 @@ router.beforeEach(async (to, from, next) => {
     return next(false); // cancel SPA nav; the browser is loading the PHP page
   }
 
-  const isAuthenticated = store.getters['auth/isAuthenticated'];
+  let isAuthenticated = store.getters['auth/isAuthenticated'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
   // Use to.matched.some() rather than to.meta — child routes do NOT inherit
   // parent meta in Vue Router. /preview/net-worth has nested children that
@@ -1796,6 +1811,15 @@ router.beforeEach(async (to, from, next) => {
       next(redirect);
       return;
     }
+  }
+
+  // Guest-only and public routes redirect a signed-in user away, so confirm a
+  // stored token is still live before acting on it. A token revoked elsewhere
+  // in this tab (the /m sign-out) must not bounce an invitee off /register.
+  if (isAuthenticated && !isPreviewMode
+      && to.matched.some(r => r.meta.requiresGuest || r.meta.public)
+      && !(await storedSessionIsLive(store))) {
+    isAuthenticated = false;
   }
 
   // Authenticated users do not see public marketing / landing pages — those

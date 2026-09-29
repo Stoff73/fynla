@@ -14,12 +14,14 @@
           <h3 class="text-body-sm font-semibold text-horizon-500">{{ suggestion.title }}</h3>
           <span
             v-if="suggestion.estimated_annual_tax_saved"
-            class="text-body-sm font-semibold text-spring-600 whitespace-nowrap"
+            class="text-body-sm font-semibold whitespace-nowrap"
+            :class="suggestion.counted_in_total === false ? 'text-neutral-500' : 'text-spring-600'"
           >
             {{ formatCurrency(Math.round(suggestion.estimated_annual_tax_saved)) }}/yr
           </span>
         </div>
         <p class="text-caption text-neutral-500 leading-relaxed">{{ suggestion.description }}</p>
+        <PlanItemAlternativeNote :item="suggestion" />
       </li>
     </ul>
   </section>
@@ -27,9 +29,11 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import PlanItemAlternativeNote from './PlanItemAlternativeNote.vue';
 
 export default {
   name: 'AssetShiftingPanel',
+  components: { PlanItemAlternativeNote },
   mixins: [currencyMixin],
   props: {
     suggestions: { type: Array, required: true },

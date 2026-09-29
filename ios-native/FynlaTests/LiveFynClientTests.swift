@@ -56,6 +56,48 @@ struct LiveFynClientTests {
         #expect(requests[1].value(forHTTPHeaderField: "Authorization") == "Bearer fresh")
     }
 
+    // L3-2 (fynla.org, 29 Sep 2026): a stream that closes after Fyn's
+    // preamble with no terminal frame is a cut-off turn, not an answer.
+    @Test
+    func throwsInterruptedWhenTheStreamClosesWithoutATerminalFrame() async throws {
+        let transport = SequencedSSETransport([
+            .init(
+                status: 200,
+                body: Data(
+                    """
+                    event: fyn
+                    data: {"type":"content","text":"Let me pull the full details."}
+
+                    """.utf8
+                )
+            ),
+        ])
+        let client = makeClient(transport: transport, tokens: TestTokenStore(token: "live"))
+
+        let result = try await client.sendMessage(
+            conversationID: "940",
+            text: "How does the tax trap work?",
+            currentRoute: "/dashboard",
+            idempotencyKey: "gesture-940"
+        )
+        guard case let .stream(stream) = result else {
+            Issue.record("Expected a stream result")
+            return
+        }
+
+        var events: [FynEvent] = []
+        var thrown: Error?
+        do {
+            for try await event in stream {
+                events.append(event)
+            }
+        } catch {
+            thrown = error
+        }
+        #expect(thrown as? FynClientError == .interrupted)
+        #expect(events == [.text("Let me pull the full details.")])
+    }
+
     @Test
     func surfacesAuthExpiredWhenTheRefreshItselfFailsAfter401() async {
         let transport = SequencedSSETransport([

@@ -35,7 +35,10 @@ describe('FynCaptureForm', () => {
     const labels = w.findAll('label').map((l) => l.text());
     expect(labels).toContain('Value *');
     expect(labels).toContain('Mortgage outstanding *');
-    expect(labels).toContain('Ownership *');
+    // A radio group's caption names the group (L8), so it is not a <label>.
+    expect(w.find('[role="radiogroup"]').exists()).toBe(true);
+    const groupLabel = w.find(`#${w.find('[role="radiogroup"]').attributes('aria-labelledby')}`);
+    expect(groupLabel.text()).toBe('Ownership *');
     expect(labels.some((l) => l.startsWith('Your share'))).toBe(false);
     expect(labels).not.toContain('Monthly rental income *');
   });
@@ -52,6 +55,16 @@ describe('FynCaptureForm', () => {
     expect(share.element.value).toBe('50');
     expect(w.findAll('label').map((l) => l.text())).toContain('Your share % *');
     expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+  });
+
+  it('points every label at an element that exists (SaveTax run 29 Sep 2026, L8)', async () => {
+    const w = mount(FynCaptureForm, { props: { schema }, attachTo: document.body });
+    await box(w, 'Home').trigger('click');
+    const dangling = w.findAll('label[for]')
+      .map((l) => l.attributes('for'))
+      .filter((id) => !document.getElementById(id));
+    expect(dangling).toEqual([]);
+    w.unmount();
   });
 
   it('emits only the opened kinds, with No mortgage as null', async () => {
@@ -257,7 +270,7 @@ describe('FynCaptureForm text fields', () => {
 // submits with the record it changes, and can remove it.
 describe('FynCaptureForm as an edit form', () => {
   const editSchema = {
-    name: 'savings', submit_label: 'Save changes', edit: true, record: { type: 'savings_account', id: 7 },
+    name: 'savings', submit_label: 'Save changes', edit: true, removable: true, record: { type: 'savings_account', id: 7 },
     kinds: [{ key: 'current_account', label: 'Current account', fields: ['provider', 'current_value'] }],
     fields: {
       provider: { type: 'text', label: 'Who is it with', required: true },
@@ -286,6 +299,13 @@ describe('FynCaptureForm as an edit form', () => {
 
   it('shows no Remove on a capture form', () => {
     const w = mount(FynCaptureForm, { props: { schema } });
+    expect(w.findAll('button').some((b) => b.text() === 'Remove')).toBe(false);
+  });
+
+  it('shows no Remove on an edit form whose record cannot be removed', () => {
+    // RecordEditForms::REMOVABLE_TYPES: employer benefits, spending and the
+    // like are changed, never deleted, so the server sends removable: false.
+    const w = mount(FynCaptureForm, { props: { schema: { ...editSchema, removable: false }, values, record } });
     expect(w.findAll('button').some((b) => b.text() === 'Remove')).toBe(false);
   });
 });

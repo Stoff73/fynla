@@ -59,25 +59,25 @@ beforeEach(function () {
         ->with('protection.education_cost_per_year', Mockery::any())
         ->andReturn(9000);
     $mockTaxConfig->shouldReceive('get')
-        ->with('protection.income_multipliers.income_protection_max_benefit', Mockery::any())
+        ->with('protection.income_multipliers.income_protection_max_benefit')
         ->andReturn(0.60);
 
-    // State benefit config values for SSP/ESA integration
-    $mockTaxConfig->shouldReceive('get')
-        ->with('benefits.ssp.weekly_rate', Mockery::any())
-        ->andReturn(116.75);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('benefits.ssp.max_weeks', Mockery::any())
-        ->andReturn(28);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('benefits.ssp.lower_earnings_limit', Mockery::any())
-        ->andReturn(125);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('benefits.ssp.not_available_for', Mockery::any())
-        ->andReturn(['self_employed']);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('benefits.esa.assessment_rate_25_plus', Mockery::any())
-        ->andReturn(90.50);
+    // State benefit config values for SSP/ESA, as TaxConfigurationSeeder seeds
+    // 2026/27. Each key is expected with ONE argument, so a literal fallback
+    // passed as a second argument (Rule 2) fails to match. A test swaps the
+    // year by overwriting $this->benefits before calling the analyzer.
+    $this->benefits = [
+        'benefits.ssp.weekly_rate' => 123.25,
+        'benefits.ssp.max_weeks' => 28,
+        'benefits.ssp.lower_earnings_limit' => null,
+        'benefits.ssp.lower_earner_rate' => 0.80,
+        'benefits.esa.assessment_rate_25_plus' => 95.55,
+    ];
+    foreach (array_keys($this->benefits) as $key) {
+        $mockTaxConfig->shouldReceive('get')
+            ->with($key)
+            ->andReturnUsing(fn () => $this->benefits[$key]);
+    }
 
     // Employer reliance threshold
     $mockTaxConfig->shouldReceive('get')
@@ -658,5 +658,86 @@ describe('calculateProtectionNeeds', function () {
         expect($result['human_capital'])->toBeGreaterThan(0);
         $expectedHumanCapital = $result['net_income_difference'] / 0.047;
         expect(round($result['human_capital'], 2))->toEqual(round($expectedHumanCapital, 2));
+    });
+});
+
+describe('state benefits: Statutory Sick Pay', function () {
+    // https://www.gov.uk/statutory-sick-pay/what-youll-get: "£123.25 a week
+    // Statutory Sick Pay (SSP) or 80% of your normal weekly earnings - whichever
+    // is lower", "for up to 28 weeks". The rate, the 80% and the weeks come from
+    // `benefits.ssp` in tax config.
+    $needsFor = function (object $test, array $income): array {
+        $user = User::factory()->create(array_merge([
+            'date_of_birth' => now()->subYears(40),
+            'annual_employment_income' => 0,
+            'annual_self_employment_income' => 0,
+        ], $income));
+        $profile = ProtectionProfile::factory()->create([
+            'user_id' => $user->id,
+            'annual_income' => array_sum($income),
+            'mortgage_balance' => 0,
+            'other_debts' => 0,
+            'number_of_dependents' => 0,
+            'dependents_ages' => [],
+        ]);
+
+        return $test->analyzer->calculateProtectionNeeds($profile)['state_benefits'];
+    };
+
+    it('pays the flat weekly rate to an employee whose 80% is higher', function () use ($needsFor) {
+        $ssp = $needsFor($this, ['annual_employment_income' => 60000]);
+
+        expect($ssp['ssp_eligible'])->toBeTrue()
+            ->and($ssp['ssp_weekly_rate'])->toEqual(123.25)
+            ->and($ssp['ssp_max_weeks'])->toBe(28)
+            ->and($ssp['ssp_total_entitlement'])->toEqual(123.25 * 28);
+    });
+
+    it('pays 80% of weekly earnings when that is lower than the flat rate (2026/27)', function () use ($needsFor) {
+        // £5,200 a year = £100 a week; 80% = £80, below £123.25. Before April
+        // 2026 this employee was under the £125 lower earnings limit and got nothing.
+        $ssp = $needsFor($this, ['annual_employment_income' => 5200]);
+
+        expect($ssp['ssp_eligible'])->toBeTrue()
+            ->and($ssp['ssp_weekly_rate'])->toEqual(80.0)
+            ->and($ssp['ssp_total_entitlement'])->toEqual(80.0 * 28);
+    });
+
+    it('applies the lower earnings limit in a year that has one (2025/26)', function () use ($needsFor) {
+        $this->benefits['benefits.ssp.weekly_rate'] = 118.75;
+        $this->benefits['benefits.ssp.lower_earnings_limit'] = 125;
+        $this->benefits['benefits.ssp.lower_earner_rate'] = null;
+
+        $below = $needsFor($this, ['annual_employment_income' => 5200]);
+        $above = $needsFor($this, ['annual_employment_income' => 30000]);
+
+        expect($below['ssp_eligible'])->toBeFalse()
+            ->and($below['ssp_total_entitlement'])->toEqual(0.0)
+            ->and($above['ssp_eligible'])->toBeTrue()
+            ->and($above['ssp_weekly_rate'])->toEqual(118.75)
+            ->and($above['ssp_total_entitlement'])->toEqual(118.75 * 28);
+    });
+
+    it('gives a self-employed person no Statutory Sick Pay', function () use ($needsFor) {
+        $ssp = $needsFor($this, ['annual_self_employment_income' => 40000]);
+
+        expect($ssp['ssp_eligible'])->toBeFalse()
+            ->and($ssp['is_self_employed'])->toBeTrue()
+            ->and($ssp['ssp_total_entitlement'])->toEqual(0.0);
+    });
+
+    it('treats a missing rate as no entitlement rather than a guessed figure', function () use ($needsFor) {
+        $this->benefits['benefits.ssp.weekly_rate'] = null;
+
+        $ssp = $needsFor($this, ['annual_employment_income' => 60000]);
+
+        expect($ssp['ssp_eligible'])->toBeFalse()
+            ->and($ssp['ssp_total_entitlement'])->toEqual(0.0);
+    });
+
+    it('reads the ESA rate from config', function () use ($needsFor) {
+        $ssp = $needsFor($this, ['annual_employment_income' => 60000]);
+
+        expect($ssp['esa_monthly_equivalent'])->toEqual((95.55 * 52) / 12);
     });
 });

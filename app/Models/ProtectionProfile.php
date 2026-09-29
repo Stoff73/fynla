@@ -39,6 +39,7 @@ class ProtectionProfile extends Model
         'group_ci_amount',
         'has_employer_pmi',
         'employer_name',
+        'employer_benefits_recorded_at',
     ];
 
     /**
@@ -61,7 +62,27 @@ class ProtectionProfile extends Model
         'group_ip_benefit_months' => 'integer',
         'group_ci_amount' => 'decimal:2',
         'has_employer_pmi' => 'boolean',
+        'employer_benefits_recorded_at' => 'datetime',
     ];
+
+    /**
+     * The row a user gets before they have told us anything: the one set of
+     * defaults for every path that creates a profile on first use.
+     *
+     * @return array<string, mixed>
+     */
+    public static function blankFor(int $userId): array
+    {
+        return [
+            'user_id' => $userId,
+            'annual_income' => 0,
+            'monthly_expenditure' => 0,
+            'mortgage_balance' => 0,
+            'other_debts' => 0,
+            'number_of_dependents' => 0,
+            'retirement_age' => 67,
+        ];
+    }
 
     /**
      * Get the user that owns the profile.

@@ -47,8 +47,9 @@ describe('Admin Protection Action Definitions API', function () {
                 ],
             ]);
 
-        // 30 agent rows + 5 source='strategy' composer catalogue rows (Phase 2).
-        expect($response->json('data'))->toHaveCount(35);
+        // 30 agent rows + 3 cover position rows (CSJ 2026-09-29) + 5 source='strategy'
+        // composer catalogue rows (Phase 2).
+        expect($response->json('data'))->toHaveCount(38);
     });
 
     it('denies access to non-admin users', function () {
