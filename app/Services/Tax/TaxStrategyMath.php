@@ -811,11 +811,14 @@ final class TaxStrategyMath
      * theirs (wrapped in an ISA, or given to a spouse), priced by the tax
      * engine: the starting rate for savings (ITA 2007 s12), the Personal
      * Savings Allowance (s12B) and every band the interest spans are applied
-     * as HMRC would, not a flat marginal rate.
+     * as HMRC would, not a flat marginal rate. $pensionPaid is a gross pension
+     * contribution the same plan already makes, priced before the interest
+     * move (FA 2004 s192(4), ITA 2007 s58).
      */
-    public function interestRemovalSaving(User $user, float $interest, float $interestSheltered = 0.0): float
+    public function interestRemovalSaving(User $user, float $interest, float $interestSheltered = 0.0, float $pensionPaid = 0.0): float
     {
         $parts = $this->pricingPartsFor($user, $interestSheltered);
+        $parts['net_pay'] += $pensionPaid;
         $after = $parts;
         $after['interest'] = max(0.0, $after['interest'] - $interest);
 

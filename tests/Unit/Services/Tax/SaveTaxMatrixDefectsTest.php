@@ -7,10 +7,12 @@ use App\Models\SavingsAccount;
 use App\Models\SpousePermission;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Actions\ActionCardService;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -175,7 +177,7 @@ describe('M2 — a linked spouse\'s allowances come from their own records', fun
 describe('E1 — the tax-trap pension and the savings gift are not counted twice', function () {
     // The live £110k household: 5% + 5% workplace pension, £50,000 at 4.5% in
     // sole name, a non-earning spouse confirmed to hold no savings.
-    function trapHousehold(bool $withSavings = true, float $extraPension = 0.0): User
+    function trapHousehold(bool $withSavings = true, float $extraPension = 0.0, float $soleSavings = 50000, float $isaSavings = 0.0): User
     {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single_earner_couple',
@@ -194,7 +196,13 @@ describe('E1 — the tax-trap pension and the savings gift are not counted twice
         ]);
         if ($withSavings) {
             SavingsAccount::factory()->for($user)->create([
-                'current_balance' => 50000, 'interest_rate' => 4.5, 'is_isa' => false,
+                'current_balance' => $soleSavings, 'interest_rate' => 4.5, 'is_isa' => false,
+                'ownership_type' => 'individual', 'joint_owner_id' => null,
+            ]);
+        }
+        if ($isaSavings > 0) {
+            SavingsAccount::factory()->for($user)->create([
+                'current_balance' => $isaSavings, 'interest_rate' => 4.5, 'is_isa' => true,
                 'ownership_type' => 'individual', 'joint_owner_id' => null,
             ]);
         }
@@ -208,39 +216,79 @@ describe('E1 — the tax-trap pension and the savings gift are not counted twice
         return $user->fresh();
     }
 
-    it('prices the trap card after the gift so the pair adds up to what doing both saves', function () {
+    it('prices the pension first and each savings alternative after it (agreed 29 Sep 2026)', function () {
         $this->seed(TaxActionDefinitionSeeder::class);
         $user = trapHousehold();
         $items = collect(app(ComposedTaxPlanService::class)->forUser($user)['items'])->keyBy('type');
         $trap = $items['pa_taper_rescue'];
-        $gift = $items['savings_to_spouse'];
+        $contribution = (float) $trap['suggested_contribution'];
 
-        // Ground truth from the records themselves: the same household after
-        // giving the savings away and paying the suggested contribution.
+        // Ground truth from the records themselves, never from the cards:
+        // the same household with the pension paid, and with each savings
+        // alternative taken on top of it. The ISA wrap shelters £20,000 (the
+        // allowance); the 50/50 split moves half the balance.
         $math = app(TaxStrategyMath::class);
-        $doneBoth = trapHousehold(withSavings: false, extraPension: (float) $trap['suggested_contribution']);
-        $truth = $math->incomeTaxNow($user) - $math->incomeTaxNow($doneBoth);
+        $tax = fn (User $u): float => $math->incomeTaxNow($u);
+        $now = $tax($user);
+        $paid = $tax(trapHousehold(extraPension: $contribution));
+        $afterPension = [
+            'savings_to_spouse' => $paid - $tax(trapHousehold(withSavings: false, extraPension: $contribution)),
+            'isa_topup_vs_psa' => $paid - $tax(trapHousehold(extraPension: $contribution, soleSavings: 30000, isaSavings: 20000)),
+            'joint_savings_psa_split' => $paid - $tax(trapHousehold(extraPension: $contribution, soleSavings: 25000)),
+        ];
 
-        // The contribution is still sized on today's income (relief below the
-        // threshold is real); only its price moves.
-        expect((float) $trap['suggested_contribution'])->toBe(6700.0)
-            ->and($trap['estimated_annual_tax_saved'] + $gift['estimated_annual_tax_saved'])
-            ->toEqualWithDelta($truth, 1.0)
-            // Before the fix the pair was £441 more than the truth.
-            ->and($trap['estimated_annual_tax_saved'])->toBeLessThan(6700 * app(TaxStrategyMath::class)->bandRateForBand('higher') * 1.5);
+        // The pension card is right on its own, whether or not savings move.
+        expect($contribution)->toBe(6700.0)
+            ->and((float) $trap['estimated_annual_tax_saved'])->toEqualWithDelta($now - $paid, 1.0);
+
+        // Each alternative adds exactly what it saves once the pension is paid,
+        // so the pension plus whichever one is chosen is what doing both saves.
+        foreach ($afterPension as $type => $truth) {
+            expect((float) $items[$type]['estimated_annual_tax_saved'])->toEqualWithDelta($truth, 1.0, $type);
+        }
     });
 
-    it('says how much allowance the contribution wins back once the interest has gone', function () {
-        $math = app(TaxStrategyMath::class);
+    it('tells the ISA card\'s before and after from the tax once the pension is paid', function () {
+        $this->seed(TaxActionDefinitionSeeder::class);
+        (new ActionHowToSeeder)->loadModule('tax');
         $user = trapHousehold();
-        $threshold = (float) app(TaxConfigService::class)->getIncomeTax()['personal_allowance_taper_threshold'];
-        $aniAfterGift = $math->adjustedNetIncomeFor($user) - $math->estimateAnnualInterest($user);
+        $items = collect(app(ComposedTaxPlanService::class)->forUser($user)['items'])->keyBy('type');
+        $contribution = (float) $items['pa_taper_rescue']['suggested_contribution'];
 
+        // Ground truth from the records: the pension paid, then the wrap too.
+        $math = app(TaxStrategyMath::class);
+        $afterPension = $math->incomeTaxNow(trapHousehold(extraPension: $contribution));
+        $afterBoth = $math->incomeTaxNow(trapHousehold(extraPension: $contribution, soleSavings: 30000, isaSavings: 20000));
+
+        $line = app(ActionCardService::class)->for($user, 'tax_isa_topup_vs_psa')['what_this_changes'][0] ?? '';
+        preg_match('/falls from £([\d,]+) to £([\d,]+): £([\d,]+) less/', $line, $m);
+        $pounds = fn (string $s): float => (float) str_replace(',', '', $s);
+
+        expect($line)->toStartWith('Once your £'.number_format((int) $contribution).' pension contribution is paid')
+            ->and($m)->toHaveCount(4)
+            ->and($pounds($m[1]))->toEqualWithDelta($afterPension, 1.0)
+            ->and($pounds($m[2]))->toEqualWithDelta($afterBoth, 1.0);
+
+        // The gift and the 50/50 split are priced the same way and say so.
+        foreach (['savings_to_spouse', 'joint_savings_psa_split'] as $type) {
+            $outcome = app(ActionCardService::class)->for($user, 'tax_'.$type)['what_this_changes'][0] ?? '';
+            expect($outcome)->toBe(sprintf(
+                'Once your £%s pension contribution is paid, your household pays about £%s less tax a year.',
+                number_format((int) $contribution),
+                number_format((int) floor((float) $items[$type]['estimated_annual_tax_saved'])),
+            ), $type);
+        }
+    });
+
+    it('prices the trap card on today\'s income, not income after a savings move', function () {
+        $threshold = (float) app(TaxConfigService::class)->getIncomeTax()['personal_allowance_taper_threshold'];
+        $user = trapHousehold();
         $trap = matrixRecs($user)['pa_taper_rescue'];
 
         expect($trap['description'])
-            ->toContain('For your income of £'.number_format((int) round($aniAfterGift)).' once your savings interest is out of tax')
-            ->toContain('Reclaim £'.number_format((int) (($aniAfterGift - $threshold) / 2)).' of your Personal Allowance');
+            ->not->toContain('once your savings interest is out of tax')
+            ->toContain('Reclaim £'.number_format((int) ($trap['suggested_contribution'] / 2)).' of your Personal Allowance');
+        expect(app(TaxStrategyMath::class)->adjustedNetIncomeFor($user) - $trap['suggested_contribution'])->toBeGreaterThanOrEqual($threshold);
     });
 
     it('leaves the trap card alone when no savings item shelters interest', function () {

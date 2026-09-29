@@ -109,9 +109,14 @@ const getters = {
   /** Non-household recommendations — rendered by StrategyRecommendationList alongside the slider. */
   individualRecommendations: (s, g) =>
     g.recommendations.filter((rec) => rec.category !== 'household'),
-  /** Household recommendations — rendered by HouseholdView. */
+  /**
+   * Household recommendations — rendered by the household panels. From the
+   * composed plan, like the main list, so they carry conflict_note and
+   * counted_in_total (the spouse gift and the 50/50 split are alternatives to
+   * the ISA wrap); the calculator's list is the fallback only.
+   */
   householdRecommendations: (s, g) =>
-    g.recommendations.filter((rec) => rec.category === 'household'),
+    (g.composedPlan?.items ?? g.recommendations).filter((rec) => rec.category === 'household'),
   calculationMode: (s) => s.dashboard?.calculation_mode ?? 'single',
   taxYear: (s) => s.dashboard?.tax_year ?? '',
   isHouseholdMode: (s) => ['dual_earner', 'single_earner_couple'].includes(s.dashboard?.calculation_mode),

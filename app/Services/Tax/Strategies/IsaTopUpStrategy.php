@@ -114,7 +114,7 @@ final class IsaTopUpStrategy implements TaxStrategy
 
         // Priced by the tax engine: the interest wrapped may sit partly in the
         // starting rate, the allowance or a lower band (audit 2026-09-27).
-        $saving = floor($this->math->interestRemovalSaving($user, $interestSheltered));
+        $saving = floor($this->math->interestRemovalSaving($user, $interestSheltered, 0.0, $context->pensionPaidElsewhere));
         if ($saving < 1) {
             return [];
         }
@@ -158,6 +158,9 @@ final class IsaTopUpStrategy implements TaxStrategy
                 'interest_above_savings_allowance' => round($excessInterest, 2),
                 'taxable_interest_sheltered' => round($interestSheltered, 2),
                 'interest_removed_from_income' => round($interestSheltered, 2),
+                // The pension contribution this saving is priced after (the
+                // plan prices the pension first), so the card can say so.
+                'pension_paid_first' => round($context->pensionPaidElsewhere, 2),
                 'target_accounts' => array_values(array_unique($targetAccounts)),
                 'personal_savings_allowance' => $psa,
             ],
