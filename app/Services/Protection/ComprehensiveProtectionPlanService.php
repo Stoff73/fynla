@@ -52,6 +52,12 @@ class ComprehensiveProtectionPlanService
         }
 
         $data = $analysis['data'];
+        // A user the readiness gate stops gets `can_proceed: false` and null
+        // sections (ProtectionAgent::analyze), not a failure — building a plan
+        // from them read `null['total_annual_income']` (users 103–108 locally).
+        if (($data['can_proceed'] ?? true) === false) {
+            throw FinancialCalculationException::insufficientData('protection plan', ['readiness checks']);
+        }
         $profile = ProtectionProfile::where('user_id', $user->id)->first();
 
         if (! $profile) {
