@@ -23,7 +23,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  *     dividend-ordinary and nil rates.
  *   s55B(6): the transferor's Personal Allowance is reduced by the
  *     transferable amount.
- *   s55C(2): the transferor's net income is LESS THAN the Personal Allowance.
+ *   s55C(1)(c),(ca): after that reduction the transferor may only be liable
+ *     at the same rates. The app applies the narrower GOV.UK test, net income
+ *     below the Personal Allowance (https://www.gov.uk/marriage-allowance);
+ *     in the statute that is s55C(2), which binds only a non-resident who
+ *     qualifies under s56(3) (s55C(1)(d)).
  *   s23 Step 6 and s26: a tax reduction is deducted from the tax calculated
  *     at Step 5, so it can never exceed that tax.
  *   https://www.legislation.gov.uk/ukpga/2007/3/part/3/chapter/3A
@@ -72,7 +76,7 @@ it('caps the Marriage Allowance saving at the recipient\'s actual income tax (s2
         ->toBe(round(130 * accBasic(), 2));
 });
 
-it('offers Marriage Allowance when the user is the lower earner transferring to a basic-rate spouse (s55C)', function () {
+it('offers Marriage Allowance when the user is the lower earner transferring to a basic-rate spouse (s55C(1)(c))', function () {
     $math = app(TaxStrategyMath::class);
     $user = User::factory()->create([
         'household_calculation_mode' => 'dual_earner',
@@ -91,7 +95,11 @@ it('offers Marriage Allowance when the user is the lower earner transferring to 
 });
 
 it('marks Marriage Allowance unavailable on the allowance grid when the statutory tests fail', function () {
-    // Spouse earns £20,000: above the Personal Allowance, so s55C(2) fails.
+    // Spouse earns £20,000: above the Personal Allowance, so the GOV.UK income
+    // test fails. The statute would let the spouse elect (s55C(1)(c)), but it
+    // saves nothing: losing the transferable amount of allowance (s55B(6))
+    // costs the spouse the basic rate on all of it, the same as the s55B(1)
+    // reduction.
     $user = User::factory()->create([
         'household_calculation_mode' => 'dual_earner',
         'annual_employment_income' => 35000,

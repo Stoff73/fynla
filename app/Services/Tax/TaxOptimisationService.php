@@ -426,7 +426,7 @@ class TaxOptimisationService
         $lowerEarnerIncome = $grossIncome >= $spouseIncome ? $spouseIncome : $grossIncome;
         if ($lowerEarnerIncome < $personalAllowance && $higherBand === 'basic') {
             // The transferable amount is NOT 10% of the personal allowance: ITA 2007
-            // s55C(2) rounds it UP to the nearest £10, so 2025/26 is £1,260 against a
+            // s55B(5) rounds it UP to the nearest £10, so 2025/26 is £1,260 against a
             // £12,570 allowance, not £1,257. Both the amount and the rate it saves at
             // come from configuration (Rule 2) — `income_tax.marriage_allowance.amount`
             // is the same figure the public allowances page publishes.

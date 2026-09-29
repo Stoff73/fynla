@@ -522,8 +522,13 @@ final class TaxStrategyMath
      * ITA 2007 Part 3 Chapter 3A
      * (https://www.legislation.gov.uk/ukpga/2007/3/part/3/chapter/3A):
      * - s55C(1)(a): the couple must be married or civil partners.
-     * - s55C(2): the transferor's net income must be LESS THAN the Personal
-     *   Allowance.
+     * - s55C(1)(c),(ca): once their Personal Allowance is reduced under
+     *   s55B(6), the transferor may be liable only at the basic, savings,
+     *   dividend-ordinary and nil rates. The code applies the narrower GOV.UK
+     *   test instead: net income below the Personal Allowance
+     *   (https://www.gov.uk/marriage-allowance). In the statute that test,
+     *   s55C(2), binds only someone who is not UK resident and qualifies
+     *   under s56(3) (s55C(1)(d)).
      * - s55B(2)(b),(ba): the recipient may be liable only at the basic,
      *   savings, dividend-ordinary and nil rates, i.e. their total income
      *   stays inside the basic-rate band.
