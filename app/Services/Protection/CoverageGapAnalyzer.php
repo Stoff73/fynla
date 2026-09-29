@@ -475,32 +475,40 @@ class CoverageGapAnalyzer
         $ipMaxBenefit = (float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit');
         $incomeProtectionNeed = $userGrossIncome * $ipMaxBenefit;
 
-        // State benefit offset for income protection assessment
-        // SSP is only available to employed users earning above the lower earnings limit
-        $sspWeekly = (float) $this->taxConfig->get('benefits.ssp.weekly_rate', 116.75);
-        $sspMaxWeeks = (int) $this->taxConfig->get('benefits.ssp.max_weeks', 28);
-        $sspLowerEarningsLimit = (float) $this->taxConfig->get('benefits.ssp.lower_earnings_limit', 125);
-        $notAvailableFor = (array) $this->taxConfig->get('benefits.ssp.not_available_for', ['self_employed']);
+        // Statutory Sick Pay, from tax config only (Rule 2). Employees only.
+        // https://www.gov.uk/statutory-sick-pay/what-youll-get: the weekly rate
+        // "or 80% of your normal weekly earnings - whichever is lower", for up to
+        // max_weeks. From April 2026 the lower earnings limit is null (abolished)
+        // and lower_earner_rate carries the 80%; earlier years have a limit and
+        // no lower-earner rate.
+        $sspRate = (float) $this->taxConfig->get('benefits.ssp.weekly_rate');
+        $sspMaxWeeks = (int) $this->taxConfig->get('benefits.ssp.max_weeks');
+        $sspLowerEarningsLimit = $this->taxConfig->get('benefits.ssp.lower_earnings_limit');
+        $sspLowerEarnerRate = $this->taxConfig->get('benefits.ssp.lower_earner_rate');
 
         // Determine if the user is employed (earns employment income) or self-employed
         $hasEmploymentIncome = ((float) ($user->annual_employment_income ?? 0)) > 0;
         $hasSelfEmploymentIncome = ((float) ($user->annual_self_employment_income ?? 0)) > 0;
         $isSelfEmployed = $hasSelfEmploymentIncome && ! $hasEmploymentIncome;
 
-        // SSP: total entitlement for the limited 28-week period (NOT annualised)
+        // SSP: total entitlement for the limited period (NOT annualised). A
+        // missing rate or period means no figure, never a guessed one.
+        $sspWeekly = 0.0;
         $totalSspEntitlement = 0.0;
         $sspEligible = false;
-        if ($hasEmploymentIncome && ! $isSelfEmployed) {
-            // Check weekly earnings exceed lower earnings limit
-            $weeklyEarnings = (float) ($user->annual_employment_income ?? 0) / 52;
-            if ($weeklyEarnings >= $sspLowerEarningsLimit) {
+        if ($hasEmploymentIncome && ! $isSelfEmployed && $sspRate > 0 && $sspMaxWeeks > 0) {
+            $weeklyEarnings = (float) $user->annual_employment_income / 52;
+            if ($sspLowerEarningsLimit === null || $weeklyEarnings >= (float) $sspLowerEarningsLimit) {
+                $sspWeekly = $sspLowerEarnerRate === null
+                    ? $sspRate
+                    : min($sspRate, round($weeklyEarnings * (float) $sspLowerEarnerRate, 2));
                 $totalSspEntitlement = $sspWeekly * $sspMaxWeeks;
                 $sspEligible = true;
             }
         }
 
         // ESA support rate (noted as potential, not guaranteed — subject to National Insurance contributions)
-        $esaSupportRate = (float) $this->taxConfig->get('benefits.esa.assessment_rate_25_plus', 90.50);
+        $esaSupportRate = (float) $this->taxConfig->get('benefits.esa.assessment_rate_25_plus');
         $esaMonthlyEquivalent = ($esaSupportRate * 52) / 12;
 
         return [

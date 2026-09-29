@@ -40,8 +40,8 @@ export default {
   components: { AppLayout, SettingsTabBar, HealthInformation },
   setup() {
     const store = useStore();
-    const loading = computed(() => store.getters['userProfile/loading']);
-    const error = computed(() => store.getters['userProfile/error']);
+    const loading = computed(() => store.getters['userProfile/pageLoading']);
+    const error = computed(() => store.getters['userProfile/pageLoadError']);
     const loadProfile = () => store.dispatch('userProfile/fetchProfile');
     onMounted(loadProfile);
     return { loading, error, loadProfile };

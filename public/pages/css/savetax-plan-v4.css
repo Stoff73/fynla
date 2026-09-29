@@ -355,99 +355,14 @@
 .sp4-alw__why[open] .sp4-alw__why-summary { margin-bottom: 4px; }
 
 /* ===================================================================
-   SOCIAL PROOF — replaces the old example panels
-   =================================================================== */
-/* Centre the "Could this be you?" title (label removed) */
-.sp4-proof__intro { text-align: center; }
-.sp4-proof__headline {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 1.5rem;
-}
-.sp4-proof__headline-stat {
-  font-size: clamp(2rem, 7vw, 3rem);
-  font-weight: 900;
-  color: var(--raspberry-500);
-  line-height: 1;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-.sp4-proof__headline-text {
-  font-size: 1rem;
-  color: var(--horizon-500);
-  line-height: 1.5;
-  max-width: 40rem;
-  margin: 0 auto;
-}
-.sp4-proof__grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
-}
-.sp4-proof-card {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-}
-.sp4-proof-card__stars { color: var(--raspberry-500); font-size: 0.9375rem; letter-spacing: 0.1em; }
-.sp4-proof-card__quote {
-  font-size: 0.9375rem;
-  color: var(--horizon-500);
-  line-height: 1.6;
-  flex: 1;
-}
-.sp4-proof-card__quote strong { color: var(--raspberry-600); }
-.sp4-proof-card__person { display: flex; align-items: center; gap: 0.625rem; }
-.sp4-proof-card__avatar {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius-full);
-  background: linear-gradient(to bottom right, var(--horizon-500), var(--raspberry-500));
-  color: var(--white);
-  font-weight: 700;
-  font-size: 0.8125rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.sp4-proof-card__name { font-size: 0.875rem; font-weight: 700; color: var(--horizon-500); }
-.sp4-proof-card__meta { font-size: 0.75rem; color: var(--neutral-500); }
-.sp4-proof__disclaimer {
-  margin-top: 1.5rem;
-  font-size: 0.6875rem;
-  color: var(--neutral-400);
-  text-align: center;
-}
-
-/* "Join them — it's free" above the bottom CTA — larger + bold */
-.sp4-proof__join {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--horizon-500);
-}
-
-/* ===================================================================
    RESPONSIVE
    =================================================================== */
 @media (min-width: 640px) {
   .sp4-allowances__grid { grid-template-columns: 1fr 1fr; }
-  .sp4-proof__grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (min-width: 768px) {
   .sp4-hero__inner { flex-direction: row; align-items: flex-start; gap: 3rem; }
   .sp4-hero__copy { flex: 1; }
   .sp4-hero__card { width: 360px; flex-shrink: 0; }
-}
-
-@media (min-width: 1024px) {
-  .sp4-proof__grid { grid-template-columns: repeat(3, 1fr); }
 }

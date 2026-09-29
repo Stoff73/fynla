@@ -120,6 +120,7 @@ api.interceptors.response.use(
           return Promise.reject({
             message: error.response.data.message || 'Invalid credentials',
             errors: error.response.data.errors || null,
+            status: 401,
           });
         }
       }

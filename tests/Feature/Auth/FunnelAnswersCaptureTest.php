@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\PendingRegistration;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Auth\FunnelAnswersMapper;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -109,7 +111,7 @@ it('maps funnel spouseIncome onto household_calculation_mode so Fyn never re-ask
     $singleEarner = User::factory()->create([
         'employment_status' => null, 'marital_status' => null,
         'household_calculation_mode' => null,
-        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => 'zero'],
+        'funnel_answers' => ['income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero'],
     ]);
     $svc->mapToProfile($singleEarner);
     expect($singleEarner->fresh()->household_calculation_mode)->toBe('single_earner_couple');
@@ -174,9 +176,98 @@ it('accepts registration when funnel_answers is omitted (direct signup)', functi
     expect($pending->funnel_answers)->toBeNull();
 });
 
+it('accepts "No income" for the user\'s own income, as it already did for the spouse (F3)', function () {
+    $this->postJson('/api/auth/register', funnelPayload([
+        'email' => 'funnel-no-income@example.com',
+        'funnel_answers' => ['employment' => 'not-employed', 'income' => 'zero', 'spouse' => 'no'],
+    ]))->assertStatus(201);
+
+    $pending = PendingRegistration::where('email', 'funnel-no-income@example.com')->first();
+    expect($pending->funnel_answers['income'])->toBe('zero');
+});
+
+// Tax review of #975, F10: the funnel asks the partner's employment when their
+// band is the Personal Allowance taper, because pension relief depends on
+// earnings from work (FA 2004 s190).
+it("keeps the partner's employment answer through registration and strips an unknown one", function () {
+    $this->postJson('/api/auth/register', funnelPayload([
+        'email' => 'funnel-partner-work@example.com',
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => '100001_125140', 'spouseEmployment' => 'retired'],
+    ]))->assertStatus(201);
+    $this->postJson('/api/auth/register', funnelPayload([
+        'email' => 'funnel-partner-bad@example.com',
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => '100001_125140', 'spouseEmployment' => 'astronaut'],
+    ]))->assertStatus(201);
+
+    expect(PendingRegistration::where('email', 'funnel-partner-work@example.com')->first()->funnel_answers['spouseEmployment'])->toBe('retired')
+        ->and(PendingRegistration::where('email', 'funnel-partner-bad@example.com')->first()->funnel_answers)->not->toHaveKey('spouseEmployment');
+});
+
+it("records the partner's funnel employment when their household details are first captured", function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'marital_status' => 'married',
+        'household_calculation_mode' => 'dual_earner',
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => '100001_125140', 'spouseEmployment' => 'retired'],
+    ]);
+
+    // Registration does not create the household row: a row with no income
+    // would give the plan a partner earning £0.
+    app(FunnelAnswersMapper::class)->mapToProfile($user);
+    expect(TaxStrategyHouseholdInput::where('user_id', $user->id)->exists())->toBeFalse();
+
+    app(CoordinatingAgent::class)->executeTool('capture_spouse_household_data', ['spouse_annual_income' => 125000], $user);
+
+    $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+    expect($row->spouse_employment_status)->toBe('retired')
+        // A band answer is not a figure: earnings stay unasked, not £0.
+        ->and($row->spouse_annual_earnings)->toBeNull();
+});
+
+it("never overwrites a partner's employment already recorded, nor invents one", function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'marital_status' => 'married',
+        'household_calculation_mode' => 'dual_earner',
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => '100001_125140', 'spouseEmployment' => 'retired'],
+    ]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_employment_status' => 'full_time']);
+    app(CoordinatingAgent::class)->executeTool('capture_spouse_household_data', ['spouse_annual_income' => 125000], $user);
+    expect(TaxStrategyHouseholdInput::where('user_id', $user->id)->value('spouse_employment_status'))->toBe('full_time');
+
+    $unasked = User::factory()->create([
+        'is_preview_user' => false,
+        'marital_status' => 'married',
+        'household_calculation_mode' => 'dual_earner',
+        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => '50271_100000'],
+    ]);
+    app(CoordinatingAgent::class)->executeTool('capture_spouse_household_data', ['spouse_annual_income' => 80000], $unasked);
+    expect(TaxStrategyHouseholdInput::where('user_id', $unasked->id)->value('spouse_employment_status'))->toBeNull();
+});
+
 it('rejects funnel_answers when it is not an array', function () {
     $this->postJson('/api/auth/register', funnelPayload([
         'email' => 'funnel-bad@example.com',
         'funnel_answers' => 'not-an-array',
     ]))->assertStatus(422)->assertJsonValidationErrors(['funnel_answers']);
 });
+
+// Marriage Allowance needs one partner below the Personal Allowance and the
+// other paying tax at the basic rate (gov.uk/marriage-allowance; ITA 2007
+// s55B, s55C). Both partners' bands are read now that the user's own income
+// can be 'zero'.
+it('flags Marriage Allowance only for a non-earner paired with a basic-rate partner', function (string $income, string $spouseIncome, bool $eligible) {
+    $user = User::factory()->create([
+        'employment_status' => null, 'marital_status' => null, 'household_calculation_mode' => null,
+        'funnel_answers' => ['income' => $income, 'spouse' => 'yes', 'spouseIncome' => $spouseIncome],
+    ]);
+    (new FunnelAnswersMapper)->mapToProfile($user);
+
+    expect($user->fresh()->marriage_allowance_eligible)->toBe($eligible);
+})->with([
+    'spouse has none, user basic rate' => ['upto_50270', 'zero', true],
+    'user has none, spouse basic rate' => ['zero', 'upto_50270', true],
+    'neither has income' => ['zero', 'zero', false],
+    'spouse has none, user higher rate' => ['50271_100000', 'zero', false],
+    'both earn' => ['upto_50270', 'upto_50270', false],
+]);

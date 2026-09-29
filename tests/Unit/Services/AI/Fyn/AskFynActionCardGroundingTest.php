@@ -90,3 +90,27 @@ it('never grounds another user\'s action', function (): void {
     expect(askFynTurn($other, $card['ask_fyn']['prompt'], 'retirement_contribution'))
         ->not->toContain('<action_grounding>');
 });
+
+// L3-3 (fynla.org /m, 29 Sep 2026): an action that is one of a set of
+// alternatives says so in Fyn's grounding, from the plan's own sentence.
+it('carries the plan\'s alternatives sentence into the grounding', function (): void {
+    $user = askFynWalkUser();
+    $note = '"Wrap savings in an ISA" is an alternative to "Gift savings to your spouse" and "Share savings 50/50": doing one changes or removes the saving from the other, so their savings do not add up. The plan total counts "Gift savings to your spouse" instead of this one.';
+    $card = [
+        'title' => 'Wrap savings in an ISA',
+        'module_label' => 'Tax',
+        'description' => 'Move £20,000 into a Cash ISA.',
+        'why' => [],
+        'what_this_changes' => [],
+        'key_figure' => null,
+        'how_to' => [],
+        'conflict_note' => 'Alternative to "Gift savings to your spouse" — compare before doing both.',
+        'alternatives_note' => $note,
+    ];
+
+    // ActionCardService is final; exercise the one grounding builder directly.
+    $grounding = (new ReflectionMethod(FynContextAssembler::class, 'actionGrounding'))
+        ->invoke(app(FynContextAssembler::class), $card, $user);
+
+    expect($grounding)->toContain("alternatives: {$note}");
+});

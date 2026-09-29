@@ -1,7 +1,10 @@
 (function () {
   'use strict';
 
-  var answers = { campaign: 'savetax', employment: null, income: null, spouse: null, spouseIncome: null, assets: [] };
+  var answers = { campaign: 'savetax', employment: null, income: null, spouse: null, spouseIncome: null, spouseEmployment: null, assets: [] };
+  // The partner's employment is only asked in the Personal Allowance taper
+  // band, where their pension line depends on earnings from work.
+  var TRAP_BAND = '100001_125140';
   var current = 'employment';
 
   // Marketing attribution: stash ?utm_source=<platform> (allowlisted) so the
@@ -30,6 +33,7 @@
       + '&income=' + encodeURIComponent(answers.income || '')
       + '&spouse=' + encodeURIComponent(answers.spouse || '')
       + '&spouseIncome=' + encodeURIComponent(answers.spouseIncome || '')
+      + '&spouseEmployment=' + encodeURIComponent(answers.spouseEmployment || '')
       + '&assets=' + encodeURIComponent((answers.assets || []).join(','));
     window.location.href = (window.FYNLA_BASE || '') + '/savetax/plan?' + qs;
   }
@@ -37,12 +41,21 @@
   function sequence() {
     var s = ['employment', 'income', 'spouse'];
     if (answers.spouse === 'yes') s.push('spouse-income');
+    if (answers.spouse === 'yes' && answers.spouseIncome === TRAP_BAND) s.push('spouse-employment');
     s.push('assets');
     return s;
   }
 
-  function totalSteps() { return sequence().length; }
-  function stepIndex()  { return sequence().indexOf(current); }
+  // The counter counts questions, not screens: the spouse-income screen is a
+  // follow-up to the spouse question and shares its number, so the total stays
+  // at four whatever is answered (it read "3 of 4" then "4 of 5" after Yes —
+  // SaveTax run 29 Sep 2026, L9). Navigation still walks sequence().
+  var COUNTED_STEPS = ['employment', 'income', 'spouse', 'assets'];
+  function totalSteps() { return COUNTED_STEPS.length; }
+  // The partner's income and employment screens are part of the spouse
+  // question, so they keep its number rather than dropping out of the count.
+  var SPOUSE_SCREENS = ['spouse-income', 'spouse-employment'];
+  function stepIndex()  { return COUNTED_STEPS.indexOf(SPOUSE_SCREENS.indexOf(current) !== -1 ? 'spouse' : current); }
 
   var backBtn      = document.getElementById('qr-back-btn');
   var continueBtn  = document.getElementById('qr-continue-btn');
@@ -58,7 +71,7 @@
 
   function updateProgressTicks(total) {
     var bar = progressFill.parentElement;
-    // Remove any previously injected ticks (total can change when spouse=yes adds a stage)
+    // Remove any previously injected ticks before redrawing
     bar.querySelectorAll('.qr-progress__tick').forEach(function (t) { t.remove(); });
     // Insert (total - 1) dividers at evenly spaced positions
     for (var i = 1; i < total; i++) {
@@ -104,7 +117,8 @@
         employment:     'employment',
         income:         'income',
         spouse:         'spouse',
-        'spouse-income': 'spouseIncome'
+        'spouse-income': 'spouseIncome',
+        'spouse-employment': 'spouseEmployment'
       }[current];
       continueBtn.disabled = !answers[answerKey];
     }
@@ -152,19 +166,28 @@
     }
   }
 
+  function clearAnswer(screenId, answerKey) {
+    answers[answerKey] = null;
+    var screen = document.getElementById('s-' + screenId);
+    if (!screen) return;
+    screen.querySelectorAll('.qr-opt').forEach(function (btn) {
+      btn.classList.remove('sel');
+      btn.setAttribute('aria-pressed', 'false');
+    });
+  }
+
   function selectSingle(screenId, value, answerKey) {
     answers[answerKey] = value;
 
-    // If Q3 answer changes to 'no', clear any previously stored spouse income selection
+    // An answer that removes a follow-up question clears that question's
+    // stored answer: Q3 'no' drops the partner's income and employment, and a
+    // partner income outside the taper band drops their employment.
     if (screenId === 'spouse' && value === 'no') {
-      answers.spouseIncome = null;
-      var spouseScreen = document.getElementById('s-spouse-income');
-      if (spouseScreen) {
-        spouseScreen.querySelectorAll('.qr-opt').forEach(function (btn) {
-          btn.classList.remove('sel');
-          btn.setAttribute('aria-pressed', 'false');
-        });
-      }
+      clearAnswer('spouse-income', 'spouseIncome');
+      clearAnswer('spouse-employment', 'spouseEmployment');
+    }
+    if (screenId === 'spouse-income' && value !== TRAP_BAND) {
+      clearAnswer('spouse-employment', 'spouseEmployment');
     }
 
     // Update visual selected state on all options in this screen
@@ -215,6 +238,7 @@
     { id: 'income',        answerKey: 'income' },
     { id: 'spouse',        answerKey: 'spouse' },
     { id: 'spouse-income', answerKey: 'spouseIncome' },
+    { id: 'spouse-employment', answerKey: 'spouseEmployment' },
   ];
 
   screenMap.forEach(function (s) {

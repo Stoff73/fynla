@@ -85,6 +85,9 @@ const state = {
     profile: null,
     // Where the user stands per cover type (ProtectionCoverPosition, GET /api/protection).
     coverPosition: null,
+    // The need-component breakdown under it (ProtectionGapPresentationService,
+    // GET /api/protection `coverage_gaps`), the payload /m renders too.
+    coverageBreakdown: null,
     policies: {
         life: [],
         criticalIllness: [],
@@ -271,6 +274,7 @@ const actions = {
             commit('setProfile', data.profile || null);
             commit('setPolicies', data.policies || {});
             commit('setCoverPosition', data.cover_position || null);
+            commit('setCoverageBreakdown', data.coverage_gaps || null);
             commit('setLifeEvents', data.life_events || []);
             commit('setLifeEventImpact', data.life_event_impact || null);
 
@@ -289,7 +293,7 @@ const actions = {
                     commit('SET_READINESS_CHECKS', null);
                     commit('setAnalysis', analysisData);
                 }
-            } catch (analysisError) {
+            } catch {
                 // Don't fail the whole request if analysis fails
                 commit('setAnalysis', null);
             }
@@ -411,6 +415,10 @@ const actions = {
 const mutations = {
     setCoverPosition(state, value) {
         state.coverPosition = value;
+    },
+
+    setCoverageBreakdown(state, value) {
+        state.coverageBreakdown = value;
     },
 
     setProfile(state, profile) {

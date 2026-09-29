@@ -34,7 +34,9 @@ describe('FynCaptureForm', () => {
     const labels = w.findAll('label').map((l) => l.text());
     expect(labels).toContain('Value *');
     expect(labels).toContain('Mortgage outstanding *');
-    expect(labels).toContain('Ownership *');
+    // A radio group's caption names the group (L8), so it is not a <label>.
+    const group = w.find('[role="radiogroup"]');
+    expect(w.find(`#${group.attributes('aria-labelledby')}`).text()).toBe('Ownership *');
     expect(labels.some((l) => l.startsWith('Your share'))).toBe(false);
     expect(labels).not.toContain('Monthly rental income *');
   });
@@ -51,6 +53,16 @@ describe('FynCaptureForm', () => {
     expect(share.element.value).toBe('50');
     expect(w.findAll('label').map((l) => l.text())).toContain('Your share % *');
     expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+  });
+
+  it('points every label at an element that exists (SaveTax run 29 Sep 2026, L8)', async () => {
+    const w = mount(FynCaptureForm, { props: { schema }, attachTo: document.body });
+    await box(w, 'Home').trigger('click');
+    const dangling = w.findAll('label[for]')
+      .map((l) => l.attributes('for'))
+      .filter((id) => !document.getElementById(id));
+    expect(dangling).toEqual([]);
+    w.unmount();
   });
 
   it('emits only the opened kinds, with No mortgage as null', async () => {

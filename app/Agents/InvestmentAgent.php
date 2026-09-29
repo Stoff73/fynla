@@ -77,6 +77,30 @@ class InvestmentAgent extends BaseAgent
     }
 
     /**
+     * What the user holds, at their own share: the one shape both the analysed and
+     * the readiness-blocked responses report, so the dashboard card reads the same
+     * figures whichever path the agent took.
+     *
+     * @param  Collection<int, InvestmentAccount>|null  $accounts  already at the user's share
+     * @param  Collection<int, Holding>|null  $holdings  already at the user's share
+     * @return array{total_value: float, accounts_count: int, holdings_count: int}
+     */
+    private function portfolioFacts(int $userId, ?Collection $accounts = null, ?Collection $holdings = null): array
+    {
+        if ($accounts === null || $holdings === null) {
+            $owned = InvestmentAccount::forUserOrJoint($userId)->with('holdings')->get();
+            $accounts = $this->atUserShare($owned, $userId);
+            $holdings = $this->holdingsAtUserShare($owned, $userId);
+        }
+
+        return [
+            'total_value' => round($this->assetAggregator->calculateInvestmentTotal($userId), 2),
+            'accounts_count' => $accounts->count(),
+            'holdings_count' => $holdings->count(),
+        ];
+    }
+
+    /**
      * Comprehensive investment portfolio analysis
      */
     public function analyze(int $userId): array
@@ -88,10 +112,15 @@ class InvestmentAgent extends BaseAgent
             if ($gateUser) {
                 $readiness = $this->readinessService->assess($gateUser);
                 if (! $readiness['can_proceed']) {
+                    // What the user HOLDS does not depend on a risk profile; only the
+                    // advice does. A null summary here read as "0 accounts, £0" on
+                    // the dashboard beside an Investments page listing the ISA
+                    // (SaveTax run 29 Sep 2026, M3). Facts are reported, analysis
+                    // withheld — the W-0244 retirement precedent.
                     return [
                         'can_proceed' => false,
                         'readiness_checks' => $readiness,
-                        'portfolio_summary' => null,
+                        'portfolio_summary' => $this->portfolioFacts($userId),
                         'returns' => null,
                         'asset_allocation' => null,
                         'diversification_score' => null,
@@ -128,7 +157,8 @@ class InvestmentAgent extends BaseAgent
                 // Portfolio analysis. The total comes from the one home every other
                 // surface reads (Rule 20), so the dashboard card cannot disagree
                 // with the net worth figure printed beside it.
-                $totalValue = $this->assetAggregator->calculateInvestmentTotal($userId);
+                $portfolioSummary = $this->portfolioFacts($userId, $accounts, $holdings);
+                $totalValue = $portfolioSummary['total_value'];
                 $returns = $this->portfolioAnalyzer->calculateReturns($holdings);
                 $allocation = $this->portfolioAnalyzer->calculateAssetAllocationWithLookThrough($holdings);
                 $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($holdings);
@@ -191,11 +221,7 @@ class InvestmentAgent extends BaseAgent
                 );
 
                 return [
-                    'portfolio_summary' => [
-                        'total_value' => round($totalValue, 2),
-                        'accounts_count' => $accounts->count(),
-                        'holdings_count' => $holdings->count(),
-                    ],
+                    'portfolio_summary' => $portfolioSummary,
                     'returns' => $returns,
                     'asset_allocation' => $allocation,
                     'diversification_score' => $diversificationScore,
@@ -300,6 +326,13 @@ class InvestmentAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysis): array
     {
+        // A readiness-blocked analysis carries the portfolio facts (M3, 29 Sep
+        // 2026) but no analysis, so it earns no recommendations, whichever
+        // caller asks: the controller, the aggregator or the coordinator.
+        if (($analysis['can_proceed'] ?? $analysis['data']['can_proceed'] ?? true) === false) {
+            return ['recommendation_count' => 0, 'recommendations' => []];
+        }
+
         $start = microtime(true);
         $result = $this->actionDefinitionService->evaluateAgentActions(
             $analysis,

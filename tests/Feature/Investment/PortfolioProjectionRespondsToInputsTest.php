@@ -34,6 +34,12 @@ function accountFor(User $user, string $risk, float $value = 100000, string $typ
         'monthly_contribution_amount' => null,
         'contributions_ytd' => 0,
         'isa_subscription_current_year' => 0,
+        // Pinned: the factory draws a random platform fee, the fee is charged against
+        // the return, and the simulator seeds from its inputs — so every run simulated
+        // a different set of paths, and the two highest risk levels' medians (within
+        // about 0.2% of each other) swapped order in about one run in six.
+        'platform_fee_type' => 'percentage',
+        'platform_fee_percent' => 0.25,
     ]);
 }
 

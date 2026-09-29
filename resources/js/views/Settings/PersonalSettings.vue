@@ -4,7 +4,7 @@
       <div class="mb-8">
         <h1 class="text-h2 font-display text-horizon-500">Settings</h1>
         <p class="mt-2 text-body-base text-neutral-500">
-          Your personal details, contact information, occupation, and domicile status
+          Your personal details, contact information, occupation, and where you have lived
         </p>
       </div>
 
@@ -40,8 +40,8 @@ export default {
   components: { AppLayout, SettingsTabBar, PersonalInformation },
   setup() {
     const store = useStore();
-    const loading = computed(() => store.getters['userProfile/loading']);
-    const error = computed(() => store.getters['userProfile/error']);
+    const loading = computed(() => store.getters['userProfile/pageLoading']);
+    const error = computed(() => store.getters['userProfile/pageLoadError']);
     const loadProfile = () => store.dispatch('userProfile/fetchProfile');
     onMounted(loadProfile);
     return { loading, error, loadProfile };

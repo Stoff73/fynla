@@ -86,7 +86,7 @@ const aiChatService = {
      * Send a message and return a ReadableStream reader for SSE.
      * Uses fetch() instead of axios because axios doesn't support streaming.
      */
-    async sendMessageStream(conversationId, message, currentRoute = null, { signal, form = null } = {}) {
+    async sendMessageStream(conversationId, message, currentRoute = null, { signal, form = null, turnId = null } = {}) {
         const token = await getToken();
 
         const body = { current_route: currentRoute };
@@ -103,6 +103,10 @@ const aiChatService = {
                 'Accept': 'text/event-stream',
                 'Authorization': `Bearer ${token}`,
                 ...FORMS_HEADER,
+                // One id per turn, re-sent by "Try again": the server's
+                // IdempotencyKeyMiddleware never takes the same turn twice
+                // (the iOS app sends the same header).
+                ...(turnId ? { 'Idempotency-Key': turnId } : {}),
             },
             body: JSON.stringify(body),
             credentials: 'same-origin',
@@ -132,6 +136,13 @@ const aiChatService = {
         if (response.status === 202) {
             const payload = await response.json().catch(() => ({}));
             return { queued: true, messageId: payload.message_id, queuePosition: payload.queue_position };
+        }
+
+        // A retried turn the server has already taken is acknowledged in JSON
+        // (IdempotencyKeyMiddleware), not streamed again: the reply is stored,
+        // or still being written.
+        if (response.headers.get('X-Idempotent-Replay') === '1') {
+            return { turnTaken: true };
         }
 
         // WKWebView may not support ReadableStream — fall back to text parsing
@@ -178,7 +189,10 @@ const aiChatService = {
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');
-            throw new Error(`Queued-turn stream failed: ${response.status} ${errorText}`);
+            const error = new Error(`Queued-turn stream failed: ${response.status} ${errorText}`);
+            // 409 = the previous turn still holds the conversation lock.
+            error.status = response.status;
+            throw error;
         }
 
         if (!response.body) {

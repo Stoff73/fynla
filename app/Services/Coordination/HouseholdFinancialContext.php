@@ -10,6 +10,7 @@ use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\TaxStrategyMath;
 
 /**
@@ -194,6 +195,41 @@ final class HouseholdFinancialContext
         }
 
         return null;
+    }
+
+    /**
+     * What the linked spouse's own records say they earn, when this account
+     * may read them — the same gate (User::financiallySharedSpouse) and the
+     * same figures (IncomeDefinitionsService) GET /api/user/profile shows as
+     * the spouse's income. Null when there is no financially-shared linked
+     * spouse, or their records hold no earnings from work: then nothing is
+     * known and the question is still asked (an invitee's partner answered
+     * it when they entered their own job — production 2026-09-29).
+     *
+     * `earnings` is employment plus self-employment income; `total_income`
+     * is every source, the figure the spouse household form calls "Their
+     * annual income".
+     *
+     * @return array{earnings: float, total_income: float}|null
+     */
+    public function linkedSpouseEarnings(User $user): ?array
+    {
+        $spouse = $user->financiallySharedSpouse();
+        if ($spouse === null) {
+            return null;
+        }
+
+        $definition = app(IncomeDefinitionsService::class)->calculate($spouse->id);
+        $components = $definition['components'];
+        $earnings = (float) ($components['employment'] ?? 0) + (float) ($components['self_employment'] ?? 0);
+        if ($earnings <= 0) {
+            return null;
+        }
+
+        return [
+            'earnings' => round($earnings, 2),
+            'total_income' => round((float) $definition['total_income'], 2),
+        ];
     }
 
     // ---------- Private helpers ----------

@@ -6,6 +6,7 @@ use App\Models\SavingsAccount;
 use App\Models\TaxActionDefinition;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -99,9 +100,15 @@ it('never double-counts the shared ISA allowance in combined_annual_saving', fun
     $lisa = $items->firstWhere('type', 'lifetime_isa');
     $topup = $items->firstWhere('type', 'isa_topup_vs_psa');
 
+    // The wrap's £16,000 is priced after the plan's pension item (pension
+    // first, 29 Sep 2026), by the tax engine.
+    $pension = (float) ($items->firstWhere('type', 'pension_tax_relief')['suggested_contribution'] ?? 0);
+    $wrapSaving = floor(app(TaxStrategyMath::class)->interestRemovalSaving($user->fresh(), 16000 * 0.04, 0.0, $pension));
+
     expect($lisa['estimated_annual_tax_saved'])->toBeNull() // a bonus, not tax saved (ruling 2026-09-25)
         ->and($lisa['government_bonus'])->toBe(1000.0)
-        ->and($topup['estimated_annual_tax_saved'])->toBe(256.0)
+        ->and($topup['suggested_transfer_amount'])->toBe(16000.0)
+        ->and($topup['estimated_annual_tax_saved'])->toBe($wrapSaving)
         ->and($topup['conflict_note'])->toContain('ISA allowance');
 
     // The combined total equals the sum of realisable (non-excluded) savings —

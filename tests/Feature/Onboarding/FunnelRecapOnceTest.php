@@ -40,7 +40,7 @@ it('greets with the funnel recap on the first work turn', function () {
     $user = campaignWorkUser();
     $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
 
-    $prompt = OnboardingStateMachine::buildWorkPrompt('', $user, $conversation);
+    $prompt = OnboardingStateMachine::funnelRecapLeadIn($user, $conversation).OnboardingStateMachine::buildWorkPrompt('', $user, $conversation);
 
     expect($prompt)->toContain('thanks for those answers');
 });
@@ -66,7 +66,7 @@ it('asks only the income question when the recap was already delivered', functio
 it('still greets with the recap when no conversation is supplied', function () {
     $user = campaignWorkUser();
 
-    expect(OnboardingStateMachine::buildWorkPrompt('', $user))
+    expect(OnboardingStateMachine::funnelRecapLeadIn($user))
         ->toContain('thanks for those answers');
 });
 
@@ -81,7 +81,7 @@ it('recaps the income band using the active tax configuration', function () {
     $user = campaignWorkUser();
     $user->update(['funnel_answers' => [...$user->funnel_answers, 'income' => 'upto_50270']]);
 
-    expect(OnboardingStateMachine::buildWorkPrompt('', $user))
+    expect(OnboardingStateMachine::funnelRecapLeadIn($user))
         ->toContain('Earning up to £60,000')
         ->not->toContain('Earning up to £50,270');
 });
@@ -101,7 +101,7 @@ it('keeps the recap wording from the tax year in which the funnel was completed'
         'income_context' => $context,
     ]]);
 
-    expect(OnboardingStateMachine::buildWorkPrompt('', $user))
+    expect(OnboardingStateMachine::funnelRecapLeadIn($user))
         ->toContain('Earning up to £50,270')
         ->not->toContain('Earning up to £60,000');
 });

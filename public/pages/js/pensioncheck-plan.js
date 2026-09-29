@@ -66,13 +66,6 @@
   var EST = (window.PENSIONCHECK_ESTIMATE && typeof window.PENSIONCHECK_ESTIMATE === 'object')
     ? window.PENSIONCHECK_ESTIMATE : null;
 
-  // --- Human-readable labels for social proof ----------------------------
-  var INC_LABEL = {
-    'upto_50270':    'income up to £50,270',
-    '50271_100000':  'higher-rate income',
-    '100001_125140': 'income in the tax-trap zone',
-    'over_125140':   'additional-rate income',
-  };
 
   // --- Base path (subdirectory-aware on dev) ------------------------------
   function base() { return window.FYNLA_BASE || ''; }
@@ -215,86 +208,6 @@
         '<p class="sp4-alw-col__title">Tax relief</p>' +
         '<div class="sp4-alw-list">' + rightHtml + '</div>' +
       '</div>';
-  }
-
-  // --- Social proof (illustrative sample content) -------------------------
-  function renderProof() {
-    var headline = document.getElementById('proof-headline');
-    var grid     = document.getElementById('proof-grid');
-    if (!headline || !grid) return;
-
-    var segmentPhrase = INC_LABEL[ans.income]
-      ? 'with ' + INC_LABEL[ans.income].toLowerCase()
-      : 'like you';
-    var count = {
-      'upto_50270':    '12,400',
-      '50271_100000':  '5,800',
-      '100001_125140': '2,900',
-      'over_125140':   '1,700',
-    }[ans.income] || '7,000';
-
-    var potText = EST ? fmt(EST.projected_pot) : '£140,000';
-
-    headline.innerHTML =
-      '<span class="sp4-proof__headline-stat">' + potText + '</span>' +
-      '<p class="sp4-proof__headline-text">Average projected pension pot identified for <strong>' +
-      count + '</strong> members ' + segmentPhrase + ' who completed their pension plan with Fyn.</p>';
-
-    var cards = [];
-    var married  = ans.spouse === 'yes';
-    var retired  = ans.employment === 'retired';
-    var selfEmp  = ans.employment === 'self-employed';
-    var income   = ans.income;
-
-    if (retired) {
-      cards.push({
-        name: 'Patricia H.', meta: 'Recently retired',
-        quote: 'I thought retirement meant no more financial planning. Fyn showed me how to make my pension pot last and <strong>pass on more to my family</strong>.',
-      });
-    }
-    if (selfEmp) {
-      cards.push({
-        name: 'Alex M.', meta: 'Self-employed',
-        quote: 'No employer contributions meant I was behind. Fyn helped me set up a personal pension and reclaim <strong>20% tax relief on every contribution</strong>.',
-      });
-    }
-    if (married) {
-      cards.push({
-        name: 'James & Laura', meta: 'Planning together',
-        quote: 'We saw our combined pension picture for the first time. Planning together meant we could <strong>retire two years earlier</strong> than we thought.',
-      });
-    }
-    if (income === '100001_125140' || income === 'over_125140') {
-      cards.push({
-        name: 'Daniel R.', meta: 'Higher earner',
-        quote: 'Fyn showed me how pension contributions could bring my income below the taper threshold and <strong>restore my Personal Allowance</strong>.',
-      });
-    }
-
-    var fallback = [
-      { name: 'Megan L.', meta: 'Mid-career saver', quote: 'I had no idea what I was actually on track for. Fyn gave me a clear picture and a <strong>step-by-step plan</strong> to close the gap.' },
-      { name: 'Olu A.', meta: 'First pension', quote: 'Starting late felt overwhelming. Fyn broke it down and showed how <strong>small monthly contributions add up</strong> over time.' },
-      { name: 'Sophie T.', meta: 'Career break returner', quote: 'Gaps in my National Insurance record worried me. Fyn helped me understand my options and <strong>top up in the right places</strong>.' },
-    ];
-
-    var i = 0;
-    while (cards.length < 3 && i < fallback.length) { cards.push(fallback[i]); i++; }
-    cards = cards.slice(0, 3);
-
-    grid.innerHTML = cards.map(function (c) {
-      var initials = c.name.split(/[ &]+/).map(function (w) { return w[0]; }).slice(0, 2).join('');
-      return (
-        '<article class="sp4-proof-card">' +
-          '<p class="sp4-proof-card__stars">Rated 5 out of 5</p>' +
-          '<p class="sp4-proof-card__quote">' + c.quote + '</p>' +
-          '<div class="sp4-proof-card__person">' +
-            '<span class="sp4-proof-card__avatar" aria-hidden="true">' + initials + '</span>' +
-            '<span><span class="sp4-proof-card__name">' + c.name + '</span><br>' +
-            '<span class="sp4-proof-card__meta">' + c.meta + '</span></span>' +
-          '</div>' +
-        '</article>'
-      );
-    }).join('');
   }
 
   // --- Compact register form — real account creation ---------------------
@@ -472,7 +385,6 @@
   captureSignupSource();
   renderHero();
   renderStats();
-  renderProof();
   wireRegister();
   wireLoginLink();
 

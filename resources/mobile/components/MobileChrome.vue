@@ -147,18 +147,13 @@
         </div>
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
           <p v-if="m.text || !(m.form && m.form.schema)" v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
-          <!-- Onboarding bubble choices (quick_replies). Tapping sends the label,
-               which the director matches back to the bubble. -->
-          <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
-            <button
-              v-for="b in m.bubbles"
-              :key="b.id"
-              type="button"
-              class="md-fyn__bubble"
-              :disabled="sending"
-              @click="chooseBubble(b, m)"
-            >{{ b.label }}</button>
-          </div>
+          <FynBubbles
+            v-if="m.bubbles && m.bubbles.length"
+            :bubbles="m.bubbles"
+            :multi-select="Boolean(m.multiSelect)"
+            :disabled="sending"
+            @choose="(b) => chooseBubble(b, m)"
+          />
           <FynCaptureForm
             v-if="m.form && m.form.schema"
             :schema="m.form.schema"
@@ -196,6 +191,7 @@ import { issueWebHandoff } from '../navigation/webHandoff.js';
 // Gate-2 turn (resumeOnboardingInDock). Provides send / scrollFyn / ensureConversation
 // / handleFynEvent / chooseBubble / handleOnboardingNavigation too.
 import onboardingChat from '../mixins/onboardingChat.js';
+import FynBubbles from './FynBubbles.vue';
 import FynCaptureForm from './FynCaptureForm.vue';
 
 const CONTEXTUAL_ADD_LABELS = Object.freeze({
@@ -224,7 +220,7 @@ const NAV_ICON = {
 
 export default {
   name: 'MobileChrome',
-  components: { FynCaptureForm },
+  components: { FynBubbles, FynCaptureForm },
   mixins: [onboardingChat],
   props: {
     // Optional page title shown on the gradient hero band at the top of the page.
@@ -449,7 +445,11 @@ export default {
         // opening (verifyAnswer) must wait for this to actually
         // finish, not just start.
         return this.resumeOnboardingInDock();
-      } else if (!this.messages.length) {
+      }
+      // A conversation already under way this session (M6) is resumed, not
+      // replaced by a fresh greeting.
+      if (await this.resumeCurrentConversation()) return;
+      if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }
     },

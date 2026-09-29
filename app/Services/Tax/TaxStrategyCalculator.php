@@ -27,6 +27,12 @@ use App\Services\TaxConfigService;
  */
 final class TaxStrategyCalculator
 {
+    /** The user's own pension items; only one applies for a given income. */
+    private const OWN_PENSION_TYPES = ['pa_taper_rescue', 'additional_rate_avoidance', 'pension_tax_relief'];
+
+    /** Items that each remove the same sole-name interest from the user's income. */
+    private const SHARED_INTEREST_TYPES = ['isa_topup_vs_psa', 'savings_to_spouse', 'joint_savings_psa_split'];
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly TaxStrategyMath $math,
@@ -58,11 +64,16 @@ final class TaxStrategyCalculator
 
         $userAllowances = $this->buildUserAllowanceGrid($user, $overrides, $mode, $household);
 
-        $spouseAllowances = match ($mode) {
-            'dual_earner' => $household instanceof TaxStrategyHouseholdInput
+        $linkedSpouse = in_array($mode, ['dual_earner', 'single_earner_couple'], true)
+            ? $user->financiallySharedSpouse()
+            : null;
+
+        $spouseAllowances = match (true) {
+            $linkedSpouse !== null => $this->buildSpouseAllowanceGridFromLinkedAccount($linkedSpouse, $this->marriageAllowanceAvailableFor($user, $mode, $household)),
+            $mode === 'dual_earner' => $household instanceof TaxStrategyHouseholdInput
                 ? $this->buildSpouseAllowanceGridDualEarner($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household))
                 : null,
-            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household)),
+            $mode === 'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household)),
             default => null,
         };
 
@@ -91,6 +102,12 @@ final class TaxStrategyCalculator
             $allRecs = array_merge($allRecs, $strategy->generate($context));
         }
 
+        // The pension is priced first; the savings items that share the same
+        // interest are priced after it (before the ISA pool is allocated, so
+        // the allocator works on the figures the plan shows).
+        $afterPension = $this->contextAfterPension($allRecs, $context);
+        $allRecs = $this->repriceSavingsAfterPension($allRecs, $afterPension);
+
         // All adult ISA types share ONE overall annual allowance per person —
         // cash wraps, Bed & ISA proceeds and Lifetime ISA contributions all
         // draw from the same pool, yet each strategy above sized itself
@@ -101,12 +118,10 @@ final class TaxStrategyCalculator
         // dashboard payload (TaxStrategyService) and the composed plan
         // (ComposedTaxPlanService) see identical honest figures.
         $allRecs = $this->isaAllocator->allocate($allRecs, [
-            'isa_topup_vs_psa' => fn (float $cap): array => $this->isaTopUp->generate($context->withIsaPoolCap($cap)),
+            'isa_topup_vs_psa' => fn (float $cap): array => $this->isaTopUp->generate($afterPension->withIsaPoolCap($cap)),
             'bed_and_isa' => fn (float $cap): array => $this->bedAndIsa->generate($context->withIsaPoolCap($cap)),
             'lifetime_isa' => fn (float $cap): array => $this->lifecycle->generate($context->withIsaPoolCap($cap)),
         ], $this->userIsaPoolRemaining($user));
-
-        $allRecs = $this->repricePensionReliefForShelteredInterest($allRecs, $context);
 
         usort($allRecs, function (StrategyRecommendation $a, StrategyRecommendation $b): int {
             $cat = $a->categoryEnum()->sortWeight() <=> $b->categoryEnum()->sortWeight();
@@ -128,45 +143,71 @@ final class TaxStrategyCalculator
 
     /**
      * The ISA wrap, the spouse gift and the joint split all shelter the same
-     * sole-name interest, and the plan counts only the largest of them (the
-     * composer's conflict rule, seeded in TaxActionDefinitionSeeder). That
-     * interest then leaves taxed income, so the pension item is re-priced
-     * without it rather than counting the same slice at the higher rate twice.
+     * sole-name interest; the composer counts only the largest of them (the
+     * conflict rule seeded in TaxActionDefinitionSeeder). Whichever the user
+     * picks, it and the pension item must not both claim the tax on the same
+     * slice of income (a £110k plan counted it twice, £441 too much: SaveTax
+     * matrix E1, 29 Sep 2026).
+     *
+     * The plan prices the pension first (agreed 29 Sep 2026): the pension item
+     * keeps its price on today's income, which is right whether or not any
+     * savings move, and each savings item is re-priced on the income left once
+     * the pension contribution is paid. The pair then adds up to what doing
+     * both saves, whichever savings item is chosen.
      *
      * @param  list<StrategyRecommendation>  $recs
      * @return list<StrategyRecommendation>
      */
-    private function repricePensionReliefForShelteredInterest(array $recs, Strategies\TaxStrategyContext $context): array
+    private function repriceSavingsAfterPension(array $recs, Strategies\TaxStrategyContext $afterPension): array
     {
-        $pensionIndex = null;
-        $winner = null;
-        foreach ($recs as $i => $rec) {
-            if ($rec->type === 'pension_tax_relief') {
-                $pensionIndex = $i;
-            }
-            if (in_array($rec->type, ['isa_topup_vs_psa', 'savings_to_spouse', 'joint_savings_psa_split'], true)
-                && ($winner === null || (float) $rec->estimatedAnnualTaxSaved > (float) $winner->estimatedAnnualTaxSaved)) {
-                $winner = $rec;
-            }
-        }
-        if ($pensionIndex === null || $winner === null) {
+        $hasSharedInterestItem = (bool) array_filter($recs, fn (StrategyRecommendation $r): bool => in_array($r->type, self::SHARED_INTEREST_TYPES, true));
+        if ($afterPension->pensionPaidElsewhere <= 0 || ! $hasSharedInterestItem) {
             return $recs;
         }
 
-        $sheltered = (float) ($winner->extra['taxable_interest_sheltered'] ?? $winner->extra['shelterable_interest'] ?? 0);
-        if ($sheltered <= 0) {
-            return $recs;
+        $repriced = [];
+        foreach ($recs as $rec) {
+            if (! in_array($rec->type, self::SHARED_INTEREST_TYPES, true)) {
+                $repriced[] = $rec;
+
+                continue;
+            }
+            // Runs before the ISA pool allocation, so each is sized as in the
+            // first pass; the allocator then caps the ISA wrap as usual.
+            $fresh = match ($rec->type) {
+                'isa_topup_vs_psa' => $this->isaTopUp->generate($afterPension),
+                'savings_to_spouse' => $this->assetShifting->generate($afterPension),
+                'joint_savings_psa_split' => $this->jointSavings->generate($afterPension),
+            };
+            foreach ($fresh as $candidate) {
+                if ($candidate->type === $rec->type) {
+                    $repriced[] = $candidate;
+                }
+            }
         }
 
-        $repriced = $this->pensionTaxRelief->generate($context->withInterestShelteredElsewhere($sheltered));
-        if ($repriced === []) {
-            unset($recs[$pensionIndex]);
+        return $repriced;
+    }
 
-            return array_values($recs);
+    /**
+     * The context the savings items are priced in: the user's own pension
+     * item's contribution treated as paid. The largest, not the sum: the
+     * taper-rescue and additional-rate items can both fire when adjusted net
+     * income sits below net income, and the additional-rate contribution
+     * already covers the taper slice.
+     *
+     * @param  list<StrategyRecommendation>  $recs
+     */
+    private function contextAfterPension(array $recs, Strategies\TaxStrategyContext $context): Strategies\TaxStrategyContext
+    {
+        $pensionPaid = 0.0;
+        foreach ($recs as $rec) {
+            if (in_array($rec->type, self::OWN_PENSION_TYPES, true)) {
+                $pensionPaid = max($pensionPaid, (float) ($rec->extra['suggested_contribution'] ?? 0));
+            }
         }
-        $recs[$pensionIndex] = $repriced[0];
 
-        return $recs;
+        return $pensionPaid > 0 ? $context->withPensionPaidElsewhere($pensionPaid) : $context;
     }
 
     /**
@@ -177,7 +218,7 @@ final class TaxStrategyCalculator
     private function userIsaPoolRemaining(User $user): float
     {
         $isa = $this->taxConfig->getISAAllowances();
-        $allowance = (float) ($isa['annual_allowance'] ?? 20000);
+        $allowance = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
 
         return max(0.0, $allowance - $this->math->estimateIsaSubscriptionsThisYear($user));
     }
@@ -199,7 +240,7 @@ final class TaxStrategyCalculator
         $personalSavingsAllowanceAmount = $this->math->personalSavingsAllowanceForUser($user);
         $estimatedAnnualInterest = $this->math->estimateAnnualInterest($user);
 
-        $startingRateForSavingsAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
+        $startingRateForSavingsAmount = $this->configAmount($income, 'starting_rate_for_savings.band', 'income_tax.starting_rate_for_savings.band');
         // Starting rate for savings tapers £-for-£ once non-savings income exceeds the
         // Personal Allowance and disappears entirely once it exceeds PA + £5,000. We only
         // surface the position when the user could actually use some of it.
@@ -207,7 +248,7 @@ final class TaxStrategyCalculator
         $startingRateForSavingsAvailable = max(0, $startingRateForSavingsAmount - $nonSavingsIncomeAbovePa);
         $startingRateForSavingsUsed = min($startingRateForSavingsAvailable, $this->math->estimateAnnualInterest($user));
 
-        $marriageAllowanceAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
+        $marriageAllowanceAmount = $this->configAmount($income, 'marriage_allowance.amount', 'income_tax.marriage_allowance.amount');
         $maritalStatus = (string) ($user->marital_status ?? '');
         $isPartnered = in_array($maritalStatus, ['married', 'civil_partnership'], true);
         // HMRC: the recipient of a Marriage Allowance transfer must be a
@@ -221,17 +262,14 @@ final class TaxStrategyCalculator
             ? $marriageAllowanceAmount
             : 0.0;
 
-        $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
+        $isaAmount = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
         $isaUsedThisYear = $this->math->estimateIsaSubscriptionsThisYear($user)
             + (float) ($overrides?->isaAdditionalDeposit ?? 0);
         $isaUsed = min($isaAmount, $isaUsedThisYear);
 
-        $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
+        $cgtAmount = $this->configAmount($cgt, 'annual_exempt_amount', 'capital_gains_tax.annual_exempt_amount');
 
-        $divAmount = (float) ($div['allowance']['amount'] ?? $div['allowance'] ?? 500);
-        if (is_array($divAmount)) {
-            $divAmount = (float) ($divAmount['amount'] ?? 500);
-        }
+        $divAmount = $this->dividendAllowance($div);
         $divUsed = (float) ($user->annual_dividend_income ?? 0);
 
         $mpaaApplies = $this->math->moneyPurchaseAnnualAllowanceApplies($user);
@@ -280,13 +318,17 @@ final class TaxStrategyCalculator
     private function pensionPosition(User $user, ?TaxStrategyOverridesDTO $overrides, float $aaAmount, float $aaUsed, bool $mpaaApplies): array
     {
         $pension = $this->taxConfig->getPensionAllowances();
-        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        $earnings = $this->math->relevantEarningsFor($user);
         $reliefLimit = max((float) ($pension['relevant_earnings_minimum'] ?? 0), $earnings);
 
         if ($reliefLimit < $aaAmount) {
             return $this->position(
                 'pension_annual_allowance',
-                'Pension contribution limit from your earnings',
+                // With no earnings the limit is the basic amount (FA 2004 s190),
+                // not a figure "from your earnings" (Brett 2026-09-29).
+                $this->math->isDeclaredNonEarner($user)
+                    ? 'Pension contribution limit without earnings'
+                    : 'Pension contribution limit from your earnings',
                 $reliefLimit,
                 // The what-if slider replaces the captured contributions.
                 $overrides?->pensionContributionPercent !== null
@@ -316,6 +358,36 @@ final class TaxStrategyCalculator
         return $this->math->marriageAllowance($user, $mode, $household) !== null;
     }
 
+    /**
+     * A linked spouse who shares financial data has their own records on file,
+     * so their allowances are read from those records — the same grid their
+     * own Tax Strategy page shows — rather than marked "not confirmed" from the
+     * few household answers the campaign captured (SaveTax couple run M2,
+     * 2026-09-29). Marriage Allowance keeps the couple-level test so the grid
+     * and the plan item cannot disagree.
+     */
+    private function buildSpouseAllowanceGridFromLinkedAccount(User $spouse, bool $marriageAllowanceAvailable): array
+    {
+        $spouseMode = (string) ($spouse->household_calculation_mode ?? 'single');
+        $grid = $this->buildUserAllowanceGrid($spouse, null, $spouseMode, $spouse->taxStrategyHouseholdInput);
+
+        $grid = array_values(array_filter($grid, fn (array $row): bool => $row['key'] !== 'marriage_allowance'));
+        $grid[] = $this->position(
+            'marriage_allowance',
+            'Marriage Allowance',
+            $this->math->marriageAllowanceAmount(),
+            0.0,
+            'spouse',
+            $marriageAllowanceAvailable,
+        );
+
+        return array_map(fn (array $row): array => array_merge($row, [
+            'owner' => 'spouse',
+            // Rendered under "Your spouse's allowances".
+            'label' => str_replace('from your earnings', 'from their earnings', $row['label']),
+        ]), $grid);
+    }
+
     private function buildSpouseAllowanceGridDualEarner(User $user, TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
     {
         $income = $this->taxConfig->getIncomeTax();
@@ -327,13 +399,12 @@ final class TaxStrategyCalculator
         $spouseNonSavingsIncome = (float) ($household->spouse_annual_income ?? 0);
         $spouseTotalIncome = $spouseNonSavingsIncome + (float) ($household->spouse_annual_dividends ?? 0);
         $personalAllowance = $this->math->personalAllowanceForIncome($spouseTotalIncome);
-        $startingRateAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
-        $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
-        $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
-        $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
-        $divAmountRaw = $div['allowance'] ?? 500;
-        $divAmount = is_array($divAmountRaw) ? (float) ($divAmountRaw['amount'] ?? 500) : (float) $divAmountRaw;
-        $aaAmount = (float) ($pension['annual_allowance'] ?? 60000);
+        $startingRateAmount = $this->configAmount($income, 'starting_rate_for_savings.band', 'income_tax.starting_rate_for_savings.band');
+        $marriageAmount = $this->configAmount($income, 'marriage_allowance.amount', 'income_tax.marriage_allowance.amount');
+        $isaAmount = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
+        $cgtAmount = $this->configAmount($cgt, 'annual_exempt_amount', 'capital_gains_tax.annual_exempt_amount');
+        $divAmount = $this->dividendAllowance($div);
+        $aaAmount = $this->configAmount($pension, 'annual_allowance', 'pension.annual_allowance');
 
         $psa = $this->math->personalSavingsAllowanceFor($spouseTotalIncome);
 
@@ -377,14 +448,13 @@ final class TaxStrategyCalculator
         $div = $this->taxConfig->getDividendTax();
 
         // Non-working spouse — assume basic-rate band by default.
-        $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
-        $startingRateAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
-        $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
-        $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
-        $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
-        $divAmountRaw = $div['allowance'] ?? 500;
-        $divAmount = is_array($divAmountRaw) ? (float) ($divAmountRaw['amount'] ?? 500) : (float) $divAmountRaw;
-        $aaAmount = (float) ($pension['annual_allowance'] ?? 60000);
+        $personalAllowance = $this->configAmount($income, 'personal_allowance', 'income_tax.personal_allowance');
+        $startingRateAmount = $this->configAmount($income, 'starting_rate_for_savings.band', 'income_tax.starting_rate_for_savings.band');
+        $marriageAmount = $this->configAmount($income, 'marriage_allowance.amount', 'income_tax.marriage_allowance.amount');
+        $isaAmount = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
+        $cgtAmount = $this->configAmount($cgt, 'annual_exempt_amount', 'capital_gains_tax.annual_exempt_amount');
+        $divAmount = $this->dividendAllowance($div);
+        $aaAmount = $this->configAmount($pension, 'annual_allowance', 'pension.annual_allowance');
 
         $existingIsa = $household?->spouse_existing_isa_balance;
         $spouseIsaUseKnown = $existingIsa !== null && (float) $existingIsa === 0.0;
@@ -475,5 +545,36 @@ final class TaxStrategyCalculator
             'available' => true,
             'known' => true,
         ];
+    }
+
+    /**
+     * A tax figure read from config with no typed-in fallback (Rule 2): a
+     * missing key fails loudly, as SaveTaxEstimateService does, rather than
+     * showing an out-of-date allowance.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    private function configAmount(array $values, string $key, string $path): float
+    {
+        $value = \Illuminate\Support\Arr::get($values, $key);
+        if (! is_numeric($value)) {
+            throw new \LogicException("Tax config {$path} is missing");
+        }
+
+        return (float) $value;
+    }
+
+    /**
+     * The dividend allowance, held either as a figure or as ['amount' => …].
+     *
+     * @param  array<string, mixed>  $div
+     */
+    private function dividendAllowance(array $div): float
+    {
+        $allowance = $div['allowance'] ?? null;
+
+        return is_array($allowance)
+            ? $this->configAmount($allowance, 'amount', 'dividend_tax.allowance.amount')
+            : $this->configAmount($div, 'allowance', 'dividend_tax.allowance');
     }
 }

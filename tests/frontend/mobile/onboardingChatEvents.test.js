@@ -303,6 +303,7 @@ describe('/m Fyn stream event parity', () => {
       }),
       finalizeCaptureReply: vi.fn(),
       handleOnboardingNavigation: vi.fn(),
+      settleUserSnapshot: vi.fn(),
     };
 
     await onboardingChat.methods.runFynAction.call(vm, 'skip');

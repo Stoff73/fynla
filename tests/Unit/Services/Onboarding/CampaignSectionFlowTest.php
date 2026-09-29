@@ -150,7 +150,7 @@ it('opens the income-first entry with the funnel recap greeting', function () {
         'funnel_answers' => ['employment' => 'full-time', 'income' => '100001_125140', 'assets' => ['savings']],
     ]);
 
-    $prompt = SM::buildWorkPrompt('', $u);
+    $prompt = SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u);
     expect($prompt)->toContain('thanks for those answers')   // greeting
         ->and($prompt)->toContain('income')                  // leads into income
         ->and($prompt)->not->toContain('date of birth');     // DOB deferred
@@ -167,8 +167,24 @@ it('recaps the spouse income band when the spouse has income', function () {
         ],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))
+    expect(SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u))
         ->toContain('spouse or civil partner earning £50,271–£100,000');
+});
+
+it("recaps the partner's employment when the funnel asked it (taper band)", function () {
+    $u = campaignUser([
+        'first_name' => 'Trapper',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => null,
+        'funnel_answers' => [
+            'employment' => 'full-time', 'income' => '50271_100000',
+            'spouse' => 'yes', 'spouseIncome' => '100001_125140', 'spouseEmployment' => 'retired', 'assets' => ['savings'],
+        ],
+    ]);
+
+    // The recap is the lead-in on the first turn (#991), not part of the work prompt.
+    expect(SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u))
+        ->toContain('spouse or civil partner earning £100,001–£125,140, who is retired');
 });
 
 it('omits the spouse income line when the spouse has no income', function () {
@@ -182,7 +198,7 @@ it('omits the spouse income line when the spouse has no income', function () {
         ],
     ]);
 
-    $prompt = SM::buildWorkPrompt('', $u);
+    $prompt = SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u);
     expect($prompt)->toContain('You have a spouse or civil partner')
         ->and($prompt)->not->toContain('spouse earning');
 });
@@ -195,7 +211,7 @@ it('states a 3 minute estimate when one asset is selected', function () {
         'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings']],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
+    expect(SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
 });
 
 it('adds a minute per asset beyond the first to the time estimate', function () {
@@ -207,7 +223,7 @@ it('adds a minute per asset beyond the first to the time estimate', function () 
         'funnel_answers' => ['employment' => 'full-time', 'assets' => ['savings', 'pension', 'isa']],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 5 minutes');
+    expect(SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u))->toContain('about 5 minutes');
 });
 
 it('falls back to the 3 minute estimate when no assets are selected', function () {
@@ -218,7 +234,7 @@ it('falls back to the 3 minute estimate when no assets are selected', function (
         'funnel_answers' => ['employment' => 'full-time', 'assets' => []],
     ]);
 
-    expect(SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
+    expect(SM::funnelRecapLeadIn($u).SM::buildWorkPrompt('', $u))->toContain('about 3 minutes');
 });
 
 it('drops the recap and asks the plain income question once income is captured', function () {

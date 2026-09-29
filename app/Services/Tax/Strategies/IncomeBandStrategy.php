@@ -46,7 +46,7 @@ final class IncomeBandStrategy implements TaxStrategy
         // https://www.legislation.gov.uk/ukpga/2004/12/section/190), less what
         // the user already pays in; a large dividend income earns none.
         $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
-        $reliefLimit = max($earnings, (float) $this->taxConfig->getPensionAllowances()['relevant_earnings_minimum'])
+        $reliefLimit = $this->math->pensionReliefLimit($earnings)
             - $this->math->grossEmployeePensionContributions($user);
         $availableAA = min($availableAA, max(0.0, $reliefLimit));
         if ($availableAA <= 0) {
@@ -67,9 +67,10 @@ final class IncomeBandStrategy implements TaxStrategy
         // threshold, i.e. only the slice between £100k and the user's income
         // counts. Cap by both the in-band slice and the available AA.
         if ($adjustedNetIncome > $taperThreshold && $adjustedNetIncome <= $additionalRateThreshold) {
-            $inBandSlice = $adjustedNetIncome - $taperThreshold;
-            $contribution = min($inBandSlice, $availableAA);
-            if ($contribution > 0) {
+            // Shared with the /savetax funnel (TaxStrategyMath), so its promise
+            // and this card size the contribution the same way.
+            $displayContribution = (int) $this->math->taperRescueContribution($adjustedNetIncome, $availableAA);
+            if ($displayContribution > 0) {
                 // Split the 60% saving into the two mechanisms the user can see
                 // in their own figures (CSJ): (1) Personal Allowance reclaimed —
                 // £1 of allowance restored for every £2 contributed in this band,
@@ -78,15 +79,13 @@ final class IncomeBandStrategy implements TaxStrategy
                 // figure derives from the same rounded contribution so the two
                 // parts always sum to the headline total. Rates from
                 // TaxConfigService (Rule #2) — never hardcoded.
-                // Down, never up: rounding up would relieve tax the user does
-                // not pay. The total comes from the tax engine, so interest in
+                // The total comes from the tax engine, so interest in
                 // the Personal Savings Allowance and dividends are priced at
                 // their own rates; the direct relief is what the reclaimed
                 // allowance does not account for.
-                $displayContribution = (int) (floor($contribution / 100) * 100);
                 $paReclaimed = (int) ($displayContribution / 2);
                 $paReclaimSaving = (int) round($paReclaimed * $higherRate);
-                $totalSaving = (int) round($this->math->pensionContributionSaving($user, $displayContribution, $context->interestShelteredElsewhere));
+                $totalSaving = (int) round($this->math->pensionContributionSaving($user, $displayContribution));
                 $directRelief = max(0, $totalSaving - $paReclaimSaving);
                 // The agreed wording names the rate; it only holds when the
                 // engine agrees the relief is at that rate (not when the top
@@ -132,14 +131,17 @@ final class IncomeBandStrategy implements TaxStrategy
         // higher-rate band down to its threshold (never below it: relief there
         // is only the basic rate). The saving is priced by the tax engine.
         if ($additionalRateThreshold > 0 && $taxableIncome > $additionalRateThreshold) {
-            $additionalSlice = min($taxableIncome - $additionalRateThreshold, $availableAA);
-            $remaining = max(0, $availableAA - $additionalSlice);
-            $taperSlice = min($remaining, $additionalRateThreshold - $taperThreshold);
-            $remainingAfterTaper = max(0, $remaining - $taperSlice);
-            $belowTaperSlice = min($remainingAfterTaper, max(0, $taperThreshold - $higherRateThreshold));
-
-            $contribution = floor(($additionalSlice + $taperSlice + $belowTaperSlice) / 100) * 100;
-            $saving = $this->math->pensionContributionSaving($user, $contribution, $context->interestShelteredElsewhere);
+            // Sized in TaxStrategyMath, shared with the /savetax funnel.
+            [
+                'contribution' => $contribution,
+                'additional_slice' => $additionalSlice,
+                'taper_slice' => $taperSlice,
+            ] = $this->math->additionalRateAvoidanceContribution(
+                $taxableIncome,
+                $availableAA,
+                ['higher' => $higherRateThreshold, 'additional' => $additionalRateThreshold],
+            );
+            $saving = $this->math->pensionContributionSaving($user, $contribution);
 
             if ($contribution > 0) {
                 $recommendations[] = new StrategyRecommendation(

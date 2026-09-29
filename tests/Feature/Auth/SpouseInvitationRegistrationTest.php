@@ -6,6 +6,7 @@ use App\Http\Middleware\RedirectPhoneToMobile;
 use App\Mail\SpouseInvitation as SpouseInvitationMail;
 use App\Models\PendingRegistration;
 use App\Models\SpouseInvitation;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,6 +64,26 @@ it('remembers the invitation and puts its token on the email link', function ():
         && str_contains($mail->content()->with['registerUrl'], '/register?invite='.$invitation->token));
 });
 
+it('greets the invitee by the first name the inviter gave', function (): void {
+    // SaveTax run 29 Sep 2026, L4: Fyn asked for the partner's first name and the
+    // email still opened "Hello,".
+    [, $invitation] = inviteAzlan();
+
+    Mail::assertSent(SpouseInvitationMail::class, function (SpouseInvitationMail $mail) use ($invitation): bool {
+        $html = $mail->render();
+
+        return $mail->token === $invitation->token
+            && str_contains($html, 'Hi Azlan,')
+            && ! str_contains($html, 'Hello,');
+    });
+});
+
+it('falls back to a plain greeting when no first name was given', function (): void {
+    $html = (new SpouseInvitationMail('someone@example.com', 'Laura Raj', 'tok', null))->render();
+
+    expect($html)->toContain('Hello,');
+});
+
 it('fills the registration page from the link, and reads the same for a bad token', function (): void {
     [, $invitation] = inviteAzlan();
     auth()->forgetGuards();
@@ -87,7 +108,21 @@ it("registering from the link links the accounts, hands over Laura's figures and
         ->and($invitation->fresh()->accepted_user_id)->toBe($azlan->id)
         ->and($azlan->fresh()->funnel_answers['campaign'] ?? null)->toBe('savetax')
         ->and($azlan->fresh()->onboarding_fyn_context['invited_by'] ?? null)->toBe($laura->id)
-        ->and((float) $azlan->fresh()->annual_employment_income)->toBe(230000.0);
+        // Laura gave Azlan's income but not whether it is earnings from work:
+        // it is transferred and stored as an estimate of pay (ruling 50; CSJ
+        // 2026-09-29), which Azlan's own job then replaces.
+        ->and((float) $azlan->fresh()->annual_employment_income)->toBe(230000.0)
+        ->and($azlan->fresh()->employments()->where('is_estimate', true)->count())->toBe(1)
+        ->and((float) ($azlan->fresh()->annual_other_income ?? 0))->toBe(0.0);
+});
+
+it("hands over the invited partner's income as pay when Laura said they work", function (): void {
+    [$laura, $invitation] = inviteAzlan();
+    TaxStrategyHouseholdInput::create(['user_id' => $laura->id, 'spouse_employment_status' => 'full_time']);
+
+    $azlan = registerFromInvitation($invitation->token);
+
+    expect((float) $azlan->fresh()->annual_employment_income)->toBe(230000.0);
 });
 
 it('a used or mismatched invitation still registers the account, unlinked', function (): void {

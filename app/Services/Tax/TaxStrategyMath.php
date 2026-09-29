@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
@@ -522,8 +523,13 @@ final class TaxStrategyMath
      * ITA 2007 Part 3 Chapter 3A
      * (https://www.legislation.gov.uk/ukpga/2007/3/part/3/chapter/3A):
      * - s55C(1)(a): the couple must be married or civil partners.
-     * - s55C(2): the transferor's net income must be LESS THAN the Personal
-     *   Allowance.
+     * - s55C(1)(c),(ca): once their Personal Allowance is reduced under
+     *   s55B(6), the transferor may be liable only at the basic, savings,
+     *   dividend-ordinary and nil rates. The code applies the narrower GOV.UK
+     *   test instead: net income below the Personal Allowance
+     *   (https://www.gov.uk/marriage-allowance). In the statute that test,
+     *   s55C(2), binds only someone who is not UK resident and qualifies
+     *   under s56(3) (s55C(1)(d)).
      * - s55B(2)(b),(ba): the recipient may be liable only at the basic,
      *   savings, dividend-ordinary and nil rates, i.e. their total income
      *   stays inside the basic-rate band.
@@ -671,6 +677,12 @@ final class TaxStrategyMath
         return (float) $result['summary']['total_income_tax_before_credits'];
     }
 
+    /** The user's Income Tax for the year as things stand, from the one tax engine. */
+    public function incomeTaxNow(User $user): float
+    {
+        return $this->incomeTaxOn($this->pricingPartsFor($user, 0.0));
+    }
+
     /**
      * Income tax saved by a further gross pension contribution of $gross: the
      * tax on the user's income now less the tax once it is paid, both from the
@@ -682,19 +694,117 @@ final class TaxStrategyMath
      * in the same deduction. $interestSheltered is interest another item in
      * the same plan already moves into an ISA.
      */
-    /** The user's Income Tax for the year as things stand, from the one tax engine. */
-    public function incomeTaxNow(User $user): float
-    {
-        return $this->incomeTaxOn($this->pricingPartsFor($user, 0.0));
-    }
-
     public function pensionContributionSaving(User $user, float $gross, float $interestSheltered = 0.0): float
     {
-        $parts = $this->pricingPartsFor($user, $interestSheltered);
+        return $this->pensionContributionSavingOn($this->pricingPartsFor($user, $interestSheltered), $gross);
+    }
+
+    /**
+     * The same saving for income parts with no User behind them. The public
+     * /savetax funnel prices its pension lines here, so the figure it promises
+     * and the figure the plan delivers come from one calculation.
+     *
+     * @param  array{non_savings: float, interest: float, dividends: float, trust?: float, net_pay?: float}  $parts
+     */
+    public function pensionContributionSavingOn(array $parts, float $gross): float
+    {
         $after = $parts;
-        $after['net_pay'] += $gross;
+        $after['net_pay'] = (float) ($after['net_pay'] ?? 0) + $gross;
 
         return max(0.0, $this->incomeTaxOn($parts) - $this->incomeTaxOn($after));
+    }
+
+    /**
+     * Saving on a relief-at-source contribution of $gross by someone with no
+     * relevant earnings. Basic-rate relief is added at source whether or not
+     * they pay tax (FA 2004 s192(1),
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/192); a taxpayer's
+     * band extension on a claim (s192(4)) and the allowance won back through
+     * adjusted net income (ITA 2007 s58) can only add to it. Counted in the
+     * headline (29 Sep 2026: the user's own top-up counts, as the spouse's
+     * does under the CSJ ruling of 2026-09-25).
+     *
+     * @param  array{non_savings: float, interest: float, dividends: float, trust?: float, net_pay?: float}  $parts
+     */
+    public function reliefAtSourceSavingOn(array $parts, float $gross): float
+    {
+        $atSource = $gross * (float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'];
+
+        return max($atSource, $this->pensionContributionSavingOn($parts, $gross));
+    }
+
+    public function reliefAtSourceSaving(User $user, float $gross, float $interestSheltered = 0.0): float
+    {
+        return $this->reliefAtSourceSavingOn($this->pricingPartsFor($user, $interestSheltered), $gross);
+    }
+
+    /**
+     * Gross contributions that can get tax relief: the greater of relevant UK
+     * earnings and the basic amount (FA 2004 s190,
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/190), from
+     * pension.relevant_earnings_minimum.
+     */
+    public function pensionReliefLimit(float $relevantEarnings): float
+    {
+        return max($relevantEarnings, (float) $this->taxConfig->getPensionAllowances()['relevant_earnings_minimum']);
+    }
+
+    /**
+     * Earnings from work the profile captures: pay and self-employment profit
+     * (FA 2004 s189(2), https://www.legislation.gov.uk/ukpga/2004/12/section/189).
+     */
+    public function relevantEarningsFor(User $user): float
+    {
+        return (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+    }
+
+    /**
+     * Someone who has told us they do not work (retired or not employed) and
+     * has no earnings. £0 of pay on a profile with no employment status is
+     * "not asked yet", not "none".
+     */
+    public function isDeclaredNonEarner(User $user): bool
+    {
+        return $this->relevantEarningsFor($user) <= 0
+            && in_array($user->employment_status, ['retired', 'unemployed'], true);
+    }
+
+    /**
+     * Contribution that takes adjusted net income back down to the Personal
+     * Allowance taper threshold (ITA 2007 s35), capped by the Annual Allowance
+     * left and rounded down to the nearest £100 — rounding up would relieve
+     * tax that is not paid.
+     */
+    public function taperRescueContribution(float $adjustedNetIncome, float $availableAA): float
+    {
+        $taperThreshold = (float) $this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'];
+
+        return floor(max(0.0, min($adjustedNetIncome - $taperThreshold, $availableAA)) / 100) * 100;
+    }
+
+    /**
+     * Contribution for an additional-rate taxpayer: the slice above the
+     * additional-rate threshold, then the taper band, then the higher-rate band
+     * down to its threshold (never below it: relief there is only the basic
+     * rate), capped by the Annual Allowance left and rounded down to £100.
+     *
+     * @param  array{higher: float, additional: float}  $thresholds
+     * @return array{contribution: float, additional_slice: float, taper_slice: float}
+     */
+    public function additionalRateAvoidanceContribution(float $taxableIncome, float $availableAA, array $thresholds): array
+    {
+        $taperThreshold = (float) $this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'];
+        $additionalSlice = min(max(0.0, $taxableIncome - $thresholds['additional']), $availableAA);
+        $remaining = max(0, $availableAA - $additionalSlice);
+        $taperSlice = min($remaining, $thresholds['additional'] - $taperThreshold);
+        $remainingAfterTaper = max(0, $remaining - $taperSlice);
+        $belowTaperSlice = min($remainingAfterTaper, max(0, $taperThreshold - $thresholds['higher']));
+
+        return [
+            'contribution' => floor(($additionalSlice + $taperSlice + $belowTaperSlice) / 100) * 100,
+            'additional_slice' => $additionalSlice,
+            'taper_slice' => $taperSlice,
+        ];
     }
 
     /**
@@ -702,11 +812,14 @@ final class TaxStrategyMath
      * theirs (wrapped in an ISA, or given to a spouse), priced by the tax
      * engine: the starting rate for savings (ITA 2007 s12), the Personal
      * Savings Allowance (s12B) and every band the interest spans are applied
-     * as HMRC would, not a flat marginal rate.
+     * as HMRC would, not a flat marginal rate. $pensionPaid is a gross pension
+     * contribution the same plan already makes, priced before the interest
+     * move (FA 2004 s192(4), ITA 2007 s58).
      */
-    public function interestRemovalSaving(User $user, float $interest, float $interestSheltered = 0.0): float
+    public function interestRemovalSaving(User $user, float $interest, float $interestSheltered = 0.0, float $pensionPaid = 0.0): float
     {
         $parts = $this->pricingPartsFor($user, $interestSheltered);
+        $parts['net_pay'] += $pensionPaid;
         $after = $parts;
         $after['interest'] = max(0.0, $after['interest'] - $interest);
 
@@ -792,6 +905,21 @@ final class TaxStrategyMath
      *
      * @return array{gross: float, net: float, relief: float}
      */
+    /**
+     * The most a declared non-earner can pay into a pension from what they
+     * hold: their share of recorded cash savings is the net payment, grossed
+     * up by the basic-rate relief the provider adds (FA 2004 s192). CSJ
+     * 2026-09-29: suggest the basic amount only when savings cover it,
+     * otherwise what they can afford.
+     */
+    public function nonEarnerFundableGross(User $user): float
+    {
+        $cash = app(CrossModuleAssetAggregator::class)->calculateCashTotal($user->id);
+        $relief = (float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'];
+
+        return $relief < 1 ? round($cash / (1 - $relief), 2) : 0.0;
+    }
+
     public function nonEarnerPensionContribution(): array
     {
         $pension = $this->taxConfig->getPensionAllowances();
