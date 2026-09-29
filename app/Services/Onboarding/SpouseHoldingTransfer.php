@@ -8,6 +8,7 @@ use App\Agents\CoordinatingAgent;
 use App\Models\FamilyMember;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Income\EmploymentIncomeService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -48,6 +49,11 @@ final class SpouseHoldingTransfer
         $income = $holding->spouse_annual_income !== null ? (float) $holding->spouse_annual_income : (float) ($card?->annual_income ?? 0);
         if ($income > 0 && (float) ($spouse->annual_employment_income ?? 0) <= 0 && (float) ($spouse->annual_self_employment_income ?? 0) <= 0) {
             $this->run('capture_work_details', ['annual_income' => $income], $spouse, $copied, 'income');
+            // The inviter's figure, not the spouse's: the first job the spouse
+            // states themselves replaces it instead of adding to it (C1).
+            if (in_array('income', $copied, true)) {
+                app(EmploymentIncomeService::class)->markLatestAsEstimate($spouse);
+            }
         }
 
         // ── Records ────────────────────────────────────────────────────────

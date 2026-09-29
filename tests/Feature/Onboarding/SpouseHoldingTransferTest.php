@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
@@ -86,4 +87,26 @@ it('copies the journey spouse card alone when no household row was filled', func
     expect($spouse->date_of_birth->format('Y-m-d'))->toBe('1985-08-22')
         ->and((float) $spouse->annual_employment_income)->toBe(38000.0)
         ->and(SavingsAccount::where('user_id', $spouse->id)->count())->toBe(0);
+});
+
+// Production live test 2026-09-29, defect C1: the inviter gave the spouse's
+// salary (£32,000), the link copied it across as an unlabelled job, and when
+// the spouse then told Fyn their own job at the same salary the two were
+// summed. A £32,000 basic-rate teacher was stored and taxed on £64,000.
+it('does not add the spouse\'s own salary to the figure the inviter gave for them', function (): void {
+    $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'household_calculation_mode' => 'dual_earner']);
+    $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => null, 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
+    TaxStrategyHouseholdInput::create(['user_id' => $requester->id, 'spouse_annual_income' => 32000, 'spouse_employment_status' => 'full_time']);
+
+    app(SpouseLinkingService::class)->establishAcceptedLink($requester, $spouse);
+    expect((float) $spouse->fresh()->annual_employment_income)->toBe(32000.0);
+
+    app(CoordinatingAgent::class)->executeTool('capture_work_details', [
+        'employer' => 'Harbour Lane Primary School', 'occupation' => 'Teacher', 'annual_income' => 32000,
+    ], $spouse->fresh());
+
+    $spouse->refresh();
+    expect((float) $spouse->annual_employment_income)->toBe(32000.0)
+        ->and($spouse->employments)->toHaveCount(1)
+        ->and($spouse->employments->first()->employer)->toBe('Harbour Lane Primary School');
 });

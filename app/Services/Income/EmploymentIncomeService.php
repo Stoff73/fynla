@@ -30,14 +30,23 @@ class EmploymentIncomeService
      * job: the same employer and role at a new figure is a correction, anything
      * else is another job. Re-sending an identical payload changes nothing —
      * the LLM emitting the same tool call twice must never double a salary.
+     *
+     * A job someone else estimated for the user (the salary an inviting spouse
+     * gave, copied across on link) is replaced by the first job the user states
+     * themselves, whatever figure they give. Adding to it counted one salary
+     * twice (production live test 2026-09-29, defect C1).
      */
     public function recordJob(User $user, ?string $employer, ?string $occupation, ?float $income): Employment
     {
         $type = $this->incomeTypeFor($user);
         $latest = $user->employments()->where('income_type', $type)->latest('id')->first();
+        $estimate = $income === null ? null : $user->employments()->where('is_estimate', true)->latest('id')->first();
 
         if ($income === null) {
             $job = $latest ?: new Employment(['user_id' => $user->id, 'income_type' => $type, 'annual_income' => 0]);
+        } elseif ($estimate) {
+            $job = $estimate;
+            $job->is_estimate = false;
         } elseif ($latest && $this->sameRole($latest, $employer, $occupation)) {
             $job = $latest;
         } else {
@@ -68,6 +77,8 @@ class EmploymentIncomeService
      */
     public function updateJob(User $user, Employment $job, ?string $employer, ?string $occupation, ?float $income): Employment
     {
+        // The user editing a job is the user stating it, estimate or not.
+        $job->is_estimate = false;
         if ($employer !== null && $employer !== '') {
             $job->employer = $employer;
         }
@@ -82,6 +93,17 @@ class EmploymentIncomeService
         $this->syncTotals($user);
 
         return $job;
+    }
+
+    /**
+     * Mark the user's latest job as someone else's estimate, so the first job
+     * the user states themselves replaces it (see recordJob). Only
+     * SpouseHoldingTransfer calls this, straight after copying the salary the
+     * inviting spouse gave.
+     */
+    public function markLatestAsEstimate(User $user): void
+    {
+        $user->employments()->latest('id')->first()?->update(['is_estimate' => true]);
     }
 
     /**
