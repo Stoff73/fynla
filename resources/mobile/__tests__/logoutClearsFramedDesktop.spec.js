@@ -15,11 +15,14 @@ describe('/m store.logout — framed desktop session', () => {
   it('clears the desktop SPA token held in the same tab', () => {
     store.setToken('m-token');
     sessionStorage.setItem('auth_token', 'desktop-token');
+    localStorage.setItem('fynla-state', JSON.stringify({ auth: { user: { first_name: 'Sam' } } }));
 
     store.logout();
 
     expect(localStorage.getItem('m_scaffold_token')).toBeNull();
     expect(sessionStorage.getItem('auth_token')).toBeNull();
+    // The last user's name must not stay on a shared phone.
+    expect(localStorage.getItem('fynla-state')).toBeNull();
   });
 
   it('leaves other tab state alone', () => {

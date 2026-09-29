@@ -31,8 +31,9 @@ export async function storedSessionIsLive(store) {
   } catch (error) {
     if (error?.status !== 401 && error?.status !== 419) return true;
     await removeToken();
-    store.commit('auth/setToken', null);
-    store.commit('auth/setUser', null);
+    // The store's one sign-out clear: token, user, role and tier, and the
+    // persisted snapshot follows.
+    store.commit('auth/clearAuth');
     return false;
   }
 }

@@ -1,3 +1,4 @@
+import { DESKTOP_STATE_KEY } from '../js/store/persistKey.js';
 import { reactive } from 'vue';
 import { apiGet, apiPost } from './api.js';
 
@@ -65,6 +66,9 @@ export const store = reactive({
     // framed desktop out too, or it still thinks it is signed in and bounces an
     // invitee off /register back to the /m login.
     try { sessionStorage.removeItem('auth_token'); } catch { /* storage disabled */ }
+    // The desktop's saved state (the last user's name and Fyn conversation
+    // titles) would otherwise stay on a shared phone after sign-out.
+    try { localStorage.removeItem(DESKTOP_STATE_KEY); } catch { /* storage disabled */ }
     this.user = null;
     this.subscriptionStatus = null;
   },

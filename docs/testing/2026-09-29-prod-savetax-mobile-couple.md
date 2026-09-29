@@ -52,7 +52,7 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 
 | # | Where | What happened | Evidence |
 |---|---|---|---|
-| H1 | `/m` sign out, then invite link | After Sam signed out on `/m`, opening the spouse invite link `/register?invite=…` landed on "Sign in — Welcome back". The desktop SPA inside the `/m` frame still held Sam's `sessionStorage.auth_token`, treated the user as signed in, bounced the guest-only `/register` towards the dashboard, which handed off to `/m/app`, which (correctly logged out) showed the mobile login. The token itself is revoked server-side (`GET /api/auth/user` → 401), so this is not a security hole. Clearing the stale token made the invite page render correctly. Affects anyone who signs out on `/m` and then taps "Create an account" or opens an invite on the same phone. | Frame `sessionStorage` keys after sign-out: `["auth_token"]`; `resources/js/router/index.js` handoff guard at ~1658. **Fixed in [#961](https://github.com/Stoff73/fynla/pull/961)**, not yet deployed. |
+| H1 | `/m` sign out, then invite link | After Sam signed out on `/m`, opening the spouse invite link `/register?invite=…` landed on "Sign in — Welcome back". The desktop SPA inside the `/m` frame still held Sam's `sessionStorage.auth_token`, treated the user as signed in, bounced the guest-only `/register` towards the dashboard, which handed off to `/m/app`, which (correctly logged out) showed the mobile login. The token itself is revoked server-side (`GET /api/auth/user` returns 401), so this is not a security hole. Clearing the stale token made the invite page render correctly. Affects anyone who signs out on `/m` and then taps "Create an account" or opens an invite on the same phone. | Frame `sessionStorage` keys after sign-out: `["auth_token"]`; `resources/js/router/index.js` handoff guard at ~1658. **Fixed in [#961](https://github.com/Stoff73/fynla/pull/961)**, not yet deployed. |
 | H2 | `fynla.org/m/savetax` | 404 "Oh no, we messed up!". The working mobile entry is `/savetax`, which redirects to `/m?to=/savetax`. | Direct navigation. **Fixed in [#983](https://github.com/Stoff73/fynla/pull/983)**, not yet deployed. |
 
 ### Medium
@@ -79,7 +79,7 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 | L7 | Fyn capture forms | `.m-field` has no focus style, so the browser default outline shows. |
 | L8 | Fyn capture forms | Ownership radio label `for="fyn-form-easy_access-ownership_type"` points at no element. |
 | L9 | Campaign questionnaire | Step counter changes from "3 of 4" to "4 of 5" after answering Yes to spouse. |
-| L10 | Campaign results page | Unicode ✓ and – used as allowance markers (Rule 15, unless approved). |
+| L10 | Campaign results page | Unicode tick and dash characters used as allowance markers (Rule 15, unless approved). |
 
 ## Fixes since the run
 

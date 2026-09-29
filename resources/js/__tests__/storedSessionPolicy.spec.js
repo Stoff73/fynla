@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetStoredSessionCheck, storedSessionIsLive } from '@/router/storedSessionPolicy.js';
+// api.js and authService build the whole store; the policy needs only the
+// auth module's mutations.
+vi.mock('@/services/api', () => ({ default: {} }));
+vi.mock('@/services/authService', () => ({ default: { getToken: () => null } }));
+import authModule from '@/store/modules/auth';
 
 // Production defect H1 (live test, 2026-09-29): a desktop token revoked by the
 // /m sign-out survived in sessionStorage, so guest-only /register treated the
@@ -11,6 +16,8 @@ function makeStore(token, fetchUser) {
     state,
     dispatch: vi.fn(fetchUser),
     commit: vi.fn((type, value) => {
+      // The real mutation, so the test sees what the policy actually clears.
+      if (type === 'auth/clearAuth') authModule.mutations.clearAuth(state.auth);
       if (type === 'auth/setToken') state.auth.token = value;
       if (type === 'auth/setUser') state.auth.user = value;
     }),

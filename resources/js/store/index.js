@@ -1,3 +1,4 @@
+import { DESKTOP_STATE_KEY } from './persistKey.js';
 import { createStore } from 'vuex';
 import createPersistedState from 'vuex-persistedstate';
 import auth from './modules/auth';
@@ -78,7 +79,7 @@ const store = createStore({
   },
   plugins: [
     createPersistedState({
-      key: 'fynla-state',
+      key: DESKTOP_STATE_KEY,
       paths: [
         'auth.user',
         'aiChat.conversations',
