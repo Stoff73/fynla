@@ -666,6 +666,12 @@ const actions = {
         commit('SET_ABORT_CONTROLLER', abortController);
 
         const currentRoute = rootState.route?.path || window.location.pathname;
+        // A queued turn is streamed only once this action's finally has run:
+        // started inside the try, the finally's cleanup reset its streaming
+        // flag and abort controller and showed a false "couldn't generate a
+        // response" banner over it (review of #976).
+        let queuedTurn = false;
+        let streamQueuedAfter = false;
 
         try {
             const reader = await aiChatService.sendMessageStream(
@@ -687,7 +693,8 @@ const actions = {
                 // tab, or one whose connection dropped (the server finishes it
                 // regardless) — so nothing here would ever pop the queue.
                 // Stream it once the lock frees, as /m does.
-                if (!alreadyStreaming) dispatch('streamNextQueued');
+                queuedTurn = true;
+                streamQueuedAfter = !alreadyStreaming;
                 return;
             }
             if (reader && reader.rejected) {
@@ -1043,6 +1050,7 @@ const actions = {
             const producedNewMessages = state.messages.length > preStreamMessageCount || formErrorsReceived;
             if (
                 !authExpired
+                && !queuedTurn
                 && state.streaming
                 && !state.streamingText
                 && !producedNewMessages
@@ -1059,7 +1067,7 @@ const actions = {
 
             // FR-M7 — now the in-flight turn is done, pop the next queued turn
             // (if any). Fire-and-forget: streamNextQueued opens its own stream.
-            if (streamedToCompletion) {
+            if (streamedToCompletion || streamQueuedAfter) {
                 dispatch('streamNextQueued');
             }
         }

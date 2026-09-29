@@ -125,6 +125,32 @@ describe('an interrupted Fyn turn on web', () => {
     expect(dispatch).toHaveBeenCalledWith('streamNextQueued');
   });
 
+  it('streams the queued turn with no false error once sendMessage has cleaned up', async () => {
+    // Review of #976: dispatched from inside the try, streamNextQueued set the
+    // streaming state and then sendMessage's finally showed "Fyn couldn't
+    // generate a response" over it and dropped its abort controller. The real
+    // action runs here as the dispatch, which a vi.fn() dispatch never showed.
+    aiChatService.sendMessageStream.mockResolvedValue({ queued: true, messageId: 33 });
+    aiChatService.streamQueuedMessage.mockResolvedValue(streamReader([
+      { type: 'content', text: 'Here is the queued answer.' },
+      { type: 'done', message_id: 34 },
+    ]));
+    const { localState, context } = harness();
+    const running = [];
+    context.dispatch = (name, payload) => {
+      const result = aiChat.actions[name](context, payload);
+      running.push(result);
+      return result;
+    };
+
+    await aiChat.actions.sendMessage(context, 'How does the tax trap work?');
+    await Promise.all(running);
+
+    expect(localState.error).toBeNull();
+    expect(localState.messages.find((m) => m.role === 'assistant')?.content).toBe('Here is the queued answer.');
+    expect(localState.streaming).toBe(false);
+  });
+
   it('leaves a turn queued behind its own in-flight stream to that stream', async () => {
     aiChatService.sendMessageStream.mockResolvedValue({ queued: true, messageId: 32 });
     const { localState, dispatch, context } = harness();
