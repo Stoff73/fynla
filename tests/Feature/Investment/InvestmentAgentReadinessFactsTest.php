@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Cache;
 
 /*
  * SaveTax run 29 Sep 2026, M3: a campaign user has a £18,000 Stocks & Shares ISA
- * but no risk profile and no expenditure yet. The investment readiness gate blocks
- * the analysis, and the blocked response used to carry `portfolio_summary: null` —
+ * but no expenditure recorded yet, so the investment readiness gate blocks the
+ * analysis, and the blocked response used to carry `portfolio_summary: null` —
  * so the dashboard card read "0 accounts, £0, Add your investments" beside an
  * Investments page showing the ISA. What the user HOLDS does not depend on a risk
  * profile; only the advice does. The blocked response now reports the facts and
