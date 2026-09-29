@@ -53,7 +53,10 @@ final class SpouseHoldingTransfer
             // Held as an estimate, not through capture_work_details: it is the
             // requester's figure, and the spouse's own job must replace it
             // rather than be added to it (production 2026-09-29 summed the
-            // two into £64,000). The holding was range-checked when captured.
+            // two into £64,000). Both sources were validated on the way in
+            // (CoordinatingAgent's household rules: MAX_CURRENCY_VALUE;
+            // StoreFamilyMemberRequest: max 9999999999.99), and both caps fit
+            // employments.annual_income, decimal(12,2).
             app(EmploymentIncomeService::class)->recordEstimate($spouse, $income);
             $spouse->refresh();
             $copied[] = 'income';
