@@ -19,6 +19,20 @@ class ProtectionActionDefinitionService
 {
     use FormatsCurrency;
 
+    /** CSJ 2026-09-29: these fire as reasons on one card per cover type, never as cards. */
+    private const FOLDED = [
+        'life' => ['life_insurance_gap', 'dependants_no_life_cover', 'mortgage_no_decreasing_term', 'education_funding_gap', 'dis_reliance_warning', 'non_earning_spouse_no_cover'],
+        'critical_illness' => ['critical_illness_gap', 'no_ci_with_mortgage', 'ci_combined_risk'],
+        'income_protection' => ['income_protection_gap', 'ip_gap_after_state_benefits', 'self_employed_no_ip', 'ip_any_occupation_definition', 'group_ip_any_occupation', 'ip_short_benefit_period', 'ip_long_deferred_period'],
+    ];
+
+    private const POSITION_KEYS = ['life' => 'life_cover_position', 'critical_illness' => 'critical_illness_position', 'income_protection' => 'income_protection_position'];
+
+    private const COVER_NAMES = ['life' => 'life cover', 'critical_illness' => 'critical illness cover', 'income_protection' => 'income protection'];
+
+    /** Reason figures the position states itself. */
+    private const POSITION_OWNED_FIGURES = ['gap_amount', 'need_amount', 'coverage_amount', 'description_text'];
+
     public function __construct(
         private readonly TaxConfigService $taxConfig
     ) {}
@@ -49,6 +63,8 @@ class ProtectionActionDefinitionService
                 $recommendations[] = $results;
             }
         }
+
+        $recommendations = $this->consolidate($recommendations, $comprehensivePlan);
 
         usort($recommendations, fn ($a, $b) => $a['priority'] <=> $b['priority']);
 
@@ -104,6 +120,9 @@ class ProtectionActionDefinitionService
 
             // Premium affordability
             'premium_percent_of_income_above' => $this->evaluatePremiumAffordability($definition, $comprehensivePlan),
+
+            // Built from the other definitions' results in consolidate().
+            'cover_position' => $this->evaluateCoverPosition(),
 
             default => null,
         };
@@ -1874,6 +1893,8 @@ class ProtectionActionDefinitionService
 
         $vars = [
             'gap_amount' => $this->formatCurrency($educationGap),
+            // Its own figure once the position card owns gap_amount.
+            'education_gap' => $this->formatCurrency($educationGap),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $educationGap);
@@ -1969,6 +1990,102 @@ class ProtectionActionDefinitionService
     // =============================================
     // Helper Methods
     // =============================================
+
+    /**
+     * A position card is not evaluated on its own: consolidate() builds it from
+     * the cover position and the folded definitions' results.
+     */
+    private function evaluateCoverPosition(): ?array
+    {
+        return null;
+    }
+
+    /**
+     * One card per cover type (CSJ 2026-09-29): the folded definitions leave the
+     * list and become the reasons on their cover type's position card, which
+     * shows when the cover is short, over or depends on the job, or any reason fired.
+     *
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return list<array<string, mixed>>
+     */
+    private function consolidate(array $recommendations, array $comprehensivePlan): array
+    {
+        $positions = (array) ($comprehensivePlan['cover_position'] ?? []);
+        $definitions = ProtectionActionDefinition::getEnabled()->keyBy('key');
+
+        foreach (self::FOLDED as $type => $keys) {
+            $reasons = array_values(array_filter($recommendations, static fn (array $r): bool => in_array($r['definition_key'] ?? null, $keys, true)));
+            $recommendations = array_values(array_filter($recommendations, static fn (array $r): bool => ! in_array($r['definition_key'] ?? null, $keys, true)));
+
+            $position = $positions[$type] ?? null;
+            $definition = $definitions->get(self::POSITION_KEYS[$type]);
+            if ($position === null || $definition === null) {
+                continue;
+            }
+            $fires = $position['short_by'] > 0 || $position['over_by'] > 0 || $position['depends_on_job'] || $reasons !== [];
+            if (! $fires) {
+                continue;
+            }
+
+            $rec = $this->buildRecommendation($definition, $this->positionVars($type, $position, $reasons), (float) $position['short_by']);
+            // The most urgent reason sets the card's urgency.
+            $rec['priority'] = min(array_merge([$rec['priority']], array_column($reasons, 'priority')));
+            $rec['decision_trace'] = array_merge(...array_map(static fn (array $r): array => (array) ($r['decision_trace'] ?? []), $reasons ?: [[]]));
+            $recommendations[] = $rec;
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * @param  array<string, mixed>  $position
+     * @param  list<array<string, mixed>>  $reasons
+     * @return array<string, mixed>
+     */
+    private function positionVars(string $type, array $position, array $reasons): array
+    {
+        $monthly = $position['unit'] === 'monthly';
+        $money = fn (float $v): string => $this->formatCurrency($v).($monthly ? ' a month' : '');
+        $name = self::COVER_NAMES[$type];
+        $share = (string) (int) round($position['employer_share'] * 100);
+
+        $headline = match (true) {
+            $position['short_by'] > 0 => 'Your '.$name.' is '.$money($position['short_by']).' short',
+            $position['over_by'] > 0 => 'Your '.$name.' is '.$money($position['over_by']).' more than you need',
+            $position['depends_on_job'] => 'Most of your '.$name.' depends on your job',
+            default => 'Review your '.$name,
+        };
+        $summary = 'You need '.$money($position['need']).'. Your own policies give '.$money($position['own_cover'])
+            .' and your job gives '.$money($position['employer_cover']).'.';
+        $titles = array_values(array_filter(array_map(static fn (array $r): string => (string) ($r['action'] ?? ''), $reasons)));
+        if ($titles !== []) {
+            $summary .= ' '.implode('. ', $titles).'.';
+        }
+
+        $vars = [
+            'headline' => $headline,
+            'summary' => $summary,
+            'need' => $this->formatCurrency($position['need']),
+            'own_cover' => $this->formatCurrency($position['own_cover']),
+            'employer_cover' => $this->formatCurrency($position['employer_cover']),
+            'short_by' => $this->formatCurrency($position['short_by']),
+            'over_by' => $this->formatCurrency($position['over_by']),
+            'employer_share' => $share,
+            'is_short' => $position['short_by'] > 0,
+            'is_over' => $position['over_by'] > 0,
+            'depends_on_job' => (bool) $position['depends_on_job'],
+        ];
+        foreach ($reasons as $reason) {
+            $vars[(string) $reason['definition_key']] = true;
+            foreach ((array) ($reason['figures'] ?? []) as $key => $value) {
+                if (! in_array($key, self::POSITION_OWNED_FIGURES, true) && ! array_key_exists($key, $vars)) {
+                    $vars[$key] = $value;
+                }
+            }
+        }
+
+        return $vars;
+    }
 
     /**
      * Build a recommendation array from a definition and template variables.
