@@ -488,3 +488,76 @@ describe('edit forms', () => {
     expect(cursor.reply.form.record).toEqual({ type: 'savings_account', id: 7 });
   });
 });
+
+// A Fyn write lands while the user is on a screen (Edit employer benefits on
+// /m Protection opens Fyn's form over the page). Without a route change the
+// screen never remounts, so it kept the old figures until a reload (fynla.org,
+// 2026-09-29). Every write bumps the refresh tick every /m screen watches.
+describe('a Fyn write refreshes the screen behind the chat', () => {
+  it.each(['entity_created', 'entity_updated', 'entity_deleted'])('bumps the refresh tick on %s', (type) => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.messages = [cursor.reply];
+    const before = store.screenRefreshTick;
+
+    w.vm.handleFynEvent(cursor, { type, name: 'your employer benefits' });
+
+    expect(store.screenRefreshTick).toBe(before + 1);
+  });
+
+  it('bumps the refresh tick on capture_complete', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.messages = [cursor.reply];
+    const before = store.screenRefreshTick;
+
+    w.vm.handleFynEvent(cursor, { type: 'capture_complete', summary: 'Saved.' });
+
+    expect(store.screenRefreshTick).toBe(before + 1);
+  });
+});
+
+describe('a saved edit form refreshes the screen behind the chat', () => {
+  // The edit-form path streams form_received, then plain content: no entity
+  // event. The end of an unrefused form turn is the only "saved" signal.
+  const events = (list) => (url, body, token, onText, onEvent) => {
+    list.forEach((ev) => (ev.type === 'content' ? onText(ev.text) : onEvent(ev)));
+    return Promise.resolve({ ok: true, status: 200, text: '' });
+  };
+
+  beforeEach(() => {
+    store.token = 'token';
+    apiPost.mockResolvedValue({ ok: true, status: 201, data: { data: { id: 5 } } });
+  });
+
+  it('bumps the refresh tick once when the form is saved', async () => {
+    apiStream.mockImplementationOnce(events([
+      { type: 'form_received', text: 'My job gives me death in service of 2 times my salary.' },
+      { type: 'content', text: 'Updated — My job gives me death in service of 2 times my salary.' },
+      { type: 'done' },
+    ]));
+    const w = mount(Host);
+    w.vm.conversationId = 5;
+    const before = store.screenRefreshTick;
+
+    await w.vm.submitCaptureForm({ name: 'employer_benefits', answers: {}, record: { type: 'employer_benefits', id: 1 } });
+
+    expect(store.screenRefreshTick).toBe(before + 1);
+  });
+
+  it('does not refresh when the form is refused', async () => {
+    apiStream.mockImplementationOnce(events([
+      { type: 'form_received', text: 'Remove this record.' },
+      { type: 'capture_form_errors', form: 'employer_benefits', errors: { _form: { message: 'No.', fields: [] } } },
+      { type: 'content', text: 'No.' },
+      { type: 'done' },
+    ]));
+    const w = mount(Host);
+    w.vm.conversationId = 5;
+    const before = store.screenRefreshTick;
+
+    await w.vm.submitCaptureForm({ name: 'employer_benefits', answers: {}, record: { type: 'employer_benefits', id: 1 } });
+
+    expect(store.screenRefreshTick).toBe(before);
+  });
+});
