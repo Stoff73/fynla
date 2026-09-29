@@ -1,0 +1,95 @@
+# Production SaveTax campaign run, mobile (/m), married couple — 29 September 2026
+
+**Tester:** Claude (driven by Brett Isenberg), built-in browser at 375 x 812 (mobile preset), fynla.org production.
+**Accounts (please purge after review):**
+- `isenbret+savetax2909@gmail.com` — "Sam Taylor", registered via the SaveTax funnel, Free tier.
+- `isenbret+savetax2909spouse@gmail.com` — "Alex Taylor", registered from Sam's spouse invitation, Free tier.
+
+Brett completed both registrations and codes by hand; everything else was driven by Claude. No code changes were made.
+Follow-up scenario matrix (funnel promises and plan engine across nine households): `2026-09-29-savetax-scenario-matrix.md`.
+
+## Verdict
+
+The primary user's journey is strong. Five taps into the questionnaire, about seven minutes of Fyn-led capture, every figure saved correctly, and a plan worth £7,212 a year whose four actions all check out arithmetically. A follow-up question to Fyn about the real cost of the pension contribution and splitting it with the spouse got a correct, useful answer. This is genuinely valuable to a higher-rate earner.
+
+The spouse journey is where it breaks. The invitation links the household correctly and the spouse lands with the shared home, pension and ISA already on the dashboard, which is impressive. But when the spouse then confirms their own salary in onboarding, it is added to the figure the primary user entered for them, so a £32,000 basic-rate teacher is stored and taxed as a £64,000 higher-rate earner. The spouse's plan then recommends a £4,680 higher-rate pension saving that does not exist. That is wrong tax guidance shown to a real user, and it happens on the exact path the campaign's "invite your spouse" step sends people down.
+
+## The household
+
+| | Sam (primary) | Alex (spouse) |
+|---|---|---|
+| Work | Project Engineer, Brightwell Engineering Ltd, £72,000 | Teacher, Harbour Lane Primary School, £32,000 |
+| Born | 12 April 1982 | 3 September 1985 |
+| ISA | Vanguard S&S ISA £18,000 (£4,000 paid this year); Nationwide Cash ISA £6,000 at 4.1% (£2,000 paid) | Hargreaves Lansdown ISA £9,000 (entered by Sam) |
+| Cash | Chase easy access £15,000 at 4.5% | Monzo easy access £4,000 at 3.5% (entered by Alex) |
+| Pension | Aviva workplace £85,000, 5% + 5%, not salary sacrifice | Nest £41,000, £1,600 a year (entered by Sam) |
+| Property | Home £450,000, mortgage £220,000, joint 50/50 | same record |
+| Other | Gift Aid £50 a month | none |
+
+## Sam's plan — every figure checked
+
+| Action | Shown | Check |
+|---|---|---|
+| Pay more into pension | £17,300, saves £6,920 | £72,000 − £3,600 pension − £750 grossed Gift Aid − £50,270 ≈ £17,380 at 40% |
+| Gift Aid reclaim | £150 | £600 net = £750 gross × 20% |
+| Salary sacrifice | £72 | £3,600 × 2% NI above the upper earnings limit |
+| Wrap cash in ISA | £3,889, saves £70 | £675 interest − £500 PSA = £175; £175 / 4.5% = £3,889; £175 × 40% = £70 |
+| Total | £7,212 | sums correctly |
+
+Dashboard: assets £349,000 (£21,000 cash + £18,000 ISA + £225,000 home share + £85,000 pension), liabilities £110,000, net worth £239,000. Correct.
+Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth £165,000. Correct.
+
+## Defects
+
+### Critical
+
+| # | Where | What happened | Evidence |
+|---|---|---|---|
+| C1 | Spouse onboarding (Fyn), income | Alex entered £32,000; Fyn replied "Got it — £64,000 a year, noted." The £32,000 Sam entered for Alex and Alex's own £32,000 were summed. Stored and taxed as £64,000. Alex's plan then says "Pay £11,700 more into your pension and save £4,680 in tax" at 40% relief; Alex is a basic-rate taxpayer. The Savings Allowance shows £500 (higher-rate) instead of £1,000. Sam's figures were not affected. | `GET /api/user/profile` as Alex: `income_occupation.annual_employment_income = 64000.00`, `income_tax = 13032`, `adjusted_net_income = 62000.05`. `/m/app/income` shows "Your total annual income £64,000". Fix in progress on `fix/invited-spouse-income-double-count`. |
+
+### High
+
+| # | Where | What happened | Evidence |
+|---|---|---|---|
+| H1 | `/m` sign out, then invite link | After Sam signed out on `/m`, opening the spouse invite link `/register?invite=…` landed on "Sign in — Welcome back". The desktop SPA inside the `/m` frame still held Sam's `sessionStorage.auth_token`, treated the user as signed in, bounced the guest-only `/register` towards the dashboard, which handed off to `/m/app`, which (correctly logged out) showed the mobile login. The token itself is revoked server-side (`GET /api/auth/user` returns 401), so this is not a security hole. Clearing the stale token made the invite page render correctly. Affects anyone who signs out on `/m` and then taps "Create an account" or opens an invite on the same phone. | Frame `sessionStorage` keys after sign-out: `["auth_token"]`; `resources/js/router/index.js` handoff guard at ~1658. |
+| H2 | `fynla.org/m/savetax` | 404 "Oh no, we messed up!". The working mobile entry is `/savetax`, which redirects to `/m?to=/savetax`. | Direct navigation. |
+
+### Medium
+
+| # | Where | What happened |
+|---|---|---|
+| M1 | Spouse onboarding | Fyn re-asks what it already knows through the household link: the spouse's earnings band, "Does your spouse work?", and Sam's income by hand — although Alex's profile API already returns Sam's £72,000 and employer via the link. The own-income form is also blank despite Sam having entered Alex's £32,000. |
+| M2 | Spouse Tax Strategy | "Your spouse's allowances" all show "Current-year use not confirmed", including Pension Annual Allowance, though Sam's linked account has £7,200 used. Same on Sam's side for Alex's pension (£1,600 a year entered). |
+| M3 | Dashboard Investment card | "0 accounts, £0, Add your investments" for both users, although the Investments page shows the £18,000 and £9,000 ISAs. |
+| M4 | Fyn multi-select ("Which of these do you have? Tap each one") | Each tap is a round trip; tapping several quickly kept only the first (Bank account) and dropped ISA, Pension and Property, so those capture steps were skipped. |
+| M5 | Campaign results page | Headline "An average estimated saving of up to £4,000" mixes two claims, says it is "bigger because of you and your partner" though the £4,000 is only the user's pension relief, and does not match the £7,212 plan. The spouse rows say "Available to you". |
+| M6 | Dashboard after the plan | Returning to the dashboard reopens Fyn full-screen and the previous conversation (the pension question) is gone. |
+
+### Low
+
+| # | Where | What happened |
+|---|---|---|
+| L1 | Investments page | "2 of 2 accounts used" beside "Across 1 account" — the Cash ISA counts against the investment cap. |
+| L2 | Bank Accounts actions | "Consider a Cash ISA — open a Cash ISA" when the user already has one with £14,000 of allowance left. |
+| L3 | Property card | Shows £225,000 without saying it is the user's 50% share of £450,000. |
+| L4 | Invite email | Greeting is "Hello," although Fyn asked for Alex's first name. |
+| L5 | Dashboard | "Estate Planning — Warning" as a bare word. |
+| L6 | Tax Strategy ISA action | "£675.00" and "£175.00" in pence; everything else is whole pounds. |
+| L7 | Fyn capture forms | `.m-field` has no focus style, so the browser default outline shows. |
+| L8 | Fyn capture forms | Ownership radio label `for="fyn-form-easy_access-ownership_type"` points at no element. |
+| L9 | Campaign questionnaire | Step counter changes from "3 of 4" to "4 of 5" after answering Yes to spouse. |
+| L10 | Campaign results page | Unicode tick and dash characters used as allowance markers (Rule 15, unless approved). |
+
+## What works well
+
+- The funnel on a phone: five taps, clear copy, correct allowance logic (Marriage Allowance correctly unavailable to a higher-rate earner).
+- Fyn carries the questionnaire into onboarding, and the "check this page, does it look right?" loop after each section is reassuring.
+- Joint property handled as one record with a 50% share on both dashboards.
+- Free-tier caps are explained politely at the point they bite.
+- The invite email is clear on consent, and the household link populates the spouse's dashboard immediately.
+- Fyn's free-text answer on net cost and splitting contributions was accurate and genuinely helpful.
+
+## Not tested
+
+- Signing back in as Sam after Alex joined, to see whether Sam's plan switches to Alex's real figures (needs Brett to sign in).
+- Native iOS.
