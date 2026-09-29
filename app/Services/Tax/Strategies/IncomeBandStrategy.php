@@ -66,7 +66,12 @@ final class IncomeBandStrategy implements TaxStrategy
         // Effective only when contributing to drop income BELOW the taper
         // threshold, i.e. only the slice between £100k and the user's income
         // counts. Cap by both the in-band slice and the available AA.
-        if ($adjustedNetIncome > $taperThreshold && $adjustedNetIncome <= $additionalRateThreshold) {
+        // Interest another plan item already takes out of tax (the ISA wrap or
+        // the spouse gift) no longer counts towards adjusted net income, so
+        // less of the allowance is lost to win back. The contribution is
+        // still sized on today's income: relief below the threshold is real.
+        $shelteredAdjustedNetIncome = $adjustedNetIncome - $context->interestShelteredElsewhere;
+        if ($shelteredAdjustedNetIncome > $taperThreshold && $adjustedNetIncome <= $additionalRateThreshold) {
             $inBandSlice = $adjustedNetIncome - $taperThreshold;
             $contribution = min($inBandSlice, $availableAA);
             if ($contribution > 0) {
@@ -84,7 +89,7 @@ final class IncomeBandStrategy implements TaxStrategy
                 // their own rates; the direct relief is what the reclaimed
                 // allowance does not account for.
                 $displayContribution = (int) (floor($contribution / 100) * 100);
-                $paReclaimed = (int) ($displayContribution / 2);
+                $paReclaimed = (int) (min($displayContribution, $shelteredAdjustedNetIncome - $taperThreshold) / 2);
                 $paReclaimSaving = (int) round($paReclaimed * $higherRate);
                 $totalSaving = (int) round($this->math->pensionContributionSaving($user, $displayContribution, $context->interestShelteredElsewhere));
                 $directRelief = max(0, $totalSaving - $paReclaimSaving);
@@ -103,11 +108,12 @@ final class IncomeBandStrategy implements TaxStrategy
                     priority: StrategyPriority::High,
                     title: 'Reclaim your Personal Allowance with a pension contribution',
                     description: sprintf(
-                        "For your income of £%s, a £%s pension contribution would:\n\n"
+                        "For your income of £%s%s, a £%s pension contribution would:\n\n"
                         ."Reclaim £%s of your Personal Allowance, saving £%s (%d%% of your contribution).\n\n"
                         .'%s'
                         ."Together that's £%s back this year — income between £%s and £%s is taxed at %d%%.",
-                        number_format((int) round($adjustedNetIncome)),
+                        number_format((int) round($shelteredAdjustedNetIncome)),
+                        $context->interestShelteredElsewhere > 0 ? ' once your savings interest is out of tax' : '',
                         number_format($displayContribution),
                         number_format($paReclaimed),
                         number_format($paReclaimSaving),

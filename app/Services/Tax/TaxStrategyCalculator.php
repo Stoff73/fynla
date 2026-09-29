@@ -135,43 +135,53 @@ final class TaxStrategyCalculator
      * The ISA wrap, the spouse gift and the joint split all shelter the same
      * sole-name interest, and the plan counts only the largest of them (the
      * composer's conflict rule, seeded in TaxActionDefinitionSeeder). That
-     * interest then leaves taxed income, so the pension item is re-priced
+     * interest then leaves taxed income, so every pension item is re-priced
      * without it rather than counting the same slice at the higher rate twice.
+     *
+     * Every pension item, not only pension_tax_relief: the tax-trap card
+     * (pa_taper_rescue) was left out, so a £110k user's plan counted the
+     * gifted interest at 60% in both the gift and the trap card — £441 too
+     * much (SaveTax matrix E1, re-measured on dev 2026-09-29).
      *
      * @param  list<StrategyRecommendation>  $recs
      * @return list<StrategyRecommendation>
      */
     private function repricePensionReliefForShelteredInterest(array $recs, Strategies\TaxStrategyContext $context): array
     {
-        $pensionIndex = null;
+        $pensionTypes = ['pa_taper_rescue', 'additional_rate_avoidance', 'pension_tax_relief'];
+        $hasPensionItem = false;
         $winner = null;
-        foreach ($recs as $i => $rec) {
-            if ($rec->type === 'pension_tax_relief') {
-                $pensionIndex = $i;
+        foreach ($recs as $rec) {
+            if (in_array($rec->type, $pensionTypes, true)) {
+                $hasPensionItem = true;
             }
             if (in_array($rec->type, ['isa_topup_vs_psa', 'savings_to_spouse', 'joint_savings_psa_split'], true)
                 && ($winner === null || (float) $rec->estimatedAnnualTaxSaved > (float) $winner->estimatedAnnualTaxSaved)) {
                 $winner = $rec;
             }
         }
-        if ($pensionIndex === null || $winner === null) {
+        if (! $hasPensionItem || $winner === null) {
             return $recs;
         }
 
-        $sheltered = (float) ($winner->extra['taxable_interest_sheltered'] ?? $winner->extra['shelterable_interest'] ?? 0);
+        // The interest the winning item's own pricing takes out of income —
+        // for a gift that includes the slice the Savings Allowance covered,
+        // which still counted towards adjusted net income.
+        $sheltered = (float) ($winner->extra['interest_removed_from_income'] ?? 0);
         if ($sheltered <= 0) {
             return $recs;
         }
 
-        $repriced = $this->pensionTaxRelief->generate($context->withInterestShelteredElsewhere($sheltered));
-        if ($repriced === []) {
-            unset($recs[$pensionIndex]);
+        $shelteredContext = $context->withInterestShelteredElsewhere($sheltered);
+        $repriced = array_merge(
+            $this->incomeBand->generate($shelteredContext),
+            $this->pensionTaxRelief->generate($shelteredContext),
+        );
 
-            return array_values($recs);
-        }
-        $recs[$pensionIndex] = $repriced[0];
-
-        return $recs;
+        return array_merge(
+            array_values(array_filter($recs, fn (StrategyRecommendation $r): bool => ! in_array($r->type, $pensionTypes, true))),
+            $repriced,
+        );
     }
 
     /**

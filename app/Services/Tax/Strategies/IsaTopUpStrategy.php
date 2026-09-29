@@ -157,6 +157,7 @@ final class IsaTopUpStrategy implements TaxStrategy
                 'annual_interest' => round($annualInterest, 2),
                 'interest_above_savings_allowance' => round($excessInterest, 2),
                 'taxable_interest_sheltered' => round($interestSheltered, 2),
+                'interest_removed_from_income' => round($interestSheltered, 2),
                 'target_accounts' => array_values(array_unique($targetAccounts)),
                 'personal_savings_allowance' => $psa,
             ],

@@ -46,7 +46,9 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $taxable = max(0.0, $taxable - $context->interestShelteredElsewhere);
 
         $taperThreshold = (float) ($this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'] ?? 0);
-        if ($this->math->adjustedNetIncomeFor($user) > $taperThreshold) {
+        // Above the threshold the tax-trap item owns the pension relief; it
+        // hands over here if sheltered interest alone brings income below it.
+        if ($this->math->adjustedNetIncomeFor($user) - $context->interestShelteredElsewhere > $taperThreshold) {
             return [];
         }
 
