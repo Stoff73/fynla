@@ -9,6 +9,7 @@ use App\Services\Marketing\SaveTaxEstimateService;
 $homeSaveTaxFigure = null;
 try {
     $homeSaveTaxEstimate = app(SaveTaxEstimateService::class)->estimate([
+        'employment' => 'full-time',
         'income' => '50271_100000',
         'spouse' => 'no',
         'spouseIncome' => null,
@@ -238,7 +239,7 @@ try {
             >£0</p>
           <?php } ?>
           <p class="feature-savetax__sub">
-            <?php if ($homeSaveTaxFigure) { ?>An average estimated saving of up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> each year. <?php } ?>This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
+            <?php if ($homeSaveTaxFigure) { ?>An estimated saving of up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> each year for someone earning £<?= number_format((int) ($homeSaveTaxEstimate['assumed_income'] ?? 0)) ?>. <?php } ?>This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
           </p>
           <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
         </div>

@@ -21,13 +21,18 @@ use App\Services\TaxConfigService;
  *   - Basic rate:  a tenth of relevant earnings less what already goes in,
  *                  relieved at the basic rate and capped at income above the
  *                  Personal Allowance so relief never exceeds tax paid.
+ *   - No earnings: the basic amount (FA 2004 s190) less what already goes
+ *                  in, with relief at source whether or not tax is paid.
  */
 final class PensionTaxReliefStrategy implements TaxStrategy
 {
-    // ponytail: mirrors the /savetax funnel estimate (SaveTaxEstimateService)
-    // so the plan keeps the funnel's promise; a user-set target replaces it if
-    // one is ever captured.
-    private const BASIC_RATE_SHARE_OF_EARNINGS = 0.10;
+    // The /savetax funnel (SaveTaxEstimateService) reads this constant, so the
+    // plan keeps the funnel's promise; a user-set target replaces it if one is
+    // ever captured.
+    public const BASIC_RATE_SHARE_OF_EARNINGS = 0.10;
+
+    /** users.employment_status values that declare no earnings from work. */
+    private const NOT_WORKING = ['retired', 'unemployed'];
 
     public function __construct(
         private readonly TaxStrategyMath $math,
@@ -58,7 +63,17 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         // pension.relief_max_age: FA 2004 s188(3)(a),
         // https://www.legislation.gov.uk/ukpga/2004/12/section/188
         $maxAge = (int) $this->taxConfig->getPensionAllowances()['relief_max_age'];
-        if ($earnings <= 0 || ($age !== null && $age >= $maxAge) || $availableAA <= 0 || $aboveAllowance <= 0) {
+        if (($age !== null && $age >= $maxAge) || $availableAA <= 0) {
+            return [];
+        }
+        if ($earnings <= 0) {
+            // Only for someone who has told us they do not work: £0 of pay on a
+            // profile with no employment status is "not asked yet", not "none".
+            return in_array($user->employment_status, self::NOT_WORKING, true)
+                ? $this->nonEarnerItem($context, $availableAA, $maxAge)
+                : [];
+        }
+        if ($aboveAllowance <= 0) {
             return [];
         }
 
@@ -105,6 +120,51 @@ final class PensionTaxReliefStrategy implements TaxStrategy
                 'suggested_contribution' => (float) $display,
                 'relief_rate' => $rate,
                 'tax_band' => $band,
+            ],
+        )];
+    }
+
+    /**
+     * Someone with no relevant earnings (a retiree, or income only from rent or
+     * savings) still gets relief on contributions up to the basic amount,
+     * pension.relevant_earnings_minimum (FA 2004 s190). The /savetax funnel
+     * promises the same line, priced by the same TaxStrategyMath call.
+     *
+     * @return array<int, StrategyRecommendation>
+     */
+    private function nonEarnerItem(TaxStrategyContext $context, float $availableAA, int $maxAge): array
+    {
+        $user = $context->user;
+        $gross = floor(min(
+            $this->math->pensionReliefLimit(0.0) - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
+            $availableAA,
+        ) / 100) * 100;
+        if ($gross < 100) {
+            return [];
+        }
+
+        $basic = $this->math->bandRateForBand('basic');
+        $atSource = round($gross * (float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'], 2);
+        $saving = round($this->math->reliefAtSourceSaving($user, $gross, $context->interestShelteredElsewhere), 2);
+        $net = $gross - $atSource;
+        $claim = $saving - $atSource >= 1
+            ? sprintf(' You claim the other £%s back through Self Assessment.', number_format((int) floor($saving - $atSource)))
+            : '';
+
+        return [new StrategyRecommendation(
+            type: 'pension_tax_relief',
+            category: StrategyCategory::IncomeBand,
+            priority: StrategyPriority::Medium,
+            title: sprintf('Pay £%s into a personal pension and get £%s of tax relief', number_format((int) $net), number_format((int) floor($saving))),
+            description: sprintf(
+                'Without earnings from work you can still get tax relief on up to £%s a year of pension contributions. Pay £%s into a personal pension and the provider adds £%s.%s Relief stops once you reach %d.',
+                number_format((int) $gross), number_format((int) $net), number_format((int) $atSource), $claim, $maxAge,
+            ),
+            estimatedAnnualTaxSaved: $saving,
+            extra: [
+                'suggested_contribution' => (float) $gross,
+                'relief_rate' => $basic,
+                'tax_band' => 'no_earnings',
             ],
         )];
     }

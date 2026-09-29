@@ -78,8 +78,24 @@ it('stays silent without taxable earnings', function (array $attrs) {
     expect(reliefRecs(reliefUser(...$attrs)))->toBe([]);
 })->with([
     'below the Personal Allowance' => [[10000]],
-    'no earnings' => [[0, ['employment_status' => 'retired', 'annual_other_income' => 30000]]],
     'aged 75' => [[30000, ['date_of_birth' => now()->subYears(76)->toDateString()]]],
+    'no earnings, working status not given' => [[0, ['employment_status' => null, 'annual_other_income' => 30000]]],
+    'no earnings, aged 75' => [[0, ['employment_status' => 'retired', 'annual_other_income' => 30000, 'date_of_birth' => now()->subYears(76)->toDateString()]]],
+]);
+
+it('gives someone with no earnings relief on the basic amount (FA 2004 s190, 29 Sep E5)', function (float $otherIncome, string $status, float $expectedSaving) {
+    // £3,600 gross: £2,880 paid, £720 added at source whether or not tax is
+    // paid (s192(1)). A higher-rate payer claims another 20% (s192(4)).
+    $rec = reliefRecs(reliefUser(0, ['employment_status' => $status, 'annual_other_income' => $otherIncome]))['no_earnings'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['suggested_contribution'])->toBe((float) app(TaxConfigService::class)->getPensionAllowances()['relevant_earnings_minimum'])
+        ->and($rec['estimated_annual_tax_saved'])->toBe($expectedSaving)
+        ->and($rec['title'])->toContain('Pay £2,880 into a personal pension');
+})->with([
+    'retired basic-rate' => [30000, 'retired', 720.0],
+    'not working, no income at all' => [0, 'unemployed', 720.0],
+    'retired higher-rate: £3,600 at 40%' => [80000, 'retired', 1440.0],
 ]);
 
 it('sizes the higher-rate slice after what the user already pays in (review I1)', function () {

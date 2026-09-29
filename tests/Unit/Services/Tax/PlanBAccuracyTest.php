@@ -114,17 +114,18 @@ it('marks Marriage Allowance unavailable on the allowance grid when the statutor
 
 it('does not count the transferred Marriage Allowance twice in the funnel estimate', function () {
     // The £1,260 transferred under s55B(6) leaves the spouse's Personal
-    // Allowance, so the "use your spouse's Personal Allowance" line can only
-    // use what is left.
+    // Allowance. The funnel no longer prices the rest of that allowance as if
+    // salary could be moved into it (29 Sep 2026, F1), so Marriage Allowance
+    // is the only line drawing on it, counted once at the basic rate.
     $estimate = app(SaveTaxEstimateService::class)->estimate([
         'income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => ['savings'],
     ]);
     $lines = collect($estimate['savings'])->keyBy('key');
-    $rate = $estimate['marginal_rate'];
     $ma = app(TaxStrategyMath::class)->marriageAllowanceAmount();
 
-    expect($lines->has('marriage_allowance'))->toBeTrue()
-        ->and($lines['spouse_pa']['amount'])->toBe((int) round((accPa() - $ma) * $rate));
+    expect($lines->has('spouse_pa'))->toBeFalse()
+        ->and($lines->where('key', 'marriage_allowance'))->toHaveCount(1)
+        ->and($lines['marriage_allowance']['amount'])->toBe((int) floor($ma * accBasic()));
 });
 
 it('sizes the higher-rate pension item without the interest the ISA wrap already shelters', function () {
