@@ -495,7 +495,7 @@ export default {
         // Nothing is left to start either: clear needs_start with it, or the
         // dashboard re-opens Fyn on every visit for the rest of the session
         // (M6, 2026-09-29). Then re-read the user once the stream ends, as web
-        // does (aiChat.js onboarding_complete → auth/fetchUser).
+        // does (aiChat.js onboarding_complete, then auth/fetchUser).
         if (store.user) {
           store.user.onboarding_completed = true;
           store.user.active_campaign = null;
