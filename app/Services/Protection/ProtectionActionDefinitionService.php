@@ -630,7 +630,7 @@ class ProtectionActionDefinitionService
         }
 
         $deathInService = $disMultiple * $salary;
-        $disRelianceThreshold = (float) $this->taxConfig->get('protection.dis_reliance_percent', 0.50);
+        $disRelianceThreshold = (float) $this->taxConfig->get('protection.dis_reliance_percent');
 
         $trace[] = [
             'question' => 'What is the death in service benefit worth?',
