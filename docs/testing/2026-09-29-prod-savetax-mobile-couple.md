@@ -7,7 +7,7 @@
 
 Brett completed both registrations and codes by hand; everything else was driven by Claude. No code changes were made.
 
-**Update, 29 September 2026:** H1 is fixed in [Stoff73/fynla#961](https://github.com/Stoff73/fynla/pull/961) (open against `dev`, not yet on production). See [Fixes since the run](#fixes-since-the-run).
+**Update, 29 September 2026:** C1 is fixed in [Stoff73/fynla#969](https://github.com/Stoff73/fynla/pull/969) and H1 in [Stoff73/fynla#961](https://github.com/Stoff73/fynla/pull/961). Both are open against `dev` and not yet on production. See [Fixes since the run](#fixes-since-the-run).
 
 ## Verdict
 
@@ -46,7 +46,7 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 
 | # | Where | What happened | Evidence |
 |---|---|---|---|
-| C1 | Spouse onboarding (Fyn), income | Alex entered £32,000; Fyn replied "Got it — £64,000 a year, noted." The £32,000 Sam entered for Alex and Alex's own £32,000 were summed. Stored and taxed as £64,000. Alex's plan then says "Pay £11,700 more into your pension and save £4,680 in tax" at 40% relief; Alex is a basic-rate taxpayer. The Savings Allowance shows £500 (higher-rate) instead of £1,000. Sam's figures were not affected. | `GET /api/user/profile` as Alex: `income_occupation.annual_employment_income = 64000.00`, `income_tax = 13032`, `adjusted_net_income = 62000.05`. `/m/app/income` shows "Your total annual income £64,000". Likely mechanism: `EmploymentIncomeService::sameRole()` treats a blank *incoming* employer as a match but not a blank *stored* one, so the placeholder job created from Sam's spouse figures and Alex's named job are two rows that `syncTotals()` sums (unverified in the DB). |
+| C1 | Spouse onboarding (Fyn), income | Alex entered £32,000; Fyn replied "Got it — £64,000 a year, noted." The £32,000 Sam entered for Alex and Alex's own £32,000 were summed. Stored and taxed as £64,000. Alex's plan then says "Pay £11,700 more into your pension and save £4,680 in tax" at 40% relief; Alex is a basic-rate taxpayer. The Savings Allowance shows £500 (higher-rate) instead of £1,000. Sam's figures were not affected. | `GET /api/user/profile` as Alex: `income_occupation.annual_employment_income = 64000.00`, `income_tax = 13032`, `adjusted_net_income = 62000.05`. `/m/app/income` shows "Your total annual income £64,000". Likely mechanism: `EmploymentIncomeService::sameRole()` treats a blank *incoming* employer as a match but not a blank *stored* one, so the placeholder job created from Sam's spouse figures and Alex's named job are two rows that `syncTotals()` sums (unverified in the DB). **Confirmed and fixed in [#969](https://github.com/Stoff73/fynla/pull/969)**, not yet deployed. |
 
 ### High
 
@@ -82,6 +82,35 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 | L10 | Campaign results page | Unicode ✓ and – used as allowance markers (Rule 15, unless approved). |
 
 ## Fixes since the run
+
+### C1: the spouse's own salary was added to the figure the inviter gave
+
+**Status:** fixed in [Stoff73/fynla#969](https://github.com/Stoff73/fynla/pull/969), branch `fix/spouse-income-doubling`, open against `dev`. Not yet on csjones or production.
+
+**Cause.** The mechanism suspected in the defect row was right. When Alex's account linked, `SpouseHoldingTransfer::transfer()` (`app/Services/Onboarding/SpouseHoldingTransfer.php:48-50`) copied the £32,000 Sam gave for Alex across as a job with no employer or role. When Alex then gave Fyn an employer, role and £32,000, `EmploymentIncomeService::sameRole()` (`app/Services/Income/EmploymentIncomeService.php:124`) did not match the blank employer already on file. `recordJob()` therefore added a second job, and `syncTotals()` summed the two to £64,000.
+
+**Fix (design agreed with Brett, 29 September 2026):**
+
+1. A new column, `employments.is_estimate`, marks a job someone else told us about. `SpouseHoldingTransfer` marks the copied salary as an estimate.
+2. The first job the spouse states themselves replaces the estimate, whatever figure they give: £34,500 replaces the inviter's £32,000, and a switch to self-employment moves the job to the self-employed total. Later jobs add up as before. A spouse editing the job in the edit form also confirms it.
+3. The job-matching rule in `sameRole()` is unchanged on purpose. Matching a blank employer on file everywhere would bring back the older bug where a second onboarding job overwrote the first salary.
+
+Accounts already stored with a doubled salary are not repaired (fix forward only, agreed 29 September 2026). Alex's account (`isenbret+savetax2909spouse@gmail.com`) still shows £64,000 until it is purged.
+
+**Verification:**
+
+| Check | Result |
+|---|---|
+| New feature test replaying the run: link, then the spouse's own job at £32,000 | £64,000 without the fix; £32,000 and one job with it |
+| 7 new unit tests (same figure, different figure, no employer, second job still counts, employer-only keeps the estimate, move to self-employment, edit confirms) | All pass |
+| Onboarding, income and architecture suites | 1,479 passed, 1 skipped |
+| Local: inviter and spouse linked, then the spouse's `capture_work_details` (Harbour Lane Primary School, Teacher, £32,000) | One job, £32,000, no longer marked as an estimate |
+| Web, `/valuable-info?section=income`, as the spouse | Total Annual Income £32,000, taxed at the basic rate only (£19,430 at 20% = £3,886) |
+| `/m`, `/m/app/income`, opened from the menu | "Your total annual income £32,000", one job "Harbour Lane Primary School · Teacher" |
+
+I COULD NOT TEST THIS: a live Fyn conversation. The spouse's turn was the exact save call Fyn makes when the spouse gives their job, sent directly.
+
+**Still to do:** re-run the spouse onboarding on production once #969 is released, with a new couple, to confirm Fyn reports the spouse's real salary and the spouse's plan uses basic-rate relief.
 
 ### H1: `/m` sign-out left the framed desktop app signed in
 
