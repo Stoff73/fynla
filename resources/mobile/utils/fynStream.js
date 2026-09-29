@@ -65,5 +65,14 @@ export async function parseFynEvents(raw, onEvent) {
   return { terminal: state.terminal };
 }
 
+// A connection dropped mid-turn: fetch, or the body reader part-way through
+// the stream, rejects with a TypeError (Chrome logs it as net::ERR_ABORTED).
+// That is a cut-off turn like a stream that closes early, so it gets the same
+// message and retry. An HTTP error status is not: the transports throw a plain
+// Error for those, and the caller keeps its own message.
+export function isDroppedConnection(error) {
+  return error instanceof TypeError;
+}
+
 // What every surface says when a turn was cut off.
 export const FYN_INTERRUPTED_MESSAGE = 'Sorry, my reply was cut off before I finished. Please try again.';

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseFynEvents, readFynEvents } from '../fynStream.js';
+import { isDroppedConnection, parseFynEvents, readFynEvents } from '../fynStream.js';
 
 // One reader for every Fyn stream on web and /m (L3-2, 29 Sep 2026): a turn is
 // finished only when a terminal frame arrived.
@@ -94,5 +94,13 @@ describe('parseFynEvents', () => {
 
   it('reports null when the one-shot body has no terminal frame', async () => {
     expect((await parseFynEvents(frame({ type: 'content', text: 'a' }), () => {})).terminal).toBeNull();
+  });
+});
+
+describe('isDroppedConnection', () => {
+  it('is a fetch or body-reader network failure, not an HTTP error', () => {
+    expect(isDroppedConnection(new TypeError('network error'))).toBe(true);
+    expect(isDroppedConnection(new Error('Chat request failed: 500'))).toBe(false);
+    expect(isDroppedConnection(null)).toBe(false);
   });
 });

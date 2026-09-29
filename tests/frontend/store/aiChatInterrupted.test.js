@@ -91,6 +91,30 @@ describe('an interrupted Fyn turn on web', () => {
     expect(localState.retryTurn).toBeNull();
   });
 
+  it('treats a connection dropped mid-stream (net::ERR_ABORTED) as the same cut-off turn', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue({
+      read: vi.fn()
+        .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: {"type":"thinking"}\n\n') })
+        .mockRejectedValueOnce(new TypeError('network error')),
+    });
+    const { localState, context } = harness();
+
+    await aiChat.actions.sendMessage(context, 'How does the tax trap work?');
+
+    expect(localState.error).toBe(FYN_INTERRUPTED_MESSAGE);
+    expect(localState.retryTurn).toMatchObject({ arg: 'How does the tax trap work?' });
+  });
+
+  it('keeps its own message for an HTTP failure, with no retry', async () => {
+    aiChatService.sendMessageStream.mockRejectedValue(new Error('Chat request failed: 500'));
+    const { localState, context } = harness();
+
+    await aiChat.actions.sendMessage(context, 'Hello');
+
+    expect(localState.error).toBe('Connection lost. Please try again.');
+    expect(localState.retryTurn).toBeNull();
+  });
+
   it('"Try again" drops the first bubble and sends the same question', async () => {
     const { localState, dispatch, context } = harness();
     localState.messages = [{ id: 'temp_1', role: 'user', content: 'How does the tax trap work?' }];

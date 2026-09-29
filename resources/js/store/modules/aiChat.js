@@ -9,7 +9,7 @@ import aiChatService from '@/services/aiChatService';
 import { stripTags } from '@/utils/stripTags';
 
 import logger from '@/utils/logger';
-import { FYN_INTERRUPTED_MESSAGE, readFynEvents } from '../../../mobile/utils/fynStream.js';
+import { FYN_INTERRUPTED_MESSAGE, isDroppedConnection, readFynEvents } from '../../../mobile/utils/fynStream.js';
 /**
  * One message shape for every entity write event, used by both stream paths.
  *
@@ -994,7 +994,8 @@ const actions = {
                 return;
             }
             logger.error('Chat streaming error:', error);
-            commit('SET_ERROR', 'Connection lost. Please try again.');
+            if (isDroppedConnection(error)) interrupted = true;
+            else commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
             // Detect empty response — stream completed but Fyn never replied.
             // "Replied" = either streamingText has content OR new messages
@@ -1211,7 +1212,8 @@ const actions = {
             // don't overwrite that with an error banner.
             if (error.authExpired) return;
             logger.error('Queued-turn streaming error:', error);
-            commit('SET_ERROR', 'Connection lost. Please try again.');
+            if (isDroppedConnection(error)) interrupted = true;
+            else commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
             if (interrupted) {
                 commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
@@ -1463,7 +1465,8 @@ const actions = {
         } catch (error) {
             if (error.name !== 'AbortError') {
                 logger.error('postAction streaming error:', error);
-                commit('SET_ERROR', 'Connection lost. Please try again.');
+                if (isDroppedConnection(error)) interrupted = true;
+                else commit('SET_ERROR', 'Connection lost. Please try again.');
             }
         } finally {
             if (interrupted) {

@@ -545,6 +545,16 @@ describe('onboardingChat mixin — interrupted turns', () => {
     ]);
   });
 
+  it('offers Try again when the connection drops mid-stream', async () => {
+    apiStream.mockRejectedValueOnce(new TypeError('network error'));
+
+    await wrapper.vm.send('How does the tax trap work?');
+
+    const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
+    expect(reply.text).toBe('Sorry, my reply was cut off before I finished. Please try again.');
+    expect(reply.bubbles[0]).toMatchObject({ id: 'fyn_retry', label: 'Try again' });
+  });
+
   it('leaves a finished turn alone', async () => {
     apiStream.mockImplementationOnce(async (path, body, token, onDelta) => {
       onDelta('Here is the answer.');

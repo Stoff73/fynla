@@ -20,7 +20,7 @@ import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
 import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
 import { renderFynText } from '../utils/fynText.js';
-import { FYN_INTERRUPTED_MESSAGE } from '../utils/fynStream.js';
+import { FYN_INTERRUPTED_MESSAGE, isDroppedConnection } from '../utils/fynStream.js';
 import {
   loadMobileSubscriptionStatus,
   shouldShowMobileUpgrade,
@@ -341,8 +341,10 @@ export default {
         );
         if (this.handleAuthExpiry(result)) return true;
         if (result && result.interrupted) this.markInterrupted(cursor, { action });
-      } catch {
-        if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+      } catch (error) {
+        if (isDroppedConnection(error)) {
+          this.markInterrupted(cursor, { action });
+        } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
         }
       }
@@ -705,8 +707,9 @@ export default {
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
         // Celebrate AFTER the reply has rendered (the level_up frame arrives
         // after `done`), so the fireworks never interrupt Fyn mid-reply.
-      } catch {
-        cursor.reply.text = 'Sorry, something went wrong. Please try again.';
+      } catch (error) {
+        if (isDroppedConnection(error)) this.markInterrupted(cursor, { text, form });
+        else cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
