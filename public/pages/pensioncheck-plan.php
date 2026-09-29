@@ -65,7 +65,7 @@ try {
   <!-- Blocking CSS — same-server files, no FOUC risk -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=4" />
-  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=9" />
+  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=10" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -197,27 +197,6 @@ try {
       </div>
     </section>
 
-    <!-- ================================================================
-         COULD THIS BE YOU? — illustrative social proof.
-         ================================================================ -->
-    <section id="examples" class="examples-section sp4-proof" aria-labelledby="examples-heading">
-      <div class="campaign-inner">
-        <div class="examples-section__intro sp4-proof__intro">
-          <h2 id="examples-heading" class="examples-section__heading">Could this be you?</h2>
-        </div>
-
-        <!-- Headline social-proof stat -->
-        <div class="sp4-proof__headline" id="proof-headline"></div>
-
-        <!-- Testimonials relevant to the persona -->
-        <div class="sp4-proof__grid" id="proof-grid" aria-live="polite"></div>
-
-        <div class="examples-section__footer">
-          <p class="examples-section__footer-text sp4-proof__join">Join them — it's free</p>
-          <a href="#hero" class="examples-section__cta">Register for free</a>
-        </div>
-      </div>
-    </section>
 
   </main>
 
@@ -225,7 +204,7 @@ try {
 
   <script>window.PENSIONCHECK_ESTIMATE = <?= json_encode($pensioncheckEstimate, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/pensioncheck-plan.js?v=2" defer></script>
+  <script src="/pages/js/pensioncheck-plan.js?v=3" defer></script>
   <!-- Cookie consent — persisted via localStorage; the SPA register step reuses it. -->
   <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 

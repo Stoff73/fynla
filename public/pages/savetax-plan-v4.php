@@ -10,7 +10,7 @@
   <!-- Blocking CSS — same-server files, no FOUC risk -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=4" />
-  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=8" />
+  <link rel="stylesheet" href="/pages/css/savetax-plan-v4.css?v=9" />
 </head>
 <body>
 
@@ -111,29 +111,6 @@
       </div>
     </section>
 
-    <!-- ================================================================
-         COULD THIS BE YOU? — replaced example panels with SOCIAL PROOF
-         relevant to the user's answers. Rendered by JS.
-         (Sample/illustrative figures — mockup only.)
-         ================================================================ -->
-    <section id="examples" class="examples-section sp4-proof" aria-labelledby="examples-heading">
-      <div class="campaign-inner">
-        <div class="examples-section__intro sp4-proof__intro">
-          <h2 id="examples-heading" class="examples-section__heading">Could this be you?</h2>
-        </div>
-
-        <!-- Headline social-proof stat -->
-        <div class="sp4-proof__headline" id="proof-headline"></div>
-
-        <!-- Testimonials relevant to the persona -->
-        <div class="sp4-proof__grid" id="proof-grid" aria-live="polite"></div>
-
-        <div class="examples-section__footer">
-          <p class="examples-section__footer-text sp4-proof__join">Join them — it's free</p>
-          <a href="#hero" class="examples-section__cta">Register &amp; meet Fyn</a>
-        </div>
-      </div>
-    </section>
 
   </main>
 
