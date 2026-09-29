@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
-use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Property\PropertyService;
 use App\Services\Retirement\PensionContributionRule;
@@ -304,7 +303,7 @@ class IncomeDefinitionsService
             if (! PensionContributionRule::isWorkplace($pension)) {
                 $gross = $contribution > 0 && $basicRelief < 1 ? $contribution / (1 - $basicRelief) : 0.0;
                 $reliefAtSourceGross += $gross;
-                $breakdown[] = self::pensionInputPart($pension, 'relief_at_source', $contribution, $gross - $contribution, $employerPays);
+                $breakdown[] = PensionContributionRule::inputPart($pension, 'relief_at_source', $contribution, $gross - $contribution, $employerPays);
 
                 continue;
             }
@@ -315,14 +314,14 @@ class IncomeDefinitionsService
             // received, and left nothing to add back at s228ZA(3).
             if ($contribution > 0 && $pension->salary_sacrifice) {
                 $sacrificed += $contribution;
-                $breakdown[] = self::pensionInputPart($pension, 'salary_sacrifice', 0.0, 0.0, $employerPays + $contribution);
+                $breakdown[] = PensionContributionRule::inputPart($pension, 'salary_sacrifice', 0.0, 0.0, $employerPays + $contribution);
 
                 continue;
             }
 
             // Net pay (FA 2004 s193(2)): deducted from employment income.
             $employee += $contribution;
-            $breakdown[] = self::pensionInputPart($pension, 'net_pay', $contribution, 0.0, $employerPays);
+            $breakdown[] = PensionContributionRule::inputPart($pension, 'net_pay', $contribution, 0.0, $employerPays);
         }
 
         $employee = round($employee, 2);
@@ -341,26 +340,6 @@ class IncomeDefinitionsService
                 $employee <= 0 => 'none',
                 default => 'net_pay',
             },
-        ];
-    }
-
-    /**
-     * One pension's part of the pension input amount (FA 2004 s233(1)): what the
-     * member pays, the basic-rate relief the provider adds on a relief-at-source
-     * payment (s192), and what the employer pays, sacrificed pay included (W-0204).
-     *
-     * @return array{pension_id: int, scheme_name: string|null, relief: string, member_pays: float, tax_relief_added: float, employer_pays: float, pension_input: float}
-     */
-    private static function pensionInputPart(DCPension $pension, string $relief, float $memberPays, float $reliefAdded, float $employerPays): array
-    {
-        return [
-            'pension_id' => (int) $pension->id,
-            'scheme_name' => $pension->scheme_name,
-            'relief' => $relief,
-            'member_pays' => round($memberPays, 2),
-            'tax_relief_added' => round($reliefAdded, 2),
-            'employer_pays' => round($employerPays, 2),
-            'pension_input' => round($memberPays + $reliefAdded + $employerPays, 2),
         ];
     }
 
