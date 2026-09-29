@@ -14,6 +14,7 @@ use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\Auth\FunnelAnswersMapper;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\PrerequisiteGateService;
 use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
@@ -1053,7 +1054,10 @@ final class OnboardingStateMachine
         $answered = [
             'employment' => array_key_exists('employment', $funnel) || ! empty($user->employment_status),
             'spouse' => array_key_exists('spouse', $funnel) || ! empty($user->marital_status) || $user->spouse_id !== null,
-            'spouseIncome' => array_key_exists('spouseIncome', $funnel) || ! empty($user->household_calculation_mode),
+            // A linked partner's own record answers it too — the band only
+            // estimates what their job already says (production 2026-09-29).
+            'spouseIncome' => array_key_exists('spouseIncome', $funnel) || ! empty($user->household_calculation_mode)
+                || app(HouseholdFinancialContext::class)->linkedSpouseEarnings($user) !== null,
             // An empty list from a registration that never showed the
             // question is not an answer (the chat's "That's everything" leaves
             // the walk directly and does not come back through here).
@@ -2598,7 +2602,33 @@ final class OnboardingStateMachine
      */
     public static function skipSpouseWorkIfModeKnown(User $user): bool
     {
-        return self::skipIfNotMarried($user) || $user->household_calculation_mode !== null;
+        return self::skipIfNotMarried($user)
+            || $user->household_calculation_mode !== null
+            || self::adoptLinkedSpouseWorkStatus($user);
+    }
+
+    /**
+     * A linked partner whose own record holds earnings from work has already
+     * answered "Does your spouse work?" (production 2026-09-29: an invitee was
+     * asked about the partner who invited them). Records the answer the
+     * question would have recorded — the same two columns
+     * capture_spouse_work_status writes for "yes" — so nextFromSpouseWork and
+     * the tax strategy read one mode. No earnings on the linked record, no
+     * link, or no sharing: nothing is known and the question is asked.
+     * Preview personas are never written to (Rule 1), so they are asked too.
+     */
+    private static function adoptLinkedSpouseWorkStatus(User $user): bool
+    {
+        if ($user->is_preview_user || app(HouseholdFinancialContext::class)->linkedSpouseEarnings($user) === null) {
+            return false;
+        }
+
+        // Only the household mode is known. Whether Marriage Allowance applies
+        // depends on both incomes (gov.uk/marriage-allowance), so it is not
+        // asserted here.
+        $user->update(['household_calculation_mode' => 'dual_earner']);
+
+        return true;
     }
 
     /**

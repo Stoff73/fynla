@@ -1199,16 +1199,25 @@ final class OnboardingChatDirector
                     $user->save();
                 }
 
-                yield [
+                // What the user already has on file opens filled in — the
+                // same `values` / `record` an edit form carries, which every
+                // client renders and posts back (WalkFormPrefill).
+                $prefill = app(WalkFormPrefill::class)->for($user, $conversation, (string) $schema['name']);
+
+                yield array_filter([
                     'type' => 'capture_form',
                     'prompt_text' => $formPromptText,
                     'form' => $schema,
-                ];
-                $metadata = [
+                    'values' => $prefill['values'] ?? null,
+                    'record' => $prefill['record'] ?? null,
+                ], static fn ($v): bool => $v !== null);
+                $metadata = array_filter([
                     'capture_form' => $schema,
+                    'capture_form_values' => $prefill['values'] ?? null,
+                    'capture_form_record' => $prefill['record'] ?? null,
                     'onboarding_step' => $stateId,
                     'turn_intent' => $turnIntent->value,
-                ];
+                ], static fn ($v): bool => $v !== null);
                 // A state's skip link (base_spouse) travels with the form the
                 // same way it does with the typed prompt: a separate event
                 // both clients already render, and the row's metadata for resume.
@@ -7574,6 +7583,30 @@ PROMPT;
         }
 
         $this->coordinatingAgent->invalidateUserCache($user->id);
+
+        // The walk's own form opened on a record already on file
+        // (WalkFormPrefill — an invitee's income their partner entered): the
+        // save answers this step, so the walk carries on exactly as a new
+        // record would have, with the step's own acknowledgement.
+        $walkState = $currentStateId !== null && $currentStateId !== 'campaign_verify_edit' && ($form['delete'] ?? false) !== true
+            ? OnboardingStateMachine::getState($currentStateId)
+            : null;
+        $postedBase = CaptureForms::schema((string) ($form['name'] ?? ''))['base'] ?? ($form['name'] ?? null);
+        if ($walkState !== null && ($walkState['form'] ?? null) === $postedBase) {
+            // The same funnel-band income check a new record gets (#991): the
+            // prefilled form posts as an edit, which would otherwise skip it.
+            $challenged = yield from $this->maybeChallengeIncome($user->refresh(), $conversation, $currentStateId, CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? []);
+            if ($challenged) {
+                return;
+            }
+            $ack = $this->buildCaptureAck($user->refresh(), $currentStateId, []) ?? $result['message'];
+            yield ['type' => 'content', 'text' => $ack];
+            $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
+            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, CaptureForms::summarise($form), (string) ($user->onboarding_fyn_selection ?? 'savetax'));
+
+            return;
+        }
+
         yield ['type' => 'content', 'text' => $result['message']];
         $this->saveMessage($conversation, 'assistant', $result['message'], ['metadata' => array_filter([
             'onboarding_step' => $currentStateId,
