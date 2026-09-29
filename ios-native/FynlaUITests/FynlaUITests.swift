@@ -1680,11 +1680,22 @@ final class FynlaUITests: XCTestCase {
             // became "6.253"). Double-tap selects the existing numeric
             // token so typing replaces it without relying on caret position.
             // Retry if XCTest drops an event while the keyboard is settling.
+            if !field.isHittable { assertReachable(field, in: app) }
             field.doubleTap()
+            // Type only once the software keyboard is on screen. Without one
+            // (a hardware keyboard connected, or it has not appeared yet on a
+            // fresh CI device) XCTest's keystrokes land on the docked Fyn bar,
+            // open Fyn over the page, and every later step fails "Not
+            // hittable ... Keyboard Focused" (dev run 36313183201).
+            guard app.keyboards.firstMatch.waitForExistence(timeout: 5) else { continue }
             field.typeText(value)
             if field.value as? String == value { return }
         }
 
+        XCTAssertTrue(
+            app.keyboards.firstMatch.exists,
+            "No software keyboard appeared for \(field.identifier); is the simulator's hardware keyboard connected?"
+        )
         XCTAssertEqual(field.value as? String, value)
     }
 

@@ -101,10 +101,17 @@ jobs:
           # That is the "Not hittable ... Keyboard Focused" failure, and it is why
           # these tests pass on a developer machine, where the preference persists
           # as off, and fail only here.
+          #
+          # Both settings go through `defaults` (cfprefsd). The per-device one was
+          # written with PlistBuddy straight to the file, which cfprefsd could
+          # overwrite with its cached copy, errors hidden: dev run 36313183201
+          # (3520df133) still failed with no software keyboard on screen.
           defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false
-          /usr/libexec/PlistBuddy \
-            -c "Add :DevicePreferences:${udid}:ConnectHardwareKeyboard bool false" \
-            ~/Library/Preferences/com.apple.iphonesimulator.plist 2>/dev/null || true
+          defaults write com.apple.iphonesimulator DevicePreferences -dict-add "$udid" \
+            '<dict><key>ConnectHardwareKeyboard</key><false/></dict>'
+          defaults read com.apple.iphonesimulator DevicePreferences \
+            | grep -A1 "\"$udid\"" | grep -q 'ConnectHardwareKeyboard = 0' \
+            || { echo "::error::Hardware keyboard is still connected on $udid"; exit 1; }
 
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b

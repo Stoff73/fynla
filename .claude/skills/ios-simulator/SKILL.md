@@ -3,6 +3,8 @@ name: ios-simulator
 description: Run anything on the iOS simulator without stacking a second one on top of the one already open. Use before xcodebuild test / build / run against a simulator destination, when nothing is booted and you need one opened through Xcode, when a UI test fails with "Not hittable" on an element XCTest also calls "Keyboard Focused", when a native run hangs or dies with "Mach error -308 (ipc/mig) server died" or "Failed to install or launch the test runner", or when the laptop slows to a crawl during native work. Covers checking what is already booted, opening one via Xcode, the hardware-keyboard trap that breaks typing in UI tests, choosing that device, and the recovery ladder when CoreSimulator wedges.
 ---
 
+> **STOP — CSJ's standing rule (repeated over five sessions, 2026-09-29): NEVER run iOS simulator tests on CSJ's laptop.** No `xcodebuild test`, no booting a simulator, not even one targeted test: they do not work correctly there. iOS changes are verified by the `ios-native.yml` CI run on the PR. The sections below describe the simulator and the CI keyboard setting for diagnosis only.
+
 # The iOS simulator — use the one that is already open
 
 **The recurring failure this exists to stop:** running `xcodebuild ... -destination 'platform=iOS Simulator,name=iPhone 16'` without checking what is booted. Xcode boots a *second* device, two simulators fight for the same CoreSimulator services, the laptop grinds, and eventually every run dies at `Mach error -308 (ipc/mig) server died` — which reads like a code failure and is not one. It cost most of the morning on 2026-08-18 and a host reboot on 2026-07-23.
