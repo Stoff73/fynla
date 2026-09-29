@@ -31,7 +31,7 @@
 
 @section('body')
     @include('emails.modules.body', [
-        'greeting'   => 'Hello,',
+        'greeting'   => filled($inviteeFirstName ?? null) ? 'Hi '.$inviteeFirstName.',' : 'Hello,',
         'paragraphs' => [
             '<strong>' . e($inviterName) . '</strong> uses Fynla to plan their finances, and has invited you to join them as their partner.',
             'Fynla is a United Kingdom financial planning app. Planning together lets a household see one shared picture &mdash; savings, pensions, protection and estate &mdash; instead of two halves that never quite add up.',

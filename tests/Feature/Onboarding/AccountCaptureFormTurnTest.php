@@ -38,7 +38,7 @@ afterEach(function (): void {
 
 function accountStepUser(string $step): User
 {
-    return User::factory()->create([
+    $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
         'first_name' => 'Chris',
@@ -48,6 +48,11 @@ function accountStepUser(string $step): User
         'onboarding_fyn_selection' => 'savetax',
         'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['isa', 'bank', 'savings', 'investments']],
     ]);
+    // Mid-flow: Fyn greeted them with the funnel recap turns ago.
+    AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])
+        ->messages()->create(['role' => 'assistant', 'content' => 'Earlier turn', 'metadata' => []]);
+
+    return $user;
 }
 
 function accountConversation(User $user): AiConversation

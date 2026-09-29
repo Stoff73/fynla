@@ -152,6 +152,12 @@ class SavingsStore
         return SavingsAccount::where('user_id', $user->id)->where('is_isa', true)->count();
     }
 
+    /** Cash ISAs only, by the one rule (SavingsAccount::scopeCashIsa): not Junior or Lifetime ISAs. */
+    public function cashIsaCountForUser(User $user): int
+    {
+        return SavingsAccount::where('user_id', $user->id)->cashIsa()->count();
+    }
+
     // ---------- Writes ----------
 
     public function create(array $data, User $user, IngestSource $source): SavingsAccount

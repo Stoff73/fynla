@@ -37,7 +37,10 @@
             </div>
             <div v-if="rec.estimated_annual_tax_saved" class="text-right shrink-0">
               <div class="text-caption text-neutral-500 leading-none">Saves</div>
-              <div class="font-black text-spring-600 leading-tight text-h5">
+              <div
+                class="font-black leading-tight text-h5"
+                :class="rec.counted_in_total === false ? 'text-neutral-500' : 'text-spring-600'"
+              >
                 {{ formatCurrency(Math.round(rec.estimated_annual_tax_saved)) }}
               </div>
               <div class="text-caption text-neutral-500 leading-none">a year</div>
@@ -47,6 +50,7 @@
           <p class="text-neutral-500 leading-relaxed text-body-sm flex-1">
             {{ rec.description }}
           </p>
+          <PlanItemAlternativeNote :item="rec" />
 
           <div class="flex items-center gap-3 mt-4 pt-3 border-t border-light-gray">
             <button
@@ -100,6 +104,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import PlanItemAlternativeNote from './PlanItemAlternativeNote.vue';
 
 const NEXT_STEPS = {
   pa_taper_rescue: { label: 'Open a pension', path: '/pension' },
@@ -124,6 +129,7 @@ const NEXT_STEPS = {
 
 export default {
   name: 'StrategyRecommendationList',
+  components: { PlanItemAlternativeNote },
   mixins: [currencyMixin],
   props: {
     excludeCategories: {

@@ -5,11 +5,12 @@
  * answers in both localStorage and the plan URL so private browsing or blocked
  * storage does not break the registration handoff.
  *
- * Answer shape: { employment, income, spouse, spouseIncome, assets: [] }
+ * Answer shape: { employment, income, spouse, spouseIncome, spouseEmployment, assets: [] }
  *   employment   : not-employed | part-time | full-time | self-employed | retired
- *   income       : personal-allowance | basic | higher | additional
+ *   income       : zero | upto_50270 | 50271_100000 | 100001_125140 | over_125140
  *   spouse       : yes | no
- *   spouseIncome : personal-allowance | basic | higher | additional | null
+ *   spouseIncome : zero | upto_50270 | 50271_100000 | 100001_125140 | over_125140 | null
+ *   spouseEmployment : as employment; asked only when spouseIncome = 100001_125140, else null
  *   assets       : [bank, savings, pension, property, isa, investments]
  *
  */
@@ -40,8 +41,8 @@
   // description (its note) rather than a figure-laden "could save" callout.
   var SAVING_FOR = {
     pension_aa: 'pension', psa: 'psa', dividend: 'dividend',
-    cgt: 'cgt', marriage_allowance: 'marriage_allowance', spouse_pa: 'spouse_pa',
-    personal_allowance: 'tax_trap_60',
+    cgt: 'cgt', marriage_allowance: 'marriage_allowance',
+    personal_allowance: 'tax_trap_60', spouse_pa: 'spouse_tax_trap_60',
   };
 
   function estimatedSaving() { return EST ? (EST.savings_total || 0) : 0; }
@@ -57,14 +58,15 @@
   function allowanceItem(a) {
     var state = ['available', 'used_automatically', 'not_applicable'].indexOf(a.state) !== -1
       ? a.state : 'not_applicable';
+    var isPartnerRow = String(a.key).indexOf('spouse_') === 0;
     var stateText = {
-      available: 'Available to you',
+      available: isPartnerRow ? 'Available to your partner' : 'Available to you',
       used_automatically: 'Used automatically',
       not_applicable: 'Not applicable',
     }[state];
     var cls = 'sp4-alw sp4-alw--' + state.replace('_', '-');
     var mark = state === 'available' ? '&#10003;' : '&#8211;';
-    var saving = state === 'available' || a.key === 'personal_allowance'
+    var saving = state === 'available' || a.key === 'personal_allowance' || a.key === 'spouse_pa'
       ? savingByKey(SAVING_FOR[a.key]) : null;
     // The saving line stays visible; the explanation sits behind "Why?"
     // so fourteen cards do not read as fourteen paragraphs.
@@ -148,6 +150,7 @@
       income: params.get('income') || null,
       spouse: params.get('spouse') || null,
       spouseIncome: params.get('spouseIncome') || null,
+      spouseEmployment: params.get('spouseEmployment') || null,
       assets: (params.get('assets') || '').split(',').map(function (asset) {
         return asset.trim();
       }).filter(Boolean).slice(0, 12),
@@ -166,6 +169,9 @@
             spouse: spouse,
             spouseIncome: spouse === 'yes'
               ? (params.has('spouseIncome') ? queryAnswers.spouseIncome : (a.spouseIncome || null))
+              : null,
+            spouseEmployment: spouse === 'yes'
+              ? (params.has('spouseEmployment') ? queryAnswers.spouseEmployment : (a.spouseEmployment || null))
               : null,
             assets: params.has('assets')
               ? queryAnswers.assets

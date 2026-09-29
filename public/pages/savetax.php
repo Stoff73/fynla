@@ -180,6 +180,15 @@ try {
         <h2 class="qr-q" id="q2-heading" tabindex="-1">What is your annual income?</h2>
         <p class="qr-q-sub">Your gross income before tax, including salary, self-employment, and pension income.</p>
         <div class="qr-options" role="group" aria-label="Annual income options">
+          <button type="button" class="qr-opt" data-value="zero" aria-pressed="false">
+            <span class="qr-opt__label">No income</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
           <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
             <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['upto_50270'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">
@@ -303,6 +312,64 @@ try {
         </div>
       </section>
 
+      <!-- Q4b: Spouse employment (conditional — shown only when Q4 is the
+           Personal Allowance taper band). Pension tax relief is limited to
+           earnings from work (FA 2004 s190), so a partner whose income is a
+           pension or rent could not use the contribution the estimate prices
+           for a working partner. -->
+      <section class="qr-screen" id="s-spouse-employment" aria-labelledby="q4b-heading">
+        <h2 class="qr-q" id="q4b-heading" tabindex="-1">What is your spouse or civil partner's employment status?</h2>
+        <p class="qr-q-sub">Tax relief on pension contributions depends on earnings from work, so this changes what they could save.</p>
+        <div class="qr-options" role="group" aria-label="Spouse or civil partner employment status options">
+
+          <button type="button" class="qr-opt" data-value="not-employed" aria-pressed="false">
+            <span class="qr-opt__label">Not employed</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
+          <button type="button" class="qr-opt" data-value="part-time" aria-pressed="false">
+            <span class="qr-opt__label">Part-time employed</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
+          <button type="button" class="qr-opt" data-value="full-time" aria-pressed="false">
+            <span class="qr-opt__label">Full time employed</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
+          <button type="button" class="qr-opt" data-value="self-employed" aria-pressed="false">
+            <span class="qr-opt__label">Self-employed</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
+          <button type="button" class="qr-opt" data-value="retired" aria-pressed="false">
+            <span class="qr-opt__label">Retired</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
+        </div>
+      </section>
+
       <!-- Q5: Assets (multi-select) -->
       <section class="qr-screen" id="s-assets" aria-labelledby="q5-heading">
         <h2 class="qr-q" id="q5-heading" tabindex="-1">Which of these do you have?</h2>
@@ -374,7 +441,7 @@ try {
 
   </div><!-- /.qr-card -->
 
-  <script src="/pages/js/savetax.js?v=8" defer></script>
+  <script src="/pages/js/savetax.js?v=10" defer></script>
   <!-- Cookie consent — direct funnel entry must still surface the prompt here. -->
   <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 </body>

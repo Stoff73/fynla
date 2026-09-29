@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Models\SavingsAccount;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
+use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Savings\SavingsActionDefinitionService;
+use App\Services\TaxConfigService;
 use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -160,5 +162,92 @@ describe('emergency fund decision trace', function () {
 
         expect($step['threshold'])->toContain('retired = 3 months')->not->toContain('retired = 6')
             ->and($step['explanation'])->not->toContain('retired need 6');
+    });
+});
+
+describe('cash_isa_recommended recognises every shape of Cash ISA', function () {
+    // SaveTax run 29 Sep 2026, L2. Fyn's capture form writes a Cash ISA as
+    // account_type 'cash_isa' with no isa_type; the rule only looked for
+    // isa_type 'cash' (the web form's shape, and the factory's), so a user who
+    // already had one was told to "open a Cash ISA". The factory's isa() state
+    // sets both columns, which is why no fixture ever reproduced it.
+    beforeEach(function () {
+        $this->user->update(['annual_employment_income' => 72000]);
+        // £675 of interest against a £500 higher-rate allowance: breached.
+        SavingsAccount::factory()->create([
+            'user_id' => $this->user->id, 'account_type' => 'easy_access', 'access_type' => 'immediate',
+            'current_balance' => 15000, 'interest_rate' => 4.5,
+        ]);
+    });
+
+    it('fires when the user holds no Cash ISA at all', function () {
+        $result = $this->service->evaluateAgentActions(savingsAnalysis(6.0), [], collect(), collect(), $this->user->id);
+        expect(keysOf($result))->toContain('cash_isa_recommended');
+    });
+
+    it('stays silent for a Cash ISA captured by Fyn (account_type only)', function () {
+        SavingsAccount::factory()->create([
+            'user_id' => $this->user->id, 'account_type' => 'cash_isa', 'is_isa' => true, 'isa_type' => null,
+            'current_balance' => 6000, 'interest_rate' => 4.1,
+        ]);
+
+        $result = $this->service->evaluateAgentActions(savingsAnalysis(6.0), [], collect(), collect(), $this->user->id);
+        expect(keysOf($result))->not->toContain('cash_isa_recommended');
+    });
+
+    it('stays silent for a Cash ISA from the web form (isa_type only)', function () {
+        SavingsAccount::factory()->create([
+            'user_id' => $this->user->id, 'account_type' => 'savings', 'is_isa' => true, 'isa_type' => 'cash',
+            'current_balance' => 6000, 'interest_rate' => 4.1,
+        ]);
+
+        $result = $this->service->evaluateAgentActions(savingsAnalysis(6.0), [], collect(), collect(), $this->user->id);
+        expect(keysOf($result))->not->toContain('cash_isa_recommended');
+    });
+
+    it('does not treat a child\'s Junior ISA as the user\'s Cash ISA', function () {
+        SavingsAccount::factory()->create([
+            'user_id' => $this->user->id, 'account_type' => 'junior_isa', 'is_isa' => true, 'isa_type' => 'cash',
+            'current_balance' => 3000, 'interest_rate' => 4.0,
+        ]);
+
+        $result = $this->service->evaluateAgentActions(savingsAnalysis(6.0), [], collect(), collect(), $this->user->id);
+        expect(keysOf($result))->toContain('cash_isa_recommended');
+    });
+});
+
+describe('spouse_isa_coordination reads both allowances from the ISA tracker', function () {
+    // SaveTax couple re-run 29 Sep 2026: Sam (no expenditure yet, so the savings
+    // analysis is readiness-blocked and carries isa_allowance: null) was told "one
+    // partner's allowance is fully used" with £14,000 of it left. The null read as
+    // £0 remaining. The spouse side also counted cash ISAs only.
+    beforeEach(function () {
+        $this->spouse = User::factory()->create(['annual_employment_income' => 32000, 'marital_status' => 'married']);
+        $this->user->update(['marital_status' => 'married']);
+        app(SpouseLinkingService::class)->establishAcceptedLink($this->user, $this->spouse);
+        $this->user->refresh();
+        $this->taxYear = app(TaxConfigService::class)->getTaxYear();
+    });
+
+    it('stays silent when neither partner has used the whole allowance, even if the analysis was blocked', function () {
+        SavingsAccount::factory()->create([
+            'user_id' => $this->user->id, 'account_type' => 'cash_isa', 'is_isa' => true, 'isa_type' => null,
+            'isa_subscription_year' => $this->taxYear, 'isa_subscription_amount' => 6000, 'current_balance' => 6000,
+        ]);
+        $blocked = savingsAnalysis(null, 0.0, ['isa_allowance' => null]);
+
+        $result = $this->service->evaluateAgentActions($blocked, [], collect(), collect(), $this->user->id);
+        expect(keysOf($result))->not->toContain('spouse_isa_coordination');
+    });
+
+    it('fires when the user has used the whole allowance and the spouse has room', function () {
+        SavingsAccount::factory()->create([
+            'user_id' => $this->user->id, 'account_type' => 'cash_isa', 'is_isa' => true, 'isa_type' => null,
+            'isa_subscription_year' => $this->taxYear, 'isa_subscription_amount' => 20000, 'current_balance' => 20000,
+        ]);
+        $blocked = savingsAnalysis(null, 0.0, ['isa_allowance' => null]);
+
+        $result = $this->service->evaluateAgentActions($blocked, [], collect(), collect(), $this->user->id);
+        expect(keysOf($result))->toContain('spouse_isa_coordination');
     });
 });

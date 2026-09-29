@@ -32,21 +32,21 @@ final class TaxStrategyContext
         public readonly ?TaxStrategyHouseholdInput $household,
         public readonly string $mode,
         public readonly ?float $isaPoolCap = null,
-        public readonly float $interestShelteredElsewhere = 0.0,
+        public readonly float $pensionPaidElsewhere = 0.0,
     ) {}
 
     public function withIsaPoolCap(float $isaPoolCap): self
     {
-        return new self($this->user, $this->overrides, $this->household, $this->mode, $isaPoolCap, $this->interestShelteredElsewhere);
+        return new self($this->user, $this->overrides, $this->household, $this->mode, $isaPoolCap, $this->pensionPaidElsewhere);
     }
 
     /**
-     * Taxable interest another plan item already takes out of the user's
-     * income (an ISA wrap or a gift to the spouse), so a pension item is not
-     * priced on income that will no longer be taxed at the higher rate.
+     * The gross pension contribution the plan's own pension item already
+     * makes, so a savings item is priced on the income left after it: the
+     * plan prices the pension first (29 Sep 2026, SaveTax matrix E1).
      */
-    public function withInterestShelteredElsewhere(float $interest): self
+    public function withPensionPaidElsewhere(float $gross): self
     {
-        return new self($this->user, $this->overrides, $this->household, $this->mode, $this->isaPoolCap, $interest);
+        return new self($this->user, $this->overrides, $this->household, $this->mode, $this->isaPoolCap, $gross);
     }
 }

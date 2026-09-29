@@ -346,9 +346,8 @@ class ISATracker
             'cash' => $tracking->cash_isa_used = $amount ?? ($isaUser
                 ? (float) app(SavingsStore::class)->forUser($isaUser)
                     ->where('user_id', $userId)
-                    ->where('is_isa', true)
                     ->where('isa_subscription_year', $taxYear)
-                    ->where('isa_type', 'cash')
+                    ->filter(fn (SavingsAccount $a): bool => $a->isCashIsa())
                     ->sum('isa_subscription_amount')
                 : 0.0),
             'LISA' => $tracking->lisa_used = $amount ?? ($isaUser

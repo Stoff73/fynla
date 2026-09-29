@@ -313,3 +313,16 @@ it('keeps unlock items for a paused walker whose step was nulled', function () {
     $unlocks = collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock');
     expect($unlocks)->not->toBeEmpty();
 });
+
+it('never leaves a focus-area card with a blank stat', function () {
+    // SaveTax run 29 Sep 2026, L5: an estate recommendation whose engine category
+    // is "Warning" has no topic, so its meta is "" — and the card's stat read that
+    // "" (or, before #967, the word "Warning") under "Estate Planning". The stat now
+    // falls back to the count, as the web dashboard's statFor already did.
+    $warning = ['meta' => ''];
+    $topical = ['meta' => 'You could save £420'];
+
+    expect(NextActionsService::cardStat([$warning]))->toBe('1 action')
+        ->and(NextActionsService::cardStat([$warning, $topical]))->toBe('2 actions')
+        ->and(NextActionsService::cardStat([$topical, $warning]))->toBe('You could save £420');
+});

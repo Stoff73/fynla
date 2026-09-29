@@ -84,6 +84,10 @@ body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: var(--
    style the browser's own wins — a solid grey box the palette never chose, and on
    iOS the text is greyed through -webkit-text-fill-color as well, so the user
    cannot read back what they just entered. Locked means recorded, not broken. */
+/* Focus follows the design guide's input standard (fynlaDesignGuide.md, Focus
+   Indicators): violet-500 border and a 2px violet ring at 20%, in place of the
+   browser's default outline (SaveTax run 29 Sep 2026, L7). */
+.m-field:focus { outline: none; border-color: var(--violet-500); box-shadow: 0 0 0 2px color-mix(in srgb, var(--violet-500) 20%, transparent); }
 .m-field:disabled { background: var(--horizon-100); border-color: var(--horizon-200); color: var(--horizon-500); -webkit-text-fill-color: var(--horizon-500); opacity: 1; }
 .m-btn { width: 100%; padding: 14px; background: var(--raspberry-500); color: var(--white); border: 0; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }
 .m-btn:disabled { opacity: .5; cursor: not-allowed; }

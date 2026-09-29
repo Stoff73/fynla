@@ -459,7 +459,7 @@ final class SpouseLinkingService
             'expires_at' => now()->addDays(SpouseInvitationRecord::VALID_DAYS),
         ])->save();
 
-        $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser, $invitation->token);
+        $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser, $invitation->token, $invitation->first_name);
 
         return [
             'family_member' => $familyMember,
@@ -711,10 +711,10 @@ final class SpouseLinkingService
         return $inviter;
     }
 
-    private function sendRegistrationInvitation(string $spouseEmail, User $currentUser, ?string $token = null): bool
+    private function sendRegistrationInvitation(string $spouseEmail, User $currentUser, ?string $token = null, ?string $inviteeFirstName = null): bool
     {
         try {
-            Mail::to($spouseEmail)->send(new SpouseInvitation($spouseEmail, $currentUser->name, $token));
+            Mail::to($spouseEmail)->send(new SpouseInvitation($spouseEmail, $currentUser->name, $token, $inviteeFirstName));
 
             return true;
         } catch (\Throwable $e) {
