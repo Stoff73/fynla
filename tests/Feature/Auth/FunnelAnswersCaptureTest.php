@@ -111,7 +111,7 @@ it('maps funnel spouseIncome onto household_calculation_mode so Fyn never re-ask
     $singleEarner = User::factory()->create([
         'employment_status' => null, 'marital_status' => null,
         'household_calculation_mode' => null,
-        'funnel_answers' => ['spouse' => 'yes', 'spouseIncome' => 'zero'],
+        'funnel_answers' => ['income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero'],
     ]);
     $svc->mapToProfile($singleEarner);
     expect($singleEarner->fresh()->household_calculation_mode)->toBe('single_earner_couple');
@@ -251,3 +251,23 @@ it('rejects funnel_answers when it is not an array', function () {
         'funnel_answers' => 'not-an-array',
     ]))->assertStatus(422)->assertJsonValidationErrors(['funnel_answers']);
 });
+
+// Marriage Allowance needs one partner below the Personal Allowance and the
+// other paying tax at the basic rate (gov.uk/marriage-allowance; ITA 2007
+// s55B, s55C). Both partners' bands are read now that the user's own income
+// can be 'zero'.
+it('flags Marriage Allowance only for a non-earner paired with a basic-rate partner', function (string $income, string $spouseIncome, bool $eligible) {
+    $user = User::factory()->create([
+        'employment_status' => null, 'marital_status' => null, 'household_calculation_mode' => null,
+        'funnel_answers' => ['income' => $income, 'spouse' => 'yes', 'spouseIncome' => $spouseIncome],
+    ]);
+    (new FunnelAnswersMapper)->mapToProfile($user);
+
+    expect($user->fresh()->marriage_allowance_eligible)->toBe($eligible);
+})->with([
+    'spouse has none, user basic rate' => ['upto_50270', 'zero', true],
+    'user has none, spouse basic rate' => ['zero', 'upto_50270', true],
+    'neither has income' => ['zero', 'zero', false],
+    'spouse has none, user higher rate' => ['50271_100000', 'zero', false],
+    'both earn' => ['upto_50270', 'upto_50270', false],
+]);

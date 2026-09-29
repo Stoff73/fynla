@@ -1873,10 +1873,17 @@ final class OnboardingStateMachine
                 $conversations->push($conversation->id);
             }
 
+            // Only an onboarding turn has greeted them: a Fyn answer before the
+            // walk started (advice, a card's Ask Fyn) must not suppress it.
             return ! AiMessage::whereIn('conversation_id', $conversations->unique())
                 ->where('role', 'assistant')
+                ->whereNotNull('metadata->onboarding_step')
                 ->exists();
         } catch (\Throwable $e) {
+            // The greeting is optional; the turn must not fail for it, but the
+            // failure is reported rather than silently dropping the recap.
+            report($e);
+
             return false;
         }
     }

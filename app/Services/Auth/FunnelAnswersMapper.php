@@ -80,7 +80,15 @@ class FunnelAnswersMapper
             && is_string($spouseIncome) && $spouseIncome !== '') {
             $spouseWorks = $spouseIncome !== 'zero';
             $user->household_calculation_mode = $spouseWorks ? 'dual_earner' : 'single_earner_couple';
-            $user->marriage_allowance_eligible = ! $spouseWorks;
+            // Marriage Allowance: the one transferring has income below the
+            // Personal Allowance and the partner pays tax at the basic rate
+            // (gov.uk/marriage-allowance; ITA 2007 s55B, s55C). In funnel bands
+            // that is one partner with no income and the other in the band up
+            // to the higher-rate threshold. The user's own income can now be
+            // 'zero' too, so both sides are read.
+            $userIncome = $funnel['income'] ?? null;
+            $user->marriage_allowance_eligible = ($spouseIncome === 'zero' && $userIncome === 'upto_50270')
+                || ($userIncome === 'zero' && $spouseIncome === 'upto_50270');
             $dirty = true;
         }
 

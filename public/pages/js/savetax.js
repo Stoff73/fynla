@@ -52,7 +52,10 @@
   // SaveTax run 29 Sep 2026, L9). Navigation still walks sequence().
   var COUNTED_STEPS = ['employment', 'income', 'spouse', 'assets'];
   function totalSteps() { return COUNTED_STEPS.length; }
-  function stepIndex()  { return COUNTED_STEPS.indexOf(current === 'spouse-income' ? 'spouse' : current); }
+  // The partner's income and employment screens are part of the spouse
+  // question, so they keep its number rather than dropping out of the count.
+  var SPOUSE_SCREENS = ['spouse-income', 'spouse-employment'];
+  function stepIndex()  { return COUNTED_STEPS.indexOf(SPOUSE_SCREENS.indexOf(current) !== -1 ? 'spouse' : current); }
 
   var backBtn      = document.getElementById('qr-back-btn');
   var continueBtn  = document.getElementById('qr-continue-btn');

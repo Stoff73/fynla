@@ -441,7 +441,7 @@ try {
 
   </div><!-- /.qr-card -->
 
-  <script src="/pages/js/savetax.js?v=9" defer></script>
+  <script src="/pages/js/savetax.js?v=10" defer></script>
   <!-- Cookie consent — direct funnel entry must still surface the prompt here. -->
   <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 </body>
