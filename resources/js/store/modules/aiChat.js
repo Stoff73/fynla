@@ -32,6 +32,11 @@ function entityWriteMessage(event) {
     };
 }
 
+// A turn queued behind a lock this client does not hold is streamed once the
+// lock frees, retried on the /m schedule (onboardingChat.js streamQueuedReply).
+const QUEUED_STREAM_ATTEMPTS = 8;
+const QUEUED_STREAM_BACKOFF_MS = 1500;
+
 /**
  * One message shape for a Fyn structured capture-form turn (property, etc.),
  * used by all four stream paths. `form` is the schema object the renderer
@@ -590,6 +595,9 @@ const actions = {
      */
     async sendMessage({ commit, dispatch, state, rootState }, arg) {
         if (!state.currentConversation) return;
+        // Whether this client is already streaming a turn it will finish (and
+        // pop the queue behind), before this send flips `streaming` on.
+        const alreadyStreaming = state.streaming;
 
         // One send path for both a typed message and a structured form
         // answer: `arg` is a string (today) or `{ form }` (a capture_form
@@ -662,6 +670,11 @@ const actions = {
             if (reader && reader.queued) {
                 commit('SET_MESSAGE_STATUS', { id: tempId, status: 'queued', realId: reader.messageId });
                 commit('SET_STREAMING', false);
+                // Queued behind a turn this client is not streaming — another
+                // tab, or one whose connection dropped (the server finishes it
+                // regardless) — so nothing here would ever pop the queue.
+                // Stream it once the lock frees, as /m does.
+                if (!alreadyStreaming) dispatch('streamNextQueued');
                 return;
             }
             if (reader && reader.rejected) {
@@ -1053,7 +1066,7 @@ const actions = {
      * (the user can cancel it) rather than risk dropping the director's rich
      * bubble events through this advice-focused consumer.
      */
-    async streamNextQueued({ commit, dispatch, state, rootState }) {
+    async streamNextQueued({ commit, dispatch, state, rootState }, attempt = 0) {
         if (!state.currentConversation || state.streaming || state.isOnboardingActive) return;
 
         const queued = state.messages.find((m) => m.status === 'queued');
@@ -1208,6 +1221,13 @@ const actions = {
             streamedToCompletion = !interrupted;
         } catch (error) {
             if (error.name === 'AbortError') return;
+            // The previous turn still holds the conversation lock: put the turn
+            // back in the queue and try again shortly (the /m backoff: 8 x 1.5s).
+            if (error.status === 409 && attempt < QUEUED_STREAM_ATTEMPTS - 1) {
+                commit('SET_MESSAGE_STATUS', { id: queued.id, status: 'queued' });
+                setTimeout(() => dispatch('streamNextQueued', attempt + 1), QUEUED_STREAM_BACKOFF_MS);
+                return;
+            }
             // aiChatService already redirected to login (handleAuthExpiry) —
             // don't overwrite that with an error banner.
             if (error.authExpired) return;

@@ -238,6 +238,22 @@ describe('the chat stream', function (): void {
         expect($frames->pluck('type')->all())->toBe(['thinking', 'content', 'done']);
     });
 
+    it('finishes the turn, and so frees its lock, when the client drops', function () use ($advice): void {
+        $conversation = $advice(function (): Generator {
+            yield ['type' => 'content', 'text' => 'Here is the answer.'];
+        });
+        $before = ignore_user_abort(false);
+
+        try {
+            test()->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['message' => 'Hello'])->streamedContent();
+
+            expect(ignore_user_abort())->toBe(1)
+                ->and(Cache::lock('fyn:inflight:'.$conversation->id, 1)->get())->toBeTrue();
+        } finally {
+            ignore_user_abort((bool) $before);
+        }
+    });
+
     it('never adds a second terminal frame to a turn that ended properly', function () use ($advice): void {
         $conversation = $advice(function (): Generator {
             yield ['type' => 'content', 'text' => 'Here is the answer.'];

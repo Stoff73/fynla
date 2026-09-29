@@ -930,6 +930,14 @@ class AiChatController extends Controller
     ): void {
         $terminated = false;
 
+        // A client that drops mid-turn must not strand the turn: PHP would abort
+        // the script at the next write and skip the callers' `finally`, leaving
+        // the conversation's in-flight lock held for its full TTL, so the user's
+        // "Try again" would only queue behind a turn nobody is streaming. The
+        // turn runs to its end instead (the tool loop still stops early on
+        // connection_aborted(), S0.11.2) and the lock is released.
+        ignore_user_abort(true);
+
         try {
             // The entry-point gate already confirmed consent for this request,
             // so the loop starts valid and re-queries only after the interval.

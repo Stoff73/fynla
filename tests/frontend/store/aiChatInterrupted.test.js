@@ -115,6 +115,42 @@ describe('an interrupted Fyn turn on web', () => {
     expect(localState.retryTurn).toBeNull();
   });
 
+  it('streams a turn queued behind a lock this client does not hold', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue({ queued: true, messageId: 31 });
+    const { localState, dispatch, context } = harness();
+
+    await aiChat.actions.sendMessage(context, 'How does the tax trap work?');
+
+    expect(localState.messages[0].status).toBe('queued');
+    expect(dispatch).toHaveBeenCalledWith('streamNextQueued');
+  });
+
+  it('leaves a turn queued behind its own in-flight stream to that stream', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue({ queued: true, messageId: 32 });
+    const { localState, dispatch, context } = harness();
+    localState.streaming = true;
+
+    await aiChat.actions.sendMessage(context, 'And the pension?');
+
+    expect(dispatch).not.toHaveBeenCalledWith('streamNextQueued');
+  });
+
+  it('puts a queued turn back and retries while the lock is still held', async () => {
+    vi.useFakeTimers();
+    const busy = Object.assign(new Error('Queued-turn stream failed: 409'), { status: 409 });
+    aiChatService.streamQueuedMessage.mockRejectedValue(busy);
+    const { localState, dispatch, context } = harness();
+    localState.messages = [{ id: 31, role: 'user', content: 'How does the tax trap work?', status: 'queued' }];
+
+    await aiChat.actions.streamNextQueued(context);
+
+    expect(localState.messages[0].status).toBe('queued');
+    expect(localState.error).toBeNull();
+    vi.advanceTimersByTime(1500);
+    expect(dispatch).toHaveBeenCalledWith('streamNextQueued', 1);
+    vi.useRealTimers();
+  });
+
   it('"Try again" drops the first bubble and sends the same question', async () => {
     const { localState, dispatch, context } = harness();
     localState.messages = [{ id: 'temp_1', role: 'user', content: 'How does the tax trap work?' }];
