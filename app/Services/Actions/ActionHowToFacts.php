@@ -239,7 +239,8 @@ final class ActionHowToFacts
     private function accountFacts(User $user, array &$facts, array &$text): void
     {
         $savings = $this->savings->forUser($user)->where('user_id', $user->id);
-        $cashIsa = $savings->first(fn ($a) => $a->is_isa && $a->isa_type !== 'lifetime');
+        // A child's Junior ISA is theirs, never "your Cash ISA" (live 2026-09-29).
+        $cashIsa = $savings->first(fn ($a) => $a->is_isa && $a->isa_type !== 'lifetime' && ! $a->isJuniorIsa());
         $lifetime = $savings->first(fn ($a) => $a->is_isa && $a->isa_type === 'lifetime');
 
         $investments = InvestmentAccount::query()

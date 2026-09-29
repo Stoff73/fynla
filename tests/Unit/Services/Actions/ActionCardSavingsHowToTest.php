@@ -93,3 +93,31 @@ it('knows when the user\'s ISA allowance is used and names their children, for t
         ->and($facts['has_children'])->toBeTrue()
         ->and($text['children'])->toBe('Emma');
 });
+
+it('never calls a child\'s Junior ISA the user\'s Cash ISA', function () {
+    // Live on fynla.org 2026-09-29: "You can add to your Cash ISA with Vanguard"
+    // for the Carters, whose only Vanguard ISA is Oliver's Junior ISA.
+    $user = zeroRateSaver();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_name' => "Oliver's Junior ISA", 'institution' => 'Vanguard',
+        'account_type' => 'junior_isa', 'is_isa' => true, 'isa_type' => null,
+        'current_balance' => 2800, 'interest_rate' => 0, 'ownership_type' => 'individual', 'joint_owner_id' => null,
+    ]);
+
+    ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, []);
+
+    expect($facts['has_cash_isa'])->toBeFalse()
+        ->and($text)->not->toHaveKey('cash_isa');
+});
+
+it('gives a list row the same topic as its card, so no engine bucket like "Lifecycle" shows', function () {
+    // Live on fynla.org 2026-09-29: the actions list read "Savings · Lifecycle"
+    // and "Estate Planning · Warning" after the card itself was fixed (#965).
+    $user = zeroRateSaver();
+    $item = collect(app(NextActionsService::class)->buildAll($user->id))
+        ->first(fn (array $i): bool => ($i['card']['definition_key'] ?? null) === 'zero_rate_account');
+
+    expect(strtolower((string) $item['card']['category']))->toBe('lifecycle')
+        ->and($item['meta'])->toBe('')
+        ->and($item['meta'])->toBe((string) ActionCardService::topicFor($item['card']['category']));
+});
