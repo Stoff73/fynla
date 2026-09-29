@@ -7,7 +7,7 @@
 
 Brett completed both registrations and codes by hand; everything else was driven by Claude. No code changes were made.
 
-**Update, 29 September 2026:** C1 is fixed in [Stoff73/fynla#969](https://github.com/Stoff73/fynla/pull/969) and H1 in [Stoff73/fynla#961](https://github.com/Stoff73/fynla/pull/961). Both are open against `dev` and not yet on production. See [Fixes since the run](#fixes-since-the-run).
+**Update, 29 September 2026:** C1 is fixed in [Stoff73/fynla#969](https://github.com/Stoff73/fynla/pull/969), H1 in [Stoff73/fynla#961](https://github.com/Stoff73/fynla/pull/961) and H2 in [Stoff73/fynla#983](https://github.com/Stoff73/fynla/pull/983). All three are open against `dev` and not yet on production. See [Fixes since the run](#fixes-since-the-run).
 
 ## Verdict
 
@@ -53,7 +53,7 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 | # | Where | What happened | Evidence |
 |---|---|---|---|
 | H1 | `/m` sign out, then invite link | After Sam signed out on `/m`, opening the spouse invite link `/register?invite=…` landed on "Sign in — Welcome back". The desktop SPA inside the `/m` frame still held Sam's `sessionStorage.auth_token`, treated the user as signed in, bounced the guest-only `/register` towards the dashboard, which handed off to `/m/app`, which (correctly logged out) showed the mobile login. The token itself is revoked server-side (`GET /api/auth/user` → 401), so this is not a security hole. Clearing the stale token made the invite page render correctly. Affects anyone who signs out on `/m` and then taps "Create an account" or opens an invite on the same phone. | Frame `sessionStorage` keys after sign-out: `["auth_token"]`; `resources/js/router/index.js` handoff guard at ~1658. **Fixed in [#961](https://github.com/Stoff73/fynla/pull/961)**, not yet deployed. |
-| H2 | `fynla.org/m/savetax` | 404 "Oh no, we messed up!". The working mobile entry is `/savetax`, which redirects to `/m?to=/savetax`. | Direct navigation. |
+| H2 | `fynla.org/m/savetax` | 404 "Oh no, we messed up!". The working mobile entry is `/savetax`, which redirects to `/m?to=/savetax`. | Direct navigation. **Fixed in [#983](https://github.com/Stoff73/fynla/pull/983)**, not yet deployed. |
 
 ### Medium
 
@@ -136,6 +136,26 @@ I COULD NOT TEST THIS: a live Fyn conversation. The spouse's turn was the exact 
 Automated tests: 7 new Vitest tests (`resources/js/__tests__/storedSessionPolicy.spec.js`, `resources/mobile/__tests__/logoutClearsFramedDesktop.spec.js`). The `/m` test fails on the old code. The full frontend suite passes: 166 files, 1481 tests.
 
 **Still to do:** re-run the spouse invite step on production once #961 is released, to confirm the invitee lands on the registration form after the primary user signs out on the same phone.
+
+### H2: `/m/savetax` showed the 404 page
+
+**Status:** fixed in [Stoff73/fynla#983](https://github.com/Stoff73/fynla/pull/983), branch `fix/m-savetax-404`, open against `dev`. Not yet on csjones or production.
+
+**Cause.** The phone redirect skips every path under `/m/` on purpose (`app/Http/Middleware/RedirectPhoneToMobile.php`, `EXCLUDED_PREFIXES`), and no `/m/savetax` route existed. The request fell through to the app's catch-all route and rendered its 404 page.
+
+**Fix.** A new route in `routes/web.php` sends a campaign or account path typed under `/m/` to that page inside `/m`: `/m/savetax` goes to `/m?to=/savetax`, the same place a phone opening `/savetax` already goes. The query string is kept, so tracking tags survive. It covers every campaign (`savetax`, `pensioncheck`, `biggerpension`, `paymortgage`, `managedebt`, `wealth`) plus `/m/register` and `/m/login`. The paths it matches are built from the same allowlists the redirect uses (`RedirectPhoneToMobile::framablePathPattern()`), so any other `/m/` path behaves as before.
+
+**Verification** (local server from the fix branch, 375 x 812):
+
+| Step | Result |
+|---|---|
+| Opened `/m/savetax?utm_source=h2check` | Sent to `/m?to=%2Fsavetax%3Futm_source%3Dh2check`; the frame shows the SaveTax questionnaire, "1 of 4 What is your employment status?" |
+| Tapped "Full time employed" | Moved to "2 of 4 What is your annual income?" |
+| Opened `/m/savetaxevil` | Not redirected (unchanged behaviour) |
+
+Automated tests: 2 new Pest tests in `tests/Feature/Mobile/MobileScaffoldTest.php`. The first fails on the old code (the 404 page returned 200 instead of redirecting). `tests/Feature/Mobile` plus `SpouseInvitationRegistrationTest`: 120 passed, run on a private test database because other local sessions were using the shared one at the same time.
+
+**Still to do:** open `fynla.org/m/savetax` on a phone once #983 is released.
 
 ## What works well
 
