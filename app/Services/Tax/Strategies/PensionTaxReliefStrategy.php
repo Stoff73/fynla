@@ -42,15 +42,13 @@ final class PensionTaxReliefStrategy implements TaxStrategy
 
         // Net income (after net-pay contributions) against bands extended by
         // relief-at-source payments, both from IncomeDefinitionsService.
+        // The plan prices the pension first (CSJ 2026-09-29, #993), so no
+        // other item's sheltered interest is taken off before it.
         $taxable = $this->math->taxableIncomeFor($user);
-        // Interest an ISA wrap or spouse gift in the same plan already takes
-        // out of taxed income leaves the higher-rate slice with it.
-        $taxable = max(0.0, $taxable - $context->interestShelteredElsewhere);
 
         $taperThreshold = (float) ($this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'] ?? 0);
-        // Above the threshold the tax-trap item owns the pension relief; it
-        // hands over here if sheltered interest alone brings income below it.
-        if ($this->math->adjustedNetIncomeFor($user) - $context->interestShelteredElsewhere > $taperThreshold) {
+        // Above the threshold the tax-trap item owns the pension relief.
+        if ($this->math->adjustedNetIncomeFor($user) > $taperThreshold) {
             return [];
         }
 
@@ -77,14 +75,14 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $band = $this->math->bandFromIncomeFor($user, $taxable);
         $contribution = $band === 'higher'
             ? min(
-                $this->higherRateSlice($user, $taxable, $this->math->bandThresholdsFor($user)['higher'], $context->interestShelteredElsewhere),
+                $this->higherRateSlice($user, $taxable, $this->math->bandThresholdsFor($user)['higher']),
                 $availableAA,
                 $earnings - $this->math->grossEmployeePensionContributions($user),
             )
             : min(
                 $earnings * self::BASIC_RATE_SHARE_OF_EARNINGS - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
                 $availableAA,
-                $this->basicRateTaxedIncome($user, $taxable, $context->interestShelteredElsewhere),
+                $this->basicRateTaxedIncome($user, $taxable),
             );
 
         // Down, never up: rounding up would relieve tax the user does not pay.
@@ -150,7 +148,7 @@ final class PensionTaxReliefStrategy implements TaxStrategy
 
         $basic = $this->math->bandRateForBand('basic');
         $atSource = round($gross * (float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'], 2);
-        $saving = round($this->math->reliefAtSourceSaving($user, $gross, $context->interestShelteredElsewhere), 2);
+        $saving = round($this->math->reliefAtSourceSaving($user, $gross), 2);
         $net = $gross - $atSource;
         $claim = $saving - $atSource >= 1
             ? sprintf(' You claim the other £%s back through Self Assessment.', number_format((int) floor($saving - $atSource)))
@@ -183,10 +181,10 @@ final class PensionTaxReliefStrategy implements TaxStrategy
      * taxed at the dividend rates (s8), never the higher rate, so they are
      * left out: the slice can only understate, never overstate, the relief.
      */
-    private function higherRateSlice(User $user, float $taxable, float $limit, float $sheltered): float
+    private function higherRateSlice(User $user, float $taxable, float $limit): float
     {
         $parts = $this->math->incomePartsFor($user);
-        $interest = max(0.0, $parts['interest'] - $sheltered);
+        $interest = $parts['interest'];
         $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
         $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
         $allowanceLeft = max(0.0, $this->math->psaForBand('higher') - ($interest - $interestAbove));
@@ -201,10 +199,10 @@ final class PensionTaxReliefStrategy implements TaxStrategy
      * Allowance (s12B). Dividends are taxed at the dividend rate (s8), not the
      * basic rate, so relief on them is not claimed here.
      */
-    private function basicRateTaxedIncome(User $user, float $taxable, float $sheltered): float
+    private function basicRateTaxedIncome(User $user, float $taxable): float
     {
         $parts = $this->math->incomePartsFor($user);
-        $interest = max(0.0, $parts['interest'] - $sheltered);
+        $interest = $parts['interest'];
         $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
         $allowance = $this->math->personalAllowanceFor($user);
         $nonSavingsAbove = max(0.0, $nonSavings - $allowance);
