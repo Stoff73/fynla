@@ -89,7 +89,7 @@ class SaveTaxEstimateService
         // the Personal Savings Allowance that already covers it (ITA 2007
         // s12B), at the marginal rate. No line when nothing is taxed.
         if ($hasFinancial) {
-            $isaAssumed = (int) round($income * 0.10);
+            $isaAssumed = (int) round($income * $this->isaAssumedSavingsShare());
             $store = app(SavingsMarketRateStore::class);
             $benchmark = (float) ($store->findByKeyAndTaxYear('easy_access', (string) $store->latestTaxYear())?->rate ?? 0);
             $taxedInterest = max(0.0, $isaAssumed * $benchmark - $this->personalSavingsAllowance($income));
@@ -779,6 +779,16 @@ class SaveTaxEstimateService
             $band,
             config('onboarding.savetax_over_band_assumed_income')
         );
+    }
+
+    private function isaAssumedSavingsShare(): float
+    {
+        $share = config('onboarding.savetax_isa_assumed_savings_share');
+        if (! is_numeric($share) || (float) $share <= 0 || (float) $share > 1) {
+            throw new LogicException('Invalid onboarding.savetax_isa_assumed_savings_share configuration.');
+        }
+
+        return (float) $share;
     }
 
     private function taxNumber(string $path): float

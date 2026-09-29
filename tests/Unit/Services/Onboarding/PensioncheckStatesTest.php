@@ -7,9 +7,12 @@ use App\Models\AiConversation;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine as SM;
+use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -963,4 +966,60 @@ it('gives no advice during onboarding — every advice state is skipped straight
 it('the investments prompt no longer asks for purchase cost or dividends', function (): void {
     $prompt = (string) (SM::getState(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)['prompt_text'] ?? '');
     expect($prompt)->not->toContain('purchase cost')->not->toContain('dividend')->toContain('current value');
+});
+
+// ── Pension Check recap income bands come from the tax configuration (Rule 2) ──
+
+function pensioncheckRecapFor(array $funnel): string
+{
+    $user = pensioncheckUser([
+        'first_name' => 'Lara',
+        'annual_employment_income' => null,
+        'annual_self_employment_income' => null,
+        'funnel_answers' => array_merge(['campaign' => 'pensioncheck'], $funnel),
+    ]);
+
+    return SM::buildWorkPrompt('', $user, pensioncheckConversation($user));
+}
+
+it('recaps each Pension Check income band in its existing wording, for the user and the spouse', function (string $band, string $phrase): void {
+    $text = pensioncheckRecapFor(['income' => $band, 'spouse' => 'yes', 'spouseIncome' => $band]);
+
+    expect($text)->toContain('- '.ucfirst($phrase)."\n")
+        ->and($text)->toContain('- You have a spouse or civil partner '.$phrase);
+})->with([
+    'up to the higher-rate threshold' => ['upto_50270', 'earning up to £50,270'],
+    'higher-rate band' => ['50271_100000', 'earning £50,271 to £100,000'],
+    'Personal Allowance taper' => ['100001_125140', 'earning £100,001 to £125,140'],
+    'above the taper' => ['over_125140', 'earning above £125,140'],
+]);
+
+it('omits the Pension Check income line for an unknown or no-income band', function (): void {
+    $text = pensioncheckRecapFor(['income' => 'nonsense', 'spouse' => 'yes', 'spouseIncome' => 'zero']);
+
+    expect($text)->not->toContain('earning')
+        ->and($text)->toContain("- You have a spouse or civil partner\n");
+});
+
+it('moves the Pension Check recap figures when the configured thresholds move', function (): void {
+    $this->seed(TaxConfigurationSeeder::class);
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['income_tax']['higher_rate_threshold'] = 60000;
+    $data['income_tax']['personal_allowance_taper_threshold'] = 110000;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+
+    // Taper end = taper threshold + Personal Allowance / taper rate, from config.
+    $taperEnd = (int) round(110000 + $data['income_tax']['personal_allowance'] / $data['income_tax']['personal_allowance_taper_rate']);
+    $money = static fn (int $n): string => '£'.number_format($n);
+
+    expect(pensioncheckRecapFor(['income' => 'upto_50270']))->toContain('- Earning up to £60,000')
+        ->and(pensioncheckRecapFor(['income' => '50271_100000']))->toContain('- Earning £60,001 to £110,000')
+        ->and(pensioncheckRecapFor(['income' => '100001_125140']))->toContain('- Earning £110,001 to '.$money($taperEnd))
+        ->and(pensioncheckRecapFor(['income' => 'over_125140', 'spouse' => 'yes', 'spouseIncome' => 'over_125140']))
+        ->toContain('- Earning above '.$money($taperEnd))
+        ->toContain('- You have a spouse or civil partner earning above '.$money($taperEnd))
+        ->not->toContain('50,270')
+        ->not->toContain('125,140');
 });

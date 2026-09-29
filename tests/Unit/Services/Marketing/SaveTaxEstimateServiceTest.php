@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\TaxConfiguration;
 use App\Services\Marketing\SaveTaxEstimateService;
 use App\Services\TaxConfigService;
+use Database\Seeders\SavingsMarketRatesSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 
 /**
@@ -696,4 +697,36 @@ it('counts the allowances available beside the total', function () {
     expect($result['allowances']['count'])->toBe(count($result['allowances']['items']))
         ->and($result['allowances']['available_count'])->toBe(collect($result['allowances']['items'])->where('state', 'available')->count())
         ->and($result['allowances']['available_count'])->toBeGreaterThan(0);
+});
+
+it('sizes the ISA line from the named savings-share assumption, not a literal', function () {
+    $this->seed(SavingsMarketRatesSeeder::class);
+    $answers = ['income' => 'over_125140', 'assets' => ['savings']];
+    $income = (int) config('onboarding.savetax_over_band_assumed_income');
+    $isaReason = function (array $result): ?string {
+        foreach ($result['savings'] as $line) {
+            if ($line['key'] === 'isa') {
+                return $line['reason'];
+            }
+        }
+
+        return null;
+    };
+
+    // The shipped assumption: savings worth 10% of income (figure unchanged).
+    expect(config('onboarding.savetax_isa_assumed_savings_share'))->toBe(0.10)
+        ->and($isaReason($this->service->estimate($answers)))
+        ->toContain('£'.number_format((int) round($income * 0.10)).' of savings');
+
+    config()->set('onboarding.savetax_isa_assumed_savings_share', 0.20);
+
+    expect($isaReason($this->service->estimate($answers)))
+        ->toContain('£'.number_format((int) round($income * 0.20)).' of savings');
+});
+
+it('fails closed when the ISA savings-share assumption is not a share', function () {
+    config()->set('onboarding.savetax_isa_assumed_savings_share', null);
+
+    expect(fn () => $this->service->estimate(['income' => '50271_100000', 'assets' => ['savings']]))
+        ->toThrow(LogicException::class);
 });

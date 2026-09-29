@@ -114,6 +114,18 @@ final class FunnelIncomeBand
         ];
     }
 
+    /**
+     * Recap phrase in the funnel page's own option wording ("earning £50,271
+     * to £100,000", "earning above £125,140"), for a recap that echoes the
+     * option as the page showed it. Empty for zero and unknown keys.
+     */
+    public static function pageRecapLabel(string $key): string
+    {
+        $label = self::isKnown($key) ? (self::pageLabels()[$key] ?? '') : '';
+
+        return $label === '' ? '' : 'earning '.lcfirst($label);
+    }
+
     public static function assumedIncome(string $key, mixed $overBandAssumption = null): int
     {
         if (! self::isKnown($key)) {
