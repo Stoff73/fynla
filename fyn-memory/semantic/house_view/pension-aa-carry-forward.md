@@ -51,7 +51,7 @@ stronger first claim.
 
 ## How firmly to state it
 
-Fixed arithmetic: the unused allowance, the earnings cap, and the relief all
+Worked from your figures: the unused allowance, the earnings cap, and the relief all
 follow from recorded history and published rules, so Fyn states the working
 directly — the unused total across the window, why the usable amount is
 smaller, and what the recommended contribution saves. Voicing is candid about

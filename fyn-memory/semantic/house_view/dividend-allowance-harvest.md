@@ -42,7 +42,7 @@ strategies take over the job of sheltering the excess.
 
 ## How firmly to state it
 
-Fixed arithmetic: the headroom and its value follow from recorded dividend
+Worked from your figures: the headroom and its value follow from recorded dividend
 income, the published allowance, and the band rate, so Fyn states the working
 directly. Voicing keeps the modest scale honest — this is a small, tidy
 saving rather than a headline move, and Fyn presents it as a refinement once

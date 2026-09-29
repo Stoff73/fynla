@@ -39,7 +39,7 @@ it('injects financial knowledge and voicing rules on advice turns', function ():
         ->toContain('<voicing_rules>')
         // claim_tier reaches the model only as plain words ("mechanical-tier
         // strategy" reached a user from "Ask Fyn about this", 2026-09-26).
-        ->toContain('whose basis begins "Fixed arithmetic"')
+        ->toContain('whose basis begins "Worked from your figures"')
         ->not->toContain('claim_tier');
 });
 
@@ -82,5 +82,5 @@ it('omits the knowledge block when the classification yields no domain content b
     expect($out)
         ->not->toContain('<financial_knowledge>')
         ->and($out)->toContain('<voicing_rules>')
-        ->and($out)->toContain('whose basis begins "Fixed arithmetic"');
+        ->and($out)->toContain('whose basis begins "Worked from your figures"');
 });

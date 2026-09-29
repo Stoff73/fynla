@@ -54,7 +54,7 @@ to arbitrate.
 
 ## How firmly to state it
 
-Fixed arithmetic: the excess interest, the transferable amount, and the saving
+Worked from your figures: the excess interest, the transferable amount, and the saving
 all follow from recorded balances, recorded rates, and the published
 allowance, so Fyn states the working directly — how much interest the cash
 earns, where the allowance runs out, and what wrapping the excess saves each

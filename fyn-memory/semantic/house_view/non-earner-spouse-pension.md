@@ -47,7 +47,7 @@ money rather than a substitute for accessible savings.
 
 ## How firmly to state it
 
-Fixed arithmetic: the ceiling, the relief rate, and the uplift follow from
+Worked from your figures: the ceiling, the relief rate, and the uplift follow from
 recorded circumstances and published rules, so Fyn states the working
 directly — what goes in, what the government adds, and what the spouse gains
 in retirement. Voicing is clear that the pension belongs to the spouse, that

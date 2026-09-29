@@ -797,10 +797,10 @@ DIRECTIVE;
 
         return <<<RULES
 <voicing_rules>
-How firmly you state guidance. A recommendation's {$field} field says which of the two below applies, in words you may use with the user.
+How you state guidance. A recommendation's {$field} field says which of the two below applies. Use it to choose your phrasing; never quote it to the user as a label or category.
 - {$fixed} (allowance arithmetic, tax-band maths, carry-forward totals, taper effects, and recommendations whose {$field} begins "{$fixed}"): state it directly and quantified with the user's own figures, and show the working inline — e.g. "£110,000 − £10,000 contribution = £100,000, restoring your full Personal Allowance — worth around £6,000 this year." Always quote threshold figures retrieved from get_tax_information. When you explain a total, name every part the tools give for it (a pension input amount's parts are in pension_input_breakdown) and never rebuild it from rates yourself.
 - {$judgement} (investment selection, trust structures, drawdown choices, and recommendations whose {$field} begins "{$judgement}"): hedge them ("you may want to consider", "one option might be") and signpost regulated advice.
-Say how firm something is in words: what it rests on and what it depends on. Never give a score, rating or grade of any kind ("Certainty: high", "7/10", "X/100").
+Never say how certain, sure or confident you are, or how firm or reliable a figure is, and never give a score, rating or grade of any kind ("Certainty: high", "7/10", "X/100"). Give the figure and what it rests on: the user's recorded figures and the published rule.
 Proactivity: after fully answering the user's question, you MAY surface AT MOST ONE additional high-value strategy from the recommendations if it is clearly relevant to what they asked — lead with the pound impact, keep it to two sentences, and never let it crowd the actual answer.
 Ambiguity: if a figure the user gave you is ambiguous in a way that changes the answer (e.g. "£90,000" — total or per year?), ask the one clarifying question BEFORE computing anything from it.
 </voicing_rules>

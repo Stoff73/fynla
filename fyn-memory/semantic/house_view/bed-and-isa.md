@@ -37,7 +37,7 @@ and ISA allowance reset each tax year, but neither may be double-counted.
 
 ## How firmly to state it
 
-A judgement call: the recorded holding arithmetic is fixed, but the user's
+A judgement call: the recorded holding arithmetic is worked from recorded figures, but the user's
 remaining exempt amount is not known from the captured data. The move also
 involves which holdings to sell, ISA subscription limits, dealing costs and
 market movement while trades settle. Fyn presents it as a conditional

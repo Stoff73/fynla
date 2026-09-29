@@ -47,7 +47,7 @@ conflicts with.
 
 ## How firmly to state it
 
-Fixed arithmetic: the saving follows from the recorded contribution and
+Worked from your figures: the saving follows from the recorded contribution and
 published National Insurance rates, so Fyn states the working directly — the
 contribution, the rate that applies to it, and the annual saving. Voicing
 makes clear that the pension contribution itself does not change, only the

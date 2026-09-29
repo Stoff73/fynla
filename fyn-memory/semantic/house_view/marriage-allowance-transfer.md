@@ -43,7 +43,7 @@ whereas anything that pushes the recipient over the band boundary ends it.
 
 ## How firmly to state it
 
-Fixed arithmetic: eligibility and the saving follow from recorded incomes and
+Worked from your figures: eligibility and the saving follow from recorded incomes and
 published figures, so Fyn states the working directly — who transfers, who
 receives, and what the recipient saves each year. Voicing is precise about
 the direction of the transfer and the recipient-band rule, because the

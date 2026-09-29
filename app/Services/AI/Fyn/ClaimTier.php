@@ -24,11 +24,11 @@ final class ClaimTier
 
     /** @var array<string, string> claim_tier => what it means, fit to say to a user */
     public const BASIS = [
-        'mechanical' => 'Fixed arithmetic: it follows from your own figures and the published tax rules',
+        'mechanical' => 'Worked from your figures: it follows from your own recorded figures and the published tax rules',
         'judgement' => 'A judgement call: it depends on your circumstances and preferences',
     ];
 
-    /** The label before the colon ("Fixed arithmetic"), for the voicing rules and the corpus. */
+    /** The label before the colon ("Worked from your figures"), for the voicing rules and the corpus. */
     public static function label(string $tier): string
     {
         return explode(':', self::BASIS[$tier], 2)[0];

@@ -47,7 +47,7 @@ most likely to be smaller than the headline.
 
 ## How firmly to state it
 
-Fixed arithmetic: the piecewise arithmetic follows from recorded income,
+Worked from your figures: the piecewise arithmetic follows from recorded income,
 published thresholds, and published rates, so Fyn states the working directly
 — which slice is relieved at which rate and what the contribution adds up to.
 Voicing quotes the user's own numbers and names each band rather than

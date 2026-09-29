@@ -31,7 +31,7 @@ it('replaces claim_tier at any depth with the plain basis, and drops an unknown 
 it('rewrites a fetched JSON block and leaves other text alone', function (): void {
     $json = (string) json_encode(['composed_tax_plan' => ['items' => [['claim_tier' => 'mechanical']]]]);
 
-    expect(ClaimTier::forModelJson($json))->toContain('Fixed arithmetic')->not->toContain('claim_tier')
+    expect(ClaimTier::forModelJson($json))->toContain('Worked from your figures')->not->toContain('claim_tier')
         ->and(ClaimTier::forModelJson('plain text'))->toBe('plain text');
 });
 
@@ -45,7 +45,7 @@ it('builds the voicing rules from the same words the model sees in the data', fu
 
     expect($out)->toContain('whose basis begins "'.ClaimTier::label('mechanical').'"')
         ->toContain('whose basis begins "'.ClaimTier::label('judgement').'"')
-        ->toContain('Never give a score, rating or grade')
+        ->toContain('Never say how certain, sure or confident you are')
         ->not->toContain('claim_tier')
         ->not->toMatch('/mechanical/i');
 });

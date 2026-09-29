@@ -29,6 +29,7 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\AuditChainService;
 use App\Services\AI\Cost\AiCostCalculator;
+use App\Services\AI\Fyn\CertaintyFilter;
 use App\Services\AI\Fyn\ClaimTier;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynPromptMode;
@@ -579,6 +580,9 @@ trait HasAiChat
             $toolUseBlocks = [];
             $stopReason = 'end_turn';
             $iterationText = '';
+            // Rule 12 (CSJ 2026-09-29): the model's text reaches every surface, and
+            // the stored reply, without any sentence stating certainty.
+            $certaintyFilter = new CertaintyFilter;
 
             try {
                 if ($isXai) {
@@ -620,9 +624,12 @@ trait HasAiChat
                                 // Strip dangerous HTML tags from AI output
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
-                                $iterationText .= $text;
-                                $fullResponse .= $text;
-                                yield ['type' => 'content', 'text' => $text];
+                                $text = $certaintyFilter->push($text);
+                                if ($text !== '') {
+                                    $iterationText .= $text;
+                                    $fullResponse .= $text;
+                                    yield ['type' => 'content', 'text' => $text];
+                                }
                             }
 
                             // Tool call deltas (OpenAI streams these with index)
@@ -671,6 +678,13 @@ trait HasAiChat
                         // usage shape exposes cached-read tokens only; there is
                         // no separate cache-creation tier, so cache-miss stays 0
                         // for xAI turns (costed as regular input below).
+                    }
+
+                    $tail = $certaintyFilter->flush();
+                    if ($tail !== '') {
+                        $iterationText .= $tail;
+                        $fullResponse .= $tail;
+                        yield ['type' => 'content', 'text' => $tail];
                     }
 
                     // Build content blocks from accumulated text
@@ -758,9 +772,12 @@ trait HasAiChat
                                     $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
                                     $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
                                     $currentTextBlock .= $text;
-                                    $iterationText .= $text;
-                                    $fullResponse .= $text;
-                                    yield ['type' => 'content', 'text' => $text];
+                                    $text = $certaintyFilter->push($text);
+                                    if ($text !== '') {
+                                        $iterationText .= $text;
+                                        $fullResponse .= $text;
+                                        yield ['type' => 'content', 'text' => $text];
+                                    }
                                 }
                             } elseif ($event->delta instanceof InputJSONDelta) {
                                 $accumulatedToolJson .= $event->delta->partialJSON ?? '';
@@ -783,6 +800,13 @@ trait HasAiChat
                             $stopReason = $event->delta->stopReason ?? $stopReason;
                             $totalOutputTokens += $event->usage->outputTokens ?? 0;
                         }
+                    }
+
+                    $tail = $certaintyFilter->flush();
+                    if ($tail !== '') {
+                        $iterationText .= $tail;
+                        $fullResponse .= $tail;
+                        yield ['type' => 'content', 'text' => $tail];
                     }
                 }
             } catch (\Exception $e) {

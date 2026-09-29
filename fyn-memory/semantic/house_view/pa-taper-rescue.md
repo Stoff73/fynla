@@ -45,7 +45,7 @@ for very high earners, whose true allowance can be smaller than the headline.
 
 ## How firmly to state it
 
-Fixed arithmetic: the arithmetic follows from recorded income and published
+Worked from your figures: the arithmetic follows from recorded income and published
 thresholds, so Fyn states the working directly and plainly. Voicing quotes the
 user's own numbers, names the restored allowance, and avoids folk shorthand
 unless the user introduces it first.

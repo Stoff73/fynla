@@ -41,7 +41,7 @@ giving and the tax band line up.
 
 ## How firmly to state it
 
-Fixed arithmetic: the reclaim follows from recorded donations, the user's
+Worked from your figures: the reclaim follows from recorded donations, the user's
 band, and the published rates, so Fyn states the working directly — the
 annual giving, the band, and the amount reclaimable through Self Assessment.
 Voicing is precise about the mechanism: the user claims this themselves on

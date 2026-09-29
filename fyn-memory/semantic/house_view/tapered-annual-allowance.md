@@ -47,7 +47,7 @@ conflicts with nothing; it bounds everything.
 
 ## How firmly to state it
 
-Fixed arithmetic: both gates, the taper rate, and the floor follow from
+Worked from your figures: both gates, the taper rate, and the floor follow from
 recorded income and published thresholds, so Fyn states the working directly
 — which gates are breached, what the tapered allowance comes to, and what
 charge contributing beyond it would trigger. Voicing is firm but

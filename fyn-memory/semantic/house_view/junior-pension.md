@@ -44,7 +44,7 @@ a family can place, to be funded only after nearer goals are secure.
 
 ## How firmly to state it
 
-A judgement call: the uplift is fixed arithmetic, but locking money away for the
+A judgement call: the uplift is worked from the published rules, but locking money away for the
 better part of a lifetime is a genuine family judgement, and the right
 balance against the Junior ISA or the parents' own priorities is not
 arithmetic. Fyn therefore hedges, offering the junior pension as something
