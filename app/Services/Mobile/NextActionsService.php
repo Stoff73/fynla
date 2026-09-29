@@ -8,6 +8,7 @@ use App\Constants\GateRoutes;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
+use App\Services\Actions\ActionCardService;
 use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
@@ -372,7 +373,10 @@ class NextActionsService
                 'detail' => $detail,
                 'meta' => $benefit !== null
                     ? 'You could save £'.number_format($benefit)
-                    : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
+                    // The card's one topic rule (ActionCardService::topicFor): an
+                    // engine bucket such as "lifecycle" or "warning" is not a topic.
+                    // Always a string, never null — the native dashboard decodes it strictly.
+                    : (string) ActionCardService::topicFor(isset($rec['category']) ? (string) $rec['category'] : null),
                 // The one ranking (PriorityRanker via the aggregator, Batch B): a pound
                 // benefit is copy for the meta line, never the sort key.
                 'value' => (float) ($rec['priority_score'] ?? 50),
@@ -434,16 +438,6 @@ class NextActionsService
         $detail = isset($parts[1]) ? trim($parts[1]) : '';
 
         return [$title !== '' ? $title : $text, $detail !== '' ? $detail : null];
-    }
-
-    /**
-     * Human-readable category label, preserving "ISA" casing (Rule #9).
-     */
-    private function categoryLabel(string $category): string
-    {
-        $label = ucwords(str_replace('_', ' ', $category));
-
-        return preg_replace('/\bIsa\b/', 'ISA', $label) ?? $label;
     }
 
     /**

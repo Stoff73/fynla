@@ -24,7 +24,7 @@ struct ActionsListView: View {
                         }
                         ForEach(Array(list.open.enumerated()), id: \.element.id) { index, item in
                             Button { onRoute(.actionCard(id: item.id)) } label: {
-                                row(number: index + 1, title: item.title, meta: [item.moduleLabel, item.meta].compactMap { $0 }.joined(separator: " · "))
+                                row(number: index + 1, title: item.title, meta: [item.moduleLabel, item.meta].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("actions.row.\(item.id)")
