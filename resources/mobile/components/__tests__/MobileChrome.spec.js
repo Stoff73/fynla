@@ -21,7 +21,7 @@ vi.mock('../../navigation/webHandoff.js', () => ({
   issueWebHandoff: vi.fn(),
 }));
 
-import { apiStream } from '../../api.js';
+import { apiGet, apiPost, apiStream } from '../../api.js';
 import { issueWebHandoff } from '../../navigation/webHandoff.js';
 import MobileChrome from '../MobileChrome.vue';
 import Dashboard from '../../views/Dashboard.vue';
@@ -277,5 +277,75 @@ describe('on-page onboarding actions by step', () => {
     await buttons[0].trigger('click');
     expect(openSpy).toHaveBeenCalled();
     expect(sendSpy).not.toHaveBeenCalled();
+  });
+});
+
+// M6 (live fynla.org /m, 2026-09-29): the docked Fyn bar on every module screen
+// resumes the conversation already under way this session, instead of
+// greeting afresh; a contextual launch still opens its own conversation.
+describe('MobileChrome.vue — M6: resuming the current conversation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiStream.mockResolvedValue({ ok: true, status: 200, text: '' });
+    store.token = 'live-token';
+    store.subscriptionStatus = { tier: 'free', payment_enabled: false };
+    store.user = { id: 7, first_name: 'Jo', onboarding_completed: true, onboarding_fyn_step: null, onboarding_fyn_needs_start: false, active_campaign: null };
+    store.setFynConversation(null);
+  });
+
+  it('opening the dock resumes the conversation this session was in', async () => {
+    store.setFynConversation('conv-9');
+    apiGet.mockImplementation((path) => Promise.resolve(path === '/api/ai-chat/conversations/conv-9'
+      ? { ok: true, status: 200, data: { data: { messages: [
+        { role: 'user', content: 'How much can I put in my pension?', metadata: {} },
+        { role: 'assistant', content: 'Here is how the annual allowance works.', metadata: {} },
+      ] } } }
+      : { ok: true, status: 200, data: { data: {} } }));
+    const wrapper = mountChrome();
+    await flushPromises();
+
+    await wrapper.vm.openFyn();
+
+    expect(wrapper.vm.conversationId).toBe('conv-9');
+    expect(wrapper.vm.messages.map((m) => m.text)).toEqual([
+      'How much can I put in my pension?',
+      'Here is how the annual allowance works.',
+    ]);
+    apiGet.mockImplementation(() => Promise.resolve({ ok: true, status: 200, data: { data: {} } }));
+  });
+
+  it('a contextual launch opens its own conversation, not the stored one', async () => {
+    store.setFynConversation('conv-9');
+    apiPost.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: { data: { conversation: { id: 'conv-ctx' }, opening_message: { role: 'assistant', content: 'Which account would you like to change?' } } },
+    });
+    const request = {
+      action: 'edit',
+      resource_type: 'savings',
+      current_destination: { screen: 'savings', params: {}, fallback: 'dashboard' },
+      origin: { kind: 'surface_action', recommendation_id: null },
+    };
+    const wrapper = mountChrome({ contextualRequest: request });
+    await flushPromises();
+
+    await wrapper.vm.openContextualFyn(request);
+    await flushPromises();
+
+    expect(wrapper.vm.conversationId).toBe('conv-ctx');
+    expect(apiGet).not.toHaveBeenCalledWith('/api/ai-chat/conversations/conv-9', expect.anything());
+    expect(wrapper.vm.messages[0].text).toBe('Which account would you like to change?');
+    expect(store.currentFynConversationId()).toBe('conv-ctx');
+  });
+
+  it('signing out clears the conversation so the next person on the device cannot resume it', async () => {
+    store.setFynConversation('conv-9');
+    const wrapper = mountChrome();
+
+    await wrapper.vm.signOut();
+
+    expect(store.currentFynConversationId()).toBeNull();
+    expect(window.sessionStorage.getItem('m_fyn_conversation')).toBeNull();
   });
 });

@@ -4,6 +4,39 @@ import { apiGet, apiPost } from './api.js';
 
 const KEY = 'm_scaffold_token';
 
+// The Fyn conversation the user is in during this session (M6, 2026-09-29).
+// /m has no <keep-alive>, so the chat's component state dies on every route
+// change; the id lives here so the dashboard chat and every screen's docked
+// Fyn bar resume the same conversation instead of greeting afresh. Per session
+// only (sessionStorage — survives a reload of this tab, never a new session),
+// bound to the user it belongs to, and cleared on logout so another person
+// signing in on the device never sees it.
+const FYN_CONVERSATION_KEY = 'm_fyn_conversation';
+
+function readFynConversation() {
+  try {
+    const raw = window.sessionStorage.getItem(FYN_CONVERSATION_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && parsed.id ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeFynConversation(value) {
+  try {
+    if (value) window.sessionStorage.setItem(FYN_CONVERSATION_KEY, JSON.stringify(value));
+    else window.sessionStorage.removeItem(FYN_CONVERSATION_KEY);
+  } catch {
+    /* storage blocked (private mode) — the in-memory copy still serves this session */
+  }
+}
+
+// The /api/auth/user payload has been read three ways over time; one reader.
+export function userFromResponse(res) {
+  return res?.data?.data?.user || res?.data?.user || res?.data?.data || null;
+}
+
 /**
  * True while Fyn's onboarding verify flow has sent the user to a module
  * screen to check a section. Module screens hide their planning cards for
@@ -18,6 +51,7 @@ export const store = reactive({
   token: localStorage.getItem(KEY) || null,
   user: null,
   subscriptionStatus: null,
+  fynConversation: readFynConversation(),
   // Gamification (shared engine — GET /api/gamification/status). The banked
   // climb is a RANGE: every level above celebrateFrom, up to celebrateTo, is
   // owed and gets spent on the dashboard hero circle. The full-screen
@@ -71,6 +105,37 @@ export const store = reactive({
     try { localStorage.removeItem(DESKTOP_STATE_KEY); } catch { /* storage disabled */ }
     this.user = null;
     this.subscriptionStatus = null;
+    this.setFynConversation(null);
+  },
+  setFynConversation(id) {
+    const value = id ? { id, userId: this.user?.id ?? null } : null;
+    this.fynConversation = value;
+    writeFynConversation(value);
+  },
+  // The conversation to resume, or null. A stored id that belongs to another
+  // user is never handed back.
+  currentFynConversationId() {
+    const current = this.fynConversation;
+    if (!current?.id) return null;
+    const userId = this.user?.id ?? null;
+    if (current.userId != null && userId != null && current.userId !== userId) return null;
+    return current.id;
+  },
+  // Re-read the signed-in user from the server. The Fyn stream changes the
+  // onboarding flags server-side (completion, the first step being assigned),
+  // and a snapshot fetched at login would otherwise keep reporting the old
+  // state for the rest of the session.
+  async refreshUser() {
+    const token = this.token;
+    if (!token) return this.user;
+    try {
+      const res = await apiGet('/api/auth/user', token);
+      const user = res?.ok ? userFromResponse(res) : null;
+      if (user && this.token === token) this.user = user;
+    } catch {
+      /* non-fatal — the locally mirrored flags stand until the next fetch */
+    }
+    return this.user;
   },
   // Pull the latest gamification status. A climb banked while the user was
   // elsewhere is surfaced here so it delivers on next open.

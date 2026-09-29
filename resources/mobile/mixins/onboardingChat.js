@@ -20,6 +20,7 @@ import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
 import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
 import { renderFynText } from '../utils/fynText.js';
+import { FYN_INTERRUPTED_MESSAGE, isDroppedConnection } from '../utils/fynStream.js';
 import {
   loadMobileSubscriptionStatus,
   shouldShowMobileUpgrade,
@@ -44,7 +45,20 @@ export default {
       fynStarted: false,
       transcriptLoadError: '',
       transcriptFallbackDestination: null,
+      // Set when a stream changed the user's onboarding state server-side;
+      // settleUserSnapshot() re-reads the user once that stream has ended.
+      userRefreshPending: false,
     };
+  },
+  watch: {
+    // Every way a conversation becomes the one on screen (onboarding start or
+    // resume, the first advice message, a contextual launch, a conversation
+    // opened from history) sets conversationId. Recording it here, in one
+    // place, is what lets the next screen's chat resume it (M6). A reset to
+    // null is always followed by the next id, so null is not recorded.
+    conversationId(id) {
+      if (id) store.setFynConversation(id);
+    },
   },
   computed: {
     // Onboarding is "active" only when explicitly not completed (null/undefined
@@ -146,6 +160,37 @@ export default {
       return loaded ? conversationId : null;
     },
 
+    // Resume the conversation this session was last in (M6). /m has no
+    // <keep-alive>, so leaving a screen destroys the chat; without this the
+    // next open greeted afresh in an empty chat and the conversation looked
+    // lost. Reloads the persisted transcript through openConversation — the
+    // same path Conversation History uses. Returns true when a conversation is
+    // now on screen (or a 401 has already sent the user to login); false when
+    // there is nothing to resume, so the caller greets as before.
+    async resumeCurrentConversation() {
+      if (this.conversationId) return true;
+      const id = store.currentFynConversationId();
+      if (!id) return false;
+      if (await this.openConversation(id)) return true;
+      if (!store.token) return true;
+      // The stored conversation could not be loaded (deleted, or no longer
+      // this user's): forget it and fall back to the greeting.
+      store.setFynConversation(null);
+      this.resetConversationState();
+      this.fynStarted = true;
+      return false;
+    },
+
+    // Keep store.user truthful after a stream that changed the onboarding
+    // state server-side. Called once the stream has ENDED: the director writes
+    // the completion columns after it emits onboarding_complete and done, so a
+    // re-read mid-stream could still see the old state.
+    settleUserSnapshot() {
+      if (!this.userRefreshPending) return;
+      this.userRefreshPending = false;
+      store.refreshUser();
+    },
+
     async retryTranscript() {
       if (!this.conversationId) return false;
       return this.loadTranscript(this.conversationId);
@@ -163,6 +208,10 @@ export default {
       if (this.skipOnboardingForPreview()) return;
       this.sending = true;
       this.resumeId = null;
+      // A first start assigns the user's first step server-side, which ends
+      // onboarding_fyn_needs_start. Re-read the user afterwards, or the stale
+      // flag re-opens Fyn on every dashboard visit this session (M6).
+      const neededStart = store.user?.onboarding_fyn_needs_start === true;
       const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
       this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
@@ -175,6 +224,10 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.handleAuthExpiry(result)) return;
+        if (neededStart && this.conversationId) {
+          if (store.user) store.user.onboarding_fyn_needs_start = false;
+          this.userRefreshPending = true;
+        }
         if (this.resumeId) {
           if (await this.streamFynAction(this.resumeId, 'resume', cursor)) return;
         }
@@ -195,6 +248,7 @@ export default {
         cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
       } finally {
         this.sending = false;
+        this.settleUserSnapshot();
         this.$nextTick(this.scrollFyn);
       }
     },
@@ -297,6 +351,9 @@ export default {
           text: m.content || '',
           bubbles,
           actionBubbles: Boolean(metadata.action_bubbles),
+          // A multi-select step (M4) restores as one: chips toggle, the
+          // submit bubble sends every pick (FynBubbles.vue).
+          multiSelect: metadata.multi_select === true,
           ...(captureForm ? { form: { schema: captureForm, errors: null, answers: metadata.capture_form_values || null, record: metadata.capture_form_record || null, locked: false } } : {}),
         };
       });
@@ -339,8 +396,11 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.handleAuthExpiry(result)) return true;
-      } catch {
-        if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+        if (result && result.interrupted) this.markInterrupted(cursor, { action });
+      } catch (error) {
+        if (isDroppedConnection(error)) {
+          this.markInterrupted(cursor, { action });
+        } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
         }
       }
@@ -361,6 +421,7 @@ export default {
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
       } finally {
         this.sending = false;
+        this.settleUserSnapshot();
         this.$nextTick(this.scrollFyn);
       }
     },
@@ -431,10 +492,16 @@ export default {
         // pill on the tax-strategy screen after the terminal. The terminal
         // also clears active_campaign server-side — mirror that too, or a
         // re-entrant's pills would keep rendering until the next user fetch.
+        // Nothing is left to start either: clear needs_start with it, or the
+        // dashboard re-opens Fyn on every visit for the rest of the session
+        // (M6, 2026-09-29). Then re-read the user once the stream ends, as web
+        // does (aiChat.js onboarding_complete, then auth/fetchUser).
         if (store.user) {
           store.user.onboarding_completed = true;
           store.user.active_campaign = null;
+          store.user.onboarding_fyn_needs_start = false;
         }
+        this.userRefreshPending = true;
         return;
       }
       if (ev.type === 'level_up') {
@@ -608,12 +675,17 @@ export default {
         // actions, not onboarding answers — flag them so chooseBubble routes
         // them to the action endpoint instead of sending the label as a message.
         cursor.reply.actionBubbles = ev.action_bubbles === true;
+        cursor.reply.multiSelect = ev.multi_select === true;
         this.$nextTick(this.scrollFyn);
       }
     },
 
     chooseBubble(bubble, message) {
       if (this.sending || !bubble) return;
+      if (bubble.retry) {
+        this.retryInterruptedTurn(bubble.retry, message);
+        return;
+      }
       if (bubble.id === 'subscription_options') {
         if (store.subscriptionStatus && !shouldShowMobileUpgrade(store.subscriptionStatus)) return;
         if (message && message.bubbles) message.bubbles = [];
@@ -685,13 +757,20 @@ export default {
         // instead of showing a false failure while the message sits queued.
         if (result && result.queued) {
           if (await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor)) return;
+        } else if (result && result.interrupted) {
+          cursor.interrupted = true;
         }
         this.finalizeCaptureReply(cursor);
         // A saved form changes the record the screen behind the chat shows. The
         // edit-form path confirms in plain text with no entity event (the write
         // happens after form_received), so the end of an unrefused form turn is
-        // the signal (Edit employer benefits on /m Protection, 2026-09-29).
+        // the signal (Edit employer benefits on /m Protection, 2026-09-29). An
+        // interrupted turn may still have saved, so refetch before handling it.
         if (form && !cursor.formRefused && !cursor.refreshed) store.bumpScreenRefresh();
+        if (cursor.interrupted) {
+          this.markInterrupted(cursor, { text, form });
+          return;
+        }
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble responding just now.';
         } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length) && !cursor.reply.form) {
@@ -705,10 +784,12 @@ export default {
         if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
         // Celebrate AFTER the reply has rendered (the level_up frame arrives
         // after `done`), so the fireworks never interrupt Fyn mid-reply.
-      } catch {
-        cursor.reply.text = 'Sorry, something went wrong. Please try again.';
+      } catch (error) {
+        if (isDroppedConnection(error)) this.markInterrupted(cursor, { text, form });
+        else cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
         this.sending = false;
+        this.settleUserSnapshot();
         this.$nextTick(this.scrollFyn);
       }
     },
@@ -741,12 +822,41 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.handleAuthExpiry(res)) return true;
+        if (res && res.interrupted && res.status !== 409) cursor.interrupted = true;
         if (!res || res.status !== 409) return false; // streamed (or a real error — send() falls back)
         await new Promise((resolve) => { setTimeout(resolve, 1500); });
       }
       cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
       cursor.got = true;
       return false;
+    },
+
+    // The stream closed without the frame every turn ends with (see
+    // utils/fynStream.js), so whatever streamed is not an answer — often just
+    // Fyn's "let me look that up" before a tool ran. Say so plainly and offer
+    // the turn again, as a bubble so both Fyn views render it unchanged.
+    markInterrupted(cursor, retry) {
+      cursor.got = true;
+      cursor.reply.text = FYN_INTERRUPTED_MESSAGE;
+      cursor.reply.bubbles = [{ id: 'fyn_retry', label: 'Try again', retry }];
+      cursor.reply.form = null;
+      this.$nextTick(this.scrollFyn);
+    },
+
+    // "Try again" on an interrupted turn: drop the cut-off reply (and the
+    // question it answered, which is asked again) and run the same turn.
+    retryInterruptedTurn(retry, message) {
+      const idx = this.messages.indexOf(message);
+      if (idx !== -1) {
+        const prev = this.messages[idx - 1];
+        const dropQuestion = !retry.action && prev && prev.role === 'user';
+        this.messages.splice(dropQuestion ? idx - 1 : idx, dropQuestion ? 2 : 1);
+      }
+      if (retry.action) {
+        this.runFynAction(retry.action);
+        return;
+      }
+      this.send(retry.text, retry.form || null);
     },
 
     appendFynText(cursor, piece) {

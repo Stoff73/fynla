@@ -178,7 +178,10 @@ const aiChatService = {
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');
-            throw new Error(`Queued-turn stream failed: ${response.status} ${errorText}`);
+            const error = new Error(`Queued-turn stream failed: ${response.status} ${errorText}`);
+            // 409 = the previous turn still holds the conversation lock.
+            error.status = response.status;
+            throw error;
         }
 
         if (!response.body) {

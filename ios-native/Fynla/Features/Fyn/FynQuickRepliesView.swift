@@ -1,25 +1,33 @@
 import SwiftUI
 
 // Transcribes /m's onboarding bubble choices (md-fyn__bubble): wrapped row of
-// white pills with a raspberry border and raspberry label.
+// white pills with a raspberry border and raspberry label. On a multi-select
+// step (M4) a picked pill is filled raspberry with a white, bolder label
+// (md-fyn__bubble--selected) — colour and weight only, no tick or icon
+// (Rule 15) — and VoiceOver reads it as selected.
 struct FynQuickRepliesView: View {
     let replies: [FynReply]
+    var multiSelect: Bool = false
+    var selectedIDs: [String] = []
     let onReply: (FynReply) -> Void
 
     var body: some View {
         BubbleFlowLayout(spacing: 8) {
             ForEach(replies) { reply in
+                let toggleable = multiSelect && FynMultiSelect.isToggleable(reply)
+                let selected = toggleable && selectedIDs.contains(reply.id)
                 Button(reply.label) { onReply(reply) }
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                    .font(.system(size: 13, weight: selected ? .bold : .semibold))
+                    .foregroundStyle(selected ? Color.white : FynlaColor.Token.raspberry500.color)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .background(Color.white)
+                    .background(selected ? FynlaColor.Token.raspberry500.color : Color.white)
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
                             .stroke(FynlaColor.Token.raspberry500.color, lineWidth: 1)
                     )
+                    .accessibilityAddTraits(selected ? .isSelected : [])
                     .accessibilityIdentifier("fyn.reply.\(reply.id)")
             }
         }
