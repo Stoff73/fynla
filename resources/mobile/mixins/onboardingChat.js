@@ -20,6 +20,7 @@ import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
 import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
 import { renderFynText } from '../utils/fynText.js';
+import { FYN_INTERRUPTED_MESSAGE } from '../utils/fynStream.js';
 import {
   loadMobileSubscriptionStatus,
   shouldShowMobileUpgrade,
@@ -339,6 +340,7 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.handleAuthExpiry(result)) return true;
+        if (result && result.interrupted) this.markInterrupted(cursor, { action });
       } catch {
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
@@ -607,6 +609,10 @@ export default {
 
     chooseBubble(bubble, message) {
       if (this.sending || !bubble) return;
+      if (bubble.retry) {
+        this.retryInterruptedTurn(bubble.retry, message);
+        return;
+      }
       if (bubble.id === 'subscription_options') {
         if (store.subscriptionStatus && !shouldShowMobileUpgrade(store.subscriptionStatus)) return;
         if (message && message.bubbles) message.bubbles = [];
@@ -678,8 +684,14 @@ export default {
         // instead of showing a false failure while the message sits queued.
         if (result && result.queued) {
           if (await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor)) return;
+        } else if (result && result.interrupted) {
+          cursor.interrupted = true;
         }
         this.finalizeCaptureReply(cursor);
+        if (cursor.interrupted) {
+          this.markInterrupted(cursor, { text, form });
+          return;
+        }
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble responding just now.';
         } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length) && !cursor.reply.form) {
@@ -729,12 +741,41 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.handleAuthExpiry(res)) return true;
+        if (res && res.interrupted && res.status !== 409) cursor.interrupted = true;
         if (!res || res.status !== 409) return false; // streamed (or a real error — send() falls back)
         await new Promise((resolve) => { setTimeout(resolve, 1500); });
       }
       cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
       cursor.got = true;
       return false;
+    },
+
+    // The stream closed without the frame every turn ends with (see
+    // utils/fynStream.js), so whatever streamed is not an answer — often just
+    // Fyn's "let me look that up" before a tool ran. Say so plainly and offer
+    // the turn again, as a bubble so both Fyn views render it unchanged.
+    markInterrupted(cursor, retry) {
+      cursor.got = true;
+      cursor.reply.text = FYN_INTERRUPTED_MESSAGE;
+      cursor.reply.bubbles = [{ id: 'fyn_retry', label: 'Try again', retry }];
+      cursor.reply.form = null;
+      this.$nextTick(this.scrollFyn);
+    },
+
+    // "Try again" on an interrupted turn: drop the cut-off reply (and the
+    // question it answered, which is asked again) and run the same turn.
+    retryInterruptedTurn(retry, message) {
+      const idx = this.messages.indexOf(message);
+      if (idx !== -1) {
+        const prev = this.messages[idx - 1];
+        const dropQuestion = !retry.action && prev && prev.role === 'user';
+        this.messages.splice(dropQuestion ? idx - 1 : idx, dropQuestion ? 2 : 1);
+      }
+      if (retry.action) {
+        this.runFynAction(retry.action);
+        return;
+      }
+      this.send(retry.text, retry.form || null);
     },
 
     appendFynText(cursor, piece) {

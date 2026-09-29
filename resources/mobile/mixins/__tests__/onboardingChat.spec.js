@@ -488,3 +488,73 @@ describe('edit forms', () => {
     expect(cursor.reply.form.record).toEqual({ type: 'savings_account', id: 7 });
   });
 });
+
+// L3-2 (fynla.org /m, 29 Sep 2026, conversation 940): the stream closed after
+// "Let me pull the full details..." and the preamble stood as the answer, with
+// no error. An interrupted turn now says so and offers the same turn again.
+describe('onboardingChat mixin — interrupted turns', () => {
+  let wrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // clearAllMocks keeps one-shot values an earlier test queued but never used.
+    apiStream.mockReset();
+    apiStream.mockResolvedValue({ ok: true, status: 200, text: '' });
+    // An earlier block leaves fake timers installed.
+    vi.useRealTimers();
+    store.token = 'live-token';
+    store.user = { first_name: 'Jordan', onboarding_completed: true };
+    wrapper = mount(Host, {
+      global: { mocks: { $router: { push: vi.fn() }, $route: { path: '/dashboard', query: {} } } },
+    });
+    wrapper.vm.conversationId = 940;
+  });
+
+  it('replaces the cut-off preamble with the interrupted message and a Try again bubble', async () => {
+    apiStream.mockImplementationOnce(async (path, body, token, onDelta) => {
+      onDelta("I'll fetch the latest tax information. ");
+      return { ok: true, status: 200, text: '', interrupted: true };
+    });
+
+    await wrapper.vm.send('How does the tax trap work?');
+
+    const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
+    expect(reply.text).toBe('Sorry, my reply was cut off before I finished. Please try again.');
+    expect(reply.bubbles).toEqual([{ id: 'fyn_retry', label: 'Try again', retry: { text: 'How does the tax trap work?', form: null } }]);
+    expect(wrapper.vm.sending).toBe(false);
+  });
+
+  it('Try again asks the same question once more, without doubling it in the chat', async () => {
+    apiStream
+      .mockResolvedValueOnce({ ok: true, status: 200, text: '', interrupted: true })
+      .mockImplementationOnce(async (path, body, token, onDelta) => {
+        onDelta('Above £100,000 you lose £1 of allowance for every £2.');
+        return { ok: true, status: 200, text: '', interrupted: false };
+      });
+
+    await wrapper.vm.send('How does the tax trap work?');
+    const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
+    await wrapper.vm.chooseBubble(reply.bubbles[0], reply);
+    await new Promise((r) => { setTimeout(r, 0); });
+
+    expect(apiStream).toHaveBeenCalledTimes(2);
+    expect(apiStream.mock.calls[1][1]).toMatchObject({ message: 'How does the tax trap work?' });
+    expect(wrapper.vm.messages.map((m) => [m.role, m.text])).toEqual([
+      ['user', 'How does the tax trap work?'],
+      ['fyn', 'Above £100,000 you lose £1 of allowance for every £2.'],
+    ]);
+  });
+
+  it('leaves a finished turn alone', async () => {
+    apiStream.mockImplementationOnce(async (path, body, token, onDelta) => {
+      onDelta('Here is the answer.');
+      return { ok: true, status: 200, text: '', interrupted: false };
+    });
+
+    await wrapper.vm.send('Hello');
+
+    const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
+    expect(reply.text).toBe('Here is the answer.');
+    expect(reply.bubbles).toEqual([]);
+  });
+});

@@ -419,6 +419,8 @@ final class FynConversationModel {
             updateMessage(id: localID, delivery: .submitting)
         }
 
+        let messageCountBeforeReply = reduction.messages.count
+
         do {
             let id = try await ensureConversation()
             switch try await client.sendMessage(
@@ -448,6 +450,14 @@ final class FynConversationModel {
         } catch FynClientError.acceptanceUncertain {
             updateMessage(id: localID, delivery: .failed)
             phase = .acceptanceUncertain
+        } catch FynClientError.interrupted {
+            // A cut-off reply is not an answer: drop what streamed and offer
+            // the question again through the usual retry.
+            if reduction.messages.count > messageCountBeforeReply {
+                reduction.messages.removeSubrange(messageCountBeforeReply...)
+            }
+            updateMessage(id: localID, delivery: .failed)
+            handle(FynClientError.interrupted)
         } catch {
             updateMessage(id: localID, delivery: .failed)
             handle(error)
@@ -600,6 +610,8 @@ final class FynConversationModel {
             phase = .consentRequired
         case FynClientError.authExpired:
             phase = .sessionExpired
+        case FynClientError.interrupted:
+            phase = .failed("Sorry, my reply was cut off before I finished. Please try again.")
         case let FynClientError.contextualResourceUnavailable(destination):
             phase = .contextualResourceUnavailable(destination)
         case let FynClientError.unexpectedStatus(_, requestID):

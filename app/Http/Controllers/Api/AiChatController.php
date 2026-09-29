@@ -40,6 +40,14 @@ class AiChatController extends Controller
     /** Record-card events never shown mid-onboarding — see writeClientEvent(). */
     private const ONBOARDING_HIDDEN_RECORD_EVENTS = ['entity_created', 'entity_updated', 'entity_deleted', 'capture_complete'];
 
+    /**
+     * The frames a turn can end with — every stream ends with exactly one
+     * (see streamTurn). `resume` is the whole answer to /onboarding/start for
+     * a user already mid-flow. Mirrored for clients by FYN_TERMINAL_EVENTS in
+     * resources/mobile/utils/fynStream.js and FynEvent.isTerminal on iOS.
+     */
+    private const STREAM_TERMINAL_EVENTS = ['done', 'error', 'token_limit', 'consent_required', 'resume'];
+
     use SanitizedErrorResponse;
 
     public function __construct(
@@ -281,92 +289,22 @@ class AiChatController extends Controller
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form) {
             try {
-                $generator = $inOnboarding
-                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, true, $form)
-                    : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute);
-
-                // W1-L (REVIEW §4 High #23). The S0.9 contract requires the
-                // stream to terminate if the user withdraws ai_chat consent
-                // mid-flight (PUT /api/user/consents → consented=false). The
-                // pre-W1-L implementation queried `hasConsent` on every SSE
-                // event, which for token-streamed responses is ~50–100 queries
-                // per second per stream.
-                //
-                // We bound that to at most one query per
-                // `consent_recheck_interval_seconds` (default 2.0). The
-                // entry-point gate at line 149 already confirmed consent for
-                // this request, so we start the in-stream loop with
-                // `$consentValid = true` and only re-query after the interval
-                // elapses. Withdrawal latency is bounded by the interval —
-                // 2s is well within "without undue delay" (ICO guidance for
-                // GDPR Art. 7(3)) and imperceptible against the user gesture
-                // of toggling consent in another tab. Tests override via
-                // `config()->set('ai_chat.consent_recheck_interval_seconds', 0)`
-                // to assert the strict per-event behaviour.
-                $consentRecheckInterval = (float) config('ai_chat.consent_recheck_interval_seconds', 2.0);
-                $lastConsentCheckAt = microtime(true);
-                $consentValid = true;
-
-                foreach ($generator as $event) {
-                    $now = microtime(true);
-                    if ($now - $lastConsentCheckAt >= $consentRecheckInterval) {
-                        $consentValid = $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT);
-                        $lastConsentCheckAt = $now;
-                    }
-
-                    if (! $consentValid) {
-                        echo 'data: '.json_encode([
-                            'type' => 'consent_required',
-                            'required' => 'ai_chat',
-                        ])."\n\n";
-
-                        if (ob_get_level() > 0) {
-                            ob_flush();
-                        }
-                        flush();
-
-                        return;
-                    }
-
-                    $this->writeClientEvent($event, $inOnboarding);
-                }
-
-                $frame = self::levelUpFrame(
-                    app(LevelUpCollector::class),
-                    app(LevelService::class),
+                $this->streamTurn(
+                    fn () => $inOnboarding
+                        ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, true, $form)
+                        : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute),
                     $user,
-                );
-                if ($frame !== null) {
-                    echo 'data: '.json_encode($frame)."\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
-                }
-            } catch (\Exception $e) {
-                Log::error('[AiChatController] Streaming error', [
-                    'user_id' => $user->id,
-                    'conversation_id' => $conversation->id,
-                    'in_onboarding' => $inOnboarding,
-                    'error' => $e->getMessage(),
-                ]);
-
-                echo 'data: '.json_encode([
-                    'type' => 'error',
-                    'message' => 'An unexpected error occurred. Please try again.',
-                ])."\n\n";
-
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
-
-                // FR-M9 — a fatal mid-stream error leaves the turn unfinished;
-                // record a resumption so the next session can offer to pick it up.
-                $this->resumption->flag(
-                    $conversation,
-                    'fatal_error',
-                    'We hit a snag while answering last time — want to pick up where we left off?',
+                    hideRecordEvents: $inOnboarding,
+                    recheckConsent: true,
+                    failureMessage: 'An unexpected error occurred. Please try again.',
+                    logContext: ['stream' => 'message', 'conversation_id' => $conversation->id, 'in_onboarding' => $inOnboarding],
+                    // FR-M9 — a fatal mid-stream error leaves the turn unfinished;
+                    // record a resumption so the next session can offer to pick it up.
+                    onFailure: fn () => $this->resumption->flag(
+                        $conversation,
+                        'fatal_error',
+                        'We hit a snag while answering last time — want to pick up where we left off?',
+                    ),
                 );
             } finally {
                 // Eval trace hand-off (P0.1). The bypass-preview-mode token
@@ -457,68 +395,17 @@ class AiChatController extends Controller
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form) {
             try {
-                // persistUserMessage:false — the queued row IS the user turn.
-                $generator = $inOnboarding
-                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, false, $form)
-                    : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute, false);
-
-                $consentRecheckInterval = (float) config('ai_chat.consent_recheck_interval_seconds', 2.0);
-                $lastConsentCheckAt = microtime(true);
-                $consentValid = true;
-
-                foreach ($generator as $event) {
-                    $now = microtime(true);
-                    if ($now - $lastConsentCheckAt >= $consentRecheckInterval) {
-                        $consentValid = $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT);
-                        $lastConsentCheckAt = $now;
-                    }
-
-                    if (! $consentValid) {
-                        echo 'data: '.json_encode([
-                            'type' => 'consent_required',
-                            'required' => 'ai_chat',
-                        ])."\n\n";
-
-                        if (ob_get_level() > 0) {
-                            ob_flush();
-                        }
-                        flush();
-
-                        return;
-                    }
-
-                    $this->writeClientEvent($event, $inOnboarding);
-                }
-
-                $frame = self::levelUpFrame(
-                    app(LevelUpCollector::class),
-                    app(LevelService::class),
+                $this->streamTurn(
+                    // persistUserMessage:false — the queued row IS the user turn.
+                    fn () => $inOnboarding
+                        ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, false, $form)
+                        : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute, false),
                     $user,
+                    hideRecordEvents: $inOnboarding,
+                    recheckConsent: true,
+                    failureMessage: 'An unexpected error occurred. Please try again.',
+                    logContext: ['stream' => 'queued', 'conversation_id' => $conversation->id, 'message_id' => $queued->id],
                 );
-                if ($frame !== null) {
-                    echo 'data: '.json_encode($frame)."\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
-                }
-            } catch (\Exception $e) {
-                Log::error('[AiChatController] Queued-turn streaming error', [
-                    'user_id' => $user->id,
-                    'conversation_id' => $conversation->id,
-                    'message_id' => $queued->id,
-                    'error' => $e->getMessage(),
-                ]);
-
-                echo 'data: '.json_encode([
-                    'type' => 'error',
-                    'message' => 'An unexpected error occurred. Please try again.',
-                ])."\n\n";
-
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
             } finally {
                 app(EvalTraceCollector::class)->persistForConversation($conversation->id);
 
@@ -866,39 +753,24 @@ class AiChatController extends Controller
         $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
 
         return new StreamedResponse(function () use ($user, $conversation, $startStateId) {
-            // Emit the conversation id first so the frontend can route
-            // subsequent /messages calls to this specific conversation.
-            $firstEvent = [
-                'type' => 'conversation_created',
-                'conversation_id' => $conversation->id,
-                'title' => $conversation->title,
-            ];
-            echo 'data: '.json_encode($firstEvent)."\n\n";
-            if (ob_get_level() > 0) {
-                ob_flush();
-            }
-            flush();
-
-            try {
-                foreach ($this->onboardingDirector->emitFirstTurn($user, $conversation, $startStateId) as $event) {
-                    $this->writeClientEvent($event, true);
-                }
-            } catch (\Exception $e) {
-                Log::error('[AiChatController] Onboarding start error', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage(),
-                ]);
-
-                echo 'data: '.json_encode([
-                    'type' => 'error',
-                    'message' => 'Onboarding is temporarily unavailable. Please try again.',
-                ])."\n\n";
-
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
-            }
+            $this->streamTurn(
+                function () use ($user, $conversation, $startStateId): \Generator {
+                    // The conversation id first, so the frontend can route
+                    // subsequent /messages calls to this specific conversation.
+                    yield [
+                        'type' => 'conversation_created',
+                        'conversation_id' => $conversation->id,
+                        'title' => $conversation->title,
+                    ];
+                    yield from $this->onboardingDirector->emitFirstTurn($user, $conversation, $startStateId);
+                },
+                $user,
+                hideRecordEvents: true,
+                recheckConsent: false,
+                failureMessage: 'Onboarding is temporarily unavailable. Please try again.',
+                logContext: ['stream' => 'onboarding_start', 'conversation_id' => $conversation->id],
+                levelUp: false,
+            );
         }, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
@@ -963,8 +835,8 @@ class AiChatController extends Controller
         $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
-            try {
-                $generator = $inOnboarding
+            $this->streamTurn(
+                fn () => $inOnboarding
                     ? $this->onboardingDirector->handleAction($user, $conversation, $action)
                     : (function () {
                         // Post-onboarding currently has no action semantics beyond
@@ -975,42 +847,13 @@ class AiChatController extends Controller
                             'text' => "I'm not sure what to do with that right now.",
                         ];
                         yield ['type' => 'done'];
-                    })();
-
-                foreach ($generator as $event) {
-                    $this->writeClientEvent($event, true);
-                }
-
-                $frame = self::levelUpFrame(
-                    app(LevelUpCollector::class),
-                    app(LevelService::class),
-                    $user,
-                );
-                if ($frame !== null) {
-                    echo 'data: '.json_encode($frame)."\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
-                }
-            } catch (\Exception $e) {
-                Log::error('[AiChatController] Action streaming error', [
-                    'user_id' => $user->id,
-                    'conversation_id' => $conversation->id,
-                    'action' => $action,
-                    'error' => $e->getMessage(),
-                ]);
-
-                echo 'data: '.json_encode([
-                    'type' => 'error',
-                    'message' => 'The action could not be completed. Please try again.',
-                ])."\n\n";
-
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
-            }
+                    })(),
+                $user,
+                hideRecordEvents: true,
+                recheckConsent: false,
+                failureMessage: 'The action could not be completed. Please try again.',
+                logContext: ['stream' => 'action', 'conversation_id' => $conversation->id, 'action' => $action],
+            );
         }, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
@@ -1053,6 +896,86 @@ class AiChatController extends Controller
                     'fallback_destination' => GateRoutes::destination($fallbackScreen),
                 ],
             ], 410);
+        }
+    }
+
+    /**
+     * The one home for streaming a Fyn turn (Rule 20) — every chat stream,
+     * message, queued turn, onboarding start and action, runs through here:
+     *
+     *   - the in-stream ai_chat consent recheck (W1-L, REVIEW §4 High #23),
+     *     bounded to one query per `consent_recheck_interval_seconds`;
+     *   - every turn ends with exactly one terminal frame (STREAM_TERMINAL_EVENTS).
+     *     A turn whose generator returns without one gets `done`; a turn that
+     *     throws ANYTHING — including a PHP \Error such as a TypeError inside a
+     *     tool, which `catch (\Exception)` used to let through — gets `error`.
+     *     Clients read a stream that closes with neither as cut off
+     *     (resources/mobile/utils/fynStream.js), which is what a PHP fatal or a
+     *     timeout still looks like (L3-2, conversation 940, 29 Sep 2026);
+     *   - the gamification `level_up` frame, strictly after the terminal frame.
+     *
+     * @param  \Closure(): iterable<array<string, mixed>>  $turn  builds the turn's generator; called inside the guard so a failure building it is caught too
+     * @param  array<string, mixed>  $logContext
+     * @param  (\Closure(): void)|null  $onFailure
+     */
+    private function streamTurn(
+        \Closure $turn,
+        User $user,
+        bool $hideRecordEvents,
+        bool $recheckConsent,
+        string $failureMessage,
+        array $logContext,
+        ?\Closure $onFailure = null,
+        bool $levelUp = true,
+    ): void {
+        $terminated = false;
+
+        try {
+            // The entry-point gate already confirmed consent for this request,
+            // so the loop starts valid and re-queries only after the interval.
+            // Tests override the interval to 0 for strict per-event behaviour.
+            $consentRecheckInterval = (float) config('ai_chat.consent_recheck_interval_seconds', 2.0);
+            $lastConsentCheckAt = microtime(true);
+
+            foreach ($turn() as $event) {
+                if ($recheckConsent && microtime(true) - $lastConsentCheckAt >= $consentRecheckInterval) {
+                    $lastConsentCheckAt = microtime(true);
+                    if (! $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT)) {
+                        $this->writeClientEvent(['type' => 'consent_required', 'required' => 'ai_chat'], false);
+
+                        return;
+                    }
+                }
+
+                $this->writeClientEvent($event, $hideRecordEvents);
+                $terminated = $terminated || in_array($event['type'] ?? null, self::STREAM_TERMINAL_EVENTS, true);
+            }
+
+            if (! $terminated) {
+                $this->writeClientEvent(['type' => 'done'], false);
+                $terminated = true;
+            }
+
+            if ($levelUp) {
+                $frame = self::levelUpFrame(app(LevelUpCollector::class), app(LevelService::class), $user);
+                if ($frame !== null) {
+                    $this->writeClientEvent($frame, false);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('[AiChatController] Streaming error', $logContext + [
+                'user_id' => $user->id,
+                'exception' => $e::class,
+                'error' => $e->getMessage(),
+            ]);
+
+            if (! $terminated) {
+                $this->writeClientEvent(['type' => 'error', 'message' => $failureMessage], false);
+            }
+
+            if ($onFailure !== null) {
+                $onFailure();
+            }
         }
     }
 

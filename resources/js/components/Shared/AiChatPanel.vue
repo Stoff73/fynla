@@ -303,6 +303,13 @@
         class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700"
       >
         {{ error }}
+        <button
+          v-if="retryTurn"
+          type="button"
+          class="block mt-2 font-semibold underline hover:text-raspberry-800"
+          data-testid="fyn-retry-turn"
+          @click="retryInterruptedTurn"
+        >Try again</button>
       </div>
 
       <!-- Bottom scroll spacer — reserves room so the latest user bubble
@@ -497,6 +504,7 @@ export default {
             'loading',
             'loadingConversations',
             'error',
+            'retryTurn',
             'tokenLimitReached',
             'secondsUntilReset',
             'showHistory',
@@ -876,6 +884,7 @@ export default {
             'loadConversation',
             'deleteConversation',
             'sendMessage',
+            'retryInterruptedTurn',
             'abortStreaming',
             'postAction',
             'cancelQueued',

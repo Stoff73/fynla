@@ -48,6 +48,23 @@ enum FynEvent: Sendable, Equatable {
     case unknown(String)
 }
 
+extension FynEvent {
+    /// Every turn ends with exactly one of these; a stream that closes without
+    /// one was cut off (`FynClientError.interrupted`).
+    var isTerminal: Bool {
+        switch self {
+        case .done, .error, .tokenLimit, .consentRequired, .resume:
+            true
+        case let .unknown(type):
+            // A `resume` with no conversation to resume decodes as unknown; it
+            // still ends the response.
+            type == "resume"
+        default:
+            false
+        }
+    }
+}
+
 struct FynEventDecoder: Sendable {
     func decode(_ event: SSEEvent) throws -> FynEvent {
         let frame = try JSONDecoder().decode(FynEventFrame.self, from: Data(event.data.utf8))
