@@ -57,6 +57,31 @@ describe('EmploymentIncomeService::recordJob', function () {
             ->and((float) $user->fresh()->annual_employment_income)->toBe(48000.0);
     });
 
+    // An unnamed job the person gave themselves is still their job: naming a
+    // second one must not overwrite it. Only a copied estimate is replaced.
+    it('keeps an unnamed job of the person\'s own when a named second job arrives', function () {
+        $user = User::factory()->create(['employment_status' => 'full_time']);
+
+        $this->service->recordJob($user, null, null, 48000.0);
+        $this->service->recordJob($user, 'Bluewater Consulting', 'Evening Tutor', 9000.0);
+
+        expect($user->fresh()->employments)->toHaveCount(2)
+            ->and((float) $user->fresh()->annual_employment_income)->toBe(57000.0);
+    });
+
+    it('replaces an estimate with the person\'s own job', function () {
+        $user = User::factory()->create(['employment_status' => 'full_time']);
+
+        $this->service->recordEstimate($user, 30000.0);
+        $this->service->recordJob($user, 'Northwind Ltd', 'Analyst', 32000.0);
+
+        $jobs = $user->fresh()->employments;
+        expect($jobs)->toHaveCount(1)
+            ->and($jobs->first()->employer)->toBe('Northwind Ltd')
+            ->and((bool) $jobs->first()->is_estimate)->toBeFalse()
+            ->and((float) $user->fresh()->annual_employment_income)->toBe(32000.0);
+    });
+
     it('totals self-employment separately — the two are taxed differently', function () {
         $user = User::factory()->create(['employment_status' => 'self_employed']);
 

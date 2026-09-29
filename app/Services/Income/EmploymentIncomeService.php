@@ -30,6 +30,10 @@ class EmploymentIncomeService
      * job: the same employer and role at a new figure is a correction, anything
      * else is another job. Re-sending an identical payload changes nothing —
      * the LLM emitting the same tool call twice must never double a salary.
+     *
+     * An estimate someone else gave (recordEstimate) is replaced by the
+     * person's own first job, whatever they call it — it is a guess at that
+     * same income, never a second one.
      */
     public function recordJob(User $user, ?string $employer, ?string $occupation, ?float $income): Employment
     {
@@ -41,11 +45,14 @@ class EmploymentIncomeService
         } elseif ($latest && $this->sameRole($latest, $employer, $occupation)) {
             $job = $latest;
         } else {
-            $job = new Employment(['user_id' => $user->id, 'income_type' => $type]);
+            $job = $user->employments()->where('is_estimate', true)->latest('id')->first()
+                ?: new Employment(['user_id' => $user->id, 'income_type' => $type]);
         }
 
         $job->user_id = $user->id;
         $job->income_type = $type;
+        // The person has now spoken for this job themselves.
+        $job->is_estimate = false;
         if ($employer !== null && $employer !== '') {
             $job->employer = $employer;
         }
@@ -56,6 +63,27 @@ class EmploymentIncomeService
             $job->annual_income = $income;
         }
         $job->save();
+
+        $this->syncTotals($user);
+
+        return $job;
+    }
+
+    /**
+     * Hold a figure someone else gave for this person's income — the income a
+     * user entered for their spouse, copied across when the spouse's account
+     * links. It counts towards the totals until the person gives their own,
+     * which replaces it (recordJob) instead of being added to it.
+     */
+    public function recordEstimate(User $user, float $income): Employment
+    {
+        $type = $this->incomeTypeFor($user);
+        $job = Employment::create([
+            'user_id' => $user->id,
+            'income_type' => $type,
+            'annual_income' => $income,
+            'is_estimate' => true,
+        ]);
 
         $this->syncTotals($user);
 
@@ -77,6 +105,7 @@ class EmploymentIncomeService
         if ($income !== null) {
             $job->annual_income = $income;
         }
+        $job->is_estimate = false;
         $job->save();
 
         $this->syncTotals($user);

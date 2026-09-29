@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
@@ -86,4 +87,53 @@ it('copies the journey spouse card alone when no household row was filled', func
     expect($spouse->date_of_birth->format('Y-m-d'))->toBe('1985-08-22')
         ->and((float) $spouse->annual_employment_income)->toBe(38000.0)
         ->and(SavingsAccount::where('user_id', $spouse->id)->count())->toBe(0);
+});
+
+/*
+ * Production 2026-09-29 (docs/testing/2026-09-29-prod-savetax-mobile-couple.md,
+ * C1): the inviter's estimate of the spouse's income was copied across as an
+ * unnamed job, then the spouse's own named job at the same £32,000 became a
+ * second row and the two were summed — £64,000, taxed at the higher rate.
+ * The copied figure is an estimate; the spouse's own figure replaces it.
+ */
+it('replaces the copied income estimate with the spouse\'s own job instead of adding to it', function (float $estimate, float $own): void {
+    $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 72000]);
+    $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => null, 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $requester->id, 'spouse_annual_income' => $estimate, 'spouse_annual_earnings' => $estimate, 'spouse_employment_status' => 'full_time',
+    ]);
+
+    app(SpouseLinkingService::class)->establishAcceptedLink($requester, $spouse);
+    expect((float) $spouse->fresh()->annual_employment_income)->toBe($estimate);
+
+    // The spouse's own onboarding: the work form's one write.
+    app(CoordinatingAgent::class)->executeTool('capture_work_details', [
+        'employer' => 'Harbour Lane Primary School', 'occupation' => 'Teacher', 'annual_income' => $own,
+    ], $spouse->fresh());
+
+    $spouse->refresh();
+    $jobs = $spouse->employments;
+    expect($jobs)->toHaveCount(1)
+        ->and($jobs->first()->employer)->toBe('Harbour Lane Primary School')
+        ->and($jobs->first()->occupation)->toBe('Teacher')
+        ->and((bool) $jobs->first()->is_estimate)->toBeFalse()
+        ->and((float) $spouse->annual_employment_income)->toBe($own)
+        ->and((float) $requester->fresh()->annual_employment_income)->toBe(72000.0);
+})->with([
+    'the same figure' => [32000.0, 32000.0],
+    'a different figure' => [30000.0, 32000.0],
+]);
+
+it('keeps a second job the spouse adds after replacing the estimate', function (): void {
+    $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married']);
+    $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => 'full_time', 'annual_employment_income' => null]);
+    TaxStrategyHouseholdInput::create(['user_id' => $requester->id, 'spouse_annual_income' => 32000]);
+
+    app(SpouseLinkingService::class)->establishAcceptedLink($requester, $spouse);
+    $agent = app(CoordinatingAgent::class);
+    $agent->executeTool('capture_work_details', ['employer' => 'Harbour Lane Primary School', 'occupation' => 'Teacher', 'annual_income' => 32000], $spouse->fresh());
+    $agent->executeTool('capture_work_details', ['employer' => 'Bluewater Tutoring', 'occupation' => 'Tutor', 'annual_income' => 4000], $spouse->fresh());
+
+    expect($spouse->fresh()->employments)->toHaveCount(2)
+        ->and((float) $spouse->fresh()->annual_employment_income)->toBe(36000.0);
 });
