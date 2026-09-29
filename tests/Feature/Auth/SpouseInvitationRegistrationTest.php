@@ -6,6 +6,7 @@ use App\Http\Middleware\RedirectPhoneToMobile;
 use App\Mail\SpouseInvitation as SpouseInvitationMail;
 use App\Models\PendingRegistration;
 use App\Models\SpouseInvitation;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -87,7 +88,20 @@ it("registering from the link links the accounts, hands over Laura's figures and
         ->and($invitation->fresh()->accepted_user_id)->toBe($azlan->id)
         ->and($azlan->fresh()->funnel_answers['campaign'] ?? null)->toBe('savetax')
         ->and($azlan->fresh()->onboarding_fyn_context['invited_by'] ?? null)->toBe($laura->id)
-        ->and((float) $azlan->fresh()->annual_employment_income)->toBe(230000.0);
+        // Laura gave Azlan's income but not whether it is earnings from work,
+        // and neither of them has an employment status: it is not guessed
+        // as pay (CSJ 2026-09-29), so Azlan's own onboarding asks.
+        ->and((float) ($azlan->fresh()->annual_employment_income ?? 0))->toBe(0.0)
+        ->and((float) ($azlan->fresh()->annual_other_income ?? 0))->toBe(0.0);
+});
+
+it("hands over the invited partner's income as pay when Laura said they work", function (): void {
+    [$laura, $invitation] = inviteAzlan();
+    TaxStrategyHouseholdInput::create(['user_id' => $laura->id, 'spouse_employment_status' => 'full_time']);
+
+    $azlan = registerFromInvitation($invitation->token);
+
+    expect((float) $azlan->fresh()->annual_employment_income)->toBe(230000.0);
 });
 
 it('a used or mismatched invitation still registers the account, unlinked', function (): void {
