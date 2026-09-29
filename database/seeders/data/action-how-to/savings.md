@@ -17,68 +17,69 @@ This file is the one source for the steps on each savings action's detail card. 
 Rules for these steps:
 - **Every step rests on the sources named under its heading** (Rule 23), or on the card's own figures.
 - **Guidance, not advice.** The steps say how, not whether.
+- **Speak to the user about their own money** (CSJ 2026-09-29). The target, the plan and the goal are theirs: "your target", never "Fynla's". A step never names Fynla; where something acts, it is Fyn or a named page.
 - **Spell out** the Financial Services Compensation Scheme and the Personal Savings Allowance (Rule 9). ISA is fine.
 
 ## emergency_fund_critical, emergency_fund_low, emergency_fund_building
-status: draft
+status: edited
 source: Fynla emergency fund target (`PlanConfigService::emergency_fund.target_months`, `/help#investment-savings`); the card's own figures
 figures: runway_months, target_months, shortfall, monthly_top_up, adequacy_percent
 why when runway_months is 0.0:
-1. You have no savings set aside for emergencies yet. Fynla's target for you is {target_months} months of your spending.
+1. You have no savings set aside for emergencies yet. Your target is {target_months} months of your spending.
 why when runway_months is not 0.0:
-1. Your savings cover {runway_months} months of your spending. Fynla's target for you is {target_months} months.
+1. Your savings cover {runway_months} months of your spending. Your target is {target_months} months.
 why:
 2. You need {shortfall} more to reach it.
 always:
 1. Choose one easy access account to hold your emergency fund, kept apart from the account you spend from.
 2. Set up a standing order of {monthly_top_up} a month into it, on the day after you are paid.
 2. Set up a standing order into it on the day after you are paid, and keep it going until you have put aside {shortfall}.
-3. On the Savings page on the web, edit that account and tick "This forms part of my emergency fund", so Fynla counts it.
+3. On the Savings page on the web, edit that account and tick "This forms part of my emergency fund", so it counts towards your target.
 outcome:
 1. Your emergency fund covers {target_months} months of your spending, so an unexpected bill or a gap in income comes out of savings.
 learn:
-1. How Fynla sets your emergency fund target | /help#investment-savings
+1. Your emergency fund target | /help#investment-savings
 
 ## emergency_fund_no_data
-status: draft
+status: edited
 source: Fynla emergency fund target (`PlanConfigService::emergency_fund.target_months`, `/help#investment-savings`)
 figures: target_months, total_cash
 why:
-1. Fynla works out your emergency fund from what you spend each month, and it does not have that yet.
+1. Your emergency fund target is set from what you spend each month, and your spending is not recorded yet.
 always:
 1. Tell Fyn roughly what you spend in a month, or add it under your spending on the web.
 outcome:
-1. Fynla can then show how many months your {total_cash} of savings covers, against a target of {target_months} months.
+1. You can see how many months of spending your {total_cash} of savings covers, against your target of {target_months} months.
 learn:
-1. How Fynla sets your emergency fund target | /help#investment-savings
+1. Your emergency fund target | /help#investment-savings
 
 ## create_emergency_fund_goal
 status: draft
 source: Fynla Goals (`/goals`); Fynla emergency fund target (`PlanConfigService::emergency_fund.target_months`)
 figures: runway_months, target_amount, target_months
 why when runway_months is 0.0:
-1. You have no savings set aside for emergencies yet, and a goal lets Fynla track them as they build.
+1. You have no savings set aside for emergencies yet. A goal shows your progress as they build.
 why when runway_months is not 0.0:
-1. Your savings cover {runway_months} months of your spending, and a goal lets Fynla track the rest.
+1. Your savings cover {runway_months} months of your spending. A goal shows your progress towards the rest.
 always:
 1. On the Goals page, add a goal for your emergency fund with a target of {target_amount}.
-2. Link the easy access account you are saving into, so Fynla tracks progress as the balance grows.
+2. Link the easy access account you are saving into, so your progress updates as the balance grows.
 outcome:
-1. Fynla tracks your progress towards {target_amount}, which covers {target_months} months of your spending.
+1. You can see your progress towards {target_amount}, which covers {target_months} months of your spending.
 
 ## emergency_fund_no_designated
 status: draft
 source: Fynla savings account form (`SaveAccountModal.vue`, "This forms part of my emergency fund")
 figures: none
 why:
-1. Fynla cannot tell which of your savings is your emergency fund, so it cannot track it.
+1. None of your savings accounts is marked as your emergency fund, so your emergency fund cannot be measured.
 always:
 1. Decide which account you would draw on first in an emergency. It should be easy access.
 2. On the Savings page on the web, edit that account and tick "This forms part of my emergency fund".
 outcome:
-1. Fynla shows how many months of your spending that account covers.
+1. You can see how many months of your spending that account covers.
 learn:
-1. How Fynla sets your emergency fund target | /help#investment-savings
+1. Your emergency fund target | /help#investment-savings
 
 ## emergency_fund_excess
 status: draft
@@ -92,7 +93,7 @@ always:
 when has_cash_isa:
 3. Your Cash ISA with {cash_isa} can take some of it, if it takes new money.
 outcome:
-1. Your emergency fund stays at its target, and the rest is put to work.
+1. Your emergency fund stays at its target, and the money above it goes where it earns more or is sheltered from tax.
 learn:
 1. The ISA allowance | /help#investment-savings
 
@@ -109,7 +110,7 @@ always:
 when is_isa:
 3. {account_name} is an ISA, so ask the new provider to transfer it with an ISA transfer form. Withdrawing it yourself loses its ISA status, and you cannot pay that part back in.
 always:
-4. Update the account's rate in Fynla, by telling Fyn or on the Savings page.
+4. Update the account's rate on the Savings page, or tell Fyn.
 outcome:
 1. About {potential_gain} a year more interest on the same money.
 
@@ -126,7 +127,7 @@ always:
 when is_isa:
 3. {account_name} is an ISA, so move it with the new provider's ISA transfer form rather than withdrawing it.
 always:
-4. Update the account in Fynla once it has moved.
+4. Once it has moved, update the account on the Savings page, or tell Fyn.
 outcome:
 1. The {balance} keeps earning a current rate instead of dropping to whatever {institution} pays after the term.
 
@@ -139,7 +140,7 @@ why:
 always:
 1. Compare {product}s, and check each one's monthly limit, its term and whether you can take money out early.
 2. Open the one you choose and move your {monthly_contribution} standing order to it.
-3. When the term ends, move the balance to an easy access or ISA account, because most then pay a lower rate.
+3. Before the term ends, check what the account will pay afterwards, and move the balance if it drops.
 outcome:
 1. The same {monthly_contribution} a month earns more interest.
 
@@ -231,7 +232,7 @@ source: Consumer Credit Act 1974 s94 (right to repay early, in full or in part; 
 figures: debt_rate, savings_rate, rate_difference, lender
 why:
 1. Your debt with {lender} costs {debt_rate}% a year, while your savings earn {savings_rate}%.
-2. Every pound repaid saves {rate_difference}% a year more than it earns in savings.
+2. Each £1 you repay stops {debt_rate}% a year of interest, where the same £1 earns {savings_rate}% in savings.
 always:
 1. Keep your emergency fund where it is.
 2. Ask {lender} for a settlement figure, and whether any early repayment charge applies. For most personal loans and credit cards you have a legal right to repay early, in full or in part.
@@ -250,7 +251,7 @@ why:
 always:
 1. Set up or raise a standing order of {required_monthly} a month into the account linked to '{goal_name}'.
 1. Work out what you can add each month for the {months_remaining} months left, and set up a standing order for it.
-2. Update the goal's monthly contribution on the Goals page, so Fynla tracks it.
+2. Update the goal's monthly contribution on the Goals page.
 3. If that is more than you can afford, move the goal's target date or lower its target on the Goals page.
 outcome:
 1. '{goal_name}' is back on track for {target_amount}.
@@ -260,11 +261,11 @@ status: draft
 source: Fynla Goals (`/goals`)
 figures: goal_name, target_amount
 why:
-1. '{goal_name}' has no savings account linked, so Fynla cannot track your progress towards {target_amount}.
+1. '{goal_name}' has no savings account linked, so your progress towards {target_amount} cannot be shown.
 always:
 1. On the Goals page, open '{goal_name}' and link the account you are saving into.
 outcome:
-1. Fynla tracks '{goal_name}' as the account balance grows.
+1. Your progress on '{goal_name}' updates as the account balance grows.
 
 ## goal_wrong_account_type
 status: draft
@@ -298,7 +299,7 @@ why:
 1. {event_name} is expected in {months_until} months and costs {amount}.
 always:
 1. Set up a standing order of {monthly_saving} a month into an easy access account, kept apart from your emergency fund.
-2. Add a goal for {event_name} on the Goals page and link that account, so Fynla tracks it.
+2. Add a goal for {event_name} on the Goals page and link that account, so you can see your progress.
 outcome:
 1. {amount} is ready when {event_name} arrives, without touching your emergency fund.
 
@@ -334,7 +335,7 @@ figures: child_name, years_to_18, balance
 why:
 1. {child_name} has {years_to_18} years until they turn 18, and their {balance} is in a cash Junior ISA.
 always:
-1. The registered contact can change the account from cash to stocks and shares, or change provider, by contacting the provider.
+1. As the registered contact, you can change the account from cash to stocks and shares, or move it to another provider, by contacting the provider.
 2. A child can have a cash and a stocks and shares Junior ISA at the same time, so you can move part of it.
 outcome:
 1. Money {child_name} will not need for {years_to_18} years can be invested for the long term, inside the same tax-free wrapper.
