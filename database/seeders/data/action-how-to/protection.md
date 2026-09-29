@@ -303,7 +303,7 @@ outcome:
 1. You pay for the cover your family needs, and no more.
 
 ## no_employer_benefits_recorded
-status: draft
+status: approved
 source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/group-life-cover (paid by your employer; usually a multiple of salary; ends if you leave); Fynla protection shortfall (`CoverageGapAnalyzer`: death in service x salary counts as life cover, group income protection % of salary as income cover, group critical illness as critical illness cover); the employer benefits form (web Protection page, `/m` Protection screen and Fyn: `EmployerBenefitsWriter`)
 figures: none
 why:
