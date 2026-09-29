@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Retirement\StatePensionAgeResolver;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
@@ -53,8 +54,12 @@ final class ActionHowToFacts
         $text = [];
 
         foreach ($item ?? [] as $key => $value) {
-            if (is_bool($value) || is_string($value)) {
+            if (is_bool($value)) {
                 $facts[$key] = $value;
+            } elseif (is_string($value)) {
+                // A card's own figures arrive already written ("£4,200", "1.10").
+                $facts[$key] = $value;
+                $text[$key] = $value;
             } elseif (is_numeric($value)) {
                 $facts[$key] = (float) $value;
                 $text[$key] = $this->display($key, (float) $value);
@@ -103,6 +108,7 @@ final class ActionHowToFacts
         $this->pensionFacts($user, $facts, $text);
         $this->accountFacts($user, $facts, $text);
         $this->spouseFacts($user, $facts, $text);
+        $this->householdSavingsFacts($user, $facts, $text);
         $this->configFacts($facts, $text);
 
         // The relief-at-source split of a pension payment (FA 2004 s192,
@@ -279,6 +285,33 @@ final class ActionHowToFacts
         $text['spouse_start'] = ucfirst($text['spouse']);
     }
 
+    /**
+     * The user's own ISA room this tax year (one sum: TaxStrategyMath, cash and
+     * stocks and shares together) and the household's children under 18, so a
+     * step can say what to do when the allowance is used, or point to a spouse
+     * or the children (CSJ review 2026-09-29).
+     *
+     * @param  array<string, mixed>  $facts  @param  array<string, string>  $text
+     */
+    private function householdSavingsFacts(User $user, array &$facts, array &$text): void
+    {
+        $allowance = (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 0);
+        if ($allowance > 0) {
+            $left = max(0.0, $allowance - $this->math->estimateIsaSubscriptionsThisYear($user));
+            $facts['isa_full'] = $left <= 0;
+            if ($left > 0) {
+                $text['isa_left'] = self::pounds($left);
+            }
+        }
+
+        $children = app(DependantsReach::class)->minorChildrenOf($user);
+        $facts['has_children'] = $children->isNotEmpty();
+        $names = $children->map(fn ($child) => trim((string) $child->first_name))->filter()->values()->all();
+        if ($names !== []) {
+            $text['children'] = self::listed($names);
+        }
+    }
+
     /** @param  array<string, mixed>  $facts  @param  array<string, string>  $text */
     private function configFacts(array &$facts, array &$text): void
     {
@@ -327,6 +360,38 @@ final class ActionHowToFacts
         }
         if (is_numeric($lisa['withdrawal_penalty'] ?? null)) {
             $text['lisa_withdrawal_charge'] = self::percent((float) $lisa['withdrawal_penalty']);
+        }
+
+        // Savings: the Personal Savings Allowance for this user's band and the
+        // others (ITA 2007 s12B), the starting rate for savings band (s12), and
+        // the Financial Services Compensation Scheme deposit limits.
+        $psa = (array) ($income['personal_savings_allowance'] ?? $this->taxConfig->get('income_tax.personal_savings_allowance') ?? []);
+        foreach (['basic', 'higher', 'additional'] as $band) {
+            if (is_numeric($psa[$band] ?? null)) {
+                $text['psa_'.$band] = self::pounds((float) $psa[$band]);
+            }
+        }
+        if (is_numeric($psa[$facts['band'] ?? ''] ?? null)) {
+            $facts['psa'] = (float) $psa[$facts['band']];
+            $text['psa'] = self::pounds((float) $psa[$facts['band']]);
+        }
+        $startingRate = (array) ($income['starting_rate_for_savings'] ?? $this->taxConfig->get('income_tax.starting_rate_for_savings') ?? []);
+        if (is_numeric($startingRate['band'] ?? null)) {
+            $text['starting_rate_band'] = self::pounds((float) $startingRate['band']);
+        }
+        $savings = (array) ($this->taxConfig->get('savings') ?? []);
+        foreach ([
+            'fscs_limit' => 'fscs_deposit_protection',
+            'fscs_joint_limit' => 'fscs_joint_protection',
+            'fscs_high_balance_limit' => 'fscs_temporary_high_balance',
+            'parental_settlement_limit' => 'parental_settlement_threshold',
+        ] as $key => $source) {
+            if (is_numeric($savings[$source] ?? null)) {
+                $text[$key] = self::pounds((float) $savings[$source]);
+            }
+        }
+        if (is_numeric($savings['fscs_temporary_high_balance_months'] ?? null)) {
+            $text['fscs_high_balance_months'] = (string) (int) $savings['fscs_temporary_high_balance_months'];
         }
 
         // National Insurance Contributions (Employer Pensions Contributions)

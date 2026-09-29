@@ -158,6 +158,8 @@ class IncomeDefinitionsService
             // Annual Allowance used and for what goes into the pot.
             // https://www.legislation.gov.uk/ukpga/2004/12/section/233
             'pension_input_amount' => round($pensionContributions['employee'] + $pensionContributions['relief_at_source_gross'] + $pensionContributions['employer'], 2),
+            // Each pension's part of that figure, summing to it.
+            'pension_input_breakdown' => $pensionContributions['breakdown'],
             // W-0189 acceptance 2 — the arrangement the deduction was made under,
             // so the panel can name it instead of the reader having to guess why
             // £11,600 is deducted once rather than at both steps that mention it.
@@ -251,9 +253,10 @@ class IncomeDefinitionsService
      * `arrangement` describes what this method DID, not a regime it verified:
      *
      *   * `none`    — no employee contributions to deduct.
-     *   * `net_pay` — contributions deducted from total income once. No workplace
-     *                 pension is flagged as salary sacrifice, and the application
-     *                 has no relief-at-source flag, so net pay is the treatment.
+     *   * `net_pay` — workplace contributions deducted from total income once, none
+     *                 flagged as salary sacrifice. It names the workplace deduction
+     *                 only: personal pensions and SIPPs are relief at source and sit
+     *                 in `relief_at_source_gross` whatever this says.
      *   * `salary_sacrifice` — at least one workplace pension is flagged as salary
      *                 sacrifice. **W-0204: the sacrificed pay is now added back to
      *                 threshold income under FA 2004 s228ZA(3), and counted as an
@@ -269,7 +272,11 @@ class IncomeDefinitionsService
      *                 definition is struck, so both readings converge on one threshold
      *                 figure and the taper decision does not turn on the guess.
      *
-     * @return array{employee: float, relief_at_source_gross: float, employer: float, sacrificed: float, arrangement: string}
+     * `breakdown` is each pension's part of the pension input amount — one row per
+     * pension paid into this year, the rows summing to the total — so a reader of
+     * the total (Fyn explaining "£7,800 used") has the parts and never rebuilds them.
+     *
+     * @return array{employee: float, relief_at_source_gross: float, employer: float, sacrificed: float, breakdown: list<array<string, mixed>>, arrangement: string}
      */
     private function getPensionContributions(User $user): array
     {
@@ -283,17 +290,20 @@ class IncomeDefinitionsService
         $userSalary = (float) ($user->annual_employment_income ?? 0);
         $basicRelief = (float) ($this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'] ?? 0);
 
+        $breakdown = [];
+
         foreach ($user->dcPensions as $pension) {
             $contribution = PensionContributionRule::monthlyEmployee($pension, $userSalary) * 12;
-            $employer += PensionContributionRule::monthlyEmployer($pension, $userSalary) * 12;
+            $employerPays = PensionContributionRule::monthlyEmployer($pension, $userSalary) * 12;
+            $employer += $employerPays;
 
             // A personal pension or SIPP is paid from taxed income under relief
             // at source (FA 2004 s192): the member pays net and the provider
             // claims basic rate, so the gross is net ÷ (1 − basic rate).
             if (! PensionContributionRule::isWorkplace($pension)) {
-                if ($contribution > 0 && $basicRelief < 1) {
-                    $reliefAtSourceGross += $contribution / (1 - $basicRelief);
-                }
+                $gross = $contribution > 0 && $basicRelief < 1 ? $contribution / (1 - $basicRelief) : 0.0;
+                $reliefAtSourceGross += $gross;
+                $breakdown[] = PensionContributionRule::inputPart($pension, 'relief_at_source', $contribution, $gross - $contribution, $employerPays);
 
                 continue;
             }
@@ -304,12 +314,14 @@ class IncomeDefinitionsService
             // received, and left nothing to add back at s228ZA(3).
             if ($contribution > 0 && $pension->salary_sacrifice) {
                 $sacrificed += $contribution;
+                $breakdown[] = PensionContributionRule::inputPart($pension, 'salary_sacrifice', 0.0, 0.0, $employerPays + $contribution);
 
                 continue;
             }
 
             // Net pay (FA 2004 s193(2)): deducted from employment income.
             $employee += $contribution;
+            $breakdown[] = PensionContributionRule::inputPart($pension, 'net_pay', $contribution, 0.0, $employerPays);
         }
 
         $employee = round($employee, 2);
@@ -322,6 +334,7 @@ class IncomeDefinitionsService
             // counts one, adjusted income included.
             'employer' => round($employer + $sacrificed, 2),
             'sacrificed' => $sacrificed,
+            'breakdown' => array_values(array_filter($breakdown, static fn (array $part): bool => $part['pension_input'] > 0)),
             'arrangement' => match (true) {
                 $sacrificed > 0 => 'salary_sacrifice',
                 $employee <= 0 => 'none',

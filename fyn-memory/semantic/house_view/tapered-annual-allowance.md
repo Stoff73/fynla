@@ -2,7 +2,7 @@
 fact_id: hv-tapered-annual-allowance
 category: house_view
 title: Tapered Annual Allowance — the pension allowance warning for very high earners
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -45,9 +45,9 @@ headroom, and the taper is what shrinks that headroom — so the user needs to
 know their true allowance before acting on any pension recommendation. It
 conflicts with nothing; it bounds everything.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: both gates, the taper rate, and the floor follow from
+Worked from your figures: both gates, the taper rate, and the floor follow from
 recorded income and published thresholds, so Fyn states the working directly
 — which gates are breached, what the tapered allowance comes to, and what
 charge contributing beyond it would trigger. Voicing is firm but

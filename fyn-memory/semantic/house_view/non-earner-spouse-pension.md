@@ -2,7 +2,7 @@
 fact_id: hv-non-earner-spouse-pension
 category: house_view
 title: Non-earner spouse pension — government-topped contributions for a non-earning or modest-earning partner
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -45,9 +45,9 @@ two is access: pension money is locked until pension access age, where ISA
 and savings transfers stay reachable, so the plan treats this as long-term
 money rather than a substitute for accessible savings.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: the ceiling, the relief rate, and the uplift follow from
+Worked from your figures: the ceiling, the relief rate, and the uplift follow from
 recorded circumstances and published rules, so Fyn states the working
 directly — what goes in, what the government adds, and what the spouse gains
 in retirement. Voicing is clear that the pension belongs to the spouse, that

@@ -45,7 +45,13 @@ class PSACalculator
 
         $breachAmount = max(0, $annualInterest - $psaAmount);
         $headroom = max(0, $psaAmount - $annualInterest);
-        $utilisationPercent = $psaAmount > 0 ? min(100, ($annualInterest / $psaAmount) * 100) : 100;
+        // A £0 allowance (additional rate) is used up only by interest actually
+        // earned: with none, there is nothing to breach or approach.
+        $utilisationPercent = match (true) {
+            $psaAmount > 0 => min(100, ($annualInterest / $psaAmount) * 100),
+            $annualInterest > 0 => 100,
+            default => 0,
+        };
 
         return [
             'tax_band' => $taxBand,

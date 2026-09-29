@@ -29,6 +29,13 @@ final class ActionCardService
 {
     public const DISCLAIMER = 'Fynla does not recommend products. This is guidance based on the figures you have entered.';
 
+    /**
+     * What "Ask Fyn about this" sends, before the card's title. Fyn recognises a
+     * card's question by it (forAskFynMessage), so a card is grounded however the
+     * question is classified.
+     */
+    public const ASK_FYN_PREFIX = 'Tell me more about: ';
+
     /** What an unlock item is holding back, per module (canvas "What this changes"). */
     private const UNLOCK_CONSEQUENCES = [
         'protection' => 'We cannot check your cover against what your family would need until this is in.',
@@ -48,7 +55,7 @@ final class ActionCardService
     ) {}
 
     /** Engine categories that describe severity or nothing, not a topic. */
-    private const NOT_A_TOPIC = ['warning', 'general', 'recommended'];
+    private const NOT_A_TOPIC = ['warning', 'lifecycle', 'general', 'recommended'];
 
     /**
      * The card's topic from the engine category ("Income Band", "ISA
@@ -81,6 +88,34 @@ final class ActionCardService
         return $done === null ? null : $this->completed($user, $done);
     }
 
+    /**
+     * The card a message asked about through "Ask Fyn about this": the message is
+     * ASK_FYN_PREFIX and the exact title of one of this user's actions, open or
+     * done. Null for any other message.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function forAskFynMessage(User $user, string $message): ?array
+    {
+        if (! str_starts_with($message, self::ASK_FYN_PREFIX)) {
+            return null;
+        }
+        $title = trim(substr($message, strlen(self::ASK_FYN_PREFIX)));
+
+        $item = collect($this->actions->buildAll($user->id))->first(fn (array $i): bool => ($i['title'] ?? null) === $title);
+        if (is_array($item)) {
+            return $this->open($user, $item);
+        }
+
+        $done = RecommendationTracking::where('user_id', $user->id)
+            ->completed()
+            ->latest('completed_at')
+            ->get()
+            ->first(fn (RecommendationTracking $row): bool => NextActionsService::splitHeadline((string) $row->recommendation_text)[0] === $title);
+
+        return $done === null ? null : $this->completed($user, $done);
+    }
+
     /** @param  array<string, mixed>  $item */
     private function open(User $user, array $item): array
     {
@@ -89,7 +124,9 @@ final class ActionCardService
         $card = (array) ($item['card'] ?? []);
         $taxItem = $this->taxItem($user, $id);
         $isRecommendation = ($item['type'] ?? '') === 'recommendation';
-        $howTo = $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null);
+        // A tax action's figures are its composed plan item; any other action's
+        // are the ones its own card was written from.
+        $howTo = $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null, (array) ($card['figures'] ?? []));
 
         return [
             'id' => $id,
@@ -100,8 +137,10 @@ final class ActionCardService
             'deadline' => $isRecommendation ? $this->deadline($item, $card) : null,
             'title' => (string) $item['title'],
             'description' => (string) ($taxItem['description'] ?? $item['detail'] ?? $item['meta'] ?? ''),
+            // An approved how-to's "why" speaks from the user's own figures; an
+            // action without one keeps the engine's context lines.
             'why' => $isRecommendation
-                ? ($taxItem !== null ? $howTo['why'] : (array) ($card['personalised_context'] ?? []))
+                ? ($taxItem !== null || $howTo['why'] !== [] ? $howTo['why'] : (array) ($card['personalised_context'] ?? []))
                 : [],
             'what_this_changes' => $isRecommendation
                 ? $howTo['outcome']
@@ -113,7 +152,7 @@ final class ActionCardService
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
                 ? ['kind' => 'contextual', 'request' => $item['action']['contextual']]
-                : ['kind' => 'prompt', 'prompt' => 'Tell me more about: '.$item['title']],
+                : ['kind' => 'prompt', 'prompt' => self::ASK_FYN_PREFIX.$item['title']],
             'primary' => $isRecommendation
                 ? ['kind' => 'mark_done', 'recommendation_id' => $id]
                 : ($item['action']['kind'] === 'navigate'
@@ -151,7 +190,7 @@ final class ActionCardService
      * @param  array<string, mixed>|null  $taxItem
      * @return array{steps: list<string>, why: list<string>, outcome: list<string>, learn: list<array{label: string, url: string}>} the steps, why it matters to the user, what it changes, and where to read more
      */
-    private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey): array
+    private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey, array $figures = []): array
     {
         $none = ['steps' => [], 'why' => [], 'outcome' => [], 'learn' => []];
         $model = self::DEFINITIONS[$module] ?? null;
@@ -167,7 +206,7 @@ final class ActionCardService
         if (! is_array($steps) || $steps === []) {
             return $none;
         }
-        ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $taxItem);
+        ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $taxItem ?? $figures);
 
         return [
             'steps' => ActionHowTo::render($steps, $facts, $text),
@@ -227,7 +266,7 @@ final class ActionCardService
             'learn_more' => [],
             'conflict_note' => null,
             'disclaimer' => null,
-            'ask_fyn' => ['kind' => 'prompt', 'prompt' => 'Tell me more about: '.$title],
+            'ask_fyn' => ['kind' => 'prompt', 'prompt' => self::ASK_FYN_PREFIX.$title],
             'primary' => null,
             'go_to' => null,
             'funding' => null,

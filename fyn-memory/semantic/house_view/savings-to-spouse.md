@@ -2,7 +2,7 @@
 fact_id: hv-savings-to-spouse
 category: house_view
 title: Savings to spouse — gifting cash to use the lower earner's stacked allowances
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -37,9 +37,9 @@ conflicts with placing the same money in a joint account. Money already gifted
 to the spouse could later be subscribed to the spouse's ISA only within their
 confirmed allowance.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier because ownership changes and unrecorded spouse income would
+A judgement call because ownership changes and unrecorded spouse income would
 change the result. Where zero spouse income and savings have been explicitly
 captured, Fyn may state the account arithmetic and allowance working while
 describing it as conditional on those facts remaining complete.

@@ -10,6 +10,7 @@ use App\Services\Actions\ActionCardService;
 use App\Services\GDPR\ConsentService;
 use App\Services\Mobile\RecommendationRouting;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -83,6 +84,7 @@ it('saves how much of the spouse income is earnings, and the form offers it', fu
 // The card no longer says a spouse with earnings "has no earnings".
 it('explains the spouse top-up from their earnings from work', function (?float $earnings, string $why): void {
     $this->seed(TaxActionDefinitionSeeder::class);
+    $this->seed(SavingsActionDefinitionSeeder::class);
     $this->seed(ActionHowToSeeder::class);
     $this->user->update(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 45000,
         'employment_status' => 'employed', 'date_of_birth' => now()->subYears(40)->toDateString()]);

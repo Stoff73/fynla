@@ -6,6 +6,7 @@ namespace App\Services\Shared;
 
 use App\Models\FamilyMember;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -139,6 +140,21 @@ class DependantsReach
      * @param  list<string>|null  $relationships  Restrict to these, or null for all.
      * @return Collection<int, FamilyMember>
      */
+    /**
+     * The household's dependent children under 18 — the one rule for "your
+     * children" in savings actions and their how-to steps (W-0275 reach).
+     */
+    public function minorChildrenOf(User $user): Collection
+    {
+        $now = Carbon::now();
+
+        return $this->householdFamilyOf($user, ['child'])
+            ->where('is_dependent', true)
+            ->filter(fn ($child) => $child->date_of_birth !== null)
+            ->filter(fn ($child) => $child->date_of_birth->diffInYears($now) < 18)
+            ->values();
+    }
+
     public function householdFamilyOf(User $user, ?array $relationships = null): Collection
     {
         $spouseId = $user->reciprocalLiveSpouse()?->id;

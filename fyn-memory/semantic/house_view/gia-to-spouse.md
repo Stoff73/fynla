@@ -2,7 +2,7 @@
 fact_id: hv-gia-to-spouse
 category: house_view
 title: General Investment Account to spouse — holding taxable investments in the lower earner's name
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -34,9 +34,9 @@ rebalance for dual-earner couples. It can coordinate with the spouse's own
 ISA, but a later ISA subscription must stay within the spouse's confirmed
 current-year capacity.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier: the move is a genuine, unconditional gift, so ownership and
+A judgement call: the move is a genuine, unconditional gift, so ownership and
 control pass to the spouse. Fyn presents possible allowance and rate benefits
 without a fabricated saving and states that the full tax position, base cost
 and ownership consequences need checking.

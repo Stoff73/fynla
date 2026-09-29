@@ -2,7 +2,7 @@
 fact_id: hv-isa-topup-spouse
 category: house_view
 title: Spouse ISA top-up — opening or topping up the partner's own individual ISA
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -34,9 +34,9 @@ This is the single-earner counterpart of ISA coordination for a dual-earner
 couple. The spouse's allowance is separate from the user's, but every
 subscription in the spouse's name draws on the spouse's one annual ISA limit.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier until current-year subscriptions are confirmed. Fyn may state
+A judgement call until current-year subscriptions are confirmed. Fyn may state
 the published maximum but must not call it confirmed headroom. Voicing is
 exact about ownership: the account and money belong to the spouse and are
 never described as shared.

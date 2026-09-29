@@ -67,6 +67,25 @@ Today's work makes every action personal. Each action card now says why it matte
 - **The pension card for basic-rate taxpayers says why once.** "Why this matters" now opens with the saving ("Paying in £900 more this year saves £180 of income tax"), and the summary above no longer repeats it. A step that said "claim the rest as below", with nothing below it, is fixed.
 - **Fynla only asks for your past pension payments when they could matter.** They are used to carry forward unused allowance from earlier years, which only helps someone who earns more than this year's pension allowance and has the savings to pay more than it. Everyone else no longer sees "Unlock pension info".
 
+## Third release, about 17:00 (#954, release #955): the help page
+
+- **The help page is rewritten to match the app as it is today.** It was describing screens that no longer exist ("Gap Analysis", tabs, Quick Actions) and got several facts wrong. Now:
+  - Inheritance Tax on worldwide assets depends on long-term UK residence (at least 10 of the previous 20 tax years) since 6 April 2025, not domicile;
+  - gifts into trusts are taxed only on the part above the tax-free allowance;
+  - linking a spouse is an invitation, and sharing is one switch either of you can turn off;
+  - the emergency fund aims for 6 months of spending if employed, 9 if self-employed and 3 if retired;
+  - the made-up support hours and the "demonstration system" wording are gone.
+- **New sections** cover the Actions page, Tax Strategy, Settings, Plans, Goals and What If, and using Fynla on your phone.
+- **New: paying more in alongside a defined benefit pension**, explaining buying extra pension and additional voluntary contributions (AVCs).
+- **Every figure comes from Fynla's tax settings** and every rule links to its source on GOV.UK, HMRC or The Pensions Regulator.
+
+## Fourth release, about 17:52 (#957, release #958)
+
+- **Pension action cards link to the help on paying more in.** Anyone with a defined benefit pension sees "Find out more: Paying more in alongside a defined benefit pension" on the four pension actions, which opens that section of the help page.
+- **Three Estate cards that did nothing now open their screens.** Gifting opens the gifting strategy, where gifts can be recorded again; Life Policy opens the life policy options; Trust opens Trusts. Each has a way back to Estate.
+- **The small gift allowance on the Gifting card comes from the tax settings.** It was typed in.
+- **The gifting and life policy screens spell out Inheritance Tax** and use British spelling.
+
 ## Decisions taken
 
 - **How-to steps follow the user's records and use their figures,** with the outcome shown on every action.
@@ -78,7 +97,6 @@ Today's work makes every action personal. Each action card now says why it matte
 ## Still to do
 
 - **Scottish income tax rates** are not yet applied anywhere in Fynla; this is its own piece of work.
-- **Rewrite the help pages** from the audit.
 - **Fix Fyn's "Ask Fyn about this" explanation** of the pension figure.
 - **Make an intermittent iPhone app test reliable.**
 - **Write the "how to" guides for the savings, protection, retirement, investment and estate actions.**
@@ -107,3 +125,8 @@ Today's work makes every action personal. Each action card now says why it matte
 - **Not tested on screen:**
   - the reworded investment tax pages, which only appear for accounts with holdings; the wording was checked in the code instead;
   - the iPhone app.
+- **Third and fourth releases, live on fynla.org:**
+  - the help page loaded with every section; the AVC section, the £60,000 annual allowance and the 10 of 20 years residence rule showed from the tax settings; none of the old wording remained;
+  - as a demo household, the Gifting and Life Policy cards opened their screens and returned to Estate; a defined benefit member's pension action showed the help link, and it opened the AVC section.
+- **Automated checks for the later releases:** the third and fourth releases also went out while their checks were running. Two checks failed after the second release (stored copies of Fyn's tool list, and code formatting); both were fixed in #956, and the fourth release's checks all passed. Nothing users see was affected.
+- **Not tested on fynla.org:** the help link on the phone version (tested on the test site), and the Trust card, which only shows for estates over £2 million.

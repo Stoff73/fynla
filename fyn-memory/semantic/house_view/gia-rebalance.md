@@ -2,7 +2,7 @@
 fact_id: hv-gia-rebalance
 category: house_view
 title: General Investment Account rebalance — shifting dividend income to the lower-band spouse
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -32,9 +32,9 @@ This is the dual-earner sibling of the General Investment Account transfer
 for a single-earner couple. It can coordinate with ISA use, but subscriptions
 must remain within each partner's separately confirmed annual limit.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier: a transfer must be a genuine, unconditional gift, ownership
+A judgement call: a transfer must be a genuine, unconditional gift, ownership
 and control change hands, and the right split depends on the holdings and the
 couple's circumstances. Fyn presents the possible direction without false
 precision and calls for the base cost and full tax positions to be checked.

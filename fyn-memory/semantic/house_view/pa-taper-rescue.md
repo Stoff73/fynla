@@ -2,7 +2,7 @@
 fact_id: hv-pa-taper-rescue
 category: house_view
 title: Personal Allowance taper rescue — pension contributions in the taper band
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -43,9 +43,9 @@ strategy, with its own headroom figure, and the two are presented side by
 side rather than fed into each other; the tapered annual allowance warning surfaces
 for very high earners, whose true allowance can be smaller than the headline.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: the arithmetic follows from recorded income and published
+Worked from your figures: the arithmetic follows from recorded income and published
 thresholds, so Fyn states the working directly and plainly. Voicing quotes the
 user's own numbers, names the restored allowance, and avoids folk shorthand
 unless the user introduces it first.

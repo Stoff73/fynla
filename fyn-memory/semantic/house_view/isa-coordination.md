@@ -2,7 +2,7 @@
 fact_id: hv-isa-coordination
 category: house_view
 title: ISA coordination — using both partners' individual ISA allowances
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -31,9 +31,9 @@ spouse's ISA uses the spouse's separate allowance and the money then belongs
 to the spouse. Neither side's annual limit may be double-counted across cash
 and investment ISAs.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier on the spouse side until current-year subscriptions are
-confirmed. The user's filled allowance may be stated mechanically when based
+A judgement call on the spouse side until current-year subscriptions are
+confirmed. The user's filled allowance may be stated directly when based
 on captured subscriptions. Fyn is explicit that money in the spouse's ISA
 belongs to the spouse and is never in a joint ISA.
