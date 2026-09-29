@@ -103,7 +103,7 @@ describe('PersonalInformation.vue', () => {
         stubs: {
           CountrySelector: {
             name: 'CountrySelector',
-            props: ['modelValue'],
+            props: ['modelValue', 'defaultCountry'],
             emits: ['update:modelValue'],
             template: '<div class="country-selector-stub" />',
           },
@@ -237,5 +237,41 @@ describe('PersonalInformation.vue', () => {
 
     expect(wrapper.get('#uk_arrival_date').element.value).toBe('2015-06-01');
     expect(wrapper.vm.shouldShowUKArrivalDate).toBe(true);
+  });
+  // The country picker offers England, Scotland, Wales and Northern Ireland,
+  // never "United Kingdom". Every UK nation is born-in-the-UK: no arrival date,
+  // saved as uk_domiciled. Classing England as abroad sent non_uk_domiciled with
+  // no arrival date and the server refused the save (fynla.org, 2026-09-29).
+  it.each(['England', 'Scotland', 'Wales', 'Northern Ireland'])('saves someone born in %s as born in the UK', async (country) => {
+    store.state.userProfile.user = { country_of_birth: null, uk_arrival_date: null, domicile_status: null };
+    await wrapper.vm.$nextTick();
+    await enterEditMode();
+    wrapper.findComponent({ name: 'CountrySelector' }).vm.$emit('update:modelValue', country);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.shouldShowUKArrivalDate).toBe(false);
+    expect(wrapper.find('#uk_arrival_date').exists()).toBe(false);
+
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(updateDomicile).toHaveBeenCalledWith(expect.any(Object), {
+      country_of_birth: country,
+      uk_arrival_date: null,
+      domicile_status: 'uk_domiciled',
+    });
+  });
+
+  it('never picks a country of birth the user has not chosen', async () => {
+    store.state.userProfile.user = { country_of_birth: null, uk_arrival_date: null, domicile_status: null };
+    await wrapper.vm.$nextTick();
+    await enterEditMode();
+
+    expect(wrapper.findComponent({ name: 'CountrySelector' }).props('defaultCountry')).toBe('');
+
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(updateDomicile).not.toHaveBeenCalled();
   });
 });
