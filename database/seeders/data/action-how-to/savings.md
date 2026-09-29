@@ -23,12 +23,16 @@ Rules for these steps:
 status: draft
 source: Fynla emergency fund target (`PlanConfigService::emergency_fund.target_months`, `/help#investment-savings`); the card's own figures
 figures: runway_months, target_months, shortfall, monthly_top_up, adequacy_percent
-why:
+why when runway_months is 0.0:
+1. You have no savings set aside for emergencies yet. Fynla's target for you is {target_months} months of your spending.
+why when runway_months is not 0.0:
 1. Your savings cover {runway_months} months of your spending. Fynla's target for you is {target_months} months.
+why:
 2. You need {shortfall} more to reach it.
 always:
 1. Choose one easy access account to hold your emergency fund, kept apart from the account you spend from.
 2. Set up a standing order of {monthly_top_up} a month into it, on the day after you are paid.
+2. Set up a standing order into it on the day after you are paid, and keep it going until you have put aside {shortfall}.
 3. On the Savings page on the web, edit that account and tick "This forms part of my emergency fund", so Fynla counts it.
 outcome:
 1. Your emergency fund covers {target_months} months of your spending, so an unexpected bill or a gap in income comes out of savings.
@@ -52,7 +56,9 @@ learn:
 status: draft
 source: Fynla Goals (`/goals`); Fynla emergency fund target (`PlanConfigService::emergency_fund.target_months`)
 figures: runway_months, target_amount, target_months
-why:
+why when runway_months is 0.0:
+1. You have no savings set aside for emergencies yet, and a goal lets Fynla track them as they build.
+why when runway_months is not 0.0:
 1. Your savings cover {runway_months} months of your spending, and a goal lets Fynla track the rest.
 always:
 1. On the Goals page, add a goal for your emergency fund with a target of {target_amount}.
@@ -84,7 +90,7 @@ always:
 1. Leave your target amount in easy access, and decide what the {excess_amount} above it is for.
 2. For money you will not need soon, you can pay up to {isa_allowance} a year into ISAs before {tax_year_end}, where the interest or growth is tax-free.
 when has_cash_isa:
-3. You already have {cash_isa}, which can take some of it.
+3. Your Cash ISA with {cash_isa} can take some of it, if it takes new money.
 outcome:
 1. Your emergency fund stays at its target, and the rest is put to work.
 learn:
@@ -142,17 +148,18 @@ status: draft
 source: https://www.gov.uk/apply-tax-free-interest-on-savings/how-much-is-tax-free (Personal Savings Allowance by band); https://www.gov.uk/apply-tax-free-interest-on-savings/how-you-pay-tax-on-savings-interest (tax code, Self Assessment); https://www.gov.uk/individual-savings-accounts (no tax on interest on cash in an ISA); https://www.gov.uk/individual-savings-accounts/how-isas-work (ISA allowance, tax year)
 figures: annual_interest, psa_amount, breach_amount, headroom, utilisation_percent, isa_allowance, tax_band
 why:
-1. Your savings earn about {annual_interest} of interest a year. Your Personal Savings Allowance is {psa}, and interest above it is taxed.
-2. {breach_amount} of your interest is above your allowance.
+1. Your savings earn about {annual_interest} of interest a year.
+2. Your Personal Savings Allowance is {psa_amount}, and interest above it is taxed.
+3. {breach_amount} of your interest is above your allowance.
 always:
 1. Interest in a Cash ISA is tax-free and does not use your Personal Savings Allowance. You can pay up to {isa_allowance} into ISAs before {tax_year_end}.
 2. Move savings you do not need day to day into a Cash ISA, starting with the account that pays the most interest.
 when has_cash_isa:
-3. You can add to {cash_isa}, if it takes new money.
+3. You can add to your Cash ISA with {cash_isa}, if it takes new money.
 always:
 4. For interest already over the allowance, HM Revenue and Customs (HMRC) usually collects the tax through your tax code. If you file a Self Assessment return, include the interest there.
 outcome:
-1. Interest moved into an ISA is not taxed and no longer counts towards your {psa} allowance.
+1. Interest on money moved into an ISA is not taxed and no longer counts towards your Personal Savings Allowance.
 learn:
 1. The ISA allowance | /help#investment-savings
 
@@ -179,9 +186,9 @@ always:
 1. Choose a Cash ISA, a Stocks and Shares ISA, or both. Interest on cash in an ISA, and income and gains on investments in one, are not taxed.
 2. Pay into an ISA before {tax_year_end}. Allowance you do not use this tax year does not carry over to the next. You can split it across Cash, Stocks and Shares, Innovative Finance and Lifetime ISAs.
 when has_cash_isa:
-3. You can add to {cash_isa}, if it takes new money.
+3. You can add to your Cash ISA with {cash_isa}, if it takes new money.
 when has_stocks_isa:
-3. You can add to {stocks_isa}.
+3. You can add to your Stocks and Shares ISA with {stocks_isa}.
 outcome:
 1. Interest and growth on money inside an ISA are tax-free.
 learn:
@@ -237,10 +244,12 @@ status: draft
 source: Fynla Goals (`/goals`); the card's own figures
 figures: goal_name, required_monthly, current_monthly, shortfall, progress, months_remaining, target_amount
 why:
-1. '{goal_name}' needs {required_monthly} a month to reach its target on time. You pay in {current_monthly}.
-2. '{goal_name}' is {progress}% of the way to {target_amount}, with {months_remaining} months left.
+1. '{goal_name}' needs {required_monthly} a month to reach its target on time.
+2. You pay in {current_monthly} a month now.
+3. '{goal_name}' is {progress}% of the way to {target_amount}, with {months_remaining} months left.
 always:
 1. Set up or raise a standing order of {required_monthly} a month into the account linked to '{goal_name}'.
+1. Work out what you can add each month for the {months_remaining} months left, and set up a standing order for it.
 2. Update the goal's monthly contribution on the Goals page, so Fynla tracks it.
 3. If that is more than you can afford, move the goal's target date or lower its target on the Goals page.
 outcome:
