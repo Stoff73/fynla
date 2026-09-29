@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection" :contextual-request="contextualRequest">
+  <MobileChrome ref="chrome" title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your protection position…</p>
     </div>
@@ -98,6 +98,23 @@
           </button>
         </div>
       </div>
+
+      <!-- Employer benefits: entered through Fyn's form (the one write path, EmployerBenefitsWriter) -->
+      <div class="m-card">
+        <p class="m-section-label" style="margin-top:0">Employer benefits</p>
+        <p v-if="!employerAnswered" class="m-sub">
+          Tell us what cover your job gives you, so your shortfall counts it.
+        </p>
+        <p v-else-if="!employerRows.length" class="m-sub">Your employer provides none of these.</p>
+        <div v-else>
+          <p v-for="row in employerRows" :key="row.label" class="m-sub" style="margin-bottom:4px">
+            {{ row.label }}: {{ row.value }}
+          </p>
+        </div>
+        <button type="button" class="m-btn" style="margin-top:8px" @click="openEmployerBenefits">
+          {{ employerAnswered ? 'Edit employer benefits' : 'Add employer benefits' }}
+        </button>
+      </div>
     </template>
   </MobileChrome>
 </template>
@@ -133,6 +150,25 @@ export default {
         currentDestination: { screen: 'protection', params: {}, fallback: 'dashboard' },
         origin: { kind: 'surface_action' },
       });
+    },
+
+    employerAnswered() { return Boolean(this.profile.employer_benefits_recorded_at); },
+
+    // The benefits the user recorded; a blank one is left out.
+    employerRows() {
+      const p = this.profile;
+      const rows = [];
+      if (p.death_in_service_multiple) rows.push({ label: 'Death in service', value: `${Number(p.death_in_service_multiple)} times your salary` });
+      if (p.group_ip_benefit_percent) {
+        rows.push({
+          label: 'Group income protection',
+          value: `${Number(p.group_ip_benefit_percent)}% of your salary${p.group_ip_benefit_months ? ` for ${p.group_ip_benefit_months} months` : ''}`,
+        });
+      }
+      if (p.group_ci_amount) rows.push({ label: 'Group critical illness cover', value: this.fmt(p.group_ci_amount) });
+      if (p.has_employer_pmi) rows.push({ label: 'Private medical insurance', value: 'Yes' });
+
+      return rows;
     },
 
     // Flatten the index payload's grouped policies into a single tappable list.
@@ -227,6 +263,14 @@ export default {
       return map[freq] || (freq || 'mo');
     },
     toggleGap(key) { this.expandedGap = this.expandedGap === key ? null : key; },
+    openEmployerBenefits() {
+      this.$refs.chrome?.openContextualFyn(buildContextualConversationRequest({
+        action: 'edit',
+        resourceType: 'employer_benefits',
+        currentDestination: { screen: 'protection', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      }));
+    },
     fieldLabel(value) {
       return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
     },

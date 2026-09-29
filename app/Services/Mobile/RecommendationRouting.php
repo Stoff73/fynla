@@ -56,7 +56,7 @@ final class RecommendationRouting
         // benefit set-up rules, the no-policies warning, and the trust flag
         // (an edit to the policy record). Policy reviews stay on the page.
         'protection_setup' => ['action' => 'edit', 'resource_type' => 'protection'],
-        'protection_employer_benefits' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_employer_benefits' => ['action' => 'edit', 'resource_type' => 'employer_benefits'],
         'protection_general' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_protection_life_cover_gap' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_protection_critical_illness_gap' => ['action' => 'add', 'resource_type' => 'protection'],
@@ -65,7 +65,8 @@ final class RecommendationRouting
         // Protection cards are the action definitions (CSJ 2026-09-29), typed by
         // their key; the category slugs above remain for a rec without one.
         'protection_protection_profile_missing' => ['action' => 'edit', 'resource_type' => 'protection'],
-        'protection_no_employer_benefits_recorded' => ['action' => 'add', 'resource_type' => 'protection'],
+        // Opens on the employer benefits form (RecordEditForms::CONTEXTUAL_FORMS).
+        'protection_no_employer_benefits_recorded' => ['action' => 'edit', 'resource_type' => 'employer_benefits'],
         'protection_no_policies_warning' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_life_insurance_gap' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_dependants_no_life_cover' => ['action' => 'add', 'resource_type' => 'protection'],

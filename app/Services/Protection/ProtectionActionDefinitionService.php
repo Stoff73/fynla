@@ -700,6 +700,12 @@ class ProtectionActionDefinitionService
             return null;
         }
 
+        // Answered, even with "none": the question is closed (EmployerBenefitsWriter
+        // stamps every save, CSJ 2026-09-29).
+        if ($this->getProfileValue($comprehensivePlan, 'employer_benefits_recorded_at') !== null) {
+            return null;
+        }
+
         // Step 3: Check each employer benefit type
         $disMultiple = $this->getProfileValue($comprehensivePlan, 'death_in_service_multiple');
         $groupIp = $this->getProfileValue($comprehensivePlan, 'group_ip_benefit_percent');

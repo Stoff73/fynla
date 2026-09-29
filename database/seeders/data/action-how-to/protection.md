@@ -11,7 +11,6 @@ This file is the one source for the steps on each protection action's detail car
 **Also available:** everything in `tax.md` ("What you can branch on", "What you can fill in"), and the household: `has_spouse` and `{spouse}` / `{spouse_start}`, `has_children` and `{children}` (under 18: `DependantsReach::minorChildrenOf`), `employed`.
 
 **Not written, on purpose (the card still shows):**
-- `no_employer_benefits_recorded`: the card asks the user to record death in service, group income protection and group critical illness cover, but no web form, `/m` screen or Fyn capture writes those fields (`protection_profiles.death_in_service_multiple`, `group_ip_*`, `group_ci_amount`). A how-to would send the user to a control that does not exist. CSJ to decide: build the input, or stop the card.
 - `protection_profile_missing`: a data prompt, and it never reaches a card; a user with no protection profile gets no protection cards (`ProtectionStrategySource`).
 - `strategy_protection_*`: the composer's catalogue rows (claim tier, locking), never a card.
 - `increase_life_cover`, `add_critical_illness`, `add_income_protection`: disabled definitions.
@@ -302,3 +301,18 @@ always:
 4. Keep every policy until any new cover has started.
 outcome:
 1. You pay for the cover your family needs, and no more.
+
+## no_employer_benefits_recorded
+status: approved
+source: https://www.abi.org.uk/policy-and-guidance/general-insurance/health-protection-insurance/protection-insurance/group-life-cover (paid by your employer; usually a multiple of salary; ends if you leave); Fynla protection shortfall (`CoverageGapAnalyzer`: death in service x salary counts as life cover, group income protection % of salary as income cover, group critical illness as critical illness cover); the employer benefits form (web Protection page, `/m` Protection screen and Fyn: `EmployerBenefitsWriter`)
+figures: none
+why:
+1. You are employed, and you have not told us what cover your job gives you. Death in service, group income protection and group critical illness cover all count towards your shortfall.
+always:
+1. Check your employer's benefits booklet, staff handbook or HR team for death in service, group income protection, group critical illness cover and private medical insurance.
+2. Enter them under Employer benefits on the Protection page, or tell Fyn. If your job gives you none of these, say so there.
+outcome:
+1. Your protection shortfall counts the cover your job already gives you.
+learn:
+1. How your protection shortfall is worked out | /help#protection
+
