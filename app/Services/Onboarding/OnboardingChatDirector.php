@@ -1687,10 +1687,7 @@ final class OnboardingChatDirector
                 && ! str_contains($title, '£'.$savingFormatted)
                 ? sprintf(' — saves around £%s a year', $savingFormatted)
                 : '';
-            // Alternatives to another item say so, as on the page, so the
-            // bullets do not read as adding up to more than the total below.
-            $note = trim((string) ($item['conflict_note'] ?? ''));
-            $bullets[] = sprintf('- %s%s%s', $title, $savingText, $note === '' ? '' : '. '.$note);
+            $bullets[] = sprintf('- %s%s', $title, $savingText);
         }
 
         if ($bullets === []) {
@@ -7262,15 +7259,6 @@ PROMPT;
      * wording of the description itself.
      */
     public static function voiceStrategyItem(array $item): string
-    {
-        // An alternative to another item carries the composer's note, which
-        // says so and whether it counts in the total (SaveTax matrix L3-3).
-        $note = trim((string) ($item['conflict_note'] ?? ''));
-
-        return $note === '' ? self::voiceStrategyText($item) : self::voiceStrategyText($item).' '.$note;
-    }
-
-    private static function voiceStrategyText(array $item): string
     {
         $title = rtrim(trim((string) ($item['title'] ?? '')), '.');
         $desc = trim((string) ($item['description'] ?? ''));

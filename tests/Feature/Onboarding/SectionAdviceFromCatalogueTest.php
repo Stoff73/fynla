@@ -102,16 +102,3 @@ it('voices a strategy as its title and fact sentence, without the hedge or the c
         ->and($line)->not->toContain('You may want to consider')
         ->and($line)->not->toContain('before acting');
 });
-
-// SaveTax matrix L3-3: Fyn voiced the ISA wrap and the 50/50 split as if both
-// could be done. An alternative now says so, in the composer's own words.
-it('voices an alternative with the composer\'s note, so two alternatives never read as both to do', function () {
-    $item = [
-        'title' => 'Consider sharing savings equally to use both partners\' tax positions',
-        'description' => 'A genuine 50/50 joint holding would allocate interest to each of you.',
-        'conflict_note' => 'Alternative to "Gift £50,000 of savings to your spouse" — compare before doing both. Not counted in your total.',
-    ];
-
-    expect(OnboardingChatDirector::voiceStrategyItem($item))
-        ->toEndWith('Alternative to "Gift £50,000 of savings to your spouse" — compare before doing both. Not counted in your total.');
-});

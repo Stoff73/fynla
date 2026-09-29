@@ -178,9 +178,11 @@ final class StrategyPlanComposer
             $conflictNote = isset($noteFor[$rec->type])
                 ? sprintf('Alternative to "%s" — compare before doing both.', $titleByType[$noteFor[$rec->type]] ?? $noteFor[$rec->type])
                 : (is_string($isaNote) ? $isaNote : null);
-            // Said once, here, so every surface that shows the note (the tax
-            // pages, the action cards, the holistic plan, Fyn) says the saving
-            // is not part of the total the plan headlines (SaveTax matrix L3-5).
+            // Said once, here, so every page that shows the note (the Tax
+            // Strategy pages, the action cards, the holistic plan) says the
+            // saving is not part of the total the plan headlines (SaveTax
+            // matrix L3-5). What Fyn is told about alternatives is
+            // alternatives_note (L3-3).
             if ($conflictNote !== null && isset($excluded[$rec->type])) {
                 $conflictNote .= ' Not counted in your total.';
             }

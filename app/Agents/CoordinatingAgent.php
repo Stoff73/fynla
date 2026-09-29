@@ -75,6 +75,7 @@ use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Payment\SubscriptionStatusService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Protection\EmployerBenefitsWriter;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Shared\DependantsReach;
 use App\Services\Stores\Exceptions\StoreValidationException;
@@ -623,7 +624,6 @@ class CoordinatingAgent extends BaseAgent
                             'claim_tier' => $item['claim_tier'] ?? null,
                             'sequence_position' => $item['sequence_position'] ?? null,
                             'conflict_note' => $item['conflict_note'] ?? null,
-                            'counted_in_total' => (bool) ($item['counted_in_total'] ?? true),
                             'requires_advice' => (bool) ($item['requires_advice'] ?? false),
                             'definition_key' => isset($item['type']) ? 'strategy_'.$item['type'] : null,
                         ];
@@ -1185,6 +1185,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_dependants' => $this->handleCaptureDependants($input, $user),
                 'capture_work_details' => $this->handleCaptureWorkDetails($input, $user),
                 'capture_monthly_expenditure' => $this->handleCaptureMonthlyExpenditure($input, $user),
+                'capture_employer_benefits' => $this->handleCaptureEmployerBenefits($input, $user),
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
@@ -2093,6 +2094,33 @@ class CoordinatingAgent extends BaseAgent
                 'dependants' => $created,
             ],
         ];
+    }
+
+    /**
+     * capture_employer_benefits — the cover the user's employer provides, or
+     * "none", through EmployerBenefitsWriter: the one write path and the same
+     * bounds as the web form (CSJ 2026-09-29). The form's answers arrive in
+     * its own words ("provides": yes/no, "has_employer_pmi": yes/no).
+     */
+    public function handleCaptureEmployerBenefits(array $input, User $user): array
+    {
+        $fields = array_intersect_key($input, array_flip(EmployerBenefitsWriter::FIELDS));
+        $fields['none'] = ($input['provides'] ?? null) === 'no';
+        if (array_key_exists('has_employer_pmi', $fields)) {
+            $fields['has_employer_pmi'] = $fields['has_employer_pmi'] === 'yes' || $fields['has_employer_pmi'] === true;
+        }
+        if (isset($fields['group_ip_benefit_months'])) {
+            $fields['group_ip_benefit_months'] = (int) $fields['group_ip_benefit_months'];
+        }
+
+        $validator = Validator::make($fields, EmployerBenefitsWriter::rules());
+        if ($validator->fails()) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Some of those figures are outside what we can record.', 'errors' => $validator->errors()->toArray()];
+        }
+
+        app(EmployerBenefitsWriter::class)->save($user, $validator->validated());
+
+        return ['success' => true, 'updated' => true, 'onboarding_capture' => true, 'field_group' => 'employer_benefits', 'message' => 'Employer benefits saved.'];
     }
 
     /**

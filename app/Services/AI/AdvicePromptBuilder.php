@@ -665,13 +665,6 @@ PROMPT;
                         $lines[] = '   Estimated saving: £'.number_format((float) $rec['estimated_saving'], 0);
                     }
 
-                    // Alternatives to another item (the ISA wrap, the spouse
-                    // gift, the 50/50 split): the composer's note, which also
-                    // says when the saving is not part of the plan total.
-                    if (! empty($rec['conflict_note'])) {
-                        $lines[] = '   '.$rec['conflict_note'];
-                    }
-
                     // Include action step
                     if (isset($rec['action']) && $rec['action']) {
                         $action = mb_substr($rec['action'], 0, 150);
