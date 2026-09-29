@@ -27,6 +27,12 @@ use App\Services\TaxConfigService;
  */
 final class TaxStrategyCalculator
 {
+    /** The user's own pension items; only one applies for a given income. */
+    private const OWN_PENSION_TYPES = ['pa_taper_rescue', 'additional_rate_avoidance', 'pension_tax_relief'];
+
+    /** Items that each remove the same sole-name interest from the user's income. */
+    private const SHARED_INTEREST_TYPES = ['isa_topup_vs_psa', 'savings_to_spouse', 'joint_savings_psa_split'];
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly TaxStrategyMath $math,
@@ -96,6 +102,12 @@ final class TaxStrategyCalculator
             $allRecs = array_merge($allRecs, $strategy->generate($context));
         }
 
+        // The pension is priced first; the savings items that share the same
+        // interest are priced after it (before the ISA pool is allocated, so
+        // the allocator works on the figures the plan shows).
+        $afterPension = $this->contextAfterPension($allRecs, $context);
+        $allRecs = $this->repriceSavingsAfterPension($allRecs, $afterPension);
+
         // All adult ISA types share ONE overall annual allowance per person —
         // cash wraps, Bed & ISA proceeds and Lifetime ISA contributions all
         // draw from the same pool, yet each strategy above sized itself
@@ -106,12 +118,10 @@ final class TaxStrategyCalculator
         // dashboard payload (TaxStrategyService) and the composed plan
         // (ComposedTaxPlanService) see identical honest figures.
         $allRecs = $this->isaAllocator->allocate($allRecs, [
-            'isa_topup_vs_psa' => fn (float $cap): array => $this->isaTopUp->generate($context->withIsaPoolCap($cap)),
+            'isa_topup_vs_psa' => fn (float $cap): array => $this->isaTopUp->generate($afterPension->withIsaPoolCap($cap)),
             'bed_and_isa' => fn (float $cap): array => $this->bedAndIsa->generate($context->withIsaPoolCap($cap)),
             'lifetime_isa' => fn (float $cap): array => $this->lifecycle->generate($context->withIsaPoolCap($cap)),
         ], $this->userIsaPoolRemaining($user));
-
-        $allRecs = $this->repricePensionReliefForShelteredInterest($allRecs, $context);
 
         usort($allRecs, function (StrategyRecommendation $a, StrategyRecommendation $b): int {
             $cat = $a->categoryEnum()->sortWeight() <=> $b->categoryEnum()->sortWeight();
@@ -133,55 +143,71 @@ final class TaxStrategyCalculator
 
     /**
      * The ISA wrap, the spouse gift and the joint split all shelter the same
-     * sole-name interest, and the plan counts only the largest of them (the
-     * composer's conflict rule, seeded in TaxActionDefinitionSeeder). That
-     * interest then leaves taxed income, so every pension item is re-priced
-     * without it rather than counting the same slice at the higher rate twice.
+     * sole-name interest; the composer counts only the largest of them (the
+     * conflict rule seeded in TaxActionDefinitionSeeder). Whichever the user
+     * picks, it and the pension item must not both claim the tax on the same
+     * slice of income (a £110k plan counted it twice, £441 too much: SaveTax
+     * matrix E1, 29 Sep 2026).
      *
-     * Every pension item, not only pension_tax_relief: the tax-trap card
-     * (pa_taper_rescue) was left out, so a £110k user's plan counted the
-     * gifted interest at 60% in both the gift and the trap card — £441 too
-     * much (SaveTax matrix E1, re-measured on dev 2026-09-29).
+     * The plan prices the pension first (agreed 29 Sep 2026): the pension item
+     * keeps its price on today's income, which is right whether or not any
+     * savings move, and each savings item is re-priced on the income left once
+     * the pension contribution is paid. The pair then adds up to what doing
+     * both saves, whichever savings item is chosen.
      *
      * @param  list<StrategyRecommendation>  $recs
      * @return list<StrategyRecommendation>
      */
-    private function repricePensionReliefForShelteredInterest(array $recs, Strategies\TaxStrategyContext $context): array
+    private function repriceSavingsAfterPension(array $recs, Strategies\TaxStrategyContext $afterPension): array
     {
-        $pensionTypes = ['pa_taper_rescue', 'additional_rate_avoidance', 'pension_tax_relief'];
-        $hasPensionItem = false;
-        $winner = null;
+        $hasSharedInterestItem = (bool) array_filter($recs, fn (StrategyRecommendation $r): bool => in_array($r->type, self::SHARED_INTEREST_TYPES, true));
+        if ($afterPension->pensionPaidElsewhere <= 0 || ! $hasSharedInterestItem) {
+            return $recs;
+        }
+
+        $repriced = [];
         foreach ($recs as $rec) {
-            if (in_array($rec->type, $pensionTypes, true)) {
-                $hasPensionItem = true;
+            if (! in_array($rec->type, self::SHARED_INTEREST_TYPES, true)) {
+                $repriced[] = $rec;
+
+                continue;
             }
-            if (in_array($rec->type, ['isa_topup_vs_psa', 'savings_to_spouse', 'joint_savings_psa_split'], true)
-                && ($winner === null || (float) $rec->estimatedAnnualTaxSaved > (float) $winner->estimatedAnnualTaxSaved)) {
-                $winner = $rec;
+            // Runs before the ISA pool allocation, so each is sized as in the
+            // first pass; the allocator then caps the ISA wrap as usual.
+            $fresh = match ($rec->type) {
+                'isa_topup_vs_psa' => $this->isaTopUp->generate($afterPension),
+                'savings_to_spouse' => $this->assetShifting->generate($afterPension),
+                'joint_savings_psa_split' => $this->jointSavings->generate($afterPension),
+            };
+            foreach ($fresh as $candidate) {
+                if ($candidate->type === $rec->type) {
+                    $repriced[] = $candidate;
+                }
             }
         }
-        if (! $hasPensionItem || $winner === null) {
-            return $recs;
+
+        return $repriced;
+    }
+
+    /**
+     * The context the savings items are priced in: the user's own pension
+     * item's contribution treated as paid. The largest, not the sum: the
+     * taper-rescue and additional-rate items can both fire when adjusted net
+     * income sits below net income, and the additional-rate contribution
+     * already covers the taper slice.
+     *
+     * @param  list<StrategyRecommendation>  $recs
+     */
+    private function contextAfterPension(array $recs, Strategies\TaxStrategyContext $context): Strategies\TaxStrategyContext
+    {
+        $pensionPaid = 0.0;
+        foreach ($recs as $rec) {
+            if (in_array($rec->type, self::OWN_PENSION_TYPES, true)) {
+                $pensionPaid = max($pensionPaid, (float) ($rec->extra['suggested_contribution'] ?? 0));
+            }
         }
 
-        // The interest the winning item's own pricing takes out of income —
-        // for a gift that includes the slice the Savings Allowance covered,
-        // which still counted towards adjusted net income.
-        $sheltered = (float) ($winner->extra['interest_removed_from_income'] ?? 0);
-        if ($sheltered <= 0) {
-            return $recs;
-        }
-
-        $shelteredContext = $context->withInterestShelteredElsewhere($sheltered);
-        $repriced = array_merge(
-            $this->incomeBand->generate($shelteredContext),
-            $this->pensionTaxRelief->generate($shelteredContext),
-        );
-
-        return array_merge(
-            array_values(array_filter($recs, fn (StrategyRecommendation $r): bool => ! in_array($r->type, $pensionTypes, true))),
-            $repriced,
-        );
+        return $pensionPaid > 0 ? $context->withPensionPaidElsewhere($pensionPaid) : $context;
     }
 
     /**

@@ -623,6 +623,7 @@ class CoordinatingAgent extends BaseAgent
                             'claim_tier' => $item['claim_tier'] ?? null,
                             'sequence_position' => $item['sequence_position'] ?? null,
                             'conflict_note' => $item['conflict_note'] ?? null,
+                            'counted_in_total' => (bool) ($item['counted_in_total'] ?? true),
                             'requires_advice' => (bool) ($item['requires_advice'] ?? false),
                             'definition_key' => isset($item['type']) ? 'strategy_'.$item['type'] : null,
                         ];

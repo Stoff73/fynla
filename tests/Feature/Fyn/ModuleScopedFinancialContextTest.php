@@ -193,3 +193,25 @@ describe('ModuleScopedFinancialContext — protection-scoped classification', fu
         expect($context)->not->toContain('Total savings');
     });
 });
+
+// SaveTax matrix L3-3: Fyn told a user to do "the ISA top-up and either the
+// gift or the joint split". The composer's note reaches Fyn's context too.
+it('gives Fyn the composer\'s note on an alternative plan item', function () {
+    $user = User::factory()->create();
+    $note = 'Alternative to "Gift £50,000 of savings to your spouse" — compare before doing both. Not counted in your total.';
+    $analysis = function (int $userId) use ($note): array {
+        $base = ($this->mockAnalysis)($userId);
+        $base['ranked_recommendations'] = [[
+            'title' => 'Wrap £20,000 of savings in a Cash ISA',
+            'module' => 'tax_optimisation',
+            'description' => 'Interest in an ISA is tax-free.',
+            'estimated_saving' => 370.0,
+            'conflict_note' => $note,
+            'counted_in_total' => false,
+        ]];
+
+        return $base;
+    };
+
+    expect($this->builder->buildFinancialContext($user, $analysis, null))->toContain($note);
+});

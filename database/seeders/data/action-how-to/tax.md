@@ -117,8 +117,10 @@ always:
 3. Take the money from {target_accounts}, where its interest is taxed.
 4. That moves about {taxable_interest_sheltered} a year of taxed interest into the ISA. You do not pay tax on interest on cash in an ISA.
 5. You have {isa_remaining} of your {isa_allowance} ISA allowance left. The allowance is set per tax year, so pay in {isa_remaining} by {tax_year_end}.
-outcome:
+outcome when not priced_after_pension:
 1. About {taxable_interest_sheltered} a year of interest stops being taxed. Your Income Tax for the year falls from {tax_now} to {tax_after}: {tax_saved} less.
+outcome when priced_after_pension:
+2. Once your {pension_paid_first} pension contribution is paid, about {taxable_interest_sheltered} a year of interest stops being taxed. Your Income Tax for the year then falls from {tax_now} to {tax_after}: {tax_saved} less.
 
 ## isa_topup_spouse
 status: approved
@@ -386,8 +388,10 @@ always:
 2. The gift must be outright, with no conditions and no way for the money to come back to you. The {annual_interest_moved} a year of interest it earns is then theirs, taxed under their own allowances.
 3. With no other income recorded for them, their Personal Allowance, starting rate for savings and Personal Savings Allowance cover up to {spouse_stacked_interest_capacity} of interest a year.
 4. There is no Inheritance Tax on gifts between spouses or civil partners who live in the UK permanently. Once it is given, the money belongs to them.
-outcome:
+outcome when not priced_after_pension:
 1. Your household pays about {tax_saved} less tax a year.
+outcome when priced_after_pension:
+2. Once your {pension_paid_first} pension contribution is paid, your household pays about {tax_saved} less tax a year.
 
 ## gia_to_spouse
 status: approved
@@ -445,8 +449,10 @@ always:
 2. Hold the money in a joint account in both your names. While you and {spouse} live together, the interest is taxed as half each.
 3. A different split applies only if you own the money in different shares and tell HM Revenue and Customs (HMRC) in a joint declaration.
 4. Each of you has your own Personal Savings Allowance, and your half of the interest uses yours.
-outcome:
+outcome when not priced_after_pension:
 1. Your household pays about {tax_saved} less tax a year.
+outcome when priced_after_pension:
+2. Once your {pension_paid_first} pension contribution is paid, your household pays about {tax_saved} less tax a year.
 
 ## non_earner_spouse_pension
 status: approved

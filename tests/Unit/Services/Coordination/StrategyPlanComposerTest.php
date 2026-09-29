@@ -252,3 +252,35 @@ it('never sums pa_taper_rescue with additional_rate_avoidance once the seeder de
 
     expect($plan['combined_annual_saving'])->toBe(29521.0);
 });
+
+it('says in the note itself when an alternative is not counted in the total (SaveTax matrix L3-5)', function () {
+    $recs = [
+        new StrategyRecommendation('savings_to_spouse', StrategyCategory::Household, StrategyPriority::High,
+            'Gift savings to spouse', 'desc', 710.0),
+        new StrategyRecommendation('joint_savings_psa_split', StrategyCategory::Household, StrategyPriority::High,
+            'Split savings', 'desc', 460.0),
+        new StrategyRecommendation('strategy_x', StrategyCategory::Household, StrategyPriority::High,
+            'X', 'desc', 100.0),
+        new StrategyRecommendation('strategy_y', StrategyCategory::Household, StrategyPriority::High,
+            'Y', 'desc', 100.0),
+    ];
+    $metadata = [
+        'savings_to_spouse' => ['sequencing' => ['do_before' => [], 'conflicts_with' => ['joint_savings_psa_split']]],
+        'joint_savings_psa_split' => ['sequencing' => ['do_before' => [], 'conflicts_with' => ['savings_to_spouse']]],
+        'strategy_x' => ['sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_y']]],
+        'strategy_y' => ['sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_x']]],
+    ];
+
+    $items = collect(app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: [])['items'])->keyBy('type');
+
+    // The excluded alternative says so, on every surface that shows the note.
+    expect($items['joint_savings_psa_split']['counted_in_total'])->toBeFalse()
+        ->and($items['joint_savings_psa_split']['conflict_note'])->toEndWith('Not counted in your total.')
+        ->and($items['savings_to_spouse']['conflict_note'])->toBeNull();
+
+    // A tie: both carry the note, but the one that counts must not say it doesn't.
+    $counted = $items['strategy_x']['counted_in_total'] ? $items['strategy_x'] : $items['strategy_y'];
+    $excluded = $items['strategy_x']['counted_in_total'] ? $items['strategy_y'] : $items['strategy_x'];
+    expect($counted['conflict_note'])->toContain('Alternative to')->not->toContain('Not counted')
+        ->and($excluded['conflict_note'])->toEndWith('Not counted in your total.');
+});

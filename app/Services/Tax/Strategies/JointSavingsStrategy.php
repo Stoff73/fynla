@@ -111,7 +111,7 @@ final class JointSavingsStrategy implements TaxStrategy
         // and every band the interest spans); the spouse, who has no income in
         // this mode, pays basic rate on anything above their tax-free capacity.
         $saving = max(0.0, floor(
-            $this->math->interestRemovalSaving($user, $interestPerPerson)
+            $this->math->interestRemovalSaving($user, $interestPerPerson, 0.0, $context->pensionPaidElsewhere)
             - max(0.0, $interestPerPerson - $spouseTaxFreeInterestCapacity) * $spouseRate
         ));
         $shelterableSlice = $userRate > 0 ? $saving / $userRate : 0.0;
@@ -143,6 +143,7 @@ final class JointSavingsStrategy implements TaxStrategy
                 // What the saving above takes out of the user's income, read
                 // when the plan re-prices its pension items.
                 'interest_removed_from_income' => round($interestPerPerson, 2),
+                'pension_paid_first' => round($context->pensionPaidElsewhere, 2),
             ],
         )];
     }

@@ -8,15 +8,30 @@ use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Tax\TaxStrategyCalculator;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
 });
+
+/**
+ * The wrap's saving once the plan's own pension contribution is paid: the
+ * plan prices the pension first (29 Sep 2026). Moving the interest can also
+ * take the user back into the basic rate and a larger Savings Allowance
+ * (ITA 2007 s12B), so this is priced by the tax engine, not rate × interest.
+ */
+function isaSavingAfterPension(User $user, Collection $recs, float $transfer): float
+{
+    $pension = (float) ($recs->firstWhere('type', 'pension_tax_relief')['suggested_contribution'] ?? 0);
+
+    return floor(app(TaxStrategyMath::class)->interestRemovalSaving($user, $transfer * 0.04, 0.0, $pension));
+}
 
 /**
  * All adult ISA types share ONE overall annual allowance per person per tax
@@ -59,10 +74,10 @@ describe('shared ISA allowance allocation across strategies', function () {
             ->and($lisa)->not->toHaveKey('isa_allowance_excluded');
 
         // Loser is re-evaluated against the remaining £16,000 — its own maths
-        // produces the honest saving on the smaller amount:
-        // £16,000 × 4% × 40% = £256, not £20,000 × 4% × 40% = £320.
+        // produces the honest saving on the smaller amount, priced after the
+        // plan's pension item (pension first, 29 Sep 2026).
         expect($topup)->not->toBeNull()
-            ->and($topup['estimated_annual_tax_saved'])->toBe(256.0)
+            ->and($topup['estimated_annual_tax_saved'])->toBe(isaSavingAfterPension($user, $recs, 16000.0))
             ->and($topup['suggested_transfer_amount'])->toBe(16000.0)
             ->and($topup)->toHaveKey('isa_allowance_note')
             ->and($topup['isa_allowance_note'])->toContain('Lifetime ISA')->and($topup['isa_allowance_note'])->not->toContain('lifetime_isa')
@@ -176,10 +191,12 @@ describe('shared ISA allowance allocation across strategies', function () {
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
-        $topup = collect($output->recommendations)->firstWhere('type', 'isa_topup_vs_psa');
+        $recs = collect($output->recommendations);
+        $topup = $recs->firstWhere('type', 'isa_topup_vs_psa');
 
+        // The full £20,000, priced after the plan's pension item.
         expect($topup)->not->toBeNull()
-            ->and($topup['estimated_annual_tax_saved'])->toBe(320.0) // full £20,000 × 4% × 40%
+            ->and($topup['estimated_annual_tax_saved'])->toBe(isaSavingAfterPension($user, $recs, 20000.0))
             ->and($topup['suggested_transfer_amount'])->toBe(20000.0)
             ->and($topup)->not->toHaveKey('isa_allowance_note')
             ->and($topup)->not->toHaveKey('isa_allowance_excluded');

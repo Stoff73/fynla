@@ -178,6 +178,12 @@ final class StrategyPlanComposer
             $conflictNote = isset($noteFor[$rec->type])
                 ? sprintf('Alternative to "%s" — compare before doing both.', $titleByType[$noteFor[$rec->type]] ?? $noteFor[$rec->type])
                 : (is_string($isaNote) ? $isaNote : null);
+            // Said once, here, so every surface that shows the note (the tax
+            // pages, the action cards, the holistic plan, Fyn) says the saving
+            // is not part of the total the plan headlines (SaveTax matrix L3-5).
+            if ($conflictNote !== null && isset($excluded[$rec->type])) {
+                $conflictNote .= ' Not counted in your total.';
+            }
 
             $out[] = array_merge($rec->toArray(), [
                 'claim_tier' => $metadata[$rec->type]['claim_tier'] ?? 'judgement',
