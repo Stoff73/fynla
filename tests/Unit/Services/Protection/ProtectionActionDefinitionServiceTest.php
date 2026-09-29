@@ -23,6 +23,26 @@ beforeEach(function () {
 // Gap detection triggers
 // =========================================================================
 
+/**
+ * The cover position a real comprehensive plan carries (ComprehensiveProtectionPlanService,
+ * ProtectionCoverPosition), built from a fixture's coverage_analysis rows. Gap rules now fire
+ * as reasons on their cover type's position card (CSJ 2026-09-29).
+ */
+function withPosition(array $plan): array
+{
+    $map = ['life' => 'life_insurance', 'critical_illness' => 'critical_illness', 'income_protection' => 'income_protection'];
+    foreach ($map as $type => $row) {
+        $r = $plan['coverage_analysis'][$row] ?? ['need' => 0, 'coverage' => 0, 'gap' => 0];
+        $plan['cover_position'][$type] = [
+            'need' => (float) $r['need'], 'own_cover' => (float) $r['coverage'], 'employer_cover' => 0.0, 'total_cover' => (float) $r['coverage'],
+            'short_by' => (float) $r['gap'], 'over_by' => 0.0, 'employer_share' => 0.0, 'depends_on_job' => false,
+            'status' => $r['gap'] > 0 ? 'short' : 'covered', 'unit' => $type === 'income_protection' ? 'monthly' : 'lump_sum',
+        ];
+    }
+
+    return $plan;
+}
+
 describe('gap detection triggers', function () {
     it('fires life_insurance_gap when life insurance gap exceeds threshold', function () {
         $plan = [
@@ -35,11 +55,14 @@ describe('gap detection triggers', function () {
             'user_profile' => ['age' => 35],
         ];
 
-        $result = $this->service->evaluateActions($plan);
+        $result = $this->service->evaluateActions(withPosition($plan));
 
-        $rec = collect($result)->first(fn ($r) => str_contains($r['action'], 'life insurance') || str_contains(strtolower($r['action']), 'life'));
+        // The gap fires as a reason on the life position card (CSJ 2026-09-29).
+        $rec = collect($result)->firstWhere('definition_key', 'life_cover_position');
         expect($rec)->not->toBeNull()
-            ->and($rec['category'])->toBe('Life Insurance');
+            ->and($rec['category'])->toBe('Life Insurance')
+            ->and($rec['figures']['life_insurance_gap'] ?? false)->toBeTrue()
+            ->and(collect($result)->pluck('definition_key'))->not->toContain('life_insurance_gap');
     });
 
     it('fires critical_illness_gap when critical illness gap exists', function () {
@@ -53,11 +76,12 @@ describe('gap detection triggers', function () {
             'user_profile' => ['age' => 35],
         ];
 
-        $result = $this->service->evaluateActions($plan);
+        $result = $this->service->evaluateActions(withPosition($plan));
 
-        $rec = collect($result)->first(fn ($r) => str_contains(strtolower($r['action']), 'critical illness'));
+        $rec = collect($result)->firstWhere('definition_key', 'critical_illness_position');
         expect($rec)->not->toBeNull()
-            ->and($rec['category'])->toBe('Critical Illness');
+            ->and($rec['category'])->toBe('Critical Illness')
+            ->and($rec['figures']['critical_illness_gap'] ?? false)->toBeTrue();
     });
 
     it('fires income_protection_gap when income protection gap exists', function () {
@@ -71,11 +95,12 @@ describe('gap detection triggers', function () {
             'user_profile' => ['age' => 35],
         ];
 
-        $result = $this->service->evaluateActions($plan);
+        $result = $this->service->evaluateActions(withPosition($plan));
 
-        $rec = collect($result)->first(fn ($r) => str_contains(strtolower($r['action']), 'income protection'));
+        $rec = collect($result)->firstWhere('definition_key', 'income_protection_position');
         expect($rec)->not->toBeNull()
-            ->and($rec['category'])->toBe('Income Protection');
+            ->and($rec['category'])->toBe('Income Protection')
+            ->and($rec['figures']['income_protection_gap'] ?? false)->toBeTrue();
     });
 
     it('does NOT fire gap actions when coverage is adequate', function () {
@@ -458,10 +483,11 @@ describe('disabled definitions', function () {
             'user_profile' => ['age' => 35],
         ];
 
-        $result = $this->service->evaluateActions($plan);
+        $result = $this->service->evaluateActions(withPosition($plan));
 
-        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Life Insurance');
-        expect($rec)->not->toBeNull();
+        $rec = collect($result)->firstWhere('definition_key', 'life_cover_position');
+        expect($rec)->not->toBeNull()
+            ->and($rec['figures']['life_insurance_gap'] ?? false)->toBeTrue();
     });
 });
 

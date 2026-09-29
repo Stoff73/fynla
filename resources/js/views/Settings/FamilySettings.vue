@@ -67,8 +67,8 @@ export default {
   components: { AppLayout, SettingsTabBar, FamilyMembers, SpouseDataSharing },
   setup() {
     const store = useStore();
-    const loading = computed(() => store.getters['userProfile/loading']);
-    const error = computed(() => store.getters['userProfile/error']);
+    const loading = computed(() => store.getters['userProfile/pageLoading']);
+    const error = computed(() => store.getters['userProfile/pageLoadError']);
     const loadProfile = () => store.dispatch('userProfile/fetchProfile');
 
     // SpouseDataSharing fetches its own status on mount — no dispatch here.

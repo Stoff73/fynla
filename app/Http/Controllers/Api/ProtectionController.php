@@ -15,6 +15,7 @@ use App\Http\Requests\Protection\StoreProtectionProfileRequest;
 use App\Http\Requests\Protection\StoreSicknessIllnessPolicyRequest;
 use App\Http\Requests\Protection\UpdateCriticalIllnessPolicyRequest;
 use App\Http\Requests\Protection\UpdateDisabilityPolicyRequest;
+use App\Http\Requests\Protection\UpdateEmployerBenefitsRequest;
 use App\Http\Requests\Protection\UpdateIncomeProtectionPolicyRequest;
 use App\Http\Requests\Protection\UpdateLifePolicyRequest;
 use App\Http\Requests\Protection\UpdateSicknessIllnessPolicyRequest;
@@ -34,7 +35,9 @@ use App\Models\SicknessIllnessPolicy;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Protection\ComprehensiveProtectionPlanService;
+use App\Services\Protection\EmployerBenefitsWriter;
 use App\Services\Protection\LifeCoverReach;
+use App\Services\Protection\ProtectionCoverPosition;
 use App\Services\Protection\ProtectionGapPresentationService;
 use App\Traits\PolicyCRUDTrait;
 use Illuminate\Http\JsonResponse;
@@ -55,6 +58,7 @@ class ProtectionController extends Controller
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly ProtectionGapPresentationService $gapPresentation,
         private readonly LifeCoverReach $lifeCoverReach,
+        private readonly ProtectionCoverPosition $coverPosition,
     ) {}
 
     /**
@@ -67,15 +71,7 @@ class ProtectionController extends Controller
         // Auto-create protection profile if it doesn't exist
         $profile = $user->protectionProfile;
         if (! $profile) {
-            $profile = ProtectionProfile::create([
-                'user_id' => $user->id,
-                'annual_income' => 0,
-                'monthly_expenditure' => 0,
-                'mortgage_balance' => 0,
-                'other_debts' => 0,
-                'number_of_dependents' => 0,
-                'retirement_age' => 67,
-            ]);
+            $profile = ProtectionProfile::create(ProtectionProfile::blankFor($user->id));
         }
 
         // Eager load all policy relationships to prevent N+1 queries
@@ -109,6 +105,8 @@ class ProtectionController extends Controller
                     'sickness_illness' => SicknessIllnessPolicyResource::collection($sicknessIllnessPolicies),
                 ],
                 'coverage_gaps' => $this->gapPresentation->forUser($user, $profile),
+                // Where the user stands per cover type: the same calculation the cards use.
+                'cover_position' => $this->coverPosition->forUser($user),
                 'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'protection'), [], report: true),
                 'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'protection'), null, report: true),
             ],
@@ -190,6 +188,25 @@ class ProtectionController extends Controller
             ], 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Saving protection profile');
+        }
+    }
+
+    /**
+     * Save the protection cover the user's employer provides, or that it
+     * provides none (EmployerBenefitsWriter, the one write path Fyn shares).
+     */
+    public function updateEmployerBenefits(UpdateEmployerBenefitsRequest $request, EmployerBenefitsWriter $writer): JsonResponse
+    {
+        try {
+            $profile = $writer->save($request->user(), $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Employer benefits saved.',
+                'data' => new ProtectionProfileResource($profile),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Saving employer benefits');
         }
     }
 

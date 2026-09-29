@@ -57,13 +57,31 @@
           :impact-summary="lifeEventImpact"
         />
 
+      <CoverPositionSection class="mb-6" :position="coverPosition" />
+      <CoverageGapsSection class="mb-6" :breakdown="coverageBreakdown" />
+
       <div class="bg-white rounded-lg border border-light-gray p-6">
         <ProtectionModuleOverview
           @add-policy="handleAddPolicy"
           @edit-policy="handleEditPolicy"
         />
       </div>
+
+      <EmployerBenefitsCard
+        class="mt-6"
+        :profile="profile"
+        @edit="showEmployerForm = true"
+      />
       </div> <!-- v-else -->
+
+      <EmployerBenefitsFormModal
+        v-if="showEmployerForm"
+        :profile="profile"
+        :saving="savingEmployer"
+        :error-message="employerError"
+        @close="closeEmployerForm"
+        @save="handleEmployerBenefitsSaved"
+      />
 
       <!-- Policy Form Modal -->
       <PolicyFormModal
@@ -83,6 +101,10 @@ import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ProtectionModuleOverview from '@/components/Protection/ProtectionModuleOverview.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
+import EmployerBenefitsCard from '@/components/Protection/EmployerBenefitsCard.vue';
+import CoverPositionSection from '@/components/Protection/CoverPositionSection.vue';
+import CoverageGapsSection from '@/components/Protection/CoverageGapsSection.vue';
+import EmployerBenefitsFormModal from '@/components/Protection/EmployerBenefitsFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import protectionService from '@/services/protectionService';
@@ -97,6 +119,10 @@ export default {
     AppLayout,
     ProtectionModuleOverview,
     PolicyFormModal,
+    EmployerBenefitsCard,
+    CoverPositionSection,
+    CoverageGapsSection,
+    EmployerBenefitsFormModal,
     ModuleLifeEvents,
     ModuleStatusBar,
   },
@@ -105,11 +131,16 @@ export default {
     return {
       showForm: false,
       editingPolicy: null,
+      // The readiness check links to /protection/employer-benefits: that
+      // route opens this form (ProtectionDataReadinessService, formLink).
+      showEmployerForm: this.$route?.name === 'ProtectionEmployerBenefits',
+      savingEmployer: false,
+      employerError: '',
     };
   },
 
   computed: {
-    ...mapState('protection', ['loading', 'error', 'lifeEvents', 'lifeEventImpact']),
+    ...mapState('protection', ['loading', 'error', 'lifeEvents', 'lifeEventImpact', 'profile', 'coverPosition', 'coverageBreakdown']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -177,18 +208,6 @@ export default {
       return allPolicies.find(p => p.id === id) || null;
     },
 
-    findPolicyById(id) {
-      const policies = this.$store.state.protection?.policies || {};
-      const allPolicies = [
-        ...(policies.life || []),
-        ...(policies.criticalIllness || []),
-        ...(policies.incomeProtection || []),
-        ...(policies.disability || []),
-        ...(policies.sicknessIllness || []),
-      ];
-      return allPolicies.find(p => p.id === id) || null;
-    },
-
     handleAddPolicy() {
       this.editingPolicy = null;
       this.showForm = true;
@@ -202,6 +221,28 @@ export default {
     closeForm() {
       this.showForm = false;
       this.editingPolicy = null;
+    },
+
+    closeEmployerForm() {
+      this.showEmployerForm = false;
+      this.employerError = '';
+      if (this.$route?.name === 'ProtectionEmployerBenefits') {
+        this.$router.replace({ name: 'Protection' });
+      }
+    },
+
+    async handleEmployerBenefitsSaved(benefits) {
+      this.savingEmployer = true;
+      this.employerError = '';
+      try {
+        await this.$store.dispatch('protection/saveEmployerBenefits', benefits);
+        this.closeEmployerForm();
+      } catch (error) {
+        logger.error('Failed to save employer benefits:', error);
+        this.employerError = error.response?.data?.message || 'Your employer benefits could not be saved. Please try again.';
+      } finally {
+        this.savingEmployer = false;
+      }
     },
 
     async handlePolicySaved(policyData) {

@@ -25,10 +25,12 @@ class Employment extends Model
         'occupation',
         'annual_income',
         'income_type',
+        'is_estimate',
     ];
 
     protected $casts = [
         'annual_income' => 'decimal:2',
+        'is_estimate' => 'boolean',
     ];
 
     public function user(): BelongsTo

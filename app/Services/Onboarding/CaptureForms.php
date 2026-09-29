@@ -71,6 +71,9 @@ final class CaptureForms
     /** Journey path: life insurance, critical illness cover, income protection — one create_protection_policy per kind. */
     public const PROTECTION = 'protection';
 
+    /** The protection cover the user's employer provides, or none, ONE write through capture_employer_benefits (EmployerBenefitsWriter, shared with the web form). */
+    public const EMPLOYER_BENEFITS = 'employer_benefits';
+
     /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
     public const EXPENDITURE_DETAILED = 'expenditure_detailed';
 
@@ -90,7 +93,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS];
     }
 
     /** @return array<string, mixed>|null */
@@ -115,6 +118,7 @@ final class CaptureForms
             self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureDetailed(true),
             self::EXPENDITURE_TAX => self::expenditureTax(),
             self::PROTECTION => self::protection(),
+            self::EMPLOYER_BENEFITS => self::employerBenefits(),
             default => null,
         };
     }
@@ -273,6 +277,7 @@ final class CaptureForms
                 self::DEPENDANTS => self::dependantSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX => self::expenditureSentence($schema, self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::WORK => self::workSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::EMPLOYER_BENEFITS => self::employerBenefitsSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
             };
         }
@@ -1445,5 +1450,71 @@ final class CaptureForms
                     'hint' => 'Leave blank for whole of life or if unsure'],
             ],
         ];
+    }
+
+    /**
+     * The cover the user's employer provides (CSJ 2026-09-29): ONE write
+     * through capture_employer_benefits, the same writer and bounds as the web
+     * form (EmployerBenefitsWriter). "No, none of these" is an answer, so the
+     * first question is asked outright rather than read from blank fields.
+     *
+     * @return array<string, mixed>
+     */
+    private static function employerBenefits(): array
+    {
+        return [
+            'name' => self::EMPLOYER_BENEFITS,
+            'submit_label' => 'Save',
+            'tool' => 'capture_employer_benefits',
+            'entity_type' => 'protection_profile',
+            'lead_fields' => ['provides', 'employer_name', 'death_in_service_multiple', 'group_ip_benefit_percent', 'group_ip_benefit_months', 'group_ip_definition', 'group_ci_amount', 'has_employer_pmi'],
+            'kinds' => [],
+            'fields' => [
+                'provides' => ['type' => 'choice', 'label' => 'Does your job give you death in service, income protection, critical illness cover or private medical insurance?', 'required' => true, 'options' => [
+                    ['value' => 'yes', 'label' => 'Yes, some of these'],
+                    ['value' => 'no', 'label' => 'No, none of these'],
+                ]],
+                'employer_name' => ['type' => 'text', 'label' => 'Employer', 'required' => false],
+                'death_in_service_multiple' => ['type' => 'percent', 'label' => 'Death in service, as a multiple of your salary', 'required' => false, 'min' => 0.5, 'max' => 20, 'step' => 0.5,
+                    'hint' => 'For example 4 if it pays four times your salary. Leave blank if none'],
+                'group_ip_benefit_percent' => ['type' => 'percent', 'label' => 'Group income protection: the percentage of your salary it pays', 'required' => false, 'min' => 1, 'max' => 100, 'step' => 1,
+                    'hint' => 'Leave blank if none'],
+                'group_ip_benefit_months' => ['type' => 'percent', 'label' => 'How many months it pays for', 'required' => false, 'min' => 1, 'max' => 600, 'step' => 1],
+                'group_ip_definition' => ['type' => 'choice', 'label' => 'It pays if you cannot do', 'required' => false, 'options' => [
+                    ['value' => 'own', 'label' => 'Your own job'],
+                    ['value' => 'any', 'label' => 'Any job at all'],
+                ]],
+                'group_ci_amount' => ['type' => 'money', 'label' => 'Group critical illness cover', 'required' => false, 'hint' => 'The lump sum it would pay. Leave blank if none'],
+                'has_employer_pmi' => ['type' => 'choice', 'label' => 'Private medical insurance', 'required' => false, 'options' => [
+                    ['value' => 'yes', 'label' => 'Yes'],
+                    ['value' => 'no', 'label' => 'No'],
+                ]],
+            ],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function employerBenefitsSentence(array $input): string
+    {
+        $at = isset($input['employer_name']) ? ' at '.$input['employer_name'] : '';
+        if (($input['provides'] ?? null) === 'no') {
+            return 'My job'.$at.' gives me none of these benefits.';
+        }
+        $parts = [];
+        if (isset($input['death_in_service_multiple'])) {
+            $parts[] = 'death in service of '.rtrim(rtrim(number_format((float) $input['death_in_service_multiple'], 2), '0'), '.').' times my salary';
+        }
+        if (isset($input['group_ip_benefit_percent'])) {
+            $parts[] = 'income protection of '.(int) $input['group_ip_benefit_percent'].'% of my salary'
+                .(isset($input['group_ip_benefit_months']) ? ' for '.(int) $input['group_ip_benefit_months'].' months' : '');
+        }
+        if (isset($input['group_ci_amount'])) {
+            $parts[] = self::pounds((float) $input['group_ci_amount']).' of critical illness cover';
+        }
+        if (($input['has_employer_pmi'] ?? null) === 'yes') {
+            $parts[] = 'private medical insurance';
+        }
+
+        return $parts === [] ? 'My job'.$at.' gives me some benefits.' : 'My job'.$at.' gives me '.implode(', ', $parts).'.';
     }
 }

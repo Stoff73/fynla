@@ -6,8 +6,10 @@
 - `isenbret+savetax2909spouse@gmail.com` — "Alex Taylor", registered from Sam's spouse invitation, Free tier.
 
 Brett completed both registrations and codes by hand; everything else was driven by Claude. No code changes were made.
+
 Follow-up scenario matrix (funnel promises and plan engine across nine households): `2026-09-29-savetax-scenario-matrix.md`.
-Fixes: M3 and L1–L9 are fixed in Stoff73/fynla#973 (open, against `dev`, not yet on production). L10 is left as is. See "Fix status" below.
+
+**Update, 29 September 2026:** C1 is fixed in [Stoff73/fynla#969](https://github.com/Stoff73/fynla/pull/969), H1 in [Stoff73/fynla#961](https://github.com/Stoff73/fynla/pull/961) and H2 in [Stoff73/fynla#983](https://github.com/Stoff73/fynla/pull/983). All three are open against `dev` and not yet on production. See [Fixes since the run](#fixes-since-the-run).
 
 ## Verdict
 
@@ -46,14 +48,14 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 
 | # | Where | What happened | Evidence |
 |---|---|---|---|
-| C1 | Spouse onboarding (Fyn), income | Alex entered £32,000; Fyn replied "Got it — £64,000 a year, noted." The £32,000 Sam entered for Alex and Alex's own £32,000 were summed. Stored and taxed as £64,000. Alex's plan then says "Pay £11,700 more into your pension and save £4,680 in tax" at 40% relief; Alex is a basic-rate taxpayer. The Savings Allowance shows £500 (higher-rate) instead of £1,000. Sam's figures were not affected. | `GET /api/user/profile` as Alex: `income_occupation.annual_employment_income = 64000.00`, `income_tax = 13032`, `adjusted_net_income = 62000.05`. `/m/app/income` shows "Your total annual income £64,000". Fix in progress on `fix/invited-spouse-income-double-count`. |
+| C1 | Spouse onboarding (Fyn), income | Alex entered £32,000; Fyn replied "Got it — £64,000 a year, noted." The £32,000 Sam entered for Alex and Alex's own £32,000 were summed. Stored and taxed as £64,000. Alex's plan then says "Pay £11,700 more into your pension and save £4,680 in tax" at 40% relief; Alex is a basic-rate taxpayer. The Savings Allowance shows £500 (higher-rate) instead of £1,000. Sam's figures were not affected. | `GET /api/user/profile` as Alex: `income_occupation.annual_employment_income = 64000.00`, `income_tax = 13032`, `adjusted_net_income = 62000.05`. `/m/app/income` shows "Your total annual income £64,000". Likely mechanism: `EmploymentIncomeService::sameRole()` treats a blank *incoming* employer as a match but not a blank *stored* one, so the placeholder job created from Sam's spouse figures and Alex's named job are two rows that `syncTotals()` sums (unverified in the DB). **Confirmed and fixed in [#969](https://github.com/Stoff73/fynla/pull/969)**, not yet deployed. |
 
 ### High
 
 | # | Where | What happened | Evidence |
 |---|---|---|---|
-| H1 | `/m` sign out, then invite link | After Sam signed out on `/m`, opening the spouse invite link `/register?invite=…` landed on "Sign in — Welcome back". The desktop SPA inside the `/m` frame still held Sam's `sessionStorage.auth_token`, treated the user as signed in, bounced the guest-only `/register` towards the dashboard, which handed off to `/m/app`, which (correctly logged out) showed the mobile login. The token itself is revoked server-side (`GET /api/auth/user` returns 401), so this is not a security hole. Clearing the stale token made the invite page render correctly. Affects anyone who signs out on `/m` and then taps "Create an account" or opens an invite on the same phone. | Frame `sessionStorage` keys after sign-out: `["auth_token"]`; `resources/js/router/index.js` handoff guard at ~1658. |
-| H2 | `fynla.org/m/savetax` | 404 "Oh no, we messed up!". The working mobile entry is `/savetax`, which redirects to `/m?to=/savetax`. | Direct navigation. |
+| H1 | `/m` sign out, then invite link | After Sam signed out on `/m`, opening the spouse invite link `/register?invite=…` landed on "Sign in — Welcome back". The desktop SPA inside the `/m` frame still held Sam's `sessionStorage.auth_token`, treated the user as signed in, bounced the guest-only `/register` towards the dashboard, which handed off to `/m/app`, which (correctly logged out) showed the mobile login. The token itself is revoked server-side (`GET /api/auth/user` returns 401), so this is not a security hole. Clearing the stale token made the invite page render correctly. Affects anyone who signs out on `/m` and then taps "Create an account" or opens an invite on the same phone. | Frame `sessionStorage` keys after sign-out: `["auth_token"]`; `resources/js/router/index.js` handoff guard at ~1658. **Fixed in [#961](https://github.com/Stoff73/fynla/pull/961)**, not yet deployed. |
+| H2 | `fynla.org/m/savetax` | 404 "Oh no, we messed up!". The working mobile entry is `/savetax`, which redirects to `/m?to=/savetax`. | Direct navigation. **Fixed in [#983](https://github.com/Stoff73/fynla/pull/983)**, not yet deployed. |
 
 ### Medium
 
@@ -81,24 +83,81 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 | L9 | Campaign questionnaire | Step counter changes from "3 of 4" to "4 of 5" after answering Yes to spouse. |
 | L10 | Campaign results page | Unicode tick and dash characters used as allowance markers (Rule 15, unless approved). |
 
-## Fix status
+## Fixes since the run
 
-Updated 29 September 2026. The fixes are in [Stoff73/fynla#973](https://github.com/Stoff73/fynla/pull/973), which is open against `dev` and not yet on production. Each was checked in a local build on `/m` and on the web equivalent, using a test couple set up like Sam and Alex. Findings not listed here (C1, H1, H2, M1, M2, M4 to M6) are not covered by that PR.
+### C1: the spouse's own salary was added to the figure the inviter gave
 
-| # | Status | What was wrong, and the fix |
-|---|---|---|
-| M3 | Fixed | The investment readiness gate blocks until spending is recorded, and the blocked response carried no portfolio, so the card read £0. The blocked response now reports what the user holds and still gives no advice. The card shows 1 account, £18,000. |
-| L1 | Fixed | The count is right (a Cash ISA counts toward the investments limit, a CSJ rule from 15 September 2026). The Investments page now adds "Includes your Cash ISA, which is listed under Bank Accounts." |
-| L2 | Fixed | Fyn saves a Cash ISA with a different field set from the web form, and the rule recognised only the web form's. One shared Cash ISA check now covers both and excludes Junior and Lifetime ISAs. |
-| L2, found while fixing | Fixed | Bank Accounts also said "one partner's allowance is fully used" when neither was. It now reads both partners from the same ISA record the page shows. |
-| L3 | Fixed | Shared items on `/m` Net Worth now show "Your 50.00% of £450,000". The web property card already did. |
-| L4 | Fixed | The invitation now greets the invitee by the first name Fyn collected, falling back to "Hello,". |
-| L5 | Fixed | The "Warning" half was already removed on `dev` (Stoff73/fynla#967). The card now shows the action count ("3 actions") instead of a blank line. |
-| L6 | Fixed | Whole pounds: "£675 of annual interest, of which £175". |
-| L7 | Fixed | `.m-field` gets the design guide's violet focus border and ring. |
-| L8 | Fixed on `/m` and web | The radio group's caption now names the group instead of pointing at a missing element. Covered by automated tests; could not be checked in a live Fyn form locally. |
-| L9 | Fixed | The counter counts questions, not screens. The spouse-income follow-up shares "3 of 4", so the total stays at 4 (Brett's decision). |
-| L10 | Not changed | The marks came in with Azlan's personalised-plan design on 2 June 2026, so they are grandfathered under Rule 15 or part of an approved design (Brett's decision). |
+**Status:** fixed in [Stoff73/fynla#969](https://github.com/Stoff73/fynla/pull/969), branch `fix/spouse-income-doubling`, open against `dev`. Not yet on csjones or production.
+
+**Cause.** The mechanism suspected in the defect row was right. When Alex's account linked, `SpouseHoldingTransfer::transfer()` (`app/Services/Onboarding/SpouseHoldingTransfer.php:48-50`) copied the £32,000 Sam gave for Alex across as a job with no employer or role. When Alex then gave Fyn an employer, role and £32,000, `EmploymentIncomeService::sameRole()` (`app/Services/Income/EmploymentIncomeService.php:124`) did not match the blank employer already on file. `recordJob()` therefore added a second job, and `syncTotals()` summed the two to £64,000.
+
+**Fix (design agreed with Brett, 29 September 2026):**
+
+1. A new column, `employments.is_estimate`, marks a job someone else told us about. `SpouseHoldingTransfer` marks the copied salary as an estimate.
+2. The first job the spouse states themselves replaces the estimate, whatever figure they give: £34,500 replaces the inviter's £32,000, and a switch to self-employment moves the job to the self-employed total. Later jobs add up as before. A spouse editing the job in the edit form also confirms it.
+3. The job-matching rule in `sameRole()` is unchanged on purpose. Matching a blank employer on file everywhere would bring back the older bug where a second onboarding job overwrote the first salary.
+
+Accounts already stored with a doubled salary are not repaired (fix forward only, agreed 29 September 2026). Alex's account (`isenbret+savetax2909spouse@gmail.com`) still shows £64,000 until it is purged.
+
+**Verification:**
+
+| Check | Result |
+|---|---|
+| New feature test replaying the run: link, then the spouse's own job at £32,000 | £64,000 without the fix; £32,000 and one job with it |
+| 7 new unit tests (same figure, different figure, no employer, second job still counts, employer-only keeps the estimate, move to self-employment, edit confirms) | All pass |
+| Onboarding, income and architecture suites | 1,479 passed, 1 skipped |
+| Local: inviter and spouse linked, then the spouse's `capture_work_details` (Harbour Lane Primary School, Teacher, £32,000) | One job, £32,000, no longer marked as an estimate |
+| Web, `/valuable-info?section=income`, as the spouse | Total Annual Income £32,000, taxed at the basic rate only (£19,430 at 20% = £3,886) |
+| `/m`, `/m/app/income`, opened from the menu | "Your total annual income £32,000", one job "Harbour Lane Primary School · Teacher" |
+
+I COULD NOT TEST THIS: a live Fyn conversation. The spouse's turn was the exact save call Fyn makes when the spouse gives their job, sent directly.
+
+**Still to do:** re-run the spouse onboarding on production once #969 is released, with a new couple, to confirm Fyn reports the spouse's real salary and the spouse's plan uses basic-rate relief.
+
+### H1: `/m` sign-out left the framed desktop app signed in
+
+**Status:** fixed in [Stoff73/fynla#961](https://github.com/Stoff73/fynla/pull/961), branch `fix/m-logout-clears-framed-desktop-token`, open against `dev`. Not yet on csjones or production.
+
+**Cause.** Signing out of `/m` cleared only the `/m` token (`localStorage.m_scaffold_token`, `resources/mobile/store.js` `logout()`). The desktop app in the frame keeps its own copy in the same tab (`sessionStorage.auth_token`, `resources/js/services/tokenStorage.js`), and that copy survived. The desktop app counts anyone holding a token as signed in (`resources/js/store/modules/auth.js:22`, `isAuthenticated: !!state.token`), even when the server has revoked it. So `/register` sent the invitee away.
+
+**Fix, in two layers:**
+
+1. Signing out of `/m` now clears the desktop token too (`resources/mobile/store.js`). This covers the menu's Sign out, the dashboard's sign-out and the session-expiry path.
+2. On sign-in-only pages such as `/register`, and on public pages, the desktop app now checks a stored token with the server before redirecting on it (`resources/js/router/storedSessionPolicy.js`, called from `resources/js/router/index.js`). It checks once per token per page load. A 401 or 419 drops the token and the page renders normally; a network error keeps the old behaviour. To support this, `resources/js/services/api.js` now passes the 401 status through on the `/auth/user` sign-in check.
+
+**Verification** (local server from the fix branch, built bundles, 375 x 812):
+
+| Step | Result |
+|---|---|
+| Signed in through the framed desktop login on `/m`, then handed off to `/m/app/dashboard` | Desktop token and `/m` token both set |
+| Tapped Sign out in the `/m` menu | `/m` login shown; `m_scaffold_token` and `auth_token` both empty (before the fix, `auth_token` stayed) |
+| Tapped "Create an account" | Registration form shown (first name, last name, email, password) |
+| Planted a revoked desktop token (server returns 401), opened `/register?invite=…` | Token dropped; registration form shown |
+| Planted a valid desktop token, opened `/register?invite=…` | Still sent to `/m/app/dashboard` ("Good morning, John"), so signed-in users are unaffected |
+
+Automated tests: 7 new Vitest tests (`resources/js/__tests__/storedSessionPolicy.spec.js`, `resources/mobile/__tests__/logoutClearsFramedDesktop.spec.js`). The `/m` test fails on the old code. The full frontend suite passes: 166 files, 1481 tests.
+
+**Still to do:** re-run the spouse invite step on production once #961 is released, to confirm the invitee lands on the registration form after the primary user signs out on the same phone.
+
+### H2: `/m/savetax` showed the 404 page
+
+**Status:** fixed in [Stoff73/fynla#983](https://github.com/Stoff73/fynla/pull/983), branch `fix/m-savetax-404`, open against `dev`. Not yet on csjones or production.
+
+**Cause.** The phone redirect skips every path under `/m/` on purpose (`app/Http/Middleware/RedirectPhoneToMobile.php`, `EXCLUDED_PREFIXES`), and no `/m/savetax` route existed. The request fell through to the app's catch-all route and rendered its 404 page.
+
+**Fix.** A new route in `routes/web.php` sends a campaign or account path typed under `/m/` to that page inside `/m`: `/m/savetax` goes to `/m?to=/savetax`, the same place a phone opening `/savetax` already goes. The query string is kept, so tracking tags survive. It covers every campaign (`savetax`, `pensioncheck`, `biggerpension`, `paymortgage`, `managedebt`, `wealth`) plus `/m/register` and `/m/login`. The paths it matches are built from the same allowlists the redirect uses (`RedirectPhoneToMobile::framablePathPattern()`), so any other `/m/` path behaves as before.
+
+**Verification** (local server from the fix branch, 375 x 812):
+
+| Step | Result |
+|---|---|
+| Opened `/m/savetax?utm_source=h2check` | Sent to `/m?to=%2Fsavetax%3Futm_source%3Dh2check`; the frame shows the SaveTax questionnaire, "1 of 4 What is your employment status?" |
+| Tapped "Full time employed" | Moved to "2 of 4 What is your annual income?" |
+| Opened `/m/savetaxevil` | Not redirected (unchanged behaviour) |
+
+Automated tests: 2 new Pest tests in `tests/Feature/Mobile/MobileScaffoldTest.php`. The first fails on the old code (the 404 page returned 200 instead of redirecting). `tests/Feature/Mobile` plus `SpouseInvitationRegistrationTest`: 120 passed, run on a private test database because other local sessions were using the shared one at the same time.
+
+**Still to do:** open `fynla.org/m/savetax` on a phone once #983 is released.
 
 ## What works well
 
