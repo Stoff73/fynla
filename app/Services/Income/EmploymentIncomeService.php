@@ -23,6 +23,12 @@ use App\Models\User;
 class EmploymentIncomeService
 {
     /**
+     * The most one income figure may be: the range capture_work_details
+     * accepts, and within employments.annual_income decimal(12,2).
+     */
+    public const MAX_ANNUAL_INCOME = 99_999_999;
+
+    /**
      * Record what the user just told us about their work.
      *
      * A payload with no income refines the job in hand (multi-turn extraction
@@ -81,6 +87,9 @@ class EmploymentIncomeService
      */
     public function recordEstimate(User $user, float $income): Employment
     {
+        if ($income <= 0 || $income > self::MAX_ANNUAL_INCOME) {
+            throw new \InvalidArgumentException('Estimated income out of range');
+        }
         $type = $this->incomeTypeFor($user);
         $job = Employment::create([
             'user_id' => $user->id,
@@ -92,6 +101,27 @@ class EmploymentIncomeService
         $this->syncTotals($user);
 
         return $job;
+    }
+
+    /**
+     * The user stated their own total for one income type on the income page.
+     * Someone else's estimate (recordEstimate) no longer stands: it goes, and
+     * when it was the only row of that type the stated figure takes its place,
+     * so syncTotals can never bring the inviter's figure back (C1, 2026-09-29).
+     * Without an estimate on file nothing changes here.
+     */
+    public function replaceEstimateWithStated(User $user, string $type, float $stated): void
+    {
+        $estimates = $user->employments()->where('income_type', $type)->where('is_estimate', true)->get();
+        if ($estimates->isEmpty()) {
+            return;
+        }
+        $estimates->each->delete();
+        $hasOwn = $user->employments()->where('income_type', $type)->exists();
+        if (! $hasOwn && $stated > 0 && $stated <= self::MAX_ANNUAL_INCOME) {
+            Employment::create(['user_id' => $user->id, 'income_type' => $type, 'annual_income' => $stated, 'is_estimate' => false]);
+        }
+        $this->syncTotals($user);
     }
 
     /**

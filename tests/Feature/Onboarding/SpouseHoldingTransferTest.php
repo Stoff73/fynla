@@ -9,6 +9,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Income\EmploymentIncomeService;
 use App\Services\Onboarding\SpouseHoldingTransfer;
 use App\Services\Onboarding\SpouseLinkingService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -136,4 +137,21 @@ it('keeps a second job the spouse adds after replacing the estimate', function (
 
     expect($spouse->fresh()->employments)->toHaveCount(2)
         ->and((float) $spouse->fresh()->annual_employment_income)->toBe(36000.0);
+});
+
+it('copies the rest when the income cannot be copied, instead of failing the link', function (): void {
+    // The transfer runs after the link has committed; an income over the
+    // capture_work_details cap is refused and logged, and savings still copy.
+    $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married']);
+    $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => null, 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $requester->id, 'spouse_annual_income' => EmploymentIncomeService::MAX_ANNUAL_INCOME + 1,
+        'spouse_existing_savings_balance' => 6500,
+    ]);
+
+    app(SpouseLinkingService::class)->establishAcceptedLink($requester, $spouse);
+
+    expect((float) ($spouse->fresh()->annual_employment_income ?? 0))->toBe(0.0)
+        ->and(SavingsAccount::where('user_id', $spouse->id)->count())->toBe(1)
+        ->and(TaxStrategyHouseholdInput::where('user_id', $requester->id)->first()->spouse_holding_transferred_at)->not->toBeNull();
 });

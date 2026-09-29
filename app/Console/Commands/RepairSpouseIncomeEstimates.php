@@ -27,13 +27,17 @@ use Illuminate\Support\Facades\DB;
  *   estimate, so the deployed fix replaces it when the spouse gives their own.
  *   Without this, every spouse linked before the deploy would still double.
  * - SKIPPED (reported, never written): the copied row was changed after the
- *   copy, so the spouse spoke to it and it may be a real job of theirs.
+ *   copy, so the spouse spoke to it and it may be a real job of theirs; or the
+ *   spouse's own rows add up to less than the copy, so removing it could lose
+ *   a real figure. Review these by hand.
  *
- * The copied row is recognised by what the transfer leaves behind: no employer,
- * no occupation, created in the seconds before the household row's
- * spouse_holding_transferred_at, which the transfer stamps once it has copied
- * everything. The spouse cannot have written anything in that window — the
- * transfer runs at registration.
+ * The copied row is recognised by when it was written: in the seconds before
+ * the household row's spouse_holding_transferred_at, which the transfer stamps
+ * once it has copied everything. The spouse cannot have written anything in
+ * that window — the transfer runs at registration. Employer and occupation are
+ * not part of the match: a spouse whose first answer was only their job title
+ * had it written onto the copied row, and that household must still show up
+ * (as SKIPPED) rather than be missed.
  *
  * Dry-run by default, as estate:backfill-mirror-parties: the repair runs inside
  * a transaction, reports the totals it actually produced, then rolls back.
@@ -70,13 +74,17 @@ class RepairSpouseIncomeEstimates extends Command
         try {
             foreach ($candidates as ['spouse' => $spouse, 'row' => $row]) {
                 $before = (float) $spouse->annual_employment_income + (float) $spouse->annual_self_employment_income;
-                // Across both income types: the copy is always 'employment'
-                // (the inviter's view), but the spouse's own job may be
-                // self-employment, and it supersedes the copy just the same.
-                $others = $spouse->employments()->where('id', '!=', $row->id)->count();
+                // Across both income types: the copy takes the spouse's own
+                // employment status (incomeTypeFor), and the spouse's own job
+                // supersedes it whichever type either is.
+                $ownRows = $spouse->employments()->where('id', '!=', $row->id);
+                $others = (clone $ownRows)->count();
+                $ownTotal = (float) (clone $ownRows)->sum('annual_income');
 
                 if ($row->updated_at->ne($row->created_at)) {
                     $action = 'SKIPPED — changed after the copy';
+                } elseif ($others > 0 && $ownTotal < (float) $row->annual_income) {
+                    $action = 'SKIPPED — own rows total less than the copy';
                 } elseif ($others > 0) {
                     $row->delete();
                     $action = 'DOUBLED — copied row removed';
@@ -121,10 +129,12 @@ class RepairSpouseIncomeEstimates extends Command
             }
 
             $transferredAt = $holding->spouse_holding_transferred_at;
+            // The copy is always written without a name, so a named row in the
+            // window is the copy only if it was changed afterwards.
             $row = $spouse->employments()
-                ->whereNull('employer')
-                ->whereNull('occupation')
                 ->where('is_estimate', false)
+                ->where(fn ($q) => $q->where(fn ($unnamed) => $unnamed->whereNull('employer')->whereNull('occupation'))
+                    ->orWhereColumn('updated_at', '!=', 'created_at'))
                 ->whereBetween('created_at', [$transferredAt->copy()->subSeconds(self::TRANSFER_WINDOW_SECONDS), $transferredAt])
                 ->oldest('id')
                 ->first();

@@ -53,13 +53,17 @@ final class SpouseHoldingTransfer
             // Held as an estimate, not through capture_work_details: it is the
             // requester's figure, and the spouse's own job must replace it
             // rather than be added to it (production 2026-09-29 summed the
-            // two into £64,000). Both sources were validated on the way in
-            // (CoordinatingAgent's household rules: MAX_CURRENCY_VALUE;
-            // StoreFamilyMemberRequest: max 9999999999.99), and both caps fit
-            // employments.annual_income, decimal(12,2).
-            app(EmploymentIncomeService::class)->recordEstimate($spouse, $income);
-            $spouse->refresh();
-            $copied[] = 'income';
+            // two into £64,000). recordEstimate applies the same income cap
+            // as capture_work_details. This runs after the link has
+            // committed, so a failure is logged and the other copies go on,
+            // as run() does, instead of failing the registration.
+            try {
+                app(EmploymentIncomeService::class)->recordEstimate($spouse, $income);
+                $spouse->refresh();
+                $copied[] = 'income';
+            } catch (\Throwable $e) {
+                Log::warning('[SpouseHoldingTransfer] Income copy failed', ['spouse_id' => $spouse->id, 'error' => $e->getMessage()]);
+            }
         }
 
         // ── Records ────────────────────────────────────────────────────────

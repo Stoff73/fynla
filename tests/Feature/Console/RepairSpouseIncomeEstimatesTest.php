@@ -15,6 +15,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  */
 uses(RefreshDatabase::class);
 
+afterEach(function (): void {
+    Mockery::close();
+});
+
 /**
  * A household exactly as production left it: the copied row is unnamed and
  * unflagged, created in the seconds before the transfer was stamped.
@@ -141,4 +145,31 @@ it('ignores a named job created around the transfer and rows outside the window'
         ->assertSuccessful();
 
     expect(Employment::withTrashed()->where('user_id', $spouse->id)->whereNull('deleted_at')->count())->toBe(2);
+});
+
+it('reports a copy that had the spouse\'s job title written onto it rather than missing it', function (): void {
+    // The spouse's first answer was only "I'm a teacher": recordJob wrote the
+    // occupation onto the copied row, then a named job doubled the income.
+    [, $spouse, $copied] = linkedWithCopiedIncome(32000.0);
+    $copied->forceFill(['occupation' => 'Teacher', 'updated_at' => now()])->saveQuietly();
+    app(EmploymentIncomeService::class)->recordJob($spouse, 'Hill School', 'Head of Maths', 32000.0);
+
+    $this->artisan('income:repair-spouse-estimates', ['--force' => true])
+        ->expectsOutputToContain('SKIPPED — changed after the copy')
+        ->assertSuccessful();
+
+    expect(Employment::withTrashed()->find($copied->id)->trashed())->toBeFalse();
+});
+
+it('keeps the copy when the spouse\'s own rows add up to less than it', function (): void {
+    // A second job of £4,000 is not the spouse's main salary: removing the
+    // £32,000 copy could lose a real figure, so it is left for review.
+    [, $spouse, $copied] = linkedWithCopiedIncome(32000.0);
+    app(EmploymentIncomeService::class)->recordJob($spouse, 'Bluewater Tutoring', 'Tutor', 4000.0);
+
+    $this->artisan('income:repair-spouse-estimates', ['--force' => true])
+        ->expectsOutputToContain('SKIPPED — own rows total less than the copy')
+        ->assertSuccessful();
+
+    expect(Employment::withTrashed()->find($copied->id)->trashed())->toBeFalse();
 });

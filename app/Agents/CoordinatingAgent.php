@@ -2180,7 +2180,7 @@ class CoordinatingAgent extends BaseAgent
         $incomeRaw = $input['annual_income'] ?? null;
         $income = ($incomeRaw === null || $incomeRaw === '') ? null : (float) $incomeRaw;
 
-        if ($income !== null && $income > 99_999_999) {
+        if ($income !== null && $income > EmploymentIncomeService::MAX_ANNUAL_INCOME) {
             return ['error' => true, 'message' => 'annual_income exceeds permitted range'];
         }
         if ($income !== null && $income < 0) {
