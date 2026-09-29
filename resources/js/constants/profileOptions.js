@@ -24,6 +24,15 @@
  * the same constant (W-0080). Edit a label there, not here.
  */
 
+// Countries of birth that mean "born in the UK". The country picker
+// (Shared/CountrySelector.vue) offers the four nations, never "United
+// Kingdom"; that name is kept for records saved before the picker changed.
+// Checking only "United Kingdom" classed every UK-born user as born abroad,
+// asked for a UK arrival date and refused the save (fynla.org, 2026-09-29).
+export const UK_BIRTH_COUNTRIES = ['England', 'Scotland', 'Wales', 'Northern Ireland', 'United Kingdom'];
+
+export const isUkBirthCountry = (country) => UK_BIRTH_COUNTRIES.includes(country);
+
 export const HEALTH_STATUS_OPTIONS = [
   { value: 'yes', label: 'Yes' },
   { value: 'yes_previous', label: 'Yes, previous health conditions' },

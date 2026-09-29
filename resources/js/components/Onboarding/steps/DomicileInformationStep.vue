@@ -75,6 +75,7 @@ import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
+import { isUkBirthCountry } from '@/constants/profileOptions';
 import { apiErrorMessage } from '@/utils/apiErrors';
 
 export default {
@@ -136,12 +137,7 @@ export default {
       deemed_domicile_date: null,
     });
 
-    // UK constituent countries
-    const ukCountries = ['England', 'Scotland', 'Wales', 'Northern Ireland'];
-
-    const isUKCountry = (country) => {
-      return ukCountries.includes(country);
-    };
+    const isUKCountry = isUkBirthCountry;
 
     const loading = ref(false);
     const error = ref(null);
