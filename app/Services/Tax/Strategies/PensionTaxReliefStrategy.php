@@ -138,9 +138,12 @@ final class PensionTaxReliefStrategy implements TaxStrategy
     private function nonEarnerItem(TaxStrategyContext $context, float $availableAA, int $maxAge): array
     {
         $user = $context->user;
+        // Funded from savings, not income they do not have: never more than
+        // their recorded cash covers (CSJ 2026-09-29).
         $gross = floor(min(
             $this->math->pensionReliefLimit(0.0) - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
             $availableAA,
+            $this->math->nonEarnerFundableGross($user),
         ) / 100) * 100;
         if ($gross < 100) {
             return [];

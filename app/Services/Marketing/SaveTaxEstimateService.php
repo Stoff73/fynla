@@ -440,7 +440,7 @@ class SaveTaxEstimateService
                 'label' => $this->isTrap($income) ? $this->trapLabel() : 'Pension contribution',
                 'amount' => $saving,
                 // Worded as money HMRC adds, not tax saved (CSJ 2026-09-29).
-                'reason' => 'Without earnings from work, tax relief is limited to '.$this->money($gross).' a year of pension contributions: pay in '.$this->money($net).' and HMRC adds '.$this->money($relief).' through your pension provider, making '.$this->money($gross).', if you are under '.$this->reliefMaxAge().'.'.$claim,
+                'reason' => 'Without earnings from work, tax relief is limited to '.$this->money($gross).' a year of pension contributions: pay in '.$this->money($net).' from your savings and HMRC adds '.$this->money($relief).' through your pension provider, making '.$this->money($gross).', if you are under '.$this->reliefMaxAge().'.'.$claim,
             ];
         }
 
@@ -498,7 +498,7 @@ class SaveTaxEstimateService
                 'key' => 'spouse_tax_trap_60',
                 'label' => "Your partner's ".$this->trapLabel(),
                 'amount' => $saving,
-                'reason' => 'Without earnings from work, your partner gets tax relief on up to '.$this->money($gross).' a year of pension contributions: they pay in '.$this->money($net).' and HMRC adds '.$this->money($relief).' through their pension provider, making '.$this->money($gross).', if they are under '.$this->reliefMaxAge().'.'.$claim.' At '.$this->money($spouseIncome).', the top of the band you chose for them, that wins back part of their Personal Allowance. '.$band,
+                'reason' => 'Without earnings from work, your partner gets tax relief on up to '.$this->money($gross).' a year of pension contributions: they pay in '.$this->money($net).' from their savings and HMRC adds '.$this->money($relief).' through their pension provider, making '.$this->money($gross).', if they are under '.$this->reliefMaxAge().'.'.$claim.' At '.$this->money($spouseIncome).', the top of the band you chose for them, that wins back part of their Personal Allowance. '.$band,
             ];
         }
 

@@ -34,6 +34,11 @@ function enginePensionSaving(int $income, bool $retired = false): float
         'marital_status' => 'single',
         'date_of_birth' => now()->subYears(45)->toDateString(),
     ]);
+    if ($retired) {
+        // The funnel's promise assumes the payment comes from savings; the plan
+        // offers it only when recorded cash covers it (CSJ 2026-09-29).
+        \App\Models\SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 5000, 'interest_rate' => 0, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    }
 
     return (float) collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
         ->whereIn('type', ['pension_tax_relief', 'pa_taper_rescue', 'additional_rate_avoidance'])

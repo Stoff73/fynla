@@ -85,23 +85,44 @@ it('never tells a user at their earnings relief limit that they used their Annua
         ->and($service->detectTaxYearAllowances($user, '2026/27', $position('annual_allowance')))->not->toBe([]);
 });
 
-// Brett 2026-09-29: a non-earner funds the basic amount from savings, so the
-// surplus-income cap does not apply, and the limit is not "from your earnings".
-it('leaves a declared non-earner their whole basic amount, labelled as the limit without earnings', function (string $status) {
+// A non-earner funds a contribution from savings, not surplus income: the cap
+// is what their recorded cash covers, grossed up by the relief added at source
+// (CSJ 2026-09-29), and the limit is not "from your earnings".
+function nonEarnerWithCash(string $status, float $cash): User
+{
     $user = User::factory()->create([
         'household_calculation_mode' => 'single', 'employment_status' => $status,
         'annual_employment_income' => null, 'annual_self_employment_income' => null,
         'marital_status' => 'single', 'date_of_birth' => now()->subYears(40)->toDateString(),
     ]);
+    if ($cash > 0) {
+        \App\Models\SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => $cash, 'interest_rate' => 0, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    }
+
+    return $user;
+}
+
+it('leaves a declared non-earner whose savings cover it their whole basic amount', function (string $status) {
+    $user = nonEarnerWithCash($status, 10000);
     $basic = (float) app(TaxConfigService::class)->getPensionAllowances()['relevant_earnings_minimum'];
 
     $tile = pensionTile(app(TaxStrategyService::class)->getDashboardPayload($user)['user_allowances']);
 
     expect((float) $tile['amount'])->toBe($basic)
         ->and((float) $tile['remaining'])->toBe($basic)
-        ->and($tile)->not->toHaveKey('affordable_this_year')
         ->and($tile['label'])->toBe('Pension contribution limit without earnings');
 })->with(['unemployed', 'retired']);
+
+it('caps a declared non-earner at what their savings cover', function () {
+    // £1,000 of cash pays £1,000 in; with 20% added at source that is £1,250 gross.
+    $user = nonEarnerWithCash('retired', 1000);
+    $relief = (float) app(TaxConfigService::class)->getPensionAllowances()['tax_relief']['basic_rate'];
+
+    $tile = pensionTile(app(TaxStrategyService::class)->getDashboardPayload($user)['user_allowances']);
+
+    expect((float) $tile['remaining'])->toBe(round(1000 / (1 - $relief), 2))
+        ->and((float) $tile['affordable_this_year'])->toBe(round(1000 / (1 - $relief), 2));
+});
 
 it('still caps a low earner at what they can afford', function () {
     $user = User::factory()->create([

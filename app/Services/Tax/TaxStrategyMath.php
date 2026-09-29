@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
@@ -904,6 +905,21 @@ final class TaxStrategyMath
      *
      * @return array{gross: float, net: float, relief: float}
      */
+    /**
+     * The most a declared non-earner can pay into a pension from what they
+     * hold: their share of recorded cash savings is the net payment, grossed
+     * up by the basic-rate relief the provider adds (FA 2004 s192). CSJ
+     * 2026-09-29: suggest the basic amount only when savings cover it,
+     * otherwise what they can afford.
+     */
+    public function nonEarnerFundableGross(User $user): float
+    {
+        $cash = app(CrossModuleAssetAggregator::class)->calculateCashTotal($user->id);
+        $relief = (float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'];
+
+        return $relief < 1 ? round($cash / (1 - $relief), 2) : 0.0;
+    }
+
     public function nonEarnerPensionContribution(): array
     {
         $pension = $this->taxConfig->getPensionAllowances();
