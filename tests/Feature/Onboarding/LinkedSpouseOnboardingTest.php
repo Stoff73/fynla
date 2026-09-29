@@ -50,7 +50,7 @@ afterEach(function (): void {
  *
  * @return array{0: User, 1: User}
  */
-function linkedCouple(float $samIncome = 72000, array $alexExtra = []): array
+function linkedSpouseOnboardingCouple(float $samIncome = 72000, array $alexExtra = []): array
 {
     $sam = User::factory()->create(['is_preview_user' => false, 'first_name' => 'Sam', 'marital_status' => 'married', 'employment_status' => 'full_time', 'household_calculation_mode' => 'dual_earner']);
     if ($samIncome > 0) {
@@ -77,7 +77,7 @@ function linkedCouple(float $samIncome = 72000, array $alexExtra = []): array
     return [$sam->fresh(), $alex->fresh()];
 }
 
-function linkedDirector(): OnboardingChatDirector
+function linkedSpouseOnboardingDirector(): OnboardingChatDirector
 {
     FynStreamHarness::fake()->bind(); // no turns queued: any model call fails the test
     $director = app(OnboardingChatDirector::class);
@@ -86,35 +86,35 @@ function linkedDirector(): OnboardingChatDirector
     return $director;
 }
 
-function linkedConversation(User $user): AiConversation
+function linkedSpouseOnboardingConversation(User $user): AiConversation
 {
     return AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding', 'metadata' => ['source' => 'fyn_onboarding']])->fresh();
 }
 
-function emitStep(User $user, AiConversation $conversation, string $step): array
+function linkedSpouseOnboardingEmitStep(User $user, AiConversation $conversation, string $step): array
 {
     $user->forceFill(['onboarding_fyn_step' => $step])->save();
 
-    return iterator_to_array(linkedDirector()->handleAction($user->fresh(), $conversation, 'continue'), false);
+    return iterator_to_array(linkedSpouseOnboardingDirector()->handleAction($user->fresh(), $conversation, 'continue'), false);
 }
 
 describe('the partner questions the link already answers', function (): void {
     it("reads the linked partner's earnings from their own record", function (): void {
-        [, $alex] = linkedCouple();
+        [, $alex] = linkedSpouseOnboardingCouple();
 
         expect(app(HouseholdFinancialContext::class)->linkedSpouseEarnings($alex))
             ->toBe(['earnings' => 72000.0, 'total_income' => 72000.0]);
     });
 
     it("does not ask an invitee for their partner's earnings band", function (): void {
-        [, $alex] = linkedCouple();
+        [, $alex] = linkedSpouseOnboardingCouple();
 
         expect(OnboardingStateMachine::firstMissingFunnelState($alex))
             ->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME);
     });
 
     it('skips "Does your spouse work?" and records the mode the answer would have', function (): void {
-        [, $alex] = linkedCouple();
+        [, $alex] = linkedSpouseOnboardingCouple();
 
         expect(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK, $alex))
             ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
@@ -125,11 +125,11 @@ describe('the partner questions the link already answers', function (): void {
     });
 
     it("opens the working-spouse form with the partner's income filled in from the link", function (): void {
-        [, $alex] = linkedCouple();
+        [, $alex] = linkedSpouseOnboardingCouple();
         $alex->forceFill(['household_calculation_mode' => 'dual_earner'])->save();
-        $conversation = linkedConversation($alex);
+        $conversation = linkedSpouseOnboardingConversation($alex);
 
-        $events = emitStep($alex, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+        $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
 
         $form = collect($events)->firstWhere('type', 'capture_form');
         expect($form['form']['name'])->toBe(CaptureForms::SPOUSE_HOUSEHOLD)
@@ -140,11 +140,11 @@ describe('the partner questions the link already answers', function (): void {
     });
 
     it('keeps a figure the user already gave for their spouse', function (): void {
-        [, $alex] = linkedCouple();
+        [, $alex] = linkedSpouseOnboardingCouple();
         $alex->forceFill(['household_calculation_mode' => 'dual_earner'])->save();
         TaxStrategyHouseholdInput::updateOrCreate(['user_id' => $alex->id], ['spouse_annual_income' => 70000]);
 
-        $events = emitStep($alex, linkedConversation($alex), OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+        $events = linkedSpouseOnboardingEmitStep($alex, linkedSpouseOnboardingConversation($alex), OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
 
         expect(collect($events)->firstWhere('type', 'capture_form'))->not->toHaveKey('values');
     });
@@ -160,7 +160,7 @@ describe('when the link cannot answer, the questions are asked as before', funct
     });
 
     it('asks when the couple do not share financial data', function (): void {
-        [$sam, $alex] = linkedCouple();
+        [$sam, $alex] = linkedSpouseOnboardingCouple();
         SpousePermission::create(['user_id' => $sam->id, 'spouse_id' => $alex->id, 'status' => 'rejected']);
 
         expect(app(HouseholdFinancialContext::class)->linkedSpouseEarnings($alex->fresh()))->toBeNull()
@@ -169,7 +169,7 @@ describe('when the link cannot answer, the questions are asked as before', funct
     });
 
     it("asks when the linked partner's record holds no earnings", function (): void {
-        [, $alex] = linkedCouple(samIncome: 0);
+        [, $alex] = linkedSpouseOnboardingCouple(samIncome: 0);
 
         expect(app(HouseholdFinancialContext::class)->linkedSpouseEarnings($alex))->toBeNull()
             ->and(OnboardingStateMachine::firstMissingFunnelState($alex))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME)
@@ -180,11 +180,11 @@ describe('when the link cannot answer, the questions are asked as before', funct
 
 describe("the invitee's own income form", function (): void {
     it('opens the income their partner entered as an edit of that job', function (): void {
-        [, $alex] = linkedCouple();
+        [, $alex] = linkedSpouseOnboardingCouple();
         $job = Employment::where('user_id', $alex->id)->sole();
-        $conversation = linkedConversation($alex);
+        $conversation = linkedSpouseOnboardingConversation($alex);
 
-        $events = emitStep($alex, $conversation, OnboardingStateMachine::STATE_BASE_WORK);
+        $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_BASE_WORK);
 
         $form = collect($events)->firstWhere('type', 'capture_form');
         expect($form['form']['name'])->toBe(CaptureForms::WORK)
@@ -196,10 +196,10 @@ describe("the invitee's own income form", function (): void {
     });
 
     it('saves over that job instead of adding a second, and the walk moves on', function (): void {
-        [, $alex] = linkedCouple();
+        [, $alex] = linkedSpouseOnboardingCouple();
         $job = Employment::where('user_id', $alex->id)->sole();
-        $conversation = linkedConversation($alex);
-        emitStep($alex, $conversation, OnboardingStateMachine::STATE_BASE_WORK);
+        $conversation = linkedSpouseOnboardingConversation($alex);
+        linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_BASE_WORK);
 
         Sanctum::actingAs($alex->fresh());
         FynStreamHarness::fake()->bind();
@@ -219,11 +219,11 @@ describe("the invitee's own income form", function (): void {
     });
 
     it('opens a blank form for another job once a work form has been saved', function (): void {
-        [, $alex] = linkedCouple();
-        $conversation = linkedConversation($alex);
+        [, $alex] = linkedSpouseOnboardingCouple();
+        $conversation = linkedSpouseOnboardingConversation($alex);
         $conversation->messages()->create(['role' => 'user', 'content' => 'Globex, £34,000', 'metadata' => ['form' => ['name' => CaptureForms::WORK, 'answers' => []]]]);
 
-        $events = emitStep($alex, $conversation, OnboardingStateMachine::STATE_BASE_WORK);
+        $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_BASE_WORK);
 
         $form = collect($events)->firstWhere('type', 'capture_form');
         expect($form)->not->toHaveKey('values')->and($form)->not->toHaveKey('record');
@@ -232,7 +232,7 @@ describe("the invitee's own income form", function (): void {
     it('opens a blank form when there is no job on file', function (): void {
         $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false, 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax', 'employment_status' => 'full_time']);
 
-        $events = emitStep($user, linkedConversation($user), OnboardingStateMachine::STATE_BASE_WORK);
+        $events = linkedSpouseOnboardingEmitStep($user, linkedSpouseOnboardingConversation($user), OnboardingStateMachine::STATE_BASE_WORK);
 
         $form = collect($events)->firstWhere('type', 'capture_form');
         expect($form['form']['name'])->toBe(CaptureForms::WORK)
