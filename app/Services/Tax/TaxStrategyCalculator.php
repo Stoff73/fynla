@@ -218,7 +218,7 @@ final class TaxStrategyCalculator
     private function userIsaPoolRemaining(User $user): float
     {
         $isa = $this->taxConfig->getISAAllowances();
-        $allowance = (float) ($isa['annual_allowance'] ?? 20000);
+        $allowance = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
 
         return max(0.0, $allowance - $this->math->estimateIsaSubscriptionsThisYear($user));
     }
@@ -240,7 +240,7 @@ final class TaxStrategyCalculator
         $personalSavingsAllowanceAmount = $this->math->personalSavingsAllowanceForUser($user);
         $estimatedAnnualInterest = $this->math->estimateAnnualInterest($user);
 
-        $startingRateForSavingsAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
+        $startingRateForSavingsAmount = $this->configAmount($income, 'starting_rate_for_savings.band', 'income_tax.starting_rate_for_savings.band');
         // Starting rate for savings tapers £-for-£ once non-savings income exceeds the
         // Personal Allowance and disappears entirely once it exceeds PA + £5,000. We only
         // surface the position when the user could actually use some of it.
@@ -248,7 +248,7 @@ final class TaxStrategyCalculator
         $startingRateForSavingsAvailable = max(0, $startingRateForSavingsAmount - $nonSavingsIncomeAbovePa);
         $startingRateForSavingsUsed = min($startingRateForSavingsAvailable, $this->math->estimateAnnualInterest($user));
 
-        $marriageAllowanceAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
+        $marriageAllowanceAmount = $this->configAmount($income, 'marriage_allowance.amount', 'income_tax.marriage_allowance.amount');
         $maritalStatus = (string) ($user->marital_status ?? '');
         $isPartnered = in_array($maritalStatus, ['married', 'civil_partnership'], true);
         // HMRC: the recipient of a Marriage Allowance transfer must be a
@@ -262,17 +262,14 @@ final class TaxStrategyCalculator
             ? $marriageAllowanceAmount
             : 0.0;
 
-        $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
+        $isaAmount = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
         $isaUsedThisYear = $this->math->estimateIsaSubscriptionsThisYear($user)
             + (float) ($overrides?->isaAdditionalDeposit ?? 0);
         $isaUsed = min($isaAmount, $isaUsedThisYear);
 
-        $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
+        $cgtAmount = $this->configAmount($cgt, 'annual_exempt_amount', 'capital_gains_tax.annual_exempt_amount');
 
-        $divAmount = (float) ($div['allowance']['amount'] ?? $div['allowance'] ?? 500);
-        if (is_array($divAmount)) {
-            $divAmount = (float) ($divAmount['amount'] ?? 500);
-        }
+        $divAmount = $this->dividendAllowance($div);
         $divUsed = (float) ($user->annual_dividend_income ?? 0);
 
         $mpaaApplies = $this->math->moneyPurchaseAnnualAllowanceApplies($user);
@@ -402,13 +399,12 @@ final class TaxStrategyCalculator
         $spouseNonSavingsIncome = (float) ($household->spouse_annual_income ?? 0);
         $spouseTotalIncome = $spouseNonSavingsIncome + (float) ($household->spouse_annual_dividends ?? 0);
         $personalAllowance = $this->math->personalAllowanceForIncome($spouseTotalIncome);
-        $startingRateAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
-        $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
-        $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
-        $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
-        $divAmountRaw = $div['allowance'] ?? 500;
-        $divAmount = is_array($divAmountRaw) ? (float) ($divAmountRaw['amount'] ?? 500) : (float) $divAmountRaw;
-        $aaAmount = (float) ($pension['annual_allowance'] ?? 60000);
+        $startingRateAmount = $this->configAmount($income, 'starting_rate_for_savings.band', 'income_tax.starting_rate_for_savings.band');
+        $marriageAmount = $this->configAmount($income, 'marriage_allowance.amount', 'income_tax.marriage_allowance.amount');
+        $isaAmount = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
+        $cgtAmount = $this->configAmount($cgt, 'annual_exempt_amount', 'capital_gains_tax.annual_exempt_amount');
+        $divAmount = $this->dividendAllowance($div);
+        $aaAmount = $this->configAmount($pension, 'annual_allowance', 'pension.annual_allowance');
 
         $psa = $this->math->personalSavingsAllowanceFor($spouseTotalIncome);
 
@@ -452,14 +448,13 @@ final class TaxStrategyCalculator
         $div = $this->taxConfig->getDividendTax();
 
         // Non-working spouse — assume basic-rate band by default.
-        $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
-        $startingRateAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
-        $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
-        $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
-        $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
-        $divAmountRaw = $div['allowance'] ?? 500;
-        $divAmount = is_array($divAmountRaw) ? (float) ($divAmountRaw['amount'] ?? 500) : (float) $divAmountRaw;
-        $aaAmount = (float) ($pension['annual_allowance'] ?? 60000);
+        $personalAllowance = $this->configAmount($income, 'personal_allowance', 'income_tax.personal_allowance');
+        $startingRateAmount = $this->configAmount($income, 'starting_rate_for_savings.band', 'income_tax.starting_rate_for_savings.band');
+        $marriageAmount = $this->configAmount($income, 'marriage_allowance.amount', 'income_tax.marriage_allowance.amount');
+        $isaAmount = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
+        $cgtAmount = $this->configAmount($cgt, 'annual_exempt_amount', 'capital_gains_tax.annual_exempt_amount');
+        $divAmount = $this->dividendAllowance($div);
+        $aaAmount = $this->configAmount($pension, 'annual_allowance', 'pension.annual_allowance');
 
         $existingIsa = $household?->spouse_existing_isa_balance;
         $spouseIsaUseKnown = $existingIsa !== null && (float) $existingIsa === 0.0;
@@ -550,5 +545,36 @@ final class TaxStrategyCalculator
             'available' => true,
             'known' => true,
         ];
+    }
+
+    /**
+     * A tax figure read from config with no typed-in fallback (Rule 2): a
+     * missing key fails loudly, as SaveTaxEstimateService does, rather than
+     * showing an out-of-date allowance.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    private function configAmount(array $values, string $key, string $path): float
+    {
+        $value = \Illuminate\Support\Arr::get($values, $key);
+        if (! is_numeric($value)) {
+            throw new \LogicException("Tax config {$path} is missing");
+        }
+
+        return (float) $value;
+    }
+
+    /**
+     * The dividend allowance, held either as a figure or as ['amount' => …].
+     *
+     * @param  array<string, mixed>  $div
+     */
+    private function dividendAllowance(array $div): float
+    {
+        $allowance = $div['allowance'] ?? null;
+
+        return is_array($allowance)
+            ? $this->configAmount($allowance, 'amount', 'dividend_tax.allowance.amount')
+            : $this->configAmount($div, 'allowance', 'dividend_tax.allowance');
     }
 }
