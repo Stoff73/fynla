@@ -218,6 +218,25 @@ describe("the invitee's own income form", function (): void {
             ->and($alex->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_BASE_WORK);
     });
 
+    it('checks a saved figure against the funnel band, as a new record is checked', function (): void {
+        // The prefilled form posts as an edit; it must get #991's income
+        // challenge too, or an invitee's salary is never cross-checked.
+        [, $alex] = linkedSpouseOnboardingCouple(72000, ['funnel_answers' => ['campaign' => 'savetax', 'income' => '100001_125140']]);
+        $job = Employment::where('user_id', $alex->id)->sole();
+        $conversation = linkedSpouseOnboardingConversation($alex);
+        linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_BASE_WORK);
+
+        Sanctum::actingAs($alex->fresh());
+        FynStreamHarness::fake()->bind();
+        $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['form' => [
+            'name' => CaptureForms::WORK,
+            'answers' => [CaptureForms::LEAD => ['employer' => 'Globex', 'occupation' => 'Analyst', 'annual_income' => 6500]],
+            'record' => ['type' => 'employment', 'id' => $job->id],
+        ]])->assertOk()->streamedContent();
+
+        expect($alex->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
+    });
+
     it('opens a blank form for another job once a work form has been saved', function (): void {
         [, $alex] = linkedSpouseOnboardingCouple();
         $conversation = linkedSpouseOnboardingConversation($alex);

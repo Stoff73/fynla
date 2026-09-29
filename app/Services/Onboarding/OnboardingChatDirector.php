@@ -7593,6 +7593,12 @@ PROMPT;
             : null;
         $postedBase = CaptureForms::schema((string) ($form['name'] ?? ''))['base'] ?? ($form['name'] ?? null);
         if ($walkState !== null && ($walkState['form'] ?? null) === $postedBase) {
+            // The same funnel-band income check a new record gets (#991): the
+            // prefilled form posts as an edit, which would otherwise skip it.
+            $challenged = yield from $this->maybeChallengeIncome($user->refresh(), $conversation, $currentStateId, CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? []);
+            if ($challenged) {
+                return;
+            }
             $ack = $this->buildCaptureAck($user->refresh(), $currentStateId, []) ?? $result['message'];
             yield ['type' => 'content', 'text' => $ack];
             $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);

@@ -2623,10 +2623,10 @@ final class OnboardingStateMachine
             return false;
         }
 
-        $user->update([
-            'household_calculation_mode' => 'dual_earner',
-            'marriage_allowance_eligible' => false,
-        ]);
+        // Only the household mode is known. Whether Marriage Allowance applies
+        // depends on both incomes (gov.uk/marriage-allowance), so it is not
+        // asserted here.
+        $user->update(['household_calculation_mode' => 'dual_earner']);
 
         return true;
     }
