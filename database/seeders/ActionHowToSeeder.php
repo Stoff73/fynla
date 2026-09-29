@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\SavingsActionDefinition;
 use App\Models\TaxActionDefinition;
 use App\Services\Actions\ActionHowTo;
 use Illuminate\Database\Seeder;
@@ -19,6 +20,7 @@ class ActionHowToSeeder extends Seeder
     /** module => [definition model, column the markdown heading names] */
     private const SOURCES = [
         'tax' => [TaxActionDefinition::class, 'strategy_type'],
+        'savings' => [SavingsActionDefinition::class, 'key'],
     ];
 
     public function run(): void

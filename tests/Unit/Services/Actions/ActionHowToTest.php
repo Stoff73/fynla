@@ -65,3 +65,14 @@ it('renders the outcome lines on their own, and never among the steps', function
     expect(ActionHowTo::render($steps, [], $text))->toBe(['Pay it in.'])
         ->and(ActionHowTo::render($steps, [], $text, 'outcome'))->toBe(['Your Income Tax falls from £17,432 to £7,552.']);
 });
+
+it('gives every key a heading names the same entry, each filled with its own figures', function () {
+    $entries = ActionHowTo::parse("## rate_below_market, rate_poor\nstatus: approved\nwhy:\n1. {account_name} pays {account_rate}%.\nalways:\n1. Compare easy access rates.\n## other\n1. Separate.\n");
+
+    expect(array_keys($entries))->toBe(['rate_below_market', 'rate_poor', 'other'])
+        ->and($entries['rate_below_market'])->toBe($entries['rate_poor'])
+        ->and($entries['rate_poor']['status'])->toBe('approved')
+        ->and($entries['other']['status'])->toBe('draft')
+        ->and(ActionHowTo::render($entries['rate_poor']['steps'], [], ['account_name' => 'Marcus', 'account_rate' => '1.10'], 'why'))
+        ->toBe(['Marcus pays 1.10%.']);
+});

@@ -6,6 +6,7 @@ namespace App\Services\Savings;
 
 use App\Models\SavingsAccount;
 use App\Services\Stores\SavingsMarketRateStore;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class RateComparator
@@ -43,9 +44,17 @@ class RateComparator
             default => 'Poor', // More than 1% below market
         };
 
+        // Where the benchmark came from (the best-buy row it was read from), so
+        // a card can say whose rate it is and when it was taken (Rule 23).
+        $row = $this->benchmarkRowFor($account);
+
         return [
             'account_rate' => round($accountRate, 4),
             'market_rate' => round($marketRate, 4),
+            'market_label' => $row?->label,
+            'market_provider' => $row?->provider,
+            'market_as_of' => $row?->effective_from !== null ? Carbon::parse($row->effective_from)->format('j F Y') : null,
+            'market_source' => $row?->source,
             'difference' => round($difference, 4),
             'account_rate_percent' => round($accountRate * 100, 2),
             'market_rate_percent' => round($marketRate * 100, 2),
@@ -114,21 +123,41 @@ class RateComparator
         return round($potentialInterest - $currentInterest, 2);
     }
 
-    /**
-     * Get appropriate benchmark for an account
-     */
-    private function getBenchmarkForAccount(SavingsAccount $account, array $benchmarks): float
+    /** The benchmark key for an account's access type, term and ISA status. */
+    private function benchmarkKeyFor(SavingsAccount $account): string
     {
-        $accountType = $account->account_type;
-        $isIsa = $account->is_isa;
+        $isIsa = (bool) $account->is_isa;
 
-        // Determine benchmark key based on account characteristics
-        $benchmarkKey = match ($account->access_type) {
+        return match ($account->access_type) {
             'immediate' => $isIsa ? 'easy_access_isa' : 'easy_access',
             'notice' => $isIsa ? 'notice_isa' : 'notice',
             'fixed' => $this->getFixedRateBenchmark($account, $isIsa),
             default => $isIsa ? 'easy_access_isa' : 'easy_access',
         };
+    }
+
+    /**
+     * The stored best-buy row behind an account's benchmark, from the same year
+     * getMarketBenchmarks reads, or null when the rate is the unsourced default.
+     */
+    private function benchmarkRowFor(SavingsAccount $account): ?object
+    {
+        $taxYear = $this->isaTracker->getCurrentTaxYear();
+        $rows = $this->marketRateStore->forTaxYear($taxYear);
+        if ($rows->isEmpty() && ($latest = $this->marketRateStore->latestTaxYear()) !== null) {
+            $rows = $this->marketRateStore->forTaxYear($latest);
+        }
+        $key = $this->benchmarkKeyFor($account);
+
+        return $rows->firstWhere('rate_key', $key) ?? $rows->firstWhere('rate_key', str_replace('_isa', '', $key));
+    }
+
+    /**
+     * Get appropriate benchmark for an account
+     */
+    private function getBenchmarkForAccount(SavingsAccount $account, array $benchmarks): float
+    {
+        $benchmarkKey = $this->benchmarkKeyFor($account);
 
         // notice_isa has no MoneySavingExpert best-buy table, so a live-refreshed year
         // carries no row for it; the taxable notice benchmark is the nearest measure.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\TaxActionDefinition;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 
 /*
@@ -11,7 +12,10 @@ use Database\Seeders\TaxActionDefinitionSeeder;
  * writes every entry's steps and status, so an entry CSJ has not approved stays
  * draft and never reaches a card.
  */
-beforeEach(fn () => $this->seed(TaxActionDefinitionSeeder::class));
+beforeEach(function () {
+    $this->seed(TaxActionDefinitionSeeder::class);
+    $this->seed(SavingsActionDefinitionSeeder::class);
+});
 
 it('parses steps and status per strategy from the markdown source', function () {
     $entries = ActionHowToSeeder::parse(<<<'MD'
