@@ -83,6 +83,8 @@ const deletePolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
 
 const state = {
     profile: null,
+    // Where the user stands per cover type (ProtectionCoverPosition, GET /api/protection).
+    coverPosition: null,
     policies: {
         life: [],
         criticalIllness: [],
@@ -250,6 +252,14 @@ const actions = {
         }
     },
 
+    // Save the user's employer benefits, then reload the figures that use them
+    async saveEmployerBenefits({ commit, dispatch }, benefits) {
+        const response = await protectionService.saveEmployerBenefits(benefits);
+        commit('setProfile', response.data || null);
+        await dispatch('fetchProtectionData');
+        return response;
+    },
+
     // Fetch all protection data
     async fetchProtectionData({ commit }) {
         commit('setLoading', true);
@@ -260,6 +270,7 @@ const actions = {
             const data = response.data || response;
             commit('setProfile', data.profile || null);
             commit('setPolicies', data.policies || {});
+            commit('setCoverPosition', data.cover_position || null);
             commit('setLifeEvents', data.life_events || []);
             commit('setLifeEventImpact', data.life_event_impact || null);
 
@@ -398,6 +409,10 @@ const actions = {
 };
 
 const mutations = {
+    setCoverPosition(state, value) {
+        state.coverPosition = value;
+    },
+
     setProfile(state, profile) {
         state.profile = profile;
     },

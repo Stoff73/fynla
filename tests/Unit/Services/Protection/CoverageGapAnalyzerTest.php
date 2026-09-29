@@ -59,7 +59,7 @@ beforeEach(function () {
         ->with('protection.education_cost_per_year', Mockery::any())
         ->andReturn(9000);
     $mockTaxConfig->shouldReceive('get')
-        ->with('protection.income_multipliers.income_protection_max_benefit', Mockery::any())
+        ->with('protection.income_multipliers.income_protection_max_benefit')
         ->andReturn(0.60);
 
     // State benefit config values for SSP/ESA integration

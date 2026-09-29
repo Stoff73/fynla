@@ -218,7 +218,7 @@ class CoverageGapAnalyzer
             }
 
             // Employer reliance warning: if death in service exceeds configured threshold of total life cover
-            $disRelianceThreshold = (float) $this->taxConfig->get('protection.dis_reliance_percent', 0.50);
+            $disRelianceThreshold = (float) $this->taxConfig->get('protection.dis_reliance_percent');
             if ($deathInServiceCoverage > 0 && $lifeCoverage > 0
                 && ($deathInServiceCoverage / $lifeCoverage) > $disRelianceThreshold) {
                 $employerWarnings[] = 'Over half your life cover comes from death in service. This cover is lost if you leave employment.';
@@ -472,7 +472,7 @@ class CoverageGapAnalyzer
         $totalNeed = $humanCapital + $debtProtection + $educationFunding + $finalExpenses;
 
         // Income protection need = max benefit ratio of gross income (standard IP recommendation)
-        $ipMaxBenefit = (float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit', 0.60);
+        $ipMaxBenefit = (float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit');
         $incomeProtectionNeed = $userGrossIncome * $ipMaxBenefit;
 
         // State benefit offset for income protection assessment

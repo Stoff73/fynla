@@ -182,7 +182,7 @@ class ProtectionGapPresentationService
                 ],
                 [[
                     'key' => 'maximum_benefit_ratio',
-                    'value' => round((float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit', 0.60) * 100, 2),
+                    'value' => round((float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit') * 100, 2),
                     'unit' => 'percent',
                 ], [
                     'key' => 'coverage_basis',

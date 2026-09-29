@@ -257,7 +257,7 @@ describe('FynCaptureForm text fields', () => {
 // submits with the record it changes, and can remove it.
 describe('FynCaptureForm as an edit form', () => {
   const editSchema = {
-    name: 'savings', submit_label: 'Save changes', edit: true, record: { type: 'savings_account', id: 7 },
+    name: 'savings', submit_label: 'Save changes', edit: true, removable: true, record: { type: 'savings_account', id: 7 },
     kinds: [{ key: 'current_account', label: 'Current account', fields: ['provider', 'current_value'] }],
     fields: {
       provider: { type: 'text', label: 'Who is it with', required: true },
@@ -286,6 +286,13 @@ describe('FynCaptureForm as an edit form', () => {
 
   it('shows no Remove on a capture form', () => {
     const w = mount(FynCaptureForm, { props: { schema } });
+    expect(w.findAll('button').some((b) => b.text() === 'Remove')).toBe(false);
+  });
+
+  it('shows no Remove on an edit form whose record cannot be removed', () => {
+    // RecordEditForms::REMOVABLE_TYPES: employer benefits, spending and the
+    // like are changed, never deleted, so the server sends removable: false.
+    const w = mount(FynCaptureForm, { props: { schema: { ...editSchema, removable: false }, values, record } });
     expect(w.findAll('button').some((b) => b.text() === 'Remove')).toBe(false);
   });
 });

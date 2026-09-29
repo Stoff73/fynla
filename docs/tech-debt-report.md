@@ -1,46 +1,42 @@
-# Tech Debt Report — Session 2026-09-25/26 (Plan B, accuracy batch, pension tile, income definitions)
+# Tech Debt Report — Session 2026-09-29
 
-**Files analysed:** 44 (`git diff --name-only 88170adcd..481fac0be`: app, resources, public/pages, seeders)
+**Files analysed:** 18 (the session's diff, `a87432b71..1b5f3d77f`)
 **Issues found:** 9
-**Severity breakdown:** 0 critical, 4 warnings, 5 suggestions
+**Severity breakdown:** 2 critical, 4 warnings, 3 suggestions
+
+Clean on the mechanical checks: every file has `declare(strict_types=1)`, no unused imports, no debug calls.
+
+## Critical Issues
+
+1. **Two sums for "ISA allowance used this year"** — `app/Services/Savings/ISATracker.php` `buildOwnerStatus` vs `app/Services/Tax/TaxStrategyMath.php:383` `estimateIsaSubscriptionsThisYear`.
+   - *Category:* Inconsistency (Rule 20) / user-facing figure (Rule 23).
+   - *What:* the tracker (savings cards, Savings page) counts a Stocks and Shares ISA only when `investment_accounts.tax_year` is the current year, which is stale on real rows. The tax maths counts `isa_subscription_current_year` whatever its year. Preview users 74/78 read £20,000 left vs £15,200 / £0. The how-tos now use the tax figure, so a card's trigger and its steps can disagree.
+   - *Fix:* one rule for ISA subscriptions this year, with the year kept right on each payment; both callers use it. Needs a decision on what `tax_year` / `isa_subscription_current_year` mean.
+2. **Invented 4.00% market-rate fallback** — `app/Services/Savings/RateComparator.php:93-104` and `getBenchmarkForAccount` (`?? 0.0400`).
+   - *Category:* Convention (Rule 23, no unsourced figures).
+   - *What:* with no stored rates, a "Better rate available" card can fire from a made-up rate. The how-to line drops out (no source row), the card does not.
+   - *Fix:* no stored rate → no comparison, no card.
 
 ## Warnings
 
-1. **`app/Services/Tax/TaxStrategyService.php` (`withAffordablePensionHeadroom`): performance.**
-   - **Category:** Complexity/maintainability.
-   - **What's wrong:** `recalculate()` (called on every what-if slider move) now calls `CompositePlanService::financials()`, which calls `UserProfileService::getCompleteProfile()` through `DisposableIncomeAccessor`. The calculator was kept out of this for speed, but the slider path still pays for it.
-   - **Suggested fix:** memoise the affordable figure per request, or apply the cap only in `getDashboardPayload()` and pass it through the slider response unchanged.
-2. **`app/Services/Tax/TaxStrategyMath.php` is 762 lines: size.**
-   - **Category:** Complexity.
-   - **What's wrong:** It now holds Marriage Allowance statute logic (`marriageAllowance`, `incomePartsFor`, `incomeTaxOn`, `extraTaxFromLosingAllowance`) next to band and allowance maths.
-   - **Suggested fix:** extract a `MarriageAllowanceCalculator` service (ITA 2007 Part 3 Chapter 3A) that `MarriageAllowanceStrategy`, `AssetShiftingBundleStrategy`, `JointSavingsStrategy` and the calculator's grid inject.
-3. **`app/Services/Tax/TaxStrategyMath.php` `marriageAllowance()`: repeated tax calculations.**
-   - **Category:** Complexity.
-   - **What's wrong:** It calls `UKTaxCalculator::calculateDetailedNetIncome` up to 5 times per call, and the method itself is called from 4 places per `calculate()`: the strategy, the grid (twice), and `AssetShifting`/`JointSavings` via `marriageAllowanceTransfer`.
-   - **Suggested fix:** memoise per user id for the request, as `taxableIncomeCache` already does.
-4. **Two copies of the "Limited to what you can afford this year" rule.**
-   - **Where:** `resources/js/components/TaxStrategy/AllowanceCard.vue:28` (`budgetLimited`) and `resources/mobile/views/TaxStrategy.vue:225` (`budgetNote`).
-   - **Category:** Duplication.
-   - **What's wrong:** The same threshold (`remaining < amount − used − 0.5`) and the same string are written in both bundles.
-   - **Suggested fix:** have the server set `budget_limited: true` (and the copy) in `withAffordablePensionHeadroom`, so both surfaces read one field.
+3. **Year-fallback logic duplicated** — `RateComparator.php:78-89` (`getMarketBenchmarks`) and `:146-148` (`benchmarkRowFor`, added today).
+   - *Category:* Duplicate code.
+   - *Fix:* one private method returning the benchmark rows for the active-or-latest year; both callers read it. It also removes the per-account query in `benchmarkRowFor`.
+4. **Service locator in new code** — `FynContextAssembler.php` (`app(ActionCardService::class)`, `app(IncomeDefinitionsService::class)`), `ActionHowToFacts.php` (`app(DependantsReach::class)`).
+   - *Category:* Inconsistency (services use constructor injection).
+   - *Fix:* inject them. `ActionCardService` into the assembler may need care: check for a construction cycle (ActionCardService → NextActionsService → …).
+5. **Local pounds formatter** — `FynContextAssembler.php` `pensionInputSentence` (`static fn … '£'.number_format($v, 0)`).
+   - *Category:* Duplicate code (`FormatsCurrency::formatCurrency` does this).
+   - *Fix:* use the trait.
+6. **Identical flush block in both provider branches** — `app/Traits/HasAiChat.php:683-688` and `:805-810`.
+   - *Category:* Within-file duplication.
+   - *Fix:* acceptable inside a generator (a helper cannot `yield` for its caller without `yield from`); a `yield from $this->flushCertainty(...)` helper would remove it.
 
 ## Suggestions
 
-5. **Hardcoded fallbacks in touched tax files (Rule 2).**
-   - **Where:** `TaxStrategyMath.php:259` (`?? 12570`), `:283` (`?? 200000`); `AssetShiftingBundleStrategy.php` and `IncomeBandStrategy.php` `?:125140`; `bandRateForBand` 0.20/0.40/0.45. In total 29 `?? <tax figure>` fallbacks across `app/Services/Tax/Strategies/` and the math/calculator. All pre-existing; config always has the keys.
-   - **Suggested fix:** replace with `?? 0` plus a guard, or read the key strictly.
-6. **`app/Constants/TaxDefaults.php` still has `NON_EARNER_PENSION_NET_CONTRIBUTION` and `NON_EARNER_PENSION_GOVERNMENT_UPLIFT`.**
-   - **What's wrong:** They are read by `SpouseOptimisationService.php:457` and `RetirementActionDefinitionService.php:658` (other modules).
-   - **Suggested fix:** switch both to `TaxStrategyMath::nonEarnerPensionContribution()` and delete the constants.
-7. **`app/Services/Tax/Strategies/PensionTaxReliefStrategy.php`: magic numbers.**
-   - **What's wrong:** `100` (display rounding step) and `0.5` in the budget tolerance are unnamed.
-   - **Suggested fix:** name them as constants.
-8. **`public/pages/help.php` (598 lines): size and content.**
-   - **What's wrong:** It hand-maintains a full copy of the in-app `Help.vue` content, so two copies drift (the ISA and Inheritance Tax answers had to be fixed in both).
-   - **Suggested fix:** one source (a data file both render).
-9. **`app/Services/Tax/IncomeDefinitionsService.php` `getPensionContributions` docblock: out of date.**
-   - **What's wrong:** It still says "the application has no relief-at-source flag, so net pay is the treatment". As of `481fac0be`, relief at source is read.
-   - **Suggested fix:** update the `arrangement` description.
+7. **`SavingsActionDefinitionService.php` is 3,855 lines** — Complexity. It gained `figures` / `is_isa` plumbing today; splitting the evaluators by area (emergency fund, rates, PSA, goals, children) would ease the next batches.
+8. **`HasAiChat.php` is 2,310 lines** — Complexity; the certainty filter added one more concern to the streaming loop.
+9. **`RetirementAgent::formatDCPensions` now reads the salary from `annual_employment_income`** (`RetirementAgent.php` ~778) — correct per W-0424, but it duplicates the salary fallback `IncomeDefinitionsService` also uses; a shared "scheme salary for this pension" helper on `PensionContributionRule` would keep them one rule.
 
 ---
 *Generated by tech-debt-session skill*
