@@ -216,9 +216,11 @@ export default {
     domicileLabel() {
       const domicile = this.profile?.domicile_info || {};
       if (domicile.explanation) return domicile.explanation;
-      return domicile.domicile_status
-        ? domicile.domicile_status.replaceAll('_', ' ')
-        : 'Not recorded';
+      // The same three answers the web page gives (LongTermResidence, IHTA 1984
+      // s6A) — never the raw status column ("non uk domiciled").
+      if (domicile.is_long_term_uk_resident === true) return 'Long-term UK resident';
+      if (domicile.is_long_term_uk_resident === false) return 'Not yet a long-term UK resident';
+      return 'Not known yet';
     },
     healthStatusLabel() {
       return formatHealthStatus(this.personalInfo.health_status);

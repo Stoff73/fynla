@@ -30,7 +30,7 @@
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Personal Information</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
-              Your personal details, contact information, occupation, and domicile status
+              Your personal details, contact information, occupation, and where you have lived
             </p>
           </div>
           <button
