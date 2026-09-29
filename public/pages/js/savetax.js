@@ -46,8 +46,13 @@
     return s;
   }
 
-  function totalSteps() { return sequence().length; }
-  function stepIndex()  { return sequence().indexOf(current); }
+  // The counter counts questions, not screens: the spouse-income screen is a
+  // follow-up to the spouse question and shares its number, so the total stays
+  // at four whatever is answered (it read "3 of 4" then "4 of 5" after Yes —
+  // SaveTax run 29 Sep 2026, L9). Navigation still walks sequence().
+  var COUNTED_STEPS = ['employment', 'income', 'spouse', 'assets'];
+  function totalSteps() { return COUNTED_STEPS.length; }
+  function stepIndex()  { return COUNTED_STEPS.indexOf(current === 'spouse-income' ? 'spouse' : current); }
 
   var backBtn      = document.getElementById('qr-back-btn');
   var continueBtn  = document.getElementById('qr-continue-btn');
@@ -63,7 +68,7 @@
 
   function updateProgressTicks(total) {
     var bar = progressFill.parentElement;
-    // Remove any previously injected ticks (total can change when spouse=yes adds a stage)
+    // Remove any previously injected ticks before redrawing
     bar.querySelectorAll('.qr-progress__tick').forEach(function (t) { t.remove(); });
     // Insert (total - 1) dividers at evenly spaced positions
     for (var i = 1; i < total; i++) {

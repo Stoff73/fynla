@@ -127,7 +127,7 @@ final class IsaTopUpStrategy implements TaxStrategy
         // the copy must say both figures rather than print one in the other's
         // place (SaveTax matrix E6, 2026-09-29).
         $shelters = $interestSheltered < $excessInterest - 0.005
-            ? sprintf('£%s of that taxable interest', number_format($interestSheltered, 2))
+            ? sprintf('£%s of that taxable interest', number_format(round($interestSheltered)))
             : 'that taxable interest';
 
         return [new StrategyRecommendation(
@@ -141,8 +141,9 @@ final class IsaTopUpStrategy implements TaxStrategy
             description: sprintf(
                 'You hold £%s of non-ISA cash producing £%s of annual interest, of which £%s is above your £%s Savings Allowance. Wrapping £%s in an ISA shelters %s — saving around £%s a year while the captured rates and tax position remain the same.%s',
                 number_format((int) $nonIsaBalance),
-                number_format($annualInterest, 2),
-                number_format($excessInterest, 2),
+                // Whole pounds (L6, 29 Sep /m run).
+                number_format(round($annualInterest)),
+                number_format(round($excessInterest)),
                 number_format((int) $psa),
                 number_format((int) round($reportedTransfer)),
                 $shelters,

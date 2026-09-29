@@ -67,9 +67,9 @@ describe('E6 — ISA wrap copy when the ISA allowance caps it', function () {
 
         expect($rec['taxable_interest_sheltered'])->toBe(round($sheltered, 2))
             ->and($rec['interest_above_savings_allowance'])->toBe(round($above, 2))
-            ->and($rec['description'])->toContain('of which £'.number_format($above, 2).' is above your')
-            ->and($rec['description'])->toContain('shelters £'.number_format($sheltered, 2).' of that taxable interest')
-            ->and($rec['description'])->not->toContain('of which £'.number_format($sheltered, 2).' is above');
+            ->and($rec['description'])->toContain('of which £'.number_format(round($above)).' is above your')
+            ->and($rec['description'])->toContain('shelters £'.number_format(round($sheltered)).' of that taxable interest')
+            ->and($rec['description'])->not->toContain('of which £'.number_format(round($sheltered)).' is above');
     });
 
     it('keeps the plain wording when the wrap shelters all of it', function () {
@@ -80,7 +80,7 @@ describe('E6 — ISA wrap copy when the ISA allowance caps it', function () {
         $rec = matrixRecs($user)['isa_topup_vs_psa'];
 
         expect($rec['taxable_interest_sheltered'])->toBe(round($above, 2))
-            ->and($rec['description'])->toContain('of which £'.number_format($above, 2).' is above your')
+            ->and($rec['description'])->toContain('of which £'.number_format(round($above)).' is above your')
             ->and($rec['description'])->toContain('shelters that taxable interest');
     });
 });
