@@ -20,6 +20,7 @@ use App\Services\Plans\PlanConfigService;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\DecumulationPlanner;
 use App\Services\Retirement\PensionContributionOptimizer;
+use App\Services\Retirement\PensionContributionRule;
 use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
@@ -193,7 +194,7 @@ class RetirementAgent extends BaseAgent
 
                 // Detailed breakdown
                 $breakdown = [
-                    'dc_pensions' => $this->formatDCPensions($dcPensions, $incomeProjection),
+                    'dc_pensions' => $this->formatDCPensions($dcPensions, $incomeProjection, (float) ($user?->annual_employment_income ?? 0)),
                     'db_pensions' => $this->formatDBPensions($dbPensions),
                     'state_pension' => $this->formatStatePension($statePension, $incomeProjection),
                 ];
@@ -353,7 +354,7 @@ class RetirementAgent extends BaseAgent
             'summary' => $this->provisionSummary($user, $dcPensions, $dbPensions, $statePension, $incomeProjection),
             'income_projection' => $incomeProjection,
             'breakdown' => [
-                'dc_pensions' => $this->formatDCPensions($dcPensions, $incomeProjection),
+                'dc_pensions' => $this->formatDCPensions($dcPensions, $incomeProjection, (float) ($user?->annual_employment_income ?? 0)),
                 'db_pensions' => $this->formatDBPensions($dbPensions),
                 'state_pension' => $this->formatStatePension($statePension, $incomeProjection),
             ],
@@ -757,9 +758,13 @@ class RetirementAgent extends BaseAgent
     }
 
     /**
-     * Format DC pensions for output.
+     * Format DC pensions for output. `monthly_contribution` is what the member
+     * pays in each month, read by the one rule (W-0424): a workplace pension the
+     * onboarding form recorded as a percentage takes the member's pay, rather
+     * than reading as £0 and leading Fyn to rebuild the Annual Allowance figure
+     * without it.
      */
-    private function formatDCPensions($dcPensions, array $incomeProjection): array
+    private function formatDCPensions($dcPensions, array $incomeProjection, float $salary): array
     {
         $formatted = [];
 
@@ -770,7 +775,7 @@ class RetirementAgent extends BaseAgent
                 'scheme_type' => $pension->scheme_type,
                 'provider' => $pension->provider,
                 'current_value' => (float) $pension->current_fund_value,
-                'monthly_contribution' => (float) $pension->monthly_contribution_amount,
+                'monthly_contribution' => round(PensionContributionRule::monthlyEmployee($pension, $salary), 2),
                 'projected_value' => (float) ($pension->projected_value_at_retirement ?? 0),
             ];
         }

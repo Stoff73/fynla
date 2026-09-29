@@ -2,7 +2,7 @@
 fact_id: hv-junior-pension
 category: house_view
 title: Junior pension — government-topped pension contributions for children
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -42,9 +42,9 @@ eighteen, pension money is locked until the child's own pension access age
 decades later. The house view treats the pension as the longest-horizon money
 a family can place, to be funded only after nearer goals are secure.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier: the uplift is mechanical, but locking money away for the
+A judgement call: the uplift is worked from the published rules, but locking money away for the
 better part of a lifetime is a genuine family judgement, and the right
 balance against the Junior ISA or the parents' own priorities is not
 arithmetic. Fyn therefore hedges, offering the junior pension as something

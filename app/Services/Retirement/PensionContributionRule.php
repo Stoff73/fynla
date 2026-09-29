@@ -102,4 +102,24 @@ final class PensionContributionRule
 
         return $pension->pension_type === 'occupational';
     }
+
+    /**
+     * One pension's part of the pension input amount (FA 2004 s233(1)): what the
+     * member pays, the basic-rate relief the provider adds on a relief-at-source
+     * payment (s192), and what the employer pays, sacrificed pay included (W-0204).
+     *
+     * @return array{pension_id: int, scheme_name: string|null, relief: string, member_pays: float, tax_relief_added: float, employer_pays: float, pension_input: float}
+     */
+    public static function inputPart(DCPension $pension, string $relief, float $memberPays, float $reliefAdded, float $employerPays): array
+    {
+        return [
+            'pension_id' => (int) $pension->id,
+            'scheme_name' => $pension->scheme_name,
+            'relief' => $relief,
+            'member_pays' => round($memberPays, 2),
+            'tax_relief_added' => round($reliefAdded, 2),
+            'employer_pays' => round($employerPays, 2),
+            'pension_input' => round($memberPays + $reliefAdded + $employerPays, 2),
+        ];
+    }
 }

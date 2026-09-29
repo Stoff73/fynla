@@ -2,7 +2,7 @@
 fact_id: hv-pension-aa-carry-forward
 category: house_view
 title: Pension Annual Allowance carry-forward — unused allowance from earlier years
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -49,9 +49,9 @@ allowance and with it the amount available to carry forward. It does not conflic
 compete for the same cash, relief at the higher marginal rates is the
 stronger first claim.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: the unused allowance, the earnings cap, and the relief all
+Worked from your figures: the unused allowance, the earnings cap, and the relief all
 follow from recorded history and published rules, so Fyn states the working
 directly — the unused total across the window, why the usable amount is
 smaller, and what the recommended contribution saves. Voicing is candid about

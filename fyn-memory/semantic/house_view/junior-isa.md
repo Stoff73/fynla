@@ -2,7 +2,7 @@
 fact_id: hv-junior-isa
 category: house_view
 title: Junior ISA — a separate tax-free allowance for each child
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -40,9 +40,9 @@ which shelters money for the same children on a much longer lock: the Junior
 ISA money arrives at eighteen, the pension decades later, and households
 often want a deliberate mix of the two horizons.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier: the capacity is plain arithmetic, but committing money is a
+A judgement call: the capacity is plain arithmetic, but committing money is a
 family decision — the gift is irrevocable, and an eighteen-year-old controls
 the proceeds outright, which not every household is comfortable with. Fyn
 therefore hedges, presenting the Junior ISA as capacity the family may want
