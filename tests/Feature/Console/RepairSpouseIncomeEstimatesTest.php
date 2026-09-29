@@ -92,6 +92,25 @@ it('flags the copied row as an estimate where it is still the only job', functio
         ->and((float) $spouse->fresh()->annual_employment_income)->toBe(32000.0);
 });
 
+// Review of #963: the copied row is always 'employment' (the inviter's view),
+// but the spouse's own job may be self-employment. That is still their own
+// job, so the copy is a double and must go — not be flagged and left summing.
+it('removes the copied row where the spouse\'s own job is self-employment', function (): void {
+    [, $spouse, $copied] = linkedWithCopiedIncome(32000.0);
+    Employment::create(['user_id' => $spouse->id, 'income_type' => 'self_employment', 'annual_income' => 32000, 'employer' => 'Own practice', 'occupation' => 'Consultant']);
+    app(EmploymentIncomeService::class)->syncTotals($spouse->fresh());
+    expect((float) $spouse->fresh()->annual_employment_income + (float) $spouse->fresh()->annual_self_employment_income)->toBe(64000.0);
+
+    $this->artisan('income:repair-spouse-estimates', ['--force' => true])
+        ->expectsOutputToContain('DOUBLED')
+        ->assertSuccessful();
+
+    $spouse->refresh();
+    expect(Employment::withTrashed()->find($copied->id)->trashed())->toBeTrue()
+        ->and((float) $spouse->annual_employment_income)->toBe(0.0)
+        ->and((float) $spouse->annual_self_employment_income)->toBe(32000.0);
+});
+
 it('leaves a copied row the spouse has since edited, and says so', function (): void {
     [, $spouse, $copied] = linkedWithCopiedIncome(32000.0);
     $copied->forceFill(['annual_income' => 35000, 'updated_at' => now()])->saveQuietly();

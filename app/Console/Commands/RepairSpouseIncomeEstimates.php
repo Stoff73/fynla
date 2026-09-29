@@ -70,7 +70,10 @@ class RepairSpouseIncomeEstimates extends Command
         try {
             foreach ($candidates as ['spouse' => $spouse, 'row' => $row]) {
                 $before = (float) $spouse->annual_employment_income + (float) $spouse->annual_self_employment_income;
-                $others = $spouse->employments()->where('id', '!=', $row->id)->where('income_type', $row->income_type)->count();
+                // Across both income types: the copy is always 'employment'
+                // (the inviter's view), but the spouse's own job may be
+                // self-employment, and it supersedes the copy just the same.
+                $others = $spouse->employments()->where('id', '!=', $row->id)->count();
 
                 if ($row->updated_at->ne($row->created_at)) {
                     $action = 'SKIPPED — changed after the copy';

@@ -82,6 +82,25 @@ describe('EmploymentIncomeService::recordJob', function () {
             ->and((float) $user->fresh()->annual_employment_income)->toBe(32000.0);
     });
 
+    // Review of #963: naming the job without a figure must not count as the
+    // person speaking for the FIGURE. The estimate stays an estimate until an
+    // income arrives, or the next full payload becomes a second row.
+    it('keeps the estimate flag when only the job is named, so the form still replaces it', function () {
+        $user = User::factory()->create(['employment_status' => 'full_time']);
+
+        $this->service->recordEstimate($user, 32000.0);
+        $this->service->recordJob($user, null, 'Teacher', null);
+        expect($user->fresh()->employments->first()->is_estimate)->toBeTrue();
+
+        $this->service->recordJob($user, 'Harbour Lane Primary School', 'Teacher', 32000.0);
+
+        $jobs = $user->fresh()->employments;
+        expect($jobs)->toHaveCount(1)
+            ->and($jobs->first()->employer)->toBe('Harbour Lane Primary School')
+            ->and($jobs->first()->is_estimate)->toBeFalse()
+            ->and((float) $user->fresh()->annual_employment_income)->toBe(32000.0);
+    });
+
     it('totals self-employment separately — the two are taxed differently', function () {
         $user = User::factory()->create(['employment_status' => 'self_employed']);
 

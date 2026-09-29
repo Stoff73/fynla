@@ -51,8 +51,12 @@ class EmploymentIncomeService
 
         $job->user_id = $user->id;
         $job->income_type = $type;
-        // The person has now spoken for this job themselves.
-        $job->is_estimate = false;
+        // The flag is about the FIGURE. Naming the job without one leaves the
+        // inviter's guess in place, so it stays an estimate until an income
+        // arrives — otherwise the next full payload lands as a second row.
+        if ($income !== null) {
+            $job->is_estimate = false;
+        }
         if ($employer !== null && $employer !== '') {
             $job->employer = $employer;
         }
