@@ -390,6 +390,85 @@ struct FynConversationModelTests {
         }
     }
 
+    // MARK: - M4: multi-select asset chips (live fynla.org /m 2026-09-29)
+
+    @Test
+    func multiSelectRepliesToggleLocallyAndSubmitEveryPickInOneMessage() async throws {
+        let client = ScriptedFynClient(
+            transcripts: [try multiSelectTranscript()],
+            sendOutcomes: [.events([.text("Thanks."), .done(messageID: "9101")])]
+        )
+        let model = FynConversationModel(
+            client: client,
+            currentRoute: "/dashboard",
+            makeID: { "gesture-m4" }
+        )
+        await model.open(conversationID: "321")
+
+        let replies = try #require(model.messages.last?.replies)
+        #expect(model.messages.last?.multiSelect == true)
+        func reply(_ id: String) throws -> FynReply {
+            try #require(replies.first(where: { $0.id == id }))
+        }
+
+        await model.chooseReply(try reply("pension"))
+        await model.chooseReply(try reply("bank"))
+        await model.chooseReply(try reply("isa"))
+        await model.chooseReply(try reply("property"))
+        await model.chooseReply(try reply("savings"))
+        await model.chooseReply(try reply("savings"))
+
+        #expect(await client.sendCount() == 0)
+        #expect(model.messages.last?.selectedReplyIDs == ["pension", "bank", "isa", "property"])
+
+        await model.chooseReply(try reply("done"))
+
+        // Display order, not tap order; the submit label last — the wire
+        // format OnboardingStateMachine::matchBubbles parses.
+        #expect(await client.sentTexts() == ["Bank account, ISA, Pension, Property, That's everything"])
+        #expect(model.messages.allSatisfy { $0.replies.isEmpty })
+    }
+
+    @Test
+    func multiSelectSubmitWithNothingPickedSendsTheSubmitLabelAlone() async throws {
+        let client = ScriptedFynClient(
+            transcripts: [try multiSelectTranscript()],
+            sendOutcomes: [.events([.done(messageID: "9102")])]
+        )
+        let model = FynConversationModel(client: client, currentRoute: "/dashboard", makeID: { "gesture-m4b" })
+        await model.open(conversationID: "321")
+
+        let done = try #require(model.messages.last?.replies.first(where: { $0.id == "done" }))
+        await model.chooseReply(done)
+
+        #expect(await client.sentTexts() == ["That's everything"])
+    }
+
+    @Test
+    func singleChoiceRepliesStillSendOnTap() async throws {
+        let client = ScriptedFynClient(
+            transcripts: [try bubbleTranscript(messages: [
+                (id: 1, role: "assistant", content: "Do you have a spouse?", bubbleIDs: ["yes", "no"]),
+            ])],
+            sendOutcomes: [.events([.done(messageID: "9103")])]
+        )
+        let model = FynConversationModel(client: client, currentRoute: "/dashboard", makeID: { "gesture-m4c" })
+        await model.open(conversationID: "321")
+
+        #expect(model.messages.last?.multiSelect == false)
+        let yes = try #require(model.messages.last?.replies.first(where: { $0.id == "yes" }))
+        await model.chooseReply(yes)
+
+        #expect(await client.sentTexts() == ["yes"])
+    }
+
+    private func multiSelectTranscript() throws -> FynTranscript {
+        let data = Data(
+            #"{"conversation":{"id":321,"title":"Fyn","message_count":1,"status":"active"},"messages":[{"id":1,"role":"assistant","content":"Which of these do you have?","metadata":{"bubbles":[{"id":"bank","label":"Bank account"},{"id":"savings","label":"Savings account"},{"id":"isa","label":"ISA"},{"id":"pension","label":"Pension"},{"id":"investments","label":"Investments"},{"id":"property","label":"Property"},{"id":"done","label":"That's everything"}],"multi_select":true},"created_at":"2026-09-29T09:00:00Z"}]}"#.utf8
+        )
+        return try JSONDecoder().decode(FynTranscript.self, from: data)
+    }
+
     private func contextualSavingsEdit() -> FynContextualAction {
         FynContextualAction(
             action: .edit,
@@ -476,6 +555,7 @@ private actor ScriptedFynClient: FynClient {
     private var sendOutcomes: [SendOutcome]
     private var queuedOutcomes: [QueuedOutcome]
     private var sends = 0
+    private var texts: [String] = []
     private var queuedStreams = 0
     private let inProgressConversationID: String?
     private var actions: [String] = []
@@ -566,6 +646,7 @@ private actor ScriptedFynClient: FynClient {
         idempotencyKey: String
     ) async throws -> FynStreamResult {
         sends += 1
+        texts.append(text)
         guard !sendOutcomes.isEmpty else { throw URLError(.badServerResponse) }
         switch sendOutcomes.removeFirst() {
         case let .events(events):
@@ -604,6 +685,7 @@ private actor ScriptedFynClient: FynClient {
     }
 
     func sendCount() -> Int { sends }
+    func sentTexts() -> [String] { texts }
     func queuedCount() -> Int { queuedStreams }
     func actionsRecorded() -> [String] { actions }
     func contextualCreateCount() -> Int { contextualRequests.count }

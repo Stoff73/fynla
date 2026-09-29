@@ -100,7 +100,7 @@ struct FynEventReducer: Sendable {
             } else {
                 state.messages[index].capture = nil
             }
-        case let .quickReplies(prompt, replies, actionReplies):
+        case let .quickReplies(prompt, replies, actionReplies, multiSelect):
             let index: Int
             if let current = currentAssistantIndex(in: state),
                !state.messages[current].text.isEmpty
@@ -117,6 +117,8 @@ struct FynEventReducer: Sendable {
             state.messages[index].replies = replies.map {
                 FynReply(id: $0.id, label: $0.label, route: $0.route, isAction: actionReplies)
             }
+            state.messages[index].multiSelect = multiSelect
+            state.messages[index].selectedReplyIDs = []
         case let .skipLink(reply):
             let index = assistantIndex(in: &state)
             if !state.messages[index].replies.contains(where: { $0.id == reply.id }) {

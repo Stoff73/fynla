@@ -1257,9 +1257,19 @@ final class OnboardingChatDirector
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $event['skip_link'] = $skipLink;
             }
+            // Chips toggle and submit together (M4): the flag rides the live
+            // event and the stored row, so a resumed conversation renders the
+            // step the same way. Wire format: OnboardingStateMachine::matchBubbles.
+            $multiSelect = OnboardingStateMachine::isMultiSelect($stateId);
+            if ($multiSelect) {
+                $event['multi_select'] = true;
+            }
             yield $event;
 
             $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
+            if ($multiSelect) {
+                $metadata['multi_select'] = true;
+            }
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
@@ -1914,11 +1924,29 @@ final class OnboardingChatDirector
         $turnType = $state['turn_type'] ?? 'free_text';
 
         if ($turnType === 'bubbles') {
+            $stateId = $this->resolveStateId($state);
+
+            // A multi-select state takes every pick named in one message; the
+            // captured value is the list of ids (the submit bubble included,
+            // so the transition sees it).
+            if (OnboardingStateMachine::isMultiSelect($stateId)) {
+                $ids = OnboardingStateMachine::matchBubbles($stateId, $message);
+                if ($ids === []) {
+                    return [
+                        'ok' => false,
+                        'retry_text' => "Sorry, I didn't catch that. Please pick from the options above.",
+                    ];
+                }
+
+                return [
+                    'ok' => true,
+                    'captured_value' => $ids,
+                    'answer_for_transition' => $message,
+                ];
+            }
+
             // Find the matching bubble by label/id/substring.
-            $bubbleId = OnboardingStateMachine::matchBubble(
-                $this->resolveStateId($state),
-                $message
-            );
+            $bubbleId = OnboardingStateMachine::matchBubble($stateId, $message);
             if ($bubbleId === null) {
                 return [
                     'ok' => false,
@@ -2610,15 +2638,20 @@ final class OnboardingChatDirector
         // Save Tax funnel questions asked in chat (CSJ 2026-09-25): write the
         // answer into funnel_answers in the funnel page's own vocabulary so
         // FunnelAnswersMapper and every funnel-keyed skip read it unchanged.
-        if (isset(OnboardingStateMachine::FUNNEL_STATES[$stateId]) && is_string($capturedValue) && $capturedValue !== '') {
+        if (isset(OnboardingStateMachine::FUNNEL_STATES[$stateId])
+            && ((is_string($capturedValue) && $capturedValue !== '') || (is_array($capturedValue) && $capturedValue !== []))) {
             $key = OnboardingStateMachine::FUNNEL_STATES[$stateId];
             $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
             // Keep the campaign the user arrived on (their acquisition record).
             $funnel['campaign'] ??= $user->onboarding_fyn_selection ?? 'savetax';
             if ($key === 'assets') {
+                // Every pick a multi-select submission names (M4), or an
+                // older client's single tap; the submit bubble is not an asset.
                 $assets = (array) ($funnel['assets'] ?? []);
-                if ($capturedValue !== 'done' && ! in_array($capturedValue, $assets, true)) {
-                    $assets[] = $capturedValue;
+                foreach ((array) $capturedValue as $picked) {
+                    if ($picked !== OnboardingStateMachine::MULTI_SELECT_SUBMIT && ! in_array($picked, $assets, true)) {
+                        $assets[] = $picked;
+                    }
                 }
                 $funnel['assets'] = $assets;
             } else {

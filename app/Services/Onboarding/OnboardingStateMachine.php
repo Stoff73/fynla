@@ -45,6 +45,11 @@ use Illuminate\Support\Facades\Log;
  *                 so a one-off introduction sentence in prompt_text is never
  *                 replayed on resume/interruption/retry re-emissions.
  *   bubbles:      array<{id, label}>  — only for turn_type='bubbles', NO ICONS
+ *   multi_select: bool | omitted — a bubbles state whose chips toggle on the
+ *                 client and are submitted together by its `done` bubble in
+ *                 ONE message (wire format: see matchBubbles). Read through
+ *                 isMultiSelect(); emitted as `multi_select: true` on the
+ *                 quick_replies event and in the stored message metadata.
  *   capture_field: 'users.column_name' | null
  *                 (null for scratch-pad-only or FamilyMember-creating states)
  *   value_parser: OnboardingValueInterpreter method name | null
@@ -200,6 +205,12 @@ final class OnboardingStateMachine
         'retired' => 'retired',
         'not-employed' => 'not currently employed',
     ];
+
+    /** A multi-select message joins the picked labels with this (see matchBubbles). */
+    public const MULTI_SELECT_SEPARATOR = ', ';
+
+    /** The bubble id that submits a multi-select state's picks. */
+    public const MULTI_SELECT_SUBMIT = 'done';
 
     /** Funnel question state → the funnel_answers key it writes, in asking order. */
     public const FUNNEL_STATES = [
@@ -1162,7 +1173,7 @@ final class OnboardingStateMachine
 
     public static function nextFromFunnelAssets(string $answer, User $user): string
     {
-        return self::matchBubble(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer) === 'done'
+        return in_array(self::MULTI_SELECT_SUBMIT, self::matchBubbles(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer), true)
             ? self::leaveFunnelQuestions($user)
             : self::STATE_CAMPAIGN_FUNNEL_ASSETS;
     }
@@ -3102,6 +3113,56 @@ final class OnboardingStateMachine
         }
 
         return self::campaignTerminalFor($selection);
+    }
+
+    /** True when the state's chips toggle and are submitted together (corpus `multi_select`). */
+    public static function isMultiSelect(string $stateId): bool
+    {
+        return (self::getState($stateId)['multi_select'] ?? false) === true;
+    }
+
+    /**
+     * Every bubble id a message names, for a multi-select state.
+     *
+     * Wire format (web, /m and iOS send this; CSJ 2026-09-29, M4): the labels
+     * of the chips the user toggled on, in display order, joined with
+     * MULTI_SELECT_SEPARATOR, and the submit bubble's label last — e.g.
+     * "Bank account, ISA, Pension, That's everything". With nothing toggled
+     * the message is the submit label alone. A message naming the submit
+     * bubble ends the step; one that does not (an older client's single tap,
+     * "ISA") records the pick and asks again, exactly as before.
+     *
+     * Each part is matched with matchBubble — one vocabulary. Every part must
+     * match: a part that names no bubble returns [] so the step re-asks
+     * rather than silently dropping a pick. Non-multi-select states (and a
+     * one-part message) return matchBubble's single id, or [].
+     *
+     * @return list<string>
+     */
+    public static function matchBubbles(string $stateId, string $userAnswer): array
+    {
+        $parts = self::isMultiSelect($stateId)
+            ? array_values(array_filter(array_map('trim', explode(trim(self::MULTI_SELECT_SEPARATOR), $userAnswer)), static fn (string $p): bool => $p !== ''))
+            : [$userAnswer];
+
+        if (count($parts) <= 1) {
+            $id = self::matchBubble($stateId, $userAnswer);
+
+            return $id === null ? [] : [$id];
+        }
+
+        $ids = [];
+        foreach ($parts as $part) {
+            $id = self::matchBubble($stateId, $part);
+            if ($id === null) {
+                return [];
+            }
+            if (! in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
     }
 
     /**

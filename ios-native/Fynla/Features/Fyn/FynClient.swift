@@ -20,6 +20,11 @@ enum FynClientError: Error, Sendable, Equatable {
     /// `FynConversationModel` can show "session expired" instead of a
     /// generic failure (F2).
     case authExpired
+    /// L3-2 (fynla.org, 29 Sep 2026): the stream closed without the terminal
+    /// frame the server ends every turn with (`done`, `error`, `token_limit`,
+    /// `consent_required` or `resume`), so the turn was cut off mid-answer —
+    /// the same rule as the web and /m reader in `resources/mobile/utils/fynStream.js`.
+    case interrupted
 }
 
 protocol FynClient: Sendable {
@@ -363,11 +368,18 @@ struct LiveFynClient: FynClient {
             let task = Task {
                 do {
                     let decoder = FynEventDecoder()
+                    var sawTerminal = false
                     for try await event in source {
                         try Task.checkCancellation()
-                        continuation.yield(try decoder.decode(event))
+                        let decodedEvent = try decoder.decode(event)
+                        if decodedEvent.isTerminal { sawTerminal = true }
+                        continuation.yield(decodedEvent)
                     }
-                    continuation.finish()
+                    if sawTerminal {
+                        continuation.finish()
+                    } else {
+                        continuation.finish(throwing: FynClientError.interrupted)
+                    }
                 } catch is CancellationError {
                     continuation.finish()
                 } catch {

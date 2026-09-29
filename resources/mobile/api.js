@@ -8,6 +8,8 @@
 //   MOBILE_ROUTER_BASE. '/fynla/' -> '/fynla'; '/' or unset -> '' (root deploys
 //   and localhost keep the existing same-origin relative behaviour). Stays
 //   CSP `'self'`-compliant (same-origin path, not an absolute URL).
+import { parseFynEvents, readFynEvents } from './utils/fynStream.js';
+
 const BASE = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
 
 export async function apiPost(path, body, token = null) {
@@ -98,7 +100,7 @@ export async function apiDownload(path, token) {
  * resolves with the full accumulated text. Falls back to a one-shot read when
  * the platform has no streaming body (older WebViews).
  */
-export async function apiStream(path, body, token, onDelta, onEvent) {
+export async function apiStream(path, body, token, onDelta, onEvent, { idempotencyKey = null } = {}) {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     credentials: 'omit', // Bearer-only — see apiPost.
@@ -107,6 +109,8 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
       'Accept': 'text/event-stream',
       'X-Fynla-Forms': '1',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // One id per turn, re-sent by "Try again" (IdempotencyKeyMiddleware).
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -125,51 +129,34 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
     return { ok: true, status: 202, queued: true, data, text: '' };
   }
 
-  const consumeLine = (line, state) => {
-    if (!line.startsWith('data: ')) return false;
-    let data;
-    try { data = JSON.parse(line.slice(6)); } catch { return false; }
-    // Surface the full parsed event so callers can handle non-text turns,
-    // including user-visible failures and capture confirmations. The mixin is
-    // the presentation boundary; this transport never collapses typed events
-    // into generic errors.
-    // ALL typed frames pass through to onEvent — including the gamification
-    // `level_up` frame the backend emits strictly AFTER `done`.
+  // A retried turn the server has already taken is acknowledged in JSON
+  // (IdempotencyKeyMiddleware), not streamed again.
+  if (res.headers.get('X-Idempotent-Replay') === '1') {
+    return { ok: true, status: res.status, turnTaken: true, text: '' };
+  }
+
+  // Surface the full parsed event so callers can handle non-text turns,
+  // including user-visible failures and capture confirmations. The mixin is
+  // the presentation boundary; this transport never collapses typed events
+  // into generic errors. ALL typed frames pass through to onEvent — including
+  // the gamification `level_up` frame the backend emits strictly AFTER `done`.
+  const state = { acc: '', error: null };
+  const onFrame = (data) => {
     if (onEvent) onEvent(data);
     const t = data.type;
     if (t === 'content' || t === 'token' || t === 'content_block_delta' || t === 'text') {
       const piece = data.delta ?? data.content ?? data.text ?? '';
       if (piece) { state.acc += piece; if (onDelta) onDelta(piece); }
     }
-    // `done` marks the end of the assistant reply, but the backend may emit a
-    // trailing `level_up` frame after it. Record completion without halting the
-    // reader so that post-`done` frame is still parsed and forwarded to onEvent.
-    if (t === 'done') { state.replyDone = true; }
-    if (t === 'error') { state.error = data.message ?? 'error'; state.done = true; }
-    return state.done;
+    if (t === 'error') { state.error = data.message ?? 'error'; }
   };
 
-  // Fallback: no streaming body available.
-  if (!res.body || !res.body.getReader) {
-    const raw = await res.text();
-    const state = { acc: '', done: false, replyDone: false, error: null };
-    raw.split('\n').forEach((l) => consumeLine(l, state));
-    return { ok: !state.error, status: res.status, text: state.acc };
-  }
+  // Fallback: no streaming body available (older WebViews).
+  const { terminal } = (!res.body || !res.body.getReader)
+    ? await parseFynEvents(await res.text(), onFrame)
+    : await readFynEvents(res.body.getReader(), onFrame);
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  const state = { acc: '', done: false, replyDone: false, error: null };
-  while (!state.done) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    for (const line of lines) {
-      if (consumeLine(line, state)) break;
-    }
-  }
-  return { ok: !state.error, status: res.status, text: state.acc };
+  // `interrupted`: the stream closed without the terminal frame every turn
+  // ends with, so whatever text arrived is not a finished answer.
+  return { ok: !state.error, status: res.status, text: state.acc, interrupted: terminal === null };
 }

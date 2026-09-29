@@ -1283,8 +1283,8 @@ class CoordinatingAgent extends BaseAgent
             ]);
 
             return ['error' => true, 'error_type' => 'database_error', 'message' => 'Unable to save the record. Please try again.'];
-        } catch (\Exception $e) {
-            Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'exception' => $e::class, 'error' => $e->getMessage()]);
             $this->appendAuditEvent([
                 'user_id' => $user->id,
                 'conversation_id' => $conversationId,

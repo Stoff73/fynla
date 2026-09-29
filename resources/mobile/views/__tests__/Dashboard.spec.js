@@ -351,3 +351,99 @@ describe('W-0504 donut rings are derived, not constants', () => {
     expect(cardsBlock).toMatch(/progress:\s*f\.netWorth\.equityPct[\s\S]{0,120}vizNum:\s*f\.netWorth\.equityPct/);
   });
 });
+
+// M6 (live fynla.org /m, 2026-09-29): a SaveTax registrant finished onboarding,
+// asked Fyn a question, came back to the dashboard — and Fyn re-opened
+// full-screen with the conversation gone.
+describe('Dashboard.vue — M6: returning to the dashboard after onboarding', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.token = 'live-token';
+    store.subscriptionStatus = { tier: 'free', payment_enabled: false };
+    store.setFynConversation(null);
+    // The user re-read fails here, so each test proves what the locally
+    // mirrored flags do on their own.
+    apiGet.mockImplementation((path) => {
+      if (path === '/api/auth/user') return Promise.resolve({ ok: false, status: 500, data: {} });
+      if (path === '/api/v1/mobile/dashboard') {
+        return Promise.resolve({ ok: true, status: 200, data: { data: { focus_areas: [] } } });
+      }
+      return Promise.resolve({ ok: true, status: 200, data: { data: {} } });
+    });
+  });
+
+  it('control: a user who still needs their first turn gets Fyn opened on mount', async () => {
+    store.user = { id: 7, first_name: 'Jo', onboarding_completed: false, onboarding_fyn_step: null, onboarding_fyn_needs_start: true };
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    expect(wrapper.vm.fynMounted).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('does not re-open Fyn on a remount once the stream has reported onboarding_complete', async () => {
+    store.user = {
+      id: 7,
+      first_name: 'Jo',
+      onboarding_completed: false,
+      onboarding_fyn_step: 'campaign_terminal',
+      onboarding_fyn_needs_start: true,
+      active_campaign: 'savetax',
+    };
+    const first = mountDashboard();
+    await flushPromises();
+    first.vm.handleFynEvent({ reply: { role: 'fyn', text: '', bubbles: [] } }, { type: 'onboarding_complete', nextRoute: '/tax-strategy' });
+    first.vm.settleUserSnapshot();
+    await flushPromises();
+    first.unmount();
+
+    const second = mountDashboard();
+    await flushPromises();
+
+    expect(second.vm.fynMounted).toBe(false);
+    expect(second.vm.fynOpen).toBe(false);
+  });
+
+  it('re-opening Fyn after a remount resumes the conversation instead of greeting afresh', async () => {
+    store.user = { id: 7, first_name: 'Jo', onboarding_completed: true, onboarding_fyn_step: null, onboarding_fyn_needs_start: false, active_campaign: null };
+    store.setFynConversation('conv-9');
+    const defaultGet = apiGet.getMockImplementation();
+    apiGet.mockImplementation((path) => {
+      if (path === '/api/ai-chat/conversations/conv-9') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          data: { data: { messages: [
+            { role: 'user', content: 'How much can I put in my pension?', metadata: {} },
+            { role: 'assistant', content: 'Here is how the annual allowance works.', metadata: {} },
+          ] } },
+        });
+      }
+      return defaultGet(path);
+    });
+    const wrapper = mountDashboard();
+    await flushPromises();
+    expect(wrapper.vm.fynMounted).toBe(false);
+
+    await wrapper.vm.openFyn();
+
+    expect(wrapper.vm.conversationId).toBe('conv-9');
+    expect(wrapper.vm.messages.map((m) => m.text)).toEqual([
+      'How much can I put in my pension?',
+      'Here is how the annual allowance works.',
+    ]);
+    expect(wrapper.vm.messages.some((m) => /What would you like to look at/.test(m.text))).toBe(false);
+    apiGet.mockImplementation(defaultGet);
+  });
+
+  it('with no conversation this session, opening Fyn still greets', async () => {
+    store.user = { id: 7, first_name: 'Jo', onboarding_completed: true, onboarding_fyn_step: null, onboarding_fyn_needs_start: false, active_campaign: null };
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    await wrapper.vm.openFyn();
+
+    expect(wrapper.vm.conversationId).toBeNull();
+    expect(wrapper.vm.messages[0].text).toBe('Hi Jo. What would you like to look at?');
+  });
+});
