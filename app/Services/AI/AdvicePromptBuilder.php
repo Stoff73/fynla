@@ -665,6 +665,13 @@ PROMPT;
                         $lines[] = '   Estimated saving: £'.number_format((float) $rec['estimated_saving'], 0);
                     }
 
+                    // Items that are one choice (the ISA wrap, the spouse gift,
+                    // the 50/50 split): the composer's sentence naming the
+                    // others and which one the total counts (L3-3).
+                    if (! empty($rec['alternatives_note'])) {
+                        $lines[] = '   '.$rec['alternatives_note'];
+                    }
+
                     // Include action step
                     if (isset($rec['action']) && $rec['action']) {
                         $action = mb_substr($rec['action'], 0, 150);

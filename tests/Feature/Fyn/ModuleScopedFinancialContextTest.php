@@ -193,3 +193,26 @@ describe('ModuleScopedFinancialContext — protection-scoped classification', fu
         expect($context)->not->toContain('Total savings');
     });
 });
+
+// SaveTax matrix L3-3: Fyn told a user to do "the ISA top-up and either the
+// gift or the joint split". The composer's alternatives sentence reaches
+// Fyn's financial context, not only get_recommendations and the card grounding.
+it('gives Fyn the composer\'s alternatives sentence in its financial context', function () {
+    $user = User::factory()->create();
+    $note = '"Wrap £20,000 of cash savings inside an ISA" is an alternative to "Gift £50,000 of savings to your spouse": doing one changes or removes the saving from the other, so their savings do not add up. The plan total counts "Gift £50,000 of savings to your spouse" instead of this one.';
+    $analysis = function (int $userId) use ($note): array {
+        $base = ($this->mockAnalysis)($userId);
+        $base['ranked_recommendations'] = [[
+            'title' => 'Wrap £20,000 of cash savings inside an ISA',
+            'module' => 'tax_optimisation',
+            'description' => 'Interest in an ISA is tax-free.',
+            'estimated_saving' => 540.0,
+            'counted_in_total' => false,
+            'alternatives_note' => $note,
+        ]];
+
+        return $base;
+    };
+
+    expect($this->builder->buildFinancialContext($user, $analysis, null))->toContain($note);
+});
