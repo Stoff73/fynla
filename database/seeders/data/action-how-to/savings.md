@@ -82,7 +82,7 @@ learn:
 1. Your emergency fund target | /help#investment-savings
 
 ## emergency_fund_excess
-status: edited
+status: approved
 source: Fynla emergency fund target (`PlanConfigService::emergency_fund.target_months`); https://www.gov.uk/individual-savings-accounts (no tax on interest, income or gains; one owner per ISA); https://www.gov.uk/individual-savings-accounts/how-isas-work (allowance per tax year); https://www.gov.uk/apply-tax-free-interest-on-savings/how-much-is-tax-free (Personal Savings Allowance per person); https://www.gov.uk/junior-individual-savings-accounts (limit, tax-free, money belongs to the child, withdrawal at 18); ISA room from `TaxStrategyMath::estimateIsaSubscriptionsThisYear`
 figures: runway_months, excess_months, excess_amount; household: isa_full, isa_left, has_spouse, has_children, children
 why:
@@ -105,7 +105,7 @@ learn:
 1. The ISA allowance | /help#investment-savings
 
 ## rate_below_market, rate_poor, zero_rate_account
-status: edited
+status: approved
 source: https://www.gov.uk/individual-savings-accounts/transferring-your-isa (transfer, do not withdraw); market rates: MoneySavingExpert best-buy tables, refreshed quarterly (`MarketRateRefreshService`, F20 CSJ 2026-09-08), with the provider and date of the row used (`RateComparator`); the line is left out when no stored rate backs it
 figures: account_name, account_rate, market_rate, market_label, market_provider, market_as_of, rate_gap, potential_gain, institution, balance, is_isa
 why:
@@ -139,7 +139,7 @@ outcome:
 1. The {balance} keeps earning a current rate instead of dropping to whatever {institution} pays after the term.
 
 ## regular_saver_opportunity
-status: edited
+status: approved
 source: the card's own figures; {product} is "regular saver ISA" when the account is an ISA and "regular saver account" otherwise, with {wrapper_note} to keep an ISA's interest tax-free (`evaluateRegularSaverOpportunity`)
 figures: account_name, monthly_contribution, current_rate, product, is_isa
 why:
@@ -154,7 +154,7 @@ outcome:
 1. The same {monthly_contribution} a month earns more interest.
 
 ## psa_breached, psa_approaching, psa_additional_rate, cash_isa_recommended
-status: edited
+status: approved
 source: https://www.gov.uk/apply-tax-free-interest-on-savings/how-much-is-tax-free (Personal Savings Allowance by band, per person); https://www.gov.uk/apply-tax-free-interest-on-savings/how-you-pay-tax-on-savings-interest (tax code, Self Assessment); https://www.gov.uk/individual-savings-accounts (no tax on interest on cash in an ISA; one owner per ISA); https://www.gov.uk/individual-savings-accounts/how-isas-work (ISA allowance, tax year); https://www.gov.uk/junior-individual-savings-accounts (tax-free); ITTOIA 2005 s629 (a parent's gift to a child: interest over £100 taxed as the parent's) https://www.legislation.gov.uk/ukpga/2005/5/section/629; ISA room from `TaxStrategyMath::estimateIsaSubscriptionsThisYear`
 figures: annual_interest, psa_amount, breach_amount, headroom, utilisation_percent, isa_allowance, tax_band
 why:
