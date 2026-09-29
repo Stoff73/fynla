@@ -177,6 +177,7 @@ final class AdviceFyn
         'update_record', 'delete_record', 'update_profile', 'set_expenditure',
         'capture_personal_details', 'capture_spouse_details',
         'capture_dependants', 'capture_work_details', 'capture_monthly_expenditure',
+        'capture_employer_benefits',
         // P0.2 — every capture_* tool that writes to persistent storage. All
         // six persist on dispatch via CoordinatingAgent::handleCapture* (e.g.
         // capture_salary_sacrifice writes dc_pensions.salary_sacrifice;

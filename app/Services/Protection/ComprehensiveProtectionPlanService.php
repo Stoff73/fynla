@@ -262,6 +262,7 @@ class ComprehensiveProtectionPlanService
             'group_ci_amount' => $profile->group_ci_amount,
             'has_employer_pmi' => (bool) ($profile->has_employer_pmi ?? false),
             'employer_name' => $profile->employer_name,
+            'employer_benefits_recorded_at' => $profile->employer_benefits_recorded_at?->toISOString(),
         ];
     }
 
