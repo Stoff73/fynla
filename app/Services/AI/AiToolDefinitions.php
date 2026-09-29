@@ -129,6 +129,7 @@ class AiToolDefinitions
             'onboarding.tool.capture_dependants',
             'onboarding.tool.capture_work_details',
             'onboarding.tool.capture_monthly_expenditure',
+            'onboarding.tool.capture_employer_benefits',
         ],
     ];
 

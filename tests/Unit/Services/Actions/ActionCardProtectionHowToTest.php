@@ -55,8 +55,6 @@ function trustCard(User $user): ?array
 }
 
 it('keeps a draft protection entry off the card until CSJ approves it', function () {
-    // The seeded batch is approved (f2fbf7ec7); put this entry back in draft
-    // rather than depend on the seed's current state.
     ProtectionActionDefinition::where('key', 'policy_not_in_trust')->update(['how_to_status' => 'draft']);
     [$user] = untrustedPolicyHolder();
     $item = trustCard($user);

@@ -339,7 +339,9 @@ class ProtectionDataReadinessService
     }
 
     /**
-     * User has recorded employer benefits (Sprint 2 columns on protection_profiles).
+     * User has answered the employer benefits question, even with "none"
+     * (EmployerBenefitsWriter stamps every save). has_employer_pmi is NOT NULL
+     * DEFAULT false, so testing it for null passed every user, asked or not.
      */
     private function hasEmployerBenefits(mixed $protectionProfile): bool
     {
@@ -347,10 +349,10 @@ class ProtectionDataReadinessService
             return false;
         }
 
-        return $protectionProfile->death_in_service_multiple !== null
+        return $protectionProfile->employer_benefits_recorded_at !== null
+            || $protectionProfile->death_in_service_multiple !== null
             || $protectionProfile->group_ip_benefit_percent !== null
-            || $protectionProfile->group_ci_amount !== null
-            || $protectionProfile->has_employer_pmi !== null;
+            || $protectionProfile->group_ci_amount !== null;
     }
 
     /**
