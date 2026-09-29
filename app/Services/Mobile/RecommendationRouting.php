@@ -77,6 +77,9 @@ final class RecommendationRouting
         'protection_ip_gap_after_state_benefits' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_self_employed_no_ip' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_policy_not_in_trust' => ['action' => 'edit', 'resource_type' => 'protection'],
+        'protection_life_cover_position' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_critical_illness_position' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_income_protection_position' => ['action' => 'add', 'resource_type' => 'protection'],
 
         // Investment — holdings are inputs Fyn can create. Investment
         // preferences (the risk profile) have no capture tool, so that rule

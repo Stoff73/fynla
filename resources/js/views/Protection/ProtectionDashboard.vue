@@ -57,6 +57,8 @@
           :impact-summary="lifeEventImpact"
         />
 
+      <CoverPositionSection class="mb-6" :position="coverPosition" />
+
       <div class="bg-white rounded-lg border border-light-gray p-6">
         <ProtectionModuleOverview
           @add-policy="handleAddPolicy"
@@ -99,6 +101,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import ProtectionModuleOverview from '@/components/Protection/ProtectionModuleOverview.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import EmployerBenefitsCard from '@/components/Protection/EmployerBenefitsCard.vue';
+import CoverPositionSection from '@/components/Protection/CoverPositionSection.vue';
 import EmployerBenefitsFormModal from '@/components/Protection/EmployerBenefitsFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
@@ -115,6 +118,7 @@ export default {
     ProtectionModuleOverview,
     PolicyFormModal,
     EmployerBenefitsCard,
+    CoverPositionSection,
     EmployerBenefitsFormModal,
     ModuleLifeEvents,
     ModuleStatusBar,
@@ -133,7 +137,7 @@ export default {
   },
 
   computed: {
-    ...mapState('protection', ['loading', 'error', 'lifeEvents', 'lifeEventImpact', 'profile']),
+    ...mapState('protection', ['loading', 'error', 'lifeEvents', 'lifeEventImpact', 'profile', 'coverPosition']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -187,18 +191,6 @@ export default {
       } catch (error) {
         logger.error('Failed to load protection data:', error);
       }
-    },
-
-    findPolicyById(id) {
-      const policies = this.$store.state.protection?.policies || {};
-      const allPolicies = [
-        ...(policies.life || []),
-        ...(policies.criticalIllness || []),
-        ...(policies.incomeProtection || []),
-        ...(policies.disability || []),
-        ...(policies.sicknessIllness || []),
-      ];
-      return allPolicies.find(p => p.id === id) || null;
     },
 
     findPolicyById(id) {

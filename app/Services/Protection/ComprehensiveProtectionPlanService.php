@@ -33,7 +33,8 @@ class ComprehensiveProtectionPlanService
         private AdequacyScorer $adequacyScorer,
         private RecommendationEngine $recommendationEngine,
         // W-0275 — the one home for "who depends on this user" (Rule 20).
-        private readonly DependantsReach $dependantsReach
+        private readonly DependantsReach $dependantsReach,
+        private readonly ProtectionCoverPosition $coverPosition,
     ) {}
 
     /**
@@ -69,6 +70,9 @@ class ComprehensiveProtectionPlanService
         $completenessScore = $profileCompleteness['completeness_score'] ?? 100;
         $isComplete = $profileCompleteness['is_complete'] ?? true;
 
+        // One calculation for the cards and the page (ProtectionCoverPosition).
+        $position = $this->coverPosition->fromAnalysis((array) ($data['needs'] ?? []), (array) ($data['coverage'] ?? []));
+
         return [
             'plan_metadata' => [
                 'generated_date' => now()->format('d F Y'),
@@ -85,7 +89,8 @@ class ComprehensiveProtectionPlanService
             'financial_summary' => $this->buildFinancialSummary($user, $data),
             'current_coverage' => $this->buildCurrentCoverage($data),
             'protection_needs' => $this->buildProtectionNeeds($data),
-            'coverage_analysis' => $this->buildCoverageAnalysis($data),
+            'coverage_analysis' => $this->buildCoverageAnalysis($data, $position),
+            'cover_position' => $position,
             'recommendations' => $this->buildRecommendations($data, $profileCompleteness),
             'scenario_analysis' => $this->buildScenarioAnalysis($data),
             'optimized_strategy' => $this->generateOptimizedStrategy($data, $profile),
@@ -406,57 +411,30 @@ class ComprehensiveProtectionPlanService
     }
 
     /**
-     * Build coverage analysis
+     * Need, cover and shortfall per cover type, from the one cover position
+     * (the hardcoded 3x income and 70%-of-net needs are gone, CSJ 2026-09-29).
+     *
+     * @param  array<string, array<string, mixed>>  $position
      */
-    private function buildCoverageAnalysis(array $data): array
+    private function buildCoverageAnalysis(array $data, array $position): array
     {
-        $needs = $data['needs'] ?? [];
-        $coverage = $data['coverage'] ?? [];
-        $gaps = $data['gaps'] ?? [];
         $adequacyScore = $data['adequacy_score'] ?? [];
+        $row = function (string $type, string $scoreKey) use ($position, $adequacyScore): array {
+            $p = $position[$type];
 
-        // Life insurance uses total need vs total coverage
-        $lifeCoverage = $coverage['life_coverage'] ?? 0;
-        $lifeNeed = $needs['total_need'] ?? 0;
-        $lifeGap = $gaps['total_gap'] ?? 0;
-
-        // Critical illness - use a simple 3x annual income estimate
-        $annualIncome = $needs['gross_income'] ?? 0;
-        $ciNeed = $annualIncome * 3;
-        $ciCoverage = $coverage['critical_illness_coverage'] ?? 0;
-        $ciGap = max(0, $ciNeed - $ciCoverage);
-
-        // Income protection - monthly benefit needed (70% of net income)
-        $monthlyNetIncome = ($needs['net_income'] ?? 0) / 12;
-        $ipMonthlyNeed = $monthlyNetIncome * 0.7;
-        $ipMonthlyCoverage = ($coverage['income_protection_coverage'] ?? 0) / 12;
-        $ipMonthlyGap = max(0, $ipMonthlyNeed - $ipMonthlyCoverage);
+            return [
+                'need' => $p['need'],
+                'coverage' => $p['total_cover'],
+                'gap' => $p['short_by'],
+                'coverage_percentage' => $p['need'] > 0 ? round(($p['total_cover'] / $p['need']) * 100, 1) : 100,
+                'status' => $this->getCoverageStatus($adequacyScore[$scoreKey] ?? 0),
+            ];
+        };
 
         return [
-            'life_insurance' => [
-                'need' => $lifeNeed,
-                'coverage' => $lifeCoverage,
-                'gap' => $lifeGap,
-                'coverage_percentage' => $lifeNeed > 0 ?
-                    round(($lifeCoverage / $lifeNeed) * 100, 1) : 100,
-                'status' => $this->getCoverageStatus($adequacyScore['life_insurance_score'] ?? 0),
-            ],
-            'critical_illness' => [
-                'need' => $ciNeed,
-                'coverage' => $ciCoverage,
-                'gap' => $ciGap,
-                'coverage_percentage' => $ciNeed > 0 ?
-                    round(($ciCoverage / $ciNeed) * 100, 1) : 100,
-                'status' => $this->getCoverageStatus($adequacyScore['critical_illness_score'] ?? 0),
-            ],
-            'income_protection' => [
-                'need' => $ipMonthlyNeed,
-                'coverage' => $ipMonthlyCoverage,
-                'gap' => $ipMonthlyGap,
-                'coverage_percentage' => $ipMonthlyNeed > 0 ?
-                    round(($ipMonthlyCoverage / $ipMonthlyNeed) * 100, 1) : 100,
-                'status' => $this->getCoverageStatus($adequacyScore['income_protection_score'] ?? 0),
-            ],
+            'life_insurance' => $row('life', 'life_insurance_score'),
+            'critical_illness' => $row('critical_illness', 'critical_illness_score'),
+            'income_protection' => $row('income_protection', 'income_protection_score'),
             'overall_rating' => $adequacyScore['rating'] ?? 'N/A',
         ];
     }
