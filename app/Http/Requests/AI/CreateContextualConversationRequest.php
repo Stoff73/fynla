@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\AI;
 
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -17,6 +18,9 @@ final class CreateContextualConversationRequest extends FormRequest
         'investment',
         'retirement',
         'protection',
+        // The cover the user's job provides, on the Protection screen; the
+        // conversation opens with its form (CSJ 2026-09-29).
+        'employer_benefits',
         'goals',
         'income',
         'expenditure',
@@ -341,7 +345,7 @@ final class CreateContextualConversationRequest extends FormRequest
                 'Overview context must not include entity identifiers.',
             );
         }
-        if ($this->input('current_destination.screen') !== $resourceType) {
+        if ($this->input('current_destination.screen') !== app(ContextualResourceResolver::class)->overviewScreenFor($resourceType)) {
             $validator->errors()->add(
                 'current_destination.screen',
                 'The destination screen must match the overview resource.',

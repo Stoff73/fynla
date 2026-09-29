@@ -8,7 +8,7 @@ use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'expenditure_tax', 'protection'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'expenditure_tax', 'protection', 'employer_benefits'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });

@@ -250,6 +250,14 @@ const actions = {
         }
     },
 
+    // Save the user's employer benefits, then reload the figures that use them
+    async saveEmployerBenefits({ commit, dispatch }, benefits) {
+        const response = await protectionService.saveEmployerBenefits(benefits);
+        commit('setProfile', response.data || null);
+        await dispatch('fetchProtectionData');
+        return response;
+    },
+
     // Fetch all protection data
     async fetchProtectionData({ commit }) {
         commit('setLoading', true);

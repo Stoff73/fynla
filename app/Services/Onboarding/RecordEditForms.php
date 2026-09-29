@@ -10,6 +10,7 @@ use App\Models\Employment;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
+use App\Models\ProtectionProfile;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Income\EmploymentIncomeService;
@@ -50,7 +51,27 @@ final class RecordEditForms
         'family' => 'personal details',
     ];
 
+    /**
+     * Contextual resources that open straight on a record's form: the one
+     * record the resource is (resource type => record type). A conversation
+     * opened on one of these starts with that form (ContextualConversationService).
+     */
+    /** The record types Fyn can remove; every other form offers no Remove. */
+    public const REMOVABLE_TYPES = ['savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection'];
+
+    public const CONTEXTUAL_FORMS = [
+        'employer_benefits' => 'employer_benefits',
+    ];
+
     public function __construct(private readonly CoordinatingAgent $agent) {}
+
+    /** The form a contextual resource opens on, or null (see CONTEXTUAL_FORMS). */
+    public function formForResource(User $user, string $resourceType): ?array
+    {
+        $type = self::CONTEXTUAL_FORMS[$resourceType] ?? null;
+
+        return $type === null ? null : $this->formFor($user, $type, (int) $user->id);
+    }
 
     /** Every section a user can be offered to change, in walk order. */
     public static function sections(): array
@@ -70,7 +91,7 @@ final class RecordEditForms
             'savings_account', 'isa', 'savings', 'bank_account', 'cash_isa' => 'savings',
             'investment_account', 'investment', 'stocks_and_shares_isa', 'gia' => 'investments',
             'dc_pension', 'db_pension', 'pension' => 'pensions',
-            'life_insurance', 'critical_illness', 'income_protection', 'protection_policy', 'protection' => 'protection',
+            'life_insurance', 'critical_illness', 'income_protection', 'protection_policy', 'protection', 'employer_benefits' => 'protection',
             'property', 'mortgage' => 'property',
             'employment', 'work', 'work_details', 'income' => 'income',
             'spouse', 'spouse_household' => 'spouse',
@@ -117,6 +138,8 @@ final class RecordEditForms
                 foreach (IncomeProtectionPolicy::where('user_id', $user->id)->get() as $policy) {
                     $rows[] = ['type' => 'income_protection', 'id' => (int) $policy->id, 'label' => trim(($policy->provider ?? '').' income protection')];
                 }
+                // Always offered: the form's write is an upsert, and "none" is an answer.
+                $rows[] = ['type' => 'employer_benefits', 'id' => (int) $user->id, 'label' => 'Your employer benefits'];
                 break;
             case 'estate':
             case 'property':
@@ -185,6 +208,7 @@ final class RecordEditForms
                 'date_of_birth' => $model->date_of_birth?->format('Y-m-d'),
                 'marital_status' => $model->marital_status,
             ]), 'Your details'],
+            'employer_benefits' => [CaptureForms::EMPLOYER_BENEFITS, CaptureForms::LEAD, $this->employerBenefitsAnswers($model), 'Your employer benefits'],
             default => [null, null, [], ''],
         };
         if ($formName === null) {
@@ -228,6 +252,8 @@ final class RecordEditForms
         unset($schema['kinds_prompt'], $schema['allow_empty']);
         $schema['submit_label'] = 'Save changes';
         $schema['edit'] = true;
+        // Remove is offered only where delete() will do it.
+        $schema['removable'] = in_array($record['type'] ?? null, self::REMOVABLE_TYPES, true);
         $schema['record'] = $record;
 
         return $schema;
@@ -255,6 +281,7 @@ final class RecordEditForms
             'spouse_household' => $this->runTool('capture_spouse_household_data', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'expenditure' => $this->runTool('capture_monthly_expenditure', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'personal' => $this->runTool('capture_personal_details', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
+            'employer_benefits' => $this->runTool('capture_employer_benefits', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             default => ['error' => true, 'message' => 'That record cannot be changed here.'],
         };
 
@@ -275,7 +302,7 @@ final class RecordEditForms
             return ['success' => false, 'message' => "I couldn't find that record any more."];
         }
         $label = $this->labelFor($type, $model);
-        if (! in_array($type, ['savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection'], true)) {
+        if (! in_array($type, self::REMOVABLE_TYPES, true)) {
             return ['success' => false, 'message' => "{$label} can be changed but not removed here."];
         }
         $token = hash('sha256', $user->id.'|'.$type.'|'.$id.'|'.now()->format('Y-m-d'));
@@ -379,6 +406,30 @@ final class RecordEditForms
     }
 
     /** @return array<string, mixed> */
+    /**
+     * The employer benefits form filled from the profile: "No, none of these"
+     * once the user has said so, the recorded figures otherwise.
+     *
+     * @return array<string, mixed>
+     */
+    private function employerBenefitsAnswers(Model $profile): array
+    {
+        $answers = array_filter([
+            'employer_name' => $profile->employer_name,
+            'death_in_service_multiple' => self::floatOrNull($profile->death_in_service_multiple),
+            'group_ip_benefit_percent' => self::floatOrNull($profile->group_ip_benefit_percent),
+            'group_ip_benefit_months' => $profile->group_ip_benefit_months,
+            'group_ip_definition' => $profile->group_ip_definition,
+            'group_ci_amount' => self::floatOrNull($profile->group_ci_amount),
+            'has_employer_pmi' => $profile->has_employer_pmi ? 'yes' : null,
+        ], static fn ($v): bool => $v !== null && $v !== '');
+        if ($profile->employer_benefits_recorded_at !== null) {
+            $answers['provides'] = count(array_diff_key($answers, ['employer_name' => true])) > 0 ? 'yes' : 'no';
+        }
+
+        return $answers;
+    }
+
     private function policyAnswers(Model $policy, string $amountKey): array
     {
         return array_filter([
@@ -560,6 +611,7 @@ final class RecordEditForms
             'employment' => $user->employments()->where('id', $id)->first(),
             'spouse_household' => TaxStrategyHouseholdInput::firstOrNew(['user_id' => $user->id]),
             'expenditure', 'personal' => $user,
+            'employer_benefits' => ProtectionProfile::firstOrNew(['user_id' => $user->id], ProtectionProfile::blankFor($user->id)),
             default => null,
         };
     }
@@ -574,6 +626,7 @@ final class RecordEditForms
             'life_insurance' => trim(($model->provider ?? '').' life insurance'),
             'critical_illness' => trim(($model->provider ?? '').' critical illness cover'),
             'income_protection' => trim(($model->provider ?? '').' income protection'),
+            'employer_benefits' => 'your employer benefits',
             default => 'that record',
         };
     }

@@ -271,6 +271,8 @@ class ProtectionActionDefinitionService
             'impact_parameters' => ['coverage_amount' => $coverageAmount],
             'timeframe' => $rec['timeframe'] ?? 'Within 3 months',
             'decision_trace' => $trace,
+            'definition_key' => $definition->key,
+            'figures' => array_filter($vars, static fn ($v): bool => is_scalar($v)),
         ];
 
         return $result;
@@ -698,6 +700,12 @@ class ProtectionActionDefinitionService
             return null;
         }
 
+        // Answered, even with "none": the question is closed (EmployerBenefitsWriter
+        // stamps every save, CSJ 2026-09-29).
+        if ($this->getProfileValue($comprehensivePlan, 'employer_benefits_recorded_at') !== null) {
+            return null;
+        }
+
         // Step 3: Check each employer benefit type
         $disMultiple = $this->getProfileValue($comprehensivePlan, 'death_in_service_multiple');
         $groupIp = $this->getProfileValue($comprehensivePlan, 'group_ip_benefit_percent');
@@ -837,8 +845,13 @@ class ProtectionActionDefinitionService
         $stateBenefits = $this->getNestedValue($comprehensivePlan, 'protection_needs.state_benefits', []);
 
         $sspTotal = 0.0;
-        $sspWeekly = (float) $this->taxConfig->get('benefits.ssp.weekly_rate', 116.75);
-        $sspMaxWeeks = (int) $this->taxConfig->get('benefits.ssp.max_weeks', 28);
+        // Statutory Sick Pay from tax config only (Rule 2): up to the weekly
+        // rate for up to max_weeks (https://www.gov.uk/statutory-sick-pay).
+        $sspWeekly = (float) $this->taxConfig->get('benefits.ssp.weekly_rate');
+        $sspMaxWeeks = (int) $this->taxConfig->get('benefits.ssp.max_weeks');
+        if ($sspWeekly <= 0 || $sspMaxWeeks <= 0) {
+            return null;
+        }
         if (is_array($stateBenefits) && isset($stateBenefits['ssp_total_entitlement'])) {
             $sspTotal = (float) $stateBenefits['ssp_total_entitlement'];
         } else {
@@ -858,6 +871,9 @@ class ProtectionActionDefinitionService
 
         $vars = [
             'ssp_total' => $this->formatCurrency($sspTotal),
+            'ssp_weekly' => '£'.number_format($sspWeekly, 2),
+            'ssp_weeks' => (string) $sspMaxWeeks,
+            'ip_gap' => $this->formatCurrency($ipGap),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $ipGap);
@@ -1009,7 +1025,7 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1093,7 +1109,7 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1170,7 +1186,7 @@ class ProtectionActionDefinitionService
                 'provider' => $policy->provider ?? 'your insurer',
                 'end_date' => $policy->policy_end_date->format('j F Y'),
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1245,7 +1261,7 @@ class ProtectionActionDefinitionService
                 'provider' => $policy->provider ?? 'your insurer',
                 'end_date' => $policy->policy_end_date->format('j F Y'),
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1394,7 +1410,7 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1462,7 +1478,7 @@ class ProtectionActionDefinitionService
                 'benefit_months' => (string) $policy->benefit_period_months,
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1555,7 +1571,7 @@ class ProtectionActionDefinitionService
                 'deferred_weeks' => (string) $policy->deferred_period_weeks,
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1698,7 +1714,7 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0, (int) $policy->id);
             $rec['decision_trace'] = $policyTrace;
             $results[] = $rec;
         }
@@ -1957,7 +1973,7 @@ class ProtectionActionDefinitionService
     /**
      * Build a recommendation array from a definition and template variables.
      */
-    private function buildRecommendation(ProtectionActionDefinition $definition, array $vars, float $coverageAmount): array
+    private function buildRecommendation(ProtectionActionDefinition $definition, array $vars, float $coverageAmount, ?int $policyId = null): array
     {
         $priorityMap = [
             'critical' => 1,
@@ -1966,7 +1982,7 @@ class ProtectionActionDefinitionService
             'low' => 4,
         ];
 
-        return [
+        return array_filter([
             'priority' => $priorityMap[$definition->priority] ?? 3,
             'category' => $definition->category,
             'action' => $definition->renderTitle($vars),
@@ -1975,7 +1991,15 @@ class ProtectionActionDefinitionService
             'estimated_cost' => 0,
             'impact_parameters' => ['coverage_amount' => $coverageAmount],
             'timeframe' => 'Within 3 months',
-        ];
+            'definition_key' => $definition->key,
+            // The policy a per-policy rule is about, so each policy's card has
+            // its own id and its own "Mark as done" (composeId, policy_id).
+            'policy_id' => $policyId,
+            // The figures the card was written from, for its how-to steps
+            // (ActionCardService → ActionHowToFacts), so a step names the same
+            // insurer, amount and date the card does.
+            'figures' => array_filter($vars, static fn ($v): bool => is_scalar($v)),
+        ], static fn ($v) => $v !== null);
     }
 
     /**
@@ -2324,6 +2348,8 @@ class ProtectionActionDefinitionService
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
             'decision_trace' => $trace,
+            'definition_key' => $definition->key,
+            'figures' => $vars,
         ];
     }
 
