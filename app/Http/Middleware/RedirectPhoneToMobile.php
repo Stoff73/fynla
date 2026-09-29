@@ -120,6 +120,22 @@ class RedirectPhoneToMobile
         return false;
     }
 
+    /**
+     * Route pattern for a framable path typed under /m (/m/savetax,
+     * /m/register), so routes/web.php can send it to the same /m?to= target a
+     * phone hitting the plain path gets. Built from the same allowlists as
+     * isFramableTo(), so the two cannot drift apart.
+     */
+    public static function framablePathPattern(): string
+    {
+        $names = array_map(
+            static fn (string $name): string => preg_quote($name, '#'),
+            array_merge(self::CAMPAIGN_PREFIXES, self::PRESERVED_ACCOUNT_PATHS),
+        );
+
+        return '(?:'.implode('|', $names).')(?:/.*)?';
+    }
+
     private function shouldRedirect(Request $request): bool
     {
         if (! $request->isMethod('GET')) {

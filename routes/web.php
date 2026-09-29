@@ -7,6 +7,8 @@ use App\Http\Controllers\Pipeline\ClipApprovalActionController;
 use App\Http\Controllers\Pipeline\DriveWebhookController;
 use App\Http\Controllers\Pipeline\SignedClipDownloadController;
 use App\Http\Controllers\WebHandoffController;
+use App\Http\Middleware\RedirectPhoneToMobile;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -737,6 +739,18 @@ Route::get('/m/landing', function () {
 Route::get('/m/app/{any?}', function () {
     return view('mobile-app');
 })->where('any', '.*');
+// A campaign or account path typed under /m (/m/savetax) lands on that page
+// inside /m, the same place a phone hitting /savetax is sent. It used to fall
+// through to the SPA's 404 page (production live test 2026-09-29, defect H2).
+Route::get('/m/{path}', function (Request $request, string $path) {
+    $to = '/'.$path;
+    $query = $request->getQueryString();
+    if ($query !== null && $query !== '') {
+        $to .= '?'.$query;
+    }
+
+    return redirect('/m?to='.urlencode($to));
+})->where('path', RedirectPhoneToMobile::framablePathPattern());
 
 // Gamified dashboard design mockup — standalone HTML for review before porting
 // into the web Dashboard. Shows mobile-web (identical to the mobile app) and an
