@@ -59,6 +59,12 @@ export const store = reactive({
   },
   logout() {
     this.setToken(null);
+    // /m and the desktop SPA share this tab when /m frames the public funnel
+    // (mobile-host.blade.php), and the desktop keeps its own copy of the
+    // bearer in sessionStorage('auth_token'). Signing out of /m must sign the
+    // framed desktop out too, or it still thinks it is signed in and bounces an
+    // invitee off /register back to the /m login.
+    try { sessionStorage.removeItem('auth_token'); } catch { /* storage disabled */ }
     this.user = null;
     this.subscriptionStatus = null;
   },
