@@ -234,6 +234,33 @@ final class StrategyPlanComposer
     }
 
     /**
+     * The alternatives sentence a composed item carries, or null. The one
+     * reader of alternatives_note, so every place Fyn is told about or voices
+     * a plan item treats a blank or missing note the same way (Rule 20).
+     *
+     * @param  array<string, mixed>  $item  a compose() item, or a card or context row carrying its alternatives_note
+     */
+    public static function alternativesNoteOf(array $item): ?string
+    {
+        $note = trim((string) ($item['alternatives_note'] ?? ''));
+
+        return $note === '' ? null : $note;
+    }
+
+    /**
+     * $text followed by the item's alternatives sentence, when it has one:
+     * how a plan item is voiced wherever Fyn speaks it.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    public static function withAlternativesNote(string $text, array $item, string $separator = ' '): string
+    {
+        $note = self::alternativesNoteOf($item);
+
+        return $note === null ? $text : $text.$separator.$note;
+    }
+
+    /**
      * One sentence, for Fyn, saying that an item and its alternatives are a
      * choice and which of them the total counts. Written from the pair data
      * alone, so it holds for every plan this composer builds: a conflict pair

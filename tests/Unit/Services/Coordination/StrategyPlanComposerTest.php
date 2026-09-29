@@ -347,3 +347,15 @@ it('says in the note itself when an alternative is not counted in the total (Sav
     expect($counted['conflict_note'])->toContain('Alternative to')->not->toContain('Not counted')
         ->and($excluded['conflict_note'])->toEndWith('Not counted in your total.');
 });
+
+// Rule 20: one reader of alternatives_note for every place Fyn is told about or
+// voices a plan item, so a blank note is treated the same everywhere.
+it('reads an item\'s alternatives sentence one way for every consumer', function () {
+    expect(StrategyPlanComposer::alternativesNoteOf(['alternatives_note' => '  Choose one.  ']))->toBe('Choose one.')
+        ->and(StrategyPlanComposer::alternativesNoteOf(['alternatives_note' => '   ']))->toBeNull()
+        ->and(StrategyPlanComposer::alternativesNoteOf(['alternatives_note' => null]))->toBeNull()
+        ->and(StrategyPlanComposer::alternativesNoteOf([]))->toBeNull()
+        ->and(StrategyPlanComposer::withAlternativesNote('Wrap cash in an ISA.', ['alternatives_note' => 'Choose one.']))->toBe('Wrap cash in an ISA. Choose one.')
+        ->and(StrategyPlanComposer::withAlternativesNote('- Gift savings', ['alternatives_note' => 'Choose one.'], '. '))->toBe('- Gift savings. Choose one.')
+        ->and(StrategyPlanComposer::withAlternativesNote('Salary sacrifice.', ['alternatives_note' => '  ']))->toBe('Salary sacrifice.');
+});

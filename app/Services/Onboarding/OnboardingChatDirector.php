@@ -41,6 +41,7 @@ use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
@@ -1709,7 +1710,9 @@ final class OnboardingChatDirector
                 && ! str_contains($title, '£'.$savingFormatted)
                 ? sprintf(' — saves around £%s a year', $savingFormatted)
                 : '';
-            $bullets[] = sprintf('- %s%s', $title, $savingText);
+            // Alternatives say so, so the bullets never read as all to do or
+            // as adding up to more than the total below (L3-3).
+            $bullets[] = '- '.StrategyPlanComposer::withAlternativesNote($title.$savingText, $item, '. ');
         }
 
         if ($bullets === []) {
@@ -7315,6 +7318,13 @@ PROMPT;
      * wording of the description itself.
      */
     public static function voiceStrategyItem(array $item): string
+    {
+        // One of a set of alternatives carries the composer's sentence naming
+        // the others and which one the total counts (L3-3).
+        return StrategyPlanComposer::withAlternativesNote(self::voiceStrategyText($item), $item);
+    }
+
+    private static function voiceStrategyText(array $item): string
     {
         $title = rtrim(trim((string) ($item['title'] ?? '')), '.');
         $desc = trim((string) ($item['description'] ?? ''));
