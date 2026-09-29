@@ -38,6 +38,7 @@ branch: dev
    - Fix: extend `app/Services/Onboarding/WalkFormPrefill.php` (#978) so each walk form the transfer answered opens that record as an edit. Then walk a spouse's FULL onboarding on web and `/m`.
 4. **Retirement how-to batch (26), then investment (17), then estate (12).** Unchanged from session 2; see `CSJTODO.md` NEXT. CSJ explicitly parked it until after the release.
 5. **The rest of `CSJTODO.md` NEXT**, in order, starting with "One rule for 'ISA allowance used this year'".
+6. **Finish the vault sync for 2026-09-29 session 3** (CSJ: stopped to move on to the release). The handover is already copied to `fynlaBrain/September/September29Updates/`, but the rest was not done: the git history day log, the September Index session entry, `Home.md` counts and the memory audit. Run `vault-sync` once, after the release.
 
 ## Context to load
 
