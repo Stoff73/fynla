@@ -7,6 +7,7 @@ use App\Http\Controllers\Pipeline\ClipApprovalActionController;
 use App\Http\Controllers\Pipeline\DriveWebhookController;
 use App\Http\Controllers\Pipeline\SignedClipDownloadController;
 use App\Http\Controllers\WebHandoffController;
+use App\Http\Middleware\RedirectPhoneToMobile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -732,19 +733,18 @@ Route::middleware('redirect.authed')->group(function () {
 Route::get('/m', function () {
     return view('mobile-host');
 });
-// /savetax is the phone entry (RedirectPhoneToMobile frames it as
-// /m?to=/savetax); a typed or shared /m/savetax lands there too, answers kept.
-Route::get('/m/savetax', function (Request $request) {
-    $query = $request->getQueryString();
-
-    return redirect('/savetax'.($query ? '?'.$query : ''));
-});
 Route::get('/m/landing', function () {
     return view('mobile-landing');
 });
 Route::get('/m/app/{any?}', function () {
     return view('mobile-app');
 })->where('any', '.*');
+// A campaign or account path typed under /m (/m/savetax) lands on that page
+// inside /m, the same place a phone hitting /savetax is sent. It used to fall
+// through to the SPA's 404 page (production live test 2026-09-29, defect H2).
+Route::get('/m/{path}', function (Request $request, string $path) {
+    return redirect(RedirectPhoneToMobile::framedTarget($path, $request->getQueryString()));
+})->where('path', RedirectPhoneToMobile::framablePathPattern());
 
 // Gamified dashboard design mockup — standalone HTML for review before porting
 // into the web Dashboard. Shows mobile-web (identical to the mobile app) and an

@@ -37,6 +37,7 @@ use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Protection\ComprehensiveProtectionPlanService;
 use App\Services\Protection\EmployerBenefitsWriter;
 use App\Services\Protection\LifeCoverReach;
+use App\Services\Protection\ProtectionCoverPosition;
 use App\Services\Protection\ProtectionGapPresentationService;
 use App\Traits\PolicyCRUDTrait;
 use Illuminate\Http\JsonResponse;
@@ -57,6 +58,7 @@ class ProtectionController extends Controller
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly ProtectionGapPresentationService $gapPresentation,
         private readonly LifeCoverReach $lifeCoverReach,
+        private readonly ProtectionCoverPosition $coverPosition,
     ) {}
 
     /**
@@ -103,6 +105,8 @@ class ProtectionController extends Controller
                     'sickness_illness' => SicknessIllnessPolicyResource::collection($sicknessIllnessPolicies),
                 ],
                 'coverage_gaps' => $this->gapPresentation->forUser($user, $profile),
+                // Where the user stands per cover type: the same calculation the cards use.
+                'cover_position' => $this->coverPosition->forUser($user),
                 'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'protection'), [], report: true),
                 'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'protection'), null, report: true),
             ],

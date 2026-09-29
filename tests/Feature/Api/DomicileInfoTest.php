@@ -180,8 +180,10 @@ describe('Domicile Info Validation', function () {
                 'uk_arrival_date' => null,
             ]);
 
+        // Plain words: since 6 April 2025 the section is "Where you have lived"
+        // (IHTA 1984 s6A), not domicile.
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['uk_arrival_date']);
+            ->assertJsonValidationErrors(['uk_arrival_date' => 'Enter the date you moved to the UK.']);
     });
 
     it('does NOT require uk_arrival_date for uk_domiciled status', function () {

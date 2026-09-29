@@ -1068,6 +1068,11 @@ class TaxConfigurationSeeder extends Seeder
                     'income_protection_max_benefit' => 0.60,     // 60% of gross income cap
                 ],
 
+                // Death in service above this share of total life cover means the
+                // cover depends on the job (ends on leaving). The value that ran as
+                // a code fallback until 2026-09-29, now configuration (Rule 2).
+                'dis_reliance_percent' => 0.50,
+
                 // Cost estimates
                 'education_cost_per_year' => 9000,               // £9,000 university tuition per year
                 'final_expenses' => 7500,                        // £7,500 funeral + admin costs

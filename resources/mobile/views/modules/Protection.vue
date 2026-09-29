@@ -21,6 +21,14 @@
       </div>
 
       <!-- Coverage gaps -->
+      <div v-if="coverRows.length" class="m-card">
+        <p class="m-section-label" style="margin-top:0">Your cover</p>
+        <div v-for="row in coverRows" :key="row.key" style="margin-bottom:12px">
+          <p class="m-sub" style="margin-bottom:2px"><strong>{{ row.label }}</strong>: {{ row.status }}</p>
+          <p class="m-sub" style="margin-bottom:0">You need {{ row.need }}. Your own policies give {{ row.own }}, and your job {{ row.job }} (ends if you leave).</p>
+        </div>
+      </div>
+
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">Coverage gaps</p>
         <p v-if="!openGaps.length" class="m-sub" style="margin-bottom:0">
@@ -38,7 +46,6 @@
           >
             <div class="mp-gap__head">
               <span class="mp-gap__label">{{ gap.label }}</span>
-              <span class="mp-gap__tag" :class="`mp-gap__tag--${gap.severity}`">{{ gap.severityLabel }}</span>
             </div>
             <div class="mp-gap__foot">
               <span class="mp-gap__shortfall">{{ fmt(gap.shortfall) }}{{ gap.perYear ? ' a year' : '' }} short</span>
@@ -152,6 +159,21 @@ export default {
       });
     },
 
+    coverRows() {
+      const pos = this.payload?.cover_position || null;
+      if (!pos) return [];
+      const labels = { life: 'Life cover', critical_illness: 'Critical illness cover', income_protection: 'Income protection' };
+      return Object.keys(labels).filter((k) => pos[k]).map((k) => {
+        const p = pos[k];
+        const money = (v) => this.fmt(v) + (p.unit === 'monthly' ? ' a month' : '');
+        const parts = [];
+        if (p.short_by > 0) parts.push(`Short by ${money(p.short_by)}`);
+        if (p.over_by > 0) parts.push(`Over by ${money(p.over_by)}`);
+        if (p.depends_on_job) parts.push('Depends on your job');
+        return { key: k, label: labels[k], status: parts.length ? parts.join(', ') : 'Covered', need: money(p.need), own: money(p.own_cover), job: money(p.employer_cover) };
+      });
+    },
+
     employerAnswered() { return Boolean(this.profile.employer_benefits_recorded_at); },
 
     // The benefits the user recorded; a blank one is left out.
@@ -229,9 +251,6 @@ export default {
       return (this.coverageGaps?.categories || []).map((gap) => ({
         ...gap,
         perYear: gap.key === 'income_protection',
-        severityLabel: gap.status === 'covered'
-          ? 'Covered'
-          : String(gap.severity || 'gap').replace(/\b\w/g, (char) => char.toUpperCase()),
       }));
     },
 
@@ -326,12 +345,6 @@ export default {
 .mp-gap:last-of-type { border-bottom: 0; padding-bottom: 0; }
 .mp-gap__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .mp-gap__label { font-size: 14px; font-weight: 700; color: var(--horizon-500); }
-.mp-gap__tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: var(--radius-sm); }
-.mp-gap__tag--violet { color: var(--violet-500); background: var(--light-blue-100); }
-.mp-gap__tag--raspberry { color: var(--white); background: var(--raspberry-500); }
-.mp-gap__tag--low { color: var(--spring-600); background: color-mix(in srgb, var(--spring-500) 12%, var(--white)); }
-.mp-gap__tag--medium { color: var(--violet-500); background: var(--light-blue-100); }
-.mp-gap__tag--high { color: var(--white); background: var(--raspberry-500); }
 .mp-gap__foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .mp-gap__shortfall { font-size: 13px; font-weight: 700; color: var(--raspberry-500); }
 .mp-gap__detail { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }

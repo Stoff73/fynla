@@ -30,7 +30,7 @@
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Personal Information</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
-              Your personal details, contact information, occupation, and domicile status
+              Your personal details, contact information, occupation, and where you have lived
             </p>
           </div>
           <button
@@ -502,6 +502,7 @@
               <CountrySelector
                 v-model="form.country_of_birth"
                 :required="true"
+                default-country=""
                 placeholder="Search for your country of birth..."
                 @update:model-value="handleCountryChange"
               />
@@ -588,7 +589,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
-import { EDUCATION_LEVEL_OPTIONS } from '@/constants/profileOptions';
+import { EDUCATION_LEVEL_OPTIONS, isUkBirthCountry } from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
 // Preview mode message
@@ -683,7 +684,7 @@ export default {
 
     const shouldShowUKArrivalDate = computed(() => {
       return form.value.country_of_birth &&
-             form.value.country_of_birth !== 'United Kingdom';
+             !isUkBirthCountry(form.value.country_of_birth);
     });
 
     // Decided once on the server (LongTermResidence, IHTA 1984 s6A) from tax
@@ -763,7 +764,7 @@ export default {
     };
 
     const handleCountryChange = () => {
-      if (form.value.country_of_birth === 'United Kingdom') {
+      if (isUkBirthCountry(form.value.country_of_birth)) {
         form.value.uk_arrival_date = '';
         yearsResident.value = null;
         form.value.domicile_status = 'uk_domiciled';
@@ -773,7 +774,7 @@ export default {
     };
 
     const updateDomicileStatus = () => {
-      if (form.value.country_of_birth === 'United Kingdom') {
+      if (isUkBirthCountry(form.value.country_of_birth)) {
         form.value.domicile_status = 'uk_domiciled';
       } else {
         form.value.domicile_status = 'non_uk_domiciled';
@@ -930,6 +931,7 @@ export default {
         };
 
         // Domicile is saved only once the user has told us their country of birth.
+        if (form.value.country_of_birth) updateDomicileStatus();
         const domicileData = form.value.country_of_birth ? {
           country_of_birth: form.value.country_of_birth,
           uk_arrival_date: form.value.uk_arrival_date || null,

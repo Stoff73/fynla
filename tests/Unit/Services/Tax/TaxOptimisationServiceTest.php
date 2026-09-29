@@ -196,7 +196,7 @@ describe('generateStrategies', function () {
     });
 
     it('prices Marriage Allowance from configuration, rounded up as the statute requires', function () {
-        // ITA 2007 s55C(2) rounds the transferable amount UP to the nearest £10, so it
+        // ITA 2007 s55B(5) rounds the transferable amount UP to the nearest £10, so it
         // is £1,260 against a £12,570 personal allowance, not £1,257. At the basic rate
         // that is £252.00, not £251.40. Both figures come from `TaxConfigService`
         // (Rule 2); the assertion derives the expected saving from the same config

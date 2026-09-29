@@ -191,13 +191,16 @@ it('does not recommend life cover to the spouse a joint-life policy already cove
     // The phantom. Present whenever the source reads the plain user_id relation.
     // Protection cards are the action definitions (CSJ 2026-09-29), so every
     // life cover rule is checked by its own key.
-    expect($types)->not->toContain('life_insurance_gap')
-        ->and($types)->not->toContain('dependants_no_life_cover')
-        ->and($types)->not->toContain('mortgage_no_decreasing_term')
+    // Gap rules are reasons on the position cards (CSJ 2026-09-29): her life position
+    // must not be short, and no life reason may fire for her.
+    $life = collect(app(ProtectionStrategySource::class)->recommendations($spouse->fresh()))->firstWhere('type', 'life_cover_position');
+    expect($life?->extra['figures']['is_short'] ?? false)->toBeFalse()
+        ->and($life?->extra['figures']['life_insurance_gap'] ?? false)->toBeFalse()
+        ->and($life?->extra['figures']['mortgage_no_decreasing_term'] ?? false)->toBeFalse()
         // NOT empty: a source that returns [] on a failure would pass a naive absence
         // assertion. Her genuine income-protection gap proves the method ran.
         ->and($types)->not->toBeEmpty()
-        ->and($types)->toContain('income_protection_gap');
+        ->and($types)->toContain('income_protection_position');
 });
 
 it('leaves the policy owner\'s recommendations unchanged', function (): void {
@@ -211,7 +214,7 @@ it('leaves the policy owner\'s recommendations unchanged', function (): void {
     // reader pulling his wife's policies in would raise hers on his list.
     expect($types)->not->toContain('policy_not_in_trust')
         ->and($types)->not->toContain('policy_not_joint_married')
-        ->and($types)->toContain('income_protection_gap');
+        ->and($types)->toContain('income_protection_position');
 });
 
 it('builds protection cards from the action definitions, with each card\'s figures', function (): void {
@@ -245,5 +248,5 @@ it('builds protection cards from the action definitions, with each card\'s figur
     expect($noPolicies)->not->toBeNull()
         ->and($noPolicies->extra['definition_key'])->toBe('no_policies_warning')
         ->and($noPolicies->extra['figures']['total_gap'] ?? null)->toStartWith('£')
-        ->and($recs->pluck('type'))->toContain('income_protection_gap');
+        ->and($recs->pluck('type'))->toContain('income_protection_position');
 });
