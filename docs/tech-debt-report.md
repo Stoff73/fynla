@@ -1,42 +1,32 @@
-# Tech Debt Report — Session 2026-09-29
+# Tech Debt Report — Session 2026-09-29 (session 2)
 
-**Files analysed:** 18 (the session's diff, `a87432b71..1b5f3d77f`)
+**Files analysed:** 39 (app, resources, database; range 544e6230a..ac5deecea on dev)
 **Issues found:** 9
-**Severity breakdown:** 2 critical, 4 warnings, 3 suggestions
-
-Clean on the mechanical checks: every file has `declare(strict_types=1)`, no unused imports, no debug calls.
+**Severity breakdown:** 1 critical, 5 warnings, 3 suggestions
 
 ## Critical Issues
 
-1. **Two sums for "ISA allowance used this year"** — `app/Services/Savings/ISATracker.php` `buildOwnerStatus` vs `app/Services/Tax/TaxStrategyMath.php:383` `estimateIsaSubscriptionsThisYear`.
-   - *Category:* Inconsistency (Rule 20) / user-facing figure (Rule 23).
-   - *What:* the tracker (savings cards, Savings page) counts a Stocks and Shares ISA only when `investment_accounts.tax_year` is the current year, which is stale on real rows. The tax maths counts `isa_subscription_current_year` whatever its year. Preview users 74/78 read £20,000 left vs £15,200 / £0. The how-tos now use the tax figure, so a card's trigger and its steps can disagree.
-   - *Fix:* one rule for ISA subscriptions this year, with the year kept right on each payment; both callers use it. Needs a decision on what `tax_year` / `isa_subscription_current_year` mean.
-2. **Invented 4.00% market-rate fallback** — `app/Services/Savings/RateComparator.php:93-104` and `getBenchmarkForAccount` (`?? 0.0400`).
-   - *Category:* Convention (Rule 23, no unsourced figures).
-   - *What:* with no stored rates, a "Better rate available" card can fire from a made-up rate. The how-to line drops out (no source row), the card does not.
-   - *Fix:* no stored rate → no comparison, no card.
+1. **`app/Services/Protection/CoverageGapAnalyzer.php:480-482`** — Convention (Rule 2). Statutory Sick Pay is still read with literal fallbacks (`116.75`, `28`, `125`). The same fallbacks were removed from `ProtectionActionDefinitionService` this session, but not here. With the key present in config they never run; if it is ever missing, a stale rate from an old year reaches the income protection need silently.
+   **Fix:** drop the second argument, and return the no-benefit path when the value is null, as `evaluateIpGapAfterStateBenefits` now does.
 
 ## Warnings
 
-3. **Year-fallback logic duplicated** — `RateComparator.php:78-89` (`getMarketBenchmarks`) and `:146-148` (`benchmarkRowFor`, added today).
-   - *Category:* Duplicate code.
-   - *Fix:* one private method returning the benchmark rows for the active-or-latest year; both callers read it. It also removes the per-account query in `benchmarkRowFor`.
-4. **Service locator in new code** — `FynContextAssembler.php` (`app(ActionCardService::class)`, `app(IncomeDefinitionsService::class)`), `ActionHowToFacts.php` (`app(DependantsReach::class)`).
-   - *Category:* Inconsistency (services use constructor injection).
-   - *Fix:* inject them. `ActionCardService` into the assembler may need care: check for a construction cycle (ActionCardService → NextActionsService → …).
-5. **Local pounds formatter** — `FynContextAssembler.php` `pensionInputSentence` (`static fn … '£'.number_format($v, 0)`).
-   - *Category:* Duplicate code (`FormatsCurrency::formatCurrency` does this).
-   - *Fix:* use the trait.
-6. **Identical flush block in both provider branches** — `app/Traits/HasAiChat.php:683-688` and `:805-810`.
-   - *Category:* Within-file duplication.
-   - *Fix:* acceptable inside a generator (a helper cannot `yield` for its caller without `yield from`); a `yield from $this->flushCertainty(...)` helper would remove it.
+1. **`ProtectionCoverPosition.php:42`, `ProtectionGapPresentationService.php:52`, `ProtectionAgent.php:111` and `:407`** — Duplicate code (Rule 20). Four places assemble `LifeCoverReach` + `calculateTotalCoverage` + `calculateProtectionNeeds` separately. W-0401 happened because one of these copies drifted from the others.
+   **Fix:** have the presentation service and the agent take their needs and coverage from one assembler, for example `ProtectionCoverPosition::analysisFor(User)` returning `[needs, coverage]`.
+2. **`app/Services/Protection/ProtectionActionDefinitionService.php:2014`** — Redundant query. `consolidate()` calls `ProtectionActionDefinition::getEnabled()` again, after `evaluateActions()` has already loaded it at `:47`.
+   **Fix:** pass the collection into `consolidate()`.
+3. **`app/Services/Protection/ProtectionActionDefinitionService.php`, `evaluateCoverPosition()`** — Pattern. This is a stub that returns null, and it exists only so `ActionDefinitionDispatchCoverageTest`'s regex finds a `$this->evaluate…` arm for `cover_position`.
+   **Fix:** teach the dispatch test to accept arms the service documents as built elsewhere, or build the position cards inside the arm.
+4. **`resources/js/components/Protection/CoverPositionSection.vue` and `resources/mobile/views/modules/Protection.vue` (`coverRows`); `EmployerBenefitsCard.vue` and the `/m` `employerRows`** — Cross-bundle duplication. The row labels, the status wording ("Short by", "Over by", "Depends on your job") and the benefit wording are written twice, once per bundle.
+   **Fix:** publish the display strings from the API (`cover_position.*.status_text`), so both bundles render server copy.
+5. **`app/Agents/CoordinatingAgent.php` (`handleCaptureEmployerBenefits`)** — Service locator. It uses `app(EmployerBenefitsWriter::class)` in the agent.
+   **Fix:** inject it through the constructor, as the other handlers' collaborators are.
 
 ## Suggestions
 
-7. **`SavingsActionDefinitionService.php` is 3,855 lines** — Complexity. It gained `figures` / `is_isa` plumbing today; splitting the evaluators by area (emergency fund, rates, PSA, goals, children) would ease the next batches.
-8. **`HasAiChat.php` is 2,310 lines** — Complexity; the certainty filter added one more concern to the streaming loop.
-9. **`RetirementAgent::formatDCPensions` now reads the salary from `annual_employment_income`** (`RetirementAgent.php` ~778) — correct per W-0424, but it duplicates the salary fallback `IncomeDefinitionsService` also uses; a shared "scheme salary for this pension" helper on `PensionContributionRule` would keep them one rule.
+1. **`app/Services/Protection/ProtectionActionDefinitionService.php`** — Complexity. The file is 2,493 lines. `consolidate()` and `positionVars()` could move into a `ProtectionPositionCards` class next to `ProtectionCoverPosition`.
+2. **`ProtectionActionDefinitionService::positionVars`** — Consistency. It formats with `formatCurrency` (rounded), while `ActionHowToFacts::pounds` floors. The card title and a how-to figure computed separately could differ by £1. Today both read the same strings, so nothing differs yet.
+3. **`app/Services/Protection/RecommendationEngine.php`** — Two engines. It still feeds `ProtectionAgent::analyze()['recommendations']` (the plan page's own recommendations section and the composed-flag-off rollback path). Already listed in `CSJTODO.md`.
 
 ---
 *Generated by tech-debt-session skill*
