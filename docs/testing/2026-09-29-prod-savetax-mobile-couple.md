@@ -7,6 +7,7 @@
 
 Brett completed both registrations and codes by hand; everything else was driven by Claude. No code changes were made.
 Follow-up scenario matrix (funnel promises and plan engine across nine households): `2026-09-29-savetax-scenario-matrix.md`.
+Fixes: M3 and L1–L9 are fixed in Stoff73/fynla#973 (open, against `dev`, not yet on production). L10 is left as is. See "Fix status" below.
 
 ## Verdict
 
@@ -79,6 +80,25 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 | L8 | Fyn capture forms | Ownership radio label `for="fyn-form-easy_access-ownership_type"` points at no element. |
 | L9 | Campaign questionnaire | Step counter changes from "3 of 4" to "4 of 5" after answering Yes to spouse. |
 | L10 | Campaign results page | Unicode tick and dash characters used as allowance markers (Rule 15, unless approved). |
+
+## Fix status
+
+Updated 29 September 2026. The fixes are in [Stoff73/fynla#973](https://github.com/Stoff73/fynla/pull/973), which is open against `dev` and not yet on production. Each was checked in a local build on `/m` and on the web equivalent, using a test couple set up like Sam and Alex. Findings not listed here (C1, H1, H2, M1, M2, M4 to M6) are not covered by that PR.
+
+| # | Status | What was wrong, and the fix |
+|---|---|---|
+| M3 | Fixed | The investment readiness gate blocks until spending is recorded, and the blocked response carried no portfolio, so the card read £0. The blocked response now reports what the user holds and still gives no advice. The card shows 1 account, £18,000. |
+| L1 | Fixed | The count is right (a Cash ISA counts toward the investments limit, a CSJ rule from 15 September 2026). The Investments page now adds "Includes your Cash ISA, which is listed under Bank Accounts." |
+| L2 | Fixed | Fyn saves a Cash ISA with a different field set from the web form, and the rule recognised only the web form's. One shared Cash ISA check now covers both and excludes Junior and Lifetime ISAs. |
+| L2, found while fixing | Fixed | Bank Accounts also said "one partner's allowance is fully used" when neither was. It now reads both partners from the same ISA record the page shows. |
+| L3 | Fixed | Shared items on `/m` Net Worth now show "Your 50.00% of £450,000". The web property card already did. |
+| L4 | Fixed | The invitation now greets the invitee by the first name Fyn collected, falling back to "Hello,". |
+| L5 | Fixed | The "Warning" half was already removed on `dev` (Stoff73/fynla#967). The card now shows the action count ("3 actions") instead of a blank line. |
+| L6 | Fixed | Whole pounds: "£675 of annual interest, of which £175". |
+| L7 | Fixed | `.m-field` gets the design guide's violet focus border and ring. |
+| L8 | Fixed on `/m` and web | The radio group's caption now names the group instead of pointing at a missing element. Covered by automated tests; could not be checked in a live Fyn form locally. |
+| L9 | Fixed | The counter counts questions, not screens. The spouse-income follow-up shares "3 of 4", so the total stays at 4 (Brett's decision). |
+| L10 | Not changed | The marks came in with Azlan's personalised-plan design on 2 June 2026, so they are grandfathered under Rule 15 or part of an approved design (Brett's decision). |
 
 ## What works well
 
