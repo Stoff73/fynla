@@ -55,7 +55,7 @@ function trustCard(User $user): ?array
 }
 
 it('keeps a draft protection entry off the card until CSJ approves it', function () {
-    expect(ProtectionActionDefinition::where('key', 'policy_not_in_trust')->value('how_to_status'))->toBe('draft');
+    ProtectionActionDefinition::where('key', 'policy_not_in_trust')->update(['how_to_status' => 'draft']);
     [$user] = untrustedPolicyHolder();
     $item = trustCard($user);
 

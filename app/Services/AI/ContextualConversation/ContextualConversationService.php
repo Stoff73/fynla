@@ -9,6 +9,7 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\Mobile\NextActionsService;
+use App\Services\Onboarding\RecordEditForms;
 use Illuminate\Support\Facades\DB;
 
 final class ContextualConversationService
@@ -47,7 +48,11 @@ final class ContextualConversationService
             $origin['recommendation'] = $recommendation;
         }
 
-        return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation): array {
+        // A resource that is one record opens on that record's form (web and
+        // /m draw it from the message metadata, as they do an edit form).
+        $form = app(RecordEditForms::class)->formForResource($user, $resource->resourceType);
+
+        return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form): array {
             $timestamp = now();
             $conversation = AiConversation::create([
                 'user_id' => $user->id,
@@ -76,12 +81,17 @@ final class ContextualConversationService
             $opening = $conversation->messages()->create([
                 'role' => 'assistant',
                 'status' => AiMessageStatus::Answered,
-                'content' => $recommendation !== null
-                    ? $this->recommendationOpening($recommendation)
-                    : $this->openingFor($validated['action'], $resource),
-                'metadata' => [
+                'content' => match (true) {
+                    $form !== null => $this->formOpening($form),
+                    $recommendation !== null => $this->recommendationOpening($recommendation),
+                    default => $this->openingFor($validated['action'], $resource),
+                },
+                'metadata' => array_filter([
                     'source' => 'server_contextual_opening',
-                ],
+                    'capture_form' => $form['schema'] ?? null,
+                    'capture_form_values' => $form['answers'] ?? null,
+                    'capture_form_record' => $form['record'] ?? null,
+                ], static fn ($v) => $v !== null),
             ]);
 
             return [
@@ -128,6 +138,19 @@ final class ContextualConversationService
 
         return "I can help you enter the information for {$recommendation['title']}. {$detail}"
             ."Tell me the details you know, and I'll validate them before anything is saved.";
+    }
+
+    /**
+     * The line above a record's form. It also reads on its own, for a client
+     * that does not draw forms.
+     *
+     * @param  array{label: string}  $form
+     */
+    private function formOpening(array $form): string
+    {
+        $label = strtolower((string) preg_replace('/^your\s+/i', '', (string) $form['label']));
+
+        return "Here are your {$label}. Change what needs changing and save, or tell me what has changed.";
     }
 
     private function openingFor(string $action, ContextualResource $resource): string
