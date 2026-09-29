@@ -124,7 +124,9 @@ final class ActionCardService
         $card = (array) ($item['card'] ?? []);
         $taxItem = $this->taxItem($user, $id);
         $isRecommendation = ($item['type'] ?? '') === 'recommendation';
-        $howTo = $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null);
+        // A tax action's figures are its composed plan item; any other action's
+        // are the ones its own card was written from.
+        $howTo = $this->howTo($user, $module, $taxItem, $card['definition_key'] ?? null, (array) ($card['figures'] ?? []));
 
         return [
             'id' => $id,
@@ -135,8 +137,10 @@ final class ActionCardService
             'deadline' => $isRecommendation ? $this->deadline($item, $card) : null,
             'title' => (string) $item['title'],
             'description' => (string) ($taxItem['description'] ?? $item['detail'] ?? $item['meta'] ?? ''),
+            // An approved how-to's "why" speaks from the user's own figures; an
+            // action without one keeps the engine's context lines.
             'why' => $isRecommendation
-                ? ($taxItem !== null ? $howTo['why'] : (array) ($card['personalised_context'] ?? []))
+                ? ($taxItem !== null || $howTo['why'] !== [] ? $howTo['why'] : (array) ($card['personalised_context'] ?? []))
                 : [],
             'what_this_changes' => $isRecommendation
                 ? $howTo['outcome']
@@ -186,7 +190,7 @@ final class ActionCardService
      * @param  array<string, mixed>|null  $taxItem
      * @return array{steps: list<string>, why: list<string>, outcome: list<string>, learn: list<array{label: string, url: string}>} the steps, why it matters to the user, what it changes, and where to read more
      */
-    private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey): array
+    private function howTo(User $user, string $module, ?array $taxItem, ?string $definitionKey, array $figures = []): array
     {
         $none = ['steps' => [], 'why' => [], 'outcome' => [], 'learn' => []];
         $model = self::DEFINITIONS[$module] ?? null;
@@ -202,7 +206,7 @@ final class ActionCardService
         if (! is_array($steps) || $steps === []) {
             return $none;
         }
-        ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $taxItem);
+        ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $taxItem ?? $figures);
 
         return [
             'steps' => ActionHowTo::render($steps, $facts, $text),

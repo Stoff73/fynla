@@ -34,26 +34,35 @@ final class ActionHowTo
      */
     public static function parse(string $markdown): array
     {
+        // One entry can serve several keys that are the same action at a
+        // different urgency or scope (`## rate_below_market, rate_poor`): it is
+        // written once and each card fills in its own figures (Rule 20).
         $entries = [];
-        $key = null;
+        $keys = [];
         $when = null;
         $part = 'steps';
         foreach (preg_split('/\R/', $markdown) as $line) {
-            if (preg_match('/^## ([a-z0-9_]+)\s*$/', $line, $m)) {
-                $key = $m[1];
+            if (preg_match('/^## ([a-z0-9_]+(?:\s*,\s*[a-z0-9_]+)*)\s*$/', $line, $m)) {
+                $keys = array_map('trim', explode(',', $m[1]));
                 $when = null;
                 $part = 'steps';
-                $entries[$key] = ['status' => 'draft', 'steps' => []];
-            } elseif ($key === null) {
+                foreach ($keys as $key) {
+                    $entries[$key] = ['status' => 'draft', 'steps' => []];
+                }
+            } elseif ($keys === []) {
                 continue;
             } elseif (preg_match('/^status:\s*(draft|approved)\s*$/', $line, $m)) {
-                $entries[$key]['status'] = $m[1];
+                foreach ($keys as $key) {
+                    $entries[$key]['status'] = $m[1];
+                }
             } elseif (preg_match('/^(outcome|why|learn)?\s*(?:when (.+)|always)?:\s*$/', $line, $m) && trim($line) !== ':') {
                 $part = ($m[1] ?? '') !== '' ? $m[1] : 'steps';
                 $when = isset($m[2]) && $m[2] !== '' ? trim($m[2]) : null;
             } elseif (preg_match('/^\d+\.\s+(.+)$/', $line, $m)) {
                 $step = ['when' => $when, 'text' => trim($m[1])];
-                $entries[$key]['steps'][] = $part === 'steps' ? $step : $step + ['part' => $part];
+                foreach ($keys as $key) {
+                    $entries[$key]['steps'][] = $part === 'steps' ? $step : $step + ['part' => $part];
+                }
             }
         }
 

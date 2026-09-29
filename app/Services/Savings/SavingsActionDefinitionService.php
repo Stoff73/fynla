@@ -1193,7 +1193,7 @@ class SavingsActionDefinitionService
                 'potential_gain' => $this->formatCurrency($potentialGain),
             ];
 
-            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars + ['is_isa' => (bool) $account->is_isa], $priority);
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
@@ -1286,7 +1286,7 @@ class SavingsActionDefinitionService
                 'potential_gain' => $this->formatCurrency($potentialGain),
             ];
 
-            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars + ['is_isa' => (bool) $account->is_isa], $priority);
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
@@ -1361,7 +1361,7 @@ class SavingsActionDefinitionService
                 'balance' => $this->formatCurrency($balance),
             ];
 
-            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars + ['is_isa' => (bool) $account->is_isa], $priority);
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
@@ -1435,7 +1435,7 @@ class SavingsActionDefinitionService
                 'balance' => $this->formatCurrency($balance),
             ];
 
-            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars + ['is_isa' => (bool) $account->is_isa], $priority);
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
@@ -1503,7 +1503,7 @@ class SavingsActionDefinitionService
                 'balance' => $this->formatCurrency($balance),
             ];
 
-            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars + ['is_isa' => (bool) $account->is_isa], $priority);
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
@@ -3706,6 +3706,10 @@ class SavingsActionDefinitionService
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
             'definition_key' => $definition->key,
+            // The figures the card was written from, for its how-to steps
+            // (ActionCardService → ActionHowToFacts), so a step names the same
+            // account, rate and balance the card does.
+            'figures' => array_filter($vars, static fn ($v): bool => is_scalar($v)),
         ];
     }
 

@@ -6,6 +6,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
@@ -18,6 +19,7 @@ use Laravel\Sanctum\Sanctum;
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TaxActionDefinitionSeeder::class);
+    $this->seed(SavingsActionDefinitionSeeder::class);
 });
 
 function actionCardUserWithIsaHeadroom(): User

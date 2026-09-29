@@ -79,6 +79,7 @@ final class SavingsRecommendationAdapter
             'life_event_id' => $rec['life_event_id'] ?? null,
             'source_category' => $category !== '' ? $category : null,
             'decision_trace' => $rec['decision_trace'] ?? null,
+            'figures' => ! empty($rec['figures']) ? $rec['figures'] : null,
         ], static fn ($v) => $v !== null);
 
         return new StrategyRecommendation(
