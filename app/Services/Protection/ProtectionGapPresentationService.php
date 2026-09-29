@@ -176,9 +176,12 @@ class ProtectionGapPresentationService
                 (float) ($needs['income_protection_need'] ?? 0),
                 (float) ($gaps['income_replacement_coverage'] ?? 0),
                 (float) ($gaps['gaps_by_category']['income_protection_gap'] ?? 0),
+                // Only what the gap is worked out from. Statutory Sick Pay is not
+                // part of it (the cover is recorded policies), so it is not listed:
+                // the raw state_benefits array showed as "Ssp Max Weeks: £28"
+                // (fynla.org, 2026-09-29). The income card's reason states it.
                 [
                     'gross_income' => round((float) ($needs['gross_income'] ?? 0), 2),
-                    'state_benefits' => $needs['state_benefits'] ?? [],
                 ],
                 [[
                     'key' => 'maximum_benefit_ratio',
@@ -189,7 +192,10 @@ class ProtectionGapPresentationService
                     'value' => 'Annualised recorded income, disability and sickness benefits',
                     'unit' => null,
                 ]],
-                'This compares the configured share of gross income with annualised recorded income-protection, disability and sickness benefits.',
+                sprintf(
+                    'This compares %s%% of your gross earned income with the income protection, disability and sickness benefits you have recorded, as yearly amounts.',
+                    rtrim(rtrim(number_format((float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit') * 100, 2), '0'), '.')
+                ),
                 $incomePolicies,
             ),
         ];

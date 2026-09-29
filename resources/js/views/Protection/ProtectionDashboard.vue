@@ -58,6 +58,7 @@
         />
 
       <CoverPositionSection class="mb-6" :position="coverPosition" />
+      <CoverageGapsSection class="mb-6" :breakdown="coverageBreakdown" />
 
       <div class="bg-white rounded-lg border border-light-gray p-6">
         <ProtectionModuleOverview
@@ -102,6 +103,7 @@ import ProtectionModuleOverview from '@/components/Protection/ProtectionModuleOv
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import EmployerBenefitsCard from '@/components/Protection/EmployerBenefitsCard.vue';
 import CoverPositionSection from '@/components/Protection/CoverPositionSection.vue';
+import CoverageGapsSection from '@/components/Protection/CoverageGapsSection.vue';
 import EmployerBenefitsFormModal from '@/components/Protection/EmployerBenefitsFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
@@ -119,6 +121,7 @@ export default {
     PolicyFormModal,
     EmployerBenefitsCard,
     CoverPositionSection,
+    CoverageGapsSection,
     EmployerBenefitsFormModal,
     ModuleLifeEvents,
     ModuleStatusBar,
@@ -137,7 +140,7 @@ export default {
   },
 
   computed: {
-    ...mapState('protection', ['loading', 'error', 'lifeEvents', 'lifeEventImpact', 'profile', 'coverPosition']),
+    ...mapState('protection', ['loading', 'error', 'lifeEvents', 'lifeEventImpact', 'profile', 'coverPosition', 'coverageBreakdown']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
