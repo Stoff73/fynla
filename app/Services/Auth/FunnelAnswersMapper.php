@@ -25,6 +25,25 @@ class FunnelAnswersMapper
         'not-employed' => 'unemployed',
     ];
 
+    /**
+     * The partner's employment from the funnel, as a
+     * tax_strategy_household_inputs.spouse_employment_status value, or null
+     * when it was not asked. Asked only when the partner's band is the
+     * Personal Allowance taper, because their pension relief depends on
+     * earnings from work (FA 2004 s189-190). Read when the household row is
+     * first written (capture_spouse_household_data), not at registration:
+     * creating the row early would give the plan a partner with £0 income.
+     */
+    public static function spouseEmploymentStatus(User $user): ?string
+    {
+        $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
+        if (($funnel['spouse'] ?? null) !== 'yes') {
+            return null;
+        }
+
+        return self::EMPLOYMENT_MAP[$funnel['spouseEmployment'] ?? ''] ?? null;
+    }
+
     public function mapToProfile(User $user): void
     {
         $funnel = $user->funnel_answers ?? [];

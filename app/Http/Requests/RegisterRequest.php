@@ -73,6 +73,7 @@ class RegisterRequest extends FormRequest
             'income' => self::INCOME_VALUES,
             'spouse' => self::SPOUSE_VALUES,
             'spouseIncome' => self::SPOUSE_INCOME_VALUES,
+            'spouseEmployment' => self::EMPLOYMENT_VALUES,
             'age' => self::AGE_VALUES,
             'pot' => self::POT_VALUES,
         ] as $field => $allowed) {
@@ -136,6 +137,9 @@ class RegisterRequest extends FormRequest
             'funnel_answers.income' => ['nullable', 'string', Rule::in(self::INCOME_VALUES)],
             'funnel_answers.spouse' => ['nullable', 'string', Rule::in(self::SPOUSE_VALUES)],
             'funnel_answers.spouseIncome' => ['nullable', 'string', Rule::in(self::SPOUSE_INCOME_VALUES)],
+            // Asked only when the partner is in the Personal Allowance taper
+            // band: their pension relief depends on earnings from work.
+            'funnel_answers.spouseEmployment' => ['nullable', 'string', Rule::in(self::EMPLOYMENT_VALUES)],
             'funnel_answers.assets' => ['nullable', 'array', 'max:12'],
             'funnel_answers.assets.*' => ['string', Rule::in(self::ASSET_VALUES)],
             // pensioncheck funnel-specific keys (absent from savetax)

@@ -14,6 +14,7 @@ $savetaxAnswers = [
     'income' => $savetaxQuery['income'] ?? null,
     'spouse' => $savetaxQuery['spouse'] ?? null,
     'spouseIncome' => $savetaxQuery['spouseIncome'] ?? null,
+    'spouseEmployment' => $savetaxQuery['spouseEmployment'] ?? null,
     'assets' => $savetaxAssets !== ''
         ? array_slice(array_map('trim', explode(',', $savetaxAssets)), 0, 12)
         : [],
@@ -26,6 +27,7 @@ if (empty($savetaxAnswers['income'])) {
         'income' => '50271_100000',
         'spouse' => 'no',
         'spouseIncome' => null,
+        'spouseEmployment' => null,
         'assets' => ['savings', 'pension', 'isa'],
     ];
 }
@@ -229,7 +231,7 @@ try {
 
   <script>window.SAVETAX_ESTIMATE = <?= json_encode($savetaxEstimate, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/savetax-plan-v4.js?v=16" defer></script>
+  <script src="/pages/js/savetax-plan-v4.js?v=17" defer></script>
   <!-- Cookie consent — persisted via localStorage; the SPA register step reuses it. -->
   <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 
