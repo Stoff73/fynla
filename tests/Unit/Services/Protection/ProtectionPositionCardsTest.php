@@ -79,3 +79,46 @@ it('shows the life card when the cover depends on the job even with no shortfall
     expect($life)->not->toBeNull()
         ->and($life->extra['figures'])->toMatchArray(['depends_on_job' => true, 'is_short' => false]);
 });
+
+// Statutory Sick Pay on the income card is the analyser's figure for this
+// person (https://www.gov.uk/statutory-sick-pay/what-youll-get: the weekly
+// rate "or 80% of your normal weekly earnings - whichever is lower", up to 28
+// weeks), never the flat rate for everyone. Seeded 2026/27: £123.25, 80%.
+function incomeCardFigures(User $user): array
+{
+    return collect(app(ProtectionStrategySource::class)->recommendations($user))
+        ->firstWhere('type', 'income_protection_position')->extra['figures'];
+}
+
+it('shows the flat Statutory Sick Pay rate to an employee who earns above it', function () {
+    $figures = incomeCardFigures(mortgagedEarner());
+
+    expect($figures)->toMatchArray([
+        'ip_gap_after_state_benefits' => true,
+        'ssp_weekly' => '£123.25',
+        'ssp_weeks' => '28',
+        'ssp_total' => '£3,451',
+    ]);
+});
+
+it('shows 80% of weekly earnings to an employee for whom that is lower', function () {
+    // £5,200 a year = £100 a week; 80% = £80 a week, £2,240 over 28 weeks.
+    $user = mortgagedEarner(['annual_income' => 5200, 'mortgage_balance' => 0]);
+    $user->update(['annual_employment_income' => 5200]);
+
+    expect(incomeCardFigures($user->fresh()))->toMatchArray([
+        'ip_gap_after_state_benefits' => true,
+        'ssp_weekly' => '£80.00',
+        'ssp_total' => '£2,240',
+    ]);
+});
+
+it('never offers Statutory Sick Pay to a self-employed person', function () {
+    $user = mortgagedEarner(['mortgage_balance' => 0]);
+    $user->update(['employment_status' => 'self_employed', 'annual_employment_income' => 0, 'annual_self_employment_income' => 72000]);
+    $figures = incomeCardFigures($user->fresh());
+
+    expect($figures['self_employed_no_ip'] ?? false)->toBeTrue()
+        ->and($figures['ip_gap_after_state_benefits'] ?? false)->toBeFalse()
+        ->and($figures)->not->toHaveKey('ssp_total');
+});
