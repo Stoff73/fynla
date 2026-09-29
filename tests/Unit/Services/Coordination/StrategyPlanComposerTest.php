@@ -252,3 +252,66 @@ it('never sums pa_taper_rescue with additional_rate_avoidance once the seeder de
 
     expect($plan['combined_annual_saving'])->toBe(29521.0);
 });
+
+// L3-3 (fynla.org /m, 29 Sep 2026): asked "ISA, gift to my wife, or 50/50 — do
+// they add up?", Fyn called the ISA and the gift alternatives, then told the
+// user to do "the ISA top-up and either the gift or the joint split". The gift
+// — the one the total counts — carried no note at all, so nothing told Fyn the
+// three are one choice. Every member of a conflict now names the others.
+it('names every alternative from both ends of the seeded savings three-way choice', function () {
+    $this->seed(TaxActionDefinitionSeeder::class);
+    $metadata = TaxActionDefinition::whereNotNull('strategy_type')
+        ->get()
+        ->keyBy('strategy_type')
+        ->map(fn ($row) => ['claim_tier' => $row->claim_tier, 'sequencing' => $row->sequencing])
+        ->all();
+
+    // The live £110,000 household: £50,000 of sole-name savings at 4.5%.
+    $recs = [
+        new StrategyRecommendation('savings_to_spouse', StrategyCategory::Household, StrategyPriority::High,
+            'Gift savings to your spouse', 'd', 1150.0),
+        new StrategyRecommendation('joint_savings_psa_split', StrategyCategory::Household, StrategyPriority::Low,
+            'Share savings 50/50', 'd', 675.0),
+        new StrategyRecommendation('isa_topup_vs_psa', StrategyCategory::Allowance, StrategyPriority::High,
+            'Wrap savings in an ISA', 'd', 540.0),
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
+    $item = fn (string $type): array => collect($plan['items'])->firstWhere('type', $type);
+
+    expect($plan['combined_annual_saving'])->toBe(1150.0)
+        ->and($item('savings_to_spouse')['alternatives'])->toEqualCanonicalizing(['Share savings 50/50', 'Wrap savings in an ISA'])
+        ->and($item('isa_topup_vs_psa')['alternatives'])->toEqualCanonicalizing(['Gift savings to your spouse', 'Share savings 50/50'])
+        ->and($item('joint_savings_psa_split')['alternatives'])->toEqualCanonicalizing(['Gift savings to your spouse', 'Wrap savings in an ISA'])
+        ->and($item('savings_to_spouse')['alternatives_note'])
+        ->toContain('"Gift savings to your spouse" is an alternative to')
+        ->toContain('so their savings do not add up')
+        ->toEndWith('The plan total counts this one.')
+        ->and($item('isa_topup_vs_psa')['alternatives_note'])
+        ->toEndWith('The plan total counts "Gift savings to your spouse" instead of this one.')
+        ->and($item('joint_savings_psa_split')['alternatives_note'])
+        ->toEndWith('The plan total counts "Gift savings to your spouse" instead of this one.');
+});
+
+it('says which alternatives a chain total counts, and leaves unpaired items without a note', function () {
+    $recs = [
+        new StrategyRecommendation('strategy_a', StrategyCategory::Household, StrategyPriority::High, 'A', 'desc', 300.0),
+        new StrategyRecommendation('strategy_b', StrategyCategory::Household, StrategyPriority::High, 'B', 'desc', 200.0),
+        new StrategyRecommendation('strategy_c', StrategyCategory::Household, StrategyPriority::High, 'C', 'desc', 100.0),
+        new StrategyRecommendation('strategy_d', StrategyCategory::Allowance, StrategyPriority::High, 'D', 'desc', 50.0),
+    ];
+    $metadata = [
+        'strategy_a' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_b']]],
+        'strategy_b' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_a', 'strategy_c']]],
+        'strategy_c' => ['claim_tier' => 'mechanical', 'sequencing' => ['do_before' => [], 'conflicts_with' => ['strategy_b']]],
+    ];
+
+    $plan = app(StrategyPlanComposer::class)->compose($recs, $metadata, lockedStrategies: []);
+    $item = fn (string $type): array => collect($plan['items'])->firstWhere('type', $type);
+
+    expect($item('strategy_b')['alternatives'])->toBe(['A', 'C'])
+        ->and($item('strategy_b')['alternatives_note'])->toBe('"B" is an alternative to "A" and "C": doing one changes or removes the saving from the other, so their savings do not add up. The plan total counts "A" and "C" instead of this one.')
+        ->and($item('strategy_c')['alternatives_note'])->toEndWith('The plan total counts this one.')
+        ->and($item('strategy_d')['alternatives'])->toBe([])
+        ->and($item('strategy_d')['alternatives_note'])->toBeNull();
+});
