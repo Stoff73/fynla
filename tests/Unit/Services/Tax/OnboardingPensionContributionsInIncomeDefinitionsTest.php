@@ -162,3 +162,57 @@ it('gives the Retirement Annual Allowance check the same pension input amount as
         ->toBe(app(TaxStrategyMath::class)->estimatePensionContributionThisYear($user, null))
         ->and($checked['total_contributions'])->toBeGreaterThan(7000.0);
 });
+
+it('publishes each pension\'s part of the pension input amount, so Fyn can explain the total', function () {
+    // The walk household behind "Ask Fyn about this" (2026-09-26): Fyn read the
+    // £7,800 total with no per-scheme parts and left the personal pension out.
+    $user = onboardingPensionUser();
+    $nest = DCPension::factory()->for($user)->create([
+        'scheme_name' => 'Nest', 'scheme_type' => null, 'pension_type' => 'occupational', 'salary_sacrifice' => false,
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3,
+    ]);
+    $vanguard = DCPension::factory()->for($user)->create([
+        'scheme_name' => 'Vanguard', 'scheme_type' => 'personal', 'pension_type' => 'personal', 'salary_sacrifice' => false,
+        'monthly_contribution_amount' => 200, 'annual_salary' => null,
+        'employee_contribution_percent' => null, 'employer_contribution_percent' => null,
+    ]);
+    DCPension::factory()->for($user)->create([
+        'scheme_name' => 'Old job', 'scheme_type' => 'workplace', 'pension_type' => 'occupational', 'salary_sacrifice' => false,
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => null, 'employer_contribution_percent' => null,
+    ]);
+    $basic = (float) app(TaxConfigService::class)->getPensionAllowances()['tax_relief']['basic_rate'];
+    $gross = round(2400 / (1 - $basic), 2);
+
+    $d = app(IncomeDefinitionsService::class)->calculate($user->id);
+
+    // A pension nothing is paid into this year has no part (the "Old job" scheme).
+    expect($d['pension_input_breakdown'])->toBe([
+        [
+            'pension_id' => $nest->id, 'scheme_name' => 'Nest', 'relief' => 'net_pay',
+            'member_pays' => 3000.0, 'tax_relief_added' => 0.0, 'employer_pays' => 1800.0, 'pension_input' => 4800.0,
+        ],
+        [
+            'pension_id' => $vanguard->id, 'scheme_name' => 'Vanguard', 'relief' => 'relief_at_source',
+            'member_pays' => 2400.0, 'tax_relief_added' => round($gross - 2400, 2), 'employer_pays' => 0.0, 'pension_input' => $gross,
+        ],
+    ])
+        ->and(round(array_sum(array_column($d['pension_input_breakdown'], 'pension_input')), 2))->toBe($d['pension_input_amount']);
+});
+
+it('shows salary-sacrificed pay as the employer\'s in its pension\'s part (W-0204)', function () {
+    $user = onboardingPensionUser();
+    $pension = DCPension::factory()->for($user)->create([
+        'scheme_name' => 'Acme', 'scheme_type' => 'workplace', 'pension_type' => 'occupational', 'salary_sacrifice' => true,
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3,
+    ]);
+
+    $d = app(IncomeDefinitionsService::class)->calculate($user->id);
+
+    expect($d['pension_input_breakdown'])->toBe([[
+        'pension_id' => $pension->id, 'scheme_name' => 'Acme', 'relief' => 'salary_sacrifice',
+        'member_pays' => 0.0, 'tax_relief_added' => 0.0, 'employer_pays' => 4800.0, 'pension_input' => 4800.0,
+    ]])->and($d['pension_input_amount'])->toBe(4800.0);
+});

@@ -29,6 +29,13 @@ final class ActionCardService
 {
     public const DISCLAIMER = 'Fynla does not recommend products. This is guidance based on the figures you have entered.';
 
+    /**
+     * What "Ask Fyn about this" sends, before the card's title. Fyn recognises a
+     * card's question by it (forAskFynMessage), so a card is grounded however the
+     * question is classified.
+     */
+    public const ASK_FYN_PREFIX = 'Tell me more about: ';
+
     /** What an unlock item is holding back, per module (canvas "What this changes"). */
     private const UNLOCK_CONSEQUENCES = [
         'protection' => 'We cannot check your cover against what your family would need until this is in.',
@@ -81,6 +88,34 @@ final class ActionCardService
         return $done === null ? null : $this->completed($user, $done);
     }
 
+    /**
+     * The card a message asked about through "Ask Fyn about this": the message is
+     * ASK_FYN_PREFIX and the exact title of one of this user's actions, open or
+     * done. Null for any other message.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function forAskFynMessage(User $user, string $message): ?array
+    {
+        if (! str_starts_with($message, self::ASK_FYN_PREFIX)) {
+            return null;
+        }
+        $title = trim(substr($message, strlen(self::ASK_FYN_PREFIX)));
+
+        $item = collect($this->actions->buildAll($user->id))->first(fn (array $i): bool => ($i['title'] ?? null) === $title);
+        if (is_array($item)) {
+            return $this->open($user, $item);
+        }
+
+        $done = RecommendationTracking::where('user_id', $user->id)
+            ->completed()
+            ->latest('completed_at')
+            ->get()
+            ->first(fn (RecommendationTracking $row): bool => NextActionsService::splitHeadline((string) $row->recommendation_text)[0] === $title);
+
+        return $done === null ? null : $this->completed($user, $done);
+    }
+
     /** @param  array<string, mixed>  $item */
     private function open(User $user, array $item): array
     {
@@ -113,7 +148,7 @@ final class ActionCardService
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
                 ? ['kind' => 'contextual', 'request' => $item['action']['contextual']]
-                : ['kind' => 'prompt', 'prompt' => 'Tell me more about: '.$item['title']],
+                : ['kind' => 'prompt', 'prompt' => self::ASK_FYN_PREFIX.$item['title']],
             'primary' => $isRecommendation
                 ? ['kind' => 'mark_done', 'recommendation_id' => $id]
                 : ($item['action']['kind'] === 'navigate'
@@ -227,7 +262,7 @@ final class ActionCardService
             'learn_more' => [],
             'conflict_note' => null,
             'disclaimer' => null,
-            'ask_fyn' => ['kind' => 'prompt', 'prompt' => 'Tell me more about: '.$title],
+            'ask_fyn' => ['kind' => 'prompt', 'prompt' => self::ASK_FYN_PREFIX.$title],
             'primary' => null,
             'go_to' => null,
             'funding' => null,

@@ -8,6 +8,7 @@ use App\Constants\FinancialPlanningKnowledge;
 use App\Constants\QuerySchemas;
 use App\Models\RecommendationTracking;
 use App\Models\User;
+use App\Services\Actions\ActionCardService;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
@@ -27,6 +28,7 @@ use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Estate\WillTypePolicy;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
@@ -153,7 +155,9 @@ final class FynContextAssembler
             foreach ($this->pointers->matchPrefetch($ctx->message) as $pointer) {
                 $res = $this->dispatcher->run($pointer, new FetchContext($ctx->user, $ctx->message));
                 if ($res !== null) {
-                    $liveBlocks[] = "### {$pointer->topic} (source: {$res->sourceLabel}, as of {$res->sourceVersion})\n{$res->value}";
+                    // The value stays byte-equal for its digest; only the copy the
+                    // model reads has claim_tier in plain words (ClaimTier).
+                    $liveBlocks[] = "### {$pointer->topic} (source: {$res->sourceLabel}, as of {$res->sourceVersion})\n".ClaimTier::forModelJson($res->value);
                 }
             }
         } catch (\Throwable $e) {
@@ -164,15 +168,15 @@ final class FynContextAssembler
             $lines[] = "<live_data>\n".implode("\n\n", $liveBlocks)."\n</live_data>";
         }
 
-        // A follow-up asking why a figure appears in the user's saved tax plan
-        // must be grounded in that exact live plan. POSITION contains useful
+        // A question about one of the user's actions — the card's "Ask Fyn about
+        // this", or a follow-up asking why a figure appears in the saved tax plan
+        // — must be grounded in that exact live action. POSITION contains useful
         // module summaries, but it is not the conflict-aware composed plan and
         // cannot safely reconstruct a surfaced recommendation. Keep the heavy
-        // plan tool-only (lean-prompt law) and require it only for this explicit
-        // explanation/reference shape.
-        $taxPlanGrounding = $this->taxPlanGroundingDirective($ctx);
-        if ($taxPlanGrounding !== null) {
-            $lines[] = $taxPlanGrounding;
+        // plan tool-only (lean-prompt law) and ground only these shapes.
+        $planGrounding = $this->planGroundingDirective($ctx);
+        if ($planGrounding !== null) {
+            $lines[] = $planGrounding;
         }
 
         // Save Tax stores spouse financial inputs in a dedicated household
@@ -602,13 +606,25 @@ final class FynContextAssembler
     }
 
     /**
-     * Require the tool-only composed plan when the user asks Fyn to explain
-     * an existing tax-plan recommendation or calculation.
+     * The one home for grounding an explanation of the user's plan (Rule 20).
+     * A card's "Ask Fyn about this" carries the card the user is looking at,
+     * whatever the classifier files the question under; a free-text question
+     * about a tax-plan figure requires the tool-only composed plan.
      */
-    private function taxPlanGroundingDirective(FynTurnContext $ctx): ?string
+    private function planGroundingDirective(FynTurnContext $ctx): ?string
     {
-        if ($ctx->isOnboarding()
-            || ($ctx->classification['primary'] ?? null) !== QuerySchemas::TAX_OPTIMISATION) {
+        if ($ctx->isOnboarding()) {
+            return null;
+        }
+
+        $card = $ctx->user !== null
+            ? app(ActionCardService::class)->forAskFynMessage($ctx->user, trim($ctx->message))
+            : null;
+        if ($card !== null) {
+            return $this->actionGrounding($card, $ctx->user);
+        }
+
+        if (($ctx->classification['primary'] ?? null) !== QuerySchemas::TAX_OPTIMISATION) {
             return null;
         }
 
@@ -631,6 +647,85 @@ final class FynContextAssembler
 The user is asking you to explain a figure or action already shown in their saved tax plan. Before responding, you MUST call get_recommendations and use the matching item in its composed_tax_plan as the authoritative source. Do not reconstruct or rationalise the plan figure from partial conversation context. Show the matching item's exact saved balances, recorded rates, allowance, taxable amount, marginal rate, and arithmetic where present. If the amount quoted by the user differs from the live plan, say so plainly and explain the current figure instead.
 </tax_plan_grounding>
 GROUNDING;
+    }
+
+    /**
+     * The card behind "Ask Fyn about this", as ActionCardService built it for
+     * web, /m and iOS — the figures the user is looking at, which Fyn explains
+     * rather than rebuilding from other tool data.
+     *
+     * @param  array<string, mixed>  $card
+     */
+    private function actionGrounding(array $card, User $user): string
+    {
+        $lines = [
+            '<action_grounding>',
+            'The user tapped "Ask Fyn about this" on one of their actions. Explain that action from the card below: it holds the live figures the user is looking at. Use them exactly, and do not recompute them or rebuild them from other tool data. Talk about the user\'s money, not about the card. Bring in a figure the card does not show only when it helps, and then quote it as given below or by the tools, with all of its parts. For working the card does not show, call get_recommendations and use the matching item.',
+            'title: '.UserContentSanitiser::wrap((string) $card['title']),
+            'module: '.$card['module_label'],
+        ];
+        $fields = [
+            'description' => [(string) $card['description']],
+            'why_it_matters' => (array) $card['why'],
+            'what_this_changes' => (array) $card['what_this_changes'],
+            'key_figure' => isset($card['key_figure']) ? [trim(implode(' ', array_map('strval', (array) $card['key_figure'])))] : [],
+            'how_to' => (array) $card['how_to'],
+            'overlap' => [(string) ($card['conflict_note'] ?? '')],
+        ];
+        foreach ($fields as $label => $values) {
+            $values = array_values(array_filter(array_map('strval', $values), fn (string $v): bool => trim($v) !== ''));
+            if ($values === []) {
+                continue;
+            }
+            $lines[] = count($values) === 1 ? $label.': '.$values[0] : $label.":\n- ".implode("\n- ", $values);
+        }
+        $pensionInput = $this->pensionInputSentence($user, $card);
+        if ($pensionInput !== null) {
+            $lines[] = 'pension_paid_in_this_year: '.$pensionInput;
+        }
+        $lines[] = '</action_grounding>';
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * What has gone into the user's pensions this tax year and what it is made
+     * of, for a card about pensions — from the one breakdown
+     * (IncomeDefinitionsService `pension_input_breakdown`), so Fyn quotes every
+     * part rather than pairing the member's payments with the whole total.
+     *
+     * @param  array<string, mixed>  $card
+     */
+    private function pensionInputSentence(User $user, array $card): ?string
+    {
+        $text = implode(' ', array_map('strval', [$card['title'], $card['description'], ...(array) $card['why'], ...(array) $card['how_to']]));
+        if (stripos($text, 'pension') === false) {
+            return null;
+        }
+        $definitions = app(IncomeDefinitionsService::class)->calculate($user->id);
+        $parts = $definitions['pension_input_breakdown'] ?? [];
+        if ($parts === []) {
+            return null;
+        }
+        $pounds = static fn (float $v): string => '£'.number_format($v, 0);
+        $described = array_map(static function (array $part) use ($pounds): string {
+            $pieces = [];
+            if ($part['member_pays'] > 0) {
+                $pieces[] = 'you pay '.$pounds($part['member_pays']);
+            }
+            if ($part['tax_relief_added'] > 0) {
+                $pieces[] = 'the provider adds '.$pounds($part['tax_relief_added']).' of basic-rate tax relief';
+            }
+            if ($part['employer_pays'] > 0) {
+                $pieces[] = $part['relief'] === 'salary_sacrifice'
+                    ? 'your employer pays '.$pounds($part['employer_pays']).' through salary sacrifice'
+                    : 'your employer pays '.$pounds($part['employer_pays']);
+            }
+
+            return UserContentSanitiser::wrap((string) ($part['scheme_name'] ?? 'Pension')).' '.$pounds($part['pension_input']).' ('.implode(', ', $pieces).')';
+        }, $parts);
+
+        return $pounds((float) $definitions['pension_input_amount']).' in total, counted against the Annual Allowance: '.implode('; ', $described).'.';
     }
 
     /**
@@ -694,11 +789,18 @@ DIRECTIVE;
 
     private function voicingRules(): string
     {
-        return <<<'RULES'
+        // Composed from the one claim-tier vocabulary (ClaimTier): the model sees
+        // each recommendation's `basis` in these same words, never the raw tier.
+        $field = ClaimTier::MODEL_FIELD;
+        $fixed = ClaimTier::label('mechanical');
+        $judgement = ClaimTier::label('judgement');
+
+        return <<<RULES
 <voicing_rules>
-Claim tiers govern how you state guidance:
-- MECHANICAL claims (allowance arithmetic, tax-band maths, carry-forward totals, taper effects, recommendations marked claim_tier=mechanical): state them directly and quantified with the user's own figures, and show the working inline — e.g. "£110,000 − £10,000 contribution = £100,000, restoring your full Personal Allowance — worth around £6,000 this year." Always quote threshold figures retrieved from get_tax_information.
-- JUDGEMENT claims (investment selection, trust structures, drawdown choices, anything marked claim_tier=judgement): hedge them ("you may want to consider", "one option might be") and signpost regulated advice.
+How firmly you state guidance. A recommendation's {$field} field says which of the two below applies, in words you may use with the user.
+- {$fixed} (allowance arithmetic, tax-band maths, carry-forward totals, taper effects, and recommendations whose {$field} begins "{$fixed}"): state it directly and quantified with the user's own figures, and show the working inline — e.g. "£110,000 − £10,000 contribution = £100,000, restoring your full Personal Allowance — worth around £6,000 this year." Always quote threshold figures retrieved from get_tax_information. When you explain a total, name every part the tools give for it (a pension input amount's parts are in pension_input_breakdown) and never rebuild it from rates yourself.
+- {$judgement} (investment selection, trust structures, drawdown choices, and recommendations whose {$field} begins "{$judgement}"): hedge them ("you may want to consider", "one option might be") and signpost regulated advice.
+Say how firm something is in words: what it rests on and what it depends on. Never give a score, rating or grade of any kind ("Certainty: high", "7/10", "X/100").
 Proactivity: after fully answering the user's question, you MAY surface AT MOST ONE additional high-value strategy from the recommendations if it is clearly relevant to what they asked — lead with the pound impact, keep it to two sentences, and never let it crowd the actual answer.
 Ambiguity: if a figure the user gave you is ambiguous in a way that changes the answer (e.g. "£90,000" — total or per year?), ask the one clarifying question BEFORE computing anything from it.
 </voicing_rules>

@@ -2,7 +2,7 @@
 fact_id: hv-lifetime-isa
 category: house_view
 title: Lifetime ISA — the government bonus for a first home or later life
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -45,9 +45,9 @@ penalty regime cuts the other way, so the Lifetime ISA slice is sized for
 money genuinely destined for a first home or later life rather than for the
 emergency fund.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier: the bonus arithmetic is simple, but whether the account suits
+A judgement call: the bonus arithmetic is simple, but whether the account suits
 the user depends on their plans — a first-home purchase inside the price cap,
 or patience until sixty — and the withdrawal penalty makes a wrong guess
 expensive. Fyn therefore hedges, framing the account as something the user

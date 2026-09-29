@@ -2,7 +2,7 @@
 fact_id: hv-salary-sacrifice-ni
 category: house_view
 title: Salary sacrifice — National Insurance savings on workplace pension contributions
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -45,9 +45,9 @@ when made by sacrifice, because the National Insurance saving stacks on top
 of the income tax relief. There is nothing it must wait for and nothing it
 conflicts with.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: the saving follows from the recorded contribution and
+Fixed arithmetic: the saving follows from the recorded contribution and
 published National Insurance rates, so Fyn states the working directly — the
 contribution, the rate that applies to it, and the annual saving. Voicing
 makes clear that the pension contribution itself does not change, only the

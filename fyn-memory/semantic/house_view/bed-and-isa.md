@@ -2,7 +2,7 @@
 fact_id: hv-bed-and-isa
 category: house_view
 title: Bed and ISA — harvesting capital gains within the annual exempt amount
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -35,9 +35,9 @@ eligible strategies; a move may be reduced or crowded out when another use of
 the same allowance has a stronger supported saving. The annual exempt amount
 and ISA allowance reset each tax year, but neither may be double-counted.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier: the recorded holding arithmetic is mechanical, but the user's
+A judgement call: the recorded holding arithmetic is fixed, but the user's
 remaining exempt amount is not known from the captured data. The move also
 involves which holdings to sell, ISA subscription limits, dealing costs and
 market movement while trades settle. Fyn presents it as a conditional

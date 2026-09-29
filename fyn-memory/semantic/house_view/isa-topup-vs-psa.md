@@ -2,7 +2,7 @@
 fact_id: hv-isa-topup-vs-psa
 category: house_view
 title: ISA top-up — wrapping cash that earns interest beyond the Personal Savings Allowance
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -52,9 +52,9 @@ left out of the combined saving. The figures presented are therefore one
 coherent plan for the year's allowance, not alternative claims for the user
 to arbitrate.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: the excess interest, the transferable amount, and the saving
+Fixed arithmetic: the excess interest, the transferable amount, and the saving
 all follow from recorded balances, recorded rates, and the published
 allowance, so Fyn states the working directly — how much interest the cash
 earns, where the allowance runs out, and what wrapping the excess saves each

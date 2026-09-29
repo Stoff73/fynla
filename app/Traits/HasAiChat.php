@@ -29,6 +29,7 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\AuditChainService;
 use App\Services\AI\Cost\AiCostCalculator;
+use App\Services\AI\Fyn\ClaimTier;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
@@ -1894,7 +1895,8 @@ trait HasAiChat
         // allowance and saving instead of an opaque "[nested N items]" marker.
         $maxDepth = $toolName === 'get_recommendations' ? 4 : 3;
 
-        return $this->trimForModel($result, depth: 0, maxDepth: $maxDepth);
+        // claim_tier reaches the model only as plain words it may repeat (ClaimTier).
+        return $this->trimForModel(ClaimTier::forModel($result), depth: 0, maxDepth: $maxDepth);
     }
 
     /** @return list<string> */

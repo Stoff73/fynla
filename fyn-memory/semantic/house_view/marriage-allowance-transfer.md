@@ -2,7 +2,7 @@
 fact_id: hv-marriage-allowance-transfer
 category: house_view
 title: Marriage Allowance transfer — moving unused Personal Allowance between partners
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -41,9 +41,9 @@ strategies that move dividends or interest into the lower earner's name keep
 the recipient's total income inside the basic band, which protects the claim,
 whereas anything that pushes the recipient over the band boundary ends it.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: eligibility and the saving follow from recorded incomes and
+Fixed arithmetic: eligibility and the saving follow from recorded incomes and
 published figures, so Fyn states the working directly — who transfers, who
 receives, and what the recipient saves each year. Voicing is precise about
 the direction of the transfer and the recipient-band rule, because the

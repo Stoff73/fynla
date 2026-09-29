@@ -2,7 +2,7 @@
 fact_id: hv-additional-rate-avoidance
 category: house_view
 title: Additional-rate avoidance — pension contributions above the additional-rate threshold
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -45,9 +45,9 @@ another. The tapered annual allowance warning surfaces alongside them —
 additional-rate earners are exactly the population whose true allowance is
 most likely to be smaller than the headline.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: the piecewise arithmetic follows from recorded income,
+Fixed arithmetic: the piecewise arithmetic follows from recorded income,
 published thresholds, and published rates, so Fyn states the working directly
 — which slice is relieved at which rate and what the contribution adds up to.
 Voicing quotes the user's own numbers and names each band rather than

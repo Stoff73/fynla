@@ -404,3 +404,28 @@ describe('W-0241 — the rejected capitalisation is gone from the detail view', 
             ->and($dashboard['net_worth']['total'])->toBe($overview['net_worth']);
     });
 });
+
+describe('the breakdown reads each pension\'s contribution by the one rule (W-0424)', function () {
+    it('gives a percentage-only workplace pension its monthly contribution rather than £0', function () {
+        // Fyn read £0 for this pension beside a £7,800 Annual Allowance total and
+        // rebuilt the total without it ("Ask Fyn about this", 2026-09-26).
+        $user = User::factory()->create([
+            'date_of_birth' => now()->subYears(40)->toDateString(),
+            'annual_employment_income' => 60000,
+        ]);
+        $nest = DCPension::factory()->create([
+            'user_id' => $user->id, 'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+            'salary_sacrifice' => false, 'monthly_contribution_amount' => null, 'annual_salary' => null,
+            'employee_contribution_percent' => 5, 'employer_contribution_percent' => 3,
+        ]);
+        $vanguard = DCPension::factory()->create([
+            'user_id' => $user->id, 'scheme_type' => 'personal', 'pension_type' => 'personal',
+            'monthly_contribution_amount' => 200, 'employee_contribution_percent' => null,
+        ]);
+
+        $rows = collect(app(RetirementAgent::class)->analyze($user->id)['data']['breakdown']['dc_pensions'])->keyBy('id');
+
+        expect($rows[$nest->id]['monthly_contribution'])->toBe(250.0)
+            ->and($rows[$vanguard->id]['monthly_contribution'])->toBe(200.0);
+    });
+});

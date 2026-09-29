@@ -2,7 +2,7 @@
 fact_id: hv-joint-savings-psa-split
 category: house_view
 title: Joint savings split — using both partners' tax positions
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -34,9 +34,9 @@ both gifted and jointly owned. The plan can compare the alternatives but must
 not count both savings on the same money. Any ISA subscription also draws on
 the relevant partner's separate annual limit.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Judgement tier: the estimate follows the recorded account arithmetic, but the
+A judgement call: the estimate follows the recorded account arithmetic, but the
 legal ownership must really be shared and unrecorded spouse income would
 change the tax result. Fyn explains the normal equal allocation for joint
 accounts, states the assumed facts and presents the ownership choice plainly.

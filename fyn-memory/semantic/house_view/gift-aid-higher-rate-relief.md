@@ -2,7 +2,7 @@
 fact_id: hv-gift-aid-higher-rate-relief
 category: house_view
 title: Gift Aid higher-rate relief — reclaiming extra tax on charitable donations
-version: 1
+version: 2
 valid_to: null
 ---
 
@@ -39,9 +39,9 @@ dependencies or conflicts. It is simply unclaimed tax relief on giving that
 has already happened, which is why Fynla surfaces it whenever the recorded
 giving and the tax band line up.
 
-## Claim tier and voicing
+## How firmly to state it
 
-Mechanical tier: the reclaim follows from recorded donations, the user's
+Fixed arithmetic: the reclaim follows from recorded donations, the user's
 band, and the published rates, so Fyn states the working directly — the
 annual giving, the band, and the amount reclaimable through Self Assessment.
 Voicing is precise about the mechanism: the user claims this themselves on
