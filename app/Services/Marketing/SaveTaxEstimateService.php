@@ -451,6 +451,10 @@ class SaveTaxEstimateService
                 $this->math->bandThresholds(),
             )['contribution'];
             $reason = 'At '.$this->money($income).', paying '.$this->money($contribution).' into a pension moves income out of the '.$this->pct($this->bandRates()['additional']).' band and reclaims your Personal Allowance.';
+            // The figure assumes the whole allowance is used; say so (#975 review).
+            if ($contribution >= $this->annualAllowance()) {
+                $reason .= ' That uses your whole '.$this->money($this->annualAllowance()).' Annual Allowance for the year.';
+            }
         } elseif ($income > $this->taperThreshold()) {
             $contribution = $this->taperRescueContribution($income);
             $reason = "You're in the ".$this->pct($this->trapRate()).' tax trap. At '.$this->money($income).', the top of the band you chose, paying '.$this->money($contribution).' into a pension reclaims your Personal Allowance. Income between '.$this->money($this->taperThreshold()).' and '.$this->money($this->taperEnd()).' is taxed at '.$this->pct($this->trapRate()).'.';

@@ -44,6 +44,10 @@ it('computes pension relief per band (no existing pension)', function () {
     expect(lineAmount($this->service->estimate(['income' => 'upto_50270', 'assets' => $assets]), 'pension'))->toBe(1000)
         ->and(lineAmount($this->service->estimate(['income' => '50271_100000', 'assets' => $assets]), 'pension'))->toBe(4000)
         ->and(lineAmount($this->service->estimate(['income' => 'over_125140', 'assets' => $assets]), 'pension'))->toBe(30271);
+
+    // The top band's figure assumes the whole allowance is paid in; the line says so.
+    $reason = collect($this->service->estimate(['income' => 'over_125140', 'assets' => $assets])['savings'])->firstWhere('key', 'pension')['reason'];
+    expect($reason)->toContain('That uses your whole £60,000 Annual Allowance for the year.');
 });
 
 it('computes the exact 60% trap relief for the £100k-£125,140 band', function () {

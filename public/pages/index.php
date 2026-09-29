@@ -239,7 +239,7 @@ try {
             >£0</p>
           <?php } ?>
           <p class="feature-savetax__sub">
-            <?php if ($homeSaveTaxFigure) { ?>An estimated saving of up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> each year for someone earning £<?= number_format((int) ($homeSaveTaxEstimate['assumed_income'] ?? 0)) ?>. <?php } ?>This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
+            <?php if ($homeSaveTaxFigure) { ?>An estimated saving of up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> each year for someone earning £<?= number_format((int) ($homeSaveTaxEstimate['assumed_income'] ?? 0)) ?>, using England, Wales and Northern Ireland Income Tax rates. <?php } ?>This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
           </p>
           <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
         </div>
