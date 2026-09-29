@@ -46,7 +46,7 @@ class UpdateDomicileInfoRequest extends FormRequest
             'domicile_status.in' => 'Invalid domicile status selected.',
             'country_of_birth.required' => 'Please enter your country of birth.',
             'country_of_birth.max' => 'Country of birth must not exceed 255 characters.',
-            'uk_arrival_date.required_if' => 'UK arrival date is required when you are non-UK domiciled.',
+            'uk_arrival_date.required_if' => 'Enter the date you moved to the UK.',
             'uk_arrival_date.date' => 'UK arrival date must be a valid date.',
             'uk_arrival_date.before_or_equal' => 'UK arrival date cannot be in the future.',
         ];

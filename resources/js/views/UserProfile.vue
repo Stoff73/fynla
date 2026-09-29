@@ -100,8 +100,8 @@ export default {
     const store = useStore();
     const activeTab = ref('personal');
 
-    const loading = computed(() => store.getters['userProfile/loading']);
-    const error = computed(() => store.getters['userProfile/error']);
+    const loading = computed(() => store.getters['userProfile/pageLoading']);
+    const error = computed(() => store.getters['userProfile/pageLoadError']);
 
     // Define all tabs
     const allTabs = [
