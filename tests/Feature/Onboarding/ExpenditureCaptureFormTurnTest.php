@@ -34,11 +34,16 @@ function expenditureUser(bool $premium, string $selection = 'pensioncheck'): Use
 {
     $factory = $premium ? User::factory()->withActivePremiumSubscription() : User::factory();
 
-    return $factory->create([
+    $user = $factory->create([
         'is_preview_user' => false, 'onboarding_completed' => false, 'first_name' => 'Chris', 'marital_status' => 'single',
         'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => $selection, 'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_EXPENDITURE,
         'monthly_expenditure' => null, 'funnel_answers' => ['campaign' => $selection, 'assets' => ['bank']],
     ]);
+    // Mid-flow: Fyn greeted them with the funnel recap turns ago.
+    AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])
+        ->messages()->create(['role' => 'assistant', 'content' => 'Earlier turn', 'metadata' => []]);
+
+    return $user;
 }
 
 function expenditureConversation(User $user): AiConversation

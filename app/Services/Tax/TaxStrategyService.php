@@ -21,6 +21,7 @@ final class TaxStrategyService
     public function __construct(
         private readonly TaxStrategyCalculator $calculator,
         private readonly CompositePlanService $composite,
+        private readonly TaxStrategyMath $math,
     ) {}
 
     public function getDashboardPayload(User $user): array
@@ -46,6 +47,14 @@ final class TaxStrategyService
      */
     private function withAffordablePensionHeadroom(User $user, array $payload): array
     {
+        // Someone with no earnings funds the basic amount from savings, not a
+        // surplus of income they do not have, so their row is not capped
+        // (Brett 2026-09-29): otherwise it read "£0 affordable" beside the
+        // plan's own "pay £2,880 into a personal pension".
+        if ($this->math->isDeclaredNonEarner($user)) {
+            return $payload;
+        }
+
         $affordable = round(max(0.0, 12 * (float) $this->composite->financials($user)['effective_surplus']), 2);
 
         foreach ($payload['user_allowances'] ?? [] as $i => $position) {

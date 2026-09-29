@@ -31,9 +31,6 @@ final class PensionTaxReliefStrategy implements TaxStrategy
     // ever captured.
     public const BASIC_RATE_SHARE_OF_EARNINGS = 0.10;
 
-    /** users.employment_status values that declare no earnings from work. */
-    private const NOT_WORKING = ['retired', 'unemployed'];
-
     public function __construct(
         private readonly TaxStrategyMath $math,
         private readonly TaxConfigService $taxConfig,
@@ -55,7 +52,7 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             return [];
         }
 
-        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        $earnings = $this->math->relevantEarningsFor($user);
         $age = $this->math->ageOf($user->date_of_birth);
         $availableAA = $this->math->availableAnnualAllowance($user, $context->overrides);
         $aboveAllowance = $taxable - $this->math->personalAllowanceFor($user);
@@ -67,9 +64,7 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             return [];
         }
         if ($earnings <= 0) {
-            // Only for someone who has told us they do not work: £0 of pay on a
-            // profile with no employment status is "not asked yet", not "none".
-            return in_array($user->employment_status, self::NOT_WORKING, true)
+            return $this->math->isDeclaredNonEarner($user)
                 ? $this->nonEarnerItem($context, $availableAA, $maxAge)
                 : [];
         }

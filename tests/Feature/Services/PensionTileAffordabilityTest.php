@@ -84,3 +84,33 @@ it('never tells a user at their earnings relief limit that they used their Annua
     expect($service->detectTaxYearAllowances($user, '2026/27', $position('relief')))->toBe([])
         ->and($service->detectTaxYearAllowances($user, '2026/27', $position('annual_allowance')))->not->toBe([]);
 });
+
+// Brett 2026-09-29: a non-earner funds the basic amount from savings, so the
+// surplus-income cap does not apply, and the limit is not "from your earnings".
+it('leaves a declared non-earner their whole basic amount, labelled as the limit without earnings', function (string $status) {
+    $user = User::factory()->create([
+        'household_calculation_mode' => 'single', 'employment_status' => $status,
+        'annual_employment_income' => null, 'annual_self_employment_income' => null,
+        'marital_status' => 'single', 'date_of_birth' => now()->subYears(40)->toDateString(),
+    ]);
+    $basic = (float) app(TaxConfigService::class)->getPensionAllowances()['relevant_earnings_minimum'];
+
+    $tile = pensionTile(app(TaxStrategyService::class)->getDashboardPayload($user)['user_allowances']);
+
+    expect((float) $tile['amount'])->toBe($basic)
+        ->and((float) $tile['remaining'])->toBe($basic)
+        ->and($tile)->not->toHaveKey('affordable_this_year')
+        ->and($tile['label'])->toBe('Pension contribution limit without earnings');
+})->with(['unemployed', 'retired']);
+
+it('still caps a low earner at what they can afford', function () {
+    $user = User::factory()->create([
+        'household_calculation_mode' => 'single', 'employment_status' => 'part_time',
+        'annual_employment_income' => 2000, 'marital_status' => 'single',
+    ]);
+
+    $tile = pensionTile(app(TaxStrategyService::class)->getDashboardPayload($user)['user_allowances']);
+
+    expect($tile)->toHaveKey('affordable_this_year')
+        ->and($tile['label'])->toBe('Pension contribution limit from your earnings');
+});

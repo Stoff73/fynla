@@ -749,6 +749,26 @@ final class TaxStrategyMath
     }
 
     /**
+     * Earnings from work the profile captures: pay and self-employment profit
+     * (FA 2004 s189(2), https://www.legislation.gov.uk/ukpga/2004/12/section/189).
+     */
+    public function relevantEarningsFor(User $user): float
+    {
+        return (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+    }
+
+    /**
+     * Someone who has told us they do not work (retired or not employed) and
+     * has no earnings. £0 of pay on a profile with no employment status is
+     * "not asked yet", not "none".
+     */
+    public function isDeclaredNonEarner(User $user): bool
+    {
+        return $this->relevantEarningsFor($user) <= 0
+            && in_array($user->employment_status, ['retired', 'unemployed'], true);
+    }
+
+    /**
      * Contribution that takes adjusted net income back down to the Personal
      * Allowance taper threshold (ITA 2007 s35), capped by the Annual Allowance
      * left and rounded down to the nearest £100 — rounding up would relieve

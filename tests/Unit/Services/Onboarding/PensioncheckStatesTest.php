@@ -850,7 +850,7 @@ it('buildWorkPrompt for a fresh pensioncheck user returns pension-flavoured intr
     ]);
     $conversation = pensioncheckConversation($user);
 
-    $text = SM::buildWorkPrompt('', $user, $conversation);
+    $text = SM::funnelRecapLeadIn($user, $conversation).SM::buildWorkPrompt('', $user, $conversation);
 
     // Pension-flavoured phrase must appear.
     expect($text)->toContain('pension position');
@@ -881,7 +881,7 @@ it('buildWorkPrompt for a fresh savetax user is byte-identical to its existing o
     ]);
     $conversation = pensioncheckConversation($user);
 
-    $text = SM::buildWorkPrompt('', $user, $conversation);
+    $text = SM::funnelRecapLeadIn($user, $conversation).SM::buildWorkPrompt('', $user, $conversation);
 
     // Savetax-specific phrase must appear.
     expect($text)->toContain('tax plan');
