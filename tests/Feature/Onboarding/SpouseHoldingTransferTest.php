@@ -12,6 +12,8 @@ use App\Models\User;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Onboarding\SpouseHoldingTransfer;
 use App\Services\Onboarding\SpouseLinkingService;
+use App\Services\Tax\TaxStrategyCalculator;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -90,6 +92,74 @@ it('copies the journey spouse card alone when no household row was filled', func
         ->and(SavingsAccount::where('user_id', $spouse->id)->count())->toBe(0);
 });
 
+/**
+ * Pension relief is capped at relevant UK earnings (FA 2004 s189-190), and the
+ * plan reads employment and self-employment income as those earnings. A
+ * partner's income that is a pension or rent must not arrive as pay, or their
+ * own plan can promise a Personal Allowance taper rescue relief law does not
+ * give (a £25,100 contribution saving £15,060 at £125,140).
+ */
+function linkPartner(array $holding, ?string $spouseStatus = null): User
+{
+    $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'household_calculation_mode' => 'dual_earner']);
+    $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => $spouseStatus, 'annual_employment_income' => null, 'annual_self_employment_income' => null, 'annual_other_income' => null]);
+    TaxStrategyHouseholdInput::create(['user_id' => $requester->id, ...$holding]);
+
+    app(SpouseLinkingService::class)->establishAcceptedLink($requester, $spouse);
+
+    return $spouse->refresh();
+}
+
+it('copies only the earnings from work as pay, and the rest as other income', function (): void {
+    $spouse = linkPartner(['spouse_annual_income' => 125140, 'spouse_annual_earnings' => 40000, 'spouse_employment_status' => 'part_time']);
+
+    expect((float) $spouse->annual_employment_income)->toBe(40000.0)
+        ->and((float) $spouse->annual_other_income)->toBe(85140.0)
+        ->and((float) ($spouse->annual_self_employment_income ?? 0))->toBe(0.0);
+});
+
+it('copies a partner with income but no earnings as other income, never pay', function (): void {
+    // "Of that, earnings from work" answered £0: all of it is a pension or rent.
+    $spouse = linkPartner(['spouse_annual_income' => 125140, 'spouse_annual_earnings' => 0, 'spouse_employment_status' => 'retired']);
+
+    expect((float) ($spouse->annual_employment_income ?? 0))->toBe(0.0)
+        ->and((float) ($spouse->annual_self_employment_income ?? 0))->toBe(0.0)
+        ->and((float) $spouse->annual_other_income)->toBe(125140.0);
+
+    // Their own plan limits relief to the basic amount
+    // (pension.relevant_earnings_minimum), not the £25,100 taper rescue.
+    $basicAmount = (float) app(TaxConfigService::class)->getPensionAllowances()['relevant_earnings_minimum'];
+    $rescue = collect(app(TaxStrategyCalculator::class)->calculate($spouse)->recommendations)->firstWhere('type', 'pa_taper_rescue');
+    expect($rescue)->not->toBeNull()
+        ->and((float) $rescue['suggested_contribution'])->toBeLessThanOrEqual($basicAmount);
+});
+
+it('lets the partner\'s employment status decide when earnings were not given (CSJ 2026-09-29)', function (): void {
+    $retired = linkPartner(['spouse_annual_income' => 125140, 'spouse_employment_status' => 'retired']);
+    expect((float) ($retired->annual_employment_income ?? 0))->toBe(0.0)
+        ->and((float) $retired->annual_other_income)->toBe(125140.0);
+
+    $selfEmployed = linkPartner(['spouse_annual_income' => 60000, 'spouse_employment_status' => 'self_employed']);
+    expect((float) $selfEmployed->annual_self_employment_income)->toBe(60000.0)
+        ->and((float) ($selfEmployed->annual_other_income ?? 0))->toBe(0.0);
+
+    // Neither earnings nor status known: the figure the inviter gave is still
+    // transferred (ruling 50; CSJ 2026-09-29), as an estimate of pay that the
+    // partner's own job replaces rather than adds to.
+    $unknown = linkPartner(['spouse_annual_income' => 125140]);
+    expect((float) $unknown->annual_employment_income)->toBe(125140.0)
+        ->and($unknown->employments()->where('is_estimate', true)->count())->toBe(1)
+        ->and((float) ($unknown->annual_other_income ?? 0))->toBe(0.0);
+});
+
+it('reports the other income among what it copied', function (): void {
+    $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married']);
+    $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => null, 'annual_employment_income' => null, 'annual_self_employment_income' => null, 'annual_other_income' => null]);
+    TaxStrategyHouseholdInput::create(['user_id' => $requester->id, 'spouse_annual_income' => 50000, 'spouse_annual_earnings' => 20000, 'spouse_employment_status' => 'part_time']);
+
+    expect(app(SpouseHoldingTransfer::class)->transfer($requester, $spouse))->toContain('income', 'other income');
+});
+
 /*
  * Production 2026-09-29 (docs/testing/2026-09-29-prod-savetax-mobile-couple.md,
  * C1): the inviter's estimate of the spouse's income was copied across as an
@@ -145,7 +215,8 @@ it('copies the rest when the income cannot be copied, instead of failing the lin
     $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married']);
     $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => null, 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
     TaxStrategyHouseholdInput::create([
-        'user_id' => $requester->id, 'spouse_annual_income' => EmploymentIncomeService::MAX_ANNUAL_INCOME + 1,
+        // A working status, so the income is copied as pay and reaches the cap.
+        'user_id' => $requester->id, 'spouse_annual_income' => EmploymentIncomeService::MAX_ANNUAL_INCOME + 1, 'spouse_employment_status' => 'full_time',
         'spouse_existing_savings_balance' => 6500,
     ]);
 
