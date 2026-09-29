@@ -10,17 +10,15 @@ use App\Services\Coordination\PriorityRanker;
 use Illuminate\Support\Str;
 
 /**
- * Maps ProtectionRecommendationEngine::generateRecommendations() rec arrays into
- * the common StrategyRecommendation DTO.
- *
- * Protection recs carry no definition_key in their output. The `type` is derived
- * from a curated category-to-strategy_type map (the seeded source='strategy' rows
- * key off the same slugs); unmapped categories fall back to a slug so they still
- * surface without catalogue metadata.
+ * Maps ProtectionActionDefinitionService::evaluateActions() recs (CSJ
+ * 2026-09-29: protection cards come from the definitions, as every other
+ * module's do). `type` is the rec's `definition_key`, so each card has a
+ * stable id and its own how-to; a rec without one falls back to the curated
+ * category map, then a slug.
  *
  * Key field differences from Retirement recs:
- *   - `title` is absent; mapped FROM `$rec['action']`
- *   - `description` is absent; mapped FROM `$rec['rationale']`
+ *   - `title` is usually absent; mapped FROM `$rec['action']`
+ *   - `description` is usually absent; mapped FROM `$rec['rationale']`
  *   - `priority` is an int 1-5 (1=most urgent), also accepts `impact` High/Med/Low
  *   - `estimated_cost` is a monthly premium estimate, NOT a plan cost;
  *     carried in `extra` as `estimated_premium` rather than `requiredMonthlyCost`
@@ -54,7 +52,10 @@ final class ProtectionRecommendationAdapter
     public function toStrategyRecommendation(array $rec): StrategyRecommendation
     {
         $category = (string) ($rec['category'] ?? '');
-        $type = self::CATEGORY_TO_STRATEGY_TYPE[$category] ?? $this->slugify($category);
+        $definitionKey = (string) ($rec['definition_key'] ?? '');
+        $type = $definitionKey !== ''
+            ? $definitionKey
+            : (self::CATEGORY_TO_STRATEGY_TYPE[$category] ?? $this->slugify($category));
 
         $strategyCategory = in_array($category, self::WARNING_CATEGORIES, true)
             ? StrategyCategory::Warning
@@ -71,14 +72,18 @@ final class ProtectionRecommendationAdapter
             'source_category' => $category !== '' ? $category : null,
             'impact' => isset($rec['impact']) ? (string) $rec['impact'] : null,
             'decision_trace' => $rec['decision_trace'] ?? null,
+            'definition_key' => $definitionKey !== '' ? $definitionKey : null,
+            // The policy a per-policy rule is about — the aggregator scopes the id by it.
+            'policy_id' => $rec['policy_id'] ?? null,
+            'figures' => ! empty($rec['figures']) ? $rec['figures'] : null,
         ], static fn ($v) => $v !== null);
 
         return new StrategyRecommendation(
             type: $type,
             category: $strategyCategory,
             priority: $priority,
-            title: (string) ($rec['action'] ?? ''),
-            description: (string) ($rec['rationale'] ?? ''),
+            title: (string) ($rec['title'] ?? $rec['action'] ?? ''),
+            description: (string) ($rec['description'] ?? $rec['rationale'] ?? ''),
             estimatedAnnualTaxSaved: null,
             requiresAdvice: true,
             extra: $extra,

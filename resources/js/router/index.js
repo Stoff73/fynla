@@ -843,6 +843,20 @@ const routes = [
     },
   },
   {
+    // The Protection page with the employer benefits form open (the
+    // protection readiness check and Fyn link here).
+    path: '/protection/employer-benefits',
+    name: 'ProtectionEmployerBenefits',
+    component: ProtectionDashboard,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Protection', path: '/protection' },
+      ],
+    },
+  },
+  {
     path: '/protection/policy/:policyType/:id',
     name: 'PolicyDetail',
     component: PolicyDetail,

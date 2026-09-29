@@ -11,6 +11,7 @@ use App\Services\Actions\ActionCardService;
 use App\Services\Actions\ActionHowToFacts;
 use App\Services\Mobile\NextActionsService;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\ProtectionActionDefinitionSeeder;
 use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -26,6 +27,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TaxActionDefinitionSeeder::class);
     $this->seed(SavingsActionDefinitionSeeder::class);
+    $this->seed(ProtectionActionDefinitionSeeder::class);
     $this->seed(ActionHowToSeeder::class);
 });
 

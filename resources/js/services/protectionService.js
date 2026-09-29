@@ -25,6 +25,16 @@ const protectionService = {
     },
 
     /**
+     * Save the cover the user's employer provides, or that it provides none
+     * @param {Object} benefits - EmployerBenefitsWriter fields, plus `none`
+     * @returns {Promise} Saved profile
+     */
+    async saveEmployerBenefits(benefits) {
+        const response = await api.put('/protection/employer-benefits', benefits);
+        return response.data;
+    },
+
+    /**
      * Update the has_no_policies flag
      * @param {Boolean} hasNoPolicies - Whether user has no policies
      * @returns {Promise} Updated profile

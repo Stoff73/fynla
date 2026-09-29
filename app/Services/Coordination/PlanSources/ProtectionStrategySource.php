@@ -5,32 +5,33 @@ declare(strict_types=1);
 namespace App\Services\Coordination\PlanSources;
 
 use App\DataTransferObjects\StrategyRecommendation;
+use App\Exceptions\FinancialCalculationException;
 use App\Models\ProtectionActionDefinition;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Coordination\PlanSources\Adapters\ProtectionRecommendationAdapter;
-use App\Services\Protection\CoverageGapAnalyzer;
-use App\Services\Protection\LifeCoverReach;
-use App\Services\Protection\RecommendationEngine;
+use App\Services\Protection\ComprehensiveProtectionPlanService;
+use App\Services\Protection\ProtectionActionDefinitionService;
 use Illuminate\Support\Collection;
-use Throwable;
 
 /**
- * Protection module's plan source. Mirrors ProtectionAgent::analyze() for the
- * gap + profile build, then calls RecommendationEngine::generateRecommendations()
- * directly so the strategy source produces the same recommendations as the agent
- * without going through the full agent cache layer.
+ * Protection module's plan source: the protection action definitions
+ * (ProtectionActionDefinitionService::evaluateActions over the comprehensive
+ * plan), the same recommendations the Protection Plan page shows — so a card,
+ * the plan page and a card's how-to all rest on one catalogue (CSJ 2026-09-29;
+ * the fixed rules in RecommendationEngine disagreed with the plan page).
  *
- * A bare user (no ProtectionProfile) returns an empty recommendation list rather
- * than throwing — the locked-strategy mechanism surfaces the gap to the user
- * through the required_data vocabulary instead.
+ * The comprehensive plan builds on ProtectionAgent::analyze(), which reads life
+ * cover through LifeCoverReach (W-0186, W-0401), so a joint-life policy reaches
+ * the non-owning spouse. A user with no ProtectionProfile, or one the readiness
+ * gate stops, gets no recommendations; the locked-strategy mechanism surfaces
+ * the gap through the required_data vocabulary instead.
  */
 final class ProtectionStrategySource implements ModuleStrategySource
 {
     public function __construct(
-        private readonly CoverageGapAnalyzer $gapAnalyzer,
-        private readonly LifeCoverReach $lifeCoverReach,
-        private readonly RecommendationEngine $recommendationEngine,
+        private readonly ComprehensiveProtectionPlanService $planService,
+        private readonly ProtectionActionDefinitionService $definitions,
         private readonly ProtectionRecommendationAdapter $adapter,
         private readonly ModuleAvailabilityProvider $availability,
     ) {}
@@ -41,67 +42,25 @@ final class ProtectionStrategySource implements ModuleStrategySource
     }
 
     /**
-     * Build gaps + profile exactly as ProtectionAgent::analyze() does, then
-     * delegate to RecommendationEngine. Returns [] for any user lacking a
-     * ProtectionProfile or whose profile cannot be used to produce gaps.
-     *
      * @return list<StrategyRecommendation>
      */
     public function recommendations(User $user): array
     {
-        try {
-            $user->loadMissing([
-                'protectionProfile',
-                'lifeInsurancePolicies',
-                'criticalIllnessPolicies',
-                'incomeProtectionPolicies',
-                'disabilityPolicies',
-                'sicknessIllnessPolicies',
-            ]);
-
-            /** @var ProtectionProfile|null $profile */
-            $profile = $user->protectionProfile;
-
-            if ($profile === null) {
-                return [];
-            }
-
-            $needs = $this->gapAnalyzer->calculateProtectionNeeds($profile);
-
-            // The policies covering this user's LIFE. This class "mirrors
-            // ProtectionAgent::analyze()" by its own docblock — but the agent was routed
-            // to the reach in W-0186 and the mirror was not, so the non-owning spouse was
-            // recommended cover she already holds: `recommendations(Sarah)` returned
-            // "Add decreasing term cover for debts" while the agent, feeding the SAME
-            // RecommendationEngine, reported `debt_protection_gap = 0` (W-0401).
-            //
-            // A joint-life policy covers both spouses and is recorded once, on the account
-            // that entered it, so the plain `user_id` hasMany stops at the owner.
-            // `LifeCoverReach` is the one home for the question (Rule 20).
-            //
-            // **Critical illness stays the plain relation.** `critical_illness_policies`
-            // has no `joint_life`, no `joint_owner_id` and no ownership columns at all
-            // (verified with `SHOW COLUMNS`), so it covers only its owner.
-            $coverage = $this->gapAnalyzer->calculateTotalCoverage(
-                $this->lifeCoverReach->policiesCovering($user),
-                $user->criticalIllnessPolicies,
-                $user->incomeProtectionPolicies,
-                $user->disabilityPolicies,
-                $user->sicknessIllnessPolicies,
-                $profile,
-                $user
-            );
-            $gaps = $this->gapAnalyzer->calculateCoverageGap($needs, $coverage);
-
-            $recs = $this->recommendationEngine->generateRecommendations($gaps, $profile);
-
-            return array_map(
-                fn (array $r) => $this->adapter->toStrategyRecommendation($r),
-                $recs
-            );
-        } catch (Throwable) {
+        if (! ProtectionProfile::where('user_id', $user->id)->exists()) {
             return [];
         }
+
+        try {
+            $plan = $this->planService->generateComprehensiveProtectionPlan($user);
+        } catch (FinancialCalculationException) {
+            // No profile or readiness incomplete: nothing to recommend yet.
+            return [];
+        }
+
+        return array_map(
+            fn (array $r) => $this->adapter->toStrategyRecommendation($r),
+            $this->definitions->evaluateActions($plan)
+        );
     }
 
     public function metadataRows(): Collection
