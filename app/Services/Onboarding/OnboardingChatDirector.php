@@ -1687,7 +1687,10 @@ final class OnboardingChatDirector
                 && ! str_contains($title, '£'.$savingFormatted)
                 ? sprintf(' — saves around £%s a year', $savingFormatted)
                 : '';
-            $bullets[] = sprintf('- %s%s', $title, $savingText);
+            // Alternatives say so, so the bullets never read as all to do or
+            // as adding up to more than the total below (L3-3).
+            $alternatives = trim((string) ($item['alternatives_note'] ?? ''));
+            $bullets[] = sprintf('- %s%s%s', $title, $savingText, $alternatives === '' ? '' : '. '.$alternatives);
         }
 
         if ($bullets === []) {
@@ -7259,6 +7262,15 @@ PROMPT;
      * wording of the description itself.
      */
     public static function voiceStrategyItem(array $item): string
+    {
+        // One of a set of alternatives carries the composer's sentence naming
+        // the others and which one the total counts (L3-3).
+        $alternatives = trim((string) ($item['alternatives_note'] ?? ''));
+
+        return $alternatives === '' ? self::voiceStrategyText($item) : self::voiceStrategyText($item).' '.$alternatives;
+    }
+
+    private static function voiceStrategyText(array $item): string
     {
         $title = rtrim(trim((string) ($item['title'] ?? '')), '.');
         $desc = trim((string) ($item['description'] ?? ''));
