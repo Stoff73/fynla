@@ -132,7 +132,6 @@ final class SpouseHoldingTransfer
         return $copied;
     }
 
-    /** @param  array<string, mixed>  $input */
     /**
      * The partner's income as earnings from work and the rest. Pension tax
      * relief is capped at relevant UK earnings (FA 2004 s189-190,
@@ -141,10 +140,11 @@ final class SpouseHoldingTransfer
      * that is a pension or rent must not arrive as pay.
      *
      * Earnings given: they are the pay, the rest is other income. Earnings not
-     * given: the partner's employment status decides (CSJ 2026-09-29): working
-     * means all pay, retired or unemployed means none. Neither known: nothing
-     * is copied, so their own onboarding asks rather than a guess being
-     * counted twice.
+     * given: the partner's employment status decides: working means all pay,
+     * retired or unemployed means none. Neither known: the figure is copied as
+     * pay, as it always was (ruling 50, CSJ 2026-09-16; restated 2026-09-29:
+     * the details the inviter gave are transferred and stored). It is an
+     * estimate, so the spouse's own job replaces it rather than adding to it.
      *
      * @return array{pay: float, other: float}
      */
@@ -161,10 +161,11 @@ final class SpouseHoldingTransfer
         return match (true) {
             in_array($status, self::WORKING_STATUSES, true) => ['pay' => $income, 'other' => 0.0],
             in_array($status, self::NON_WORKING_STATUSES, true) => ['pay' => 0.0, 'other' => $income],
-            default => ['pay' => 0.0, 'other' => 0.0],
+            default => ['pay' => $income, 'other' => 0.0],
         };
     }
 
+    /** @param  array<string, mixed>  $input */
     private function run(string $tool, array $input, User $spouse, array &$copied, string $label): void
     {
         // Ownership is a stated fact here (the spouse's own name), so the

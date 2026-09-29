@@ -88,10 +88,11 @@ it("registering from the link links the accounts, hands over Laura's figures and
         ->and($invitation->fresh()->accepted_user_id)->toBe($azlan->id)
         ->and($azlan->fresh()->funnel_answers['campaign'] ?? null)->toBe('savetax')
         ->and($azlan->fresh()->onboarding_fyn_context['invited_by'] ?? null)->toBe($laura->id)
-        // Laura gave Azlan's income but not whether it is earnings from work,
-        // and neither of them has an employment status: it is not guessed
-        // as pay (CSJ 2026-09-29), so Azlan's own onboarding asks.
-        ->and((float) ($azlan->fresh()->annual_employment_income ?? 0))->toBe(0.0)
+        // Laura gave Azlan's income but not whether it is earnings from work:
+        // it is transferred and stored as an estimate of pay (ruling 50; CSJ
+        // 2026-09-29), which Azlan's own job then replaces.
+        ->and((float) $azlan->fresh()->annual_employment_income)->toBe(230000.0)
+        ->and($azlan->fresh()->employments()->where('is_estimate', true)->count())->toBe(1)
         ->and((float) ($azlan->fresh()->annual_other_income ?? 0))->toBe(0.0);
 });
 

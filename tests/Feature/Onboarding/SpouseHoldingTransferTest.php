@@ -143,11 +143,12 @@ it('lets the partner\'s employment status decide when earnings were not given (C
     expect((float) $selfEmployed->annual_self_employment_income)->toBe(60000.0)
         ->and((float) ($selfEmployed->annual_other_income ?? 0))->toBe(0.0);
 
-    // Neither earnings nor status known: nothing is guessed, so the partner's
-    // own onboarding asks.
+    // Neither earnings nor status known: the figure the inviter gave is still
+    // transferred (ruling 50; CSJ 2026-09-29), as an estimate of pay that the
+    // partner's own job replaces rather than adds to.
     $unknown = linkPartner(['spouse_annual_income' => 125140]);
-    expect((float) ($unknown->annual_employment_income ?? 0))->toBe(0.0)
-        ->and((float) ($unknown->annual_self_employment_income ?? 0))->toBe(0.0)
+    expect((float) $unknown->annual_employment_income)->toBe(125140.0)
+        ->and($unknown->employments()->where('is_estimate', true)->count())->toBe(1)
         ->and((float) ($unknown->annual_other_income ?? 0))->toBe(0.0);
 });
 
