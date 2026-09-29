@@ -14,6 +14,7 @@ use App\Models\SavingsActionDefinition;
 use App\Models\TaxActionDefinition;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Mobile\NextActionsService;
 use App\Services\Plans\FundingAccounts;
 use App\Services\TaxConfigService;
@@ -151,7 +152,7 @@ final class ActionCardService
             'conflict_note' => $card['conflict_note'] ?? null,
             // For Fyn's grounding: this action and its alternatives are one
             // choice (StrategyPlanComposer). Tax plan actions only.
-            'alternatives_note' => $taxItem['alternatives_note'] ?? null,
+            'alternatives_note' => StrategyPlanComposer::alternativesNoteOf($taxItem ?? []),
             'disclaimer' => ($card['requires_advice'] ?? false) || in_array($module, ['protection', 'investment'], true) ? self::DISCLAIMER : null,
             'ask_fyn' => isset($item['action']['contextual'])
                 ? ['kind' => 'contextual', 'request' => $item['action']['contextual']]

@@ -25,6 +25,7 @@ use App\Services\AI\Prompts\CoreIdentity;
 use App\Services\AI\Prompts\FcaProcessInstructions;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
@@ -668,8 +669,9 @@ PROMPT;
                     // Items that are one choice (the ISA wrap, the spouse gift,
                     // the 50/50 split): the composer's sentence naming the
                     // others and which one the total counts (L3-3).
-                    if (! empty($rec['alternatives_note'])) {
-                        $lines[] = '   '.$rec['alternatives_note'];
+                    $alternatives = StrategyPlanComposer::alternativesNoteOf($rec);
+                    if ($alternatives !== null) {
+                        $lines[] = '   '.$alternatives;
                     }
 
                     // Include action step

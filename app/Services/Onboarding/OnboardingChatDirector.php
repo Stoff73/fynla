@@ -41,6 +41,7 @@ use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
@@ -1701,8 +1702,7 @@ final class OnboardingChatDirector
                 : '';
             // Alternatives say so, so the bullets never read as all to do or
             // as adding up to more than the total below (L3-3).
-            $alternatives = trim((string) ($item['alternatives_note'] ?? ''));
-            $bullets[] = sprintf('- %s%s%s', $title, $savingText, $alternatives === '' ? '' : '. '.$alternatives);
+            $bullets[] = '- '.StrategyPlanComposer::withAlternativesNote($title.$savingText, $item, '. ');
         }
 
         if ($bullets === []) {
@@ -7288,9 +7288,7 @@ PROMPT;
     {
         // One of a set of alternatives carries the composer's sentence naming
         // the others and which one the total counts (L3-3).
-        $alternatives = trim((string) ($item['alternatives_note'] ?? ''));
-
-        return $alternatives === '' ? self::voiceStrategyText($item) : self::voiceStrategyText($item).' '.$alternatives;
+        return StrategyPlanComposer::withAlternativesNote(self::voiceStrategyText($item), $item);
     }
 
     private static function voiceStrategyText(array $item): string
