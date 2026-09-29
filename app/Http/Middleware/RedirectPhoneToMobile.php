@@ -77,21 +77,25 @@ class RedirectPhoneToMobile
      */
     private function mobileRedirectTarget(Request $request): string
     {
-        $path = $request->path();
+        return self::framedTarget($request->path(), $request->getQueryString());
+    }
 
-        foreach (array_merge(self::CAMPAIGN_PREFIXES, self::PRESERVED_ACCOUNT_PATHS) as $campaign) {
-            if ($path === $campaign || str_starts_with($path, $campaign.'/')) {
-                $to = '/'.$path;
-                $query = $request->getQueryString();
-                if ($query !== null && $query !== '') {
-                    $to .= '?'.$query;
-                }
-
-                return '/m?to='.urlencode($to);
-            }
+    /**
+     * Where /m should open for a path: the page itself inside /m when
+     * isFramableTo() allows it, otherwise the /m home. One builder for the
+     * phone redirect and the /m/{path} route, so the two cannot differ.
+     */
+    public static function framedTarget(string $path, ?string $query): string
+    {
+        $to = '/'.ltrim($path, '/');
+        if (! self::isFramableTo($to)) {
+            return '/m';
+        }
+        if ($query !== null && $query !== '') {
+            $to .= '?'.$query;
         }
 
-        return '/m';
+        return '/m?to='.urlencode($to);
     }
 
     /**
@@ -106,6 +110,12 @@ class RedirectPhoneToMobile
         }
 
         $path = ltrim((string) parse_url($to, PHP_URL_PATH), '/');
+
+        // A dot segment would let a campaign prefix reach any page once the
+        // frame resolves it (/savetax/../admin).
+        if (in_array('..', explode('/', $path), true) || in_array('.', explode('/', $path), true)) {
+            return false;
+        }
 
         if (in_array($path, self::PRESERVED_ACCOUNT_PATHS, true)) {
             return true;
@@ -128,12 +138,12 @@ class RedirectPhoneToMobile
      */
     public static function framablePathPattern(): string
     {
-        $names = array_map(
-            static fn (string $name): string => preg_quote($name, '#'),
-            array_merge(self::CAMPAIGN_PREFIXES, self::PRESERVED_ACCOUNT_PATHS),
-        );
+        $quote = static fn (string $name): string => preg_quote($name, '#');
+        $campaigns = implode('|', array_map($quote, self::CAMPAIGN_PREFIXES));
+        $accounts = implode('|', array_map($quote, self::PRESERVED_ACCOUNT_PATHS));
 
-        return '(?:'.implode('|', $names).')(?:/.*)?';
+        // Campaign pages and their sub-pages; account pages exactly.
+        return '(?:(?:'.$campaigns.')(?:/.*)?|(?:'.$accounts.'))';
     }
 
     private function shouldRedirect(Request $request): bool

@@ -743,13 +743,7 @@ Route::get('/m/app/{any?}', function () {
 // inside /m, the same place a phone hitting /savetax is sent. It used to fall
 // through to the SPA's 404 page (production live test 2026-09-29, defect H2).
 Route::get('/m/{path}', function (Request $request, string $path) {
-    $to = '/'.$path;
-    $query = $request->getQueryString();
-    if ($query !== null && $query !== '') {
-        $to .= '?'.$query;
-    }
-
-    return redirect('/m?to='.urlencode($to));
+    return redirect(RedirectPhoneToMobile::framedTarget($path, $request->getQueryString()));
 })->where('path', RedirectPhoneToMobile::framablePathPattern());
 
 // Gamified dashboard design mockup — standalone HTML for review before porting
