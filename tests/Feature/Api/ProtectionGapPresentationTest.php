@@ -66,6 +66,11 @@ it('publishes server-calculated protection gaps with inputs assumptions explanat
             'cover' => 100000,
         ])
         ->and($income)->toHaveKeys(['need', 'cover', 'shortfall', 'inputs', 'assumptions', 'explanation'])
+        // Only what the gap is worked out from: Statutory Sick Pay is not part of
+        // it, and the raw array rendered as "Ssp Max Weeks: £28" (2026-09-29).
+        ->and(array_keys($income['inputs']))->toBe(['gross_income'])
+        ->and($income['explanation'])->not->toContain('configured')
+        ->and($income['explanation'])->toContain('% of your gross earned income')
         ->and(collect($presentation['categories'])->whereIn('key', [
             'human_capital',
             'debt_protection',
