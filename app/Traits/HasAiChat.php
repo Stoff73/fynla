@@ -968,14 +968,33 @@ trait HasAiChat
                         if (! $dispatcher->isSurfaceAllowed($action->surface(), $this->personaOverride)) {
                             $toolResult = $this->rejectGroundSurface($action->surface(), $user, $conversation->id);
                         } else {
-                            $toolResult = $this->executeTool(
-                                $action->surface(),
-                                $action->args(),
-                                $user,
-                                $conversation->id,
-                                $classification,
-                                $kycResult,
-                            );
+                            // A tool that throws — anything, a TypeError included —
+                            // is a failed tool result the model can answer around,
+                            // never the end of the turn. Uncaught, it used to end the
+                            // stream after Fyn's "let me look that up" with no answer
+                            // and no error (L3-2, conversation 940, 29 Sep 2026).
+                            try {
+                                $toolResult = $this->executeTool(
+                                    $action->surface(),
+                                    $action->args(),
+                                    $user,
+                                    $conversation->id,
+                                    $classification,
+                                    $kycResult,
+                                );
+                            } catch (\Throwable $e) {
+                                Log::error('[HasAiChat] Tool threw', [
+                                    'conversation_id' => $conversation->id,
+                                    'tool' => $action->surface(),
+                                    'exception' => $e::class,
+                                    'error' => $e->getMessage(),
+                                ]);
+                                $toolResult = [
+                                    'error' => true,
+                                    'error_type' => 'execution_failed',
+                                    'message' => 'This tool failed. Answer from what you already have and say which figure you could not fetch.',
+                                ];
+                            }
                         }
 
                         if (isset($toolResult['created']) && $toolResult['created'] === true) {
@@ -1306,13 +1325,18 @@ trait HasAiChat
                 }
             }
 
-            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount < $toolCallCap) {
+            // Tools ran, so the model must see their results before the turn can
+            // end — whatever finish reason came with the calls. xAI can report
+            // `stop` (or nothing) alongside tool_calls, and Anthropic `max_tokens`;
+            // gating on `tool_use` alone ended those turns after the preamble,
+            // with the tool results never read (L3-2).
+            if ($hasToolCalls && $toolCallCount < $toolCallCap) {
                 continue;
             }
 
-            // If we hit the tool call limit but still have tool_use stop reason,
-            // make one final pass with tools disabled to force a text response
-            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= $toolCallCap && ! $capPassForced) {
+            // If we hit the tool call limit with calls still coming, make one
+            // final pass with tools disabled to force a text response
+            if ($hasToolCalls && $toolCallCount >= $toolCallCap && ! $capPassForced) {
                 $capPassForced = true;
                 $xaiTools = [];
                 $tools = [];

@@ -6,6 +6,8 @@ namespace App\Services\Marketing;
 
 use App\Services\Onboarding\FunnelIncomeBand;
 use App\Services\Stores\SavingsMarketRateStore;
+use App\Services\Tax\Strategies\PensionTaxReliefStrategy;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use LogicException;
 
@@ -41,10 +43,19 @@ class SaveTaxEstimateService
     /** The income band that sits inside the £100k Personal Allowance taper. */
     private const TRAP_BAND = '100001_125140';
 
-    public function __construct(private readonly TaxConfigService $taxConfig) {}
+    /** Employment answers whose income is presumed not to be relevant earnings. */
+    private const NON_EARNING_EMPLOYMENT = ['retired', 'not-employed'];
+
+    /** Saving lines that belong to the partner rather than the user. */
+    private const PARTNER_SAVING_KEYS = ['spouse_tax_trap_60'];
+
+    public function __construct(
+        private readonly TaxConfigService $taxConfig,
+        private readonly TaxStrategyMath $math,
+    ) {}
 
     /**
-     * @param  array{income?:string,spouse?:string,spouseIncome?:?string,assets?:array<int,string>}  $answers
+     * @param  array{employment?:?string,income?:string,spouse?:string,spouseIncome?:?string,spouseEmployment?:?string,assets?:array<int,string>}  $answers
      * @return array<string,mixed>
      */
     public function estimate(array $answers): array
@@ -65,26 +76,11 @@ class SaveTaxEstimateService
         // --- Pension / 60% tax trap -----------------------------------------
         // Shown whether or not the user already has a pension (CSJ 2026-09-26):
         // holding a pension says nothing about how much Annual Allowance is
-        // left, and a pension holder was told "save up to £0" while their plan
-        // found real relief. In the trap band the contribution clears income
-        // down to £100k (reclaiming the Personal Allowance, ~60% effective
-        // relief) and is surfaced as its own "60% Tax Trap" line; other bands
-        // assume 10% of upper income.
-        $isTrap = $incomeBand === self::TRAP_BAND;
-        $contribution = $isTrap
-            ? max(0, $income - $this->taperThreshold())
-            : (int) round($income * 0.10);
-
-        if ($contribution > 0) {
-            $relief = (int) round($this->pensionRelief($income, $contribution));
-            $savings[] = [
-                'key' => $isTrap ? 'tax_trap_60' : 'pension',
-                'label' => $isTrap ? '60% Tax Trap' : 'Pension contribution',
-                'amount' => $relief,
-                'reason' => $isTrap
-                    ? "You're in the 60% tax trap. Contributing ".$this->money($contribution).' to a pension reclaims your Personal Allowance — relief of up to 60% on that contribution.'
-                    : 'A pension contribution of '.$this->money($contribution).' attracts '.$this->pct($rate).' tax relief.',
-            ];
+        // left. Sized by the plan engine's own rules and priced by its tax
+        // engine (TaxStrategyMath), so the funnel promises what the plan finds.
+        $pensionLine = $this->pensionLine($income, $this->hasNoEarnings($answers['employment'] ?? null, $incomeBand));
+        if ($pensionLine !== null) {
+            $savings[] = $pensionLine;
         }
 
         // --- ISA -------------------------------------------------------------
@@ -93,7 +89,7 @@ class SaveTaxEstimateService
         // the Personal Savings Allowance that already covers it (ITA 2007
         // s12B), at the marginal rate. No line when nothing is taxed.
         if ($hasFinancial) {
-            $isaAssumed = (int) round($income * 0.10);
+            $isaAssumed = (int) round($income * $this->isaAssumedSavingsShare());
             $store = app(SavingsMarketRateStore::class);
             $benchmark = (float) ($store->findByKeyAndTaxYear('easy_access', (string) $store->latestTaxYear())?->rate ?? 0);
             $taxedInterest = max(0.0, $isaAssumed * $benchmark - $this->personalSavingsAllowance($income));
@@ -112,47 +108,22 @@ class SaveTaxEstimateService
         // given automatically, so they are not savings the user can make
         // (CSJ 2026-09-27; plan ruling 2026-09-25). They stay in 'allowances'.
 
-        // --- Spouse transfer levers (spouse earns £0) ------------------------
-        if ($married && $spouseBand === 'zero') {
-            $pa = $this->personalAllowanceBase();
-            $spousePsa = $this->personalSavingsAllowance(0); // basic band → full PSA
-            $startingRate = $this->taxInt('income_tax.starting_rate_for_savings.band');
-            $marriage = $this->taxInt('income_tax.marriage_allowance.amount');
-            // A Marriage Allowance transfer takes that slice out of the spouse's
-            // Personal Allowance (ITA 2007 s55B(6),
-            // https://www.legislation.gov.uk/ukpga/2007/3/section/55B), so it
-            // cannot also shelter moved income: count only what is left.
-            $marriageClaimed = $this->isBasicRate($income);
-            $spousePaLeft = $marriageClaimed ? $pa - $marriage : $pa;
+        // --- Marriage Allowance ----------------------------------------------
+        // Salary cannot be moved to a spouse (it is taxed on the employee,
+        // ITEPA 2003 s62), so the funnel no longer prices a spouse's Personal
+        // Allowance, Savings Allowance or starting rate as if income could be
+        // moved into them; the plan engine never produces those figures.
+        // Marriage Allowance is the transfer the law allows.
+        $marriage = $married && $spouseBand !== null ? $this->marriageAllowanceLine($income, $spouseBand) : null;
+        if ($marriage !== null) {
+            $savings[] = $marriage;
+        }
 
-            $savings[] = [
-                'key' => 'spouse_pa',
-                'label' => "Use your spouse's Personal Allowance",
-                'amount' => (int) round($spousePaLeft * $rate),
-                'reason' => 'Your spouse earns nothing, so moving income or savings to them uses their '.$this->money($spousePaLeft).' of tax-free allowance'.($marriageClaimed ? ' left after Marriage Allowance.' : '.'),
-            ];
-            $savings[] = [
-                'key' => 'spouse_psa',
-                'label' => "Spouse's Savings Allowance",
-                'amount' => (int) round($spousePsa * $rate),
-                'reason' => 'Savings interest of up to '.$this->money($spousePsa).' in your spouse\'s name is tax-free.',
-            ];
-            $savings[] = [
-                'key' => 'spouse_starting_rate',
-                'label' => "Spouse's starting rate for savings",
-                'amount' => (int) round($startingRate * $rate),
-                'reason' => 'With no other income, your spouse can earn up to '.$this->money($startingRate).' of savings interest tax-free.',
-            ];
-            // Formal Marriage Allowance only applies when the recipient is a
-            // basic-rate taxpayer — higher/additional earners are not eligible.
-            // (The full-PA transfer lever above works at any rate.)
-            if ($marriageClaimed) {
-                $savings[] = [
-                    'key' => 'marriage_allowance',
-                    'label' => 'Marriage Allowance',
-                    'amount' => (int) round($marriage * $this->bandRates()['basic']),
-                    'reason' => 'As a basic-rate taxpayer you qualify: your spouse can transfer '.$this->money($marriage).' of their Personal Allowance to you.',
-                ];
+        // --- Partner in the 60% tax trap ------------------------------------
+        if ($married && $spouseBand === self::TRAP_BAND) {
+            $partnerLine = $this->partnerTrapLine($this->incomeForBand($spouseBand), $answers['spouseEmployment'] ?? null);
+            if ($partnerLine !== null) {
+                $savings[] = $partnerLine;
             }
         }
 
@@ -164,6 +135,19 @@ class SaveTaxEstimateService
             'marginal_rate' => $rate,
             'savings' => $savings,
             'savings_total' => $savingsTotal,
+            // What the headline has to say about itself: which income it
+            // assumes, and how much of it comes from the partner's side.
+            // 'band_top' for a bounded band, 'example' for the open top band
+            // (onboarding.savetax_over_band_assumed_income), 'none' for no income.
+            'assumed_income_basis' => match ($incomeBand) {
+                'zero' => 'none',
+                'over_125140' => 'example',
+                default => 'band_top',
+            },
+            'partner_savings_total' => array_sum(array_column(
+                array_filter($savings, fn (array $line): bool => in_array($line['key'], self::PARTNER_SAVING_KEYS, true)),
+                'amount'
+            )),
             'allowances' => $this->allowances($income, $married, $spouseBand, $assets),
         ];
     }
@@ -235,16 +219,16 @@ class SaveTaxEstimateService
 
         if ($married && $spouseBand !== null) {
             $marriage = $this->taxInt('income_tax.marriage_allowance.amount');
-            // Eligible only when the non-earning spouse (£0) pairs with a
-            // basic-rate recipient. Shown greyed for ineligible married couples.
-            $marriageEligible = $spouseBand === 'zero' && $this->isBasicRate($income);
+            // Eligible only when a partner with no income pairs with a
+            // basic-rate taxpayer, either way round. Shown greyed otherwise.
+            $marriageEligible = $this->marriageAllowanceRecipient($income, $spouseBand) !== null;
             $items[] = $this->allowanceItem(
                 'marriage_allowance',
                 'Marriage Allowance',
                 $marriage,
                 $marriageEligible ? 'available' : 'not_applicable',
                 $marriageEligible
-                    ? 'Available because the assumed circumstances pair a non-earning spouse with a basic-rate taxpayer.'
+                    ? 'Available because the assumed circumstances pair a partner with no income with a basic-rate taxpayer.'
                     : 'Not applicable to the income bands supplied for this estimate.'
             );
 
@@ -426,39 +410,242 @@ class SaveTaxEstimateService
         ];
     }
 
-    // --- Tax engine ----------------------------------------------------------
+    // --- Lines priced by the plan engine ----------------------------------
 
     /**
-     * Income tax due on a gross income, optionally with a gross pension
-     * contribution that extends the basic/additional bands and restores the
-     * tapered Personal Allowance.
+     * The pension line, priced by the plan engine's tax maths. The trap and
+     * additional-rate bands are sized as the engine sizes them; the basic and
+     * higher bands use a tenth of income, which in the higher band is less
+     * than the engine's whole higher-rate slice (agreed 29 Sep 2026).
+     *
+     * @return array{key:string,label:string,amount:int,reason:string}|null
      */
-    private function incomeTax(int $gross, int $pension = 0): float
+    private function pensionLine(int $income, bool $noEarnings): ?array
     {
-        $basicLimit = $this->taxNumber('income_tax.bands.0.max');
-        $additionalThreshold = $this->taxNumber('income_tax.additional_rate_threshold');
-        $rates = $this->bandRates();
+        if ($noEarnings) {
+            // Relief only on contributions up to the greater of relevant
+            // earnings and the basic amount (FA 2004 s190), and none after the
+            // age in pension.relief_max_age (s188(3)(a)). Basic-rate relief is
+            // added at source whether or not tax is paid (s192); the band
+            // extension adds any higher-rate relief on top.
+            ['gross' => $gross, 'net' => $net, 'relief' => $relief, 'saving' => $saving] = $this->nonEarnerPension($income);
+            // Anything above the relief at source is higher-rate relief, given
+            // only on a claim (s192(4)), e.g. through Self Assessment.
+            $claim = $saving > $relief
+                ? ' The other '.$this->money($saving - $relief).' you claim back through Self Assessment.'
+                : '';
 
-        $pa = $this->personalAllowance(max(0, $gross - $pension));
-        $taxable = max(0.0, $gross - $pa);
+            return [
+                'key' => $this->isTrap($income) ? 'tax_trap_60' : 'pension',
+                'label' => $this->isTrap($income) ? $this->trapLabel() : 'Pension contribution',
+                'amount' => $saving,
+                // Worded as money HMRC adds, not tax saved (CSJ 2026-09-29).
+                'reason' => 'Without earnings from work, tax relief is limited to '.$this->money($gross).' a year of pension contributions: pay in '.$this->money($net).' from your savings and HMRC adds '.$this->money($relief).' through your pension provider, making '.$this->money($gross).', if you are under '.$this->reliefMaxAge().'.'.$claim,
+            ];
+        }
 
-        $basicCeiling = $basicLimit + $pension;
-        $additionalCeiling = $additionalThreshold + $pension;
+        if ($income > $this->taxInt('income_tax.additional_rate_threshold')) {
+            $contribution = (int) $this->math->additionalRateAvoidanceContribution(
+                (float) $income,
+                (float) $this->annualAllowance(),
+                $this->math->bandThresholds(),
+            )['contribution'];
+            $reason = 'At '.$this->money($income).', paying '.$this->money($contribution).' into a pension moves income out of the '.$this->pct($this->bandRates()['additional']).' band and reclaims your Personal Allowance.';
+            // The figure assumes the whole allowance is used; say so (#975 review).
+            if ($contribution >= $this->annualAllowance()) {
+                $reason .= ' That uses your whole '.$this->money($this->annualAllowance()).' Annual Allowance for the year.';
+            }
+        } elseif ($income > $this->taperThreshold()) {
+            $contribution = $this->taperRescueContribution($income);
+            $reason = "You're in the ".$this->pct($this->trapRate()).' tax trap. At '.$this->money($income).', the top of the band you chose, paying '.$this->money($contribution).' into a pension reclaims your Personal Allowance. Income between '.$this->money($this->taperThreshold()).' and '.$this->money($this->taperEnd()).' is taxed at '.$this->pct($this->trapRate()).'.';
+        } else {
+            $contribution = (int) (floor($income * PensionTaxReliefStrategy::BASIC_RATE_SHARE_OF_EARNINGS / 100) * 100);
+            $reason = 'A pension contribution of '.$this->money($contribution).' attracts '.$this->pct($this->marginalRate($income)).' tax relief.';
+        }
 
-        $tax = $rates['basic'] * min($taxable, $basicCeiling);
-        $tax += $rates['higher'] * max(0.0, min($taxable, $additionalCeiling) - $basicCeiling);
-        $tax += $rates['additional'] * max(0.0, $taxable - $additionalCeiling);
+        if ($contribution <= 0) {
+            return null;
+        }
 
-        return $tax;
+        return [
+            'key' => $this->isTrap($income) ? 'tax_trap_60' : 'pension',
+            'label' => $this->isTrap($income) ? $this->trapLabel() : 'Pension contribution',
+            'amount' => $this->pensionSaving($income, $contribution),
+            'reason' => $reason,
+        ];
     }
 
-    /** Total tax relief on a pension contribution = 20% at source + band/PA effect. */
-    private function pensionRelief(int $gross, int $contribution): float
+    /**
+     * The partner's side of the 60% trap. The funnel asks the partner's
+     * employment only in this band, because relief is limited to the greater
+     * of relevant UK earnings and the basic amount (FA 2004 s190,
+     * https://www.legislation.gov.uk/ukpga/2004/12/section/190): a retired or
+     * non-working partner is priced as the user is (pensionLine), and a
+     * working one as the plan engine prices their own taper rescue
+     * (IncomeBandStrategy). No answer, from a client that never asked, keeps
+     * the assumption stated in the reason.
+     *
+     * @return array{key:string,label:string,amount:int,reason:string}|null
+     */
+    private function partnerTrapLine(int $spouseIncome, mixed $spouseEmployment): ?array
     {
-        $atSource = $contribution * $this->bandRates()['basic'];
-        $taxSaved = $this->incomeTax($gross, 0) - $this->incomeTax($gross, $contribution);
+        $band = 'Income between '.$this->money($this->taperThreshold()).' and '.$this->money($this->taperEnd()).' is taxed at '.$this->pct($this->trapRate()).'.';
 
-        return $atSource + $taxSaved;
+        if (is_string($spouseEmployment) && in_array($spouseEmployment, self::NON_EARNING_EMPLOYMENT, true)) {
+            ['gross' => $gross, 'net' => $net, 'relief' => $relief, 'saving' => $saving] = $this->nonEarnerPension($spouseIncome);
+            // Relief above the basic rate is given only on a claim (s192(4)).
+            $claim = $saving > $relief
+                ? ' The other '.$this->money($saving - $relief).' they claim back through Self Assessment.'
+                : '';
+
+            return [
+                'key' => 'spouse_tax_trap_60',
+                'label' => "Your partner's ".$this->trapLabel(),
+                'amount' => $saving,
+                'reason' => 'Without earnings from work, your partner gets tax relief on up to '.$this->money($gross).' a year of pension contributions: they pay in '.$this->money($net).' from their savings and HMRC adds '.$this->money($relief).' through their pension provider, making '.$this->money($gross).', if they are under '.$this->reliefMaxAge().'.'.$claim.' At '.$this->money($spouseIncome).', the top of the band you chose for them, that wins back part of their Personal Allowance. '.$band,
+            ];
+        }
+
+        $contribution = $this->taperRescueContribution($spouseIncome);
+        if ($contribution <= 0) {
+            return null;
+        }
+        $fromWork = is_string($spouseEmployment) && $spouseEmployment !== '' ? '' : ', if that income is from work';
+
+        return [
+            'key' => 'spouse_tax_trap_60',
+            'label' => "Your partner's ".$this->trapLabel(),
+            'amount' => $this->pensionSaving($spouseIncome, $contribution),
+            'reason' => 'At '.$this->money($spouseIncome).', the top of the band you chose for your partner, paying '.$this->money($contribution).' into their pension reclaims their Personal Allowance'.$fromWork.'. '.$band,
+        ];
+    }
+
+    /**
+     * A relief-at-source contribution by someone with no relevant earnings,
+     * limited to the basic amount (FA 2004 s190, pension.relevant_earnings_minimum)
+     * and priced by the plan engine (TaxStrategyMath::reliefAtSourceSavingOn).
+     *
+     * @return array{gross:int,net:int,relief:int,saving:int}
+     */
+    private function nonEarnerPension(int $income): array
+    {
+        $nonEarner = $this->math->nonEarnerPensionContribution();
+        $gross = (int) round($nonEarner['gross']);
+
+        return [
+            'gross' => $gross,
+            'net' => (int) round($nonEarner['net']),
+            'relief' => (int) round($nonEarner['relief']),
+            'saving' => (int) round($this->math->reliefAtSourceSavingOn($this->incomeParts($income), (float) $gross)),
+        ];
+    }
+
+    /**
+     * Marriage Allowance, either way round, priced as the plan engine prices
+     * it: the transfer reduces the recipient's tax by up to the allowance at
+     * the basic rate, never more than the tax they pay (ITA 2007 s55B, s55C;
+     * TaxStrategyMath::marriageAllowance). The partner with no income loses
+     * nothing by giving it.
+     *
+     * @return array{key:string,label:string,amount:int,reason:string}|null
+     */
+    private function marriageAllowanceLine(int $income, string $spouseBand): ?array
+    {
+        $recipient = $this->marriageAllowanceRecipient($income, $spouseBand);
+        if ($recipient === null) {
+            return null;
+        }
+
+        $marriage = $this->taxInt('income_tax.marriage_allowance.amount');
+        $recipientIncome = $recipient === 'user' ? $income : $this->incomeForBand($spouseBand);
+        $saving = (int) floor(min(
+            $marriage * $this->bandRates()['basic'],
+            $this->math->incomeTaxOn($this->incomeParts($recipientIncome)),
+        ));
+        if ($saving < 1) {
+            return null;
+        }
+
+        return [
+            'key' => 'marriage_allowance',
+            'label' => 'Marriage Allowance',
+            'amount' => $saving,
+            'reason' => ($recipient === 'user'
+                ? 'As a basic-rate taxpayer you qualify: your partner can transfer '.$this->money($marriage).' of their Personal Allowance to you.'
+                : 'Your partner is a basic-rate taxpayer, so you can transfer '.$this->money($marriage).' of your Personal Allowance to them.')
+                .$this->scottishMarriageAllowanceCaveat($recipient, $recipientIncome),
+        ];
+    }
+
+    /**
+     * The funnel prices England, Wales and Northern Ireland rates, as the plan
+     * engine does. A Scottish recipient may pay no more than the Scottish
+     * intermediate rate (ITA 2007 s55B(2)(b)), so above
+     * income_tax.marriage_allowance.scottish_recipient_upper_limit the line
+     * carries the same warning as the engine's how-to (ActionHowToFacts,
+     * action-how-to/tax.md) (CSJ 2026-09-29).
+     */
+    private function scottishMarriageAllowanceCaveat(string $recipient, int $recipientIncome): string
+    {
+        $limit = $this->taxConfig->get('income_tax.marriage_allowance.scottish_recipient_upper_limit');
+        if (! is_numeric($limit) || $recipientIncome <= (float) $limit) {
+            return '';
+        }
+
+        return ($recipient === 'user'
+            ? ' If you live in Scotland, this does not apply to you: '
+            : ' If your partner lives in Scotland, this does not apply: ')
+            .'there the person receiving it must pay no more than the Scottish intermediate rate, which usually means income up to '
+            .$this->money((int) round((float) $limit)).'.';
+    }
+
+    /**
+     * Who would receive a Marriage Allowance transfer: 'user', 'spouse' or
+     * null. The giver has no income; the receiver pays tax, but at no more
+     * than the basic rate (ITA 2007 s55B(2)).
+     */
+    private function marriageAllowanceRecipient(int $income, ?string $spouseBand): ?string
+    {
+        if ($spouseBand === null) {
+            return null;
+        }
+        $spouseIncome = $this->incomeForBand($spouseBand);
+        $pays = fn (int $amount): bool => $amount > $this->personalAllowanceBase() && $this->isBasicRate($amount);
+
+        if ($spouseIncome === 0 && $pays($income)) {
+            return 'user';
+        }
+        if ($income === 0 && $pays($spouseIncome)) {
+            return 'spouse';
+        }
+
+        return null;
+    }
+
+    /** Income tax saved by a gross pension contribution, from the plan's tax engine. */
+    private function pensionSaving(int $income, int $contribution): int
+    {
+        return (int) round($this->math->pensionContributionSavingOn($this->incomeParts($income), (float) $contribution));
+    }
+
+    private function taperRescueContribution(int $income): int
+    {
+        return (int) $this->math->taperRescueContribution((float) $income, (float) $this->annualAllowance());
+    }
+
+    /** @return array{non_savings: float, interest: float, dividends: float, trust: float, net_pay: float} */
+    private function incomeParts(int $income): array
+    {
+        return ['non_savings' => (float) $income, 'interest' => 0.0, 'dividends' => 0.0, 'trust' => 0.0, 'net_pay' => 0.0];
+    }
+
+    /**
+     * No relevant earnings: the "no income" band, or an employment answer
+     * whose income is a pension, rent or savings rather than pay.
+     */
+    private function hasNoEarnings(?string $employment, string $incomeBand): bool
+    {
+        return $incomeBand === 'zero' || in_array($employment, self::NON_EARNING_EMPLOYMENT, true);
     }
 
     // --- Lookups -------------------------------------------------------------
@@ -471,6 +658,42 @@ class SaveTaxEstimateService
     private function taperThreshold(): int
     {
         return $this->taxInt('income_tax.personal_allowance_taper_threshold');
+    }
+
+    /** Where the Personal Allowance is fully tapered away. */
+    private function taperEnd(): int
+    {
+        return (int) round($this->taperThreshold() + $this->personalAllowanceBase() / $this->taxNumber('income_tax.personal_allowance_taper_rate'));
+    }
+
+    /** Income inside the Personal Allowance taper band. */
+    private function isTrap(int $income): bool
+    {
+        return $income > $this->taperThreshold() && $income <= $this->taperEnd();
+    }
+
+    private function trapLabel(): string
+    {
+        return $this->pct($this->trapRate()).' Tax Trap';
+    }
+
+    /**
+     * Effective rate across the taper band: the higher rate on the pound
+     * earned plus the higher rate on the allowance it withdraws (ITA 2007 s35).
+     */
+    private function trapRate(): float
+    {
+        return $this->bandRates()['higher'] * (1 + $this->taxNumber('income_tax.personal_allowance_taper_rate'));
+    }
+
+    private function annualAllowance(): int
+    {
+        return $this->requiredArrayInt($this->taxConfig->getPensionAllowances(), 'annual_allowance', 'pension.annual_allowance');
+    }
+
+    private function reliefMaxAge(): int
+    {
+        return $this->requiredArrayInt($this->taxConfig->getPensionAllowances(), 'relief_max_age', 'pension.relief_max_age');
     }
 
     /** Personal Allowance after the £1-per-£2 taper above £100k. */
@@ -561,6 +784,16 @@ class SaveTaxEstimateService
             $band,
             config('onboarding.savetax_over_band_assumed_income')
         );
+    }
+
+    private function isaAssumedSavingsShare(): float
+    {
+        $share = config('onboarding.savetax_isa_assumed_savings_share');
+        if (! is_numeric($share) || (float) $share <= 0 || (float) $share > 1) {
+            throw new LogicException('Invalid onboarding.savetax_isa_assumed_savings_share configuration.');
+        }
+
+        return (float) $share;
     }
 
     private function taxNumber(string $path): float

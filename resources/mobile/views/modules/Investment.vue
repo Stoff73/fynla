@@ -48,6 +48,9 @@
             <button v-if="paidUpgradeAvailable" type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
           </div>
         </div>
+        <!-- A Cash ISA counts towards this allowance (CSJ 2026-09-15) but is listed on
+             Bank Accounts, so the count says what it includes (SaveTax run, L1). -->
+        <p v-if="accountLimit && cashIsaCount" class="m-sub" style="margin-top:0">{{ cashIsaNote }}</p>
         <p v-if="!accounts.length" class="m-sub" style="margin-bottom:0">
           You haven't added any investment accounts yet.
         </p>
@@ -106,6 +109,13 @@ export default {
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
+    cashIsaCount() { return Number(this.payload?.cash_isa_count || 0); },
+    cashIsaNote() {
+      const n = this.cashIsaCount;
+      return n === 1
+        ? 'Includes your Cash ISA, which is listed under Bank Accounts.'
+        : `Includes your ${n} Cash ISAs, which are listed under Bank Accounts.`;
+    },
     contextualRequest() {
       if (this.atCap) return null;
       return buildContextualConversationRequest({

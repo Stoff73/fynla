@@ -64,6 +64,26 @@ it('remembers the invitation and puts its token on the email link', function ():
         && str_contains($mail->content()->with['registerUrl'], '/register?invite='.$invitation->token));
 });
 
+it('greets the invitee by the first name the inviter gave', function (): void {
+    // SaveTax run 29 Sep 2026, L4: Fyn asked for the partner's first name and the
+    // email still opened "Hello,".
+    [, $invitation] = inviteAzlan();
+
+    Mail::assertSent(SpouseInvitationMail::class, function (SpouseInvitationMail $mail) use ($invitation): bool {
+        $html = $mail->render();
+
+        return $mail->token === $invitation->token
+            && str_contains($html, 'Hi Azlan,')
+            && ! str_contains($html, 'Hello,');
+    });
+});
+
+it('falls back to a plain greeting when no first name was given', function (): void {
+    $html = (new SpouseInvitationMail('someone@example.com', 'Laura Raj', 'tok', null))->render();
+
+    expect($html)->toContain('Hello,');
+});
+
 it('fills the registration page from the link, and reads the same for a bad token', function (): void {
     [, $invitation] = inviteAzlan();
     auth()->forgetGuards();

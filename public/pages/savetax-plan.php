@@ -6,21 +6,31 @@ use App\Services\TaxConfigService;
 // Compute the personalised tax estimate server-side from the funnel answers
 // (passed as query params by /savetax). All tax values come from
 // TaxConfigService via SaveTaxEstimateService — never hard-coded here.
+// Read through the request, not $_GET, so a test request sees its own answers.
+// Every answer is a plain string or nothing: a hand-edited link can send a
+// list (?assets[]=x), which is ignored rather than turned into a server error.
+$savetaxQuery = request()->query();
+$savetaxAnswer = static fn (string $key): ?string => is_string($savetaxQuery[$key] ?? null) ? $savetaxQuery[$key] : null;
+$savetaxAssets = $savetaxAnswer('assets') ?? '';
 $savetaxAnswers = [
-    'income' => $_GET['income'] ?? null,
-    'spouse' => $_GET['spouse'] ?? null,
-    'spouseIncome' => $_GET['spouseIncome'] ?? null,
-    'assets' => (isset($_GET['assets']) && $_GET['assets'] !== '')
-        ? array_slice(array_map('trim', explode(',', (string) $_GET['assets'])), 0, 12)
+    'employment' => $savetaxAnswer('employment'),
+    'income' => $savetaxAnswer('income'),
+    'spouse' => $savetaxAnswer('spouse'),
+    'spouseIncome' => $savetaxAnswer('spouseIncome'),
+    'spouseEmployment' => $savetaxAnswer('spouseEmployment'),
+    'assets' => $savetaxAssets !== ''
+        ? array_slice(array_map('trim', explode(',', $savetaxAssets)), 0, 12)
         : [],
 ];
 // Representative default for direct visits (no funnel params) so the page is
 // never empty for SEO / shared links.
 if (empty($savetaxAnswers['income'])) {
     $savetaxAnswers = [
+        'employment' => 'full-time',
         'income' => '50271_100000',
         'spouse' => 'no',
         'spouseIncome' => null,
+        'spouseEmployment' => null,
         'assets' => ['savings', 'pension', 'isa'],
     ];
 }
@@ -31,6 +41,23 @@ try {
 }
 $savetaxEstimateAvailable = is_array($savetaxEstimate);
 $savetaxWithPartner = ($savetaxAnswers['spouse'] ?? null) === 'yes';
+// The headline says what it assumes: the top of the chosen income band, and
+// how much of it is the partner's (only when there is any).
+$savetaxBasis = '';
+if ($savetaxEstimateAvailable) {
+    $savetaxBasis = match ($savetaxEstimate['assumed_income_basis'] ?? null) {
+        'band_top' => 'Worked out for an income of £'.number_format((int) $savetaxEstimate['assumed_income']).', the top of the band you chose',
+        'example' => 'Worked out for an example income of £'.number_format((int) $savetaxEstimate['assumed_income']).' in the band you chose',
+        default => 'Worked out for no income of your own',
+    };
+    $savetaxPartnerTotal = (int) ($savetaxEstimate['partner_savings_total'] ?? 0);
+    $savetaxBasis .= $savetaxPartnerTotal > 0
+        ? ', and it includes £'.number_format($savetaxPartnerTotal).' from your partner\'s side. '
+        : '. ';
+    // The plan engine prices England, Wales and Northern Ireland rates and does
+    // not model Scottish Income Tax bands, so neither does this (CSJ 2026-09-29).
+    $savetaxBasis .= 'It uses England, Wales and Northern Ireland Income Tax rates, not Scottish rates. ';
+}
 $savetaxAllowanceCount = $savetaxEstimateAvailable
     ? (int) ($savetaxEstimate['allowances']['available_count'] ?? 0).' of '.(int) ($savetaxEstimate['allowances']['count'] ?? 0)
     : 'Unavailable';
@@ -114,8 +141,8 @@ try {
           <?php $savetaxFigure = $savetaxEstimateAvailable ? '£'.number_format((int) $savetaxEstimate['savings_total']) : null; ?>
           <div class="sp4-savings sp4-savings--hero">
             <?php if ($savetaxFigure !== null) { ?>
-              <p class="sp4-savings__claim" id="savings-claim" aria-label="An average estimated saving of up to <?= htmlspecialchars($savetaxFigure, ENT_QUOTES) ?> each year">
-                An average estimated saving of up to <span class="sp4-savings__figure" id="savings-figure"><?= htmlspecialchars($savetaxFigure, ENT_QUOTES) ?></span> each year
+              <p class="sp4-savings__claim" id="savings-claim" aria-label="An estimated saving of up to <?= htmlspecialchars($savetaxFigure, ENT_QUOTES) ?> each year">
+                An estimated saving of up to <span class="sp4-savings__figure" id="savings-figure"><?= htmlspecialchars($savetaxFigure, ENT_QUOTES) ?></span> each year
               </p>
             <?php } else { ?>
               <p class="sp4-savings__claim" id="savings-claim">Your estimate is temporarily unavailable</p>
@@ -123,7 +150,7 @@ try {
           </div>
 
           <p class="campaign-hero__subtext" id="hero-subtext">
-            <?php if ($savetaxWithPartner) { ?>This is an average based on your answers, and it is bigger because of you and your partner — you each have your own allowances. <?php } else { ?>This is an average based on your answers — not your personal potential savings per year. <?php } ?>Register for free and get your personalised tax strategy.
+            <?= htmlspecialchars($savetaxBasis, ENT_QUOTES) ?>Register for free and get your personalised tax strategy, worked out from your real figures.
           </p>
           <p class="campaign-hero__subtext">This is an illustrative estimate, not personal financial advice.</p>
         </div>
@@ -207,7 +234,7 @@ try {
 
   <script>window.SAVETAX_ESTIMATE = <?= json_encode($savetaxEstimate, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/savetax-plan-v4.js?v=15" defer></script>
+  <script src="/pages/js/savetax-plan-v4.js?v=17" defer></script>
   <!-- Cookie consent — persisted via localStorage; the SPA register step reuses it. -->
   <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 

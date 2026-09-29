@@ -41,6 +41,7 @@ use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
@@ -1118,7 +1119,16 @@ final class OnboardingChatDirector
             $effectiveState['prompt_text'] = $state['reprompt_text'];
         }
 
-        $promptText = OnboardingStateMachine::resolvePromptText($effectiveState, $user, '', $conversation);
+        // A funnel arrival's first turn opens with the recap of what they told
+        // the funnel, in front of whichever state that turn is (Rule 20: the
+        // one recap, every state, every surface). Resolved before this turn
+        // saves anything, since the first save is what marks it delivered.
+        $recapLeadIn = OnboardingStateMachine::funnelRecapLeadIn($user, $conversation, $stateId);
+        $withRecap = static fn (string $text): string => $recapLeadIn === null
+            ? $text
+            : trim($recapLeadIn.OnboardingStateMachine::BUBBLE_BREAK.$text);
+
+        $promptText = $withRecap(OnboardingStateMachine::resolvePromptText($effectiveState, $user, '', $conversation));
         $layoutMode = (string) ($state['layout'] ?? 'wide');
         $skipLink = $state['skip_link'] ?? null;
 
@@ -1171,6 +1181,7 @@ final class OnboardingChatDirector
                 if ($this->reenteredFromLoopQuestion($conversation, $stateId)) {
                     $formPromptText = '';
                 }
+                $formPromptText = $withRecap($formPromptText);
                 // A form turn is one bubble above the form, so a BUBBLE_BREAK in
                 // its lead-in (the funnel recap) becomes a paragraph break here.
                 // Left in, the control character rendered as a box on iOS
@@ -1225,6 +1236,8 @@ final class OnboardingChatDirector
             // stating the cap. The cap line alone, straight after a save, read
             // as "your pensions were not added". Read back from the records,
             // so it is true however the step was reached.
+            // One bubble above the choices, as on a form turn.
+            $promptText = str_replace(OnboardingStateMachine::BUBBLE_BREAK, "\n\n", $promptText);
             $onFile = $this->recordsOnFileAtLoop($user, $stateId);
             $cap = $this->capReachedAtLoop($user, $stateId);
             if ($cap !== null) {
@@ -1245,9 +1258,19 @@ final class OnboardingChatDirector
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $event['skip_link'] = $skipLink;
             }
+            // Chips toggle and submit together (M4): the flag rides the live
+            // event and the stored row, so a resumed conversation renders the
+            // step the same way. Wire format: OnboardingStateMachine::matchBubbles.
+            $multiSelect = OnboardingStateMachine::isMultiSelect($stateId);
+            if ($multiSelect) {
+                $event['multi_select'] = true;
+            }
             yield $event;
 
             $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
+            if ($multiSelect) {
+                $metadata['multi_select'] = true;
+            }
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
@@ -1687,7 +1710,9 @@ final class OnboardingChatDirector
                 && ! str_contains($title, '£'.$savingFormatted)
                 ? sprintf(' — saves around £%s a year', $savingFormatted)
                 : '';
-            $bullets[] = sprintf('- %s%s', $title, $savingText);
+            // Alternatives say so, so the bullets never read as all to do or
+            // as adding up to more than the total below (L3-3).
+            $bullets[] = '- '.StrategyPlanComposer::withAlternativesNote($title.$savingText, $item, '. ');
         }
 
         if ($bullets === []) {
@@ -1902,11 +1927,29 @@ final class OnboardingChatDirector
         $turnType = $state['turn_type'] ?? 'free_text';
 
         if ($turnType === 'bubbles') {
+            $stateId = $this->resolveStateId($state);
+
+            // A multi-select state takes every pick named in one message; the
+            // captured value is the list of ids (the submit bubble included,
+            // so the transition sees it).
+            if (OnboardingStateMachine::isMultiSelect($stateId)) {
+                $ids = OnboardingStateMachine::matchBubbles($stateId, $message);
+                if ($ids === []) {
+                    return [
+                        'ok' => false,
+                        'retry_text' => "Sorry, I didn't catch that. Please pick from the options above.",
+                    ];
+                }
+
+                return [
+                    'ok' => true,
+                    'captured_value' => $ids,
+                    'answer_for_transition' => $message,
+                ];
+            }
+
             // Find the matching bubble by label/id/substring.
-            $bubbleId = OnboardingStateMachine::matchBubble(
-                $this->resolveStateId($state),
-                $message
-            );
+            $bubbleId = OnboardingStateMachine::matchBubble($stateId, $message);
             if ($bubbleId === null) {
                 return [
                     'ok' => false,
@@ -2598,15 +2641,20 @@ final class OnboardingChatDirector
         // Save Tax funnel questions asked in chat (CSJ 2026-09-25): write the
         // answer into funnel_answers in the funnel page's own vocabulary so
         // FunnelAnswersMapper and every funnel-keyed skip read it unchanged.
-        if (isset(OnboardingStateMachine::FUNNEL_STATES[$stateId]) && is_string($capturedValue) && $capturedValue !== '') {
+        if (isset(OnboardingStateMachine::FUNNEL_STATES[$stateId])
+            && ((is_string($capturedValue) && $capturedValue !== '') || (is_array($capturedValue) && $capturedValue !== []))) {
             $key = OnboardingStateMachine::FUNNEL_STATES[$stateId];
             $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
             // Keep the campaign the user arrived on (their acquisition record).
             $funnel['campaign'] ??= $user->onboarding_fyn_selection ?? 'savetax';
             if ($key === 'assets') {
+                // Every pick a multi-select submission names (M4), or an
+                // older client's single tap; the submit bubble is not an asset.
                 $assets = (array) ($funnel['assets'] ?? []);
-                if ($capturedValue !== 'done' && ! in_array($capturedValue, $assets, true)) {
-                    $assets[] = $capturedValue;
+                foreach ((array) $capturedValue as $picked) {
+                    if ($picked !== OnboardingStateMachine::MULTI_SELECT_SUBMIT && ! in_array($picked, $assets, true)) {
+                        $assets[] = $picked;
+                    }
                 }
                 $funnel['assets'] = $assets;
             } else {
@@ -3807,11 +3855,13 @@ final class OnboardingChatDirector
         }
         $entered = '£'.number_format($mismatch['entered']);
 
+        // "No income" is not a range to be "in" (Brett 2026-09-29).
+        $none = $mismatch['band'] === 'zero';
         if ($mismatch['field'] === 'spouse') {
-            $whose = "your spouse's income was {$bandLabel}";
+            $whose = $none ? 'your spouse has no income' : "your spouse's income was {$bandLabel}";
             $question = "is {$entered} right for them?";
         } else {
-            $whose = "your income was {$bandLabel}";
+            $whose = $none ? 'you have no income' : "your income was {$bandLabel}";
             $question = "is {$entered} right?";
         }
 
@@ -4109,6 +4159,15 @@ PROMPT;
             $this->recordProgress($user, $currentStateId, ['selection' => (string) ($user->onboarding_fyn_selection ?? 'savetax'), 'raw_message' => mb_substr($message, 0, 500)]);
             yield ['type' => 'done', 'message_id' => $saved->id];
 
+            return;
+        }
+
+        // The same funnel-band cross-check a typed income answer gets (Rule 20).
+        // Without it, web and /m, which both answer by form, took "6500"
+        // against the £100,001 to £125,140 band unchallenged (found 2026-09-29).
+        $user->refresh();
+        $challenged = yield from $this->maybeChallengeIncome($user, $conversation, $currentStateId, $inputs[CaptureForms::LEAD] ?? []);
+        if ($challenged) {
             return;
         }
 
@@ -7259,6 +7318,13 @@ PROMPT;
      * wording of the description itself.
      */
     public static function voiceStrategyItem(array $item): string
+    {
+        // One of a set of alternatives carries the composer's sentence naming
+        // the others and which one the total counts (L3-3).
+        return StrategyPlanComposer::withAlternativesNote(self::voiceStrategyText($item), $item);
+    }
+
+    private static function voiceStrategyText(array $item): string
     {
         $title = rtrim(trim((string) ($item['title'] ?? '')), '.');
         $desc = trim((string) ($item['description'] ?? ''));

@@ -25,6 +25,7 @@ use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Estate\WillTypePolicy;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
@@ -671,6 +672,7 @@ GROUNDING;
             'key_figure' => isset($card['key_figure']) ? [trim(implode(' ', array_map('strval', (array) $card['key_figure'])))] : [],
             'how_to' => (array) $card['how_to'],
             'overlap' => [(string) ($card['conflict_note'] ?? '')],
+            'alternatives' => [StrategyPlanComposer::alternativesNoteOf($card) ?? ''],
         ];
         foreach ($fields as $label => $values) {
             $values = array_values(array_filter(array_map('strval', $values), fn (string $v): bool => trim($v) !== ''));

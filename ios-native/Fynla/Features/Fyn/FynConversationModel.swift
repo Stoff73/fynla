@@ -305,6 +305,32 @@ final class FynConversationModel {
         }
 
         guard phase == .idle, let conversationID else { return }
+
+        // A multi-select step (M4): a reply toggles locally, and the submit
+        // reply sends every pick as ONE message (FynMultiSelect wire format).
+        if let index = reduction.messages.lastIndex(where: { message in
+            message.multiSelect && message.replies.contains(where: { $0.id == reply.id })
+        }) {
+            let message = reduction.messages[index]
+            if FynMultiSelect.isToggleable(reply) {
+                reduction.messages[index].selectedReplyIDs = FynMultiSelect.toggling(
+                    reply.id,
+                    in: message.selectedReplyIDs
+                )
+                return
+            }
+            if FynMultiSelect.isSubmit(reply) {
+                let text = FynMultiSelect.message(
+                    replies: message.replies,
+                    selected: message.selectedReplyIDs,
+                    submit: reply
+                )
+                consumeReplies()
+                await send(text)
+                return
+            }
+        }
+
         consumeReplies()
 
         if reply.isAction {
@@ -419,6 +445,8 @@ final class FynConversationModel {
             updateMessage(id: localID, delivery: .submitting)
         }
 
+        let messageCountBeforeReply = reduction.messages.count
+
         do {
             let id = try await ensureConversation()
             switch try await client.sendMessage(
@@ -448,6 +476,14 @@ final class FynConversationModel {
         } catch FynClientError.acceptanceUncertain {
             updateMessage(id: localID, delivery: .failed)
             phase = .acceptanceUncertain
+        } catch FynClientError.interrupted {
+            // A cut-off reply is not an answer: drop what streamed and offer
+            // the question again through the usual retry.
+            if reduction.messages.count > messageCountBeforeReply {
+                reduction.messages.removeSubrange(messageCountBeforeReply...)
+            }
+            updateMessage(id: localID, delivery: .failed)
+            handle(FynClientError.interrupted)
         } catch {
             updateMessage(id: localID, delivery: .failed)
             handle(error)
@@ -600,6 +636,8 @@ final class FynConversationModel {
             phase = .consentRequired
         case FynClientError.authExpired:
             phase = .sessionExpired
+        case FynClientError.interrupted:
+            phase = .failed("Sorry, my reply was cut off before I finished. Please try again.")
         case let FynClientError.contextualResourceUnavailable(destination):
             phase = .contextualResourceUnavailable(destination)
         case let FynClientError.unexpectedStatus(_, requestID):

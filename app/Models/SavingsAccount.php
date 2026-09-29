@@ -8,6 +8,7 @@ use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -99,6 +100,34 @@ class SavingsAccount extends Model
     {
         return $this->account_type === 'junior_isa'
             || in_array((string) $this->isa_type, ['junior', 'junior_isa'], true);
+    }
+
+    /**
+     * The one predicate for "the holder's own Cash ISA" (Rule 20). Fyn's capture form
+     * writes it as account_type 'cash_isa' with no isa_type; the web form writes
+     * isa_type 'cash' beside a generic account_type. Reading only isa_type told a
+     * user who already had a Cash ISA to open one (SaveTax run 29 Sep 2026, L2).
+     * A Junior ISA or Lifetime ISA is never the holder's Cash ISA, whatever its
+     * isa_type says.
+     */
+    public function isCashIsa(): bool
+    {
+        return (bool) $this->is_isa
+            && ($this->account_type === 'cash_isa'
+                || ($this->isa_type === 'cash' && ! in_array($this->account_type, ['junior_isa', 'lifetime_isa'], true)));
+    }
+
+    /** The query form of isCashIsa(); the two must stay the same rule. */
+    public function scopeCashIsa(Builder $query): Builder
+    {
+        return $query->where('is_isa', true)
+            ->where(function (Builder $q): void {
+                $q->where('account_type', 'cash_isa')
+                    ->orWhere(function (Builder $w): void {
+                        $w->where('isa_type', 'cash')
+                            ->whereNotIn('account_type', ['junior_isa', 'lifetime_isa']);
+                    });
+            });
     }
 
     public function getAnnualInterestAttribute(): float

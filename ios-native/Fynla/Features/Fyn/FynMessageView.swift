@@ -37,7 +37,12 @@ struct FynMessageView: View {
             }
 
             if !message.replies.isEmpty {
-                FynQuickRepliesView(replies: message.replies, onReply: onReply)
+                FynQuickRepliesView(
+                    replies: message.replies,
+                    multiSelect: message.multiSelect,
+                    selectedIDs: message.selectedReplyIDs,
+                    onReply: onReply
+                )
             }
         }
         // /m defines no .md-fyn__msg--user rule, so user messages render

@@ -37,6 +37,13 @@ return [
     // campaign modelling assumption, deliberately separate from tax constants.
     'savetax_over_band_assumed_income' => 150000,
 
+    // The /savetax ISA line prices the interest on savings the funnel never
+    // asks about: it assumes the user holds savings worth this share of their
+    // (band-assumed) income. A campaign modelling assumption like the one
+    // above, not a tax constant; the plan's IsaTopUpStrategy uses real
+    // balances instead, so there is nothing to share with the engine.
+    'savetax_isa_assumed_savings_share' => 0.10,
+
     /*
     |--------------------------------------------------------------------------
     | Entry-source journey map (INV-2.2.5)

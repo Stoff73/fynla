@@ -56,6 +56,7 @@ use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
 use App\Services\AI\WriteIntentClassifier;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -63,6 +64,7 @@ use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Estate\WillDocumentService;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\Expenditure\HouseholdExpenditureWriter;
@@ -555,7 +557,10 @@ class CoordinatingAgent extends BaseAgent
                 $investmentResult = $raw;
                 $investmentRecs = [];
 
-                if (($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
+                // A readiness-blocked analysis now carries the portfolio facts (M3,
+                // 29 Sep 2026) but no analysis; it still earns no recommendations.
+                if (($investmentResult['can_proceed'] ?? true) !== false
+                    && ($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
                     try {
                         $recsResult = $this->investmentAgent->generateRecommendations($investmentResult);
                         $investmentRecs = $recsResult['recommendations'] ?? [];
@@ -624,6 +629,9 @@ class CoordinatingAgent extends BaseAgent
                             'claim_tier' => $item['claim_tier'] ?? null,
                             'sequence_position' => $item['sequence_position'] ?? null,
                             'conflict_note' => $item['conflict_note'] ?? null,
+                            // Which items are a choice, from both ends (L3-3).
+                            'counted_in_total' => (bool) ($item['counted_in_total'] ?? true),
+                            'alternatives_note' => StrategyPlanComposer::alternativesNoteOf($item),
                             'requires_advice' => (bool) ($item['requires_advice'] ?? false),
                             'definition_key' => isset($item['type']) ? 'strategy_'.$item['type'] : null,
                         ];
@@ -1276,8 +1284,8 @@ class CoordinatingAgent extends BaseAgent
             ]);
 
             return ['error' => true, 'error_type' => 'database_error', 'message' => 'Unable to save the record. Please try again.'];
-        } catch (\Exception $e) {
-            Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'exception' => $e::class, 'error' => $e->getMessage()]);
             $this->appendAuditEvent([
                 'user_id' => $user->id,
                 'conversation_id' => $conversationId,
@@ -5796,6 +5804,15 @@ class CoordinatingAgent extends BaseAgent
         unset($allowed['spouse_psa_band']);
         if ($spouseIncome !== null) {
             $allowed['spouse_psa_band'] = app(TaxStrategyMath::class)->bandFromIncome($spouseIncome + $spouseDividends);
+        }
+
+        // The funnel's answer about the partner's work, when nothing has
+        // recorded it yet.
+        if (! array_key_exists('spouse_employment_status', $allowed) && $existing?->spouse_employment_status === null) {
+            $fromFunnel = FunnelAnswersMapper::spouseEmploymentStatus($user);
+            if ($fromFunnel !== null) {
+                $allowed['spouse_employment_status'] = $fromFunnel;
+            }
         }
 
         TaxStrategyHouseholdInput::updateOrCreate(

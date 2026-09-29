@@ -114,20 +114,21 @@ it('marks Marriage Allowance unavailable on the allowance grid when the statutor
 
 it('does not count the transferred Marriage Allowance twice in the funnel estimate', function () {
     // The £1,260 transferred under s55B(6) leaves the spouse's Personal
-    // Allowance, so the "use your spouse's Personal Allowance" line can only
-    // use what is left.
+    // Allowance. The funnel no longer prices the rest of that allowance as if
+    // salary could be moved into it (29 Sep 2026, F1), so Marriage Allowance
+    // is the only line drawing on it, counted once at the basic rate.
     $estimate = app(SaveTaxEstimateService::class)->estimate([
         'income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => ['savings'],
     ]);
     $lines = collect($estimate['savings'])->keyBy('key');
-    $rate = $estimate['marginal_rate'];
     $ma = app(TaxStrategyMath::class)->marriageAllowanceAmount();
 
-    expect($lines->has('marriage_allowance'))->toBeTrue()
-        ->and($lines['spouse_pa']['amount'])->toBe((int) round((accPa() - $ma) * $rate));
+    expect($lines->has('spouse_pa'))->toBeFalse()
+        ->and($lines->where('key', 'marriage_allowance'))->toHaveCount(1)
+        ->and($lines['marriage_allowance']['amount'])->toBe((int) floor($ma * accBasic()));
 });
 
-it('sizes the higher-rate pension item without the interest the ISA wrap already shelters', function () {
+it('sizes the higher-rate pension item on today\'s income; the ISA wrap is priced after it (pension first, 29 Sep 2026)', function () {
     $user = User::factory()->create([
         'household_calculation_mode' => 'single',
         'employment_status' => 'employed',
@@ -142,13 +143,17 @@ it('sizes the higher-rate pension item without the interest the ISA wrap already
 
     $recs = accRecs($user);
     $math = app(TaxStrategyMath::class);
-    $sheltered = (float) $recs['isa_topup_vs_psa']['taxable_interest_sheltered'];
     // The Personal Savings Allowance is a 0% rate (ITA 2007 s12B), so the
     // interest it covers is not part of the slice taxed at the higher rate.
-    $slice = $math->taxableIncomeFor($user) - $sheltered - $math->bandThresholdsFor($user)['higher']
+    $slice = $math->taxableIncomeFor($user) - $math->bandThresholdsFor($user)['higher']
         - $math->psaForBand('higher');
+    $contribution = floor($slice / 100) * 100;
+    $wrapped = (float) $recs['isa_topup_vs_psa']['interest_removed_from_income'];
 
-    expect($recs['pension_tax_relief']['suggested_contribution'])->toBe((float) (floor($slice / 100) * 100));
+    expect($recs['pension_tax_relief']['suggested_contribution'])->toBe((float) $contribution)
+        // The wrap saves only what is still taxed once the pension is paid.
+        ->and($recs['isa_topup_vs_psa']['estimated_annual_tax_saved'])
+        ->toBe(floor($math->interestRemovalSaving($user, $wrapped, 0.0, $contribution)));
 });
 
 it('reads the pension relief age limit from the tax configuration (FA 2004 s188(3)(a))', function () {

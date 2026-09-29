@@ -178,9 +178,29 @@ class NextActionsService
             'key' => 'top',
             'label' => 'Top actions',
             'locked' => false,
-            'stat' => count($top).' action'.(count($top) === 1 ? '' : 's'),
+            'stat' => self::actionCount(count($top)),
             'actions' => $top,
         ]], $this->moduleCards($recItems, $unlocks));
+    }
+
+    /**
+     * The line under a focus-area card's label: the lead action's meta, or the
+     * count when that meta is empty. A category that is not a topic ("Warning")
+     * gives an empty meta since #967, and the card read "Estate Planning" over a
+     * blank line (SaveTax run 29 Sep 2026, L5). Web's statFor already fell back.
+     *
+     * @param  array<int,array<string,mixed>>  $items
+     */
+    public static function cardStat(array $items): string
+    {
+        $meta = trim((string) ($items[0]['meta'] ?? ''));
+
+        return $meta !== '' ? $meta : self::actionCount(count($items));
+    }
+
+    private static function actionCount(int $n): string
+    {
+        return $n.' action'.($n === 1 ? '' : 's');
     }
 
     /**
@@ -249,7 +269,7 @@ class NextActionsService
                 'key' => $module,
                 'label' => $label,
                 'locked' => false,
-                'stat' => (string) ($items[0]['meta'] ?? (count($items).' actions')),
+                'stat' => self::cardStat($items),
                 'actions' => $items,
             ];
         }

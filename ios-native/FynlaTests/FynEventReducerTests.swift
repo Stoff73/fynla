@@ -39,6 +39,27 @@ struct FynEventReducerTests {
     }
 
     @Test
+    func decodesTheMultiSelectFlagOnQuickReplies() throws {
+        let frame = #"{"type":"quick_replies","prompt_text":"Which of these do you have?","bubbles":[{"id":"isa","label":"ISA"},{"id":"done","label":"That's everything"}],"multi_select":true}"#
+        let event = try FynEventDecoder().decode(SSEEvent(id: nil, event: nil, data: frame))
+        #expect(event == .quickReplies(
+            prompt: "Which of these do you have?",
+            replies: [
+                FynReply(id: "isa", label: "ISA", route: nil, isAction: false),
+                FynReply(id: "done", label: "That's everything", route: nil, isAction: false),
+            ],
+            actionReplies: false,
+            multiSelect: true
+        ))
+
+        var state = FynReductionState()
+        var reducer = FynEventReducer()
+        reducer.reduce(event, into: &state)
+        #expect(state.messages.last?.multiSelect == true)
+        #expect(state.messages.last?.selectedReplyIDs == [])
+    }
+
+    @Test
     func captureOnlyBecomesConfirmedOnCaptureComplete() throws {
         var state = FynReductionState()
         var reducer = FynEventReducer()
