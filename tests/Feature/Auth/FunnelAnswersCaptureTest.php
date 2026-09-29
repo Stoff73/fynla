@@ -174,6 +174,16 @@ it('accepts registration when funnel_answers is omitted (direct signup)', functi
     expect($pending->funnel_answers)->toBeNull();
 });
 
+it('accepts "No income" for the user\'s own income, as it already did for the spouse (F3)', function () {
+    $this->postJson('/api/auth/register', funnelPayload([
+        'email' => 'funnel-no-income@example.com',
+        'funnel_answers' => ['employment' => 'not-employed', 'income' => 'zero', 'spouse' => 'no'],
+    ]))->assertStatus(201);
+
+    $pending = PendingRegistration::where('email', 'funnel-no-income@example.com')->first();
+    expect($pending->funnel_answers['income'])->toBe('zero');
+});
+
 it('rejects funnel_answers when it is not an array', function () {
     $this->postJson('/api/auth/register', funnelPayload([
         'email' => 'funnel-bad@example.com',

@@ -180,6 +180,15 @@ try {
         <h2 class="qr-q" id="q2-heading" tabindex="-1">What is your annual income?</h2>
         <p class="qr-q-sub">Your gross income before tax, including salary, self-employment, and pension income.</p>
         <div class="qr-options" role="group" aria-label="Annual income options">
+          <button type="button" class="qr-opt" data-value="zero" aria-pressed="false">
+            <span class="qr-opt__label">No income</span>
+            <span class="qr-opt__check" aria-hidden="true">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+          </button>
+
           <button type="button" class="qr-opt" data-value="upto_50270" aria-pressed="false">
             <span class="qr-opt__label"><?= htmlspecialchars($incomeBandLabels['upto_50270'], ENT_QUOTES) ?></span>
             <span class="qr-opt__check" aria-hidden="true">

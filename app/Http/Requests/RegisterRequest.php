@@ -12,11 +12,11 @@ class RegisterRequest extends FormRequest
 {
     private const EMPLOYMENT_VALUES = ['not-employed', 'part-time', 'full-time', 'self-employed', 'retired'];
 
-    private const INCOME_VALUES = ['upto_50270', '50271_100000', '100001_125140', 'over_125140'];
+    private const INCOME_VALUES = ['zero', 'upto_50270', '50271_100000', '100001_125140', 'over_125140'];
 
     private const SPOUSE_VALUES = ['yes', 'no'];
 
-    private const SPOUSE_INCOME_VALUES = ['zero', ...self::INCOME_VALUES];
+    private const SPOUSE_INCOME_VALUES = self::INCOME_VALUES;
 
     private const ASSET_VALUES = ['bank', 'savings', 'pension', 'property', 'isa', 'investments'];
 

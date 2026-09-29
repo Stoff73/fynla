@@ -34,18 +34,26 @@ function lineAmount(array $result, string $key): int
 it('computes pension relief per band (no existing pension)', function () {
     $assets = ['savings']; // financial but no pension
 
-    expect(lineAmount($this->service->estimate(['income' => 'upto_50270', 'assets' => $assets]), 'pension'))->toBe(1005)
+    // Basic: a tenth of £50,270, rounded down to £5,000 (the engine never
+    // rounds up), at 20% = £1,000. Higher: £10,000 at 40% = £4,000.
+    // Additional (£150,000 assumed): the engine's additional-rate sizing fills
+    // the £60,000 Annual Allowance. Tax on £150,000 (no allowance) is
+    // £7,540 + £34,976 + £11,187 = £53,703; on £90,000 (allowance back) it is
+    // £7,540 + £15,892 = £23,432; the contribution saves £30,271.
+    expect(lineAmount($this->service->estimate(['income' => 'upto_50270', 'assets' => $assets]), 'pension'))->toBe(1000)
         ->and(lineAmount($this->service->estimate(['income' => '50271_100000', 'assets' => $assets]), 'pension'))->toBe(4000)
-        ->and(lineAmount($this->service->estimate(['income' => 'over_125140', 'assets' => $assets]), 'pension'))->toBe(6750);
+        ->and(lineAmount($this->service->estimate(['income' => 'over_125140', 'assets' => $assets]), 'pension'))->toBe(30271);
 });
 
 it('computes the exact 60% trap relief for the £100k-£125,140 band', function () {
-    // £125,140 income, contribute £25,140 to clear to £100k: 20% at source
-    // (£5,028) + income-tax fall (£10,056) = £15,084.
+    // £125,140 income; the engine rounds the contribution down to £25,100.
+    // Tax on £125,140 (no allowance): £7,540 + £34,976 = £42,516. On £100,040
+    // (allowance £12,550, taxable £87,490): £7,540 + £19,916 = £27,456.
+    // Saving £15,060.
     $result = $this->service->estimate(['income' => '100001_125140', 'assets' => ['savings']]);
 
     // Surfaced as a distinct "60% Tax Trap" line (not the generic pension line).
-    expect(lineAmount($result, 'tax_trap_60'))->toBe(15084)
+    expect(lineAmount($result, 'tax_trap_60'))->toBe(15060)
         ->and(lineAmount($result, 'pension'))->toBe(0);
 });
 
@@ -177,18 +185,81 @@ it('drops the Personal Savings Allowance saving at additional rate', function ()
     expect(lineAmount($result, 'psa'))->toBe(0);
 });
 
-it('adds spouse-transfer levers when the spouse earns nothing', function () {
+it('never prices a spouse allowance as if salary could be moved into it (F1, L3-1)', function () {
+    // Salary is taxed on the employee (ITEPA 2003 s62) and the plan engine
+    // never produces these figures, so the funnel must not promise them.
+    foreach (['upto_50270', '50271_100000', '100001_125140'] as $band) {
+        $result = $this->service->estimate([
+            'income' => $band,
+            'spouse' => 'yes',
+            'spouseIncome' => 'zero',
+            'assets' => ['savings', 'bank'],
+        ]);
+
+        expect(lineAmount($result, 'spouse_pa'))->toBe(0, $band)
+            ->and(lineAmount($result, 'spouse_psa'))->toBe(0, $band)
+            ->and(lineAmount($result, 'spouse_starting_rate'))->toBe(0, $band);
+    }
+
+    // The £110k-couple case from the 29 Sep run: £125,140 at the band top,
+    // non-earning spouse. Only the trap line and the ISA line remain.
+    $trapCouple = $this->service->estimate([
+        'income' => '100001_125140', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => [],
+    ]);
+    expect($trapCouple['savings_total'])->toBe(15060)
+        ->and($trapCouple['partner_savings_total'])->toBe(0);
+});
+
+it('caps a retired or not-employed user at the non-earner pension limit (F2)', function () {
+    // FA 2004 s190: relief on the greater of relevant earnings and £3,600.
+    // A pension or rent is not relevant earnings. £2,880 net, £720 relief.
+    foreach (['retired', 'not-employed'] as $employment) {
+        $result = $this->service->estimate(['employment' => $employment, 'income' => 'upto_50270', 'assets' => []]);
+        expect(lineAmount($result, 'pension'))->toBe(720, $employment);
+    }
+
+    // No income at all: basic-rate relief is still added at source (s192).
+    expect(lineAmount($this->service->estimate(['income' => 'zero', 'assets' => []]), 'pension'))->toBe(720);
+
+    // A higher-rate retiree gets higher-rate relief on the £3,600 too:
+    // £3,600 at 40% = £1,440.
+    expect(lineAmount($this->service->estimate(['employment' => 'retired', 'income' => '50271_100000', 'assets' => []]), 'pension'))->toBe(1440);
+
+    // Part-time and self-employed income is earnings: no cap.
+    foreach (['part-time', 'self-employed', 'full-time'] as $employment) {
+        $result = $this->service->estimate(['employment' => $employment, 'income' => 'upto_50270', 'assets' => []]);
+        expect(lineAmount($result, 'pension'))->toBe(1000, $employment);
+    }
+});
+
+it("prices a partner's 60% tax trap on their own card (F3)", function () {
     $result = $this->service->estimate([
-        'income' => '50271_100000', // primary higher-rate, 40%
+        'employment' => 'not-employed',
+        'income' => 'zero',
         'spouse' => 'yes',
-        'spouseIncome' => 'zero',
+        'spouseIncome' => '100001_125140',
         'assets' => [],
     ]);
 
-    expect(lineAmount($result, 'spouse_pa'))->toBe(5028)            // £12,570 × 40%
-        ->and(lineAmount($result, 'spouse_psa'))->toBe(400)        // £1,000 × 40%
-        ->and(lineAmount($result, 'spouse_starting_rate'))->toBe(2000) // £5,000 × 40%
-        ->and(lineAmount($result, 'marriage_allowance'))->toBe(0);     // higher-rate recipient is NOT eligible
+    // Same arithmetic as the user's own trap line: £25,100 saves £15,060.
+    expect(lineAmount($result, 'spouse_tax_trap_60'))->toBe(15060)
+        ->and($result['partner_savings_total'])->toBe(15060)
+        ->and(lineAmount($result, 'pension'))->toBe(720)
+        ->and($result['savings_total'])->toBe(15780);
+});
+
+it('says which income the headline assumes', function () {
+    $banded = $this->service->estimate(['income' => '100001_125140', 'assets' => []]);
+    $open = $this->service->estimate(['income' => 'over_125140', 'assets' => []]);
+    $none = $this->service->estimate(['income' => 'zero', 'assets' => []]);
+
+    expect($banded['assumed_income'])->toBe(125140)
+        ->and($banded['assumed_income_basis'])->toBe('band_top')
+        // The top band has no top: its figure is the configured example.
+        ->and($open['assumed_income'])->toBe((int) config('onboarding.savetax_over_band_assumed_income'))
+        ->and($open['assumed_income_basis'])->toBe('example')
+        ->and($none['assumed_income'])->toBe(0)
+        ->and($none['assumed_income_basis'])->toBe('none');
 });
 
 it('omits the "automatically used" note from the spouse Personal Allowance card', function () {
@@ -216,6 +287,16 @@ it('offers Marriage Allowance only to a basic-rate recipient with a £0 spouse',
 
     $higher = $this->service->estimate(['income' => '50271_100000', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
     expect(lineAmount($higher, 'marriage_allowance'))->toBe(0);
+
+    // The other way round: the user has no income, the partner pays basic rate.
+    $reverse = $this->service->estimate(['income' => 'zero', 'spouse' => 'yes', 'spouseIncome' => 'upto_50270', 'assets' => []]);
+    expect(lineAmount($reverse, 'marriage_allowance'))->toBe(252)
+        ->and(itemOn($reverse, 'marriage_allowance'))->toBeTrue();
+
+    // Neither pays tax: nothing to transfer to.
+    $neither = $this->service->estimate(['income' => 'zero', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
+    expect(lineAmount($neither, 'marriage_allowance'))->toBe(0)
+        ->and(itemOn($neither, 'marriage_allowance'))->toBeFalse();
 });
 
 it('derives Marriage Allowance tax saving from the configured basic rate', function () {
@@ -382,6 +463,7 @@ function hasSaving(array $result, string $key): bool
 
 it('highlights the correct allowances and keeps the math consistent for every possible answer', function () {
     $bands = [
+        'zero' => 0,
         'upto_50270' => 50270,
         '50271_100000' => 100000,
         '100001_125140' => 125140,
@@ -442,7 +524,7 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 // Personal Allowance: greyed for a working earner (auto-used).
                 // The funnel's taper band maps to the exact upper boundary,
                 // where pension action can restore the currently-zero amount.
-                expect(itemOn($r, 'personal_allowance'))->toBe($isTrap, "PA gating wrong [$label]");
+                expect(itemOn($r, 'personal_allowance'))->toBe($isTrap || $income === 0, "PA gating wrong [$label]");
                 expect(itemOn($r, 'isa'))->toBeTrue("ISA must always show [$label]");
                 // Pension Annual Allowance is always shown — a worker gets £60k.
                 expect(itemOn($r, 'pension_aa'))->toBeTrue("Pension AA must always show [$label]");
@@ -461,7 +543,9 @@ it('highlights the correct allowances and keeps the math consistent for every po
 
                 // Marriage Allowance: only present (and only "on") when married,
                 // spouse earns £0, and the recipient is basic-rate.
-                $marriageEligible = $married && $spouseOpt === 'zero' && $primaryBasic;
+                $pays = fn (int $amount): bool => $amount > 12570 && $amount <= 50270;
+                $spouseIncome = ['zero' => 0, 'upto_50270' => 50270, '50271_100000' => 100000, '100001_125140' => 125140, 'over_125140' => 150000][$spouseOpt ?? 'zero'];
+                $marriageEligible = $married && (($spouseOpt === 'zero' && $pays($income)) || ($income === 0 && $pays($spouseIncome)));
                 if ($married) {
                     expect(itemOn($r, 'marriage_allowance'))->toBe($marriageEligible, "MA eligibility wrong [$label]");
                     // Spouse Personal Allowance: shown for a non-earner and at
@@ -500,12 +584,10 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 // --- Saving-line presence correctness ---
                 // In the trap band the pension lever is surfaced as tax_trap_60.
                 // Whether or not a pension is held (CSJ 2026-09-26).
-                expect(hasSaving($r, 'pension'))->toBe(! $isTrap && $income > 0, "pension saving presence wrong [$label]");
+                expect(hasSaving($r, 'pension'))->toBe(! $isTrap, "pension saving presence wrong [$label]");
                 expect(hasSaving($r, 'tax_trap_60'))->toBe($isTrap, "trap saving presence wrong [$label]");
-                // A working band never promises "up to £0".
-                if ($income > 0) {
-                    expect($r['savings_total'])->toBeGreaterThan(0, "zero headline saving [$label]");
-                }
+                // No answer ever promises "up to £0".
+                expect($r['savings_total'])->toBeGreaterThan(0, "zero headline saving [$label]");
                 if (hasSaving($r, 'isa')) {
                     expect($hasFinancial)->toBeTrue("ISA saving without savings [$label]");
                 }
@@ -513,16 +595,17 @@ it('highlights the correct allowances and keeps the math consistent for every po
                 expect(hasSaving($r, 'dividend'))->toBeFalse("dividend allowance is automatic, not a saving [$label]");
                 expect(hasSaving($r, 'cgt'))->toBeFalse("CGT allowance is automatic, not a saving [$label]");
 
-                $spouseZero = $married && $spouseOpt === 'zero';
-                expect(hasSaving($r, 'spouse_pa'))->toBe($spouseZero, "spouse_pa saving presence wrong [$label]");
-                expect(hasSaving($r, 'spouse_psa'))->toBe($spouseZero, "spouse_psa saving presence wrong [$label]");
-                expect(hasSaving($r, 'spouse_starting_rate'))->toBe($spouseZero, "spouse_starting_rate presence wrong [$label]");
+                // Salary cannot be moved to a spouse: never priced (F1).
+                expect(hasSaving($r, 'spouse_pa'))->toBeFalse("spouse_pa saving must not exist [$label]");
+                expect(hasSaving($r, 'spouse_psa'))->toBeFalse("spouse_psa saving must not exist [$label]");
+                expect(hasSaving($r, 'spouse_starting_rate'))->toBeFalse("spouse_starting_rate saving must not exist [$label]");
+                expect(hasSaving($r, 'spouse_tax_trap_60'))->toBe($spouseOpt === '100001_125140', "spouse trap presence wrong [$label]");
                 expect(hasSaving($r, 'marriage_allowance'))->toBe($marriageEligible, "MA saving presence wrong [$label]");
             }
         }
     }
 
-    expect($combos)->toBe(4 * 6 * 64); // 1,536 combinations exercised
+    expect($combos)->toBe(5 * 6 * 64); // 1,920 combinations exercised
 });
 
 // Azlan, 2026-09-18: the landing page shows how many allowances are available,

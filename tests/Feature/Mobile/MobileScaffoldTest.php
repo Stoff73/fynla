@@ -155,3 +155,10 @@ it('open-redirect guard: only same-origin campaign paths are framable', function
         ->and($guard('/'))->toBeFalse()
         ->and($guard('savetax'))->toBeFalse();        // must be rooted
 });
+
+it('sends a typed or shared /m/savetax to the Save Tax funnel with its answers', function () {
+    // /m/savetax was a 404 (29 Sep 2026 run); /savetax is the entry a phone
+    // is framed from.
+    get('/m/savetax')->assertRedirect('/savetax');
+    get('/m/savetax?income=zero&utm_source=ad')->assertRedirect('/savetax?income=zero&utm_source=ad');
+});
