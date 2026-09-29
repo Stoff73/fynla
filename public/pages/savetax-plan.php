@@ -49,6 +49,9 @@ if ($savetaxEstimateAvailable) {
     $savetaxBasis .= $savetaxPartnerTotal > 0
         ? ', and it includes £'.number_format($savetaxPartnerTotal).' from your partner\'s side. '
         : '. ';
+    // The plan engine prices England, Wales and Northern Ireland rates and does
+    // not model Scottish Income Tax bands, so neither does this (CSJ 2026-09-29).
+    $savetaxBasis .= 'It uses England, Wales and Northern Ireland Income Tax rates, not Scottish rates. ';
 }
 $savetaxAllowanceCount = $savetaxEstimateAvailable
     ? (int) ($savetaxEstimate['allowances']['available_count'] ?? 0).' of '.(int) ($savetaxEstimate['allowances']['count'] ?? 0)

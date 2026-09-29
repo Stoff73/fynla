@@ -50,7 +50,7 @@ it('renders the SaveTax estimate as an "up to" figure that names the income it a
         ->assertSee('An estimated saving of up to £', false)
         ->assertDontSee('average', false)
         ->assertSee('each year', false)
-        ->assertSee('Worked out for an income of £100,000, the top of the band you chose. Register for free and get your personalised tax strategy, worked out from your real figures.', false)
+        ->assertSee('Worked out for an income of £100,000, the top of the band you chose. It uses England, Wales and Northern Ireland Income Tax rates, not Scottish rates. Register for free and get your personalised tax strategy, worked out from your real figures.', false)
         ->assertSee('This is an illustrative estimate, not personal financial advice.', false)
         ->assertSee('Tax year', false);
 

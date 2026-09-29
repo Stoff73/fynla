@@ -509,10 +509,33 @@ class SaveTaxEstimateService
             'key' => 'marriage_allowance',
             'label' => 'Marriage Allowance',
             'amount' => $saving,
-            'reason' => $recipient === 'user'
+            'reason' => ($recipient === 'user'
                 ? 'As a basic-rate taxpayer you qualify: your partner can transfer '.$this->money($marriage).' of their Personal Allowance to you.'
-                : 'Your partner is a basic-rate taxpayer, so you can transfer '.$this->money($marriage).' of your Personal Allowance to them.',
+                : 'Your partner is a basic-rate taxpayer, so you can transfer '.$this->money($marriage).' of your Personal Allowance to them.')
+                .$this->scottishMarriageAllowanceCaveat($recipient, $recipientIncome),
         ];
+    }
+
+    /**
+     * The funnel prices England, Wales and Northern Ireland rates, as the plan
+     * engine does. A Scottish recipient may pay no more than the Scottish
+     * intermediate rate (ITA 2007 s55B(2)(b)), so above
+     * income_tax.marriage_allowance.scottish_recipient_upper_limit the line
+     * carries the same warning as the engine's how-to (ActionHowToFacts,
+     * action-how-to/tax.md) (CSJ 2026-09-29).
+     */
+    private function scottishMarriageAllowanceCaveat(string $recipient, int $recipientIncome): string
+    {
+        $limit = $this->taxConfig->get('income_tax.marriage_allowance.scottish_recipient_upper_limit');
+        if (! is_numeric($limit) || $recipientIncome <= (float) $limit) {
+            return '';
+        }
+
+        return ($recipient === 'user'
+            ? ' If you live in Scotland, this does not apply to you: '
+            : ' If your partner lives in Scotland, this does not apply: ')
+            .'there the person receiving it must pay no more than the Scottish intermediate rate, which usually means income up to '
+            .$this->money((int) round((float) $limit)).'.';
     }
 
     /**

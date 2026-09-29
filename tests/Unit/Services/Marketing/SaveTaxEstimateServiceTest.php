@@ -299,6 +299,46 @@ it('offers Marriage Allowance only to a basic-rate recipient with a £0 spouse',
         ->and(itemOn($neither, 'marriage_allowance'))->toBeFalse();
 });
 
+it('warns a Marriage Allowance recipient above the Scottish limit, as the engine how-to does', function () {
+    // The funnel prices rest-of-UK rates, as the plan engine does. A Scottish
+    // recipient may pay no more than the Scottish intermediate rate (ITA 2007
+    // s55B(2)(b)); income_tax.marriage_allowance.scottish_recipient_upper_limit
+    // is £43,662 (gov.uk/marriage-allowance/eligibility).
+    $reasonOf = fn (array $result): string => collect($result['savings'])->firstWhere('key', 'marriage_allowance')['reason'] ?? '';
+
+    // £50,270 recipient (the user), above £43,662.
+    $user = $this->service->estimate(['income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
+    expect($reasonOf($user))->toContain('If you live in Scotland, this does not apply to you')
+        ->and($reasonOf($user))->toContain('Scottish intermediate rate, which usually means income up to £43,662.')
+        ->and(lineAmount($user, 'marriage_allowance'))->toBe(252);
+
+    // £50,270 recipient (the partner).
+    $spouse = $this->service->estimate(['income' => 'zero', 'spouse' => 'yes', 'spouseIncome' => 'upto_50270', 'assets' => []]);
+    expect($reasonOf($spouse))->toContain('If your partner lives in Scotland, this does not apply')
+        ->and($reasonOf($spouse))->toContain('£43,662');
+});
+
+it('reads the Scottish Marriage Allowance limit from tax config, and says nothing at or below it', function () {
+    $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
+    $data = $configuration->config_data;
+    $data['income_tax']['marriage_allowance']['scottish_recipient_upper_limit'] = 50270;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+    app()->forgetInstance(SaveTaxEstimateService::class);
+
+    $atLimit = app(SaveTaxEstimateService::class)->estimate(['income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
+    $reason = collect($atLimit['savings'])->firstWhere('key', 'marriage_allowance')['reason'];
+    expect($reason)->not->toContain('Scotland');
+
+    $data['income_tax']['marriage_allowance']['scottish_recipient_upper_limit'] = 40000;
+    $configuration->update(['config_data' => $data]);
+    app()->forgetInstance(TaxConfigService::class);
+    app()->forgetInstance(SaveTaxEstimateService::class);
+
+    $moved = app(SaveTaxEstimateService::class)->estimate(['income' => 'upto_50270', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => []]);
+    expect(collect($moved['savings'])->firstWhere('key', 'marriage_allowance')['reason'])->toContain('income up to £40,000.');
+});
+
 it('derives Marriage Allowance tax saving from the configured basic rate', function () {
     $configuration = TaxConfiguration::where('is_active', true)->firstOrFail();
     $data = $configuration->config_data;
