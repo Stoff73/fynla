@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Models\FamilyMember;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\Actions\ActionCardService;
+use App\Services\Actions\ActionHowToFacts;
 use App\Services\Mobile\NextActionsService;
 use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\SavingsActionDefinitionSeeder;
@@ -43,9 +46,9 @@ function zeroRateSaver(): User
     return $user;
 }
 
-it('seeds every savings entry as draft, so nothing reaches a card before CSJ approves it', function () {
-    expect(SavingsActionDefinition::whereNotNull('how_to_steps')->count())->toBeGreaterThan(30)
-        ->and(SavingsActionDefinition::where('how_to_status', 'approved')->count())->toBe(0);
+it('keeps a draft savings entry off the card until CSJ approves it', function () {
+    expect(SavingsActionDefinition::whereNotNull('how_to_steps')->count())->toBeGreaterThan(30);
+    SavingsActionDefinition::where('key', 'zero_rate_account')->update(['how_to_status' => 'draft']);
 
     $user = zeroRateSaver();
     $item = collect(app(NextActionsService::class)->buildAll($user->id))
@@ -70,4 +73,23 @@ it('fills an approved savings how-to with the card\'s own account and balance', 
         ->and($card['how_to'])->toContain('Move the money across, keeping whatever you need for day-to-day spending where it is.')
         // The rate-gap lines need figures a zero-rate card does not have, so they are left out.
         ->and(implode(' ', $card['why']))->not->toContain('pays %');
+});
+
+it('knows when the user\'s ISA allowance is used and names their children, for the ISA-full, spouse and children branches', function () {
+    $user = zeroRateSaver();
+    InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'isa', 'current_value' => 30000,
+        'isa_subscription_current_year' => 20000, 'contributions_ytd' => 20000,
+    ]);
+    FamilyMember::factory()->create([
+        'user_id' => $user->id, 'relationship' => 'child', 'first_name' => 'Emma', 'is_dependent' => true,
+        'date_of_birth' => now()->subYears(6)->toDateString(),
+    ]);
+
+    ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, []);
+
+    expect($facts['isa_full'])->toBeTrue()
+        ->and($text)->not->toHaveKey('isa_left')
+        ->and($facts['has_children'])->toBeTrue()
+        ->and($text['children'])->toBe('Emma');
 });

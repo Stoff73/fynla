@@ -1191,6 +1191,10 @@ class SavingsActionDefinitionService
                 'market_rate' => number_format($marketRate, 2),
                 'rate_gap' => number_format($rateGap, 2),
                 'potential_gain' => $this->formatCurrency($potentialGain),
+                // Whose best-buy rate this is and when it was taken (RateComparator).
+                'market_label' => $comparison['comparison']['market_label'] ?? null,
+                'market_provider' => $comparison['comparison']['market_provider'] ?? null,
+                'market_as_of' => $comparison['comparison']['market_as_of'] ?? null,
             ];
 
             $rec = $this->buildRecommendation($definition, $vars + ['is_isa' => (bool) $account->is_isa], $priority);
@@ -1284,6 +1288,10 @@ class SavingsActionDefinitionService
                 'current_rate' => number_format($currentRate, 2),
                 'market_rate' => number_format($marketRate, 2),
                 'potential_gain' => $this->formatCurrency($potentialGain),
+                // Whose best-buy rate this is and when it was taken (RateComparator).
+                'market_label' => $comparison['comparison']['market_label'] ?? null,
+                'market_provider' => $comparison['comparison']['market_provider'] ?? null,
+                'market_as_of' => $comparison['comparison']['market_as_of'] ?? null,
             ];
 
             $rec = $this->buildRecommendation($definition, $vars + ['is_isa' => (bool) $account->is_isa], $priority);
@@ -2820,7 +2828,7 @@ class SavingsActionDefinitionService
             }
 
             $isIsa = (bool) $account->is_isa;
-            $rec = $this->buildRecommendation($definition, [
+            $rec = $this->buildRecommendation($definition, ['is_isa' => $isIsa] + [
                 'account_name' => $account->display_name,
                 'monthly_contribution' => $this->formatCurrency($monthly),
                 'current_rate' => number_format((float) $account->interest_rate, 2),
@@ -3718,14 +3726,8 @@ class SavingsActionDefinitionService
      */
     private function getMinorChildren(int $userId): Collection
     {
-        $now = Carbon::now();
-
-        // W-0275 — same reach as the Junior ISA action above.
-        return $this->dependantsReach
-            ->householdFamilyOf(User::findOrFail($userId), ['child'])
-            ->where('is_dependent', true)
-            ->filter(fn ($child) => $child->date_of_birth !== null)
-            ->filter(fn ($child) => $child->date_of_birth->diffInYears($now) < 18);
+        // W-0275 — same reach as the Junior ISA action above, one rule (DependantsReach).
+        return $this->dependantsReach->minorChildrenOf(User::findOrFail($userId));
     }
 
     /**

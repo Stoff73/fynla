@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Retirement\StatePensionAgeResolver;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
@@ -107,6 +108,7 @@ final class ActionHowToFacts
         $this->pensionFacts($user, $facts, $text);
         $this->accountFacts($user, $facts, $text);
         $this->spouseFacts($user, $facts, $text);
+        $this->householdSavingsFacts($user, $facts, $text);
         $this->configFacts($facts, $text);
 
         // The relief-at-source split of a pension payment (FA 2004 s192,
@@ -281,6 +283,33 @@ final class ActionHowToFacts
             $text['mca_born_before'] = $cutoff->format('j F Y');
         }
         $text['spouse_start'] = ucfirst($text['spouse']);
+    }
+
+    /**
+     * The user's own ISA room this tax year (one sum: TaxStrategyMath, cash and
+     * stocks and shares together) and the household's children under 18, so a
+     * step can say what to do when the allowance is used, or point to a spouse
+     * or the children (CSJ review 2026-09-29).
+     *
+     * @param  array<string, mixed>  $facts  @param  array<string, string>  $text
+     */
+    private function householdSavingsFacts(User $user, array &$facts, array &$text): void
+    {
+        $allowance = (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 0);
+        if ($allowance > 0) {
+            $left = max(0.0, $allowance - $this->math->estimateIsaSubscriptionsThisYear($user));
+            $facts['isa_full'] = $left <= 0;
+            if ($left > 0) {
+                $text['isa_left'] = self::pounds($left);
+            }
+        }
+
+        $children = app(DependantsReach::class)->minorChildrenOf($user);
+        $facts['has_children'] = $children->isNotEmpty();
+        $names = $children->map(fn ($child) => trim((string) $child->first_name))->filter()->values()->all();
+        if ($names !== []) {
+            $text['children'] = self::listed($names);
+        }
     }
 
     /** @param  array<string, mixed>  $facts  @param  array<string, string>  $text */
