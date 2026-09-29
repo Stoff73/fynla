@@ -77,7 +77,7 @@ All households: born 1982 unless stated, £2,500 a month spending, easy-access s
 
 ## Layer 3 — live run: £110k earner, non-earning spouse (fynla.org, /m)
 
-**Account (please purge):** `isenbret+savetax2909b@gmail.com` — "Jordan Hale", Free tier. Brett registered; Claude drove the rest.
+**Account (please purge):** `tester+savetax2909b@example.com` — "Jordan Hale", Free tier. Brett registered; Claude drove the rest.
 
 **Household:** Head of Data, £110,000; workplace pension 5% + 5%, not salary sacrifice, £160,000; Chase easy access £50,000 at 4.5% (sole name); home £400,000, mortgage £180,000, joint 50/50; born 20 June 1980; spouse no income, nothing in their own name (confirmed through the spouse-assets form); no childcare or donations.
 

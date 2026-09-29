@@ -1,7 +1,7 @@
 # Production new-user run, Free tier, desktop web — 14 September 2026
 
 **Tester:** Claude (driven by Brett Isenberg), Chrome desktop, 1358 x 898 viewport.
-**Account:** `isenbret+fynla1409@gmail.com`, "Tom Harris", registered 09:50 UTC on fynla.org, Free tier, cookies declined. **Please purge this account after review.**
+**Account:** `tester+fynla1409@example.com`, "Tom Harris", registered 09:50 UTC on fynla.org, Free tier, cookies declined. **Please purge this account after review.**
 **Scope:** register, onboard, enter a modest household, read every module a Free user can reach, and question Fyn hard on retirement, estate and next steps. Web only, as asked. No code changes were made.
 
 ## Verdict in one paragraph

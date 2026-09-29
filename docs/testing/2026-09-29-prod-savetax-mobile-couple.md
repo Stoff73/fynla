@@ -2,8 +2,8 @@
 
 **Tester:** Claude (driven by Brett Isenberg), built-in browser at 375 x 812 (mobile preset), fynla.org production.
 **Accounts (please purge after review):**
-- `isenbret+savetax2909@gmail.com` — "Sam Taylor", registered via the SaveTax funnel, Free tier.
-- `isenbret+savetax2909spouse@gmail.com` — "Alex Taylor", registered from Sam's spouse invitation, Free tier.
+- `tester+savetax2909@example.com` — "Sam Taylor", registered via the SaveTax funnel, Free tier.
+- `tester+savetax2909spouse@example.com` — "Alex Taylor", registered from Sam's spouse invitation, Free tier.
 
 Brett completed both registrations and codes by hand; everything else was driven by Claude. No code changes were made.
 
@@ -97,7 +97,7 @@ Alex's dashboard: assets £275,000 (£225,000 + £41,000 + £9,000), net worth �
 2. The first job the spouse states themselves replaces the estimate, whatever figure they give: £34,500 replaces the inviter's £32,000, and a switch to self-employment moves the job to the self-employed total. Later jobs add up as before. A spouse editing the job in the edit form also confirms it.
 3. The job-matching rule in `sameRole()` is unchanged on purpose. Matching a blank employer on file everywhere would bring back the older bug where a second onboarding job overwrote the first salary.
 
-Accounts already stored with a doubled salary are not repaired (fix forward only, agreed 29 September 2026). Alex's account (`isenbret+savetax2909spouse@gmail.com`) still shows £64,000 until it is purged.
+Accounts already stored with a doubled salary are not repaired (fix forward only, agreed 29 September 2026). Alex's account (`tester+savetax2909spouse@example.com`) still shows £64,000 until it is purged.
 
 **Verification:**
 
