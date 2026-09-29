@@ -149,6 +149,20 @@ describe('PersonalInformation.vue', () => {
     expect(wrapper.get('#address_line_1').element.value).toBe('123 Main Street');
   });
 
+  // Production walk 2026-09-29: the Save Tax funnel saves 'full_time'; the page
+  // showed "full_time" and the edit form opened with Employment Status blank.
+  it('shows and keeps a full-time status the funnel saved', async () => {
+    store.state.userProfile.incomeOccupation.employment_status = 'full_time';
+    wrapper.unmount();
+    wrapper = mount(PersonalInformation, { global: { plugins: [store], stubs: { CountrySelector: true, OccupationAutocomplete: true } } });
+
+    expect(wrapper.text()).toContain('Full-Time');
+    expect(wrapper.text()).not.toContain('full_time');
+
+    await enterEditMode();
+    expect(wrapper.get('#employment_status').element.value).toBe('full_time');
+  });
+
   it('enables edit mode from the Edit action', async () => {
     await enterEditMode();
 

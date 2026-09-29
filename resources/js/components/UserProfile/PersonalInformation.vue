@@ -456,6 +456,8 @@
               >
                 <option value="">Select status</option>
                 <option value="employed">Employed</option>
+                <!-- The Save Tax funnel and Fyn save 'full_time' (FunnelAnswersMapper). -->
+                <option value="full_time">Full-Time</option>
                 <option value="part_time">Part-Time</option>
                 <option value="self_employed">Self-Employed</option>
                 <option value="student">Student</option>
@@ -737,6 +739,7 @@ export default {
       if (!status) return '—';
       const statusMap = {
         'employed': 'Employed',
+        'full_time': 'Full-Time',
         'part_time': 'Part-Time',
         'self_employed': 'Self-Employed',
         'student': 'Student',
