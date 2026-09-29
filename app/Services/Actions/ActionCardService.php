@@ -55,7 +55,7 @@ final class ActionCardService
     ) {}
 
     /** Engine categories that describe severity or nothing, not a topic. */
-    private const NOT_A_TOPIC = ['warning', 'general', 'recommended'];
+    private const NOT_A_TOPIC = ['warning', 'lifecycle', 'general', 'recommended'];
 
     /**
      * The card's topic from the engine category ("Income Band", "ISA
