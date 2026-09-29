@@ -272,6 +272,7 @@ it('caps a partner without earnings at the non-earner pension limit (F10)', func
             ->and($reason($result))->toContain('Without earnings from work')
             ->and($reason($result))->toContain('£3,600')
             ->and($reason($result))->toContain('£2,880')
+            ->and($reason($result))->toContain('HMRC adds £720 through their pension provider')
             // £720 is added at source; the other £1,440 is claimed (s192(4)).
             ->and($reason($result))->toContain('The other £1,440 they claim back through Self Assessment.');
     }

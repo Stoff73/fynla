@@ -91,7 +91,10 @@ it('gives someone with no earnings relief on the basic amount (FA 2004 s190, 29 
     expect($rec)->not->toBeNull()
         ->and($rec['suggested_contribution'])->toBe((float) app(TaxConfigService::class)->getPensionAllowances()['relevant_earnings_minimum'])
         ->and($rec['estimated_annual_tax_saved'])->toBe($expectedSaving)
-        ->and($rec['title'])->toContain('Pay £2,880 into a personal pension');
+        ->and($rec['title'])->toContain('Pay £2,880 into a personal pension')
+        // Money HMRC adds, not "tax relief" won by someone who may pay no tax (CSJ 2026-09-29).
+        ->and($rec['title'])->toContain('HMRC adds £720')
+        ->and($rec['title'])->not->toContain('of tax relief');
 })->with([
     'retired basic-rate' => [30000, 'retired', 720.0],
     'not working, no income at all' => [0, 'unemployed', 720.0],

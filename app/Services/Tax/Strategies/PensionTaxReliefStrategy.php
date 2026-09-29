@@ -158,10 +158,13 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             type: 'pension_tax_relief',
             category: StrategyCategory::IncomeBand,
             priority: StrategyPriority::Medium,
-            title: sprintf('Pay £%s into a personal pension and get £%s of tax relief', number_format((int) $net), number_format((int) floor($saving))),
+            // Worded as money HMRC adds, not tax saved: the user may pay no tax
+            // (CSJ 2026-09-29). The provider claims basic-rate relief from HMRC
+            // and adds it (https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief).
+            title: sprintf('Pay £%s into a personal pension and HMRC adds £%s', number_format((int) $net), number_format((int) $atSource)),
             description: sprintf(
-                'Without earnings from work you can still get tax relief on up to £%s a year of pension contributions. Pay £%s into a personal pension and the provider adds £%s.%s Relief stops once you reach %d.',
-                number_format((int) $gross), number_format((int) $net), number_format((int) $atSource), $claim, $maxAge,
+                'Without earnings from work you can still get tax relief on up to £%s a year of pension contributions. Pay £%s into a personal pension and HMRC adds £%s through your pension provider, making £%s.%s Relief stops once you reach %d.',
+                number_format((int) $gross), number_format((int) $net), number_format((int) $atSource), number_format((int) $gross), $claim, $maxAge,
             ),
             estimatedAnnualTaxSaved: $saving,
             extra: [
