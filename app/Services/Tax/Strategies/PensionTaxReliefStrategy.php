@@ -85,6 +85,14 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $saving = round($display * $rate, 2);
         $ratePct = (int) round($rate * 100);
         $basicPct = (int) round($this->math->bandRateForBand('basic') * 100);
+        // Relief "through your pay" is net pay arrangement, open only to
+        // employees in a workplace scheme. Someone with no employment income
+        // pays into a personal pension under relief at source and claims the
+        // higher-rate part through Self Assessment (SaveTax matrix E7):
+        // https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief
+        $reliefRoute = (float) ($user->annual_employment_income ?? 0) > 0
+            ? sprintf('A workplace scheme gives the relief through your pay; for a personal pension the provider adds %d%% and you claim the rest through Self Assessment.', $basicPct)
+            : sprintf('Your pension provider adds %d%% to what you pay, and you claim the rest through your Self Assessment tax return.', $basicPct);
 
         return [new StrategyRecommendation(
             // One type for every band, so a user's done or dismissed state for
@@ -95,8 +103,8 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             title: sprintf('Pay £%s more into your pension and save £%s in tax', number_format($display), number_format((int) floor($saving))),
             description: $band === 'higher'
                 ? sprintf(
-                    'Pension contributions get tax relief at your highest rate. £%s of your income is taxed at %d%%, so paying that amount into a pension saves £%s this year. A workplace scheme gives the relief through your pay; for a personal pension the provider adds %d%% and you claim the rest through Self Assessment.',
-                    number_format($display), $ratePct, number_format((int) floor($saving)), $basicPct,
+                    'Pension contributions get tax relief at your highest rate. £%s of your income is taxed at %d%%, so paying that amount into a pension saves £%s this year. %s',
+                    number_format($display), $ratePct, number_format((int) floor($saving)), $reliefRoute,
                 )
                 // The saving is the card's "why" line, so it is not repeated here (CSJ 2026-09-28).
                 : sprintf('Every £%s you pay into a pension gets %d%% tax relief.', number_format(100), $ratePct),

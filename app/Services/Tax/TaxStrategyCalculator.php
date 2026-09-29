@@ -58,11 +58,16 @@ final class TaxStrategyCalculator
 
         $userAllowances = $this->buildUserAllowanceGrid($user, $overrides, $mode, $household);
 
-        $spouseAllowances = match ($mode) {
-            'dual_earner' => $household instanceof TaxStrategyHouseholdInput
+        $linkedSpouse = in_array($mode, ['dual_earner', 'single_earner_couple'], true)
+            ? $user->financiallySharedSpouse()
+            : null;
+
+        $spouseAllowances = match (true) {
+            $linkedSpouse !== null => $this->buildSpouseAllowanceGridFromLinkedAccount($linkedSpouse, $this->marriageAllowanceAvailableFor($user, $mode, $household)),
+            $mode === 'dual_earner' => $household instanceof TaxStrategyHouseholdInput
                 ? $this->buildSpouseAllowanceGridDualEarner($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household))
                 : null,
-            'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household)),
+            $mode === 'single_earner_couple' => $this->buildSpouseAllowanceGridNonWorking($user, $household, $this->marriageAllowanceAvailableFor($user, $mode, $household)),
             default => null,
         };
 
@@ -314,6 +319,36 @@ final class TaxStrategyCalculator
     private function marriageAllowanceAvailableFor(User $user, string $mode, ?TaxStrategyHouseholdInput $household): bool
     {
         return $this->math->marriageAllowance($user, $mode, $household) !== null;
+    }
+
+    /**
+     * A linked spouse who shares financial data has their own records on file,
+     * so their allowances are read from those records — the same grid their
+     * own Tax Strategy page shows — rather than marked "not confirmed" from the
+     * few household answers the campaign captured (SaveTax couple run M2,
+     * 2026-09-29). Marriage Allowance keeps the couple-level test so the grid
+     * and the plan item cannot disagree.
+     */
+    private function buildSpouseAllowanceGridFromLinkedAccount(User $spouse, bool $marriageAllowanceAvailable): array
+    {
+        $spouseMode = (string) ($spouse->household_calculation_mode ?? 'single');
+        $grid = $this->buildUserAllowanceGrid($spouse, null, $spouseMode, $spouse->taxStrategyHouseholdInput);
+
+        $grid = array_values(array_filter($grid, fn (array $row): bool => $row['key'] !== 'marriage_allowance'));
+        $grid[] = $this->position(
+            'marriage_allowance',
+            'Marriage Allowance',
+            $this->math->marriageAllowanceAmount(),
+            0.0,
+            'spouse',
+            $marriageAllowanceAvailable,
+        );
+
+        return array_map(fn (array $row): array => array_merge($row, [
+            'owner' => 'spouse',
+            // Rendered under "Your spouse's allowances".
+            'label' => str_replace('from your earnings', 'from their earnings', $row['label']),
+        ]), $grid);
     }
 
     private function buildSpouseAllowanceGridDualEarner(User $user, TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
