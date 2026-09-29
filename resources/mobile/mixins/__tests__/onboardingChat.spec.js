@@ -136,7 +136,7 @@ describe('onboardingChat mixin — contextual and explicit conversation loading'
       });
 
     expect(await wrapper.vm.createContextualConversation(request)).toBe(101);
-    expect(wrapper.vm.messages).toEqual([{ role: 'fyn', text: 'First trusted opening.', bubbles: [], actionBubbles: false }]);
+    expect(wrapper.vm.messages).toEqual([{ role: 'fyn', text: 'First trusted opening.', bubbles: [], actionBubbles: false, multiSelect: false }]);
     expect(await wrapper.vm.createContextualConversation(request)).toBe(102);
     expect(wrapper.vm.messages[0].text).toBe('Second trusted opening.');
     expect(apiPost).toHaveBeenCalledTimes(2);
@@ -566,5 +566,43 @@ describe('onboardingChat mixin — interrupted turns', () => {
     const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
     expect(reply.text).toBe('Here is the answer.');
     expect(reply.bubbles).toEqual([]);
+  });
+});
+
+// M4 (live fynla.org /m, 2026-09-29): the multi-select flag travels with the
+// live quick_replies event and the restored transcript, and the combined
+// submission is one message.
+describe('multi-select bubbles (M4)', () => {
+  const bubbles = [{ id: 'bank', label: 'Bank account' }, { id: 'isa', label: 'ISA' }, { id: 'done', label: "That's everything" }];
+
+  it('flags a multi-select quick_replies event on the reply row', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.messages = [cursor.reply];
+    w.vm.handleFynEvent(cursor, { type: 'quick_replies', prompt_text: 'Which of these do you have?', bubbles, multi_select: true });
+    expect(cursor.reply.multiSelect).toBe(true);
+
+    const other = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.handleFynEvent(other, { type: 'quick_replies', prompt_text: 'Yes or no?', bubbles: [{ id: 'yes', label: 'Yes' }] });
+    expect(other.reply.multiSelect).toBe(false);
+  });
+
+  it('restores the flag from the stored message metadata', async () => {
+    const { apiGet } = await import('../../api.js');
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: { data: { messages: [
+      { role: 'assistant', content: 'Which of these do you have?', metadata: { bubbles, multi_select: true } },
+    ] } } });
+    const w = mount(Host);
+    await w.vm.loadTranscript(7);
+    expect(w.vm.messages.at(-1).multiSelect).toBe(true);
+    expect(w.vm.messages.at(-1).bubbles).toHaveLength(3);
+  });
+
+  it('sends the combined submission as one message', () => {
+    const w = mount(Host);
+    const send = vi.spyOn(w.vm, 'send').mockResolvedValue();
+    w.vm.chooseBubble({ id: 'done', label: "Bank account, ISA, That's everything" }, { bubbles, multiSelect: true });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith("Bank account, ISA, That's everything");
   });
 });

@@ -147,7 +147,8 @@ struct FynTranscriptMessage: Decodable, Sendable, Equatable {
             text: content,
             replies: replies,
             delivery: .persisted,
-            capture: nil
+            capture: nil,
+            multiSelect: metadata?.multiSelect == true
         )
     }
 }
@@ -155,11 +156,13 @@ struct FynTranscriptMessage: Decodable, Sendable, Equatable {
 struct FynMessageMetadata: Decodable, Sendable, Equatable {
     let bubbles: [FynReplyPayload]?
     let actionBubbles: Bool?
+    let multiSelect: Bool?
     let skipLink: FynSkipLink?
 
     private enum CodingKeys: String, CodingKey {
         case bubbles
         case actionBubbles = "action_bubbles"
+        case multiSelect = "multi_select"
         case skipLink = "skip_link"
     }
 }
@@ -201,6 +204,11 @@ struct FynMessage: Identifiable, Sendable, Equatable {
     var replies: [FynReply]
     var delivery: Delivery
     var capture: CaptureState?
+    /// The director's `multi_select` flag (M4): the replies toggle and the
+    /// submit reply sends every pick in one message (FynMultiSelect).
+    var multiSelect: Bool = false
+    /// The toggled-on reply ids of a multi-select message, in tap order.
+    var selectedReplyIDs: [String] = []
 
     func replacingID(_ serverID: String) -> Self {
         Self(
@@ -209,8 +217,41 @@ struct FynMessage: Identifiable, Sendable, Equatable {
             text: text,
             replies: replies,
             delivery: delivery,
-            capture: capture
+            capture: capture,
+            multiSelect: multiSelect,
+            selectedReplyIDs: selectedReplyIDs
         )
+    }
+}
+
+/// Multi-select Fyn replies (M4, live fynla.org /m 2026-09-29). Mirrors
+/// resources/mobile/utils/fynMultiSelect.js, the web and /m home. The wire
+/// format must match OnboardingStateMachine::matchBubbles: the picked labels
+/// in display order joined with ", ", the submit reply's label last, e.g.
+/// "Bank account, ISA, That's everything". Nothing picked sends the submit
+/// label alone.
+enum FynMultiSelect {
+    static let submitID = "done"
+    static let separator = ", "
+
+    static func isSubmit(_ reply: FynReply) -> Bool {
+        reply.id == submitID
+    }
+
+    /// Toggled rather than sent: not the submit, a director action or a link.
+    static func isToggleable(_ reply: FynReply) -> Bool {
+        !isSubmit(reply) && !reply.isAction && reply.route == nil
+    }
+
+    static func toggling(_ id: String, in selected: [String]) -> [String] {
+        selected.contains(id) ? selected.filter { $0 != id } : selected + [id]
+    }
+
+    static func message(replies: [FynReply], selected: [String], submit: FynReply) -> String {
+        let picked = replies
+            .filter { isToggleable($0) && selected.contains($0.id) }
+            .map(\.label)
+        return (picked + [submit.label]).joined(separator: separator)
     }
 }
 

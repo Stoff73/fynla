@@ -184,6 +184,7 @@
             v-if="msg.role === 'quick_replies'"
             :prompt-text="msg.content"
             :bubbles="msg.metadata?.bubbles || []"
+            :multi-select="Boolean(msg.metadata?.multi_select)"
             :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
             @select="b => handleQuickReplySelect(b, msg)"
           />

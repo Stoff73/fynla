@@ -305,6 +305,32 @@ final class FynConversationModel {
         }
 
         guard phase == .idle, let conversationID else { return }
+
+        // A multi-select step (M4): a reply toggles locally, and the submit
+        // reply sends every pick as ONE message (FynMultiSelect wire format).
+        if let index = reduction.messages.lastIndex(where: { message in
+            message.multiSelect && message.replies.contains(where: { $0.id == reply.id })
+        }) {
+            let message = reduction.messages[index]
+            if FynMultiSelect.isToggleable(reply) {
+                reduction.messages[index].selectedReplyIDs = FynMultiSelect.toggling(
+                    reply.id,
+                    in: message.selectedReplyIDs
+                )
+                return
+            }
+            if FynMultiSelect.isSubmit(reply) {
+                let text = FynMultiSelect.message(
+                    replies: message.replies,
+                    selected: message.selectedReplyIDs,
+                    submit: reply
+                )
+                consumeReplies()
+                await send(text)
+                return
+            }
+        }
+
         consumeReplies()
 
         if reply.isAction {

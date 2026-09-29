@@ -41,7 +41,7 @@ enum FynEvent: Sendable, Equatable {
     case error(String)
     case entityWrite(FynEntityWrite)
     case captureComplete(summary: String?)
-    case quickReplies(prompt: String?, replies: [FynReply], actionReplies: Bool)
+    case quickReplies(prompt: String?, replies: [FynReply], actionReplies: Bool, multiSelect: Bool = false)
     case skipLink(FynReply)
     case subscriptionOptions
     case done(messageID: String?)
@@ -138,7 +138,8 @@ struct FynEventDecoder: Sendable {
             return .quickReplies(
                 prompt: frame.promptText,
                 replies: replies,
-                actionReplies: isAction
+                actionReplies: isAction,
+                multiSelect: frame.multiSelect == true
             )
         case "skip_link":
             guard let skip = frame.skipLink else { return .unknown(frame.type) }
@@ -171,6 +172,7 @@ private struct FynEventFrame: Decodable {
     let promptText: String?
     let bubbles: [FynReplyPayload]?
     let actionBubbles: Bool?
+    let multiSelect: Bool?
     let skipLink: FynSkipLink?
     let action: String?
     let entityType: String?
@@ -189,6 +191,7 @@ private struct FynEventFrame: Decodable {
         case nextActions = "next_actions"
         case promptText = "prompt_text"
         case actionBubbles = "action_bubbles"
+        case multiSelect = "multi_select"
         case skipLink = "skip_link"
     }
 }

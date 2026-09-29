@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
@@ -322,4 +323,97 @@ it('treats an empty asset list from registration as unanswered (M-5)', function 
     ftqStart($user);
 
     expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+});
+
+// ── Multi-select asset chips (M4, live fynla.org /m 2026-09-29) ─────────────
+// Tapping several chips quickly kept only the first. The chips now toggle on
+// the client and "That's everything" submits every pick in ONE message.
+
+/** The most recent assistant row for the user's onboarding conversation. */
+function ftqLastAssistant(User $user): AiMessage
+{
+    $conversation = AiConversation::forUser($user->id)->onboarding()->latest('id')->firstOrFail();
+
+    return $conversation->messages()->where('role', 'assistant')->latest('id')->firstOrFail();
+}
+
+it('flags the asset step as multi-select on the live event and the stored row (M4)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no']]);
+    $stream = ftqStart($user);
+
+    expect($stream)->toContain('"multi_select":true')
+        ->and(ftqLastAssistant($user)->metadata['multi_select'] ?? null)->toBeTrue();
+});
+
+it('does not flag single-choice bubble steps as multi-select (M4)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time']]);
+    $stream = ftqStart($user);
+
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE)
+        ->and($stream)->not->toContain('multi_select')
+        ->and(ftqLastAssistant($user)->metadata)->not->toHaveKey('multi_select');
+});
+
+it('stores every pick from one submission and opens the ISA, pension and property steps (M4)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no'], 'employment_status' => 'full_time']);
+    ftqStart($user);
+    ftqSay($user, "Bank account, ISA, Pension, Property, That's everything");
+    $user->refresh();
+
+    expect($user->funnel_answers['assets'])->toBe(['bank', 'isa', 'pension', 'property'])
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK)
+        ->and(OnboardingStateMachine::skipIfNoIsa($user))->toBeFalse()
+        ->and(OnboardingStateMachine::skipIfNoBankOrSavings($user))->toBeFalse()
+        ->and(OnboardingStateMachine::skipSectionIfNoProperty($user))->toBeFalse()
+        ->and(OnboardingStateMachine::nextFromCampaignDob('', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+
+    $conversation = AiConversation::forUser($user->id)->onboarding()->latest('id')->firstOrFail();
+    expect($conversation->messages()->where('role', 'user')->latest('id')->first()->content)
+        ->toBe("Bank account, ISA, Pension, Property, That's everything");
+});
+
+it('submits a single pick in one round trip (M4)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no'], 'employment_status' => 'full_time']);
+    ftqStart($user);
+    ftqSay($user, "ISA, That's everything");
+    $user->refresh();
+
+    expect($user->funnel_answers['assets'])->toBe(['isa'])
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
+});
+
+it('keeps the older one-tap-per-turn path: a single label records and asks again (M4)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no'], 'employment_status' => 'full_time']);
+    ftqStart($user);
+    ftqSay($user, 'ISA');
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+
+    ftqSay($user, 'Property');
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+
+    ftqSay($user, "That's everything");
+    $user->refresh();
+    expect($user->funnel_answers['assets'])->toBe(['isa', 'property'])
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
+});
+
+it('re-asks rather than dropping a pick when a part names no option (M4)', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no'], 'employment_status' => 'full_time']);
+    ftqStart($user);
+    ftqSay($user, "ISA, a yacht, That's everything");
+    $user->refresh();
+
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS)
+        ->and($user->funnel_answers['assets'] ?? [])->toBe([]);
+});
+
+it('matchBubbles parses the wire format with the one bubble vocabulary (M4)', function () {
+    $state = OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS;
+
+    expect(OnboardingStateMachine::isMultiSelect($state))->toBeTrue()
+        ->and(OnboardingStateMachine::isMultiSelect(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE))->toBeFalse()
+        ->and(OnboardingStateMachine::matchBubbles($state, "Savings account, Investments, That's everything"))->toBe(['savings', 'investments', 'done'])
+        ->and(OnboardingStateMachine::matchBubbles($state, "That's everything"))->toBe(['done'])
+        ->and(OnboardingStateMachine::matchBubbles($state, 'Pension'))->toBe(['pension'])
+        ->and(OnboardingStateMachine::matchBubbles($state, 'ISA, ISA'))->toBe(['isa']);
 });

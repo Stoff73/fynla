@@ -298,6 +298,9 @@ export default {
           text: m.content || '',
           bubbles,
           actionBubbles: Boolean(metadata.action_bubbles),
+          // A multi-select step (M4) restores as one: chips toggle, the
+          // submit bubble sends every pick (FynBubbles.vue).
+          multiSelect: metadata.multi_select === true,
           ...(captureForm ? { form: { schema: captureForm, errors: null, answers: metadata.capture_form_values || null, record: metadata.capture_form_record || null, locked: false } } : {}),
         };
       });
@@ -605,6 +608,7 @@ export default {
         // actions, not onboarding answers — flag them so chooseBubble routes
         // them to the action endpoint instead of sending the label as a message.
         cursor.reply.actionBubbles = ev.action_bubbles === true;
+        cursor.reply.multiSelect = ev.multi_select === true;
         this.$nextTick(this.scrollFyn);
       }
     },

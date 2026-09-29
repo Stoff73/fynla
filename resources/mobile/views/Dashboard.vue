@@ -296,18 +296,13 @@
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
           <p v-if="m.text || !(m.form && m.form.schema)" v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
-          <!-- Onboarding bubble choices (quick_replies). Tapping sends the
-               label, which the director matches back to the bubble. -->
-          <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
-            <button
-              v-for="b in m.bubbles"
-              :key="b.id"
-              type="button"
-              class="md-fyn__bubble"
-              :disabled="sending"
-              @click="chooseBubble(b, m)"
-            >{{ b.label }}</button>
-          </div>
+          <FynBubbles
+            v-if="m.bubbles && m.bubbles.length"
+            :bubbles="m.bubbles"
+            :multi-select="Boolean(m.multiSelect)"
+            :disabled="sending"
+            @choose="(b) => chooseBubble(b, m)"
+          />
           <FynCaptureForm
             v-if="m.form && m.form.schema"
             :schema="m.form.schema"
@@ -343,6 +338,7 @@
 <script>
 import { apiGet, apiPost } from '../api.js';
 import { store } from '../store.js';
+import FynBubbles from '../components/FynBubbles.vue';
 import FynCaptureForm from '../components/FynCaptureForm.vue';
 import {
   dashboardIsBeingViewed,
@@ -398,7 +394,7 @@ const NAV_ICON = {
 
 export default {
   name: 'MobileDashboard',
-  components: { FynCaptureForm },
+  components: { FynBubbles, FynCaptureForm },
   mixins: [onboardingChat],
   data() {
     return {

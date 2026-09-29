@@ -38,6 +38,21 @@ const QUEUED_STREAM_ATTEMPTS = 8;
 const QUEUED_STREAM_BACKOFF_MS = 1500;
 
 /**
+ * The metadata of a `quick_replies` row, from a live SSE event or a stored
+ * message's metadata (the same field names). One home for all four stream
+ * paths and loadConversation's normalisation, so a flag added to the event
+ * (multi_select, M4) reaches every path — live and resumed — at once.
+ */
+function quickRepliesMetadata(source) {
+    return {
+        bubbles: source?.bubbles || [],
+        skip_link: source?.skip_link || null,
+        action_bubbles: Boolean(source?.action_bubbles),
+        multi_select: source?.multi_select === true,
+    };
+}
+
+/**
  * One message shape for a Fyn structured capture-form turn (property, etc.),
  * used by all four stream paths. `form` is the schema object the renderer
  * (AiChatPanel) builds the actual form fields from. The row itself carries
@@ -518,8 +533,6 @@ const actions = {
             const normalised = [];
             for (const m of raw) {
                 const bubbles = m?.metadata?.bubbles;
-                const skipLink = m?.metadata?.skip_link || null;
-                const actionBubbles = Boolean(m?.metadata?.action_bubbles);
                 const presentationActions = Array.isArray(m?.metadata?.actions) ? m.metadata.actions : [];
                 const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
 
@@ -552,7 +565,7 @@ const actions = {
                         id: `qr_${m.id}`,
                         role: 'quick_replies',
                         content: '',
-                        metadata: { bubbles, skip_link: skipLink, action_bubbles: actionBubbles },
+                        metadata: quickRepliesMetadata(m.metadata),
                         created_at: m.created_at,
                     });
                 } else {
@@ -768,11 +781,7 @@ const actions = {
                             id: 'qr_' + Date.now(),
                             role: 'quick_replies',
                             content: event.prompt_text || '',
-                            metadata: {
-                                bubbles: event.bubbles || [],
-                                skip_link: event.skip_link || null,
-                                action_bubbles: Boolean(event.action_bubbles),
-                            },
+                            metadata: quickRepliesMetadata(event),
                             created_at: new Date().toISOString(),
                         });
                         // Phase 10 — propagate skip-link metadata to the
@@ -1373,11 +1382,7 @@ const actions = {
                             id: 'qr_' + Date.now(),
                             role: 'quick_replies',
                             content: event.prompt_text || '',
-                            metadata: {
-                                bubbles: event.bubbles || [],
-                                skip_link: event.skip_link || null,
-                                action_bubbles: Boolean(event.action_bubbles),
-                            },
+                            metadata: quickRepliesMetadata(event),
                             created_at: new Date().toISOString(),
                         });
                         commit('SET_SKIP_LINK', event.skip_link || null);
@@ -1684,7 +1689,7 @@ const actions = {
                             id: 'qr_' + Date.now(),
                             role: 'quick_replies',
                             content: event.prompt_text || '',
-                            metadata: { bubbles: event.bubbles || [] },
+                            metadata: quickRepliesMetadata(event),
                             created_at: new Date().toISOString(),
                         });
                         break;

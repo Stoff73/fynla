@@ -1894,6 +1894,22 @@
 }
 .md-fyn__bubble:hover { background: var(--raspberry-500); color: var(--white); }
 .md-fyn__bubble:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Multi-select chips (M4): a picked chip is filled; colour and weight only,
+   no tick or icon (Rule 15). On touch screens a tapped chip keeps :hover, so
+   an unpicked toggle chip must not look filled there. */
+.md-fyn__bubble--selected,
+.md-fyn__bubble--selected:hover {
+  background: var(--raspberry-500);
+  border-color: var(--raspberry-500);
+  color: var(--white);
+  font-weight: 700;
+}
+@media (hover: none) {
+  .md-fyn__bubble--toggle:not(.md-fyn__bubble--selected):hover {
+    background: var(--white);
+    color: var(--raspberry-500);
+  }
+}
 
 .md-fyn__form { padding: 8px 0; }
 .md-fyn__form-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
