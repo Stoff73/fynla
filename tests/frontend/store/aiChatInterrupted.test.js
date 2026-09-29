@@ -64,6 +64,37 @@ describe('an interrupted Fyn turn on web', () => {
     expect(dispatch).not.toHaveBeenCalledWith('streamNextQueued');
   });
 
+  it('retries with the same turn id, so the server never takes the turn twice', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue(streamReader([
+      { type: 'content', text: "I'll fetch the latest tax information." },
+    ]));
+    const { localState, context } = harness();
+    // Real actions, except the transcript reload (no server here).
+    context.dispatch = (name, payload) => (name === 'loadConversation' ? Promise.resolve() : aiChat.actions[name](context, payload));
+
+    await aiChat.actions.sendMessage(context, 'How does the tax trap work?');
+    const firstId = aiChatService.sendMessageStream.mock.calls[0][3].turnId;
+    aiChatService.sendMessageStream.mockResolvedValue({ turnTaken: 'answered' });
+    await aiChat.actions.retryInterruptedTurn(context);
+
+    const retryCall = aiChatService.sendMessageStream.mock.calls[1];
+    expect(firstId).toBeTruthy();
+    expect(retryCall[1]).toBe('How does the tax trap work?');
+    expect(retryCall[3].turnId).toBe(firstId);
+  });
+
+  it('shows the stored reply when the server has already answered the retried turn', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue({ turnTaken: 'answered' });
+    const { localState, dispatch, context } = harness();
+
+    await aiChat.actions.sendMessage(context, { text: 'How does the tax trap work?', turnId: 'turn-1' });
+
+    expect(dispatch).toHaveBeenCalledWith('loadConversation', 10);
+    expect(localState.error).toBeNull();
+    // The optimistic bubble goes: the reloaded transcript carries the turn.
+    expect(localState.messages.some((m) => m.role === 'user')).toBe(false);
+  });
+
   it('keeps a finished turn exactly as before', async () => {
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
       { type: 'content', text: 'Here is the answer.' },
@@ -181,14 +212,15 @@ describe('an interrupted Fyn turn on web', () => {
     const { localState, dispatch, context } = harness();
     localState.messages = [{ id: 'temp_1', role: 'user', content: 'How does the tax trap work?' }];
     localState.error = FYN_INTERRUPTED_MESSAGE;
-    localState.retryTurn = { arg: 'How does the tax trap work?', messageId: 'temp_1' };
+    localState.retryTurn = { arg: 'How does the tax trap work?', messageId: 'temp_1', turnId: 'turn-1' };
 
     await aiChat.actions.retryInterruptedTurn(context);
 
     expect(localState.messages).toHaveLength(0);
     expect(localState.error).toBeNull();
     expect(localState.retryTurn).toBeNull();
-    expect(dispatch).toHaveBeenCalledWith('sendMessage', 'How does the tax trap work?');
+    // The same question, with the same turn id (FynTurnLedger).
+    expect(dispatch).toHaveBeenCalledWith('sendMessage', { text: 'How does the tax trap work?', turnId: 'turn-1' });
   });
 
   it('"Try again" after an interrupted action runs the action again', async () => {

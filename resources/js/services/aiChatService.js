@@ -86,10 +86,13 @@ const aiChatService = {
      * Send a message and return a ReadableStream reader for SSE.
      * Uses fetch() instead of axios because axios doesn't support streaming.
      */
-    async sendMessageStream(conversationId, message, currentRoute = null, { signal, form = null } = {}) {
+    async sendMessageStream(conversationId, message, currentRoute = null, { signal, form = null, turnId = null } = {}) {
         const token = await getToken();
 
         const body = { current_route: currentRoute };
+        // The client's id for this turn: "Try again" re-sends it, so the server
+        // never takes the same turn twice (FynTurnLedger).
+        if (turnId) body.turn_id = turnId;
         if (form) {
             body.form = form;
         } else {
@@ -132,6 +135,15 @@ const aiChatService = {
         if (response.status === 202) {
             const payload = await response.json().catch(() => ({}));
             return { queued: true, messageId: payload.message_id, queuePosition: payload.queue_position };
+        }
+
+        // A retried turn the server has already taken answers in JSON, not SSE:
+        // 'answered' (the reply is stored) or 'in_progress' (still running).
+        if ((response.headers.get('Content-Type') || '').includes('application/json')) {
+            const payload = await response.json().catch(() => ({}));
+            if (payload.status === 'answered' || payload.status === 'in_progress') {
+                return { turnTaken: payload.status };
+            }
         }
 
         // WKWebView may not support ReadableStream — fall back to text parsing

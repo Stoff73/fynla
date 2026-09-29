@@ -20,6 +20,7 @@ use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\AI\ContextualConversation\ConversationHistoryService;
 use App\Services\AI\ContextualConversation\ConversationModeResolver;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
+use App\Services\AI\Loop\FynTurnLedger;
 use App\Services\AI\Loop\ResumptionService;
 use App\Services\Eval\EvalTraceCollector;
 use App\Services\Gamification\LevelService;
@@ -59,6 +60,7 @@ class AiChatController extends Controller
         private readonly ResumptionService $resumption,
         private readonly ConversationModeResolver $conversationModes,
         private readonly ContextualResourceResolver $contextualResources,
+        private readonly FynTurnLedger $turns,
     ) {}
 
     /**
@@ -231,6 +233,17 @@ class AiChatController extends Controller
             $conversation->update(['status' => 'active']);
         }
 
+        // "Try again" re-sends a turn the server may already have taken (it
+        // finishes a turn whose client dropped). Say so rather than take it
+        // twice; the client reloads the conversation to show the reply.
+        $turnId = $request->input('turn_id');
+        $turnId = is_string($turnId) && $turnId !== '' ? $turnId : null;
+        if (($seen = $this->turns->seen($conversation, $turnId)) !== null) {
+            return response()->json([
+                'status' => $seen === FynTurnLedger::DONE ? 'answered' : 'in_progress',
+            ]);
+        }
+
         $form = $request->input('form');
         $form = is_array($form) ? $form : null;
         // A form answer arrives with no typed text; the transcript line is
@@ -256,7 +269,11 @@ class AiChatController extends Controller
                 ], 429);
             }
 
-            $queued = $this->queue->enqueue($conversation, $message, $form !== null ? ['form' => $form] : []);
+            $queued = $this->queue->enqueue($conversation, $message, array_filter([
+                'form' => $form,
+                'turn_id' => $turnId,
+            ], static fn ($value): bool => $value !== null));
+            $this->turns->start($conversation, $turnId);
 
             return response()->json([
                 'status' => 'queued',
@@ -287,7 +304,9 @@ class AiChatController extends Controller
             // whether or not the user is onboarding (Batch 4, CSJ 2026-09-19).
             || ($form !== null && is_array($form['record'] ?? null));
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form) {
+        $this->turns->start($conversation, $turnId);
+
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form, $turnId) {
             try {
                 $this->streamTurn(
                     fn () => $inOnboarding
@@ -315,6 +334,7 @@ class AiChatController extends Controller
                 // controller insulated from token-shape details — see the
                 // listener for the security gate.
                 app(EvalTraceCollector::class)->persistForConversation($conversation->id);
+                $this->turns->finish($conversation, $turnId);
 
                 // FR-M7 — release the in-flight lock so a queued (or next) turn
                 // for this conversation can stream. The frontend, on `done`,
@@ -393,7 +413,7 @@ class AiChatController extends Controller
         $currentRoute = $request->input('current_route');
         $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user) || $formEditsRecord;
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form) {
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form, $queuedMetadata) {
             try {
                 $this->streamTurn(
                     // persistUserMessage:false — the queued row IS the user turn.
@@ -412,6 +432,8 @@ class AiChatController extends Controller
                 // The queued turn has been answered; release the in-flight lock
                 // so the frontend can stream the next queued turn (if any).
                 $this->queue->completeTurn($queued);
+                $turnId = $queuedMetadata['turn_id'] ?? null;
+                $this->turns->finish($conversation, is_string($turnId) ? $turnId : null);
                 $inflightLock->release();
             }
         }, 200, [

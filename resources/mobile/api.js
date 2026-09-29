@@ -127,6 +127,15 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
     return { ok: true, status: 202, queued: true, data, text: '' };
   }
 
+  // A retried turn the server has already taken answers in JSON, not SSE:
+  // 'answered' (the reply is stored) or 'in_progress' (still running).
+  if ((res.headers.get('Content-Type') || '').includes('application/json')) {
+    const data = await res.json().catch(() => ({}));
+    if (data.status === 'answered' || data.status === 'in_progress') {
+      return { ok: true, status: res.status, turnTaken: data.status, text: '' };
+    }
+  }
+
   // Surface the full parsed event so callers can handle non-text turns,
   // including user-visible failures and capture confirmations. The mixin is
   // the presentation boundary; this transport never collapses typed events

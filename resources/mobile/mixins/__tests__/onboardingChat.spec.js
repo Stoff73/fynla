@@ -593,7 +593,12 @@ describe('onboardingChat mixin — interrupted turns', () => {
 
     const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
     expect(reply.text).toBe('Sorry, my reply was cut off before I finished. Please try again.');
-    expect(reply.bubbles).toEqual([{ id: 'fyn_retry', label: 'Try again', retry: { text: 'How does the tax trap work?', form: null } }]);
+    expect(reply.bubbles).toEqual([{
+      id: 'fyn_retry',
+      label: 'Try again',
+      // The cut-off turn's own id goes with the retry (FynTurnLedger).
+      retry: { text: 'How does the tax trap work?', form: null, turnId: apiStream.mock.calls[0][1].turn_id },
+    }]);
     expect(wrapper.vm.sending).toBe(false);
   });
 
@@ -612,10 +617,28 @@ describe('onboardingChat mixin — interrupted turns', () => {
 
     expect(apiStream).toHaveBeenCalledTimes(2);
     expect(apiStream.mock.calls[1][1]).toMatchObject({ message: 'How does the tax trap work?' });
+    // The same turn id, so a turn the server already took is not taken twice.
+    expect(apiStream.mock.calls[0][1].turn_id).toBeTruthy();
+    expect(apiStream.mock.calls[1][1].turn_id).toBe(apiStream.mock.calls[0][1].turn_id);
     expect(wrapper.vm.messages.map((m) => [m.role, m.text])).toEqual([
       ['user', 'How does the tax trap work?'],
       ['fyn', 'Above £100,000 you lose £1 of allowance for every £2.'],
     ]);
+  });
+
+  it('shows the stored reply when the server has already answered the retried turn', async () => {
+    apiStream
+      .mockResolvedValueOnce({ ok: true, status: 200, text: '', interrupted: true })
+      .mockResolvedValueOnce({ ok: true, status: 200, text: '', turnTaken: 'answered' });
+    const loadTranscript = vi.spyOn(wrapper.vm, 'loadTranscript').mockResolvedValue(true);
+
+    await wrapper.vm.send('How does the tax trap work?');
+    const reply = wrapper.vm.messages[wrapper.vm.messages.length - 1];
+    await wrapper.vm.chooseBubble(reply.bubbles[0], reply);
+    await new Promise((r) => { setTimeout(r, 0); });
+
+    expect(loadTranscript).toHaveBeenCalledWith(940);
+    expect(apiStream).toHaveBeenCalledTimes(2);
   });
 
   it('offers Try again when the connection drops mid-stream', async () => {

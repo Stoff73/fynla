@@ -9,7 +9,7 @@ import aiChatService from '@/services/aiChatService';
 import { stripTags } from '@/utils/stripTags';
 
 import logger from '@/utils/logger';
-import { FYN_INTERRUPTED_MESSAGE, isDroppedConnection, readFynEvents } from '../../../mobile/utils/fynStream.js';
+import { FYN_INTERRUPTED_MESSAGE, TURN_SETTLE_MS, isDroppedConnection, newTurnId, readFynEvents } from '../../../mobile/utils/fynStream.js';
 /**
  * One message shape for every entity write event, used by both stream paths.
  *
@@ -106,6 +106,11 @@ function pushCaptureFormTurn(commit, state, event) {
     }
 
     commit('ADD_MESSAGE', captureFormMessage(event));
+}
+
+/** A turn the server is still finishing: give it a moment before reloading. */
+function waitForTurn() {
+    return new Promise((resolve) => { setTimeout(resolve, TURN_SETTLE_MS); });
 }
 
 const state = {
@@ -615,8 +620,11 @@ const actions = {
         // One send path for both a typed message and a structured form
         // answer: `arg` is a string (today) or `{ form }` (a capture_form
         // submission). Only one of message/form is ever sent to the server.
-        const form = arg && typeof arg === 'object' ? (arg.form || null) : null;
-        const message = form ? null : arg;
+        // `arg` may also carry the turn's id: a retry re-sends the same one.
+        const turn = arg && typeof arg === 'object' ? arg : { text: arg };
+        const form = turn.form || null;
+        const message = form ? null : (turn.text ?? null);
+        const turnId = turn.turnId || newTurnId();
 
         // Add user message to local state immediately. Strip HTML tags so the
         // optimistic bubble matches what SanitizeInput middleware writes to
@@ -678,8 +686,19 @@ const actions = {
                 state.currentConversation.id,
                 message,
                 currentRoute,
-                { signal: abortController.signal, form },
+                { signal: abortController.signal, form, turnId },
             );
+
+            // "Try again" for a turn the server already took (it finishes a
+            // turn whose client dropped): show the stored reply instead of
+            // asking again. Still running: wait for it, then show it.
+            if (reader && reader.turnTaken) {
+                commit('REMOVE_MESSAGE', tempId);
+                queuedTurn = true;
+                if (reader.turnTaken === 'in_progress') await waitForTurn();
+                await dispatch('loadConversation', state.currentConversation.id);
+                return;
+            }
 
             // FR-M7 — a turn sent while another is still streaming is QUEUED (or
             // rejected past the depth cap); the service returns a typed marker
@@ -1045,7 +1064,7 @@ const actions = {
             // the stream closed: say so and offer the same turn again (L3-2).
             if (interrupted && !authExpired) {
                 commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
-                commit('SET_RETRY_TURN', { arg, messageId: tempId });
+                commit('SET_RETRY_TURN', { arg, messageId: tempId, turnId });
             }
             const producedNewMessages = state.messages.length > preStreamMessageCount || formErrorsReceived;
             if (
@@ -1524,9 +1543,11 @@ const actions = {
             dispatch('postAction', retry.action);
             return;
         }
-        // The question is asked again, so its first bubble goes.
+        // The question is asked again, so its first bubble goes. The same turn
+        // id goes with it, so a turn the server already took is not taken twice.
         if (retry.messageId) commit('REMOVE_MESSAGE', retry.messageId);
-        dispatch('sendMessage', retry.arg);
+        const turn = retry.arg && typeof retry.arg === 'object' ? retry.arg : { text: retry.arg };
+        dispatch('sendMessage', { ...turn, turnId: retry.turnId });
     },
 
     /**

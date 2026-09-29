@@ -76,3 +76,15 @@ export function isDroppedConnection(error) {
 
 // What every surface says when a turn was cut off.
 export const FYN_INTERRUPTED_MESSAGE = 'Sorry, my reply was cut off before I finished. Please try again.';
+
+/**
+ * A fresh id for one user turn. "Try again" re-sends it, so the server
+ * (FynTurnLedger) never takes the same turn twice. Web and /m both use this.
+ */
+export function newTurnId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** A turn the server is still finishing: how long to wait before reloading it. */
+export const TURN_SETTLE_MS = 3000;

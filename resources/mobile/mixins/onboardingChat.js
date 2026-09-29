@@ -20,7 +20,7 @@ import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
 import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
 import { renderFynText } from '../utils/fynText.js';
-import { FYN_INTERRUPTED_MESSAGE, isDroppedConnection } from '../utils/fynStream.js';
+import { FYN_INTERRUPTED_MESSAGE, TURN_SETTLE_MS, isDroppedConnection, newTurnId } from '../utils/fynStream.js';
 import {
   loadMobileSubscriptionStatus,
   shouldShowMobileUpgrade,
@@ -714,8 +714,10 @@ export default {
     // stream, the same conversation, but the body carries `form` instead of
     // `message` and the placeholder user row is filled in once the server
     // confirms what it saved (see the `form_received` handler above).
-    async send(preset, form = null) {
+    async send(preset, form = null, retryTurnId = null) {
       const text = (preset || this.draft || '').trim();
+      // "Try again" re-sends the cut-off turn's id (FynTurnLedger).
+      const turnId = retryTurnId || newTurnId();
       if ((!form && !text) || this.sending) return;
       this.sending = true;
       this.draft = '';
@@ -742,6 +744,7 @@ export default {
         }
         const body = { current_route: (this.$route && this.$route.path) || '/dashboard' };
         if (form) body.form = form; else body.message = text;
+        body.turn_id = turnId;
         const result = await apiStream(
           `/api/ai-chat/conversations/${cid}/messages`,
           body,
@@ -752,6 +755,14 @@ export default {
           (ev) => this.handleFynEvent(cursor, ev),
         );
         if (this.handleAuthExpiry(result)) return;
+        // "Try again" for a turn the server already took (it finishes a turn
+        // whose client dropped): show the stored reply rather than ask again.
+        // Still running: give it a moment, then show it.
+        if (result && result.turnTaken) {
+          if (result.turnTaken === 'in_progress') await new Promise((resolve) => { setTimeout(resolve, TURN_SETTLE_MS); });
+          await this.loadTranscript(cid);
+          return;
+        }
         // 202 = queued behind an in-flight turn (cross-surface double-send or
         // a lock still held). Stream the queued reply once the lock frees
         // instead of showing a false failure while the message sits queued.
@@ -768,7 +779,7 @@ export default {
         // interrupted turn may still have saved, so refetch before handling it.
         if (form && !cursor.formRefused && !cursor.refreshed) store.bumpScreenRefresh();
         if (cursor.interrupted) {
-          this.markInterrupted(cursor, { text, form });
+          this.markInterrupted(cursor, { text, form, turnId });
           return;
         }
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -785,7 +796,7 @@ export default {
         // Celebrate AFTER the reply has rendered (the level_up frame arrives
         // after `done`), so the fireworks never interrupt Fyn mid-reply.
       } catch (error) {
-        if (isDroppedConnection(error)) this.markInterrupted(cursor, { text, form });
+        if (isDroppedConnection(error)) this.markInterrupted(cursor, { text, form, turnId });
         else cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
         this.sending = false;
@@ -856,7 +867,7 @@ export default {
         this.runFynAction(retry.action);
         return;
       }
-      this.send(retry.text, retry.form || null);
+      this.send(retry.text, retry.form || null, retry.turnId || null);
     },
 
     appendFynText(cursor, piece) {
