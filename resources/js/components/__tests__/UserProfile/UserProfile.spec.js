@@ -4,6 +4,11 @@ import { createStore } from 'vuex';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import UserProfile from '../../../views/UserProfile.vue';
 
+// The page gates on the module's real getters (pageLoading / pageLoadError).
+// The service import pulls in api.js and the whole store, so stub it.
+vi.mock('../../../services/userProfileService', () => ({ default: {} }));
+import userProfileModule from '../../../store/modules/userProfile';
+
 describe('UserProfile.vue', () => {
   let wrapper;
   let store;
@@ -21,13 +26,11 @@ describe('UserProfile.vue', () => {
         userProfile: {
           namespaced: true,
           state: () => ({
+            profile: null,
             loading: false,
             error: null,
           }),
-          getters: {
-            loading: (state) => state.loading,
-            error: (state) => state.error,
-          },
+          getters: userProfileModule.getters,
           actions: {
             fetchProfile,
           },
@@ -141,6 +144,17 @@ describe('UserProfile.vue', () => {
 
     expect(wrapper.text()).toContain('Loading profile...');
     expect(wrapper.findComponent({ name: 'PersonalInformation' }).exists()).toBe(false);
+  });
+
+  // A save refused after the profile loaded keeps the page (fynla.org, 2026-09-29).
+  it('keeps the page when a save fails after the profile loaded', async () => {
+    store.state.userProfile.profile = { id: 1 };
+    store.state.userProfile.error = 'The given data was invalid.';
+    store.state.userProfile.loading = true;
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).not.toContain('Error loading profile');
+    expect(wrapper.text()).not.toContain('Loading profile...');
   });
 
   it('shows the store error and retries the profile request', async () => {

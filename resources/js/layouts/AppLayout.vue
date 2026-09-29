@@ -168,6 +168,14 @@ import { fynIconUrl } from '@/constants/fynIcon';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
 
+// The docked Fyn panel starts collapsed on every visit (CSJ 2026-09-29). Its
+// open state lives for this page load only: AppLayout remounts on each route
+// change, so a module-level flag keeps Fyn open while the user moves around the
+// app, and a new visit or reload starts collapsed. It used to persist in
+// localStorage, so opening Fyn once left it open over every page from then on.
+let chatCollapsedThisLoad = true;
+storage.remove('fynChatCollapsed');
+
 export default {
   name: 'AppLayout',
 
@@ -195,7 +203,7 @@ export default {
       sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
       fynIconUrl,
-      chatCollapsed: storage.get('fynChatCollapsed') === null ? true : storage.get('fynChatCollapsed') === 'true',
+      chatCollapsed: chatCollapsedThisLoad,
       headerOffset: 64,
       footerOffset: 0,
       showSubscriptionEndedModal: false,
@@ -473,7 +481,7 @@ export default {
         return;
       }
       this.chatCollapsed = !this.chatCollapsed;
-      storage.set('fynChatCollapsed', this.chatCollapsed);
+      chatCollapsedThisLoad = this.chatCollapsed;
       if (this.chatCollapsed) {
         window.dispatchEvent(new Event('fyn-chat-interaction'));
         this.$nextTick(() => this.$refs.chatExpandButton?.focus());
@@ -484,7 +492,7 @@ export default {
 
     openChat() {
       this.chatCollapsed = false;
-      storage.set('fynChatCollapsed', false);
+      chatCollapsedThisLoad = false;
     },
 
     async checkSubscriptionStatus() {
