@@ -554,7 +554,10 @@ class CoordinatingAgent extends BaseAgent
                 $investmentResult = $raw;
                 $investmentRecs = [];
 
-                if (($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
+                // A readiness-blocked analysis now carries the portfolio facts (M3,
+                // 29 Sep 2026) but no analysis; it still earns no recommendations.
+                if (($investmentResult['can_proceed'] ?? true) !== false
+                    && ($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
                     try {
                         $recsResult = $this->investmentAgent->generateRecommendations($investmentResult);
                         $investmentRecs = $recsResult['recommendations'] ?? [];

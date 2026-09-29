@@ -11,7 +11,6 @@ use App\Models\Mortgage;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\Shared\DependantsReach;
-use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
@@ -908,10 +907,7 @@ class SavingsActionDefinitionService
         }
 
         // Check if user already has a Cash ISA
-        $hasCashIsa = $user->savingsAccounts()
-            ->where('is_isa', true)
-            ->where('isa_type', 'cash')
-            ->exists();
+        $hasCashIsa = $user->savingsAccounts()->cashIsa()->exists();
 
         if ($hasCashIsa) {
             return [];
@@ -997,10 +993,7 @@ class SavingsActionDefinitionService
         }
 
         // Only relevant if user actually has a Cash ISA
-        $cashIsaAccounts = $user->savingsAccounts()
-            ->where('is_isa', true)
-            ->where('isa_type', 'cash')
-            ->get();
+        $cashIsaAccounts = $user->savingsAccounts()->cashIsa()->get();
 
         if ($cashIsaAccounts->isEmpty()) {
             return [];
@@ -3476,24 +3469,25 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        $userIsaRemaining = (float) ($savingsAnalysis['isa_allowance']['remaining'] ?? 0);
-
-        // Check if spouse also has remaining ISA allowance
+        // Both partners from the one ISA ledger the savings page reads (Rule 20).
+        // This read `isa_allowance.remaining` from the analysis, which is null when
+        // the savings readiness gate blocks it (no expenditure yet) — and a null
+        // read as £0 left, so a user with £14,000 of allowance was told theirs was
+        // "fully used". The spouse side summed cash ISAs only, missing Stocks &
+        // Shares subscriptions (SaveTax couple re-run, 29 Sep 2026).
         $isaAllowances = $this->taxConfig->getISAAllowances();
         $totalAllowance = (float) ($isaAllowances['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
         $taxYear = $this->taxConfig->getTaxYear();
+        $tracker = app(ISATracker::class);
 
-        // Estimate spouse ISA usage from their savings accounts
+        $userStatus = $tracker->getISAAllowanceStatus($user->id, $taxYear);
+        $userIsaRemaining = (float) $userStatus['remaining'];
+        $userIsaUsed = (float) $userStatus['total_used'];
+
         $spouse = $user->spouse_id ? User::find($user->spouse_id) : null;
-        $spouseIsaUsed = $spouse
-            ? (float) app(SavingsStore::class)->forUser($spouse)
-                ->where('user_id', $spouse->id)
-                ->where('is_isa', true)
-                ->where('isa_subscription_year', $taxYear)
-                ->sum('isa_subscription_amount')
-            : 0.0;
-
-        $spouseIsaRemaining = max(0, $totalAllowance - $spouseIsaUsed);
+        $spouseStatus = $spouse ? $tracker->getISAAllowanceStatus($spouse->id, $taxYear) : null;
+        $spouseIsaUsed = (float) ($spouseStatus['total_used'] ?? 0);
+        $spouseIsaRemaining = (float) ($spouseStatus['remaining'] ?? $totalAllowance);
         $combinedRemaining = $userIsaRemaining + $spouseIsaRemaining;
 
         // The seeded condition is an IMBALANCE: one partner's allowance is fully
@@ -3507,7 +3501,6 @@ class SavingsActionDefinitionService
 
         $userName = $this->getUserName($user);
         $spouseName = $spouse ? $this->getUserName($spouse) : 'Spouse';
-        $userIsaUsed = $savingsAnalysis['isa_allowance']['used'] ?? 0;
 
         // 1. User ISA position
         $trace[] = [

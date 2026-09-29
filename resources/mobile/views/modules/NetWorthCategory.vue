@@ -48,6 +48,9 @@
             <span class="mnwc-item__name">{{ item.name }}</span>
             <span class="mnwc-item__value" :class="{ 'mnwc-item__value--debt': isLiabilities }">{{ fmt(item.value) }}</span>
           </div>
+          <!-- A shared record's figure is the viewer's share; say so, as the investment
+               and bank account lists do (SaveTax run 29 Sep 2026, L3). -->
+          <span v-if="item.shareLabel" class="mnwc-item__share">{{ item.shareLabel }}</span>
           <div v-if="item.fields && item.fields.length" class="mnwc-item__fields">
             <span v-for="(f, i) in item.fields" :key="i" class="mnwc-item__field">{{ f }}</span>
           </div>
@@ -72,7 +75,7 @@ import { formatCurrency } from '../../utils/currency.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
-import { userSharePercent } from '../../../js/utils/ownership.js';
+import { isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 function titleCase(value) {
   if (!value) return '';
@@ -190,9 +193,14 @@ export default {
           value: it.value,
           fields,
           outstandingMortgage: Number(it.outstanding_mortgage) || 0,
+          shareLabel: this.shareLabel(it),
           destination: this.assetDestination(it),
         };
       });
+    },
+    shareLabel(it) {
+      if (!isSharedRecord(it) || it.full_value == null) return '';
+      return `Your ${userSharePercent(it).toFixed(2)}% of ${this.fmt(it.full_value)}`;
     },
     liabilityItems() {
       return (this.payload?.liabilities?.items || []).map((item) => ({
@@ -259,6 +267,7 @@ export default {
   font-size: 11px; font-weight: 700; color: var(--neutral-600);
   background: var(--horizon-100); padding: 2px 8px; border-radius: var(--radius-full);
 }
+.mnwc-item__share { display: block; margin-top: 4px; font-size: 12px; color: var(--neutral-500); }
 .mnwc-item__mortgage { display: block; margin-top: 6px; font-size: 12px; font-weight: 700; }
 .mnwc-item__mortgage--debt { color: var(--raspberry-500); }
 </style>

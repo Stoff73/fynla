@@ -39,6 +39,7 @@ use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Support\HoldingValuation;
 use App\Support\SharedOwnership;
@@ -151,6 +152,11 @@ class InvestmentController extends Controller
                 // joint-aware list above, so "X of Y used" matches what canCreate enforces.
                 'account_count' => $this->investmentAccountStore->countForUser($user),
                 'account_limit' => $this->tierGate->hardLimit($user, InvestmentAccountStore::ENTITY_KEY),
+                // The cash ISAs inside account_count. They live on the bank accounts
+                // page, not in the list above, so /m says so beside "X of Y used"
+                // rather than counting accounts the page does not show (SaveTax run
+                // 29 Sep 2026, L1).
+                'cash_isa_count' => app(SavingsStore::class)->isaCountForUser($user),
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,
                 'life_events' => $lifeEvents,

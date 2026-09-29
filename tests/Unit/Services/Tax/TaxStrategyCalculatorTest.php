@@ -850,7 +850,11 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
             ->and($rec['suggested_transfer_amount'])->toBe(2611.7)
             ->and($rec['estimated_annual_tax_saved'])->toBe(49.0)
             ->and($rec['title'])->toContain('£2,612')
-            ->and($rec['description'])->toContain('Marcus');
+            ->and($rec['description'])->toContain('Marcus')
+            // Whole pounds, like every other figure on the page (SaveTax run
+            // 29 Sep 2026, L6: "£675.00" and "£175.00").
+            ->and($rec['description'])->toContain('£623 of annual interest, of which £123 is above')
+            ->and($rec['description'])->not->toMatch('/£[\d,]+\.\d{2}/');
     });
 
     it('omits ISA top-up vs PSA when interest stays under the allowance', function () {

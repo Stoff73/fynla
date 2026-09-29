@@ -134,8 +134,8 @@ final class IsaTopUpStrategy implements TaxStrategy
             description: sprintf(
                 'You hold £%s of non-ISA cash producing £%s of annual interest, of which £%s is above your £%s Savings Allowance. Wrapping £%s in an ISA shelters that taxable interest — saving around £%s a year while the captured rates and tax position remain the same.%s',
                 number_format((int) $nonIsaBalance),
-                number_format($annualInterest, 2),
-                number_format($interestSheltered, 2),
+                number_format(round($annualInterest)),
+                number_format(round($interestSheltered)),
                 number_format((int) $psa),
                 number_format((int) round($reportedTransfer)),
                 number_format((int) floor($saving)),

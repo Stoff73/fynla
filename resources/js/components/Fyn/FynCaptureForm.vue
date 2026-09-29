@@ -22,7 +22,14 @@
         <p v-if="errors?.[block.key]?.message" class="mt-1 text-xs text-raspberry-600">{{ errors[block.key].message }}</p>
 
         <div v-for="fieldKey in visibleFields(block)" :key="fieldKey" class="form-group mt-2">
-          <label class="label" :for="inputId(block.key, fieldKey)">{{ labelFor(block.key, fieldKey) }}</label>
+          <!-- A choice is a group of radios, so its caption names the group rather
+               than pointing a `for` at an element that does not exist (L8). -->
+          <span
+            v-if="field(fieldKey).type === 'choice'"
+            :id="inputId(block.key, fieldKey) + '-label'"
+            class="label"
+          >{{ labelFor(block.key, fieldKey) }}</span>
+          <label v-else class="label" :for="inputId(block.key, fieldKey)">{{ labelFor(block.key, fieldKey) }}</label>
 
           <template v-if="field(fieldKey).type === 'money' || field(fieldKey).type === 'money_or_none'">
             <div class="flex items-center gap-2">
@@ -52,7 +59,12 @@
             </label>
           </template>
 
-          <div v-else-if="field(fieldKey).type === 'choice'" class="flex flex-wrap gap-3">
+          <div
+            v-else-if="field(fieldKey).type === 'choice'"
+            class="flex flex-wrap gap-3"
+            role="radiogroup"
+            :aria-labelledby="inputId(block.key, fieldKey) + '-label'"
+          >
             <label v-for="option in field(fieldKey).options" :key="option.value" class="flex items-center gap-1 text-sm text-horizon-500">
               <input
                 type="radio"
