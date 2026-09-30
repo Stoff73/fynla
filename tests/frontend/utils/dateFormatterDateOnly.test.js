@@ -1,6 +1,6 @@
 // A date-only value ("YYYY-MM-DD", how the API sends date_of_birth) must read
 // the same in every time zone. new Date('1985-05-01') is UTC midnight, which is
-// 30 April west of Greenwich — the display-side twin of the #1009 save bug.
+// 30 April west of Greenwich — the display-side twin of the PR 1009 save bug (PR 1009).
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { formatDateForInput, formatDateOnlyLong } from '../../../resources/js/utils/dateFormatter.js';
 

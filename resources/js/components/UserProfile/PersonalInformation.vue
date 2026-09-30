@@ -721,7 +721,7 @@ export default {
     };
 
     // Format date for display (e.g., "15 January 2024")
-    // Date-only values read the same in every time zone (#1009).
+    // Date-only values read the same in every time zone (PR 1009).
     const formatDisplayDate = (date) => formatDateOnlyLong(date) || '—';
 
     const formatEmploymentStatus = (status) => {

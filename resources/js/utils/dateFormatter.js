@@ -42,7 +42,7 @@ export function formatDateForInput(date) {
   }
 
   // Already a date-only value: pass it through. new Date() would read it as
-  // UTC midnight — the previous day west of Greenwich (#1009).
+  // UTC midnight — the previous day west of Greenwich (PR 1009).
   if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return date;
   }
