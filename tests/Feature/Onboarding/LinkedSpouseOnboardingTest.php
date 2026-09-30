@@ -154,6 +154,55 @@ describe('the partner questions the link already answers', function (): void {
     });
 });
 
+describe("the linked partner's holdings are on their own account", function (): void {
+    // ice-cube #978 follow-up 3; fynla.org 2026-09-30: Pat was asked about
+    // Sam's ISAs, pension and investments, already on Sam's own account.
+    it('asks only their income on the working-spouse form', function (): void {
+        [, $alex] = linkedSpouseOnboardingCouple();
+        $alex->forceFill(['household_calculation_mode' => 'dual_earner'])->save();
+
+        $events = linkedSpouseOnboardingEmitStep($alex, linkedSpouseOnboardingConversation($alex), OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+
+        $form = collect($events)->firstWhere('type', 'capture_form')['form'];
+        expect($form['name'])->toBe(CaptureForms::SPOUSE_HOUSEHOLD)
+            ->and($form['kinds'])->toBe([])
+            ->and($form)->not->toHaveKey('kinds_prompt')
+            ->and($form['lead_fields'])->toBe(['spouse_annual_income', 'spouse_annual_earnings']);
+    });
+
+    it('asks only their income in words, for a client without forms', function (): void {
+        [, $alex] = linkedSpouseOnboardingCouple();
+        $state = OnboardingStateMachine::states()[OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD];
+
+        $prompt = OnboardingStateMachine::resolvePromptText($state, $alex);
+
+        expect($prompt)->toContain('earn')
+            ->and($prompt)->not->toContain('ISA')
+            ->and($prompt)->not->toContain('pension');
+    });
+
+    it('opens "Your spouse\'s details" with only their income', function (): void {
+        [, $alex] = linkedSpouseOnboardingCouple();
+        TaxStrategyHouseholdInput::updateOrCreate(['user_id' => $alex->id], ['spouse_annual_income' => 72000]);
+
+        $form = app(RecordEditForms::class)->formFor($alex->fresh(), 'spouse_household', $alex->id);
+
+        expect($form['schema']['kinds'])->toBe([]);
+    });
+
+    it('still asks them when the couple do not share financial data', function (): void {
+        [$sam, $alex] = linkedSpouseOnboardingCouple();
+        SpousePermission::create(['user_id' => $sam->id, 'spouse_id' => $alex->id, 'status' => 'rejected']);
+        $alex->forceFill(['household_calculation_mode' => 'dual_earner'])->save();
+        $state = OnboardingStateMachine::states()[OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD];
+
+        $events = linkedSpouseOnboardingEmitStep($alex, linkedSpouseOnboardingConversation($alex), OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+
+        expect(array_column(collect($events)->firstWhere('type', 'capture_form')['form']['kinds'], 'key'))->toBe(['isa', 'pension', 'investments'])
+            ->and(OnboardingStateMachine::resolvePromptText($state, $alex->fresh()))->toContain('ISAs');
+    });
+});
+
 describe('when the link cannot answer, the questions are asked as before', function (): void {
     it('asks a married user with no linked account', function (): void {
         $user = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'employment_status' => 'full_time', 'household_calculation_mode' => null, 'funnel_answers' => ['campaign' => 'savetax']]);

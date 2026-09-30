@@ -413,7 +413,7 @@ campaign_spouse_household:
   turn_type: grouped_extract
   form: spouse_household
   form_prompt_text: 'Now your spouse.'
-  prompt_text: 'Great. **How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?**'
+  prompt_text: { builder: buildCampaignSpouseHouseholdPrompt }
   capture_field: null
   extraction_tool: capture_spouse_household_data
   retry_text: 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?'

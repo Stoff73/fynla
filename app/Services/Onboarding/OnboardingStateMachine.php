@@ -159,6 +159,11 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_SPOUSE_HOUSEHOLD = 'campaign_spouse_household';
 
+    /** The working-spouse question and its retry when the partner's holdings are on their own linked account. */
+    public const LINKED_SPOUSE_INCOME_PROMPT = 'Great. **How much does your spouse earn annually, before tax?**';
+
+    public const LINKED_SPOUSE_INCOME_RETRY = 'I need their annual income before tax. Could you share it?';
+
     public const STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS = 'campaign_spouse_non_working_assets';
 
     public const STATE_CAMPAIGN_TERMINAL = 'campaign_terminal';
@@ -811,6 +816,7 @@ final class OnboardingStateMachine
             // composite tool that captures multiple fields in a single call,
             // mirroring the capture_personal_details / capture_dependants pattern.
             self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD => [
+                'prompt_text' => self::class.'::buildCampaignSpouseHouseholdPrompt',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
                 'skip_if' => [self::class, 'skipIfNotDualEarner'],
             ],
@@ -2629,6 +2635,19 @@ final class OnboardingStateMachine
         $user->update(['household_calculation_mode' => 'dual_earner']);
 
         return true;
+    }
+
+    /**
+     * The working-spouse question in words, for a client without forms. A
+     * partner whose linked account shares its data holds their ISAs,
+     * investments and pension there, so only their income is asked
+     * (CaptureForms::spouseHouseholdFor is the form's side of the same rule).
+     */
+    public static function buildCampaignSpouseHouseholdPrompt(string $answer, User $user): string
+    {
+        return app(HouseholdFinancialContext::class)->partnerWithOwnRecords($user) !== null
+            ? self::LINKED_SPOUSE_INCOME_PROMPT
+            : 'Great. **How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?**';
     }
 
     /**

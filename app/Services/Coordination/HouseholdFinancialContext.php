@@ -231,6 +231,17 @@ final class HouseholdFinancialContext
         ];
     }
 
+    /**
+     * The partner whose holdings are on their own account and readable here:
+     * a linked spouse who shares financial data, the account
+     * TaxStrategyCalculator builds their allowances from. Null otherwise, and
+     * their holdings are then only what the user tells us.
+     */
+    public function partnerWithOwnRecords(User $user): ?User
+    {
+        return $user->financiallySharedSpouse();
+    }
+
     // ---------- Private helpers ----------
 
     private function hasAnnualIncome(User $user): bool
@@ -257,7 +268,7 @@ final class HouseholdFinancialContext
      * Uses forUser() (joint-aware) then filters to user_id owned accounts,
      * mirroring IsaTopUpStrategy's pattern.
      */
-    private function hasIsaAccount(User $user): bool
+    public function hasIsaAccount(User $user): bool
     {
         return $this->savingsStore->forUser($user)
             ->where('user_id', $user->id)
