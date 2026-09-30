@@ -94,7 +94,7 @@
         <p class="m-sub m-label">Allowances with potential headroom</p>
         <p class="m-metric mts-available">{{ headroomCount }}</p>
         <p class="m-hero-sub">Review each allowance below. The amounts have different tax meanings and are not additive.</p>
-        <p class="m-hero-sub">{{ taxBasisNote }}</p>
+        <p v-if="taxBasisNote" class="m-hero-sub">{{ taxBasisNote }}</p>
       </div>
 
       <!-- User allowances -->
@@ -208,7 +208,8 @@ export default {
     headroom() { return this.userAllowances.filter((a) => a.available !== false && a.known !== false && Number(a.remaining) > 0); },
     headroomCount() { return this.headroom.length; },
     taxBasisNote() {
-      return 'Income Tax bands use England, Wales and Northern Ireland rates. Scottish Income Tax bands are not modelled in this journey.';
+      // One home for the sentence: TaxStrategyOutputDTO::TAX_BASIS_NOTE.
+      return this.dashboard?.tax_basis_note || '';
     },
     emptyRecommendationsMessage() {
       return this.headroomCount > 0
