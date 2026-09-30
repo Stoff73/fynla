@@ -56,7 +56,7 @@ describe('shared ISA allowance allocation across strategies', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 50000,
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -94,7 +94,7 @@ describe('shared ISA allowance allocation across strategies', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 50000,
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
         $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia', 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
         Holding::factory()->forAccount($gia)->create([
@@ -149,7 +149,7 @@ describe('shared ISA allowance allocation across strategies', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 50000,
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
         SavingsAccount::factory()->isa()->for($user)->create([
             'current_balance' => 15500,
@@ -187,7 +187,7 @@ describe('shared ISA allowance allocation across strategies', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 50000,
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -221,7 +221,7 @@ describe('shared ISA allowance allocation across strategies', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 50000,
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);

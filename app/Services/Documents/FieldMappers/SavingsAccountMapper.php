@@ -27,7 +27,7 @@ class SavingsAccountMapper extends AbstractFieldMapper
             'account_number' => fn ($v) => $this->normalizeString($v),
             'account_type' => fn ($v) => $this->normalizeString($v),
             'current_balance' => fn ($v) => $this->parseDecimal($v),
-            'interest_rate' => fn ($v) => $this->parsePercentage($v),
+            'interest_rate' => fn ($v) => $this->parseRatePercent($v),
             'access_type' => fn ($v) => $this->parseEnum($v, ['immediate', 'notice', 'fixed'], 'immediate'),
             'notice_period_days' => fn ($v) => $this->parseInt($v),
             'maturity_date' => fn ($v) => $this->parseDate($v),

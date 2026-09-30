@@ -11,6 +11,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\SavingsInterestRate;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
@@ -57,14 +58,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             ->reject(fn ($acc) => $this->isSharedOwnership($acc))
             ->where('is_isa', false);
         $userSavingsTotal = (float) $userSavings->sum('current_balance');
-        $annualInterest = (float) $userSavings->sum(function ($acc) {
-            $r = (float) $acc->interest_rate;
-            if ($r > 1) {
-                $r /= 100;
-            }
-
-            return (float) $acc->current_balance * $r;
-        });
+        $annualInterest = (float) $userSavings->sum(fn ($acc) => (float) $acc->current_balance * SavingsInterestRate::fraction($acc->interest_rate));
         $userAvgRate = $userSavingsTotal > 0 ? $annualInterest / $userSavingsTotal : 0.0;
 
         $personalAllowance = (float) $income['personal_allowance'];
@@ -82,6 +76,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             ? min($userSavingsTotal, $maxTransferableByCapacity)
             : 0.0;
 
+        $estimatedAnnualTaxSaved = 0.0;
         if ($suggestedTransfer > 1000) {
             // Marginal rate on savings interest follows the same total-income
             // band as MA above. bandRateFor() uses raw employment so we resolve
@@ -100,6 +95,11 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             // Priced by the tax engine, not a flat band rate (audit 2026-09-27).
             $estimatedAnnualTaxSaved = floor($this->math->interestRemovalSaving($user, $annualInterestMoved, 0.0, $context->pensionPaidElsewhere));
             $reportedTransfer = round($suggestedTransfer, 2);
+        }
+        // A gift that saves no tax is not a tax action: a couple with no income
+        // was offered "Gift £4,000 of savings to your spouse" at £0 (ice-cube,
+        // PR 991). The same £1 floor as the ISA card (IsaTopUpStrategy).
+        if ($suggestedTransfer > 1000 && $estimatedAnnualTaxSaved >= 1) {
             $suggestions[] = [
                 'type' => 'savings_to_spouse',
                 'priority' => 'high',
@@ -141,7 +141,11 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
 
         // 3. ISA top-up in spouse's name — uses fresh £20k allowance. Funding
         // a spouse's ISA needs money to fund it with (ruling a).
-        $hasFundsToGift = $userSavingsTotal > 0 || $hasGia;
+        // It saves tax only when the user's own savings interest is taxed now
+        // (priced by the tax engine) or they hold investments outside an ISA;
+        // a couple with no income was shown it at £0 (ice-cube, PR 991).
+        $userInterestTaxed = floor($this->math->interestRemovalSaving($user, $annualInterest, 0.0, $context->pensionPaidElsewhere)) >= 1;
+        $hasFundsToGift = ($userSavingsTotal > 0 && $userInterestTaxed) || $hasGia;
         $spouseIsaBalance = $household?->spouse_existing_isa_balance;
         if ($hasFundsToGift && $spouseIsaBalance !== null && (float) $spouseIsaBalance === 0.0) {
             $suggestions[] = [

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Investment\InvestmentAccount;
+use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Tax\TaxStrategyCalculator;
@@ -59,4 +60,37 @@ it('does not suggest funding a spouse ISA when the user has nothing to fund it f
     TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_isa_balance' => 0]);
 
     expect(spouseTypes($user))->not->toContain('isa_topup_spouse');
+});
+
+it('offers no £0 gift or spouse ISA to a couple with no income (ice-cube, PR 991)', function () {
+    $user = User::factory()->create([
+        'household_calculation_mode' => 'single_earner_couple',
+        'employment_status' => 'unemployed',
+        'annual_employment_income' => 0,
+        'marital_status' => 'married',
+    ]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0, 'spouse_existing_isa_balance' => 0]);
+    SavingsAccount::factory()->for($user)->create(['is_isa' => false, 'current_balance' => 4000, 'interest_rate' => 4.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
+
+    // Their £160 of interest sits inside their own Personal Allowance: moving it saves nothing.
+    $types = spouseTypes($user);
+    expect($types)->not->toContain('savings_to_spouse');
+    expect($types)->not->toContain('isa_topup_spouse');
+});
+
+it('still offers the gift and the spouse ISA when the user\'s interest is taxed', function () {
+    $user = User::factory()->create([
+        'household_calculation_mode' => 'single_earner_couple',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => 60000,
+        'marital_status' => 'married',
+    ]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0, 'spouse_existing_isa_balance' => 0]);
+    SavingsAccount::factory()->for($user)->create(['is_isa' => false, 'current_balance' => 50000, 'interest_rate' => 4.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
+
+    $recommendations = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations);
+    $gift = $recommendations->firstWhere('type', 'savings_to_spouse');
+    expect($gift)->not->toBeNull()
+        ->and((float) $gift['estimated_annual_tax_saved'])->toBeGreaterThanOrEqual(1.0)
+        ->and($recommendations->pluck('type')->all())->toContain('isa_topup_spouse');
 });

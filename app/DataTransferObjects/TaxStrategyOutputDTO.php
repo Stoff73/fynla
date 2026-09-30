@@ -27,6 +27,13 @@ namespace App\DataTransferObjects;
 final class TaxStrategyOutputDTO
 {
     /**
+     * Which Income Tax bands the plan prices, said once for every client (it
+     * was a string in the /m view alone, so the desktop page never said it:
+     * ice-cube, PR 984). Scottish bands are a separate programme (CSJ 2026-09-25).
+     */
+    public const TAX_BASIS_NOTE = 'Income Tax bands use England, Wales and Northern Ireland rates. Scottish Income Tax bands are not modelled in this journey.';
+
+    /**
      * @param  list<array{key:string,label:string,amount:float,used:float,remaining:float,utilisation_pct:float,status:string,owner:string}>  $userAllowances
      * @param  list<array{key:string,label:string,amount:float,used:float,remaining:float,utilisation_pct:float,status:string,owner:string}>|null  $spouseAllowances
      * @param  list<array<string,mixed>>  $recommendations  Canonical recommendation list. Each entry carries `category`, `priority`, etc. plus strategy-specific extras.
@@ -49,6 +56,7 @@ final class TaxStrategyOutputDTO
             'spouse_allowances' => $this->spouseAllowances,
             'recommendations' => $this->recommendations,
             'delta_vs_baseline' => $this->deltaVsBaseline,
+            'tax_basis_note' => self::TAX_BASIS_NOTE,
         ];
     }
 }

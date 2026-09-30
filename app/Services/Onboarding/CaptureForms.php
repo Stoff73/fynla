@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\User;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Tax\TaxStrategyMath;
 use Carbon\Carbon;
 
@@ -902,6 +903,29 @@ final class CaptureForms
                 'spouse_unrealised_gains' => ['type' => 'money', 'label' => 'Gains on investments not yet sold', 'required' => false, 'hint' => 'Leave blank if none or unknown'],
             ],
         ];
+    }
+
+    /**
+     * The working-spouse form for this user. A partner whose linked account
+     * shares its data holds their ISAs, pension and investments on that
+     * account, which the tax plan reads; asking again kept a second copy
+     * that could go stale (ice-cube #978 follow-up 3; fynla.org 2026-09-30:
+     * Pat was asked about Sam's ISAs, pension and investments). Only their
+     * income is asked, filled in from the link (WalkFormPrefill).
+     *
+     * @param  array<string, mixed>|null  $schema  an already-narrowed form (an edit), else the walk's
+     * @return array<string, mixed>
+     */
+    public static function spouseHouseholdFor(User $user, ?array $schema = null): array
+    {
+        $schema ??= self::spouseHousehold();
+        if (app(HouseholdFinancialContext::class)->partnerWithOwnRecords($user) === null) {
+            return $schema;
+        }
+        unset($schema['kinds_prompt']);
+        $schema['kinds'] = [];
+
+        return $schema;
     }
 
     /**

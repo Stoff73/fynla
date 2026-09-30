@@ -176,6 +176,16 @@ describe('estimateIsaSubscriptionsThisYear', function () {
  * ownership_percentage. Attribution must follow CalculatesOwnershipShare —
  * the same rule net worth already applies.
  */
+it('reads a savings rate of 1% or less as that percentage, never a fraction', function () {
+    // ice-cube PR 991: the old guess read 1 as 100%, so £4,000 at 1% showed
+    // £4,000 of interest; 0.5 read as 50%.
+    $user = User::factory()->create();
+    SavingsAccount::factory()->for($user)->create(['is_isa' => false, 'current_balance' => 4000, 'interest_rate' => 1.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
+    SavingsAccount::factory()->for($user)->create(['is_isa' => false, 'current_balance' => 2000, 'interest_rate' => 0.5, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
+
+    expect($this->math->estimateAnnualInterest($user))->toEqualWithDelta(50.0, 0.001);
+});
+
 describe('estimateAnnualInterest — joint ownership attribution', function () {
     it('attributes only the ownership share of a joint account to the primary owner', function () {
         $user = User::factory()->create();

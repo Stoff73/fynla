@@ -56,10 +56,11 @@ describe('mobile Tax Strategy', () => {
     expect(copy).not.toContain('are exempt');
   });
 
-  it('discloses the income-tax jurisdiction used by the calculator', () => {
-    const note = TaxStrategy.computed.taxBasisNote.call({});
+  it('shows the income-tax jurisdiction the server says the calculator uses', () => {
+    // One home for the sentence: TaxStrategyOutputDTO::TAX_BASIS_NOTE.
+    const served = 'Income Tax bands use England, Wales and Northern Ireland rates. Scottish Income Tax bands are not modelled in this journey.';
 
-    expect(note).toContain('England, Wales and Northern Ireland');
-    expect(note).toContain('Scottish Income Tax bands are not modelled');
+    expect(TaxStrategy.computed.taxBasisNote.call({ dashboard: { tax_basis_note: served } })).toBe(served);
+    expect(TaxStrategy.computed.taxBasisNote.call({ dashboard: {} })).toBe('');
   });
 });

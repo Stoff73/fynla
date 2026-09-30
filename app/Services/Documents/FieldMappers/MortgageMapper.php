@@ -30,7 +30,7 @@ class MortgageMapper extends AbstractFieldMapper
             'mortgage_type' => fn ($v) => $this->parseEnum($v, ['repayment', 'interest_only', 'mixed'], 'repayment'),
             'original_loan_amount' => fn ($v) => $this->parseDecimal($v),
             'outstanding_balance' => fn ($v) => $this->parseDecimal($v),
-            'interest_rate' => fn ($v) => $this->parsePercentage($v),
+            'interest_rate' => fn ($v) => $this->parseRatePercent($v),
             'rate_type' => fn ($v) => $this->parseEnum($v, ['fixed', 'variable', 'tracker', 'discount', 'mixed', 'capped', 'offset'], 'variable'),
             'monthly_payment' => fn ($v) => $this->parseDecimal($v),
             'start_date' => fn ($v) => $this->parseDate($v),

@@ -11,6 +11,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\SavingsInterestRate;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
@@ -78,14 +79,7 @@ final class JointSavingsStrategy implements TaxStrategy
         }
 
         $balance = (float) $soleSavings->sum('current_balance');
-        $interest = (float) $soleSavings->sum(function ($acc) {
-            $r = (float) $acc->interest_rate;
-            if ($r > 1) {
-                $r /= 100;
-            }
-
-            return (float) $acc->current_balance * $r;
-        });
+        $interest = (float) $soleSavings->sum(fn ($acc) => (float) $acc->current_balance * SavingsInterestRate::fraction($acc->interest_rate));
         $userPsa = $this->math->psaForBand($userBand);
 
         if ($interest <= $userPsa || $balance <= 0) {

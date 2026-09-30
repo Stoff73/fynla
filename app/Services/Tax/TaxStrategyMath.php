@@ -14,6 +14,7 @@ use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
+use App\Support\SavingsInterestRate;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 
@@ -369,16 +370,10 @@ final class TaxStrategyMath
             });
     }
 
-    /**
-     * interest_rate convention is mixed across the codebase (factory writes
-     * decimals 0.04, seeders + onboarding write percent 4.0). Normalise:
-     * anything > 1 is treated as percent.
-     */
+    /** The account's rate as a fraction (SavingsInterestRate: the column holds percentages). */
     private function normalisedInterestRate(object $acc): float
     {
-        $rate = (float) $acc->interest_rate;
-
-        return $rate > 1 ? $rate / 100 : $rate;
+        return SavingsInterestRate::fraction($acc->interest_rate);
     }
 
     public function estimateIsaSubscriptionsThisYear(User $user): float

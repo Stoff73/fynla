@@ -1166,6 +1166,9 @@ final class OnboardingChatDirector
                 // is on file and has not been answered.
                 $schema = CaptureForms::expenditureVariantFor($user, app(TeaserGate::class)->allows($user, 'expenditure_detailed'));
             }
+            if ($schema !== null && $schema['name'] === CaptureForms::SPOUSE_HOUSEHOLD) {
+                $schema = CaptureForms::spouseHouseholdFor($user, $schema);
+            }
             if ($schema !== null) {
                 // A form-capable client sees the short form-shaped lead-in
                 // (the form's own boxes and Save button carry the
@@ -3508,6 +3511,12 @@ final class OnboardingChatDirector
         }
 
         $retryText = (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?");
+        // A linked partner's holdings are on their own account: the retry
+        // asks for their income only, as the prompt did.
+        if ($currentStateId === OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD
+            && app(HouseholdFinancialContext::class)->partnerWithOwnRecords($user) !== null) {
+            $retryText = OnboardingStateMachine::LINKED_SPOUSE_INCOME_RETRY;
+        }
 
         $message = $this->saveMessage($conversation, 'assistant', $retryText, [
             'metadata' => [

@@ -8,9 +8,12 @@ use App\Models\AppleNotificationLog;
 use App\Models\AppleNotificationRecovery;
 use App\Models\AppleTransaction;
 use App\Models\PremiumEntitlement;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Account\RetentionPurgeService;
 use App\Services\AI\Memory\FynMemoryStore;
+use App\Services\Income\EmploymentIncomeService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -151,4 +154,40 @@ it('erases user-linked billing rows before their entitlement and retains non-per
         ->and(DB::table('premium_entitlements')->where('id', $entitlement->id)->exists())->toBeFalse()
         ->and(DB::table('users')->where('id', $user->id)->value('apple_app_account_token'))->toBeNull()
         ->and(DB::table('apple_notification_logs')->where('id', $notification->id)->exists())->toBeTrue();
+});
+
+it('purges or anonymises every table that holds a user_id, so a new table cannot be missed', function () {
+    // 38 user tables were added after getDeletionOrder() was written and the
+    // purge left them all behind, Fyn conversations among them (ice-cube, PR
+    // 991; four purged accounts on fynla.org still held 120 messages).
+    $service = app(RetentionPurgeService::class);
+    $method = (new ReflectionClass($service))->getMethod('getDeletionOrder');
+    $method->setAccessible(true);
+    $handled = [...$method->invoke($service), ...RetentionPurgeService::ANONYMISED_TABLES];
+
+    $userTables = collect(DB::select(
+        "SELECT DISTINCT TABLE_NAME AS t FROM information_schema.KEY_COLUMN_USAGE
+         WHERE TABLE_SCHEMA = DATABASE() AND COLUMN_NAME = 'user_id' AND REFERENCED_TABLE_NAME = 'users'"
+    ))->pluck('t')->all();
+
+    expect($userTables)->not->toBeEmpty()
+        ->and(array_values(array_diff($userTables, $handled)))->toBe([]);
+});
+
+it('deletes the user\'s Fyn conversations, messages, income and household answers, and anonymises their AI costs', function () {
+    $user = User::factory()->create();
+    $conversation = AiConversation::create(['user_id' => $user->id, 'title' => 'Retirement', 'status' => 'active', 'model_used' => 'director']);
+    AiMessage::create(['conversation_id' => $conversation->id, 'role' => 'user', 'content' => 'I earn £60,000 and want to retire at 60.']);
+    app(EmploymentIncomeService::class)->recordJob($user, 'Acme Ltd', 'Analyst', 60000.0);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 30000]);
+    DB::table('ai_cost_attribution')->insert(['user_id' => $user->id, 'conversation_id' => $conversation->id, 'stage' => 'answer', 'model' => 'test-model', 'created_at' => now(), 'updated_at' => now()]);
+
+    app(RetentionPurgeService::class)->purgeUser($user);
+
+    expect(AiConversation::where('user_id', $user->id)->count())->toBe(0)
+        ->and(AiMessage::where('conversation_id', $conversation->id)->count())->toBe(0)
+        ->and(DB::table('employments')->where('user_id', $user->id)->count())->toBe(0)
+        ->and(DB::table('tax_strategy_household_inputs')->where('user_id', $user->id)->count())->toBe(0)
+        ->and(DB::table('ai_cost_attribution')->where('user_id', $user->id)->count())->toBe(0)
+        ->and(DB::table('ai_cost_attribution')->where('model', 'test-model')->count())->toBe(1);
 });

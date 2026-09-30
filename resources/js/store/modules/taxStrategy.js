@@ -119,6 +119,7 @@ const getters = {
     (g.composedPlan?.items ?? g.recommendations).filter((rec) => rec.category === 'household'),
   calculationMode: (s) => s.dashboard?.calculation_mode ?? 'single',
   taxYear: (s) => s.dashboard?.tax_year ?? '',
+  taxBasisNote: (s) => s.dashboard?.tax_basis_note ?? '',
   isHouseholdMode: (s) => ['dual_earner', 'single_earner_couple'].includes(s.dashboard?.calculation_mode),
 };
 

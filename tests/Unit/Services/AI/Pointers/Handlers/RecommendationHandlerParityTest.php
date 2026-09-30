@@ -77,7 +77,7 @@ it('parity holds for a user whose plan has fired items and locked strategies', f
         'user_id' => $user->id,
         'is_isa' => false,
         'current_balance' => 81000.00,
-        'interest_rate' => 0.0325,
+        'interest_rate' => 3.25,
     ]);
 
     SavingsAccount::factory()->isa()->create([
