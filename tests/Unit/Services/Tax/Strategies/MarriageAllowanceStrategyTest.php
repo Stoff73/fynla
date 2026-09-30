@@ -162,6 +162,39 @@ it('uses a linked spouse\'s own income when it is below the allowance, and publi
         ->and($rec['estimated_annual_tax_saved'])->toBe(maBasicSaving());
 });
 
+// csjones 2026-09-30 (users 434/435): the linked partner had no income on
+// their own record, so the walk asked for it and £72,000 was given — then
+// this read the empty record as £0 and offered £252 to a £32,000 / £72,000
+// couple. Their own records win only when they hold income (2026-09-28).
+it('uses the income given for a linked spouse whose own records hold none', function () {
+    $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 32000], ['spouse_annual_income' => 72000]);
+    $spouse = User::factory()->create(['marital_status' => 'married', 'annual_employment_income' => null, 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    expect(maRec($user->fresh()))->toBeNull();
+});
+
+it('offers it from the income given when a linked spouse with no records of their own earns below the allowance', function () {
+    $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 32000], ['spouse_annual_income' => 9000]);
+    $spouse = User::factory()->create(['marital_status' => 'married', 'annual_employment_income' => null, 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    $rec = maRec($user->fresh());
+    expect($rec)->not->toBeNull()
+        ->and($rec['spouse_income'])->toBe(9000.0);
+});
+
+it('waits for the spouse\'s income when a linked spouse has no records and none was given', function () {
+    $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 32000], ['spouse_annual_income' => null]);
+    $spouse = User::factory()->create(['marital_status' => 'married', 'annual_employment_income' => null, 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    $plan = app(ComposedTaxPlanService::class)->forUser($user->fresh());
+
+    expect(maRec($user->fresh()))->toBeNull()
+        ->and(collect($plan['locked'])->firstWhere('strategy_type', 'marriage_allowance_transfer')['missing'] ?? null)->toBe(['spouse_income_amount']);
+});
+
 it('runs the other way when the user is the one below the allowance and the spouse pays basic rate', function () {
     $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 5000], ['spouse_annual_income' => 35000]);
 

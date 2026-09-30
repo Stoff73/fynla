@@ -58,8 +58,9 @@ final class SpouseHoldingTransfer
         $hasIncome = (float) ($spouse->annual_employment_income ?? 0) > 0
             || (float) ($spouse->annual_self_employment_income ?? 0) > 0
             || (float) ($spouse->annual_other_income ?? 0) > 0;
+        $pensionIncome = 0.0;
         if ($income > 0 && ! $hasIncome) {
-            ['pay' => $pay, 'other' => $other] = $this->splitIncome($income, $holding, $spouse);
+            ['pay' => $pay, 'pension' => $pensionIncome, 'other' => $other] = $this->splitIncome($income, $holding, $spouse);
             if ($pay > 0) {
                 // Held as an estimate, not through capture_work_details: it is the
                 // requester's figure, and the spouse's own job must replace it
@@ -107,7 +108,10 @@ final class SpouseHoldingTransfer
 
         $pot = (float) ($holding->spouse_existing_pension_balance ?? 0);
         $contribution = (float) ($holding->spouse_pension_input_annual ?? 0);
-        if ($pot > 0 || $contribution > 0) {
+        // A retired partner's income is their pension (CSJ 2026-09-30): it is
+        // stored as their own pension form stores it, as what they draw, on
+        // the one pension record, so their walk opens it to confirm.
+        if ($pot > 0 || $contribution > 0 || $pensionIncome > 0) {
             $provider = trim((string) ($holding->spouse_pension_provider ?? ''));
             $input = ['pension_category' => 'dc', 'scheme_type' => 'personal', 'scheme_name' => trim($provider.' personal pension')];
             if ($provider !== '') {
@@ -119,7 +123,10 @@ final class SpouseHoldingTransfer
             if ($contribution > 0) {
                 $input['monthly_contribution_amount'] = round($contribution / 12, 2);
             }
-            $this->run('create_pension', $input, $spouse, $copied, 'pension');
+            if ($pensionIncome > 0) {
+                $input['annual_drawdown_income'] = $pensionIncome;
+            }
+            $this->run('create_pension', $input, $spouse, $copied, $pensionIncome > 0 ? 'pension income' : 'pension');
         }
 
         $holding->spouse_holding_transferred_at = now();
@@ -133,36 +140,45 @@ final class SpouseHoldingTransfer
     }
 
     /**
-     * The partner's income as earnings from work and the rest. Pension tax
-     * relief is capped at relevant UK earnings (FA 2004 s189-190,
+     * The partner's income as earnings from work, pension income and the rest.
+     * Pension tax relief is capped at relevant UK earnings (FA 2004 s189-190,
      * https://www.legislation.gov.uk/ukpga/2004/12/section/190), and the plan
      * reads employment and self-employment income as those earnings, so income
      * that is a pension or rent must not arrive as pay.
      *
-     * Earnings given: they are the pay, the rest is other income. Earnings not
-     * given: the partner's employment status decides: working means all pay,
-     * retired or unemployed means none. Neither known: the figure is copied as
-     * pay, as it always was (ruling 50, CSJ 2026-09-16; restated 2026-09-29:
-     * the details the inviter gave are transferred and stored). It is an
-     * estimate, so the spouse's own job replaces it rather than adding to it.
+     * Earnings given: they are the pay. Earnings not given: the partner's
+     * employment status decides: working means all pay, retired or unemployed
+     * means none. Neither known: the figure is copied as pay, as it always was
+     * (ruling 50, CSJ 2026-09-16; restated 2026-09-29: the details the inviter
+     * gave are transferred and stored). It is an estimate, so the spouse's own
+     * job replaces it rather than adding to it.
      *
-     * @return array{pay: float, other: float}
+     * What is not pay is a retired partner's pension (CSJ 2026-09-30: entered
+     * as their pension, it must arrive as pension income), and otherwise
+     * other income, since for anyone else it could be rent as much as a
+     * pension.
+     *
+     * @return array{pay: float, pension: float, other: float}
      */
     private function splitIncome(float $income, TaxStrategyHouseholdInput $holding, User $spouse): array
     {
-        if ($holding->spouse_annual_earnings !== null) {
-            $pay = min($income, max(0.0, (float) $holding->spouse_annual_earnings));
-
-            return ['pay' => $pay, 'other' => $income - $pay];
-        }
-
         $status = $holding->spouse_employment_status ?? $spouse->employment_status;
 
-        return match (true) {
-            in_array($status, self::WORKING_STATUSES, true) => ['pay' => $income, 'other' => 0.0],
-            in_array($status, self::NON_WORKING_STATUSES, true) => ['pay' => 0.0, 'other' => $income],
-            default => ['pay' => $income, 'other' => 0.0],
-        };
+        if ($holding->spouse_annual_earnings !== null) {
+            $pay = min($income, max(0.0, (float) $holding->spouse_annual_earnings));
+        } else {
+            $pay = match (true) {
+                in_array($status, self::WORKING_STATUSES, true) => $income,
+                in_array($status, self::NON_WORKING_STATUSES, true) => 0.0,
+                default => $income,
+            };
+        }
+
+        $rest = $income - $pay;
+
+        return $status === 'retired'
+            ? ['pay' => $pay, 'pension' => $rest, 'other' => 0.0]
+            : ['pay' => $pay, 'pension' => 0.0, 'other' => $rest];
     }
 
     /** @param  array<string, mixed>  $input */

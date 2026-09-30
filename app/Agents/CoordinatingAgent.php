@@ -6569,6 +6569,13 @@ class CoordinatingAgent extends BaseAgent
         }
 
         if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability'], true)) {
+            // The dividends an account pays also count in the user's taxable
+            // dividend total, as create_investment_account adds them (ISA
+            // dividends are tax-free, so never). An edit moves the total by the
+            // change, so re-saving the same figure changes nothing.
+            $dividendsBefore = $entityType === 'investment_account' && array_key_exists('annual_dividend_income', $fields)
+                ? InvestmentAccount::where('id', $entityId)->where('user_id', $user->id)->first(['id', 'account_type', 'isa_type', 'annual_dividend_income'])
+                : null;
             try {
                 $record = match ($entityType) {
                     'savings_account' => app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
@@ -6584,6 +6591,13 @@ class CoordinatingAgent extends BaseAgent
                     'errors' => $e->errors,
                     'message' => 'Validation failed for account update.',
                 ];
+            }
+
+            if ($dividendsBefore !== null && $dividendsBefore->account_type !== 'isa' && $dividendsBefore->isa_type === null) {
+                $change = (float) ($record->annual_dividend_income ?? 0) - (float) ($dividendsBefore->annual_dividend_income ?? 0);
+                if ($change != 0.0) {
+                    $user->update(['annual_dividend_income' => max(0.0, (float) ($user->annual_dividend_income ?? 0) + $change)]);
+                }
             }
 
             return array_filter([

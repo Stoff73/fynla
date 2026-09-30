@@ -6,6 +6,7 @@ namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
 use App\Models\CriticalIllnessPolicy;
+use App\Models\DCPension;
 use App\Models\Employment;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
@@ -14,6 +15,7 @@ use App\Models\ProtectionProfile;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Income\EmploymentIncomeService;
+use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -349,8 +351,14 @@ final class RecordEditForms
                 'paid_in_this_year' => self::floatOrNull($account->isa_subscription_current_year ?? null),
             ], static fn ($v): bool => $v !== null && $v !== ''), $label];
         }
-        $kind = $account->account_type === 'personal_investment_account' ? 'gia' : 'other';
+        // A General Investment Account is stored as 'gia' (CoordinatingAgent
+        // maps the form's personal_investment_account); checking only the
+        // input alias opened every stored one as the "other" kind.
+        $kind = in_array($account->account_type, ['gia', 'personal_investment_account'], true) ? 'gia' : 'other';
         $answers = ['provider' => $account->provider, 'current_value' => (float) $account->current_value];
+        if (self::floatOrNull($account->annual_dividend_income ?? null) !== null) {
+            $answers['annual_dividend_income'] = (float) $account->annual_dividend_income;
+        }
         if ($kind === 'other') {
             $type = trim(str_replace((string) $account->provider, '', (string) $account->account_name));
             if ($type !== '') {
@@ -365,7 +373,10 @@ final class RecordEditForms
     private function pensionAnswers(Model $pension): array
     {
         $label = self::accountLabel($pension->scheme_name, $pension->provider);
-        $workplace = ($pension->scheme_type ?? '') === 'occupational';
+        // One rule for workplace (scheme_type when set, else pension_type):
+        // scheme_type is never 'occupational', so every workplace pension
+        // used to open here as a personal one.
+        $workplace = $pension instanceof DCPension && PensionContributionRule::isWorkplace($pension);
         $answers = array_filter([
             'provider' => $pension->provider,
             'current_value' => self::floatOrNull($pension->current_fund_value),
@@ -497,6 +508,7 @@ final class RecordEditForms
                 'account_name' => $input['account_name'] ?? null,
                 'current_value' => $input['current_value'] ?? null,
                 'contributions_ytd' => $input['isa_subscription_current_year'] ?? null,
+                'annual_dividend_income' => $input['annual_dividend_income'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'dc_pension' => array_filter([
                 'provider' => $input['provider'] ?? null,
@@ -506,6 +518,8 @@ final class RecordEditForms
                 'employer_contribution_percent' => $input['employer_contribution_percent'] ?? null,
                 'salary_sacrifice' => $kindKey === 'workplace' ? ($input['salary_sacrifice'] ?? false) : null,
                 'monthly_contribution_amount' => $input['monthly_contribution_amount'] ?? null,
+                'annual_drawdown_income' => $input['annual_drawdown_income'] ?? null,
+                'pcls_taken' => $input['pcls_taken'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'life_insurance', 'critical_illness' => array_filter([
                 'provider' => $input['provider'] ?? null,
