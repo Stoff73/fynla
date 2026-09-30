@@ -2756,7 +2756,12 @@ final class OnboardingStateMachine
             return self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME;
         }
 
-        if ($user->onboarding_fyn_selection !== 'pensioncheck' && app(PensionStore::class)->hasPersonalPension($user)) {
+        // Only when the pension form was shown: for someone not employed it is
+        // skipped, and a personal pension on file then came from elsewhere (a
+        // partner's transfer) — the personal pension step must still show it
+        // to confirm (csjones 2026-09-30).
+        if ($user->onboarding_fyn_selection !== 'pensioncheck' && ! self::skipIfNotEmployed($user)
+            && app(PensionStore::class)->hasPersonalPension($user)) {
             $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
             $context['pension_contribs_done'] = true;
             $user->onboarding_fyn_context = $context;

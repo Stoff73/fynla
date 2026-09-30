@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
+use App\Models\AiConversation;
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
@@ -10,8 +11,11 @@ use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Income\EmploymentIncomeService;
+use App\Services\Onboarding\CaptureForms;
+use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Onboarding\SpouseHoldingTransfer;
 use App\Services\Onboarding\SpouseLinkingService;
+use App\Services\Onboarding\WalkFormPrefill;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -118,26 +122,66 @@ it('copies only the earnings from work as pay, and the rest as other income', fu
         ->and((float) ($spouse->annual_self_employment_income ?? 0))->toBe(0.0);
 });
 
-it('copies a partner with income but no earnings as other income, never pay', function (): void {
-    // "Of that, earnings from work" answered £0: all of it is a pension or rent.
+it('copies a retired partner\'s income as what they draw from their pension, never pay or other income', function (): void {
+    // CSJ 2026-09-30: the inviter entered the partner's income as their
+    // pension; it must arrive as pension income on the partner's account,
+    // stored as the partner's own pension form stores it (what they draw).
     $spouse = linkPartner(['spouse_annual_income' => 125140, 'spouse_annual_earnings' => 0, 'spouse_employment_status' => 'retired']);
 
     expect((float) ($spouse->annual_employment_income ?? 0))->toBe(0.0)
         ->and((float) ($spouse->annual_self_employment_income ?? 0))->toBe(0.0)
-        ->and((float) $spouse->annual_other_income)->toBe(125140.0);
+        ->and((float) ($spouse->annual_other_income ?? 0))->toBe(0.0);
+    $pensions = DCPension::where('user_id', $spouse->id)->get();
+    expect($pensions)->toHaveCount(1)
+        ->and((float) $pensions[0]->annual_drawdown_income)->toBe(125140.0);
 
-    // Their own plan limits relief to the basic amount
-    // (pension.relevant_earnings_minimum), not the £25,100 taper rescue.
+    // Pension income is not earnings: their own plan limits relief to the
+    // basic amount (pension.relevant_earnings_minimum), not the £25,100 rescue.
     $basicAmount = (float) app(TaxConfigService::class)->getPensionAllowances()['relevant_earnings_minimum'];
     $rescue = collect(app(TaxStrategyCalculator::class)->calculate($spouse)->recommendations)->firstWhere('type', 'pa_taper_rescue');
     expect($rescue)->not->toBeNull()
         ->and((float) $rescue['suggested_contribution'])->toBeLessThanOrEqual($basicAmount);
 });
 
+it('puts a retired partner\'s pension income on the pension pot the inviter gave, as one record', function (): void {
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_employment_status' => 'retired', 'spouse_existing_pension_balance' => 200000, 'spouse_pension_provider' => 'Aviva']);
+
+    $pensions = DCPension::where('user_id', $spouse->id)->get();
+    expect($pensions)->toHaveCount(1)
+        ->and((float) $pensions[0]->current_fund_value)->toBe(200000.0)
+        ->and((float) $pensions[0]->annual_drawdown_income)->toBe(30000.0)
+        ->and($pensions[0]->provider)->toBe('Aviva')
+        ->and((float) ($spouse->annual_other_income ?? 0))->toBe(0.0);
+});
+
+it('splits a retired partner who still earns into pay and pension income', function (): void {
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_annual_earnings' => 10000, 'spouse_employment_status' => 'retired']);
+
+    expect((float) $spouse->annual_employment_income)->toBe(10000.0)
+        ->and((float) DCPension::where('user_id', $spouse->id)->sole()->annual_drawdown_income)->toBe(20000.0)
+        ->and((float) ($spouse->annual_other_income ?? 0))->toBe(0.0);
+});
+
+it('opens the partner\'s own pension form on the transferred pension with the income filled in', function (): void {
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_employment_status' => 'retired']);
+    $conversation = AiConversation::create(['user_id' => $spouse->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding', 'metadata' => ['source' => 'fyn_onboarding']]);
+
+    $prefill = app(WalkFormPrefill::class)->for($spouse, $conversation, CaptureForms::PENSION_PERSONAL);
+
+    expect((float) $prefill['values']['personal']['annual_drawdown_income'])->toBe(30000.0)
+        ->and($prefill['record']['type'])->toBe('dc_pension');
+});
+
 it('lets the partner\'s employment status decide when earnings were not given (CSJ 2026-09-29)', function (): void {
     $retired = linkPartner(['spouse_annual_income' => 125140, 'spouse_employment_status' => 'retired']);
     expect((float) ($retired->annual_employment_income ?? 0))->toBe(0.0)
-        ->and((float) $retired->annual_other_income)->toBe(125140.0);
+        ->and((float) ($retired->annual_other_income ?? 0))->toBe(0.0)
+        ->and((float) DCPension::where('user_id', $retired->id)->sole()->annual_drawdown_income)->toBe(125140.0);
+
+    // Not working and not retired: the income could be rent or anything else.
+    $unemployed = linkPartner(['spouse_annual_income' => 20000, 'spouse_employment_status' => 'unemployed']);
+    expect((float) $unemployed->annual_other_income)->toBe(20000.0)
+        ->and(DCPension::where('user_id', $unemployed->id)->count())->toBe(0);
 
     $selfEmployed = linkPartner(['spouse_annual_income' => 60000, 'spouse_employment_status' => 'self_employed']);
     expect((float) $selfEmployed->annual_self_employment_income)->toBe(60000.0)
@@ -225,4 +269,16 @@ it('copies the rest when the income cannot be copied, instead of failing the lin
     expect((float) ($spouse->fresh()->annual_employment_income ?? 0))->toBe(0.0)
         ->and(SavingsAccount::where('user_id', $spouse->id)->count())->toBe(1)
         ->and(TaxStrategyHouseholdInput::where('user_id', $requester->id)->first()->spouse_holding_transferred_at)->not->toBeNull();
+});
+
+it('asks a retired partner to confirm the transferred pension instead of skipping it', function (): void {
+    // csjones walk 2026-09-30 (Pat): the workplace pension form is skipped
+    // for someone not employed, and the skip marked the personal pension
+    // step done because a personal pension was on file — the transferred
+    // one, which the partner then never saw.
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_employment_status' => 'retired', 'spouse_existing_pension_balance' => 200000, 'spouse_pension_provider' => 'Aviva']);
+    $spouse->forceFill(['onboarding_completed' => false, 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax', 'employment_status' => 'retired', 'date_of_birth' => '1958-03-10', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['pension']]])->save();
+
+    expect(OnboardingStateMachine::getNextStateId(OnboardingStateMachine::STATE_CAMPAIGN_DOB, '10/03/1958', $spouse->fresh()))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
 });

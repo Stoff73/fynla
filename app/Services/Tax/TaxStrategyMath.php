@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
-use App\Services\Shared\CrossModuleAssetAggregator;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
@@ -553,8 +553,9 @@ final class TaxStrategyMath
 
         // A linked spouse's own records beat the onboarding answers: "does not
         // work" is not "has no income", and a spouse with a pension or rent at
-        // or above the Personal Allowance cannot give any of it away.
-        $linked = $user->liveSpouse();
+        // or above the Personal Allowance cannot give any of it away. Records
+        // that hold no income are not an answer: the income given is used.
+        $linked = $this->linkedSpouseWithIncome($user);
         if ($linked !== null) {
             $spouse = $this->incomePartsFor($linked);
             $spouseBand = $this->bandFromIncomeFor($linked, $this->taxableIncomeFor($linked));
@@ -612,6 +613,24 @@ final class TaxStrategyMath
             'user_income' => round($userNet, 2),
             'spouse_income' => round($spouseNet, 2),
         ];
+    }
+
+    /**
+     * The linked spouse, when their own records hold income. Their records
+     * win over the figures the user gave (2026-09-28); when they hold none,
+     * nothing is known from them, and the income the user gave for them is
+     * the figure (csjones 2026-09-30: an empty record read as £0 offered
+     * Marriage Allowance to a £32,000 / £72,000 couple).
+     */
+    public function linkedSpouseWithIncome(User $user): ?User
+    {
+        $linked = $user->liveSpouse();
+        if ($linked === null) {
+            return null;
+        }
+        $parts = $this->incomePartsFor($linked);
+
+        return ($parts['non_savings'] + $parts['interest'] + $parts['dividends'] + $parts['trust']) > 0 ? $linked : null;
     }
 
     /**

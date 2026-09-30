@@ -66,7 +66,9 @@ final class HouseholdFinancialContext
             'pension_input_history' => collect(app(PensionStore::class)->pensionInputHistory($user))->isNotEmpty(),
             'savings_balances' => $this->hasSavingsBalance($user),
             'spouse_income' => $this->spouseIncomeKnown($user),
-            'spouse_income_amount' => $user->liveSpouse() !== null
+            // Known from the linked spouse's own records only when they hold
+            // income (TaxStrategyMath::linkedSpouseWithIncome, the one rule).
+            'spouse_income_amount' => $this->math->linkedSpouseWithIncome($user) !== null
                 || TaxStrategyHouseholdInput::where('user_id', $user->id)->whereNotNull('spouse_annual_income')->exists(),
             'workplace_pension' => $hasDcPension,
         ];
