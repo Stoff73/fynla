@@ -1223,10 +1223,13 @@ final class CaptureForms
      */
     public static function expenditureVariantFor(User $user, bool $detailedAllowed): array
     {
-        // CSJ 2026-09-22: the Save Tax walk asks only what its tax lines read;
-        // spending in full is an action for later, whatever the plan.
+        // The Save Tax walk asks the one box, whatever the plan: its pension
+        // suggestions are capped by what is left after spending (CSJ
+        // 2026-09-30: "lets ask for spending"). From 2026-09-22 it asked only
+        // childcare, donations and Gift Aid (expenditureTax, kept so a
+        // conversation already on that step can still save it).
         if (($user->onboarding_fyn_selection ?? null) === 'savetax') {
-            return self::expenditureTax();
+            return self::expenditure();
         }
         if (! $detailedAllowed) {
             return self::expenditure();
@@ -1278,9 +1281,10 @@ final class CaptureForms
     }
 
     /**
-     * The Save Tax expenditure step (CSJ 2026-09-22): the two categories its
-     * tax lines read and the Gift Aid fact, through the same one write as the
-     * one-box form. No monthly total — that is an action after the plan.
+     * The Save Tax expenditure step from 2026-09-22 to 2026-09-30: the two
+     * categories its tax lines read and the Gift Aid fact, no monthly total.
+     * No longer offered (expenditureVariantFor); kept so a conversation
+     * already on that step can still save it.
      *
      * @return array<string, mixed>
      */
