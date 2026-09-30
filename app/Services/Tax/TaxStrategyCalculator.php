@@ -10,6 +10,7 @@ use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\TaxConfigService;
+use Illuminate\Support\Arr;
 
 /**
  * Stateless tax-strategy calculator for the SaveTax campaign terminal page.
@@ -225,6 +226,24 @@ final class TaxStrategyCalculator
 
     // ─── Allowance grid builders (output-DTO-bound, kept here) ──────────
 
+    /**
+     * Savings interest uses the allowances in HMRC's order: whatever Personal
+     * Allowance non-savings income left, then the Starting Rate for Savings,
+     * then the Personal Savings Allowance
+     * (https://www.gov.uk/apply-tax-free-interest-on-savings). The user's grid
+     * used to count the same interest against all three: £160 "used" on each
+     * for a person with no income, whose Personal Allowance covers it all.
+     *
+     * @return array{0: float, 1: float} starting rate used, savings allowance used
+     */
+    private function stackInterest(float $interest, float $personalAllowanceLeft, float $startingRate, float $savingsAllowance): array
+    {
+        $afterPersonalAllowance = max(0.0, $interest - max(0.0, $personalAllowanceLeft));
+        $startingRateUsed = min(max(0.0, $startingRate), $afterPersonalAllowance);
+
+        return [$startingRateUsed, min(max(0.0, $savingsAllowance), $afterPersonalAllowance - $startingRateUsed)];
+    }
+
     private function buildUserAllowanceGrid(User $user, ?TaxStrategyOverridesDTO $overrides, string $mode, ?TaxStrategyHouseholdInput $household): array
     {
         $income = $this->taxConfig->getIncomeTax();
@@ -246,7 +265,12 @@ final class TaxStrategyCalculator
         // surface the position when the user could actually use some of it.
         $nonSavingsIncomeAbovePa = max(0, $nonSavingsIncome - $personalAllowanceAmount);
         $startingRateForSavingsAvailable = max(0, $startingRateForSavingsAmount - $nonSavingsIncomeAbovePa);
-        $startingRateForSavingsUsed = min($startingRateForSavingsAvailable, $this->math->estimateAnnualInterest($user));
+        [$startingRateForSavingsUsed, $personalSavingsAllowanceUsed] = $this->stackInterest(
+            $estimatedAnnualInterest,
+            max(0.0, $personalAllowanceAmount - $nonSavingsIncome),
+            (float) $startingRateForSavingsAvailable,
+            $personalSavingsAllowanceAmount,
+        );
 
         $marriageAllowanceAmount = $this->configAmount($income, 'marriage_allowance.amount', 'income_tax.marriage_allowance.amount');
         $maritalStatus = (string) ($user->marital_status ?? '');
@@ -278,7 +302,7 @@ final class TaxStrategyCalculator
 
         $positions = [
             $this->position('personal_allowance', 'Personal Allowance', $personalAllowanceAmount, $personalAllowanceUsed, 'user', $personalAllowanceAmount > 0),
-            $this->position('savings_allowance', 'Savings Allowance', $personalSavingsAllowanceAmount, min($personalSavingsAllowanceAmount, $estimatedAnnualInterest), 'user'),
+            $this->position('savings_allowance', 'Savings Allowance', $personalSavingsAllowanceAmount, $personalSavingsAllowanceUsed, 'user'),
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, $isaUsed, 'user'),
             // Unrealised gains do not consume the annual exempt amount. Until
             // current-year disposals, allowable losses and reliefs are captured,
@@ -419,10 +443,12 @@ final class TaxStrategyCalculator
         // remaining Personal Allowance → Starting Rate → Savings Allowance.
         $spouseJointInterest = $this->math->estimateSpouseJointInterest($user);
         $spouseSavingsKnown = $spouseJointInterest > 0;
-        $paRemainingForSavings = max(0.0, $personalAllowance - $spouseNonSavingsIncome);
-        $interestAboveAllowances = max(0.0, $spouseJointInterest - $paRemainingForSavings);
-        $spouseStartingRateUsed = min($startingRateAvailable, $interestAboveAllowances);
-        $spousePsaUsed = min($psa, $interestAboveAllowances - $spouseStartingRateUsed);
+        [$spouseStartingRateUsed, $spousePsaUsed] = $this->stackInterest(
+            $spouseJointInterest,
+            max(0.0, $personalAllowance - $spouseNonSavingsIncome),
+            $startingRateAvailable,
+            $psa,
+        );
 
         return [
             $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, min($spouseTotalIncome + $spouseJointInterest, $personalAllowance), 'spouse', $personalAllowance > 0),
@@ -471,9 +497,12 @@ final class TaxStrategyCalculator
         // absorbs it first; only the (unlikely) excess reaches the Starting
         // Rate and then the Savings Allowance.
         $spouseJointInterest = $this->math->estimateSpouseJointInterest($user);
-        $interestAbovePa = max(0.0, $spouseJointInterest - $personalAllowance);
-        $spouseStartingRateUsed = min($startingRateAmount, $interestAbovePa);
-        $spousePsaUsed = min($this->math->psaForBand('basic'), $interestAbovePa - $spouseStartingRateUsed);
+        [$spouseStartingRateUsed, $spousePsaUsed] = $this->stackInterest(
+            $spouseJointInterest,
+            $personalAllowance,
+            $startingRateAmount,
+            $this->math->psaForBand('basic'),
+        );
         $savingsUseKnown = $savingsUseKnown || $spouseJointInterest > 0;
 
         return [
@@ -556,7 +585,7 @@ final class TaxStrategyCalculator
      */
     private function configAmount(array $values, string $key, string $path): float
     {
-        $value = \Illuminate\Support\Arr::get($values, $key);
+        $value = Arr::get($values, $key);
         if (! is_numeric($value)) {
             throw new \LogicException("Tax config {$path} is missing");
         }
