@@ -1213,6 +1213,9 @@ final class OnboardingChatDirector
                 // same `values` / `record` an edit form carries, which every
                 // client renders and posts back (WalkFormPrefill).
                 $prefill = app(WalkFormPrefill::class)->for($user, $conversation, (string) $schema['name']);
+                // A record opened for editing brings its narrowed form (one
+                // kind, the walk's own name) — an edit saves one kind only.
+                $schema = $prefill['schema'] ?? $schema;
 
                 yield array_filter([
                     'type' => 'capture_form',

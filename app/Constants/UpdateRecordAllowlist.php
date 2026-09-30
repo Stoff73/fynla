@@ -51,6 +51,9 @@ final class UpdateRecordAllowlist
         'investment_account' => [
             'account_name', 'account_type', 'provider', 'current_value',
             'monthly_contribution_amount', 'contributions_ytd',
+            // The investment form asks for the dividends an account pays
+            // (#931); an edit of that form dropped them (2026-09-30).
+            'annual_dividend_income',
         ],
         'dc_pension' => [
             'scheme_name', 'provider', 'current_fund_value',
@@ -69,6 +72,9 @@ final class UpdateRecordAllowlist
             // (campaign2_flexible_access — closes the round-1 latent item where
             // the "yes" branch could not persist has_flexibly_accessed).
             'annual_salary', 'salary_sacrifice', 'has_flexibly_accessed',
+            // The personal pension form asks what is drawn and the tax-free
+            // lump sum taken; an edit of that form dropped both (2026-09-30).
+            'annual_drawdown_income', 'pcls_taken',
         ],
         'db_pension' => [
             'scheme_name', 'accrued_annual_pension', 'normal_retirement_age',
