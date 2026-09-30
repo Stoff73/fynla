@@ -140,6 +140,48 @@ final class SpouseHoldingTransfer
     }
 
     /**
+     * The partner said they do not work after the link, so the inviter's figure
+     * that arrived as an estimate of pay (status unknown at the link) is split
+     * the way it would have been had the status been known then: a retired
+     * partner's is what they draw from their pension (CSJ 2026-09-30), anyone
+     * else's is other income. Without this a retired partner, who has no job
+     * to replace the estimate with, kept it as pay beside the pension they
+     * then confirmed: £30,000 counted twice, taxed at the higher rate with
+     * National Insurance (fynla.org, 2026-09-30).
+     */
+    public function restateEstimateForStatus(User $spouse): void
+    {
+        $status = $spouse->employment_status;
+        if (! in_array($status, self::NON_WORKING_STATUSES, true)) {
+            return;
+        }
+        $amount = app(EmploymentIncomeService::class)->dropEstimates($spouse);
+        if ($amount <= 0) {
+            return;
+        }
+        $spouse->refresh();
+        $copied = [];
+
+        $pensions = $spouse->dcPensions()->get();
+        if ($status === 'retired' && $pensions->contains(fn ($p): bool => (float) ($p->annual_drawdown_income ?? 0) > 0)) {
+            // They already gave what they draw; their own figure stands.
+            $copied[] = 'estimate dropped';
+        } elseif ($status === 'retired' && $pensions->count() === 1) {
+            $this->run('update_record', ['entity_type' => 'dc_pension', 'entity_id' => $pensions->first()->id, 'fields' => ['annual_drawdown_income' => $amount]], $spouse, $copied, 'pension income');
+        } elseif ($status === 'retired' && $pensions->isEmpty()) {
+            $this->run('create_pension', ['pension_category' => 'dc', 'scheme_type' => 'personal', 'scheme_name' => 'Personal pension', 'annual_drawdown_income' => $amount], $spouse, $copied, 'pension income');
+        } else {
+            // Not working, or retired with several pensions and no way to know
+            // which one pays: not pay, and not guessed onto a pension.
+            $this->run('update_profile', ['section' => 'income_occupation', 'fields' => ['annual_other_income' => (float) ($spouse->annual_other_income ?? 0) + $amount]], $spouse, $copied, 'other income');
+        }
+
+        Log::info('[SpouseHoldingTransfer] Restated the inviter\'s income estimate for the partner\'s status', [
+            'spouse_id' => $spouse->id, 'status' => $status, 'amount' => $amount, 'copied' => $copied,
+        ]);
+    }
+
+    /**
      * The partner's income as earnings from work, pension income and the rest.
      * Pension tax relief is capped at relevant UK earnings (FA 2004 s189-190,
      * https://www.legislation.gov.uk/ukpga/2004/12/section/190), and the plan

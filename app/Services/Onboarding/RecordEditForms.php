@@ -6,7 +6,6 @@ namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DCPension;
 use App\Models\Employment;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
@@ -376,7 +375,7 @@ final class RecordEditForms
         // One rule for workplace (scheme_type when set, else pension_type):
         // scheme_type is never 'occupational', so every workplace pension
         // used to open here as a personal one.
-        $workplace = $pension instanceof DCPension && PensionContributionRule::isWorkplace($pension);
+        $workplace = PensionContributionRule::isWorkplace($pension);
         $answers = array_filter([
             'provider' => $pension->provider,
             'current_value' => self::floatOrNull($pension->current_fund_value),
