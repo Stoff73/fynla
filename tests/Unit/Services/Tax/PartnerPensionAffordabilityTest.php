@@ -98,7 +98,10 @@ it('caps a non-earning partner top-up at the money the household has', function 
     $rec = affordabilityRecs($user)->get('non_earner_spouse_pension');
 
     expect($rec)->not->toBeNull()
-        ->and($rec['net_contribution'])->toBe(round($money, 2));
+        ->and($rec['net_contribution'])->toBe(floor($money))
+        // One figure on the title and the badge (whole pounds, rounded down).
+        ->and($rec['estimated_annual_tax_saved'])->toBe(floor(floor($money) * 720 / 2880))
+        ->and($rec['title'])->toContain('£'.number_format((int) $rec['estimated_annual_tax_saved']));
 });
 
 it('caps a modest-earning partner at what can be paid, not their whole salary (matrix S9)', function (): void {

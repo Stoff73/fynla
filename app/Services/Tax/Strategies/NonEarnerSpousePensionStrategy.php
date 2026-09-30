@@ -81,11 +81,13 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         // relief-at-source shape the capture writes) comes off the top (B5).
         $alreadyPaid = (float) ($household?->spouse_pension_input_annual ?? 0);
         // Never more than the household can pay (CSJ 2026-09-30: "affordability check always").
-        $netContribution = round(min(max(0.0, $figures['net'] - $alreadyPaid), $money), 2);
+        // Whole pounds, rounded down: the title, the badge and the steps say
+        // one figure, and rounding up would promise relief not given.
+        $netContribution = floor(min(max(0.0, $figures['net'] - $alreadyPaid), $money));
         if ($netContribution < 1) {
             return [];
         }
-        $governmentUplift = round($netContribution * $figures['relief'] / $figures['net'], 2);
+        $governmentUplift = floor($netContribution * $figures['relief'] / $figures['net']);
         $existingBalance = (float) ($household?->spouse_existing_pension_balance ?? 0);
 
         $balanceLine = $existingBalance > 0
@@ -171,14 +173,15 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         $grossCapacity = max(0.0, $reliefLimit - (float) ($household->spouse_pension_input_annual ?? 0));
         // Never more than the household can pay (CSJ 2026-09-30: "affordability
         // check always"): a partner earning £20,000 was told to pay £15,200 in
-        // (Save Tax matrix S9). The money pays the net; relief at source adds
-        // the basic rate on top (FA 2004 s192).
-        $grossCapacity = floor(min($grossCapacity, $basicRate < 1 ? $money / (1 - $basicRate) : 0.0) * 100) / 100;
-        if ($grossCapacity < 1) {
+        // (Save Tax matrix S9). Sized from what is paid, in whole pounds
+        // rounded down as the non-earner path; relief at source adds the basic
+        // rate on top of it (FA 2004 s192), also rounded down.
+        $netCost = floor(min($grossCapacity * (1.0 - $basicRate), $money));
+        if ($netCost < 1) {
             return [];
         }
-        $uplift = round($grossCapacity * $basicRate, 2);
-        $netCost = round($grossCapacity * (1.0 - $basicRate), 2);
+        $uplift = $basicRate < 1 ? floor($netCost * $basicRate / (1.0 - $basicRate)) : 0.0;
+        $grossCapacity = $netCost + $uplift;
 
         return [new StrategyRecommendation(
             type: 'non_earner_spouse_pension',
