@@ -1,6 +1,6 @@
 # Partner pension top-up: affordability, weighed in household context
 
-**Status:** draft for CSJ, 2026-09-30. todoCurrent item 1.
+**Status:** CSJ answered section 4 on 2026-09-30; one question open (4.5). todoCurrent item 1.
 **Approved scope (CSJ 2026-09-30):** "affordability check always" on every partner pension top-up. On whose pension comes first: "a reasoned decision and needs to be taken in context, not just a once off rule… For pensions we need all the info."
 
 ## 1. What is wrong today
@@ -30,7 +30,8 @@
 **One figure, the affordability calculator the tile already uses.** For this household it is:
 
 - **the user's part:** 12 × `effective_surplus` (monthly net income less spending, committed contributions and goal commitments); or, for a declared non-earner, their recorded cash (`nonEarnerFundableGross`, the 29 September rule);
-- **plus the partner's own part,** worked out the same way on the partner's own account, but only when that account is linked and shares its data (`HouseholdFinancialContext::partnerWithOwnRecords`). Otherwise the partner's money is not known, and is not counted.
+- **a partner with their own linked account funds their own pension, on their own account** (CSJ 2026-09-30: "the partner will get their own card in their own account"). Their plan already gives them their own "pay into your pension" card from their own earnings (`PensionTaxReliefStrategy`), and with 4.1 that card is capped by their own money. The user's plan does **not** also suggest a top-up to that partner's pension. Today it does (`NonEarnerSpousePensionStrategy` has no linked-account check), so a linked couple sees two cards for the same headroom.
+- **so the partner top-up on the user's plan is only for a partner without their own shared account,** and it is paid from the user's money.
 
 ### 3.2 Every partner top-up is capped by it
 
@@ -53,7 +54,7 @@ This is the "in context" decision: the household's actual relief rates, limits a
 
 ### 3.4 When the information is missing, ask; don't guess
 
-The partner top-up waits, as an unlock card, when any of these is unknown:
+The partner top-up waits, as an unlock card asking for it (CSJ 2026-09-30: "We ask for expenditure"), when any of these is unknown:
 
 - **the household's spending:** the surplus is meaningless without it (`expenditure_composition.has_recorded_expenditure` from `DisposableIncomeAccessor`);
 - **the partner's earnings from work,** on the modest-earner path. This is already asked separately (CSJ 2026-09-28);
@@ -65,12 +66,13 @@ The partner's age is used when known. A missing age is only a risk near 75, and 
 
 This is one change in the strategy layer and the payload, so web `/tax-strategy`, /m Tax Strategy, the action cards and Fyn all get it (Rule 20; Rule 19). No front-end change: the cards already render `conflict_note` and `counted_in_total`.
 
-## 4. Decisions for CSJ (with a recommendation)
+## 4. Decisions (CSJ answered 2026-09-30)
 
-1. **Cap the user's own pension item by the same money?** Today only the tile is capped; the plan's own "Pay £X more into your pension" card is not. It has to be, for 3.3 to work, and item 4 (40% relief below £100,000) needs it too. **Recommend yes.**
-2. **Count the partner's own surplus when their account is linked and shares data?** **Recommend yes.** Without it, a working partner's own money is ignored.
-3. **Wait for spending when none is recorded?** The alternative is the current behaviour: net income treated as all spare. **Recommend wait.**
-4. **Partner's age unknown:** keep suggesting, as today, rather than asking. **Recommend keep.**
+1. **Cap the user's own pension card by the same money:** "Agree".
+2. **The partner's own money when linked:** "Agreed, but the partner will get their own card in their own account?" Yes: see 3.1. The linked partner's own card, on their own account, is sized by their own money, and the user's plan carries no second top-up for them.
+3. **No spending recorded:** "We ask for expenditure". The top-up waits, and the card asks for spending.
+4. **Partner's age unknown:** "agree". Keep suggesting.
+5. **OPEN: the user's own card when no spending is recorded.** Save Tax setup asks only childcare and donations, never total spending (`CaptureForms.php:1292-1304`), so most Save Tax plans have no spending on record. Applying 1 and 3 to the user's own card would turn every such plan's headline pension card into "Enter your spending" until they give it. Options: (a) the card waits and asks for spending, like the partner top-up; (b) the card shows as today, uncapped, with a line saying it is not yet checked against your spending, plus the ask; (c) Save Tax setup asks for monthly spending. **Recommend (b) now, and (c) as a separate item:** the plan keeps its main card, says honestly what it has not checked, and asks.
 
 ## 5. Tests and walk
 
