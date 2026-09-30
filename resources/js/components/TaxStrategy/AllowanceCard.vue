@@ -72,6 +72,11 @@ export default {
     remainingLabel() {
       if (!this.available) return 'Not available';
       if (!this.known) return 'Current-year use not confirmed';
+      // Brought to £0 by what is affordable, not by use: say the figure
+      // (fynla.org 2026-09-30: £7,500 of £60,000 read "Fully used").
+      if (this.budgetLimited && this.allowance.remaining <= 0) {
+        return `${this.formatCurrency(0)} of headroom`;
+      }
       if (this.allowance.utilisation_pct >= 100) return 'Fully used';
       if (this.allowance.remaining > 0) {
         return `${this.formatCurrency(this.allowance.remaining)} of headroom`;

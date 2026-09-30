@@ -26,3 +26,31 @@ describe('pension headroom limited by budget', () => {
     expect(note(uncapped)).toBe(null);
   });
 });
+
+// fynla.org 2026-09-30, Carter household: £7,500 paid in of £60,000 and
+// nothing left to afford read "Fully used". It is not used: the money is.
+describe('pension headroom brought to £0 by the budget', () => {
+  const none = { ...capped, used: 7500, remaining: 0, utilisation_pct: 12.5, affordable_this_year: 0 };
+
+  it('web tile says £0 of headroom, not "Fully used"', () => {
+    const text = mount(AllowanceCard, { props: { allowance: none } }).text();
+
+    expect(text).toContain('£0 of headroom');
+    expect(text).not.toContain('Fully used');
+    expect(text).toContain('Limited to what you can afford this year');
+  });
+
+  it('/m tile says £0 available, not "Fully used"', () => {
+    const vm = { ...MobileTaxStrategy.methods, fmt: (n) => `£${Number(n).toLocaleString('en-GB')}` };
+
+    expect(MobileTaxStrategy.methods.remainingLabel.call(vm, none)).toBe('£0 available');
+  });
+
+  it('still says "Fully used" when the allowance really is used', () => {
+    const used = { ...capped, used: 60000, remaining: 0, utilisation_pct: 100 };
+    const vm = { ...MobileTaxStrategy.methods, fmt: (n) => `£${n}` };
+
+    expect(mount(AllowanceCard, { props: { allowance: used } }).text()).toContain('Fully used');
+    expect(MobileTaxStrategy.methods.remainingLabel.call(vm, used)).toBe('Fully used');
+  });
+});
