@@ -1,45 +1,45 @@
-# Tech Debt Report — Session 2026-09-29 (session 3)
+# Tech Debt Report — Session 2026-09-30 (session 2)
 
-**Files analysed:** 103 changed on dev in e2378727d..5629b6b6a (this session's own changes plus the review fixes applied to the 21 Icecube-acc PRs)
-**Issues found:** 14 open (the session 2 critical, literal SSP fallbacks, is fixed in #997)
-**Severity breakdown:** 2 critical, 8 warnings, 4 suggestions
+**Files analysed:** 17 (all merged to `dev`: #1009, #1010, #1011, #1013, #1014)
+**Issues found:** 7
+**Severity breakdown:** 0 critical, 4 warnings, 3 suggestions
 
 ## Critical Issues
 
-1. **`app/Services/Onboarding/SpouseHoldingTransfer.php` (other income from #990) and the spouse's own onboarding** — Data integrity. When a spouse links, the inviter's figure is split into pay (an estimate the spouse's own job replaces, #963) and other income (`users.annual_other_income`, stored as usual per CSJ). If the spouse's own onboarding then records the same pension or rent as a record, it is counted twice (`IncomeDefinitionsService` counts pension income and `other` separately). The same risk exists for every record the transfer creates: savings, the ISA, investments and the pension. The spouse's own onboarding can ask again and add a second record.
-   **Fix (agreed direction, not built):** extend `WalkFormPrefill` (#978) so each walk form whose answer the transfer wrote opens that record as an edit (values + record), so Save updates it instead of adding a second one; then walk a spouse's full onboarding on web and `/m`.
-2. **`public/pages/savetax-plan-v2.php:196,203,258,262` and `savetax-plan-v3.php`** — Rule 2 / Rule 23. Publicly routed mock-up pages (`/savetax/plan/v2`, `/v3`) type tax figures in: £3,000, £500, £18,750, £100,000, 60%.
-   **Fix:** read them from `TaxConfigService` as `savetax-plan.php` does, or drop the v2 to v4 mock-up routes if they are no longer used.
+None in the changed files. (The Retirement page for already-retired users is a product defect in unchanged files; it is on `CSJTODO.md`, not here.)
 
 ## Warnings
 
-1. **`app/Services/Onboarding/OnboardingStateMachine.php` (`adoptLinkedSpouseWorkStatus`, from #978)** — Pattern. A `skip_if` predicate writes `household_calculation_mode`. Any read-only caller of the skip rules (a progress preview) would write silently.
-   **Fix:** make the predicate pure (`linkedSpouseEarnings() !== null`) and write the mode in the director's transition step.
-2. **`app/Http/Controllers/Api/AiChatController.php::streamTurn` (from #976)** — Behaviour. With `ignore_user_abort(true)`, pressing Stop no longer stops the server: the answer is still generated, billed and stored. The server cannot tell Stop from a dropped connection.
-   **Fix:** a small `POST …/conversations/{id}/stop` that sets a short-lived flag, which `streamTurn` checks between events; web's `abortStreaming` calls it.
-3. **`resources/js/store/modules/aiChat.js` (`waitForTurn`) and `resources/mobile/mixins/onboardingChat.js` (`TURN_SETTLE_MS`)** — Behaviour. A retried turn the server is still finishing is reloaded after a fixed 3 seconds; a longer turn reloads without its reply yet.
-   **Fix:** poll the transcript until an assistant row follows the user row, with a cap.
-4. **`app/Http/Middleware/IdempotencyKeyMiddleware.php`** — Behaviour (now load-bearing for web and `/m` retries). The key hash includes the request body, and the body includes `current_route`, so a retry after the user has navigated is a new request and runs again.
-   **Fix:** leave `current_route` out of the body hash for the messages route.
-5. **`resources/js/components/Protection/CoverageGapsSection.vue` and `resources/mobile/views/modules/Protection.vue`** — Cross-bundle duplication. `fieldLabel`, `displayInput`, `displayAssumption` and `displayDate` are written twice.
-   **Fix:** have `ProtectionGapPresentationService` return display strings (label and formatted value) for inputs and assumptions.
-6. **`app/Services/Tax/TaxStrategyMath.php::nonEarnerFundableGross`** — Service locator: `app(CrossModuleAssetAggregator::class)`.
-   **Fix:** inject it through the constructor.
-7. **`app/Services/UserProfile/UserProfileService::updateIncomeOccupation`** — Data integrity (pre-existing, only partly fixed). The income page still writes `annual_employment_income` directly; only the estimate case now goes through `EmploymentIncomeService`. With two or more job rows, the page total and the rows can differ, and the next `syncTotals()` puts the row sum back.
-   **Fix:** send the page's employment and self-employment totals through `EmploymentIncomeService` for every case.
-8. **Carried from session 2, still open:**
-   - four places assemble protection needs and coverage (`ProtectionCoverPosition`, `ProtectionGapPresentationService`, `ProtectionAgent` ×2);
-   - `consolidate()` re-queries `getEnabled()`;
-   - the `evaluateCoverPosition()` stub;
-   - cover and benefit wording written twice, once per bundle;
-   - `app()` used as a locator in `handleCaptureEmployerBenefits`.
+1. **`resources/js/utils/dateFormatter.js:18, 51, 79, 109, 126, 203`**: Inconsistency (Category 6).
+   - **Problem:** `formatDate`, `formatDateForInput` for full timestamps, `parseDate`, `formatDateLong` and the helper at 203 all turn a `YYYY-MM-DD` string into a `Date` with `new Date(string)`. That is UTC midnight, so west of Greenwich the date shows a day early.
+   - **Scope:** this session fixed only the date-of-birth path (`formatDateOnlyLong`, plus the date-only pass-through in `formatDateForInput`). `formatDateLong` alone has 16 callers.
+   - **Fix:** read the calendar day from the string, as `formatDateOnlyLong` does, inside `parseDate`, and route the others through it.
+
+2. **`app/Agents/CoordinatingAgent.php:6576-6600`** with the create path at `:3433`: two homes for one figure (Category 6).
+   - **Problem:** `users.annual_dividend_income` is a running total maintained only by Fyn's create and edit tools. The web investment account edit (HTTP controller → `InvestmentAccountStore::update`) changes an account's dividends without moving the user's total, and deleting an account never subtracts it.
+   - **Fix:** derive the taxable dividend total from the non-ISA accounts in one place, and stop keeping a running sum.
+
+3. **`resources/js/components/UserProfile/PersonalInformation.vue:731`** against **`resources/js/components/Onboarding/ProfileReviewPanel.vue:88-89`**: duplicate label maps (Category 1).
+   - **Problem:** the two employment-status maps disagree ("Full-Time" against "Full-time"). `ProfileReviewPanel` also labels `employed` as "Full-time". This was carried from session 1.
+   - **Fix:** one shared map in `constants/profileOptions`.
+
+4. **csjones `public/.htaccess`** (deploy, not code): fragility (Category 6).
+   - **Problem:** the checkout's local subdirectory edit is lost to any `git reset --hard` or `checkout -f`, and the proxy cache then keeps the wrong site. `skip-worktree` cannot protect it because the checkout is sparse.
+   - **Fix:** point the sparse checkout at `deploy/csjones-fynla/.htaccess` through a server-side symlink, or keep csjones's `.htaccess` outside git management. Memory `feedback_never_reset_hard_on_csjones` holds meanwhile.
 
 ## Suggestions
 
-1. **`resources/mobile/utils/fynStream.js`, `AiChatController::STREAM_TERMINAL_EVENTS`, iOS `FynEvent.isTerminal`** — The terminal-event list is written three times (clients have to detect a cut-off, so this is tolerable).
-2. **`resources/mobile/utils/fynStream.js::isDroppedConnection`** — Treats every `TypeError` as a network drop, so a client bug gets offered "Try again".
-3. **`resources/mobile/views/Dashboard.vue:~1003`, `MobileChrome.vue:~459`** — Still parse `/api/auth/user` themselves, alongside `store.userFromResponse`.
-4. **`public/pages/index.php:452-465` (stats bar)** — "91% UK adults don't get financial advice" and "1000's of financial plans created for people like you" carry no source (Rule 23).
+1. **`app/Services/Tax/TaxStrategyMath.php:558-560, 625-631`**: efficiency (Category 4).
+   - **Problem:** `marriageAllowance` calls `linkedSpouseWithIncome`, which computes `incomePartsFor($linked)`, then computes it again on line 560, so income definitions are built twice per call.
+   - **Fix:** return the parts from the helper, or memoise per user id.
+
+2. **`app/Services/Onboarding/WalkFormPrefill.php:152-158`**: efficiency (Category 4).
+   - **Problem:** `formSaved` loads every user message's metadata in the conversation, on each form emission.
+   - **Fix:** a JSON `where` on `metadata->form->name` with `exists()`.
+
+3. **`app/Services/Onboarding/SpouseHoldingTransfer.php`** (`splitIncome`): magic value (Category 4).
+   - **Problem:** `'retired'` is compared as a bare string while its sibling lists are class constants (`WORKING_STATUSES`, `NON_WORKING_STATUSES`).
+   - **Fix:** a `RETIRED_STATUS` constant, or a pension-income status list.
 
 ---
 *Generated by tech-debt-session skill*
