@@ -55,6 +55,12 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $earnings = $this->math->relevantEarningsFor($user);
         $age = $this->math->ageOf($user->date_of_birth);
         $availableAA = $this->math->availableAnnualAllowance($user, $context->overrides);
+        // Never more than the money the user has to pay it with (CSJ
+        // 2026-09-30; PensionAffordability). Unknown money leaves it as it was.
+        $fundable = $context->pensionFundableGross((float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate']);
+        if ($fundable !== null) {
+            $availableAA = min($availableAA, $fundable);
+        }
         $aboveAllowance = $taxable - $this->math->personalAllowanceFor($user);
         // No relief on contributions paid after the member reaches the age in
         // pension.relief_max_age: FA 2004 s188(3)(a),

@@ -11,6 +11,7 @@ use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\PensionAffordability;
 use App\Services\Tax\TaxStrategyMath;
 
 /**
@@ -59,6 +60,11 @@ final class HouseholdFinancialContext
             'date_of_birth' => $user->date_of_birth !== null,
             'dividend_income' => ((float) ($user->annual_dividend_income ?? 0)) > 0,
             'employment_status' => filled($user->employment_status),
+            // Pension suggestions are capped by the money left after spending,
+            // so spending must be known (CSJ 2026-09-30: "We ask for
+            // expenditure"); someone with no income at all is funded from cash.
+            'expenditure' => app(PensionAffordability::class)->spendingRecorded($user)
+                || app(PensionAffordability::class)->fundedFromCash($user),
             'gia_holdings' => $this->hasGiaHoldings($user),
             'isa_subscriptions_ytd' => $this->hasIsaAccount($user),
             'marital_status' => filled($user->marital_status),
@@ -152,6 +158,7 @@ final class HouseholdFinancialContext
             'spouse_income_amount' => "spouse's total income a year, including any pension or rent (enter 0 if none)",
             'marital_status' => 'marital status',
             'employment_status' => 'employment status',
+            'expenditure' => 'monthly spending',
             'date_of_birth' => 'date of birth',
             default => str_replace('_', ' ', $key),
         };

@@ -204,6 +204,8 @@ it('titles the modest-earner top-up with the amount actually left to pay', funct
         'household_calculation_mode' => 'dual_earner',
         'annual_employment_income' => 60000,
         'marital_status' => 'married',
+        'expenditure_entry_mode' => 'simple',
+        'monthly_expenditure' => 500, // the money for a top-up is known (CSJ 2026-09-30)
     ]);
     TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 8000, 'spouse_pension_input_annual' => 3000]);
 

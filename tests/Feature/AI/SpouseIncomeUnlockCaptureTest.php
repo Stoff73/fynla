@@ -29,7 +29,8 @@ uses(RefreshDatabase::class);
  */
 beforeEach(function (): void {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true, 'marital_status' => 'married']);
+    // Spending recorded: the money for a top-up is known (CSJ 2026-09-30).
+    $this->user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true, 'marital_status' => 'married', 'expenditure_entry_mode' => 'simple', 'monthly_expenditure' => 500]);
     app(ConsentService::class)->recordConsent($this->user, UserConsent::TYPE_AI_CHAT, true);
     $this->conversation = AiConversation::create(['user_id' => $this->user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Fyn']);
     Sanctum::actingAs($this->user);

@@ -102,7 +102,14 @@ final class StrategyPlanComposer
 
         $pairs = [];
         foreach ($items as $rec) {
-            foreach (($metadata[$rec->type]['sequencing']['conflicts_with'] ?? []) as $other) {
+            // Seeded conflicts, plus any this household's own figures create:
+            // two pension suggestions the money cannot pay for together
+            // (TaxStrategyCalculator::markPensionsCompetingForMoney).
+            $conflicts = array_merge(
+                $metadata[$rec->type]['sequencing']['conflicts_with'] ?? [],
+                (array) ($rec->extra['competes_for_money_with'] ?? []),
+            );
+            foreach ($conflicts as $other) {
                 // array_key_exists, NOT isset: a present-but-null saving still
                 // means the strategy is in the plan and its pair must resolve.
                 if ($other === $rec->type || ! array_key_exists($other, $savingByType)) {
