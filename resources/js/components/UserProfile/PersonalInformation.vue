@@ -456,6 +456,8 @@
               >
                 <option value="">Select status</option>
                 <option value="employed">Employed</option>
+                <!-- The Save Tax funnel and Fyn save 'full_time' (FunnelAnswersMapper). -->
+                <option value="full_time">Full-Time</option>
                 <option value="part_time">Part-Time</option>
                 <option value="self_employed">Self-Employed</option>
                 <option value="student">Student</option>
@@ -592,6 +594,7 @@ import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.v
 import { EDUCATION_LEVEL_OPTIONS, isUkBirthCountry } from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
+import { formatDateOnlyLong } from '@/utils/dateFormatter';
 // Preview mode message
 const PREVIEW_SUCCESS_MESSAGE = 'Changes saved for this session only (preview mode).';
 
@@ -718,25 +721,14 @@ export default {
     };
 
     // Format date for display (e.g., "15 January 2024")
-    const formatDisplayDate = (date) => {
-      if (!date) return '—';
-      try {
-        const dateObj = new Date(date);
-        if (isNaN(dateObj.getTime())) return '—';
-        return dateObj.toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        });
-      } catch {
-        return '—';
-      }
-    };
+    // Date-only values read the same in every time zone (PR 1009).
+    const formatDisplayDate = (date) => formatDateOnlyLong(date) || '—';
 
     const formatEmploymentStatus = (status) => {
       if (!status) return '—';
       const statusMap = {
         'employed': 'Employed',
+        'full_time': 'Full-Time',
         'part_time': 'Part-Time',
         'self_employed': 'Self-Employed',
         'student': 'Student',

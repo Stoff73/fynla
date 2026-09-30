@@ -178,12 +178,10 @@ const actions = {
         // Transform user data to match the expected format
         const user = response.data.user;
 
-        // Format date_of_birth to yyyy-MM-dd for HTML date input
-        let formattedDateOfBirth = null;
-        if (user.date_of_birth) {
-          const date = new Date(user.date_of_birth);
-          formattedDateOfBirth = date.toISOString().split('T')[0];
-        }
+        // The server sends the calendar date (yyyy-MM-dd). Never round-trip it
+        // through Date/toISOString: a UTC timestamp for London midnight in
+        // summer is the day before, and the form then saves that day.
+        const formattedDateOfBirth = user.date_of_birth ? String(user.date_of_birth).slice(0, 10) : null;
 
         const personalInfo = {
           id: user.id,

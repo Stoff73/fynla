@@ -134,7 +134,10 @@ class User extends Authenticatable
         'failed_login_count' => 'integer',
         'locked_until' => 'datetime',
         'last_failed_login_at' => 'datetime',
-        'date_of_birth' => 'date',
+        // A calendar date, serialised as one. A bare 'date' cast serialises
+        // London midnight in UTC, so a summer birthday read "1985-04-30T23:00Z"
+        // and the web form saved the day before on every save (2026-09-29).
+        'date_of_birth' => 'date:Y-m-d',
         'life_expectancy_override' => 'integer',
         'retirement_date' => 'date',
         'is_primary_account' => 'boolean',
