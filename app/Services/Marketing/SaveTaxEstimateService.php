@@ -450,14 +450,14 @@ class SaveTaxEstimateService
                 (float) $this->annualAllowance(),
                 $this->math->bandThresholds(),
             )['contribution'];
-            $reason = 'At '.$this->money($income).', paying '.$this->money($contribution).' into a pension moves income out of the '.$this->pct($this->bandRates()['additional']).' band and reclaims your Personal Allowance.';
+            $reason = 'At '.$this->money($income).', paying '.$this->money($contribution).' into a pension moves income out of the '.$this->pct($this->bandRates()['additional']).' band and '.$this->reclaims($income, $contribution, 'your').'.';
             // The figure assumes the whole allowance is used; say so (#975 review).
             if ($contribution >= $this->annualAllowance()) {
                 $reason .= ' That uses your whole '.$this->money($this->annualAllowance()).' Annual Allowance for the year.';
             }
         } elseif ($income > $this->taperThreshold()) {
             $contribution = $this->taperRescueContribution($income);
-            $reason = "You're in the ".$this->pct($this->trapRate()).' tax trap. At '.$this->money($income).', the top of the band you chose, paying '.$this->money($contribution).' into a pension reclaims your Personal Allowance. Income between '.$this->money($this->taperThreshold()).' and '.$this->money($this->taperEnd()).' is taxed at '.$this->pct($this->trapRate()).'.';
+            $reason = "You're in the ".$this->pct($this->trapRate()).' tax trap. At '.$this->money($income).', the top of the band you chose, paying '.$this->money($contribution).' into a pension '.$this->reclaims($income, $contribution, 'your').'. Income between '.$this->money($this->taperThreshold()).' and '.$this->money($this->taperEnd()).' is taxed at '.$this->pct($this->trapRate()).'.';
         } else {
             $contribution = (int) (floor($income * PensionTaxReliefStrategy::BASIC_RATE_SHARE_OF_EARNINGS / 100) * 100);
             $reason = 'A pension contribution of '.$this->money($contribution).' attracts '.$this->pct($this->marginalRate($income)).' tax relief.';
@@ -516,7 +516,7 @@ class SaveTaxEstimateService
             'key' => 'spouse_tax_trap_60',
             'label' => "Your partner's ".$this->trapLabel(),
             'amount' => $this->pensionSaving($spouseIncome, $contribution),
-            'reason' => 'At '.$this->money($spouseIncome).', the top of the band you chose for your partner, paying '.$this->money($contribution).' into their pension reclaims their Personal Allowance'.$fromWork.'. '.$band,
+            'reason' => 'At '.$this->money($spouseIncome).', the top of the band you chose for your partner, paying '.$this->money($contribution).' into their pension '.$this->reclaims($spouseIncome, $contribution, 'their').$fromWork.'. '.$band,
         ];
     }
 
@@ -626,6 +626,21 @@ class SaveTaxEstimateService
     private function pensionSaving(int $income, int $contribution): int
     {
         return (int) round($this->math->pensionContributionSavingOn($this->incomeParts($income), (float) $contribution));
+    }
+
+    /**
+     * What the contribution wins back. It is rounded down to £100
+     * (TaxStrategyMath::taperRescueContribution), so income can stay just over
+     * the taper threshold, where the allowance still falls £1 for every £2
+     * (ITA 2007 s35, https://www.legislation.gov.uk/ukpga/2007/3/section/35).
+     */
+    private function reclaims(int $income, int $contribution, string $whose): string
+    {
+        $lost = $this->personalAllowanceBase() - (int) $this->math->personalAllowanceForIncome((float) ($income - $contribution));
+
+        return $lost > 0
+            ? 'reclaims all but '.$this->money($lost).' of '.$whose.' Personal Allowance'
+            : 'reclaims '.$whose.' Personal Allowance';
     }
 
     private function taperRescueContribution(int $income): int

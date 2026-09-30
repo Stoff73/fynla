@@ -26,7 +26,7 @@
         <dl class="profile-list">
           <div class="profile-row"><dt>Name</dt><dd>{{ personalInfo.name || '—' }}</dd></div>
           <div class="profile-row"><dt>Email</dt><dd>{{ personalInfo.email || '—' }}</dd></div>
-          <div class="profile-row"><dt>Date of birth</dt><dd>{{ personalInfo.date_of_birth || '—' }}</dd></div>
+          <div class="profile-row"><dt>Date of birth</dt><dd>{{ formatDateOnlyLong(personalInfo.date_of_birth) || '—' }}</dd></div>
           <div class="profile-row"><dt>National Insurance</dt><dd>{{ personalInfo.national_insurance_number || 'Not recorded' }}</dd></div>
           <div class="profile-row"><dt>Address</dt><dd>{{ address }}</dd></div>
         </dl>
@@ -166,6 +166,7 @@ import {
 } from '../constants/profileOptions.js';
 import { buildContextualConversationRequest } from '../fyn/contextualConversation.js';
 import { store } from '../store.js';
+import { formatDateOnlyLong } from '../../js/utils/dateFormatter.js';
 
 export default {
   name: 'MobilePersonalInformation',
@@ -246,6 +247,7 @@ export default {
     this.$watch(() => store.screenRefreshTick, () => { this.load(); });
   },
   methods: {
+    formatDateOnlyLong,
     startEditingHealth() {
       this.healthError = '';
       this.healthForm = {

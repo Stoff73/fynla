@@ -110,6 +110,17 @@ describe('GET /api/user/profile', function () {
 });
 
 describe('PUT /api/user/profile/personal', function () {
+    // Production walk 2026-09-29: a summer birthday serialised as London
+    // midnight in UTC ("1985-04-30T23:00:00Z"), the web form read the day
+    // before, and each save moved the stored date back one more day.
+    it('returns a summer date of birth as the same calendar date', function () {
+        $this->putJson('/api/user/profile/personal', ['date_of_birth' => '1985-05-01'])
+            ->assertStatus(200)
+            ->assertJsonPath('data.user.date_of_birth', '1985-05-01');
+
+        expect($this->user->fresh()->date_of_birth->format('Y-m-d'))->toBe('1985-05-01');
+    });
+
     it('updates user personal information successfully', function () {
         $updatedData = [
             'first_name' => 'Updated',
