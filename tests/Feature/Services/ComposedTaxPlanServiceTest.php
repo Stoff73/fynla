@@ -52,7 +52,7 @@ it('does not list a strategy as locked when it actually fired', function () {
         'user_id' => $user->id,
         'is_isa' => false,
         'current_balance' => 81000.00,
-        'interest_rate' => 0.0325,
+        'interest_rate' => 3.25,
     ]);
 
     // ISA account with £100 subscribed so isa_subscriptions_ytd is available
@@ -91,7 +91,7 @@ it('never double-counts the shared ISA allowance in combined_annual_saving', fun
         'user_id' => $user->id,
         'is_isa' => false,
         'current_balance' => 50000,
-        'interest_rate' => 0.04,
+        'interest_rate' => 4.0,
     ]);
 
     $plan = app(ComposedTaxPlanService::class)->forUser($user->fresh());
@@ -134,7 +134,7 @@ it('drops a pool-exhausted ISA strategy from the combined total but keeps it not
         'user_id' => $user->id,
         'is_isa' => false,
         'current_balance' => 50000,
-        'interest_rate' => 0.04,
+        'interest_rate' => 4.0,
     ]);
     SavingsAccount::factory()->isa()->create([
         'user_id' => $user->id,

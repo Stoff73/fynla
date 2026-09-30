@@ -11,6 +11,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\SavingsInterestRate;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
@@ -61,10 +62,7 @@ final class IsaTopUpStrategy implements TaxStrategy
             ->where('is_isa', false);
         $nonIsaBalance = (float) $nonIsaAccounts->sum(fn ($acc) => $this->calculateUserShare($acc, $user->id));
 
-        // Use the centralised helper — it normalises the interest_rate
-        // column convention (decimals 0.04 vs. percents 4.0) the same way
-        // every other strategy does, so the resulting interest figure is
-        // comparable across the dashboard.
+        // The centralised helper, so the interest figure matches the dashboard.
         $annualInterest = $this->math->estimateAnnualInterest($user);
         $psa = $this->math->psaForBand($userBand);
 
@@ -80,17 +78,10 @@ final class IsaTopUpStrategy implements TaxStrategy
         $interestSheltered = 0.0;
         $targetAccounts = [];
 
-        $rankedAccounts = $nonIsaAccounts->sortByDesc(function ($account) {
-            $rate = (float) $account->interest_rate;
-
-            return $rate > 1 ? $rate / 100 : $rate;
-        });
+        $rankedAccounts = $nonIsaAccounts->sortByDesc(fn ($account) => SavingsInterestRate::fraction($account->interest_rate));
 
         foreach ($rankedAccounts as $account) {
-            $rate = (float) $account->interest_rate;
-            if ($rate > 1) {
-                $rate /= 100;
-            }
+            $rate = SavingsInterestRate::fraction($account->interest_rate);
             $balance = max(0.0, $this->calculateUserShare($account, $user->id));
             if ($rate <= 0 || $balance <= 0 || $remainingInterest <= 0 || $remainingIsa <= 0) {
                 continue;

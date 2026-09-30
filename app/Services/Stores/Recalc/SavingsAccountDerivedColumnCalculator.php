@@ -7,6 +7,7 @@ namespace App\Services\Stores\Recalc;
 use App\Constants\TaxDefaults;
 use App\Models\SavingsAccount;
 use App\Services\TaxConfigService;
+use App\Support\SavingsInterestRate;
 
 class SavingsAccountDerivedColumnCalculator
 {
@@ -26,15 +27,7 @@ class SavingsAccountDerivedColumnCalculator
         // "no projected interest" so create() and update() materialise the
         // same value for the same logical state (no £0.00 snapshot noise).
         if ($account->interest_rate !== null && (float) $account->interest_rate > 0) {
-            // interest_rate convention is mixed across the codebase: the factory
-            // writes decimals (0.04) while seeders + onboarding write percent (4.0).
-            // Normalise the SAME way TaxStrategyMath::estimateAnnualInterest does
-            // so the derived column matches what read-consumers compute.
-            $rate = (float) $account->interest_rate;
-            if ($rate > 1) {
-                $rate /= 100;
-            }
-            $annualInterestGbp = round($balanceGbp * $rate, 2);
+            $annualInterestGbp = round($balanceGbp * SavingsInterestRate::fraction($account->interest_rate), 2);
         }
 
         $isaAllowanceUsedPct = null;

@@ -698,7 +698,8 @@ class OnboardingService
                         'account_type' => $cashData['account_type'],
                         'country' => $cashData['country'] ?? 'United Kingdom',
                         'current_balance' => $currentBalance,
-                        'interest_rate' => isset($cashData['interest_rate']) ? $cashData['interest_rate'] / 100 : 0,
+                        // Stored as the percentage entered (SavingsInterestRate).
+                        'interest_rate' => isset($cashData['interest_rate']) ? (float) $cashData['interest_rate'] : 0,
                         'ownership_type' => $ownershipType,
                         'ownership_percentage' => $ownershipType === 'joint' ? 50.00 : 100.00,
                         'joint_owner_id' => $jointOwnerId,
@@ -772,9 +773,10 @@ class OnboardingService
                 continue;
             }
 
-            // Convert interest rate from percentage to decimal (e.g., 27 -> 0.27)
+            // Stored as the percentage entered (27 means 27%), as every
+            // liability reader expects (UserContextBuilder bands at 5 and 15).
             $interestRate = isset($liabilityData['interest_rate'])
-                ? $liabilityData['interest_rate'] / 100
+                ? (float) $liabilityData['interest_rate']
                 : null;
 
             // Create liability record

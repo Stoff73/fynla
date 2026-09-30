@@ -166,14 +166,29 @@ abstract class AbstractFieldMapper implements FieldMapperInterface
     }
 
     /**
+     * An interest rate as the percentage the savings and mortgage columns store
+     * (3.5 means 3.5%: `SavingsInterestRate`, `MortgageStore` validates 0-100,
+     * `PropertyTaxService` divides by 100). The statement reader is asked for a
+     * decimal (AIExtractionService: "3.5% = 0.035"), so the parsed fraction is
+     * scaled back up. Before this an uploaded 3.5% was stored as 0.035, read
+     * everywhere else as 0.035%.
+     */
+    protected function parseRatePercent(mixed $value): ?float
+    {
+        $fraction = $this->parsePercentage($value);
+
+        return $fraction === null ? null : round($fraction * 100, 4);
+    }
+
+    /**
      * Parse a percentage into PERCENTAGE POINTS — 50% becomes 50.0, not 0.50.
      *
      * Most percentage columns on this codebase store points, not fractions:
      * `spouse_pension_percent` and `employee_contribution_percent` are both
      * validated `min:0|max:100`, and every consumer divides by 100 when it uses
-     * them. `parsePercentage()` above returns the opposite convention and is kept
-     * for the fields that genuinely store fractions (savings `interest_rate`,
-     * mortgage `interest_rate`) — do not merge the two.
+     * them. `parsePercentage()` above returns the opposite convention. Interest
+     * rates go through `parseRatePercent()` below, not this: a real rate can
+     * be under 1%, which this helper would scale up.
      *
      * `DCPensionMapper` and `DBPensionMapper` each had their own copy of this
      * conversion and they disagreed: the Defined Contribution one returned points

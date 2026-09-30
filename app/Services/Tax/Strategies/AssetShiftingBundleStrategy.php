@@ -11,6 +11,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\SavingsInterestRate;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
@@ -57,14 +58,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             ->reject(fn ($acc) => $this->isSharedOwnership($acc))
             ->where('is_isa', false);
         $userSavingsTotal = (float) $userSavings->sum('current_balance');
-        $annualInterest = (float) $userSavings->sum(function ($acc) {
-            $r = (float) $acc->interest_rate;
-            if ($r > 1) {
-                $r /= 100;
-            }
-
-            return (float) $acc->current_balance * $r;
-        });
+        $annualInterest = (float) $userSavings->sum(fn ($acc) => (float) $acc->current_balance * SavingsInterestRate::fraction($acc->interest_rate));
         $userAvgRate = $userSavingsTotal > 0 ? $annualInterest / $userSavingsTotal : 0.0;
 
         $personalAllowance = (float) $income['personal_allowance'];
