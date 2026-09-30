@@ -518,6 +518,8 @@ final class RecordEditForms
                 'employer_contribution_percent' => $input['employer_contribution_percent'] ?? null,
                 'salary_sacrifice' => $kindKey === 'workplace' ? ($input['salary_sacrifice'] ?? false) : null,
                 'monthly_contribution_amount' => $input['monthly_contribution_amount'] ?? null,
+                'annual_drawdown_income' => $input['annual_drawdown_income'] ?? null,
+                'pcls_taken' => $input['pcls_taken'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'life_insurance', 'critical_illness' => array_filter([
                 'provider' => $input['provider'] ?? null,

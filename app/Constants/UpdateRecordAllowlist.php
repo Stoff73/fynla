@@ -72,6 +72,9 @@ final class UpdateRecordAllowlist
             // (campaign2_flexible_access — closes the round-1 latent item where
             // the "yes" branch could not persist has_flexibly_accessed).
             'annual_salary', 'salary_sacrifice', 'has_flexibly_accessed',
+            // The personal pension form asks what is drawn and the tax-free
+            // lump sum taken; an edit of that form dropped both (2026-09-30).
+            'annual_drawdown_income', 'pcls_taken',
         ],
         'db_pension' => [
             'scheme_name', 'accrued_annual_pension', 'normal_retirement_age',

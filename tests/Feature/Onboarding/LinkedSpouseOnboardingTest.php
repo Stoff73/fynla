@@ -421,3 +421,25 @@ it('keeps the dividends an edited investment account pays, and moves the taxable
     $post(300);
     expect((float) $alex->fresh()->annual_dividend_income)->toBe(1300.0);
 });
+
+it('keeps what is drawn and the lump sum taken on an edited personal pension', function (): void {
+    // csjones /m walk 2026-09-30: £1,200 typed into "You draw from it each
+    // year" on the transferred pension's edit form was dropped.
+    [, $alex] = linkedSpouseWithTransferredHoldings();
+    $conversation = linkedSpouseOnboardingConversation($alex);
+    $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $record = collect($events)->firstWhere('type', 'capture_form')['record'];
+
+    Sanctum::actingAs($alex->fresh());
+    FynStreamHarness::fake()->bind();
+    $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['form' => [
+        'name' => CaptureForms::PENSION_PERSONAL,
+        'answers' => ['personal' => ['provider' => 'Aviva', 'current_value' => 40000, 'annual_contribution' => 2400, 'annual_drawdown_income' => 1200, 'pcls_taken' => 5000]],
+        'record' => $record,
+    ]])->assertOk()->streamedContent();
+
+    $pension = DCPension::find($record['id']);
+    expect((float) $pension->annual_drawdown_income)->toBe(1200.0)
+        ->and((float) $pension->pcls_taken)->toBe(5000.0)
+        ->and(DCPension::where('user_id', $alex->id)->count())->toBe(1);
+});
