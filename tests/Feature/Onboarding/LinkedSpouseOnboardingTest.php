@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\DCPension;
 use App\Models\Employment;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\SavingsAccount;
 use App\Models\SpousePermission;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
@@ -14,6 +17,7 @@ use App\Services\Income\EmploymentIncomeService;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Services\Onboarding\RecordEditForms;
 use App\Services\Onboarding\SpouseLinkingService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -257,4 +261,133 @@ describe("the invitee's own income form", function (): void {
         expect($form['form']['name'])->toBe(CaptureForms::WORK)
             ->and($form)->not->toHaveKey('values');
     });
+});
+
+/**
+ * CSJ 2026-09-29 (ruling 50): what Sam gave for Alex is transferred onto
+ * Alex's account and stored as usual — so Alex's own walk must open those
+ * records to confirm, not ask again and add each a second time.
+ *
+ * @return array{0: User, 1: User}
+ */
+function linkedSpouseWithTransferredHoldings(): array
+{
+    $sam = User::factory()->create(['is_preview_user' => false, 'first_name' => 'Sam', 'marital_status' => 'married', 'employment_status' => 'full_time', 'household_calculation_mode' => 'single_earner_couple']);
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $sam->id,
+        'spouse_existing_savings_balance' => 5000,
+        'spouse_isa_balance' => 20000,
+        'spouse_isa_provider' => 'Vanguard',
+        'spouse_existing_investment_balance' => 15000,
+        'spouse_existing_pension_balance' => 40000,
+        'spouse_pension_input_annual' => 2400,
+        'spouse_pension_provider' => 'Aviva',
+    ]);
+    $alex = User::factory()->create([
+        'is_preview_user' => false, 'first_name' => 'Alex', 'onboarding_completed' => false,
+        'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax',
+        'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['savings', 'isa', 'investments', 'pension']],
+        'employment_status' => 'unemployed',
+    ]);
+    app(SpouseLinkingService::class)->establishAcceptedLink($sam, $alex);
+    app(ConsentService::class)->recordConsent($alex, UserConsent::TYPE_AI_CHAT, true);
+
+    return [$sam->fresh(), $alex->fresh()];
+}
+
+describe('the records the transfer made open as edits in the walk', function (): void {
+    it('opens each transferred record in its own walk form, narrowed to its kind', function (string $step, string $formName, string $type, string $kind, string $field, float $value): void {
+        [, $alex] = linkedSpouseWithTransferredHoldings();
+        $conversation = linkedSpouseOnboardingConversation($alex);
+
+        $events = linkedSpouseOnboardingEmitStep($alex, $conversation, $step);
+
+        $form = collect($events)->firstWhere('type', 'capture_form');
+        expect($form['form']['name'])->toBe($formName)
+            ->and(array_column($form['form']['kinds'], 'key'))->toBe([$kind])
+            ->and($form['record']['type'])->toBe($type)
+            ->and((float) $form['values'][$kind][$field])->toBe($value);
+        $saved = $conversation->messages()->where('role', 'assistant')->latest('id')->first();
+        expect($saved->metadata['capture_form_record']['type'])->toBe($type)
+            ->and(array_column($saved->metadata['capture_form']['kinds'], 'key'))->toBe([$kind]);
+    })->with([
+        'savings' => [OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS, CaptureForms::SAVINGS, 'savings_account', 'easy_access', 'current_value', 5000.0],
+        'ISA' => [OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS, CaptureForms::ISA, 'investment_account', 'stocks_shares_isa', 'current_value', 20000.0],
+        'investments' => [OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, CaptureForms::INVESTMENT, 'investment_account', 'gia', 'current_value', 15000.0],
+        'personal pension' => [OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS, CaptureForms::PENSION_PERSONAL, 'dc_pension', 'personal', 'current_value', 40000.0],
+    ]);
+
+    it('saves over the transferred ISA instead of adding a second, and the walk moves on', function (): void {
+        [, $alex] = linkedSpouseWithTransferredHoldings();
+        $conversation = linkedSpouseOnboardingConversation($alex);
+        $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS);
+        $record = collect($events)->firstWhere('type', 'capture_form')['record'];
+
+        Sanctum::actingAs($alex->fresh());
+        FynStreamHarness::fake()->bind();
+        $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['form' => [
+            'name' => CaptureForms::ISA,
+            'answers' => ['stocks_shares_isa' => ['provider' => 'Vanguard', 'current_value' => 21500]],
+            'record' => $record,
+        ]])->assertOk()->streamedContent();
+
+        $isas = InvestmentAccount::where('user_id', $alex->id)->whereNotNull('isa_type')->get();
+        expect($isas)->toHaveCount(1)
+            ->and((float) $isas[0]->current_value)->toBe(21500.0)
+            ->and($alex->fresh()->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS);
+    });
+
+    it('opens a blank form for another once that form has been saved in the conversation', function (): void {
+        [, $alex] = linkedSpouseWithTransferredHoldings();
+        $conversation = linkedSpouseOnboardingConversation($alex);
+        $conversation->messages()->create(['role' => 'user', 'content' => 'Savings £5,000', 'metadata' => ['form' => ['name' => CaptureForms::SAVINGS, 'answers' => []]]]);
+
+        $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
+
+        $form = collect($events)->firstWhere('type', 'capture_form');
+        expect($form)->not->toHaveKey('values')->and($form)->not->toHaveKey('record')
+            ->and(count($form['form']['kinds']))->toBeGreaterThan(1);
+    });
+
+    it('opens a blank form when there are two records of that kind', function (): void {
+        [, $alex] = linkedSpouseWithTransferredHoldings();
+        SavingsAccount::create(['user_id' => $alex->id, 'account_name' => 'Second', 'account_type' => 'easy_access', 'current_balance' => 100, 'ownership_type' => 'individual']);
+        $conversation = linkedSpouseOnboardingConversation($alex);
+
+        $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
+
+        expect(collect($events)->firstWhere('type', 'capture_form'))->not->toHaveKey('record');
+    });
+
+    it('does not open a workplace pension in the personal-pension-only form', function (): void {
+        $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false, 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax', 'employment_status' => 'unemployed']);
+        // Stored as the onboarding form stores a workplace pension (pension_type).
+        DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Old job', 'pension_type' => 'occupational', 'current_fund_value' => 10000]);
+
+        $events = linkedSpouseOnboardingEmitStep($user, linkedSpouseOnboardingConversation($user), OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
+
+        expect(collect($events)->firstWhere('type', 'capture_form'))->not->toHaveKey('record');
+    });
+});
+
+it('opens a workplace pension in its Edit form as a workplace pension', function (): void {
+    // scheme_type is never 'occupational' (enum workplace/sipp/personal), so
+    // the old test sent every workplace pension to the personal kind.
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $pension = DCPension::create(['user_id' => $user->id, 'scheme_name' => 'Acme scheme', 'pension_type' => 'occupational', 'current_fund_value' => 10000, 'employee_contribution_percent' => 5]);
+
+    $form = app(RecordEditForms::class)->formFor($user, 'dc_pension', $pension->id);
+
+    expect(array_keys($form['answers']))->toBe(['workplace'])
+        ->and((float) $form['answers']['workplace']['employee_contribution_percent'])->toBe(5.0);
+});
+
+it('opens a stored General Investment Account in its Edit form as a GIA', function (): void {
+    // CoordinatingAgent stores the form's personal_investment_account as 'gia'.
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $account = InvestmentAccount::create(['user_id' => $user->id, 'account_name' => 'Investments', 'account_type' => 'gia', 'provider' => 'AJ Bell', 'current_value' => 15000, 'ownership_type' => 'individual']);
+
+    $form = app(RecordEditForms::class)->formFor($user, 'investment_account', $account->id);
+
+    expect(array_keys($form['answers']))->toBe(['gia']);
 });
