@@ -66,10 +66,7 @@ final class HouseholdFinancialContext
             'pension_input_history' => collect(app(PensionStore::class)->pensionInputHistory($user))->isNotEmpty(),
             'savings_balances' => $this->hasSavingsBalance($user),
             'spouse_income' => $this->spouseIncomeKnown($user),
-            // Known from the linked spouse's own records only when they hold
-            // income (TaxStrategyMath::linkedSpouseWithIncome, the one rule).
-            'spouse_income_amount' => $this->math->linkedSpouseWithIncome($user) !== null
-                || TaxStrategyHouseholdInput::where('user_id', $user->id)->whereNotNull('spouse_annual_income')->exists(),
+            'spouse_income_amount' => $this->spouseIncomeAmountKnown($user),
             'workplace_pension' => $hasDcPension,
         ];
         foreach ($declared as $key) {
@@ -297,22 +294,25 @@ final class HouseholdFinancialContext
     /**
      * Spouse income is known when:
      * - single_earner_couple mode: spouse income is definitionally £0
-     * - dual_earner mode: household input row exists with spouse_annual_income set
+     * - its amount is known (spouseIncomeAmountKnown): a linked spouse's own
+     *   records hold income, or a figure was given. A linked account's income
+     *   was not read here, so the spouse strategies waited for a figure the
+     *   account already held (ice-cube, 2026-09-30).
      */
     private function spouseIncomeKnown(User $user): bool
     {
-        $mode = $user->household_calculation_mode;
+        return $user->household_calculation_mode === 'single_earner_couple'
+            || $this->spouseIncomeAmountKnown($user);
+    }
 
-        if ($mode === 'single_earner_couple') {
-            return true;
-        }
-
-        if ($mode === 'dual_earner') {
-            return TaxStrategyHouseholdInput::where('user_id', $user->id)
-                ->whereNotNull('spouse_annual_income')
-                ->exists();
-        }
-
-        return false;
+    /**
+     * Known from the linked spouse's own records only when they hold income
+     * (TaxStrategyMath::linkedSpouseWithIncome, the one rule), else from the
+     * figure given.
+     */
+    private function spouseIncomeAmountKnown(User $user): bool
+    {
+        return $this->math->linkedSpouseWithIncome($user) !== null
+            || TaxStrategyHouseholdInput::where('user_id', $user->id)->whereNotNull('spouse_annual_income')->exists();
     }
 }
