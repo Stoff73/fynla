@@ -458,11 +458,48 @@ final class TaxStrategyCalculator
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, 0.0, 'spouse', true, $spouseIsaUseKnown),
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, 0.0, 'spouse', true, false),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, min($divAmount, $divUsed), 'spouse', true, $dividendUseKnown),
-            // The campaign captures a spouse's own gross contribution, not
-            // employer input, flexible-access status or prior scheme inputs.
-            // Those missing facts can change both use and the applicable limit.
-            $this->position('pension_annual_allowance', 'Pension Annual Allowance', $aaAmount, 0.0, 'spouse', true, false),
+            $this->spousePensionPosition($household, $aaAmount, (float) $pension['relevant_earnings_minimum']),
         ];
+    }
+
+    /**
+     * The partner's pension tile, on the same rule as the user's
+     * (pensionPosition): relief on their own contributions is capped at their
+     * relevant UK earnings or the basic amount, whichever is higher (FA 2004
+     * s189-190, https://www.legislation.gov.uk/ukpga/2004/12/section/190).
+     * A partner living on a pension was shown the £60,000 Annual Allowance
+     * (ice-cube, PR 989). Earnings are used only when known: given, or implied
+     * by a status (retired or not working: none; working: their income is
+     * pay, as SpouseHoldingTransfer reads it). Otherwise the Annual Allowance
+     * stays, marked unconfirmed: employer input, flexible access and earlier
+     * inputs are not captured and can change both use and limit.
+     */
+    private function spousePensionPosition(TaxStrategyHouseholdInput $household, float $aaAmount, float $basicAmount): array
+    {
+        $status = $household->spouse_employment_status;
+        $earnings = match (true) {
+            $household->spouse_annual_earnings !== null => (float) $household->spouse_annual_earnings,
+            in_array($status, ['retired', 'unemployed'], true) => 0.0,
+            in_array($status, ['employed', 'full_time', 'part_time', 'self_employed'], true) => (float) ($household->spouse_annual_income ?? 0),
+            default => null,
+        };
+        $reliefLimit = $earnings === null ? null : max($basicAmount, $earnings);
+
+        if ($reliefLimit !== null && $reliefLimit < $aaAmount) {
+            $paidIn = $household->spouse_pension_input_annual;
+
+            return $this->position(
+                'pension_annual_allowance',
+                $earnings > 0 ? 'Pension contribution limit from their earnings' : 'Pension contribution limit without earnings',
+                $reliefLimit,
+                (float) ($paidIn ?? 0),
+                'spouse',
+                true,
+                $paidIn !== null,
+            ) + ['limit_basis' => 'relief'];
+        }
+
+        return $this->position('pension_annual_allowance', 'Pension Annual Allowance', $aaAmount, 0.0, 'spouse', true, false);
     }
 
     private function buildSpouseAllowanceGridNonWorking(User $user, ?TaxStrategyHouseholdInput $household, bool $marriageAllowanceAvailable = true): array
@@ -490,7 +527,7 @@ final class TaxStrategyCalculator
             && (float) $household->spouse_existing_investment_balance === 0.0
             && $household->spouse_existing_dividend_holdings_value !== null
             && (float) $household->spouse_existing_dividend_holdings_value === 0.0;
-        $nonEarnerPensionLimit = (float) ($pension['relevant_earnings_minimum'] ?? 3600);
+        $nonEarnerPensionLimit = (float) $pension['relevant_earnings_minimum'];
 
         // The spouse's HMRC share of the user's joint accounts is confirmed
         // data (issue #21). With no other income the Personal Allowance
