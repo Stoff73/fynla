@@ -6624,8 +6624,8 @@ PROMPT;
 
     /**
      * The expenditure step's acknowledgement. On the Save Tax walk the form
-     * asks childcare, donations and Gift Aid only (CSJ 2026-09-22), so the
-     * ack repeats those; every other path recorded a monthly total.
+     * asks the monthly total with childcare, donations and Gift Aid under it
+     * (CSJ 2026-09-30), so the ack repeats all of them.
      */
     private function expenditureAck(User $user): string
     {
@@ -6633,6 +6633,9 @@ PROMPT;
             return 'Thanks — I\'ve noted your monthly spending.';
         }
         $parts = [];
+        if ((float) ($user->monthly_expenditure ?? 0) > 0) {
+            $parts[] = 'monthly spending of '.$this->wholePounds((float) $user->monthly_expenditure);
+        }
         if ((float) ($user->childcare ?? 0) > 0) {
             $parts[] = 'childcare of '.$this->wholePounds((float) $user->childcare).' a month';
         }
