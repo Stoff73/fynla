@@ -3196,6 +3196,41 @@ final class OnboardingStateMachine
     }
 
     /**
+     * True when the message is a tap: every part (one, or each part of the
+     * multi-select wire format) is exactly a bubble's label or id. A typed
+     * sentence that only contains a label ("What is the ISA allowance?") is
+     * not — matchBubble's substring fallback accepts it, so the director
+     * checks this before treating a question as a pick (CSJ 2026-09-30).
+     */
+    public static function isExactBubbleAnswer(string $stateId, string $userAnswer): bool
+    {
+        $state = self::getState($stateId);
+        if ($state === null || ($state['turn_type'] ?? '') !== 'bubbles') {
+            return false;
+        }
+
+        $exact = [];
+        foreach (self::bubblesFor($stateId, $state) as $bubble) {
+            $exact[] = mb_strtolower(trim((string) ($bubble['label'] ?? '')));
+            $exact[] = mb_strtolower(trim((string) ($bubble['id'] ?? '')));
+        }
+        $exact = array_filter($exact, static fn (string $v): bool => $v !== '');
+
+        $normalised = mb_strtolower(trim($userAnswer));
+        if (in_array($normalised, $exact, true)) {
+            return true;
+        }
+
+        if (! self::isMultiSelect($stateId)) {
+            return false;
+        }
+
+        $parts = array_values(array_filter(array_map('trim', explode(trim(self::MULTI_SELECT_SEPARATOR), $normalised)), static fn (string $p): bool => $p !== ''));
+
+        return $parts !== [] && array_diff($parts, $exact) === [];
+    }
+
+    /**
      * Match a bubble click (where the label becomes the next user message)
      * against the current state's bubble config. Case-insensitive, trimmed,
      * substring-tolerant. Returns the matched bubble id, or null.
