@@ -16,6 +16,17 @@ use Illuminate\Support\Str;
 class RetentionPurgeService
 {
     /**
+     * Tables that keep a row after the purge, stripped of the user, because
+     * the row is the business's own record rather than the user's data:
+     * audit_logs (GDPR events are kept seven years, privacy policy section 9)
+     * and ai_cost_attribution (the AI cost ledger; its foreign key is
+     * nullOnDelete by design). Every other table with a user_id is deleted in
+     * getDeletionOrder(); RetentionPurgeServiceTest fails when a new one is in
+     * neither list, which is how 38 tables were missed before 2026-09-30.
+     */
+    public const ANONYMISED_TABLES = ['audit_logs', 'ai_cost_attribution'];
+
+    /**
      * Permanently purge all data for a user after the retention period has elapsed.
      *
      * Cascades through all modules (Protection, Savings, Investment,
@@ -60,6 +71,12 @@ class RetentionPurgeService
             }
 
             // ─── Phase 4: Delete all user-owned records by module ───
+            // An evaluation run restricts deleting the conversation it
+            // recorded; a real user's conversations carry none, but one must
+            // never stop the purge.
+            DB::table('eval_provider_runs')
+                ->whereIn('conversation_id', DB::table('ai_conversations')->where('user_id', $userId)->select('id'))
+                ->delete();
             $tables = $this->getDeletionOrder();
 
             foreach ($tables as $table) {
@@ -76,6 +93,9 @@ class RetentionPurgeService
                 $totalDeleted += $count;
                 $tablesPurged++;
             }
+
+            // The AI cost ledger keeps its figures, not who they were for.
+            DB::table('ai_cost_attribution')->where('user_id', $userId)->update(['user_id' => null]);
 
             // ─── Phase 6: Anonymise audit logs (GDPR: keep log structure, remove all PII) ───
             $count = DB::table('audit_logs')->where('user_id', $userId)->update([
@@ -271,6 +291,46 @@ class RetentionPurgeService
     private function getDeletionOrder(): array
     {
         return [
+            // ── Added 2026-09-30: user tables created after this list was
+            // written, which the purge left behind (ice-cube, PR 991: Fyn
+            // conversations survived a purge). Children before parents. ──
+            'user_level_crossings',
+            'point_awards',
+            'user_gamification',
+            'user_milestones',
+            'ai_abort_events',
+            'ai_advice_logs',
+            'ai_audit_events',
+            'ai_daily_usage',
+            'ai_request_idempotency',
+            'proposed_semantic_facts',
+            'ai_conversations',
+            'feedback_responses',
+            'employments',
+            'tax_strategy_household_inputs',
+            'isa_contributions',
+            'pension_input_history',
+            'plan_action_funding_selections',
+            'net_worth_statements',
+            'net_worth_forecast_assumptions',
+            'what_if_scenarios',
+            'efficient_frontier_calculations',
+            'factor_exposures',
+            'portfolio_optimizations',
+            'risk_metrics',
+            'lasting_powers_of_attorney',
+            'will_documents',
+            'notification_preferences',
+            'device_tokens',
+            'native_device_sessions',
+            'web_handoffs',
+            'pipeline_publisher_users',
+            'lifecycle_email_log',
+            'account_deletion_reminder_log',
+            'discount_code_usages',
+            'discount_codes',
+            'invoices',
+
             // ── Leaf records (no other tables depend on these) ──
             'goal_contributions',
             'life_event_allocations',
