@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Observers\RecommendationTrackingObserver;
+use App\Observers\SpouseEstimateStatusObserver;
 use App\Observers\SurvivingSpouseExpenditureObserver;
 use App\Observers\UserOnboardingStepObserver;
 use App\Services\AI\AdviceFyn;
@@ -255,6 +256,7 @@ class AppServiceProvider extends ServiceProvider
         RecommendationTracking::observe(RecommendationTrackingObserver::class);
         User::observe(UserOnboardingStepObserver::class);
         User::observe(SurvivingSpouseExpenditureObserver::class);
+        User::observe(SpouseEstimateStatusObserver::class);
     }
 
     /**

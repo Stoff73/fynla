@@ -196,6 +196,62 @@ it('lets the partner\'s employment status decide when earnings were not given (C
         ->and((float) ($unknown->annual_other_income ?? 0))->toBe(0.0);
 });
 
+it('restates the estimate as pension income when the partner then says they are retired', function (): void {
+    // fynla.org 2026-09-30: the inviter gave £30,000 and a £200,000 pot with no
+    // status; the partner answered "Retired", then confirmed £30,000 drawn.
+    // The estimate stayed as pay beside it: £60,000, higher rate, and NI.
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_existing_pension_balance' => 200000, 'spouse_pension_provider' => 'Legal & General']);
+    expect((float) $spouse->annual_employment_income)->toBe(30000.0);
+
+    $spouse->update(['employment_status' => 'retired']);
+    $spouse->refresh();
+
+    expect((float) ($spouse->annual_employment_income ?? 0))->toBe(0.0)
+        ->and($spouse->employments()->count())->toBe(0)
+        ->and((float) ($spouse->annual_other_income ?? 0))->toBe(0.0);
+    $pension = DCPension::where('user_id', $spouse->id)->sole();
+    expect((float) $pension->annual_drawdown_income)->toBe(30000.0)
+        ->and((float) $pension->current_fund_value)->toBe(200000.0);
+
+    // Their pension step opens it with the income filled in, to confirm.
+    $conversation = AiConversation::create(['user_id' => $spouse->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding', 'metadata' => ['source' => 'fyn_onboarding']]);
+    $prefill = app(WalkFormPrefill::class)->for($spouse, $conversation, CaptureForms::PENSION_PERSONAL);
+    expect((float) $prefill['values']['personal']['annual_drawdown_income'])->toBe(30000.0);
+});
+
+it('restates the estimate as other income when the partner then says they are not working', function (): void {
+    $spouse = linkPartner(['spouse_annual_income' => 20000]);
+
+    $spouse->update(['employment_status' => 'unemployed']);
+    $spouse->refresh();
+
+    expect((float) ($spouse->annual_employment_income ?? 0))->toBe(0.0)
+        ->and((float) $spouse->annual_other_income)->toBe(20000.0)
+        ->and(DCPension::where('user_id', $spouse->id)->count())->toBe(0);
+});
+
+it('keeps what a retired partner already said they draw, and drops the estimate', function (): void {
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_existing_pension_balance' => 200000]);
+    DCPension::where('user_id', $spouse->id)->sole()->update(['annual_drawdown_income' => 24000]);
+
+    $spouse->update(['employment_status' => 'retired']);
+    $spouse->refresh();
+
+    expect((float) ($spouse->annual_employment_income ?? 0))->toBe(0.0)
+        ->and((float) DCPension::where('user_id', $spouse->id)->sole()->annual_drawdown_income)->toBe(24000.0)
+        ->and((float) ($spouse->annual_other_income ?? 0))->toBe(0.0);
+});
+
+it('leaves the estimate for the partner\'s own job when they say they work', function (): void {
+    $spouse = linkPartner(['spouse_annual_income' => 30000]);
+
+    $spouse->update(['employment_status' => 'full_time']);
+    $spouse->refresh();
+
+    expect((float) $spouse->annual_employment_income)->toBe(30000.0)
+        ->and($spouse->employments()->where('is_estimate', true)->count())->toBe(1);
+});
+
 it('reports the other income among what it copied', function (): void {
     $requester = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married']);
     $spouse = User::factory()->create(['is_preview_user' => false, 'employment_status' => null, 'annual_employment_income' => null, 'annual_self_employment_income' => null, 'annual_other_income' => null]);
