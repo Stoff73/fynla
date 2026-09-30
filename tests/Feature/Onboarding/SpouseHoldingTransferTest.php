@@ -12,6 +12,7 @@ use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Onboarding\CaptureForms;
+use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Onboarding\SpouseHoldingTransfer;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Onboarding\WalkFormPrefill;
@@ -268,4 +269,16 @@ it('copies the rest when the income cannot be copied, instead of failing the lin
     expect((float) ($spouse->fresh()->annual_employment_income ?? 0))->toBe(0.0)
         ->and(SavingsAccount::where('user_id', $spouse->id)->count())->toBe(1)
         ->and(TaxStrategyHouseholdInput::where('user_id', $requester->id)->first()->spouse_holding_transferred_at)->not->toBeNull();
+});
+
+it('asks a retired partner to confirm the transferred pension instead of skipping it', function (): void {
+    // csjones walk 2026-09-30 (Pat): the workplace pension form is skipped
+    // for someone not employed, and the skip marked the personal pension
+    // step done because a personal pension was on file — the transferred
+    // one, which the partner then never saw.
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_employment_status' => 'retired', 'spouse_existing_pension_balance' => 200000, 'spouse_pension_provider' => 'Aviva']);
+    $spouse->forceFill(['onboarding_completed' => false, 'onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax', 'employment_status' => 'retired', 'date_of_birth' => '1958-03-10', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['pension']]])->save();
+
+    expect(OnboardingStateMachine::getNextStateId(OnboardingStateMachine::STATE_CAMPAIGN_DOB, '10/03/1958', $spouse->fresh()))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
 });
