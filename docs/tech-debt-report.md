@@ -1,4 +1,29 @@
-# Tech Debt Report — Session 2026-09-30 (session 2)
+# Tech Debt Report — Session 2026-09-30 (session 3)
+
+**Files analysed:** 18 (merged to `dev`: #1016, #1018-#1021; open PR #1022)
+**Issues found:** 7
+**Severity breakdown:** 1 critical, 4 warnings, 2 suggestions
+
+## Critical Issues
+
+- **`app/Services/Onboarding/OnboardingService.php:598-613`** — Rule 23 (unsourced figures). The old setup wizard (`/onboarding/full`) creates a mortgage for any property with a balance, with an invented lender ("Mortgage Provider"), a 3.5% rate, a start 5 years ago and 20 years left, and computes a monthly payment from them. The rate is also stored as `0.0350` in a percentage column (0.035%). Only reachable by typing the URL (its one link, `ProfileCompletionCards`, is unrendered). Fix: store only the balance the user gave, or retire the wizard's asset step; CSJ to decide which.
+
+## Warnings
+
+- **`app/Services/Documents/FieldMappers/DCPensionMapper.php:39`, `InvestmentAccountMapper.php:32`, `LifeInsuranceMapper.php:38`** — Category 6. `platform_fee_percent` and `indexation_rate` still go through `parsePercentage()`, which returns a fraction. #1018 found the same mapper storing fractions into percentage columns for savings and mortgage rates. Verify each column's convention (readers, validation) and move the percentage ones to `parseRatePercent()`.
+- **`app/Services/Onboarding/SpouseHoldingTransfer.php:28-31` and `app/Services/Tax/TaxStrategyCalculator.php:482-483`** — Category 1. The working and not-working status lists are written out twice. One public constant (or a small value class) both read.
+- **`app/Services/Tax/Strategies/AssetShiftingBundleStrategy.php:86-135`** — Category 4. `$stackedCapacity`, `$psaBasic`, `$reportedTransfer`, `$taxableInterestSheltered` are assigned inside the first `if` and read inside the second, which is safe only because `$estimatedAnnualTaxSaved >= 1` implies the first ran. Merge the two blocks into one `if` with an early skip.
+- **`app/Services/Account/RetentionPurgeService.php:27, 98, 101`** — Category 1. `ANONYMISED_TABLES` names `audit_logs` and `ai_cost_attribution`, and Phase 6 anonymises each with its own hardcoded query. Adding a table to the constant does not anonymise it. Drive the phase from a map of table => columns to null.
+
+## Suggestions
+
+- **`app/Services/Onboarding/WalkFormPrefill.php:120-121`** — Category 4. `recordsFor()` loads the user's savings and pensions on every call, whatever the form. Load them lazily inside the `match` arms that need them.
+- **`app/Services/Tax/TaxStrategyCalculator.php`** (646 lines) — Category 4. Over 500 lines; the allowance-grid builders (`buildUserAllowanceGrid`, the three spouse grids, `stackInterest`, `pensionPosition`, `spousePensionPosition`) are a natural `AllowanceGridBuilder` extraction.
+
+---
+
+# Carried forward — Session 2026-09-30 (session 2)
+
 
 **Files analysed:** 17 (all merged to `dev`: #1009, #1010, #1011, #1013, #1014)
 **Issues found:** 7
