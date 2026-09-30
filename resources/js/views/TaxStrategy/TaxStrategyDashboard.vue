@@ -20,6 +20,7 @@
 
         <StrategyRecommendationList />
 
+        <p v-if="taxBasisNote" class="mt-8 text-body-sm text-neutral-500">{{ taxBasisNote }}</p>
         <HouseholdView v-if="isHouseholdMode" class="mt-8" />
         <AllowanceGrid v-else :allowances="userAllowances" class="mt-8" />
       </template>
@@ -50,7 +51,7 @@ export default {
   mixins: [currencyMixin],
   computed: {
     ...mapState('taxStrategy', ['dashboard', 'loading', 'error']),
-    ...mapGetters('taxStrategy', ['userAllowances', 'isHouseholdMode']),
+    ...mapGetters('taxStrategy', ['userAllowances', 'isHouseholdMode', 'taxBasisNote']),
     personalisedIntro() {
       const user = this.$store.state.auth?.user;
       if (!user || !user.onboarding_completed) return '';
