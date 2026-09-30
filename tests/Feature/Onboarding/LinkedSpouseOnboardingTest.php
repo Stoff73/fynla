@@ -391,3 +391,33 @@ it('opens a stored General Investment Account in its Edit form as a GIA', functi
 
     expect(array_keys($form['answers']))->toBe(['gia']);
 });
+
+it('keeps the dividends an edited investment account pays, and moves the taxable total by the change', function (): void {
+    // csjones walk 2026-09-30: £400 typed into "Dividends it pays you each
+    // year" on the transferred GIA's edit form was dropped.
+    [, $alex] = linkedSpouseWithTransferredHoldings();
+    $alex->forceFill(['annual_dividend_income' => 1000])->save();
+    $conversation = linkedSpouseOnboardingConversation($alex);
+    $events = linkedSpouseOnboardingEmitStep($alex, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    $record = collect($events)->firstWhere('type', 'capture_form')['record'];
+
+    Sanctum::actingAs($alex->fresh());
+    $post = fn (float $dividends) => $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['form' => [
+        'name' => CaptureForms::INVESTMENT,
+        'answers' => ['gia' => ['provider' => 'AJ Bell', 'current_value' => 15000, 'annual_dividend_income' => $dividends]],
+        'record' => $record,
+    ]])->assertOk()->streamedContent();
+
+    FynStreamHarness::fake()->bind();
+    $post(400);
+    $account = InvestmentAccount::find($record['id']);
+    expect((float) $account->annual_dividend_income)->toBe(400.0)
+        ->and($account->provider)->toBe('AJ Bell')
+        ->and((float) $alex->fresh()->annual_dividend_income)->toBe(1400.0);
+
+    // The edit form now opens with the figure, and a lower one moves the total down.
+    expect(app(RecordEditForms::class)->formFor($alex->fresh(), 'investment_account', $record['id'])['answers']['gia']['annual_dividend_income'])->toBe(400.0);
+    FynStreamHarness::fake()->bind();
+    $post(300);
+    expect((float) $alex->fresh()->annual_dividend_income)->toBe(1300.0);
+});

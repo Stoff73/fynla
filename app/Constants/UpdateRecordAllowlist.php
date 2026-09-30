@@ -51,6 +51,9 @@ final class UpdateRecordAllowlist
         'investment_account' => [
             'account_name', 'account_type', 'provider', 'current_value',
             'monthly_contribution_amount', 'contributions_ytd',
+            // The investment form asks for the dividends an account pays
+            // (#931); an edit of that form dropped them (2026-09-30).
+            'annual_dividend_income',
         ],
         'dc_pension' => [
             'scheme_name', 'provider', 'current_fund_value',

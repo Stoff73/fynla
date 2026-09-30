@@ -356,6 +356,9 @@ final class RecordEditForms
         // input alias opened every stored one as the "other" kind.
         $kind = in_array($account->account_type, ['gia', 'personal_investment_account'], true) ? 'gia' : 'other';
         $answers = ['provider' => $account->provider, 'current_value' => (float) $account->current_value];
+        if (self::floatOrNull($account->annual_dividend_income ?? null) !== null) {
+            $answers['annual_dividend_income'] = (float) $account->annual_dividend_income;
+        }
         if ($kind === 'other') {
             $type = trim(str_replace((string) $account->provider, '', (string) $account->account_name));
             if ($type !== '') {
@@ -505,6 +508,7 @@ final class RecordEditForms
                 'account_name' => $input['account_name'] ?? null,
                 'current_value' => $input['current_value'] ?? null,
                 'contributions_ytd' => $input['isa_subscription_current_year'] ?? null,
+                'annual_dividend_income' => $input['annual_dividend_income'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'dc_pension' => array_filter([
                 'provider' => $input['provider'] ?? null,
