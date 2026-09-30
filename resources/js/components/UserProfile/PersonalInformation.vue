@@ -594,6 +594,7 @@ import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.v
 import { EDUCATION_LEVEL_OPTIONS, isUkBirthCountry } from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
+import { formatDateOnlyLong } from '@/utils/dateFormatter';
 // Preview mode message
 const PREVIEW_SUCCESS_MESSAGE = 'Changes saved for this session only (preview mode).';
 
@@ -720,20 +721,8 @@ export default {
     };
 
     // Format date for display (e.g., "15 January 2024")
-    const formatDisplayDate = (date) => {
-      if (!date) return '—';
-      try {
-        const dateObj = new Date(date);
-        if (isNaN(dateObj.getTime())) return '—';
-        return dateObj.toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        });
-      } catch {
-        return '—';
-      }
-    };
+    // Date-only values read the same in every time zone (#1009).
+    const formatDisplayDate = (date) => formatDateOnlyLong(date) || '—';
 
     const formatEmploymentStatus = (status) => {
       if (!status) return '—';

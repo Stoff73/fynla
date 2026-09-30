@@ -92,6 +92,8 @@ describe('PersonalInformation.vue', () => {
 
     expect(apiGet).toHaveBeenCalledWith('/api/user/profile', 'live-token');
     expect(wrapper.text()).toContain('Alex Morgan');
+    expect(wrapper.text()).toContain('12 April 1987');
+    expect(wrapper.text()).not.toContain('1987-04-12');
     expect(wrapper.text()).toContain('Morgan household');
     expect(wrapper.text()).toContain('Sam Morgan');
     expect(wrapper.text()).toContain('You are UK domiciled.');

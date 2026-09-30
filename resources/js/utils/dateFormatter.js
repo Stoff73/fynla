@@ -41,6 +41,12 @@ export function formatDateForInput(date) {
     return '';
   }
 
+  // Already a date-only value: pass it through. new Date() would read it as
+  // UTC midnight — the previous day west of Greenwich (#1009).
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+
   // Convert to Date object if string
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
@@ -131,6 +137,28 @@ export function formatDateLong(date, shortMonth = false) {
   };
 
   return dateObj.toLocaleDateString('en-GB', options);
+}
+
+/**
+ * Format a date-only value ("YYYY-MM-DD", how the API sends date_of_birth) as
+ * "1 May 1985", the same in every time zone. new Date("1985-05-01") is UTC
+ * midnight, which is the previous day west of Greenwich, so the calendar day
+ * is read from the string and formatted in UTC. Returns '' for nothing usable.
+ * @param {string} value - A date-only string (a time part is ignored)
+ * @returns {string} Formatted date string
+ */
+export function formatDateOnlyLong(value) {
+  const match = typeof value === 'string' ? value.match(/^(\d{4})-(\d{2})-(\d{2})/) : null;
+  if (!match) {
+    return '';
+  }
+
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 /**
@@ -309,6 +337,7 @@ export default {
   formatDateForInput,
   parseDate,
   formatDateLong,
+  formatDateOnlyLong,
   calculateAge,
   getRelativeTime,
   getTaxYearStart,
