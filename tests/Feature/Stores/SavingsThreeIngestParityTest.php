@@ -37,27 +37,11 @@ declare(strict_types=1);
  * the ingest_source-derived audit context legitimately differ per row and
  * are excluded from the comparison.
  *
- * RAW interest_rate IS DELIBERATELY EXCLUDED from the cross-source identity
- * set — and asserted separately — for a documented reason discovered by an
- * earlier draft of this very test:
- *
- *   - form  (fromForm)  passes interest_rate through verbatim
- *   - fyn   (fromFyn)   (float)-casts it, no scaling
- *   - upload(fromUpload) receives it via SavingsAccountMapper::parsePercentage,
- *     which scales a whole-number percent (4.0) to a decimal (0.04)
- *
- * So the SAME logical 4% rate persists as interest_rate=4.0000 via form/fyn
- * but 0.0400 via upload. This is the codebase's KNOWN mixed interest_rate
- * convention (explicitly documented in
- * SavingsAccountDerivedColumnCalculator:29-36 — "the factory writes decimals
- * (0.04) while seeders + onboarding write percent (4.0)"). Pass 1 of the
- * canonical store does NOT canonicalise the raw interest_rate column; it
- * canonicalises the DERIVED projection. SavingsAccountDerivedColumnCalculator
- * reconciles both conventions (`if ($rate > 1) $rate /= 100`), so
- * annual_interest_projected_gbp DOES converge across all three sources — and
- * THAT convergence is the actual pass-1 guarantee this test asserts. The raw
- * interest_rate divergence is asserted explicitly below so the asymmetry is
- * surfaced, not masked.
+ * RAW interest_rate: all three paths store the same percentage (4% as
+ * 4.0000). Upload used to store 0.0400 (parsePercentage returned a fraction),
+ * and the derived calculator guessed "at most 1 is a fraction" to reconcile
+ * the two, which read a real 1% rate as 100%. One convention now
+ * (App\Support\SavingsInterestRate), asserted explicitly below.
  *
  * If this test fails because the three paths diverge on a canonicalised
  * field all three can express (anything in canonicalSnapshot(), incl. the
@@ -90,9 +74,7 @@ beforeEach(function () {
  *  - id / timestamps / *_calculated_at (per-row, legitimately different)
  *  - isa_subscription_amount / isa_allowance_used_pct (only the form ingest
  *    vocabulary expresses them — see the ISA case below)
- *  - raw interest_rate (known mixed-convention divergence — asserted
- *    separately; the canonicalised derived projection
- *    annual_interest_projected_gbp IS in this set and DOES converge)
+ *  - raw interest_rate (asserted separately: one percentage convention)
  */
 function canonicalSnapshot(SavingsAccount $a): array
 {
@@ -197,14 +179,10 @@ it('persists field-identical canonical rows for the same NON-ISA account via for
     expect($fynSnap)->toBe($formSnap);
     expect($uploadSnap)->toBe($formSnap);
 
-    // Documented raw interest_rate divergence (NOT a pass-1 defect — see the
-    // file docblock). Form & fyn keep the percent convention (4.0000); the
-    // upload mapper's parsePercentage scales it to the decimal convention
-    // (0.0400). The DERIVED projection above proves the calculator reconciles
-    // both, which is what pass 1 actually canonicalises.
+    // One interest_rate convention: the percentage, from every path.
     expect((string) $formAccount->fresh()->interest_rate)->toBe('4.0000');
     expect((string) $fynAccount->fresh()->interest_rate)->toBe('4.0000');
-    expect((string) $uploadAccount->fresh()->interest_rate)->toBe('0.0400');
+    expect((string) $uploadAccount->fresh()->interest_rate)->toBe('4.0000');
 });
 
 it('persists field-identical canonical rows for the same INDIVIDUAL CASH-ISA account via form, fyn and upload', function () {
@@ -279,11 +257,10 @@ it('persists field-identical canonical rows for the same INDIVIDUAL CASH-ISA acc
     expect($fynSnap)->toBe($formSnap);
     expect($uploadSnap)->toBe($formSnap);
 
-    // Same documented raw interest_rate convention asymmetry as the non-ISA
-    // case; the derived projection (800.00) above proves reconciliation.
+    // One interest_rate convention: the percentage, from every path.
     expect((string) $formAccount->fresh()->interest_rate)->toBe('4.0000');
     expect((string) $fynAccount->fresh()->interest_rate)->toBe('4.0000');
-    expect((string) $uploadAccount->fresh()->interest_rate)->toBe('0.0400');
+    expect((string) $uploadAccount->fresh()->interest_rate)->toBe('4.0000');
 
     // Vocabulary-asymmetry documentation (NOT a canonical-store defect):
     // isa_subscription_amount is only expressible through the form ingest —

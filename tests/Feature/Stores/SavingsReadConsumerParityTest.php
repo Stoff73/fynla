@@ -829,7 +829,7 @@ it('JointSavingsStrategy:56 sole-name non-ISA read identical after store migrati
     // Sole-name non-ISA accounts — must be included
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 10000,
-        'interest_rate' => 0.04, 'joint_owner_id' => null,
+        'interest_rate' => 4.0, 'joint_owner_id' => null,
         'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
     SavingsAccount::factory()->create([
@@ -880,7 +880,7 @@ it('AssetShiftingBundleStrategy:64 single-owner non-ISA read identical after sto
 
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 7000,
-        'interest_rate' => 0.03, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'interest_rate' => 3.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 12000,
@@ -997,7 +997,7 @@ it('TaxStrategyMath::estimateAnnualInterest attributes each account at the owner
     ]);
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 5000,
-        'interest_rate' => 0.03, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'interest_rate' => 3.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
     // ISA excluded
     SavingsAccount::factory()->create([

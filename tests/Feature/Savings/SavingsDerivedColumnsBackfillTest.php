@@ -10,7 +10,7 @@ it('savings:backfill-derived populates derived columns on legacy rows', function
     // 5000 * 0.03 = 150.00; balance_gbp == current_balance == 5000.00.
     SavingsAccount::factory()->create([
         'current_balance' => 5000,
-        'interest_rate' => 0.03,
+        'interest_rate' => 3.0,
         'is_isa' => false,
     ]);
 

@@ -217,24 +217,21 @@ it('SavingsStore::create materialises balance_gbp and writes initial snapshot', 
         ->toBeGreaterThanOrEqual(2); // balance + interest snapshots
 });
 
-it('SavingsStore::create materialises annual interest identically for percent and decimal interest_rate conventions', function () {
-    $user = User::factory()->create();
+it('SavingsStore::create reads interest_rate as a percentage, including rates of 1% and below', function () {
+    // interest_rate holds a percentage (App\Support\SavingsInterestRate). The
+    // old guess read anything at or below 1 as a fraction, so £4,000 at 1%
+    // projected £4,000 of interest (ice-cube, PR 991).
     $store = app(SavingsStore::class);
 
-    // Percent convention (onboarding/seeders): interest_rate 4.0
-    $percentAcc = $store->create([
-        'account_name' => 'Percent', 'current_balance' => 1000, 'interest_rate' => 4.0,
-        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
-    ], $user, IngestSource::FORM);
+    foreach ([[4.0, 160.00], [1.0, 40.00], [0.5, 20.00]] as [$rate, $interest]) {
+        $user = User::factory()->create();
+        $account = $store->create([
+            'account_name' => 'Rate '.$rate, 'current_balance' => 4000, 'interest_rate' => $rate,
+            'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
+        ], $user, IngestSource::FORM);
 
-    // Decimal convention (factory): interest_rate 0.04
-    $decimalAcc = $store->create([
-        'account_name' => 'Decimal', 'current_balance' => 1000, 'interest_rate' => 0.04,
-        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
-    ], $user, IngestSource::FORM);
-
-    expect((float) $percentAcc->annual_interest_projected_gbp)->toBe(40.00);
-    expect((float) $decimalAcc->annual_interest_projected_gbp)->toBe(40.00);
+        expect((float) $account->annual_interest_projected_gbp)->toBe($interest);
+    }
 });
 
 it('SavingsStore::update fires snapshot only when policy threshold exceeded', function () {

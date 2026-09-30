@@ -141,7 +141,7 @@ describe('Path C — single_earner_couple', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 200000,
-            'interest_rate' => 0.035,
+            'interest_rate' => 3.5,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -238,7 +238,7 @@ describe('Path C — single_earner_couple', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 600000,
-            'interest_rate' => 0.035,
+            'interest_rate' => 3.5,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -710,7 +710,7 @@ describe('recommendations contract (canonical)', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 200000,
-            'interest_rate' => 0.035,
+            'interest_rate' => 3.5,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -799,7 +799,7 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 50000, // £50k @ 4% = £2k interest > £500 PSA
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -866,7 +866,7 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 10000, // £400 interest < £1,000 PSA
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -908,7 +908,7 @@ describe('Phase 2 — household strategy refinements (#9, #11)', function () {
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 200000,
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
@@ -986,7 +986,7 @@ describe('Phase 2 — joint-savings strategy (#15)', function () {
             'is_isa' => false,
             'joint_owner_id' => null,   // sole-name
             'current_balance' => 100000, // £4k interest @ 4%, well above PSA
-            'interest_rate' => 0.04,
+            'interest_rate' => 4.0,
         ]);
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
