@@ -228,3 +228,47 @@ it('asks for past pension payments only when carry forward could apply', functio
     'high earner, little cash' => [150000, 5000.0, null],
     'high earner with the cash' => [150000, 100000.0, false],
 ]);
+
+it('knows the spouse income when a linked spouse holds income on their own account', function () {
+    // The spouse strategies (savings_to_spouse, isa_topup_spouse, gia_to_spouse)
+    // waited for "spouse's income" that the linked account already held; the
+    // amount flag beside it read the same account (ice-cube, 2026-09-30 item 6).
+    $user = User::factory()->create([
+        'marital_status' => 'married',
+        'annual_employment_income' => 60000,
+        'household_calculation_mode' => 'dual_earner',
+    ]);
+    $spouse = User::factory()->create(['marital_status' => 'married', 'annual_employment_income' => 30000, 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    $availability = $this->svc->availability($user->fresh());
+
+    expect($availability['spouse_income'])->toBeTrue()
+        ->and($availability['spouse_income_amount'])->toBeTrue();
+});
+
+it('still waits for the spouse income when a linked spouse holds none and none was given', function () {
+    $user = User::factory()->create([
+        'marital_status' => 'married',
+        'annual_employment_income' => 60000,
+        'household_calculation_mode' => 'dual_earner',
+    ]);
+    $spouse = User::factory()->create(['marital_status' => 'married', 'annual_employment_income' => null, 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    $availability = $this->svc->availability($user->fresh());
+
+    expect($availability['spouse_income'])->toBeFalse()
+        ->and($availability['spouse_income_amount'])->toBeFalse();
+});
+
+it('knows the spouse income from the figure given for a dual-earner spouse', function () {
+    $user = User::factory()->create([
+        'marital_status' => 'married',
+        'annual_employment_income' => 60000,
+        'household_calculation_mode' => 'dual_earner',
+    ]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_annual_income' => 30000]);
+
+    expect($this->svc->availability($user->fresh())['spouse_income'])->toBeTrue();
+});
