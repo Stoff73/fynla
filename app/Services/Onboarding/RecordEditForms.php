@@ -220,6 +220,9 @@ final class RecordEditForms
         if ($schema === null) {
             return null;
         }
+        if ($type === 'spouse_household') {
+            $schema = CaptureForms::spouseHouseholdFor($user, $schema);
+        }
 
         return [
             'name' => $formName,

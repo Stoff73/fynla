@@ -8,6 +8,7 @@ use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -77,8 +78,14 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
 
         // ISA contribution coordination — both have £20k allowances
         $userIsaUsed = $this->math->estimateIsaSubscriptionsThisYear($user);
+        // A partner whose linked account shares its data is not asked about
+        // their ISAs (CaptureForms::spouseHouseholdFor): their own records answer.
+        $householdContext = app(HouseholdFinancialContext::class);
+        $partner = $householdContext->partnerWithOwnRecords($user);
         $spouseIsaBalance = $household->spouse_isa_balance;
-        $spouseIsaUseKnown = $spouseIsaBalance !== null && (float) $spouseIsaBalance === 0.0;
+        $spouseIsaUseKnown = $partner !== null
+            ? ! $householdContext->hasIsaAccount($partner)
+            : $spouseIsaBalance !== null && (float) $spouseIsaBalance === 0.0;
         $isaAmount = (float) ($this->taxConfig->getISAAllowances()['annual_allowance']);
         if ($userIsaUsed >= $isaAmount && $spouseIsaUseKnown) {
             $suggestions[] = [
