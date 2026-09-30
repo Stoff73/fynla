@@ -102,6 +102,9 @@ it('savetax spouse section still voices tax advice for a single-earner couple', 
         'annual_employment_income' => 110000,
         'household_calculation_mode' => 'single_earner_couple',
         'onboarding_fyn_selection' => 'savetax',
+        // Spending recorded: the partner top-up waits for it (CSJ 2026-09-30).
+        'expenditure_entry_mode' => 'simple',
+        'monthly_expenditure' => 3000,
     ]);
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'is_isa' => false,

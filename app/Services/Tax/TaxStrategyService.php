@@ -7,6 +7,7 @@ namespace App\Services\Tax;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\User;
 use App\Services\Coordination\CompositePlanService;
+use App\Services\TaxConfigService;
 
 /**
  * Orchestrates the /tax-strategy dashboard payload + slider recalculations.
@@ -21,7 +22,8 @@ final class TaxStrategyService
     public function __construct(
         private readonly TaxStrategyCalculator $calculator,
         private readonly CompositePlanService $composite,
-        private readonly TaxStrategyMath $math,
+        private readonly TaxConfigService $taxConfig,
+        private readonly PensionAffordability $pensionAffordability,
     ) {}
 
     public function getDashboardPayload(User $user): array
@@ -47,12 +49,15 @@ final class TaxStrategyService
      */
     private function withAffordablePensionHeadroom(User $user, array $payload): array
     {
-        // Someone with no earnings funds a contribution from savings, not a
-        // surplus of income they do not have: what they can afford is what
-        // their recorded cash covers (CSJ 2026-09-29), the same cap as the
-        // plan's own pension item.
-        $affordable = $this->math->isDeclaredNonEarner($user)
-            ? $this->math->nonEarnerFundableGross($user)
+        // The one affordability figure every pension suggestion is capped by
+        // (PensionAffordability): the gross a relief-at-source payment of the
+        // money buys. With no spending recorded it is not known yet, and the
+        // tile keeps a year of the unchecked surplus, as the plan's own card
+        // does, until CSJ decides that case (spec 2026-09-30, 4.5).
+        $money = $this->pensionAffordability->moneyThisYear($user);
+        $basicRelief = (float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'];
+        $affordable = $money !== null && $basicRelief < 1
+            ? round($money / (1 - $basicRelief), 2)
             : round(max(0.0, 12 * (float) $this->composite->financials($user)['effective_surplus']), 2);
 
         foreach ($payload['user_allowances'] ?? [] as $i => $position) {

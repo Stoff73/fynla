@@ -25,6 +25,10 @@ final class TaxStrategyContext
      *                                  (the default) means "size against the
      *                                  full remaining allowance" — the
      *                                  original pass-1 behaviour.
+     * @param  float|null  $pensionMoney  Net money the user can put into
+     *                                    pensions this year
+     *                                    (PensionAffordability), or null
+     *                                    when it is not known yet.
      */
     public function __construct(
         public readonly User $user,
@@ -33,11 +37,12 @@ final class TaxStrategyContext
         public readonly string $mode,
         public readonly ?float $isaPoolCap = null,
         public readonly float $pensionPaidElsewhere = 0.0,
+        public readonly ?float $pensionMoney = null,
     ) {}
 
     public function withIsaPoolCap(float $isaPoolCap): self
     {
-        return new self($this->user, $this->overrides, $this->household, $this->mode, $isaPoolCap, $this->pensionPaidElsewhere);
+        return new self($this->user, $this->overrides, $this->household, $this->mode, $isaPoolCap, $this->pensionPaidElsewhere, $this->pensionMoney);
     }
 
     /**
@@ -47,6 +52,19 @@ final class TaxStrategyContext
      */
     public function withPensionPaidElsewhere(float $gross): self
     {
-        return new self($this->user, $this->overrides, $this->household, $this->mode, $this->isaPoolCap, $gross);
+        return new self($this->user, $this->overrides, $this->household, $this->mode, $this->isaPoolCap, $gross, $this->pensionMoney);
+    }
+
+    /**
+     * The most a pension payment can be, gross, from the money the user has:
+     * a relief-at-source payment of the money is grossed up at the basic
+     * rate by the provider (FA 2004 s192). Null when the money is not known,
+     * so the caller leaves the suggestion as it was.
+     */
+    public function pensionFundableGross(float $basicReliefRate): ?float
+    {
+        return $this->pensionMoney === null || $basicReliefRate >= 1
+            ? null
+            : round($this->pensionMoney / (1 - $basicReliefRate), 2);
     }
 }

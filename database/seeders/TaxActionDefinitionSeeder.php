@@ -221,7 +221,10 @@ class TaxActionDefinitionSeeder extends Seeder
                 'category' => 'household',
                 'priority' => 'medium',
                 'claim_tier' => 'mechanical',
-                'required_data' => ['marital_status', 'spouse_income', 'pension_contributions'],
+                // Spending: the top-up is capped by the money left after it, and
+                // is what the waiting card asks for first (CSJ 2026-09-30: "We ask
+                // for expenditure"); the unlock card names the first missing item.
+                'required_data' => ['marital_status', 'spouse_income', 'expenditure', 'pension_contributions'],
                 'sequencing' => ['do_before' => [], 'conflicts_with' => []],
             ],
 

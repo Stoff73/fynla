@@ -60,29 +60,33 @@ function emitExpenditureForm(User $user, AiConversation $conversation): array
     return collect($emitted)->firstWhere('type', 'capture_form');
 }
 
-// CSJ 2026-09-22 (Brett item 11): on the Save Tax walk the step asks only
-// childcare, donations and Gift Aid — no monthly total — on every plan.
-it('a Save Tax user gets the three tax fields, which land on the user without touching the monthly total', function (): void {
+// CSJ 2026-09-30: "lets ask for spending". The Save Tax walk asks the monthly
+// total again (the pension suggestions are capped by what is left after it),
+// with childcare, donations and Gift Aid under it, on every plan. From
+// 2026-09-22 to 2026-09-30 it asked the three tax fields only (f00dbad01).
+it('a Save Tax user is asked their monthly spending, with childcare, donations and Gift Aid under it', function (): void {
     foreach ([false, true] as $premium) {
         $user = expenditureUser($premium, 'savetax');
         $conversation = expenditureConversation($user);
         $form = emitExpenditureForm($user, $conversation);
-        expect($form['prompt_text'])->toBe('Two things that change your tax.')
-            ->and($form['form']['name'])->toBe('expenditure_tax')
-            ->and(array_keys($form['form']['fields']))->toBe(['childcare', 'charitable_donations', 'is_gift_aid']);
+        expect($form['prompt_text'])->toBe('Now your spending.')
+            ->and($form['form']['name'])->toBe('expenditure')
+            ->and(array_keys($form['form']['fields']))->toBe(['monthly_total', 'childcare', 'charitable_donations', 'is_gift_aid'])
+            ->and($form['form']['fields']['monthly_total']['required'])->toBeTrue();
 
         FynStreamHarness::fake()->bind();
-        $posted = ['name' => 'expenditure_tax', 'answers' => ['_lead' => ['childcare' => 600, 'charitable_donations' => 40, 'is_gift_aid' => 'yes']]];
+        $posted = ['name' => 'expenditure', 'answers' => ['_lead' => ['monthly_total' => 2400, 'childcare' => 600, 'charitable_donations' => 40, 'is_gift_aid' => 'yes']]];
         $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise($posted), null, true, $posted), false);
 
         $user->refresh();
-        expect((float) $user->childcare)->toBe(600.0)
+        expect((float) $user->monthly_expenditure)->toBe(2400.0)
+            ->and($user->expenditure_entry_mode)->toBe('simple')
+            ->and((float) $user->childcare)->toBe(600.0)
             ->and((float) $user->charitable_donations)->toBe(40.0)
             ->and($user->is_gift_aid)->toBeTrue()
-            ->and($user->monthly_expenditure)->toBeNull()
-            ->and(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse()
             ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
-            ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('childcare of £600 a month and charitable donations of £40 a month under Gift Aid')
+            ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))
+            ->toContain('monthly spending of £2,400, childcare of £600 a month and charitable donations of £40 a month under Gift Aid')
             ->and($user->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
     }
 });

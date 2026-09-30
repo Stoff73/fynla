@@ -53,6 +53,7 @@ final class TaxStrategyCalculator
         private readonly Strategies\MarriageAllowanceStrategy $marriageAllowance,
         private readonly Strategies\AssetShiftingBundleStrategy $assetShifting,
         private readonly Strategies\CrossSpouseBundleStrategy $crossSpouse,
+        private readonly PensionAffordability $pensionAffordability,
     ) {}
 
     public function calculate(User $user, ?TaxStrategyOverridesDTO $overrides = null): TaxStrategyOutputDTO
@@ -61,7 +62,10 @@ final class TaxStrategyCalculator
         $taxYear = $this->taxConfig->getTaxYear();
         $household = $user->taxStrategyHouseholdInput;
 
-        $context = new Strategies\TaxStrategyContext($user, $overrides, $household, $mode);
+        // One affordability figure for every pension suggestion, worked out
+        // once per calculation (spec 2026-09-30 partner pension affordability).
+        $context = new Strategies\TaxStrategyContext($user, $overrides, $household, $mode,
+            pensionMoney: $this->pensionAffordability->moneyThisYear($user));
 
         $userAllowances = $this->buildUserAllowanceGrid($user, $overrides, $mode, $household);
 
@@ -123,6 +127,8 @@ final class TaxStrategyCalculator
             'bed_and_isa' => fn (float $cap): array => $this->bedAndIsa->generate($context->withIsaPoolCap($cap)),
             'lifetime_isa' => fn (float $cap): array => $this->lifecycle->generate($context->withIsaPoolCap($cap)),
         ], $this->userIsaPoolRemaining($user));
+
+        $allRecs = $this->markPensionsCompetingForMoney($allRecs, $context);
 
         usort($allRecs, function (StrategyRecommendation $a, StrategyRecommendation $b): int {
             $cat = $a->categoryEnum()->sortWeight() <=> $b->categoryEnum()->sortWeight();
@@ -209,6 +215,60 @@ final class TaxStrategyCalculator
         }
 
         return $pensionPaid > 0 ? $context->withPensionPaidElsewhere($pensionPaid) : $context;
+    }
+
+    /**
+     * The user's own pension card and the partner top-up are each capped by
+     * the same money (PensionAffordability). When it cannot pay for both,
+     * they are alternatives for that money: both are shown, the composer
+     * counts the larger saving and notes the other (StrategyPlanComposer,
+     * `competes_for_money_with`). No fixed order: the household's own figures
+     * decide it (CSJ 2026-09-30, "a reasoned decision… in context").
+     *
+     * @param  list<StrategyRecommendation>  $recs
+     * @return list<StrategyRecommendation>
+     */
+    private function markPensionsCompetingForMoney(array $recs, Strategies\TaxStrategyContext $context): array
+    {
+        if ($context->pensionMoney === null) {
+            return $recs;
+        }
+
+        $basicRelief = (float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'];
+        $own = null;
+        $partner = null;
+        foreach ($recs as $rec) {
+            if (in_array($rec->type, self::OWN_PENSION_TYPES, true)
+                && ($own === null || (float) ($rec->extra['suggested_contribution'] ?? 0) > (float) ($own->extra['suggested_contribution'] ?? 0))) {
+                $own = $rec;
+            }
+            if ($rec->type === 'non_earner_spouse_pension') {
+                $partner = $rec;
+            }
+        }
+        if ($own === null || $partner === null) {
+            return $recs;
+        }
+
+        // What each actually costs: a relief-at-source payment is the gross
+        // less the basic-rate relief the provider adds.
+        $ownNet = (float) ($own->extra['suggested_contribution'] ?? 0) * (1 - $basicRelief);
+        $partnerNet = (float) ($partner->extra['net_contribution'] ?? $partner->extra['net_cost'] ?? 0);
+        if ($ownNet + $partnerNet <= $context->pensionMoney + 1) {
+            return $recs;
+        }
+
+        return array_map(function (StrategyRecommendation $rec) use ($own, $partner): StrategyRecommendation {
+            $other = match (true) {
+                $rec === $own => $partner->type,
+                $rec === $partner => $own->type,
+                default => null,
+            };
+
+            return $other === null
+                ? $rec
+                : StrategyRecommendation::fromArray($rec->category, array_merge($rec->toArray(), ['competes_for_money_with' => [$other]]));
+        }, $recs);
     }
 
     /**

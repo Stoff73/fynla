@@ -509,10 +509,10 @@ it('asks for dividends on the investment and non-working spouse forms and turns 
         ->and(CaptureForms::summarise($spouse))->toBe('£50,000 in investments, £30,000 in their pension, pays £'.number_format($net).' a year into their pension, £1,500 a year in dividends.');
 });
 
-// CSJ 2026-09-22 (Brett item 11): the Save Tax walk asks only what its tax
-// lines read — childcare, donations, Gift Aid — and no monthly total, on
-// every plan; the other paths keep the one-box and category forms.
-it('the Save Tax expenditure form asks the three tax fields and nothing else', function (): void {
+// The three-field form (2026-09-22) stays defined, so a conversation already
+// on that step can still save it; since CSJ 2026-09-30 ("lets ask for
+// spending") the Save Tax walk is given the one-box form with the total.
+it('the Save Tax walk asks the monthly total; the three-field form still saves', function (): void {
     $tax = CaptureForms::schema('expenditure_tax');
     expect($tax['tool'])->toBe('capture_monthly_expenditure')
         ->and($tax['lead_in'])->toBe('Two things that change your tax.')
@@ -527,7 +527,7 @@ it('the Save Tax expenditure form asks the three tax fields and nothing else', f
 
     $savetax = User::factory()->make(['onboarding_fyn_selection' => 'savetax']);
     $other = User::factory()->make(['onboarding_fyn_selection' => 'pensioncheck']);
-    expect(CaptureForms::expenditureVariantFor($savetax, true)['name'])->toBe('expenditure_tax')
-        ->and(CaptureForms::expenditureVariantFor($savetax, false)['name'])->toBe('expenditure_tax')
+    expect(CaptureForms::expenditureVariantFor($savetax, true)['name'])->toBe('expenditure')
+        ->and(CaptureForms::expenditureVariantFor($savetax, false)['name'])->toBe('expenditure')
         ->and(CaptureForms::expenditureVariantFor($other, false)['name'])->toBe('expenditure');
 });
