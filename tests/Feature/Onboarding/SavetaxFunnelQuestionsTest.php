@@ -11,8 +11,10 @@ use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\Fyn\FynStreamHarness;
 
 uses(RefreshDatabase::class);
 
@@ -416,4 +418,48 @@ it('matchBubbles parses the wire format with the one bubble vocabulary (M4)', fu
         ->and(OnboardingStateMachine::matchBubbles($state, "That's everything"))->toBe(['done'])
         ->and(OnboardingStateMachine::matchBubbles($state, 'Pension'))->toBe(['pension'])
         ->and(OnboardingStateMachine::matchBubbles($state, 'ISA, ISA'))->toBe(['isa']);
+});
+
+// CSJ 2026-09-30 (live fynla.org /m): "What is the ISA allowance this year?"
+// typed at "Which of these do you have?" ticked ISA — matchBubble's substring
+// fallback found "isa" in the question — and the question went unanswered.
+// A question at a bubble step is answered and the step asked again; nothing
+// is recorded. A tapped label (the exact text) is still the answer.
+it('answers a question typed at the asset step and ticks nothing', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    FynStreamHarness::fake()
+        ->toolTurn('plan', ['action_type' => 'reason', 'prompt_template_id' => 'advice_default'])
+        ->textTurn('The ISA allowance is set by HMRC each tax year.')
+        ->bind();
+
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'no'], 'employment_status' => 'full_time']);
+    ftqStart($user);
+    $stream = ftqSay($user, 'What is the ISA allowance this year?');
+    $user->refresh();
+
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS)
+        ->and($user->funnel_answers['assets'] ?? [])->toBe([])
+        ->and($stream)->toContain('The ISA allowance is set by HMRC')
+        ->and($stream)->not->toContain('Anything else')
+        ->and(ftqLastBubbleIds($user))->toContain('isa');
+});
+
+it('answers a question typed at a single-choice step and records no answer', function () {
+    $this->seed(TierConfigurationSeeder::class);
+    FynStreamHarness::fake()
+        ->toolTurn('plan', ['action_type' => 'reason', 'prompt_template_id' => 'advice_default'])
+        ->textTurn('For this question a partner you live with counts.')
+        ->bind();
+
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time'], 'employment_status' => 'full_time']);
+    ftqStart($user);
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE);
+
+    // "not" contains "no": the substring fallback used to record "No".
+    $stream = ftqSay($user, 'Does my partner count if we are not married?');
+    $user->refresh();
+
+    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE)
+        ->and($user->funnel_answers)->not->toHaveKey('spouse')
+        ->and($stream)->toContain('a partner you live with counts');
 });

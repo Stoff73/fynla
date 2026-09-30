@@ -31,6 +31,14 @@ The scripts set different Vite env vars so SPA routing and asset paths match the
 
 The csjones server is a real git checkout tracking `origin/dev` — every deploy pulls exactly what's on the remote. The only manual upload is the compiled `public/build/` bundle (gitignored).
 
+**Only runtime files are checked out.** The checkout is sparse: `git pull` materialises only the paths in `deploy/server-runtime-paths.txt` (no planning folders, docs, tests, iOS or agent tooling). After changing that file, re-apply it on the server:
+
+```bash
+cd ~/www/csjones.co/fynla-app
+# deploy/ is not checked out on the server, so read the list from git
+git sparse-checkout set --no-cone $(git show HEAD:deploy/server-runtime-paths.txt | grep -vE '^\s*(#|$)' | sed 's|^|/|')
+```
+
 1. Work on a feature branch off `dev`, open PR → `dev`
 2. After merge, locally: `git checkout dev && git pull`
 3. Build the SPA bundle locally: `./deploy/csjones-fynla/build.sh`
@@ -97,7 +105,7 @@ php artisan queue:restart                       # old workers exit after their c
 # Confirm no pre-deploy queue job is still running before continuing.
 ```
 
-6. With maintenance mode still active, upload `public/build/` + `public/m-build/` + changed PHP files to `~/www/fynla.org/public_html/` (rsync `app/ config/ database/ routes/ resources/views/ fyn-memory/ resources/js/data/ public/pages/` with `--exclude 'fyn-memory/episodic/episodes/'`; rsync never deletes, so remove retired classes by hand). **The episodes folder is runtime user data on each server; never upload the local one.** Local test runs wrote fake `cycle N learn` episodes there, and on 2026-09-24 432 of them were found on production, four under real user ids. **Never upload `bootstrap/`** — `bootstrap/cache/packages.php` and `services.php` are the local package manifest and list dev-only providers (Collision) that prod's vendor does not have; every artisan call then dies with `CollisionServiceProvider not found` until `composer dump-autoload` regenerates them (found 2026-09-09, inside the maintenance window).
+6. With maintenance mode still active, upload `public/build/` + `public/m-build/` + changed PHP files to `~/www/fynla.org/public_html/` (rsync `app/ config/ database/ routes/ resources/views/ fyn-memory/ resources/js/data/ public/pages/` with `--exclude 'fyn-memory/episodic/episodes/'`; rsync never deletes, so remove retired classes by hand). **Upload nothing outside `deploy/server-runtime-paths.txt`** — the server holds runtime files only; planning folders, docs, tests, iOS, agent tooling, configs for Node/Vite and old build copies never go to production. **The episodes folder is runtime user data on each server; never upload the local one.** Local test runs wrote fake `cycle N learn` episodes there, and on 2026-09-24 432 of them were found on production, four under real user ids. **Never upload `bootstrap/`** — `bootstrap/cache/packages.php` and `services.php` are the local package manifest and list dev-only providers (Collision) that prod's vendor does not have; every artisan call then dies with `CollisionServiceProvider not found` until `composer dump-autoload` regenerates them (found 2026-09-09, inside the maintenance window).
 7. Finalise over SSH:
 
 ```bash

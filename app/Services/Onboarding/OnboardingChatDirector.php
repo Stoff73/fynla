@@ -513,16 +513,26 @@ final class OnboardingChatDirector
         // FAILURE, so a successful-but-wrong parse never reached it. Classify
         // BEFORE accepting a successful parse on these states so the store
         // offer fires instead of silently persisting the wrong figure.
-        // Bubble states are exact-match (unaffected) and grouped/delegated
-        // states own their own capture handling (unaffected) — this only
-        // ever applies to free_text states carrying a value_parser.
+        // Grouped/delegated states own their own capture handling
+        // (unaffected) — this only ever applies to free_text states carrying
+        // a value_parser.
         $isParserState = ($state['turn_type'] ?? 'free_text') === 'free_text'
             && ($state['value_parser'] ?? null) !== null;
         $volunteeredRecord = $interpretation['ok']
             && $isParserState
             && $this->writeIntentClassifier->classify($message) !== null;
 
-        if (! $interpretation['ok'] || $volunteeredRecord) {
+        // Question-at-bubbles guard (CSJ 2026-09-30, live fynla.org /m): the
+        // bubble matcher is substring-tolerant, so "What is the ISA allowance
+        // this year?" at "Which of these do you have?" matched ISA, ticked
+        // it, and the question was never answered. A question is answered
+        // and the step asked again; only a tap (the exact label) is a pick.
+        $questionAtBubbles = $interpretation['ok']
+            && ($state['turn_type'] ?? '') === 'bubbles'
+            && $this->writeIntentClassifier->isQuestion($message)
+            && ! OnboardingStateMachine::isExactBubbleAnswer($currentStateId, $message);
+
+        if (! $interpretation['ok'] || $volunteeredRecord || $questionAtBubbles) {
             $interruption = $this->handleInterruption(
                 $user, $conversation, $currentStateId, $state, $message, $currentRoute
             );

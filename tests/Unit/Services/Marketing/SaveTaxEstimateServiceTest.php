@@ -47,7 +47,9 @@ it('computes pension relief per band (no existing pension)', function () {
 
     // The top band's figure assumes the whole allowance is paid in; the line says so.
     $reason = collect($this->service->estimate(['income' => 'over_125140', 'assets' => $assets])['savings'])->firstWhere('key', 'pension')['reason'];
-    expect($reason)->toContain('That uses your whole £60,000 Annual Allowance for the year.');
+    expect($reason)->toContain('That uses your whole £60,000 Annual Allowance for the year.')
+        // £150,000 less £60,000 is below the threshold: the whole allowance returns.
+        ->and($reason)->toContain('band and reclaims your Personal Allowance.');
 });
 
 it('computes the exact 60% trap relief for the £100k-£125,140 band', function () {
@@ -60,6 +62,11 @@ it('computes the exact 60% trap relief for the £100k-£125,140 band', function 
     // Surfaced as a distinct "60% Tax Trap" line (not the generic pension line).
     expect(lineAmount($result, 'tax_trap_60'))->toBe(15060)
         ->and(lineAmount($result, 'pension'))->toBe(0);
+
+    // £100,040 is still £40 over the threshold: £20 of the allowance stays
+    // lost (ITA 2007 s35), so the line must not claim all of it back.
+    $reason = collect($result['savings'])->firstWhere('key', 'tax_trap_60')['reason'];
+    expect($reason)->toContain('paying £25,100 into a pension reclaims all but £20 of your Personal Allowance.');
 });
 
 it('merges the 60% trap into the tapered Personal Allowance card (no standalone trap row)', function () {
@@ -251,6 +258,9 @@ it("prices a partner's 60% tax trap on their own card (F3)", function () {
         ->and($result['partner_savings_total'])->toBe(15060)
         ->and(lineAmount($result, 'pension'))->toBe(720)
         ->and($result['savings_total'])->toBe(15780);
+
+    $reason = collect($result['savings'])->firstWhere('key', 'spouse_tax_trap_60')['reason'];
+    expect($reason)->toContain('paying £25,100 into their pension reclaims all but £20 of their Personal Allowance');
 });
 
 // Tax review of #975, F10: relief is limited to the greater of relevant UK

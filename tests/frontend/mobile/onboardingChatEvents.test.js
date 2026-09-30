@@ -47,6 +47,7 @@ describe('/m Fyn stream event parity', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
+      headers: new Headers(),
       body: {
         getReader: () => ({
           read: vi.fn(async () => (
@@ -216,7 +217,7 @@ describe('/m Fyn stream event parity', () => {
     });
 
     expect(harness.cursor.reply.bubbles).toEqual([
-      { id: 'skip', label: 'Skip this for now' },
+      { id: 'skip', label: 'Skip this for now', action: true },
     ]);
     expect(harness.cursor.reply.actionBubbles).toBe(true);
     expect(harness.cursor.got).toBe(true);

@@ -1,0 +1,49 @@
+# What a Fynla server may hold from the repo — nothing else (CSJ 2026-09-30).
+#
+# One path per line, relative to the repo root; a trailing / is a directory.
+# Used by:
+#   - csjones: git sparse-checkout (non-cone) — each line becomes "/<path>",
+#     so `git pull` only ever materialises these paths.
+#   - fynla.org: the keep-list. Every release upload must fall inside it, and
+#     the named-folder rsync in DEPLOY.md step 6 still applies with its own
+#     exceptions: never upload bootstrap/, storage/ or
+#     fyn-memory/episodic/episodes/ (server-side state).
+# Server state outside git, never deleted by a cleanup: .env, vendor/, storage/
+# contents, bootstrap/cache/, public/build/, public/m-build/, public/storage,
+# public/.user.ini, the prod root .htaccess and .well-known/, csjones's .git/,
+# and PHP's php_errorlog files.
+#
+# Add a path here only when running code reads it (cite the file:line).
+
+# Laravel
+app/
+bootstrap/
+config/
+database/
+# ActionHowToSeeder.php:41 reads database/seeders/data/, inside database/
+routes/
+storage/
+public/
+artisan
+# composer dump-autoload runs on the server after every deploy
+composer.json
+composer.lock
+
+# Fyn corpus — FynProceduralMemory / fyn:procedural:validate
+fyn-memory/
+
+# resources/: only what PHP reads at runtime (Vite source is built locally)
+resources/views/
+# config/apple_store.php:27
+resources/certificates/
+# PreviewController.php:402, PreviewUserSeeder.php:86 (personas)
+resources/js/data/
+# ExistingInsightsMetadataSeeder.php:26
+resources/js/assets/insights/
+
+# ImageRendererService.php:37, ArticleScraperService.php:78
+scripts/render_template.py
+scripts/render_page.py
+
+# config/apple_store.php:35
+services/apple_store_bridge/
