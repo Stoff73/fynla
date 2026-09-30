@@ -58,13 +58,17 @@ it('keeps the Annual Allowance tile when it, not earnings, is the binding limit'
         ->and($tile['label'])->toBe('Pension Annual Allowance');
 });
 
-it('limits pension headroom to what the affordability calculator says the user can fund this year', function () {
+it('limits pension headroom to the gross the affordability calculator\'s money buys this year', function () {
     $user = User::factory()->create([
         'household_calculation_mode' => 'single', 'employment_status' => 'employed',
         'annual_employment_income' => 60000, 'marital_status' => 'single',
         'expenditure_entry_mode' => 'simple', 'monthly_expenditure' => 3000, 'annual_expenditure' => 36000,
     ]);
-    $affordable = max(0.0, 12 * (float) app(CompositePlanService::class)->financials($user)['effective_surplus']);
+    // The money a year of surplus pays, grossed up by the basic-rate relief
+    // the provider adds (FA 2004 s192): the same figure the plan's own card is
+    // capped by (PensionAffordability, CSJ 2026-09-30).
+    $basicRelief = (float) app(TaxConfigService::class)->getPensionAllowances()['tax_relief']['basic_rate'];
+    $affordable = round(max(0.0, 12 * (float) app(CompositePlanService::class)->financials($user)['effective_surplus']) / (1 - $basicRelief), 2);
 
     $tile = pensionTile(app(TaxStrategyService::class)->getDashboardPayload($user)['user_allowances']);
 

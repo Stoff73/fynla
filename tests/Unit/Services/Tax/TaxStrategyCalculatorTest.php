@@ -1484,6 +1484,8 @@ describe('Phase 3 — bed & ISA capital gains harvest (#6)', function () {
 describe('Phase 3 — non-earner spouse pension (#12)', function () {
     it('emits non_earner_spouse_pension in single_earner_couple mode', function () {
         $user = User::factory()->create([
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 500, // spending recorded: the money for a top-up is known (CSJ 2026-09-30)
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 80000,
             'marital_status' => 'married',
@@ -1502,6 +1504,8 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
 
     it('skips non_earner_spouse_pension in single (non-coupled) mode', function () {
         $user = User::factory()->create([
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 500, // spending recorded: the money for a top-up is known (CSJ 2026-09-30)
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
             'marital_status' => 'single',
@@ -1514,6 +1518,8 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
 
     it('skips non_earner_spouse_pension in dual_earner mode when spouse has no income', function () {
         $user = User::factory()->create([
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 500, // spending recorded: the money for a top-up is known (CSJ 2026-09-30)
             'household_calculation_mode' => 'dual_earner',
             'annual_employment_income' => 80000,
             'marital_status' => 'married',
@@ -1534,6 +1540,8 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
      */
     it('fires an earnings-based pension recommendation for a low-earning spouse in dual_earner mode', function () {
         $user = User::factory()->create([
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 500, // spending recorded: the money for a top-up is known (CSJ 2026-09-30)
             'household_calculation_mode' => 'dual_earner',
             'annual_employment_income' => 110000,
             'marital_status' => 'married',
@@ -1562,6 +1570,8 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
 
     it('does not fire the earnings-based path for a high-earning spouse in dual_earner mode', function () {
         $user = User::factory()->create([
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 500, // spending recorded: the money for a top-up is known (CSJ 2026-09-30)
             'household_calculation_mode' => 'dual_earner',
             'annual_employment_income' => 110000,
             'marital_status' => 'married',
@@ -1578,6 +1588,8 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
 
     it('skips non_earner_spouse_pension when the spouse family member is 75 or older', function () {
         $user = User::factory()->create([
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 500, // spending recorded: the money for a top-up is known (CSJ 2026-09-30)
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 80000,
             'marital_status' => 'married',
@@ -1594,6 +1606,8 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
 
     it('surfaces existing pension balance from tax_strategy_household_inputs in the description', function () {
         $user = User::factory()->create([
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 500, // spending recorded: the money for a top-up is known (CSJ 2026-09-30)
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 80000,
             'marital_status' => 'married',

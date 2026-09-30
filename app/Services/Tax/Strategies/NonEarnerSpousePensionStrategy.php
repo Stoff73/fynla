@@ -9,6 +9,7 @@ use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
 use App\Models\FamilyMember;
 use App\Models\User;
+use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -43,12 +44,22 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
             return [];
         }
 
+        // A partner with their own shared account gets their own pension card
+        // on it, sized by their own money (CSJ 2026-09-30: "the partner will
+        // get their own card in their own account"): no second top-up here.
+        // Nor one before the money to pay it is known: the plan asks for the
+        // spending first (CSJ 2026-09-30: "We ask for expenditure").
+        if (app(HouseholdFinancialContext::class)->partnerWithOwnRecords($user) !== null
+            || $context->pensionMoney === null) {
+            return [];
+        }
+
         if ($context->mode === 'single_earner_couple') {
-            return $this->nonEarnerPath($user, $household);
+            return $this->nonEarnerPath($user, $household, $context->pensionMoney);
         }
 
         if ($context->mode === 'dual_earner') {
-            return $this->modestEarnerPath($user, $household);
+            return $this->modestEarnerPath($user, $household, $context->pensionMoney);
         }
 
         return [];
@@ -58,7 +69,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
      * Original non-earner path (single_earner_couple mode): flat £2,880 net
      * net → gross via basic-rate relief at source (TaxStrategyMath::nonEarnerPensionContribution).
      */
-    private function nonEarnerPath(User $user, mixed $household): array
+    private function nonEarnerPath(User $user, mixed $household, float $money): array
     {
         $spouseAge = $this->resolveSpouseAge($user);
         if ($spouseAge !== null && $spouseAge >= $this->reliefMaxAge()) {
@@ -69,7 +80,8 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         // What the spouse already pays in (stored net for a non-earner, the
         // relief-at-source shape the capture writes) comes off the top (B5).
         $alreadyPaid = (float) ($household?->spouse_pension_input_annual ?? 0);
-        $netContribution = round(max(0.0, $figures['net'] - $alreadyPaid), 2);
+        // Never more than the household can pay (CSJ 2026-09-30: "affordability check always").
+        $netContribution = round(min(max(0.0, $figures['net'] - $alreadyPaid), $money), 2);
         if ($netContribution < 1) {
             return [];
         }
@@ -118,7 +130,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
      * basic-rate relief the net cost is £6,400 and the government uplift is
      * £1,600 — compared with £720 on the flat non-earner £2,880 path.
      */
-    private function modestEarnerPath(User $user, mixed $household): array
+    private function modestEarnerPath(User $user, mixed $household, float $money): array
     {
         if ($household === null) {
             return [];
@@ -157,6 +169,11 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
         $earnings = $household->spouse_annual_earnings !== null ? (float) $household->spouse_annual_earnings : null;
         $reliefLimit = max($earnings ?? 0.0, (float) $this->taxConfig->getPensionAllowances()['relevant_earnings_minimum']);
         $grossCapacity = max(0.0, $reliefLimit - (float) ($household->spouse_pension_input_annual ?? 0));
+        // Never more than the household can pay (CSJ 2026-09-30: "affordability
+        // check always"): a partner earning £20,000 was told to pay £15,200 in
+        // (Save Tax matrix S9). The money pays the net; relief at source adds
+        // the basic rate on top (FA 2004 s192).
+        $grossCapacity = floor(min($grossCapacity, $basicRate < 1 ? $money / (1 - $basicRate) : 0.0) * 100) / 100;
         if ($grossCapacity < 1) {
             return [];
         }

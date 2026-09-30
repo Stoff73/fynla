@@ -21,6 +21,9 @@ function spousePensionRec(string $mode, array $household): ?array
         'household_calculation_mode' => $mode,
         'annual_employment_income' => 60000,
         'marital_status' => 'married',
+        // Spending recorded: the money for a top-up is known (CSJ 2026-09-30).
+        'expenditure_entry_mode' => 'simple',
+        'monthly_expenditure' => 500,
     ]);
     TaxStrategyHouseholdInput::create(['user_id' => $user->id] + $household);
 

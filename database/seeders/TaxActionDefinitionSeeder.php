@@ -221,7 +221,8 @@ class TaxActionDefinitionSeeder extends Seeder
                 'category' => 'household',
                 'priority' => 'medium',
                 'claim_tier' => 'mechanical',
-                'required_data' => ['marital_status', 'spouse_income', 'pension_contributions'],
+                // Spending: the top-up is capped by the money left after it (CSJ 2026-09-30).
+                'required_data' => ['marital_status', 'spouse_income', 'pension_contributions', 'expenditure'],
                 'sequencing' => ['do_before' => [], 'conflicts_with' => []],
             ],
 

@@ -52,6 +52,9 @@ it('returns household-category recommendations for single_earner_couple users', 
         'household_calculation_mode' => 'single_earner_couple',
         'annual_employment_income' => 100000,
         'marriage_allowance_eligible' => true,
+        // Spending recorded: the money for a partner top-up is known (CSJ 2026-09-30).
+        'expenditure_entry_mode' => 'simple',
+        'monthly_expenditure' => 500,
         // Spouse items need a marriage or civil partnership: ITA 2007
         // s55C(1)(a) and CSJ ruling (b) 2026-09-25.
         'marital_status' => 'married',
@@ -91,6 +94,9 @@ it('returns household-category recommendations under recommendations[] for singl
         'household_calculation_mode' => 'single_earner_couple',
         'annual_employment_income' => 100000,
         'marriage_allowance_eligible' => true,
+        // Spending recorded: the money for a partner top-up is known (CSJ 2026-09-30).
+        'expenditure_entry_mode' => 'simple',
+        'monthly_expenditure' => 500,
         // Spouse items need a marriage or civil partnership: ITA 2007
         // s55C(1)(a) and CSJ ruling (b) 2026-09-25.
         'marital_status' => 'married',
