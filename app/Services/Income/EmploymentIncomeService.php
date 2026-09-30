@@ -125,6 +125,24 @@ class EmploymentIncomeService
     }
 
     /**
+     * The user says they do not work, so someone else's estimate of their pay
+     * (recordEstimate) no longer stands: it goes, and its amount is returned
+     * for the caller to store as what it really is. 0 when there was none.
+     */
+    public function dropEstimates(User $user): float
+    {
+        $estimates = $user->employments()->where('is_estimate', true)->get();
+        if ($estimates->isEmpty()) {
+            return 0.0;
+        }
+        $amount = (float) $estimates->sum('annual_income');
+        $estimates->each->delete();
+        $this->syncTotals($user);
+
+        return $amount;
+    }
+
+    /**
      * Change one job the user already told us about (the Fyn edit form,
      * CSJ 2026-09-19). Only the fields given change; the totals follow.
      */

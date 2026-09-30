@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\AiConversation;
-use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\SavingsStore;
 
 /**
  * What a walk capture form already knows before the user types anything
@@ -45,6 +45,8 @@ final class WalkFormPrefill
     public function __construct(
         private readonly RecordEditForms $editForms,
         private readonly HouseholdFinancialContext $household,
+        private readonly SavingsStore $savings,
+        private readonly PensionStore $pensions,
     ) {}
 
     /**
@@ -114,20 +116,25 @@ final class WalkFormPrefill
     {
         $ids = static fn (string $type, $query): array => $query->limit(2)->pluck('id')
             ->map(static fn ($id): array => [$type, (int) $id])->all();
+        // Savings and pensions are read through their stores (StoreBoundary).
+        $idsOf = static fn (string $type, $records): array => $records->take(2)
+            ->map(static fn ($record): array => [$type, (int) $record->id])->values()->all();
+        $savings = $this->savings->forUser($user)->where('user_id', $user->id);
+        $pensions = $this->pensions->dcPensionsFor($user);
         $isaInvestment = static fn ($q) => $q->whereNotNull('isa_type')->orWhere('account_type', 'isa');
 
         return match ($formName) {
-            CaptureForms::SAVINGS => $ids('savings_account', SavingsAccount::where('user_id', $user->id)->where('account_type', '!=', 'cash_isa')),
+            CaptureForms::SAVINGS => $idsOf('savings_account', $savings->where('account_type', '!=', 'cash_isa')),
             CaptureForms::ISA => array_slice([
-                ...$ids('savings_account', SavingsAccount::where('user_id', $user->id)->where('account_type', 'cash_isa')),
+                ...$idsOf('savings_account', $savings->where('account_type', 'cash_isa')),
                 ...$ids('investment_account', InvestmentAccount::where('user_id', $user->id)->where($isaInvestment)),
             ], 0, 2),
             CaptureForms::INVESTMENT => $ids('investment_account', InvestmentAccount::where('user_id', $user->id)->whereNot($isaInvestment)),
-            CaptureForms::PENSION => $ids('dc_pension', DCPension::where('user_id', $user->id)),
+            CaptureForms::PENSION => $idsOf('dc_pension', $pensions),
             // The personal-pension-only form cannot hold a workplace pension.
-            CaptureForms::PENSION_PERSONAL => array_slice(DCPension::where('user_id', $user->id)->get()
-                ->reject(static fn (DCPension $pension): bool => PensionContributionRule::isWorkplace($pension))
-                ->map(static fn (DCPension $pension): array => ['dc_pension', (int) $pension->id])
+            CaptureForms::PENSION_PERSONAL => array_slice($pensions
+                ->reject(static fn ($pension): bool => PensionContributionRule::isWorkplace($pension))
+                ->map(static fn ($pension): array => ['dc_pension', (int) $pension->id])
                 ->values()->all(), 0, 2),
             default => [],
         };
