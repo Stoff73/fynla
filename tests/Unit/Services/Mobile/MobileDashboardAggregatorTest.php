@@ -9,6 +9,7 @@ use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
 use App\Models\DCPension;
+use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
@@ -104,7 +105,7 @@ describe('getAggregatedDashboard', function () {
         // must show the cover `GET /api/protection` shows (coverage_gaps.totals.cover,
         // ProtectionGapPresentationService), so it reads £320,000 (2026-10-01
         // one-figure audit item 32).
-        \App\Models\LifeInsurancePolicy::factory()->create(['user_id' => $user->id, 'sum_assured' => 320000]);
+        LifeInsurancePolicy::factory()->create(['user_id' => $user->id, 'sum_assured' => 320000]);
 
         $result = $this->service->getAggregatedDashboard($user->id);
 
