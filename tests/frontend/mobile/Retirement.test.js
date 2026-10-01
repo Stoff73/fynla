@@ -387,9 +387,10 @@ describe('mobile Retirement', () => {
     expect(text).toContain('State PensionAdd it');
     expect(text).toContain('Income Tax£3,486');
     expect(text).toContain('Drawing £30,000 a year from £200,000');
-    expect(text).toContain('Middle outcomelasts to age 76');
-    expect(text).toContain('Lower outcome (4 in 5 do better)lasts to age 75');
-    expect(text).toContain('Life expectancy (Office for National Statistics)86');
+    expect(text).toContain('Middle outcome (half do better)runs out by about age 76');
+    expect(text).toContain('Lower outcome (4 in 5 do better)runs out by about age 75');
+    expect(text).toContain('These are projections, not guarantees.');
+    expect(text).toContain('Life expectancy (Office for National Statistics)86 on average');
     expect(text).toContain('about £13,400 a year');
     expect(text).toContain('Lower-Medium risk level');
     // The saver's view is gone.

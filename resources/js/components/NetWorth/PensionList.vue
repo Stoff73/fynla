@@ -358,7 +358,7 @@
                   :risk-level="drawdownPosition.pot.risk_level"
                 />
                 <p class="text-xs text-neutral-500 mt-3">
-                  Drawing the same {{ formatCurrency(drawdownPosition.pot.drawing_per_year) }} each year, at your {{ drawdownPosition.pot.risk_level_label }} risk level's returns ({{ drawdownPosition.pot.expected_return }}% a year), until age {{ drawdownPosition.pot.end_age }}.
+                  A projection, not a guarantee: the same {{ formatCurrency(drawdownPosition.pot.drawing_per_year) }} each year at your {{ drawdownPosition.pot.risk_level_label }} risk level's returns ({{ drawdownPosition.pot.expected_return }}% a year), with no charges or inflation, to age {{ drawdownPosition.pot.end_age }}.
                 </p>
               </div>
               <!-- Monte Carlo Chart (right column) -->

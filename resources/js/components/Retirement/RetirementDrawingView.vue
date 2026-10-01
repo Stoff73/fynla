@@ -47,7 +47,7 @@
         <dl class="space-y-2 text-sm">
           <template v-if="pot.drawing_per_year > 0">
             <div class="flex justify-between gap-4">
-              <dt class="text-neutral-500">Middle outcome</dt>
+              <dt class="text-neutral-500">Middle outcome (half do better)</dt>
               <dd class="font-medium text-horizon-500">{{ lastsLabel(pot.lasts_to_age.middle) }}</dd>
             </div>
             <div class="flex justify-between gap-4">
@@ -57,15 +57,17 @@
           </template>
           <div class="flex justify-between gap-4">
             <dt class="text-neutral-500">Life expectancy</dt>
-            <dd class="font-medium text-horizon-500">{{ pot.life_expectancy.age }} ({{ lifeExpectancySource }})</dd>
+            <dd class="font-medium text-horizon-500">{{ pot.life_expectancy.age }}{{ pot.life_expectancy.source === 'ons' ? ' on average' : '' }} ({{ lifeExpectancySource }})</dd>
           </div>
           <div v-if="pot.income_to_last_to_life_expectancy !== null" class="flex justify-between gap-4 pt-2 border-t border-light-gray">
             <dt class="font-semibold text-horizon-500">To last to {{ pot.life_expectancy.age }}</dt>
             <dd class="font-bold text-horizon-500">about {{ formatCurrency(pot.income_to_last_to_life_expectancy) }} a year</dd>
           </div>
         </dl>
-        <p v-if="pot.income_to_last_to_life_expectancy !== null" class="text-xs text-neutral-500 mt-3">
-          The yearly income that still lasts to {{ pot.life_expectancy.age }} in 4 out of 5 outcomes.
+        <p class="text-xs text-neutral-500 mt-3">
+          <template v-if="pot.life_expectancy.source === 'ons'">Many people live longer than the average. </template>
+          <template v-if="pot.income_to_last_to_life_expectancy !== null">The last figure is the yearly income that still lasts to {{ pot.life_expectancy.age }} in 4 out of 5 outcomes. </template>
+          These are projections, not guarantees. They assume the same {{ formatCurrency(pot.drawing_per_year) }} each year at your {{ pot.risk_level_label }} risk level's returns, with no charges or inflation.
         </p>
       </div>
     </div>
@@ -100,7 +102,7 @@ export default {
   },
   methods: {
     lastsLabel(age) {
-      return age === null ? `lasts beyond ${this.pot.end_age}` : `lasts to age ${age}`;
+      return age === null ? `lasts beyond ${this.pot.end_age}` : `runs out by about age ${age}`;
     },
   },
 };

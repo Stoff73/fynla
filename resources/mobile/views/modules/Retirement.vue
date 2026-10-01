@@ -192,7 +192,7 @@
         </p>
         <template v-if="drawing.pot.drawing_per_year > 0">
           <div class="m-detail-row">
-            <span class="m-detail-key">Middle outcome</span>
+            <span class="m-detail-key">Middle outcome (half do better)</span>
             <span class="m-detail-value">{{ lastsLabel(drawing.pot.lasts_to_age.middle) }}</span>
           </div>
           <div class="m-detail-row">
@@ -204,14 +204,14 @@
           <!-- The source sits with the label: at phone width the value column
                cannot hold it (walked at 390px, 2026-10-01). -->
           <span class="m-detail-key">Life expectancy ({{ drawing.pot.life_expectancy.source === 'ons' ? 'Office for National Statistics' : 'your figure' }})</span>
-          <span class="m-detail-value">{{ drawing.pot.life_expectancy.age }}</span>
+          <span class="m-detail-value">{{ drawing.pot.life_expectancy.age }}{{ drawing.pot.life_expectancy.source === 'ons' ? ' on average' : '' }}</span>
         </div>
         <div v-if="drawing.pot.income_to_last_to_life_expectancy !== null" class="m-detail-row">
           <span class="m-detail-key"><strong>To last to {{ drawing.pot.life_expectancy.age }}</strong></span>
           <span class="m-detail-value"><strong>about {{ fmt(drawing.pot.income_to_last_to_life_expectancy) }} a year</strong></span>
         </div>
         <p class="mr-proj-note">
-          Drawing the same amount each year, at your {{ drawing.pot.risk_level_label }} risk level's returns ({{ drawing.pot.expected_return }}% a year), until age {{ drawing.pot.end_age }}.<template v-if="drawing.pot.income_to_last_to_life_expectancy !== null"> The last figure is the yearly income that still lasts to {{ drawing.pot.life_expectancy.age }} in 4 out of 5 outcomes.</template>
+          <template v-if="drawing.pot.life_expectancy.source === 'ons'">Many people live longer than the average. </template><template v-if="drawing.pot.income_to_last_to_life_expectancy !== null">The last figure is the yearly income that still lasts to {{ drawing.pot.life_expectancy.age }} in 4 out of 5 outcomes. </template>These are projections, not guarantees. They assume the same {{ fmt(drawing.pot.drawing_per_year) }} each year at your {{ drawing.pot.risk_level_label }} risk level's returns ({{ drawing.pot.expected_return }}% a year), with no charges or inflation.
         </p>
       </div>
 
@@ -510,7 +510,7 @@ export default {
   },
   methods: {
     lastsLabel(age) {
-      return age === null ? `lasts beyond ${this.drawing.pot.end_age}` : `lasts to age ${age}`;
+      return age === null ? `lasts beyond ${this.drawing.pot.end_age}` : `runs out by about age ${age}`;
     },
     // On /m a pension is added or changed through Fyn: adding as the screen's
     // own add button does, changing the recorded State Pension as its detail

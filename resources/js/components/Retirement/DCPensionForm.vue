@@ -215,7 +215,7 @@
           <div v-if="isDCType" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="annual_drawdown_income" class="block text-sm font-medium text-neutral-500 mb-2">
-                Income drawn each year (£) <span class="text-neutral-500 text-xs">(Optional)</span>
+                Taxable income drawn each year (£) <span class="text-neutral-500 text-xs">(Optional)</span>
               </label>
               <input
                 id="annual_drawdown_income"
@@ -226,7 +226,7 @@
                 class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., 18000.00"
               />
-              <p class="text-xs text-neutral-500 mt-1">Leave blank if you have not started drawing from it.</p>
+              <p class="text-xs text-neutral-500 mt-1">Leave out any tax-free part, such as the tax-free quarter of a lump sum. Leave blank if you have not started drawing from it.</p>
             </div>
             <div>
               <label for="pcls_taken" class="block text-sm font-medium text-neutral-500 mb-2">

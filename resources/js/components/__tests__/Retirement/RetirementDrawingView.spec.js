@@ -29,8 +29,10 @@ describe('RetirementDrawingView', () => {
     expect(text).toContain('Income Tax£3,486');
     expect(text).not.toContain('National Insurance');
     expect(text).toContain('Take-home£26,514');
-    expect(text).toContain('Middle outcomelasts to age 76');
-    expect(text).toContain('86 (Office for National Statistics)');
+    expect(text).toContain('Middle outcome (half do better)runs out by about age 76');
+    expect(text).toContain('86 on average (Office for National Statistics)');
+    expect(text).toContain('These are projections, not guarantees.');
+    expect(text).toContain('Many people live longer than the average.');
     expect(text).toContain('about £13,400 a year');
   });
 
