@@ -89,7 +89,9 @@ export default {
         },
         fill: {
           type: 'solid',
-          colours: [this.runwayColour],
+          // ApexCharts reads `colors`; this was `colours`, so the gauge was always
+          // the library's default blue whatever the status.
+          colors: [this.runwayColour],
         },
         stroke: {
           lineCap: 'round',

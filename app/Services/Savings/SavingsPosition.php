@@ -123,7 +123,7 @@ final class SavingsPosition
     }
 
     /** Whole months from 10, one decimal place below. */
-    private function runwayFigure(float $months): string
+    public function runwayFigure(float $months): string
     {
         $rounded = $months >= 10 ? round($months) : round($months, 1);
 

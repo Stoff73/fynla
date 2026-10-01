@@ -85,3 +85,11 @@ it('fills the investment ring with its share of assets', function () {
     expect($card['caption'])->toBe('3 holdings')
         ->and($card['visual'])->toBe(['type' => 'donut', 'progress' => 10, 'number' => '1', 'label' => 'Account']);
 });
+
+it('prints the runway as the Savings page does: whole months from ten', function () {
+    $card = $this->cards->build(['savings' => [
+        'total_savings' => 74750, 'emergency_fund_months' => 14.4, 'emergency_fund_target_months' => 6,
+    ]], $this->netWorth)['savings'];
+
+    expect($card['visual']['number'])->toBe('14');
+});

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Services\Savings\SavingsPosition;
+
 /**
  * What the five dashboard cards say: every figure, ring and caption, built once
  * on the server and rendered as sent by web, /m and iOS (CSJ 2026-10-01: one
@@ -81,7 +83,8 @@ final class DashboardCards
             caption: $caption,
             visual: $this->bar(
                 $target > 0 ? $this->percent($months / $target * 100) : 0,
-                $months > 0 ? $this->oneDecimal($months) : '0',
+                // The runway as the Savings page prints it (SavingsPosition).
+                $months > 0 ? app(SavingsPosition::class)->runwayFigure($months) : '0',
                 '/ '.$target.' months',
             ),
         );
@@ -176,13 +179,6 @@ final class DashboardCards
     private function percent(float $value): int
     {
         return (int) max(0, min(100, round($value)));
-    }
-
-    private function oneDecimal(float $value): string
-    {
-        $rounded = round($value, 1);
-
-        return $rounded == floor($rounded) ? (string) (int) $rounded : number_format($rounded, 1);
     }
 
     private function money(float $value): string
