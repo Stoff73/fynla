@@ -68,6 +68,14 @@ effective_from: 2026-06-02
             "spouse_pension_provider": {
                 "type": "string",
                 "description": "Name of the spouse's pension provider or scheme (e.g. \"Aviva\" from \"an Aviva pension\"), when stated."
+            },
+            "spouse_existing_savings_balance": {
+                "type": "number",
+                "description": "Spouse's own savings balance outside ISAs, in pounds, when stated."
+            },
+            "spouse_annual_savings_interest": {
+                "type": "number",
+                "description": "Interest the spouse receives each year on their own savings (not ISAs), in pounds. Set it only when stated; leave it out when unknown rather than guessing."
             }
         },
         "required": [],

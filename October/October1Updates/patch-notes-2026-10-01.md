@@ -33,6 +33,19 @@ Both were walked on the test site first, on the desktop web app (full-size windo
   The older tax-optimisation figures and the household endpoint gave the same £252.
 - **Live on fynla.org, desktop (full-size window) and mobile web apps:** a walk couple made for the check (Alex on £35,000, Sam with £14,000 of savings interest) saw "Claim Marriage Allowance, £252/yr" and the same steps as on the test site. The walk accounts were deleted afterwards.
 
+## The "You're ahead of" band is hidden (1 October, about 08:30, release #1034)
+
+- **The pink "LEVEL UP / You're ahead of X% of people" band below the level card no longer shows.** This applies to the dashboard on the desktop web app, the web app at phone width and the mobile web app. The band is commented out in the iPhone app's code too, so it will go from the next iPhone build.
+- **Everything else on the dashboard stays:** the level card, and the focus areas, recommendations and actions below it.
+- **It can come back.** The band is commented out, not deleted, and the percentage is still worked out on the server (CSJ, 1 October: "comment out, so do not remove in case we need to reverse this").
+
+**What we checked.**
+- **On the test site:**
+  - Mobile web app: the level card now sits directly above "Top actions", and the carousel still moves between focus areas.
+  - Desktop web app: the level header shows only the level and its progress bar, and the focus tabs still switch.
+- **Live on fynla.org, as the Carter demo household:** the same on the desktop web app, the web app at phone width and the mobile web app.
+- **Not tested: the iPhone app.** Its change ships with the next build.
+
 ## Pension suggestions sized to what you can afford
 
 - **One figure decides what a pension payment can be:** the money you have left in a year after your spending, the payments you already make and your goals. Someone with no income at all is sized to their savings instead. A retiree drawing a pension has income, so they are sized to what is left of it like anyone else.
