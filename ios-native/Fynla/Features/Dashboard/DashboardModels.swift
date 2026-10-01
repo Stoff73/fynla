@@ -320,9 +320,45 @@ struct DashboardEntitlement: Decodable, Sendable, Equatable {
     }
 }
 
+/// One dashboard card as the server built it (`App\Services\Mobile\DashboardCards`):
+/// the figure, the ring or bar and the caption, rendered as sent on web, /m and
+/// iOS (CSJ 2026-10-01: one figure, every surface).
+struct DashboardCard: Decodable, Sendable, Equatable {
+    struct Visual: Decodable, Sendable, Equatable {
+        let type: String
+        let progress: Int
+        let number: String
+        let label: String
+    }
+
+    let value: Decimal
+    let valueIsIncome: Bool
+    let caption: String
+    let visual: Visual
+
+    private enum CodingKeys: String, CodingKey {
+        case value, caption, visual
+        case valueIsIncome = "value_is_income"
+    }
+}
+
+struct DashboardCards: Decodable, Sendable, Equatable {
+    let netWorth: DashboardCard?
+    let protection: DashboardCard?
+    let savings: DashboardCard?
+    let retirement: DashboardCard?
+    let investment: DashboardCard?
+
+    private enum CodingKeys: String, CodingKey {
+        case protection, savings, retirement, investment
+        case netWorth = "net_worth"
+    }
+}
+
 struct DashboardSnapshot: Decodable, Sendable, Equatable {
     let modules: DashboardModules
     let netWorth: DashboardNetWorth
+    let cards: DashboardCards?
     let alerts: [DashboardAlert]
     let fynInsight: String?
     let cachedAt: String
@@ -335,7 +371,7 @@ struct DashboardSnapshot: Decodable, Sendable, Equatable {
     let entitlement: DashboardEntitlement?
 
     private enum CodingKeys: String, CodingKey {
-        case modules, alerts, level, percentile, entitlement
+        case modules, alerts, level, percentile, entitlement, cards
         case netWorth = "net_worth"
         case fynInsight = "fyn_insight"
         case cachedAt = "cached_at"

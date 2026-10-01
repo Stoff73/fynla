@@ -305,50 +305,33 @@ describe('Dashboard.vue — Bank Accounts presentation naming', () => {
 });
 
 /**
- * W-0504. Three of the five rings were filled to constants from the 2026 redesign
- * (7eaa085cb) — 72, `covered ? 85 : 0`, and `value > 0 ? 72 : 0` — while the captions
- * beside them were wired to real data. So the arc and the number inside it described
- * different quantities: on `peak_earners` the net-worth ring rendered at 72% next to
- * `+0%`, and the investment ring at 72% while investments were 11% of assets.
- *
- * An arc at 72% looks deliberate, which is why it went unnoticed.
- *
- * The rule these pin is the one acceptance 2 states: whatever a ring renders must agree
- * with the number printed inside it, independent of which metric wins.
+ * One figure, every surface (CSJ 2026-10-01). The five cards render the server's
+ * `cards` block (DashboardCards) as sent: no ring, bar or caption is worked out
+ * here. W-0504's constants (72, 85) cannot come back because this file no longer
+ * sets any ring at all.
  */
-describe('W-0504 donut rings are derived, not constants', () => {
+describe('Dashboard.vue — finance cards are the server cards, as sent', () => {
   const source = readFileSync('resources/mobile/views/Dashboard.vue', 'utf8');
+  const block = source.slice(source.indexOf('    finances() {'), source.indexOf('  watch: {'));
 
-  // Comments stripped before matching. Without this the guard reads the comments
-  // that DESCRIBE the old constants — "this ring was `progress: 72`" — and reports the
-  // defect it is documenting as a live one.
-  const cardsBlock = source
-    .slice(source.indexOf('const f = dashboardFigures'))
-    .split('\n')
-    .filter((line) => !line.trim().startsWith('//'))
-    .join('\n');
-
-  it('fills no ring with a hardcoded percentage', () => {
-    // The three literals as they were written, so a reintroduction in any of the three
-    // shapes fails rather than only the bare number.
-    expect(cardsBlock).not.toMatch(/progress:\s*72\b/);
-    expect(cardsBlock).not.toMatch(/progress:\s*[^,\n]*\?\s*85\s*:/);
-    expect(cardsBlock).not.toMatch(/progress:\s*[^,\n]*\?\s*72\s*:/);
+  it('sets no ring, bar or caption of its own', () => {
+    expect(block).not.toMatch(/progress:|barFill:|barValue:|vizNum:|caption:/);
   });
 
-  it('drives every ring from a figure on the shared derivation', () => {
-    const progresses = [...cardsBlock.matchAll(/progress:\s*([^,\n]+)/g)].map((m) => m[1].trim());
+  it('renders the server card for each panel', () => {
+    const cards = {
+      net_worth: { value: 480000, value_is_income: false, caption: '£700,000 assets', visual: { type: 'donut', progress: 69, number: '69%', label: 'Equity' } },
+      retirement: { value: 26514, value_is_income: true, caption: 'Your income this year', visual: { type: 'bar', progress: 0, number: 'runs out by about age 76', label: '' } },
+    };
+    const ctx = { data: { cards }, fmt: (v) => `£${Number(v).toLocaleString('en-GB')}` };
+    const finances = Dashboard.computed.finances.call(ctx);
 
-    expect(progresses.length).toBeGreaterThan(0);
-    progresses.forEach((expression) => {
-      expect(expression).toMatch(/\bf\./);
+    expect(finances.find((p) => p.key === 'net_worth')).toMatchObject({
+      label: 'Net worth', value: '£480,000', caption: '£700,000 assets', viz: 'donut', progress: 69, vizNum: '69%', vizCap: 'Equity',
     });
-  });
-
-  it('shows the net worth ring the same quantity it fills the arc with', () => {
-    // The defect in one line: `progress: 72` beside `vizNum: trend%`. Whatever the ring
-    // is labelled, the arc and the number have to be the same thing.
-    expect(cardsBlock).toMatch(/progress:\s*f\.netWorth\.equityPct[\s\S]{0,120}vizNum:\s*f\.netWorth\.equityPct/);
+    expect(finances.find((p) => p.key === 'retirement')).toMatchObject({
+      value: '£26,514/year', caption: 'Your income this year', viz: 'bar', barValue: 'runs out by about age 76',
+    });
   });
 });
 

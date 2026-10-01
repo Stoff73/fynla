@@ -112,6 +112,32 @@ struct DashboardModelsTests {
         ) == .teaser)
     }
 
+    // One figure, every surface (CSJ 2026-10-01): the panels are the server's
+    // cards as sent, so iOS shows what web and /m show.
+    @Test
+    func financePanelsRenderTheServerCardsAsSent() throws {
+        let panels = FinancePanel.panels(from: try decode("populated"))
+        let netWorth = try #require(panels.first(where: { $0.id == "net_worth" }))
+        let retirement = try #require(panels.first(where: { $0.id == "retirement" }))
+
+        #expect(netWorth.caption == "£512,001 assets")
+        guard case let .donut(progress, number, caption) = netWorth.visual else {
+            Issue.record("net worth should be a donut")
+            return
+        }
+        #expect(progress == 0.68)
+        #expect(number == "68%")
+        #expect(caption == "Equity")
+
+        #expect(retirement.value.hasSuffix("/year"))
+        #expect(retirement.caption == "Your income this year")
+        guard case let .bar(_, value, _) = retirement.visual else {
+            Issue.record("retirement should be a bar")
+            return
+        }
+        #expect(value == "runs out by about age 76")
+    }
+
     @Test
     func decodesThePopulatedMobileDashboardWithoutRecomputingServerValues() throws {
         let dashboard = try decode("populated")

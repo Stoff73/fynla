@@ -9,6 +9,13 @@
       "estate": {"status":"active","net_estate":347250.50,"iht_liability":0,"effective_tax_rate":0},
       "goals": {"status":"active","total_goals":2,"completed_goals":1,"total_target":50000,"total_saved":22000}
     },
+    "cards": {
+      "net_worth": {"value":347250.5,"value_is_income":false,"caption":"£512,001 assets","visual":{"type":"donut","progress":68,"number":"68%","label":"Equity"}},
+      "protection": {"value":300000,"value_is_income":false,"caption":"Cover in place","visual":{"type":"donut","progress":100,"number":"Active","label":"Cover"}},
+      "savings": {"value":42500.25,"value_is_income":false,"caption":"Building your fund","visual":{"type":"bar","progress":75,"number":"4.5","label":"/ 6 months"}},
+      "retirement": {"value":26514,"value_is_income":true,"caption":"Your income this year","visual":{"type":"bar","progress":0,"number":"runs out by about age 76","label":""}},
+      "investment": {"value":70000,"value_is_income":false,"caption":"3 holdings","visual":{"type":"donut","progress":14,"number":"1","label":"Account"}}
+    },
     "net_worth": {
       "total": 347250.50,
       "breakdown": {

@@ -8,6 +8,7 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Retirement\RequiredCapitalCalculator;
+use App\Services\Retirement\RetirementDrawdownPosition;
 use App\Services\Retirement\RetirementHeadline;
 use App\Services\Retirement\RetirementProjectionContractService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -90,4 +91,19 @@ it('publishes the same headline on the projections endpoint', function () {
         ->assertJsonPath('data.headline.projected_income', $headline['projected_income'])
         ->assertJsonPath('data.headline.income_gap', $headline['income_gap'])
         ->assertJsonPath('data.headline.target_source', 'profile');
+});
+
+it('leads someone drawing with the Retirement page\'s own income this year', function () {
+    $this->user->update(['employment_status' => 'retired', 'annual_employment_income' => 0, 'date_of_birth' => now()->subYears(66)->toDateString()]);
+    DCPension::where('user_id', $this->user->id)->update(['annual_drawdown_income' => 9000, 'current_fund_value' => 150000]);
+
+    $user = $this->user->fresh();
+    $headline = app(RetirementHeadline::class)->for($user);
+    $page = app(RetirementDrawdownPosition::class)->for($user);
+
+    expect($headline['kind'])->toBe('drawing')
+        ->and($headline['value'])->toEqual(round((float) $page['income']['total'], 2))
+        ->and($headline['drawing_income'])->toEqual($headline['value'])
+        ->and($headline['drawing_per_year'])->toEqual(9000.0)
+        ->and($headline['drawing_lasts_to_age'])->toBe($page['pot']['lasts_to_age']['middle']);
 });

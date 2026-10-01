@@ -229,7 +229,7 @@
 <script>
 import api from '@/services/api';
 import logger from '@/utils/logger';
-import { dashboardFigures } from '@/utils/dashboardCards';
+import { dashboardCard } from '@/utils/dashboardCards';
 import TrustsOverviewCard from '@/components/Trusts/TrustsOverviewCard.vue';
 import {
   dashboardIsBeingViewed,
@@ -374,20 +374,21 @@ export default {
       const assets = Number((this.data && this.data.net_worth && this.data.net_worth.breakdown && this.data.net_worth.breakdown.total_assets) || 0);
       return this.actionsTotal === 0 && net === 0 && assets === 0;
     },
-    // Figures come from the shared derivation (utils/dashboardCards.js) so this and
-    // /m cannot answer the same question differently — the W-0238 retirement-headline
-    // precedent applied to the other four cards (W-0245). Everything below the call
-    // is this surface's own presentation: web labels, web SPA routes, and the
-    // visualisation each card uses.
+    // Every figure, ring and caption comes from the server's `cards` block
+    // (DashboardCards), the same fields /m and iOS render (CSJ 2026-10-01). What
+    // stays here is web's own presentation: labels, routes, colours.
     finances() {
-      const f = dashboardFigures(this.data);
+      const card = (key) => {
+        const c = dashboardCard(this.data, key);
+        return { ...c, value: this.fmt(c.value) + (c.valueIsIncome ? '/year' : '') };
+      };
 
       return [
-        { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, value: this.fmt(f.netWorth.total), route: '/net-worth/wealth-summary', viz: 'donut', progress: f.netWorth.equityPct, vizNum: f.netWorth.equityPct + '%', vizCap: 'Equity', caption: this.fmt(f.netWorth.totalAssets) + ' assets' },
-        { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, value: f.protection.covered ? this.fmt(f.protection.value) : '£0', route: '/protection', viz: 'donut', progress: f.protection.covered ? 100 : 0, vizNum: f.protection.vizNum, vizCap: 'Cover', caption: f.protection.caption },
-        { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, value: this.fmt(f.savings.value), route: '/net-worth/cash', viz: 'bar', barFill: f.savings.barFill, barValue: f.savings.barValue, barUnit: f.savings.barUnit, caption: f.savings.caption },
-        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(f.retirement.value) + (f.retirement.isAnnualIncome ? '/year' : ''), route: '/net-worth/retirement', viz: 'bar', barFill: f.retirement.pct, barValue: f.retirement.pct + '%', barUnit: 'of target', caption: f.retirement.caption },
-        { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, value: this.fmt(f.investment.value), route: '/net-worth/investments', viz: 'donut', progress: f.investment.sharePct, vizNum: f.investment.vizNum, vizCap: f.investment.vizCap, caption: f.investment.caption },
+        { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, route: '/net-worth/wealth-summary', ...card('net_worth') },
+        { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, route: '/protection', ...card('protection') },
+        { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, route: '/net-worth/cash', ...card('savings') },
+        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, route: '/net-worth/retirement', ...card('retirement') },
+        { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, route: '/net-worth/investments', ...card('investment') },
       ];
     },
   },
