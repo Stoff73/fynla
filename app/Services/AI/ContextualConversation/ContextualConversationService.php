@@ -148,9 +148,12 @@ final class ContextualConversationService
      */
     private function formOpening(array $form): string
     {
-        $label = strtolower((string) preg_replace('/^your\s+/i', '', (string) $form['label']));
+        // The label keeps its own capitals ("State Pension" is a name), and the
+        // verb agrees with it: "employer benefits" are, "State Pension" is.
+        $label = (string) preg_replace('/^your\s+/i', '', (string) $form['label']);
+        $verb = preg_match('/[^s]s$/', $label) === 1 ? 'are' : 'is';
 
-        return "Here are your {$label}. Change what needs changing and save, or tell me what has changed.";
+        return "Here {$verb} your {$label}. Change what needs changing and save, or tell me what has changed.";
     }
 
     private function openingFor(string $action, ContextualResource $resource): string

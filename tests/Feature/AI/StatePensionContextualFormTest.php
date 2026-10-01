@@ -43,7 +43,8 @@ it('opens an edit of the State Pension on its form, asking whether it is paid', 
         ->assertCreated()->json('data.conversation.id');
     $opening = AiConversation::findOrFail($id)->messages()->first();
 
-    expect($opening->metadata['capture_form']['name'])->toBe('state_pension')
+    expect($opening->content)->toStartWith('Here is your State Pension.')
+        ->and($opening->metadata['capture_form']['name'])->toBe('state_pension')
         ->and(array_keys($opening->metadata['capture_form']['fields']))->toContain('already_receiving')
         ->and($opening->metadata['capture_form_values']['_lead']['already_receiving'] ?? null)->toBe('no')
         ->and((float) $opening->metadata['capture_form_values']['_lead']['forecast_annual'])->toBe(11502.4);
