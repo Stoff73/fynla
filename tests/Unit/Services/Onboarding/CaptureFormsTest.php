@@ -294,7 +294,7 @@ it('the spouse forms fold every section into one household write', function (): 
     expect($schema['tool'])->toBe('capture_spouse_household_data')
         ->and($schema['lead_fields'])->toBe(['spouse_annual_income', 'spouse_annual_earnings'])
         ->and($schema['kinds_prompt'])->toBe('Do they have any of the following? You can choose more than one, or save with none chosen.')
-        ->and(array_column($schema['kinds'], 'label'))->toBe(['ISAs', 'A pension', 'Investments'])
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['Savings', 'ISAs', 'A pension', 'Investments'])
         ->and(CaptureForms::rules('spouse_household'))->toHaveKey('_lead.spouse_annual_income')
         // money_or_none since Batch 1 (2026-09-19): "I don't know" posts null.
         ->and(CaptureForms::rules('spouse_household')['_lead.spouse_annual_income'][0])->toBe('present');
@@ -304,8 +304,10 @@ it('the spouse forms fold every section into one household write', function (): 
         'isa' => ['spouse_isa_balance' => 12000, 'spouse_isa_provider' => ' Nationwide '],
         'pension' => ['spouse_pension_input_annual' => 3000],
     ]];
+    // Savings left unticked beside other answers is "no savings" (2026-10-01).
     expect(CaptureForms::toolInputs($form))->toBe(['_lead' => [
         'spouse_annual_income' => 45000.0, 'spouse_isa_balance' => 12000.0, 'spouse_isa_provider' => 'Nationwide', 'spouse_pension_input_annual' => 3000.0,
+        'spouse_existing_savings_balance' => 0.0, 'spouse_annual_savings_interest' => 0.0,
     ]])
         ->and(CaptureForms::summarise($form))->toBe('My spouse earns £45,000 a year, £12,000 in ISAs with Nationwide, pays £3,000 a year into their pension.');
 
@@ -314,7 +316,7 @@ it('the spouse forms fold every section into one household write', function (): 
         ->and($assets['allow_empty'])->toBeTrue()
         ->and(array_column($assets['kinds'], 'label'))->toBe(['Savings', 'ISAs', 'Investments', 'A pension'])
         ->and(CaptureForms::toolInputs(['name' => 'spouse_assets', 'answers' => []]))->toBe(['_lead' => [
-            'spouse_existing_savings_balance' => 0.0, 'spouse_existing_isa_balance' => 0.0, 'spouse_existing_investment_balance' => 0.0,
+            'spouse_existing_savings_balance' => 0.0, 'spouse_annual_savings_interest' => 0.0, 'spouse_existing_isa_balance' => 0.0, 'spouse_existing_investment_balance' => 0.0,
             'spouse_existing_dividend_holdings_value' => 0.0, 'spouse_annual_dividends' => 0.0, 'spouse_existing_pension_balance' => 0.0,
         ]])
         ->and(CaptureForms::summarise(['name' => 'spouse_assets', 'answers' => []]))->toBe('My spouse has nothing in their own name.')

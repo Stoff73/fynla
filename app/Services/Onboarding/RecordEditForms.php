@@ -460,6 +460,13 @@ final class RecordEditForms
             'spouse_annual_income' => self::floatOrNull($row->spouse_annual_income),
             'spouse_annual_earnings' => self::floatOrNull($row->spouse_annual_earnings),
         ], static fn ($v, string $k): bool => $k === 'spouse_annual_income' || $v !== null, ARRAY_FILTER_USE_BOTH)];
+        // Savings shown ticked when they hold any, so an edit keeps them.
+        if ((float) ($row->spouse_existing_savings_balance ?? 0) > 0) {
+            $answers['savings'] = array_filter([
+                'spouse_existing_savings_balance' => self::floatOrNull($row->spouse_existing_savings_balance),
+                'spouse_annual_savings_interest' => self::floatOrNull($row->spouse_annual_savings_interest),
+            ], static fn ($v): bool => $v !== null);
+        }
         $isa = array_filter(['spouse_isa_balance' => self::floatOrNull($row->spouse_isa_balance), 'spouse_isa_provider' => $row->spouse_isa_provider], static fn ($v): bool => $v !== null && $v !== '');
         if ($isa !== []) {
             $answers['isa'] = $isa;

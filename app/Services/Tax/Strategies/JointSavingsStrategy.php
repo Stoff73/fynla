@@ -47,10 +47,10 @@ final class JointSavingsStrategy implements TaxStrategy
             return [];
         }
 
+        // The spouse's own income and savings must be known (their records,
+        // or the campaign's answers), so their side is priced, not assumed.
         if ($mode !== 'single_earner_couple'
-            || $household === null
-            || $household->spouse_existing_savings_balance === null
-            || (float) $household->spouse_existing_savings_balance !== 0.0) {
+            || ! ($this->math->partnerTaxPosition($user, $mode, $household)['savings_known'] ?? false)) {
             return [];
         }
 
@@ -86,28 +86,14 @@ final class JointSavingsStrategy implements TaxStrategy
             return [];
         }
 
-        $income = $this->taxConfig->getIncomeTax();
         $spousePsa = $this->math->psaForBand('basic');
-        $spousePersonalAllowance = $this->math->personalAllowanceForIncome(0.0);
-        // A Marriage Allowance transfer takes that slice of the spouse's
-        // Personal Allowance first (B4).
-        if ($this->math->marriageAllowanceTransfer($user, $mode, $household) > 0) {
-            $spousePersonalAllowance -= $this->math->marriageAllowanceAmount();
-        }
-        $spouseStartingRate = (float) ($income['starting_rate_for_savings']['band']
-            ?? $income['starting_rate_for_savings']['amount']
-            ?? 0);
-        $spouseTaxFreeInterestCapacity = $spousePersonalAllowance + $spouseStartingRate + $spousePsa;
         $userRate = $this->math->bandRateForBand($userBand);
-        $spouseRate = $this->math->bandRateForBand('basic');
         $interestPerPerson = $interest / 2;
-        // The user's side is priced by the tax engine (starting rate, allowance
-        // and every band the interest spans); the spouse, who has no income in
-        // this mode, pays basic rate on anything above their tax-free capacity.
-        $saving = max(0.0, floor(
-            $this->math->interestRemovalSaving($user, $interestPerPerson, 0.0, $context->pensionPaidElsewhere)
-            - max(0.0, $interestPerPerson - $spouseTaxFreeInterestCapacity) * $spouseRate
-        ));
+        // Both sides priced by the tax engine on each partner's whole income
+        // (TaxStrategyMath::savingsMoveToPartner): a spouse with a pension has
+        // used some of their allowances already (TODO item 4).
+        $move = $this->math->savingsMoveToPartner($user, $mode, $household, $interest, $context->pensionPaidElsewhere, 0.0, $interestPerPerson);
+        $saving = max(0.0, floor($move['saving'] ?? 0.0));
         $shelterableSlice = $userRate > 0 ? $saving / $userRate : 0.0;
 
         if ($saving < 1) {
@@ -120,7 +106,7 @@ final class JointSavingsStrategy implements TaxStrategy
             priority: StrategyPriority::Low,
             title: 'Consider sharing savings equally to use both partners\' tax positions',
             description: sprintf(
-                'Your £%s of sole-name cash is expected to earn about £%s a year. A genuine 50/50 joint holding would allocate about £%s of interest to each of you; with no spouse savings on file, that could save around £%s a year. Confirm ownership and any other spouse savings income before acting.',
+                'Your £%s of sole-name cash is expected to earn about £%s a year. A genuine 50/50 joint holding would allocate about £%s of interest to each of you; on both your incomes, that could save around £%s a year. Confirm ownership and any other spouse savings income before acting.',
                 number_format((int) $balance),
                 number_format((int) round($interest)),
                 number_format((int) round($interestPerPerson)),

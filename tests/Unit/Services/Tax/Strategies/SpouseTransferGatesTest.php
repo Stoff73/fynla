@@ -69,7 +69,7 @@ it('offers no £0 gift or spouse ISA to a couple with no income (ice-cube, PR 99
         'annual_employment_income' => 0,
         'marital_status' => 'married',
     ]);
-    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0, 'spouse_existing_isa_balance' => 0]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0, 'spouse_annual_income' => 0, 'spouse_existing_isa_balance' => 0]);
     SavingsAccount::factory()->for($user)->create(['is_isa' => false, 'current_balance' => 4000, 'interest_rate' => 4.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
 
     // Their £160 of interest sits inside their own Personal Allowance: moving it saves nothing.
@@ -85,7 +85,7 @@ it('still offers the gift and the spouse ISA when the user\'s interest is taxed'
         'annual_employment_income' => 60000,
         'marital_status' => 'married',
     ]);
-    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0, 'spouse_existing_isa_balance' => 0]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0, 'spouse_annual_income' => 0, 'spouse_existing_isa_balance' => 0]);
     SavingsAccount::factory()->for($user)->create(['is_isa' => false, 'current_balance' => 50000, 'interest_rate' => 4.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
 
     $recommendations = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations);

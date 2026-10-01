@@ -147,10 +147,14 @@ it('does not offer it to a couple who are not married or in a civil partnership 
     expect(maRec($user))->toBeNull();
 });
 
-it('shrinks the spouse Personal Allowance used for the savings gift by the transferred amount (B4)', function () {
+// B4: a Marriage Allowance transfer takes that slice of the spouse's Personal
+// Allowance (ITA 2007 s55B(6)), so it cannot also cover gifted interest. A
+// spouse on £12,000 gives £1,260: their income above the smaller allowance
+// then eats into the starting rate for savings (s12) too.
+it('prices the savings gift on the spouse\'s allowance after the Marriage Allowance transfer (B4)', function () {
     $user = maUser(
-        ['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 35000],
-        ['spouse_existing_savings_balance' => 0],
+        ['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 35000],
+        ['spouse_annual_income' => 12000, 'spouse_existing_savings_balance' => 0],
     );
     SavingsAccount::factory()->for($user)->create([
         'current_balance' => 200000, 'interest_rate' => 4.5, 'is_isa' => false,
@@ -160,10 +164,15 @@ it('shrinks the spouse Personal Allowance used for the savings gift by the trans
     $gift = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
         ->firstWhere('type', 'savings_to_spouse');
     $math = app(TaxStrategyMath::class);
-    $pa = (float) app(TaxConfigService::class)->getIncomeTax()['personal_allowance'];
+    $income = app(TaxConfigService::class)->getIncomeTax();
+    $aboveAllowance = 12000 + $math->marriageAllowanceAmount() - (float) $income['personal_allowance'];
+    // What the spouse can take at 0%: the starting rate left after their
+    // income above the smaller allowance, and their £1,000 Savings Allowance.
+    $zeroRated = (float) $income['starting_rate_for_savings']['band'] - $aboveAllowance + $math->psaForBand('basic');
 
-    expect(maRec($user))->not->toBeNull()
-        ->and($gift['spouse_personal_allowance'])->toBe($pa - $math->marriageAllowanceAmount());
+    expect(maRec($user)['transfer_direction'] ?? null)->toBe('to_user')
+        ->and($gift['estimated_annual_tax_saved'])->toEqualWithDelta($zeroRated * $math->bandRateForBand('basic'), 2.0)
+        ->and($gift['partner_extra_tax'])->toBeLessThan(0.01);
 });
 
 /*

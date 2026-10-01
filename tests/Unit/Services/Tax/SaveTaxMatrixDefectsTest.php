@@ -189,6 +189,7 @@ describe('E1 — the tax-trap pension and the savings gift are not counted twice
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
             'spouse_existing_isa_balance' => 0,
             'spouse_existing_investment_balance' => 0,
             'spouse_existing_dividend_holdings_value' => 0,
@@ -232,7 +233,9 @@ describe('E1 — the tax-trap pension and the savings gift are not counted twice
         $now = $tax($user);
         $paid = $tax(trapHousehold(extraPension: $contribution));
         $afterPension = [
-            'savings_to_spouse' => $paid - $tax(trapHousehold(withSavings: false, extraPension: $contribution)),
+            // The gift moves only the interest still taxed once the pension is
+            // paid (TODO item 4): the household with that amount given away.
+            'savings_to_spouse' => $paid - $tax(trapHousehold(extraPension: $contribution, soleSavings: 50000 - (float) $items['savings_to_spouse']['suggested_transfer_amount'])),
             'isa_topup_vs_psa' => $paid - $tax(trapHousehold(extraPension: $contribution, soleSavings: 30000, isaSavings: 20000)),
             'joint_savings_psa_split' => $paid - $tax(trapHousehold(extraPension: $contribution, soleSavings: 25000)),
         ];

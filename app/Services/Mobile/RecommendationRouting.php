@@ -232,6 +232,11 @@ final class RecommendationRouting
         if (in_array($missingKey, ['spouse_income', 'spouse_income_amount'], true)) {
             return "Update my spouse's income";
         }
+        // Their savings are on the same form. "Savings" alone could open the
+        // user's own savings, so the prompt names the spouse's details.
+        if ($missingKey === 'spouse_savings') {
+            return "Update my spouse's details";
+        }
 
         return 'Help me add my '.HouseholdFinancialContext::labelFor($missingKey);
     }

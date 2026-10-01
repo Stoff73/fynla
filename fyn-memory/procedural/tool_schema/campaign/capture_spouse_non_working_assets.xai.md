@@ -29,6 +29,13 @@ effective_from: 2026-06-02
                 ],
                 "description": "Spouse's existing standalone bank/savings balance."
             },
+            "spouse_annual_savings_interest": {
+                "type": [
+                    "number",
+                    "null"
+                ],
+                "description": "Interest the spouse receives each year on their own savings (not ISAs), in pounds. Set it only when stated; leave it out when unknown rather than guessing."
+            },
             "spouse_existing_investment_balance": {
                 "type": [
                     "number",

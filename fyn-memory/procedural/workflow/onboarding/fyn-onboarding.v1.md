@@ -416,7 +416,7 @@ campaign_spouse_household:
   prompt_text: { builder: buildCampaignSpouseHouseholdPrompt }
   capture_field: null
   extraction_tool: capture_spouse_household_data
-  retry_text: 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?'
+  retry_text: 'I need their annual income and whatever you know about their savings / ISA / investment / pension balances. Could you share what you have?'
   next: { branch: enterCampaignVerify }
 
 campaign_spouse_non_working_assets:

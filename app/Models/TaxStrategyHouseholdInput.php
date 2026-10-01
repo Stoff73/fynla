@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - single_earner_couple: spouse_existing_isa_balance / spouse_existing_savings_balance /
  *                         spouse_existing_investment_balance / spouse_existing_dividend_holdings_value /
  *                         spouse_existing_pension_balance
+ * - either mode: spouse_existing_savings_balance and spouse_annual_savings_interest
+ *   (the spouse's own savings, asked of a working spouse too since 2026-10-01)
  */
 class TaxStrategyHouseholdInput extends Model
 {
@@ -37,6 +39,7 @@ class TaxStrategyHouseholdInput extends Model
         // single_earner_couple fields
         'spouse_existing_isa_balance',
         'spouse_existing_savings_balance',
+        'spouse_annual_savings_interest',
         'spouse_existing_investment_balance',
         'spouse_existing_dividend_holdings_value',
         'spouse_existing_pension_balance',
@@ -55,6 +58,7 @@ class TaxStrategyHouseholdInput extends Model
         'spouse_pension_input_annual' => 'decimal:2',
         'spouse_existing_isa_balance' => 'decimal:2',
         'spouse_existing_savings_balance' => 'decimal:2',
+        'spouse_annual_savings_interest' => 'decimal:2',
         'spouse_existing_investment_balance' => 'decimal:2',
         'spouse_existing_dividend_holdings_value' => 'decimal:2',
         'spouse_existing_pension_balance' => 'decimal:2',

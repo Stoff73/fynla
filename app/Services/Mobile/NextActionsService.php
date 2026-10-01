@@ -620,6 +620,7 @@ class NextActionsService
             'savings_balances' => 'savings',
             'annual_income' => 'income',
             'spouse_income', 'spouse_income_amount' => "spouse's income",
+            'spouse_savings' => "spouse's savings",
             'expenditure' => 'spending',
             default => HouseholdFinancialContext::labelFor($missingKey),
         };
