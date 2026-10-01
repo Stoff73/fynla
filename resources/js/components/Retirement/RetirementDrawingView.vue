@@ -15,10 +15,14 @@
             <dt class="text-neutral-500">{{ line.label }}</dt>
             <dd class="font-medium text-horizon-500">{{ formatCurrency(line.amount) }}</dd>
           </div>
-          <div v-if="position.income.state_pension_missing" class="flex justify-between items-center gap-4">
-            <dt class="text-neutral-500">State Pension</dt>
+          <div v-if="position.income.state_pension_status === 'missing' || position.income.state_pension_status === 'not_paid'" class="flex justify-between items-center gap-4">
+            <dt class="text-neutral-500">
+              State Pension<template v-if="position.income.state_pension_status === 'not_paid'">: not recorded as being paid</template>
+            </dt>
             <dd>
-              <button type="button" class="text-sm font-semibold text-raspberry-500 hover:text-raspberry-600" @click="$emit('add-state-pension')">Add it</button>
+              <button type="button" class="text-sm font-semibold text-raspberry-500 hover:text-raspberry-600" @click="$emit('add-state-pension')">
+                {{ position.income.state_pension_status === 'missing' ? 'Add it' : 'Update' }}
+              </button>
             </dd>
           </div>
           <div class="flex justify-between gap-4 pt-2 border-t border-light-gray">

@@ -28,9 +28,9 @@
             <span class="m-detail-key">{{ line.label }}</span>
             <span class="m-detail-value">{{ fmt(line.amount) }}</span>
           </div>
-          <div v-if="drawing.income.state_pension_missing" class="m-detail-row">
-            <span class="m-detail-key">State Pension</span>
-            <button type="button" class="m-btn-ghost" @click="addStatePension">Add it</button>
+          <div v-if="drawing.income.state_pension_status === 'missing' || drawing.income.state_pension_status === 'not_paid'" class="m-detail-row">
+            <span class="m-detail-key">State Pension<template v-if="drawing.income.state_pension_status === 'not_paid'">: not recorded as being paid</template></span>
+            <button type="button" class="m-btn-ghost" @click="addStatePension">{{ drawing.income.state_pension_status === 'missing' ? 'Add it' : 'Update' }}</button>
           </div>
           <div class="m-detail-row">
             <span class="m-detail-key">Income Tax</span>
@@ -508,14 +508,25 @@ export default {
     lastsLabel(age) {
       return age === null ? `lasts beyond ${this.drawing.pot.end_age}` : `lasts to age ${age}`;
     },
-    // Adding a pension on /m goes through Fyn, as the screen's own add button does.
+    // On /m a pension is added or changed through Fyn: adding as the screen's
+    // own add button does, changing the recorded State Pension as its detail
+    // screen does.
     addStatePension() {
-      this.$refs.chrome?.openContextualFyn(buildContextualConversationRequest({
-        action: 'add',
-        resourceType: 'retirement',
-        currentDestination: { screen: 'retirement', params: {}, fallback: 'dashboard' },
-        origin: { kind: 'surface_action' },
-      }));
+      const recorded = this.drawing?.income?.state_pension_status === 'not_paid' && this.statePension?.id;
+      this.$refs.chrome?.openContextualFyn(buildContextualConversationRequest(recorded
+        ? {
+          action: 'edit',
+          resourceType: 'state_pension',
+          resourceId: this.statePension.id,
+          currentDestination: { screen: 'retirement', params: {}, fallback: 'dashboard' },
+          origin: { kind: 'surface_action' },
+        }
+        : {
+          action: 'add',
+          resourceType: 'retirement',
+          currentDestination: { screen: 'retirement', params: {}, fallback: 'dashboard' },
+          origin: { kind: 'surface_action' },
+        }));
     },
     fmt(v) { return formatCurrency(v); },
     goBack() { this.$router.push({ name: 'dashboard' }); },

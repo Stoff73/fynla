@@ -361,7 +361,7 @@ describe('mobile Retirement', () => {
           retired_since: { date: '2020-01-01', age: 61 },
           income: {
             lines: [{ key: 'drawdown_278', label: 'Drawdown from Aviva personal pension', amount: 30000 }],
-            state_pension_missing: true,
+            state_pension_status: 'missing',
             total: 30000, income_tax: 3486, national_insurance: 0, take_home: 26514,
           },
           pot: {

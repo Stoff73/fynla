@@ -137,16 +137,33 @@ class RetirementDrawdownPosition
 
         return [
             'lines' => $lines,
-            // Past State Pension age with none recorded as received: the
-            // card asks for it rather than leaving it out silently.
-            'state_pension_missing' => $age !== null
-                && $age >= $this->statePensionAge->forUser($user)
-                && ! $user->statePension?->already_receiving,
+            // Past State Pension age, the card says where the State Pension
+            // stands rather than leaving it out silently: 'paid' (a line above),
+            // 'missing' (nothing recorded) or 'not_paid' (recorded, not marked as
+            // being paid; the column is NOT NULL DEFAULT 0, so "never asked" and
+            // "put off" read the same, and the card's wording holds for both).
+            // It can be deferred, so it is never assumed from age
+            // (https://www.gov.uk/deferring-state-pension). Null before then.
+            'state_pension_status' => $this->statePensionStatus($user, $age),
             'total' => round($total, 2),
             'income_tax' => $incomeTax,
             'national_insurance' => $ni,
             'take_home' => round($total - $incomeTax - $ni, 2),
         ];
+    }
+
+    private function statePensionStatus(User $user, ?int $age): ?string
+    {
+        if ($age === null || $age < $this->statePensionAge->forUser($user)) {
+            return null;
+        }
+        $statePension = $user->statePension;
+
+        return match (true) {
+            $statePension === null => 'missing',
+            (bool) $statePension->already_receiving => 'paid',
+            default => 'not_paid',
+        };
     }
 
     /**

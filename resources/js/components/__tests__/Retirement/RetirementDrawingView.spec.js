@@ -8,7 +8,7 @@ const position = (pot = {}) => ({
   retired_since: { date: '2020-01-01', age: 61 },
   income: {
     lines: [{ key: 'drawdown_278', label: 'Drawdown from Aviva personal pension', amount: 30000 }],
-    state_pension_missing: true,
+    state_pension_status: 'missing',
     total: 30000, income_tax: 3486, national_insurance: 0, take_home: 26514,
   },
   pot: {
@@ -48,5 +48,15 @@ describe('RetirementDrawingView', () => {
     await wrapper.find('button').trigger('click');
 
     expect(wrapper.emitted('add-state-pension')).toHaveLength(1);
+  });
+
+  it('offers to update a State Pension not recorded as being paid', () => {
+    const p = position();
+    p.income.state_pension_status = 'not_paid';
+    const text = mount(RetirementDrawingView, { props: { position: p } }).text();
+
+    expect(text).toContain('State Pension: not recorded as being paid');
+    expect(text).toContain('Update');
+    expect(text).not.toContain('Add it');
   });
 });

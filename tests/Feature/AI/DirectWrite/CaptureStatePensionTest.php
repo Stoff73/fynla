@@ -169,7 +169,7 @@ it('records whether the State Pension is already being paid, so it counts as inc
     // Then it is in the retiree's income and no longer asked for.
     $income = app(RetirementDrawdownPosition::class)->for($user->fresh())['income'];
     expect(collect($income['lines'])->pluck('key')->all())->toContain('state_pension')
-        ->and($income['state_pension_missing'])->toBeFalse();
+        ->and($income['state_pension_status'])->toBe('paid');
 });
 
 it('updates only whether it is being paid on a record already on file', function () {

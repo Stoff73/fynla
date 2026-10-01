@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\DCPension;
+use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Retirement\RetirementAgeResolver;
@@ -95,7 +96,7 @@ describe('Pat: retired 2020, £200,000 drawing £30,000', function () {
             ->and($view['income']['national_insurance'])->toBe(0.0)
             ->and($view['income']['take_home'])->toBe(26514.0)
             // Born March 1958: State Pension age 66, nothing recorded as received.
-            ->and($view['income']['state_pension_missing'])->toBeTrue();
+            ->and($view['income']['state_pension_status'])->toBe('missing');
     });
 
     it('draws the pot down from today, never below £0, and says when it runs out', function (): void {
@@ -188,6 +189,23 @@ it('records from the web form that the State Pension is being paid, and counts i
 
     $income = app(RetirementDrawdownPosition::class)->for($pat->fresh())['income'];
     expect(collect($income['lines'])->firstWhere('key', 'state_pension')['amount'])->toBe(11502.4)
-        ->and($income['state_pension_missing'])->toBeFalse()
+        ->and($income['state_pension_status'])->toBe('paid')
         ->and($income['total'])->toBe(41502.4);
+});
+
+it('says a recorded State Pension is not recorded as being paid, and leaves it out of income', function (): void {
+    $pat = drawer();
+    StatePension::create(['user_id' => $pat->id, 'state_pension_forecast_annual' => 11502]);
+
+    $income = app(RetirementDrawdownPosition::class)->for($pat->fresh())['income'];
+
+    expect($income['state_pension_status'])->toBe('not_paid')
+        ->and(collect($income['lines'])->pluck('key')->all())->not->toContain('state_pension')
+        ->and($income['total'])->toBe(30000.0);
+});
+
+it('has no State Pension status before State Pension age', function (): void {
+    $view = app(RetirementDrawdownPosition::class)->for(drawer(['date_of_birth' => '1966-01-01', 'employment_status' => 'retired', 'retirement_date' => '2025-01-01']));
+
+    expect($view['income']['state_pension_status'])->toBeNull();
 });
