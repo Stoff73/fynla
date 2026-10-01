@@ -46,6 +46,33 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **Live on fynla.org, as the Carter demo household:** the same on the desktop web app, the web app at phone width and the mobile web app.
 - **Not tested: the iPhone app.** Its change ships with the next build.
 
+## Moving savings to the partner who pays less tax (1 October, about 09:59 and 10:11, releases #1037 and #1039)
+
+- **Every married couple and civil partnership can now be shown "Gift £X of savings to your spouse and save £Y in tax a year".** Before, only couples where one partner had no earnings saw it.
+- **The law behind it:** interest on savings you give your spouse outright is theirs for tax ([ITTOIA 2005 s626](https://www.legislation.gov.uk/ukpga/2005/5/section/626)). Each of you has your own Personal Allowance, starting rate for savings ([ITA 2007 s12](https://www.legislation.gov.uk/ukpga/2007/3/section/12)) and Personal Savings Allowance ([s12B](https://www.legislation.gov.uk/ukpga/2007/3/section/12B): £1,000 at the basic rate, £500 at the higher rate).
+- **How the saving is worked out:**
+  - The saving is what you stop paying, less what your partner starts paying, worked out on each of your whole incomes.
+  - It moves only the amount that saves the most. That amount comes from your highest-interest savings first and is rounded down to £100.
+  - Example: you earn £60,000 with £40,000 at 4.5%, and your partner earns £20,000. Moving £28,800 saves about £459 a year. Moving all £40,000 would save less, because your own £500 allowance already covers some of the interest.
+- **A retired partner's pension now counts.** Before, a partner was treated as having no income at all. A retired couple (you draw £25,000, your partner has a £14,000 pension, £60,000 at 4.5%) was told to move all £60,000. Now it is £37,700, saving about £339.
+- **We now ask about your partner's savings** (CSJ, 1 October):
+  - "Savings" is an option on the form for a partner who works.
+  - Both partner forms ask for "Interest they receive each year".
+  - Until we know their savings, the card waits with "Unlock spouse's savings info", and "Add it now" opens the form through Fyn.
+  - We don't ask when moving your interest could not save you anything.
+- **The steps say what your partner then pays,** for example "they pay about £105 a year on it, and you pay about £210 less". Release #1039, 12 minutes after #1037, made those figures add up to the saving shown (it had read £106 against a £105 saving).
+- **The 50/50 joint-account alternative is now worked out the same way.**
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps,** starting from a partner whose savings we didn't know:
+  - "Unlock spouse's savings info", then "Add it now", then Fyn's partner form with the new Savings option.
+  - After saving, the card: "Gift £17,700 of savings to your spouse and save £365 in tax a year", and its steps.
+  - On the mobile web app, savings given without the interest: the card keeps waiting, and the form reopens with the savings already filled in.
+- **Live on fynla.org, desktop and mobile web apps,** with walk accounts deleted afterwards:
+  - The same journey, giving the same £17,700 / £365 card.
+  - A partner who already earns £1,000 of interest: "Gift £11,700 … and save £105", with "they pay about £105 a year on it, and you pay about £210 less".
+- **A tax-compliance review** confirmed the law, the working and the example figures. Its wording and citation findings were fixed before release.
+
 ## Pension suggestions sized to what you can afford
 
 - **One figure decides what a pension payment can be:** the money you have left in a year after your spending, the payments you already make and your goals. Someone with no income at all is sized to their savings instead. A retiree drawing a pension has income, so they are sized to what is left of it like anyone else.
