@@ -92,6 +92,37 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **Live on fynla.org, desktop (full-size window) and mobile web apps:** a walk account made for the check showed the same card and steps. It was deleted afterwards.
 - **A tax-compliance review** confirmed the law, the sizing and the example figures. Its findings were fixed before release, apart from two noted under "Still to do".
 
+## The Retirement page for someone drawing their pension (1 October, about 14:20, release #1043)
+
+- **Someone retired, or drawing from a pension, now sees their retirement as it is,** not a saver's page. Before, a retiree of 68 drawing £30,000 a year from £200,000 was shown "Retirement Age 67, Years to Go 1", a retirement target, "Am I saving enough?" with a required capital of £478,723, and a pot projection that ignored the £30,000 drawn. Now, on the desktop and mobile web apps (CSJ: "Income + how long it lasts", for "anyone drawing from a pension", even while still working):
+  - **"Retired since January 2020, at 61"**, from the retirement date.
+  - **Your income this year:** each pension being drawn, the State Pension once it is being paid, any final salary pension in payment, earnings, and Income Tax. National Insurance shows on earnings only, and none past State Pension age ([Social Security Contributions and Benefits Act 1992 s6(3)](https://www.legislation.gov.uk/ukpga/1992/4/section/6)). Take-home is shown last. Pension income is taxable ([GOV.UK, tax on pension income](https://www.gov.uk/tax-on-pension)).
+  - **How long your pension lasts:** for the example, the middle outcome "runs out by about age 76" and the lower outcome (4 in 5 do better) by about 75. Life expectancy is "84 on average (Office for National Statistics)", and the income that would last to it in 4 out of 5 outcomes is about £14,300 a year. The card says: "These are projections, not guarantees. They assume the same £30,000 each year at your Lower-Medium risk level's returns, with no charges or inflation. Many people live longer than the average." (CSJ approved this wording, for Consumer Duty, [FCA PRIN 2A.5](https://www.handbook.fca.org.uk/handbook/PRIN/2A/5.html).)
+  - **The pot chart is drawn down from today.**
+- **Whether the State Pension is being paid is now asked.** Before, nothing recorded it, so a State Pension never counted as income anywhere in the app. It can be put off ([GOV.UK, deferring your State Pension](https://www.gov.uk/deferring-state-pension)), so it is asked, never assumed:
+  - "I am already being paid my State Pension" on the web form;
+  - the same question when Fyn records it;
+  - a new State Pension form that a Fyn edit opens on.
+
+  Past State Pension age, the income card says "State Pension: add it", "not recorded as being paid" or "amount not recorded" until it is known.
+- **The full new State Pension rate is right everywhere.** It was typed in as £221.20 a week (£11,502) under a 2026/27 label on both pension forms, the life-stage panel and the glossary, and as £11,973 on the pensions campaign page. 2026/27 is £241.30 a week, £12,547.60 a year ([GOV.UK](https://www.gov.uk/new-state-pension/what-youll-get)). All of them now read the tax settings.
+- **The pension forms ask "Taxable income drawn each year"** (CSJ). It is taxed in full, so any tax-free part, such as the tax-free quarter of a lump sum, is left out.
+- **Fyn's edit forms take pence.** A prefilled amount such as £11,502.40 could not be saved before, because the box took whole pounds only.
+- **Also from the tax review:**
+  - Gift Aid and relief-at-source pension payments extend the tax bands in the Income Tax shown ([ITA 2007 s414](https://www.legislation.gov.uk/ukpga/2007/3/section/414)).
+  - The income lines add up to the income that is taxed.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps,** as a retiree born in 1958, retired in 2020, with £200,000 drawing £30,000:
+  - the new view, at £26,514 take-home;
+  - the State Pension through the web form's new box, and on mobile through Update and Fyn's State Pension form: £11,502 counted, £5,786 Income Tax, £35,716 take-home;
+  - the "Taxable income drawn each year" label.
+- **Live on fynla.org, desktop and mobile web apps,** with a walk account deleted afterwards:
+  - the same view, and "not recorded as being paid" with Update;
+  - the form showing "£241.30/week (£12,548/year)";
+  - after ticking "being paid": State Pension £12,548, Income Tax £5,996, take-home £36,552 on both apps.
+- **A tax-compliance review** confirmed the law and figures. Its findings were fixed before release, apart from three listed under "Still to do".
+
 ## Pension suggestions sized to what you can afford
 
 - **One figure decides what a pension payment can be:** the money you have left in a year after your spending, the payments you already make and your goals. Someone with no income at all is sized to their savings instead. A retiree drawing a pension has income, so they are sized to what is left of it like anyone else.
@@ -132,6 +163,9 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 
 ## Still to do
 
+- Life expectancy uses the men's tables when no gender is recorded, which understates it for a woman.
+- Marriage Allowance received is not yet taken off the Income Tax shown on the Retirement page.
+- Fyn once said "Your State Pension record has been updated" when nothing was saved. Fyn is told not to, but nothing checks it.
 - With taxed savings interest, the £100,000 card can stop up to £500 short of a stretch that would save 60%. The figure shown is never overstated.
 - Whether earnings are recorded before or after salary sacrifice affects the relief limit when earnings are the limit; not yet checked.
 - The public Save Tax estimate still promises a partner top-up without checking affordability.
