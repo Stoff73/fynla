@@ -100,14 +100,20 @@ struct InvestmentAccountView: View {
 
     // m-hero — dark card: current value + contributions-this-year sub.
     private func hero(_ account: InvestmentAccount) -> some View {
-        MobileHeroCard(
-            label: "Current value",
+        // As /m: a joint account shows its full value and the viewer's share.
+        let shared = account.isShared == true
+        let share = shared
+            ? account.userSharePercent.map { "Your share (\(MoneyFormatter.percentage($0))): \(MoneyFormatter.gbpWhole(account.userShare ?? 0))" }
+            : nil
+        let contributed = account.contributionsYTD.flatMap { contributions in
+            contributions > 0
+                ? "\(MoneyFormatter.gbpWhole(contributions)) contributed this tax year"
+                : nil
+        }
+        return MobileHeroCard(
+            label: shared ? "Full value" : "Current value",
             metric: MoneyFormatter.gbpWhole(account.currentValue),
-            sub: account.contributionsYTD.flatMap { contributions in
-                contributions > 0
-                    ? "\(MoneyFormatter.gbpWhole(contributions)) contributed this tax year"
-                    : nil
-            }
+            sub: share ?? contributed
         )
         .accessibilityIdentifier("investment.account.value")
     }
@@ -124,7 +130,8 @@ struct InvestmentAccountView: View {
         } else {
             rows.append(("Ownership", titleCase(account.ownershipType) ?? "Individual"))
         }
-        if let contribution = account.monthlyContributionAmount, contribution > 0 {
+        // The server's monthly figure (ContributionEstimatorService), as web and /m show it.
+        if let contribution = account.monthlyContribution, contribution > 0 {
             rows.append(("Monthly contribution", MoneyFormatter.gbpWhole(contribution)))
         }
         return rows

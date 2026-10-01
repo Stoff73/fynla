@@ -94,7 +94,7 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 import { issueWebHandoff } from '../../navigation/webHandoff.js';
 // The ONE ownership home, shared with the desktop SPA (Rule 19 + Rule 20).
 // /m has its own bundle but not its own ownership arithmetic.
-import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 export default {
   name: 'MobileInvestment',
@@ -132,11 +132,9 @@ export default {
       return String(r).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     },
     totalValue() {
-      // The viewer's share, not the full value of every record. /m used to
-      // total the FULL value of joint accounts here while /m/app/net-worth
-      // counted the correct half — the same screen pair disagreeing by
-      // £47,500 on one account (W-0015).
-      return calculateTotalUserShare(this.accounts, { valueField: 'current_value' });
+      // The server's total at the viewer's share (GET /api/investment `summary`,
+      // the figure net worth and the dashboard read; CSJ 2026-10-01).
+      return Number(this.payload?.summary?.total_value) || 0;
     },
     accountCountLabel() {
       const n = this.accounts.length;

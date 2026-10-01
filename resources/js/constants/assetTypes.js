@@ -68,3 +68,29 @@ export function formatAssetType(assetType) {
 
   return ASSET_TYPE_LABELS[assetType] ?? '—';
 }
+
+/**
+ * The asset classes the server classifies holdings into for an allocation
+ * (`PortfolioExposureService::ASSET_CLASS_ORDER`, plus `unclassified`). Not the
+ * holding column's values: these are what the portfolio contract's allocation
+ * rows carry, and every screen showing an allocation labels them from here.
+ */
+export const ASSET_CLASS_LABELS = Object.freeze({
+  equities: 'Equities',
+  bonds: 'Bonds',
+  cash: 'Cash',
+  alternatives: 'Alternatives',
+  unclassified: 'Unclassified',
+});
+
+/**
+ * A server asset class's label; an em dash for one this vocabulary does not know.
+ *
+ * @param {string|null|undefined} assetClass
+ * @returns {string}
+ */
+export function formatAssetClass(assetClass) {
+  if (!assetClass) return '—';
+
+  return ASSET_CLASS_LABELS[assetClass] ?? '—';
+}
