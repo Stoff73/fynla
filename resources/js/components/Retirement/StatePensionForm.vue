@@ -45,7 +45,7 @@
               placeholder="e.g., 203.85"
             />
             <p class="text-xs text-neutral-500 mt-1">
-              Full new State Pension ({{ currentTaxYear }}): £221.20/week (£11,502/year)
+              Full new State Pension ({{ currentTaxYear }}): {{ fullStatePensionLabel }}
             </p>
           </div>
 
@@ -80,6 +80,20 @@
               class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
             <p class="text-xs text-neutral-500 mt-1">When did you check your forecast?</p>
+          </div>
+
+          <!-- Being paid now (TODO item 6): the Retirement page counts it as income
+               only once it is. It can be put off, so it is asked, never assumed. -->
+          <div class="flex items-start">
+            <input
+              id="already_receiving"
+              v-model="formData.already_receiving"
+              type="checkbox"
+              class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded mt-1"
+            />
+            <label for="already_receiving" class="ml-2 block text-sm text-neutral-500">
+              I am already being paid my State Pension
+            </label>
           </div>
 
           <!-- NI Gaps -->
@@ -173,6 +187,7 @@
 
 <script>
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { STATE_PENSION_WEEKLY, STATE_PENSION_ANNUAL } from '@/constants/taxConfig';
 
 export default {
   name: 'StatePensionForm',
@@ -199,6 +214,7 @@ export default {
         qualifying_years: null,
         forecast_date: null,
         has_ni_gaps: false,
+        already_receiving: false,
         gaps_years: null,
         estimated_gap_cost: null,
         notes: '',
@@ -213,6 +229,13 @@ export default {
 
     currentTaxYear() {
       return getCurrentTaxYear();
+    },
+
+    // From tax config, never typed in (Rule 2): it read £221.20 under a
+    // 2026/27 label (2026-10-01).
+    fullStatePensionLabel() {
+      const weekly = STATE_PENSION_WEEKLY.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `£${weekly}/week (£${Math.round(STATE_PENSION_ANNUAL).toLocaleString('en-GB')}/year)`;
     },
   },
 
@@ -232,6 +255,7 @@ export default {
           qualifying_years: this.statePension.ni_years_completed || null,
           forecast_date: null, // Not stored in backend
           has_ni_gaps: !!(this.statePension.ni_gaps && this.statePension.ni_gaps.length > 0),
+          already_receiving: !!this.statePension.already_receiving,
           gaps_years: this.statePension.ni_gaps ? this.statePension.ni_gaps.length : null,
           estimated_gap_cost: this.statePension.gap_fill_cost || null,
           notes: '', // Not stored in backend
@@ -280,6 +304,7 @@ export default {
         ni_gaps: this.formData.has_ni_gaps && this.formData.gaps_years ?
           Array(this.formData.gaps_years).fill({ year: 'Unknown', cost: 0 }) : null,
         gap_fill_cost: this.formData.has_ni_gaps ? this.formData.estimated_gap_cost : null,
+        already_receiving: !!this.formData.already_receiving,
       };
 
       this.$emit('save', dataToSend);

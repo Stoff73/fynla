@@ -26,6 +26,10 @@ effective_from: 2026-07-04
             "state_pension_age": {
                 "type": "integer",
                 "description": "The age at which the user expects to receive their State Pension."
+            },
+            "already_receiving": {
+                "type": "boolean",
+                "description": "Whether the user is already being paid their State Pension. Send true when the user says they receive it now, false when they say it has not started or they have put it off (deferred). Omit it when the user has not said."
             }
         },
         "required": [],

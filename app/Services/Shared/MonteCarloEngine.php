@@ -131,7 +131,10 @@ class MonteCarloEngine
 
             for ($month = 1; $month <= $totalMonths; $month++) {
                 $randomReturn = $this->generateNormal($monthlyReturn, $monthlyVolatility);
-                $value = $value * (1 + $randomReturn) + $monthlyContribution;
+                // A pot drawn on (a negative monthly amount) stops at £0 and stays
+                // there: an empty pension pays nothing and earns nothing. Every
+                // caller paying in is unaffected.
+                $value = max(0.0, $value * (1 + $randomReturn) + $monthlyContribution);
 
                 if ($month % 12 === 0) {
                     $value = $this->applyScheduledInjection($value, (int) ($month / 12), $scheduledInjections);

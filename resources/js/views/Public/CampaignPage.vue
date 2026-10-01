@@ -200,6 +200,7 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { STATE_PENSION_ANNUAL } from '@/constants/taxConfig';
 import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 import StaticFynChat from '@/components/Public/StaticFynChat.vue';
 
@@ -227,7 +228,7 @@ const CAMPAIGNS = {
     facts: [
       { stat: '10m+', text: 'UK workers are auto-enrolled into workplace pensions but most never increase their contributions beyond the minimum 5% \u2014 missing significant employer match potential.' },
       { stat: '\u00A3100k+', text: 'can be contributed in a single tax year by carrying forward up to 3 years of unused \u00A360,000 annual allowance \u2014 a powerful catch-up strategy most people overlook.' },
-      { stat: '35 years', text: 'of National Insurance contributions are needed for the full State Pension of \u00A311,973 per year. Check your record \u2014 you may be able to buy missing years at a significant return.' },
+      { stat: '35 years', text: 'of National Insurance contributions are needed for the full State Pension of \u00A3' + Math.round(STATE_PENSION_ANNUAL).toLocaleString('en-GB') + ' per year. Check your record \u2014 you may be able to buy missing years at a significant return.' },
     ],
     insightTags: ['Pensions'],
     insightLabel: 'pension',

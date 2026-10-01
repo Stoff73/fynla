@@ -215,7 +215,7 @@
           <div v-if="isDCType" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="annual_drawdown_income" class="block text-sm font-medium text-neutral-500 mb-2">
-                Income drawn each year (£) <span class="text-neutral-500 text-xs">(Optional)</span>
+                Taxable income drawn each year (£) <span class="text-neutral-500 text-xs">(Optional)</span>
               </label>
               <input
                 id="annual_drawdown_income"
@@ -226,7 +226,7 @@
                 class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., 18000.00"
               />
-              <p class="text-xs text-neutral-500 mt-1">Leave blank if you have not started drawing from it.</p>
+              <p class="text-xs text-neutral-500 mt-1">Leave out any tax-free part, such as the tax-free quarter of a lump sum. Leave blank if you have not started drawing from it.</p>
             </div>
             <div>
               <label for="pcls_taken" class="block text-sm font-medium text-neutral-500 mb-2">
@@ -671,7 +671,7 @@
                 placeholder="e.g., 203.85"
               />
               <p class="text-xs text-neutral-500 mt-1">
-                Full new State Pension ({{ currentTaxYear }}): £221.20/week (£11,502/year)
+                Full new State Pension ({{ currentTaxYear }}): {{ fullStatePensionLabel }}
               </p>
             </div>
 
@@ -824,6 +824,7 @@ import { allocationErrorMessage } from '@/utils/holdingsAllocation';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { STATE_PENSION_WEEKLY, STATE_PENSION_ANNUAL } from '@/constants/taxConfig';
 import {
   DB_SCHEME_TYPE_OPTIONS,
   DB_SCHEME_STATUS_OPTIONS,
@@ -981,6 +982,13 @@ export default {
 
     currentTaxYear() {
       return getCurrentTaxYear();
+    },
+
+    // From tax config, never typed in (Rule 2): it read £221.20 under a
+    // 2026/27 label (2026-10-01).
+    fullStatePensionLabel() {
+      const weekly = STATE_PENSION_WEEKLY.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `£${weekly}/week (£${Math.round(STATE_PENSION_ANNUAL).toLocaleString('en-GB')}/year)`;
     },
 
     profileRetirementAge() {

@@ -790,7 +790,13 @@ class RetirementProjectionService
         return $this->getUserRiskLevelWithSource($user)['level'];
     }
 
-    private function getUserRiskLevelWithSource(User $user): array
+    /**
+     * The risk level the pot is projected at, and where it came from. Public so the
+     * drawing view projects at the same returns (RetirementDrawdownPosition).
+     *
+     * @return array{level: string, source: string}
+     */
+    public function getUserRiskLevelWithSource(User $user): array
     {
         $riskProfile = $this->riskService->getRiskProfile($user->id);
         if ($riskProfile && isset($riskProfile['risk_level'])) {

@@ -27,6 +27,7 @@ use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RequiredCapitalCalculator;
+use App\Services\Retirement\RetirementDrawdownPosition;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionContractService;
 use App\Services\Retirement\RetirementProjectionService;
@@ -61,6 +62,7 @@ class RetirementController extends Controller
         private readonly AnnualAllowanceChecker $allowanceChecker,
         private readonly RetirementProjectionService $projectionService,
         private readonly RetirementProjectionContractService $projectionContractService,
+        private readonly RetirementDrawdownPosition $drawdownPosition,
         private readonly RetirementStrategyService $strategyService,
         private readonly RetirementIncomeService $retirementIncomeService,
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
@@ -158,6 +160,8 @@ class RetirementController extends Controller
 
         $projections = $this->projectionService->getProjections($user->id);
         $projections['planning_projection'] = $this->projectionContractService->build($user);
+        // The view for someone drawing their pension; null for a saver (TODO item 6).
+        $projections['drawdown_position'] = $this->drawdownPosition->for($user);
 
         return response()->json([
             'success' => true,

@@ -343,6 +343,65 @@ describe('mobile Retirement', () => {
     wrapper.unmount();
   });
 
+  it('shows someone drawing their pension their income and how long it lasts, not a saver target (TODO item 6)', async () => {
+    apiGet.mockImplementation(async (url) => {
+      if (url === '/api/retirement') {
+        return { ok: true, data: { data: {
+          profile: null,
+          dc_pensions: [{ id: 278, scheme_name: 'Aviva personal pension', current_fund_value: '200000.00' }],
+          db_pensions: [], state_pension: null, account_count: 1, account_limit: 5,
+        } } };
+      }
+
+      return { ok: true, data: { data: {
+        pension_pot_projection: { current_value: 200000, retirement_age: 67, years_to_retirement: 1 },
+        income_drawdown: null,
+        planning_projection: null,
+        drawdown_position: {
+          retired_since: { date: '2020-01-01', age: 61 },
+          income: {
+            lines: [{ key: 'drawdown_278', label: 'Drawdown from Aviva personal pension', amount: 30000 }],
+            state_pension_status: 'missing',
+            total: 30000, income_tax: 3486, national_insurance: 0, take_home: 26514,
+          },
+          pot: {
+            value: 200000, drawing_per_year: 30000, risk_level: 'lower_medium', risk_level_label: 'Lower-Medium',
+            expected_return: 3.5, current_age: 68, end_age: 100,
+            lasts_to_age: { middle: 76, lower: 75 },
+            life_expectancy: { age: 86, source: 'ons' },
+            income_to_last_to_life_expectancy: 13400,
+            year_by_year: [],
+          },
+        },
+      } } };
+    });
+    apiPost.mockResolvedValue({ ok: true, data: { success: true, data: { projected_income: null, target_income: null, years_to_retirement: null, guaranteed_annual_income: 0, total_pension_wealth: 200000 } } });
+
+    const wrapper = mount(Retirement, { global: { stubs: { MobileChrome: { template: '<main><slot /></main>' } } } });
+    await flushPromises();
+    const text = wrapper.text();
+
+    expect(wrapper.find('[data-testid="retirement-drawing-hero"] .m-metric').text()).toContain('£26,514');
+    expect(text).toContain('Retired since January 2020, at 61');
+    expect(text).toContain('Drawdown from Aviva personal pension£30,000');
+    expect(text).toContain('State PensionAdd it');
+    expect(text).toContain('Income Tax£3,486');
+    expect(text).toContain('Drawing £30,000 a year from £200,000');
+    expect(text).toContain('Middle outcome (half do better)runs out by about age 76');
+    expect(text).toContain('Lower outcome (4 in 5 do better)runs out by about age 75');
+    expect(text).toContain('These are projections, not guarantees.');
+    expect(text).toContain('Life expectancy (Office for National Statistics)86 on average');
+    expect(text).toContain('about £13,400 a year');
+    expect(text).toContain('Lower-Medium risk level');
+    // The saver's view is gone.
+    expect(wrapper.find('.mr-target').exists()).toBe(false);
+    expect(text).not.toContain('Years to retirement');
+    expect(text).not.toContain('Target income');
+    expect(text).not.toContain('Retirement income projection');
+
+    wrapper.unmount();
+  });
+
   it('renders reconciled planning income bands and disclosed assumptions without a median label', async () => {
     apiGet.mockImplementation(async (url) => {
       if (url === '/api/retirement') {
@@ -497,5 +556,23 @@ describe('mobile Retirement pension detail', () => {
     expect(apiGet).toHaveBeenCalledWith('/api/retirement/projections', null);
 
     wrapper.unmount();
+  });
+});
+
+describe('mobile Retirement State Pension update (TODO item 6)', () => {
+  it('opens Fyn on the recorded State Pension the way its detail screen does', () => {
+    const openContextualFyn = vi.fn();
+    Retirement.methods.addStatePension.call({
+      drawing: { income: { state_pension_status: 'not_paid' } },
+      statePension: { id: 42 },
+      $refs: { chrome: { openContextualFyn } },
+    });
+
+    expect(openContextualFyn).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'edit',
+      resource_type: 'state_pension',
+      resource_id: 42,
+      current_destination: { screen: 'pension_detail', params: { pension_id: 42, pension_type: 'state' }, fallback: 'retirement' },
+    }));
   });
 });

@@ -215,3 +215,28 @@ describe('FynCaptureForm', () => {
     expect(w.emitted('submit')[0][0]).toEqual({ name: 'spouse_details', answers: { _lead: { first_name: 'Jamie', email: 'jamie@example.com' } } });
   });
 });
+
+// TODO item 6 walk: a State Pension edit prefilled £11,502.40 could not be
+// saved, because the money box took whole pounds only and the browser refused
+// the form. Money keeps its pence.
+import { mount as mountMoney } from '@vue/test-utils';
+import FynCaptureFormMoney from '@/components/Fyn/FynCaptureForm.vue';
+
+describe('money fields take pence', () => {
+  it('lets a prefilled amount with pence be submitted', () => {
+    const wrapper = mountMoney(FynCaptureFormMoney, {
+      props: {
+        schema: {
+          name: 'state_pension',
+          lead_fields: ['forecast_annual'],
+          kinds: [],
+          fields: { forecast_annual: { type: 'money', label: 'State Pension a year', required: false } },
+        },
+        values: { _lead: { forecast_annual: 11502.4 } },
+      },
+    });
+    const input = wrapper.find('input[type="number"]');
+
+    expect(input.attributes('step')).toBe('0.01');
+  });
+});

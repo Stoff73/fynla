@@ -1850,6 +1850,14 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "annual_dividend_income": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -1957,6 +1965,22 @@
                                     ]
                                 },
                                 "has_flexibly_accessed": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "annual_drawdown_income": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "pcls_taken": {
                                     "type": [
                                         "string",
                                         "number",
@@ -3143,6 +3167,14 @@
                 "spouse_pension_provider": {
                     "type": "string",
                     "description": "Name of the spouse's pension provider or scheme (e.g. \"Aviva\" from \"an Aviva pension\"), when stated."
+                },
+                "spouse_existing_savings_balance": {
+                    "type": "number",
+                    "description": "Spouse's own savings balance outside ISAs, in pounds, when stated."
+                },
+                "spouse_annual_savings_interest": {
+                    "type": "number",
+                    "description": "Interest the spouse receives each year on their own savings (not ISAs), in pounds. Set it only when stated; leave it out when unknown rather than guessing."
                 }
             },
             "required": [],
@@ -3162,6 +3194,10 @@
                 "spouse_existing_savings_balance": {
                     "type": "number",
                     "description": "Spouse's existing standalone bank/savings balance."
+                },
+                "spouse_annual_savings_interest": {
+                    "type": "number",
+                    "description": "Interest the spouse receives each year on their own savings (not ISAs), in pounds. Set it only when stated; leave it out when unknown rather than guessing."
                 },
                 "spouse_existing_investment_balance": {
                     "type": "number",
@@ -3276,6 +3312,10 @@
                 "state_pension_age": {
                     "type": "integer",
                     "description": "The age at which the user expects to receive their State Pension."
+                },
+                "already_receiving": {
+                    "type": "boolean",
+                    "description": "Whether the user is already being paid their State Pension. Send true when the user says they receive it now, false when they say it has not started or they have put it off (deferred). Omit it when the user has not said."
                 }
             },
             "required": [],

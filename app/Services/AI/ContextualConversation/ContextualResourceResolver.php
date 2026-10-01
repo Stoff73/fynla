@@ -254,7 +254,10 @@ final class ContextualResourceResolver
                 null,
                 [],
                 'retirement',
-                ['ni_years_completed', 'ni_years_required', 'state_pension_forecast_annual', 'state_pension_age'],
+                // already_receiving: whether it is paid now, which decides whether
+                // it counts as income (TODO item 6). Without it here an "it's
+                // being paid" edit had no field to land in.
+                ['ni_years_completed', 'ni_years_required', 'state_pension_forecast_annual', 'state_pension_age', 'already_receiving'],
             ],
             'goal' => [
                 Goal::class,
