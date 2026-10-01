@@ -7,8 +7,9 @@
           Emergency Fund Status
         </h3>
         <EmergencyFundGauge
-          :runway-months="emergencyFundRunway"
-          :target-months="targetMonths"
+          :percent="fund.covered_percent || 0"
+          :status="fund.status"
+          :figure="fund.runway_figure || ''"
         />
         <p class="text-center text-sm text-neutral-500 mt-4">
           {{ statusMessage }}
@@ -58,7 +59,7 @@
         <div class="space-y-4">
           <div>
             <div class="flex justify-between mb-1">
-              <span class="text-sm text-neutral-500">Target Fund</span>
+              <span class="text-sm text-neutral-500">Target Fund ({{ targetMonths }} {{ targetMonths === 1 ? 'month' : 'months' }})</span>
               <span class="text-sm font-semibold">{{ formatCurrency(targetAmount) }}</span>
             </div>
             <div class="w-full bg-savannah-200 rounded-full h-2">
@@ -93,43 +94,16 @@
               </span>
             </p>
           </div>
+          <p v-if="rationale" class="text-sm text-neutral-500">{{ rationale }}</p>
         </div>
       </div>
     </div>
 
-    <!-- Adjust Target -->
-    <div class="bg-white rounded-lg border border-light-gray p-6">
-      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Adjust Target</h3>
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-neutral-500 mb-2">
-          Target Months of Expenses
-        </label>
-        <input
-          v-model.number="targetMonths"
-          type="range"
-          min="3"
-          max="12"
-          step="1"
-          class="w-full"
-        />
-        <div class="flex justify-between text-sm text-neutral-500 mt-1">
-          <span>3 months</span>
-          <span class="font-semibold text-horizon-500">{{ targetMonths }} months</span>
-          <span>12 months</span>
-        </div>
-      </div>
-      <div class="p-4 bg-eggshell-500 rounded-lg">
-        <p class="text-sm text-neutral-500">
-          With {{ targetMonths }} months of expenses, your target emergency fund would be
-          <span class="font-semibold">{{ formatCurrency(targetAmount) }}</span>
-        </p>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex';
+import { mapGetters } from 'vuex';
 import EmergencyFundGauge from './EmergencyFundGauge.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -141,48 +115,27 @@ export default {
     EmergencyFundGauge,
   },
 
-  data() {
-    return {
-      targetMonths: 6,
-    };
-  },
-
   computed: {
-    ...mapState('savings', ['expenditureProfile', 'analysis', 'accounts']),
-    ...mapGetters('savings', ['emergencyFundRunway', 'monthlyExpenditure', 'emergencyFundTotal']),
+    ...mapGetters('savings', ['emergencyFund', 'monthlyExpenditure', 'emergencyFundTotal']),
 
-    expenditure() {
-      if (!this.expenditureProfile) {
-        return {
-          housing: 0,
-          food: 0,
-          utilities: 0,
-          other: 0,
-        };
-      }
-
-      return {
-        housing: parseFloat(this.expenditureProfile.monthly_housing) || 0,
-        food: parseFloat(this.expenditureProfile.monthly_food) || 0,
-        utilities: parseFloat(this.expenditureProfile.monthly_utilities) || 0,
-        other: (parseFloat(this.expenditureProfile.monthly_transport) || 0) +
-               (parseFloat(this.expenditureProfile.monthly_insurance) || 0) +
-               (parseFloat(this.expenditureProfile.monthly_loans) || 0) +
-               (parseFloat(this.expenditureProfile.monthly_discretionary) || 0),
-      };
+    // Every figure is the server's (SavingsPosition, CSJ 2026-10-01): the target
+    // from the user's own employment, the share covered and what is still
+    // needed. The page's own six-month slider worked a second target out in the
+    // browser and is gone.
+    fund() {
+      return this.emergencyFund || {};
     },
 
     monthlyTotal() {
-      // Use total_monthly_expenditure directly since we don't have breakdown
-      if (this.expenditureProfile?.total_monthly_expenditure) {
-        return parseFloat(this.expenditureProfile.total_monthly_expenditure) || 0;
-      }
-      // Fallback to summing breakdown if it exists
-      return Object.values(this.expenditure).reduce((sum, val) => sum + val, 0);
+      return this.monthlyExpenditure;
+    },
+
+    targetMonths() {
+      return Number(this.fund.target_months) || 0;
     },
 
     targetAmount() {
-      return this.monthlyTotal * this.targetMonths;
+      return Number(this.fund.target_amount) || 0;
     },
 
     currentAmount() {
@@ -190,18 +143,15 @@ export default {
     },
 
     shortfall() {
-      return Math.max(0, this.targetAmount - this.currentAmount);
+      return Number(this.fund.shortfall) || 0;
     },
 
     currentAmountPercentage() {
-      if (this.targetAmount === 0) return 0;
-      return Math.min((this.currentAmount / this.targetAmount) * 100, 100);
+      return Number(this.fund.covered_percent) || 0;
     },
 
     currentAmountBarColour() {
-      if (this.currentAmountPercentage >= 100) return 'bg-spring-600';
-      if (this.currentAmountPercentage >= 50) return 'bg-raspberry-500';
-      return 'bg-raspberry-600';
+      return { on_track: 'bg-spring-600', part: 'bg-violet-500', low: 'bg-raspberry-600' }[this.fund.status] || 'bg-spring-600';
     },
 
     hasExpenditure() {
@@ -210,15 +160,13 @@ export default {
 
     statusMessage() {
       if (!this.hasExpenditure) {
-        return 'Please add your monthly expenditure to calculate emergency fund runway.';
+        return this.fund.runway_hint || '';
       }
-      if (this.emergencyFundRunway >= 6) {
-        return 'Excellent! Your emergency fund exceeds the recommended 6-month target.';
-      } else if (this.emergencyFundRunway >= 3) {
-        return 'Good progress. Consider building up to 6 months of expenses.';
-      } else {
-        return 'Priority: Build your emergency fund to at least 3-6 months of expenses.';
-      }
+      return [this.fund.runway_label, this.fund.covered_label].filter(Boolean).join(', ');
+    },
+
+    rationale() {
+      return this.fund.rationale || '';
     },
   },
 

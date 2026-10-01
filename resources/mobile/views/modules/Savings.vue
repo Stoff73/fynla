@@ -100,7 +100,7 @@
             <span class="ms-ef__label">{{ runwayCovered }}</span>
           </div>
           <!-- W-0495. Same prompt and same hint as the desktop overview. -->
-          <p v-if="runwayMonths == null" class="m-sub" style="margin:6px 0 0">{{ runwayUnavailableHint }}</p>
+          <p v-if="runwayHint" class="m-sub" style="margin:6px 0 0">{{ runwayHint }}</p>
         </div>
         <p v-if="emergencyRationale" class="m-sub" style="margin:10px 0 0">{{ emergencyRationale }}</p>
       </div>
@@ -157,8 +157,7 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 // The one home for the ownership-share rule, shared with the desktop bundle
 // (Rule 20). `/m` reaches it by relative path, as the investment, property and
 // savings-account screens already do.
-import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
-import { RUNWAY_UNAVAILABLE_HINT, runwayLabel } from '../../../js/utils/emergencyRunway.js';
+import { calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 export default {
   name: 'MobileSavings',
@@ -185,87 +184,32 @@ export default {
       });
     },
     isaAllowance() { return this.payload?.isa_allowance || null; },
-    emergencyTargetData() { return this.payload?.emergency_fund_target || null; },
-    expenditure() { return this.payload?.expenditure_profile || null; },
-
-    // The cash this viewer owns, not the cash on the records they can see.
-    //
-    // This summed `full_balance`, so a joint account was counted whole against
-    // BOTH spouses — and every figure below it (runway, the bar, "% of target")
-    // inherited that. The account detail screen has always shown the share, so
-    // `/m` contradicted itself one tap apart. Mirrors the `/m` investment list,
-    // which already reads this helper.
-    totalCash() {
-      return calculateTotalUserShare(this.accounts, { valueField: 'current_balance' });
-    },
+    // Every figure below is the server's (SavingsPosition, CSJ 2026-10-01: one
+    // figure, every surface): web and iOS render the same block. Nothing here
+    // adds up accounts, divides by spending or works out a percentage.
+    position() { return this.payload?.position || {}; },
+    fund() { return this.position.emergency_fund || {}; },
+    isa() { return this.position.isa || {}; },
+    totalCash() { return Number(this.position.total_cash) || 0; },
     accountCountLabel() {
       const n = this.accounts.length;
       if (n === 0) return 'No accounts added yet.';
       return `Across ${n} ${n === 1 ? 'account' : 'accounts'}.`;
     },
+    targetMonths() { return Number(this.fund.target_months) || 0; },
+    emergencyTarget() { return Number(this.fund.target_amount) || 0; },
+    emergencyRationale() { return this.fund.rationale || ''; },
+    runwayLabel() { return this.fund.runway_label || ''; },
+    runwayHint() { return this.fund.runway_hint || ''; },
+    runwayCovered() { return this.fund.covered_label || ''; },
+    runwayBarWidth() { return `${Number(this.fund.covered_percent) || 0}%`; },
+    runwayStatus() { return { on_track: 'spring', part: 'violet', low: 'raspberry' }[this.fund.status] || 'spring'; },
 
-    monthlyExpenditure() {
-      return Number(this.expenditure?.total_monthly_expenditure || 0);
-    },
-    targetMonths() {
-      return Number(this.emergencyTargetData?.target_months || 6);
-    },
-    emergencyTarget() {
-      return Number(this.emergencyTargetData?.target_amount || 0);
-    },
-    emergencyRationale() {
-      return this.emergencyTargetData?.rationale || '';
-    },
-    runwayMonths() {
-      if (this.monthlyExpenditure <= 0) return null;
-      return this.totalCash / this.monthlyExpenditure;
-    },
-    runwayBarWidth() {
-      if (this.emergencyTarget <= 0) return this.totalCash > 0 ? '100%' : '0%';
-      return `${Math.min((this.totalCash / this.emergencyTarget) * 100, 100)}%`;
-    },
-    runwayStatus() {
-      if (this.emergencyTarget <= 0) return 'spring';
-      const pct = (this.totalCash / this.emergencyTarget) * 100;
-      if (pct >= 100) return 'spring';
-      if (pct >= 50) return 'violet';
-      return 'raspberry';
-    },
-    // One wording on every surface (Rule 20), composed in
-    // `js/utils/emergencyRunway.js` — the same file the desktop savings overview
-    // imports, not a mobile copy of it. It keeps the W-0276 basis ("from cash
-    // savings", not "of cover", because the runway divides ALL cash by monthly
-    // spend including money in notice and fixed-term accounts) and replaces this
-    // component's own "Runway unavailable" with the prompt W-0495 asked for.
-    runwayLabel() {
-      return runwayLabel(this.runwayMonths);
-    },
-
-    runwayUnavailableHint: () => RUNWAY_UNAVAILABLE_HINT,
-    runwayCovered() {
-      if (this.emergencyTarget <= 0) return '';
-      const pct = Math.round((this.totalCash / this.emergencyTarget) * 100);
-      return `${Math.min(pct, 100)}% of target`;
-    },
-
-    isaTotal() { return Number(this.isaAllowance?.total_allowance || 0); },
-    isaUsed() { return Number(this.isaAllowance?.total_used || 0); },
-    isaRemaining() { return Number(this.isaAllowance?.remaining || 0); },
-    isaPct() {
-      if (this.isaAllowance?.percentage_used != null) return Number(this.isaAllowance.percentage_used);
-      if (this.isaTotal <= 0) return 0;
-      return (this.isaUsed / this.isaTotal) * 100;
-    },
-    isaBarWidth() { return `${Math.min(this.isaPct, 100)}%`; },
-    isaStatus() {
-      if (this.isaPct >= 100) return 'spring';
-      if (this.isaPct >= 80) return 'violet';
-      return 'spring';
-    },
-    isaRemainingLabel() {
-      if (this.isaPct >= 100 || this.isaRemaining <= 0) return 'Fully used';
-      return `${this.fmt(this.isaRemaining)} remaining`;
-    },
+    isaTotal() { return Number(this.isa.total_allowance) || 0; },
+    isaUsed() { return Number(this.isa.used) || 0; },
+    isaBarWidth() { return `${Number(this.isa.percent_used) || 0}%`; },
+    isaStatus() { return this.isa.status === 'nearly' ? 'violet' : 'spring'; },
+    isaRemainingLabel() { return this.isa.remaining_label || ''; },
   },
   async created() {
     await this.load();

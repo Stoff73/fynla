@@ -13,7 +13,11 @@ struct SavingsTests {
         #expect(snapshot.isAtAccountLimit)
         #expect(snapshot.bankAccounts.map(\.id) == [11])
         #expect(snapshot.cashISAs.map(\.id) == [12])
-        #expect(snapshot.totalCash == Decimal(32500))
+        // The server's total at the user's share (22,500), never the full joint
+        // balances added up on the device (32,500) (CSJ 2026-10-01).
+        #expect(snapshot.totalCash == Decimal(22500))
+        #expect(snapshot.position?.emergencyFund.runwayLabel == "7.5 months from cash savings")
+        #expect(snapshot.position?.isa.remainingLabel == "£12,000 remaining")
         #expect(snapshot.emergencyFundTarget.targetAmount == Decimal(18000))
         #expect(snapshot.isaAllowance?.remaining == Decimal(12000))
         #expect(snapshot.isaAllowance?.taxYear == "2026/27")

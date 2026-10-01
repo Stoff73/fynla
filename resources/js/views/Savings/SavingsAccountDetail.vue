@@ -233,52 +233,27 @@ export default {
       return this.account.full_balance ?? this.account.current_balance ?? 0;
     },
 
+    // The server's figures (SavingsController, SavingsAccount): the user's
+    // share, the interest and the time to maturity are fetched, not worked
+    // out here (CSJ 2026-10-01: one figure, every surface).
     userShare() {
-      if (!this.account) return 0;
-      // Single-record pattern: Use user_share from API if available
-      if (this.account.user_share !== undefined) {
-        return this.account.user_share;
-      }
-      // Fallback: calculate from full balance
-      if (this.account.ownership_type === 'joint' && this.account.ownership_percentage) {
-        return this.fullBalance * (this.account.ownership_percentage / 100);
-      }
-      return this.fullBalance;
+      return Number(this.account?.user_share) || 0;
     },
 
     monthlyInterest() {
-      if (!this.account) return 0;
-      return (this.account.current_balance * (this.account.interest_rate / 100)) / 12;
+      return Number(this.account?.monthly_interest) || 0;
     },
 
     annualInterest() {
-      if (!this.account) return 0;
-      return this.account.current_balance * (this.account.interest_rate / 100);
+      return Number(this.account?.annual_interest) || 0;
     },
 
     isMatured() {
-      if (!this.account || !this.account.maturity_date) return false;
-      return new Date(this.account.maturity_date) < new Date();
+      return this.account?.time_to_maturity === 'Matured';
     },
 
     calculateTimeToMaturity() {
-      if (!this.account || !this.account.maturity_date) return 'N/A';
-
-      const today = new Date();
-      const maturity = new Date(this.account.maturity_date);
-      const diffTime = maturity - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays <= 0) return 'Matured';
-      if (diffDays < 31) return `${diffDays} days`;
-
-      const diffMonths = Math.ceil(diffDays / 30.44);
-      const years = Math.floor(diffMonths / 12);
-      const months = diffMonths % 12;
-
-      if (years === 0) return `${months} month${months !== 1 ? 's' : ''}`;
-      if (months === 0) return `${years} year${years !== 1 ? 's' : ''}`;
-      return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`;
+      return this.account?.time_to_maturity || 'N/A';
     },
   },
 

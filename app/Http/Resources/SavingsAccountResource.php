@@ -53,6 +53,11 @@ class SavingsAccountResource extends JsonResource
                 $this->access_type === 'fixed',
                 $this->maturity_date?->toDateString()
             ),
+            // Printed as sent on every surface (SavingsAccount::timeToMaturityLabel).
+            'time_to_maturity' => $this->when(
+                $this->access_type === 'fixed',
+                fn () => $this->resource->timeToMaturityLabel()
+            ),
 
             // ISA fields
             'is_isa' => $this->is_isa,
