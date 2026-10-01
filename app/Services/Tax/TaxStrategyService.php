@@ -72,4 +72,72 @@ final class TaxStrategyService
 
         return $payload;
     }
+
+    /**
+     * What the Tax Strategy screens decide from the figures, decided once here
+     * (CSJ 2026-10-01: one figure, every surface). Web, /m and iOS each worked
+     * these out, and iOS missed the budget cap, so a capped pension tile read
+     * "Fully used".
+     *
+     * - Each allowance gets `tile_state`: unavailable, unconfirmed,
+     *   budget_capped (brought to £0 by what is affordable, not by use), full or
+     *   open, and `budget_limited` when affordability lowered the figure. Each
+     *   surface words the state in its own approved copy.
+     * - `summary`: the saving the header leads with (the composed plan's total,
+     *   which leaves out the smaller of each conflicting pair; the plain sum of
+     *   the recommendations only when no composed plan is attached), the counts
+     *   of actions and warnings, and how many allowances have headroom. No total
+     *   of headroom: allowances of different kinds cannot be added.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function withDisplayState(array $payload): array
+    {
+        foreach (['user_allowances', 'spouse_allowances'] as $list) {
+            foreach ((array) ($payload[$list] ?? []) as $i => $a) {
+                $payload[$list][$i] = array_merge($a, $this->tileState($a));
+            }
+        }
+
+        $recommendations = (array) ($payload['recommendations'] ?? []);
+        $actions = array_filter($recommendations, fn ($r): bool => ($r['category'] ?? null) !== 'warning');
+        $composed = $payload['composed_plan']['combined_annual_saving'] ?? null;
+
+        $payload['summary'] = [
+            'total_saving' => round((float) ($composed ?? array_sum(array_map(
+                fn ($r): float => (float) ($r['estimated_annual_tax_saved'] ?? 0),
+                $actions,
+            ))), 2),
+            'actionable_count' => count(array_filter($actions, fn ($r): bool => (float) ($r['estimated_annual_tax_saved'] ?? 0) > 0)),
+            'warning_count' => count($recommendations) - count($actions),
+            'headroom_count' => count(array_filter(
+                (array) ($payload['user_allowances'] ?? []),
+                fn ($a): bool => ($a['tile_state'] ?? null) === 'open',
+            )),
+        ];
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $a
+     * @return array{tile_state: string, budget_limited: bool}
+     */
+    private function tileState(array $a): array
+    {
+        $remaining = (float) ($a['remaining'] ?? 0);
+        $budgetLimited = array_key_exists('affordable_this_year', $a)
+            && $remaining < (float) ($a['amount'] ?? 0) - (float) ($a['used'] ?? 0) - 0.5;
+
+        $state = match (true) {
+            ($a['available'] ?? true) === false => 'unavailable',
+            ($a['known'] ?? true) === false => 'unconfirmed',
+            $budgetLimited && $remaining <= 0 => 'budget_capped',
+            (float) ($a['utilisation_pct'] ?? 0) >= 100 || $remaining <= 0 => 'full',
+            default => 'open',
+        };
+
+        return ['tile_state' => $state, 'budget_limited' => $budgetLimited];
+    }
 }

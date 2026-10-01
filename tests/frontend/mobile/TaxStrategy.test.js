@@ -11,28 +11,12 @@ describe('mobile Tax Strategy', () => {
     expect(message).not.toContain('well-utilised');
   });
 
-  it('does not count an unconfirmed allowance as known headroom', () => {
-    const headroom = TaxStrategy.computed.headroom.call({
-      userAllowances: [
-        { key: 'isa_allowance', available: true, known: false, utilisation_pct: 0, remaining: 0 },
-        { key: 'pension_annual_allowance', available: true, known: true, utilisation_pct: 20, remaining: 48000 },
-      ],
-    });
-
-    expect(headroom).toHaveLength(1);
-    expect(headroom[0].key).toBe('pension_annual_allowance');
-  });
-
-  it('counts any known positive remainder without adding unlike allowances together', () => {
-    const headroom = TaxStrategy.computed.headroom.call({
-      userAllowances: [
-        { key: 'isa_allowance', available: true, known: true, utilisation_pct: 95, remaining: 1000 },
-        { key: 'pension_annual_allowance', available: true, known: true, utilisation_pct: 20, remaining: 48000 },
-        { key: 'personal_allowance', available: true, known: true, utilisation_pct: 100, remaining: 0 },
-      ],
-    });
-
-    expect(headroom.map((item) => item.key)).toEqual(['isa_allowance', 'pension_annual_allowance']);
+  // The count is the server's (TaxStrategyService summary.headroom_count, which
+  // leaves out unconfirmed allowances and never adds unlike allowances); /m
+  // shows it as sent (CSJ 2026-10-01).
+  it('shows the server\'s count of allowances with headroom', () => {
+    expect(TaxStrategy.computed.headroomCount.call({ dashboard: { summary: { headroom_count: 2 } } })).toBe(2);
+    expect(TaxStrategy.computed.headroomCount.call({ dashboard: {} })).toBe(0);
   });
 
   it('labels allowance use as unconfirmed instead of showing false availability', () => {
@@ -43,6 +27,7 @@ describe('mobile Tax Strategy', () => {
       known: false,
       utilisation_pct: 0,
       remaining: 0,
+      tile_state: 'unconfirmed',
     });
 
     expect(label).toBe('Current-year use not confirmed');

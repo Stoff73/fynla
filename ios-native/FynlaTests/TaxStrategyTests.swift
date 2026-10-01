@@ -11,6 +11,9 @@ struct TaxStrategyTests {
         #expect(dashboard.taxYear == "2026/27")
         #expect(dashboard.isHousehold)
         #expect(dashboard.headroomCount == 1)
+        // The tile's words follow the server's state (audit item 41).
+        #expect(dashboard.userAllowances[0].remainingLabel == "£12,000 available")
+        #expect(dashboard.userAllowances[1].remainingLabel == "Fully used")
         #expect(dashboard.openRecommendations.map(\.type) == ["isa_topup_vs_psa"])
         #expect(dashboard.householdRecommendations.count == 1)
         #expect(dashboard.completedRecommendations.map(\.type) == ["bed_and_isa"])

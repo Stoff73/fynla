@@ -141,21 +141,18 @@ export default {
     return { marking: null };
   },
   computed: {
-    ...mapGetters('taxStrategy', ['recommendations', 'composedPlan', 'userAllowances']),
+    ...mapGetters('taxStrategy', ['recommendations', 'composedPlan', 'summary']),
     // The composed plan is the list /m and iOS render and the actions list
     // carries (handover 2026-09-25, Plan C); the calculator's own list is the
     // fallback only while a payload without it is loaded.
     planItems() {
       return this.composedPlan?.items ?? this.recommendations;
     },
-    // Same rule and words as /m (resources/mobile/views/TaxStrategy.vue
-    // emptyRecommendationsMessage): "well-utilised" only when no allowance has
-    // known headroom.
+    // Same words as /m (resources/mobile/views/TaxStrategy.vue
+    // emptyRecommendationsMessage): "well-utilised" only when the server counts
+    // no allowance with headroom (TaxStrategyService summary).
     emptyMessage() {
-      const headroom = (this.userAllowances || []).filter(
-        (a) => a.available !== false && a.known !== false && Number(a.remaining) > 0,
-      ).length;
-      return headroom > 0
+      return Number(this.summary?.headroom_count) > 0
         ? 'No additional recommended actions are available from the information on file right now. Your unused allowances are shown below.'
         : 'Your allowances are well-utilised — nothing to act on right now.';
     },

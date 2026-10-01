@@ -20,38 +20,27 @@ export default {
   name: 'TaxYearHeader',
   mixins: [currencyMixin],
   computed: {
-    ...mapGetters('taxStrategy', ['taxYear', 'recommendations', 'composedPlan', 'userAllowances']),
+    ...mapGetters('taxStrategy', ['taxYear', 'summary']),
     // "well-utilised" is only true when no allowance has known headroom (the
     // /m rule, resources/mobile/views/TaxStrategy.vue).
+    // Every figure is the server's (TaxStrategyService::withDisplayState, CSJ
+    // 2026-10-01), the same /m and iOS read: the composed plan's total, the
+    // counts of actions and warnings and the allowances with headroom.
     knownHeadroomCount() {
-      return (this.userAllowances || []).filter(
-        (a) => a.available !== false && a.known !== false && Number(a.remaining) > 0,
-      ).length;
+      return Number(this.summary.headroom_count) || 0;
     },
     ...mapGetters('auth', ['currentUser']),
     firstName() {
       return this.currentUser?.first_name || 'there';
     },
     totalSavings() {
-      // Prefer the composed plan's realisable total — it excludes the
-      // lower-saving member of each conflict pair, matching the figure Fyn
-      // quotes in the chat synthesis. Fall back to the raw sum when the
-      // composed plan is absent (older cached payloads).
-      const composed = Number(this.composedPlan?.combined_annual_saving);
-      if (Number.isFinite(composed) && composed > 0) {
-        return composed;
-      }
-      return this.recommendations
-        .filter((r) => r.category !== 'warning')
-        .reduce((sum, r) => sum + (Number(r.estimated_annual_tax_saved) || 0), 0);
+      return Number(this.summary.total_saving) || 0;
     },
     actionableCount() {
-      return this.recommendations.filter(
-        (r) => r.category !== 'warning' && Number(r.estimated_annual_tax_saved) > 0,
-      ).length;
+      return Number(this.summary.actionable_count) || 0;
     },
     warningCount() {
-      return this.recommendations.filter((r) => r.category === 'warning').length;
+      return Number(this.summary.warning_count) || 0;
     },
     headline() {
       if (this.totalSavings >= 1) {

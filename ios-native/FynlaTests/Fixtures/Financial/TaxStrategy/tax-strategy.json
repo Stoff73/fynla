@@ -11,7 +11,9 @@
         "remaining": 12000,
         "utilisation_pct": 40,
         "available": true,
-        "known": true
+        "known": true,
+        "tile_state": "open",
+        "budget_limited": false
       },
       {
         "key": "pension",
@@ -21,7 +23,9 @@
         "remaining": 0,
         "utilisation_pct": 100,
         "available": true,
-        "known": true
+        "known": true,
+        "tile_state": "full",
+        "budget_limited": false
       }
     ],
     "spouse_allowances": [
@@ -36,6 +40,7 @@
         "known": true
       }
     ],
+    "summary": {"total_saving": 2450, "actionable_count": 1, "warning_count": 0, "headroom_count": 1},
     "composed_plan": {
       "combined_annual_saving": 2450,
       "items": [

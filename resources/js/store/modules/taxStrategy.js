@@ -77,6 +77,8 @@ const CATEGORY_LABELS = {
 
 const getters = {
   userAllowances: (s) => s.dashboard?.user_allowances ?? [],
+  // The header's figures, decided on the server (TaxStrategyService::withDisplayState).
+  summary: (s) => s.dashboard?.summary ?? {},
   /**
    * Composed plan (sequenced, conflict-resolved, realisable total) — the same
    * substance Fyn voices in the savetax synthesis turn, so chat and page

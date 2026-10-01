@@ -4,14 +4,15 @@ import AllowanceCard from '@/components/TaxStrategy/AllowanceCard.vue';
 import MobileTaxStrategy from '../../../../resources/mobile/views/TaxStrategy.vue';
 
 // The server caps pension headroom at a year of affordable surplus
-// (TaxStrategyService::withAffordablePensionHeadroom). When it does, the tile
-// must say why its headroom is below "limit minus used".
+// (TaxStrategyService::withAffordablePensionHeadroom) and decides the tile's
+// state (withDisplayState: tile_state, budget_limited). When the cap bites, the
+// tile must say why its headroom is below "limit minus used".
 const capped = {
   key: 'pension_annual_allowance', label: 'Pension Annual Allowance', amount: 60000, used: 3000,
   remaining: 9357.36, utilisation_pct: 5, status: 'raspberry', available: true, known: true,
-  affordable_this_year: 9357.36,
+  affordable_this_year: 9357.36, tile_state: 'open', budget_limited: true,
 };
-const uncapped = { ...capped, remaining: 57000, affordable_this_year: 80000 };
+const uncapped = { ...capped, remaining: 57000, affordable_this_year: 80000, budget_limited: false };
 
 describe('pension headroom limited by budget', () => {
   it('web tile explains a budget-limited headroom', () => {
@@ -30,7 +31,7 @@ describe('pension headroom limited by budget', () => {
 // fynla.org 2026-09-30, Carter household: £7,500 paid in of £60,000 and
 // nothing left to afford read "Fully used". It is not used: the money is.
 describe('pension headroom brought to £0 by the budget', () => {
-  const none = { ...capped, used: 7500, remaining: 0, utilisation_pct: 12.5, affordable_this_year: 0 };
+  const none = { ...capped, used: 7500, remaining: 0, utilisation_pct: 12.5, affordable_this_year: 0, tile_state: 'budget_capped' };
 
   it('web tile says £0 of headroom, not "Fully used"', () => {
     const text = mount(AllowanceCard, { props: { allowance: none } }).text();
@@ -47,7 +48,7 @@ describe('pension headroom brought to £0 by the budget', () => {
   });
 
   it('still says "Fully used" when the allowance really is used', () => {
-    const used = { ...capped, used: 60000, remaining: 0, utilisation_pct: 100 };
+    const used = { ...capped, used: 60000, remaining: 0, utilisation_pct: 100, tile_state: 'full', budget_limited: false };
     const vm = { ...MobileTaxStrategy.methods, fmt: (n) => `£${n}` };
 
     expect(mount(AllowanceCard, { props: { allowance: used } }).text()).toContain('Fully used');

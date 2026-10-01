@@ -12,14 +12,18 @@ import StrategyRecommendationList from '@/components/TaxStrategy/StrategyRecomme
 const unknown = {
   key: 'cgt_allowance', label: 'Capital Gains Tax Allowance', amount: 3000, used: 0,
   remaining: 0, utilisation_pct: 0, status: 'muted', available: true, known: false,
+  tile_state: 'unconfirmed', budget_limited: false,
 };
 const open = {
   key: 'isa_allowance', label: 'ISA Allowance', amount: 20000, used: 0,
   remaining: 20000, utilisation_pct: 0, status: 'raspberry', available: true, known: true,
+  tile_state: 'open', budget_limited: false,
 };
+// What the server counts (TaxStrategyService::withDisplayState, CSJ 2026-10-01).
+const summaryFor = (allowances) => ({ headroom_count: allowances.filter((a) => a.tile_state === 'open').length, total_saving: 0, actionable_count: 0, warning_count: 0 });
 
 const store = () => createStore({
-  modules: { taxStrategy: { namespaced: true, getters: { taxYear: () => '2026/27' } } },
+  modules: { taxStrategy: { namespaced: true, getters: { taxYear: () => '2026/27', summary: () => summaryFor([unknown, open]) } } },
 });
 
 describe('allowance truthfulness', () => {
@@ -66,7 +70,7 @@ describe('empty recommendations copy (the /m rule)', () => {
   const mountList = (allowances) => mount(StrategyRecommendationList, {
     global: {
       plugins: [createStore({
-        modules: { taxStrategy: { namespaced: true, getters: { recommendations: () => [], userAllowances: () => allowances } } },
+        modules: { taxStrategy: { namespaced: true, getters: { recommendations: () => [], summary: () => summaryFor(allowances) } } },
       })],
       mocks: { $router: { push: () => {} } },
       stubs: ['router-link'],
@@ -92,7 +96,7 @@ describe('tax strategy header (the /m rule)', () => {
       global: {
         plugins: [createStore({
           modules: {
-            taxStrategy: { namespaced: true, getters: { taxYear: () => '2026/27', recommendations: () => [], composedPlan: () => null, userAllowances: () => [open] } },
+            taxStrategy: { namespaced: true, getters: { taxYear: () => '2026/27', summary: () => summaryFor([open]) } },
             auth: { namespaced: true, getters: { currentUser: () => ({ first_name: 'Lena' }) } },
           },
         })],

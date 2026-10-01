@@ -52,9 +52,7 @@ export default {
     // The server caps pension headroom at a year of affordable surplus
     // (TaxStrategyService::withAffordablePensionHeadroom); say so when it bites.
     budgetLimited() {
-      const a = this.allowance;
-      return a.affordable_this_year !== undefined
-        && Number(a.remaining) < Number(a.amount) - Number(a.used) - 0.5;
+      return this.allowance.budget_limited === true;
     },
     barClass() {
       return {
@@ -69,19 +67,17 @@ export default {
       if (this.allowance.status === 'violet') return 'text-violet-600';
       return 'text-raspberry-500';
     },
+    // The tile's state is the server's (TaxStrategyService `tile_state`, CSJ
+    // 2026-10-01); the words are web's approved copy. budget_capped: brought to
+    // £0 by what is affordable, not by use (fynla.org 2026-09-30).
     remainingLabel() {
-      if (!this.available) return 'Not available';
-      if (!this.known) return 'Current-year use not confirmed';
-      // Brought to £0 by what is affordable, not by use: say the figure
-      // (fynla.org 2026-09-30: £7,500 of £60,000 read "Fully used").
-      if (this.budgetLimited && this.allowance.remaining <= 0) {
-        return `${this.formatCurrency(0)} of headroom`;
+      switch (this.allowance.tile_state) {
+        case 'unavailable': return 'Not available';
+        case 'unconfirmed': return 'Current-year use not confirmed';
+        case 'budget_capped': return `${this.formatCurrency(0)} of headroom`;
+        case 'open': return `${this.formatCurrency(this.allowance.remaining)} of headroom`;
+        default: return 'Fully used';
       }
-      if (this.allowance.utilisation_pct >= 100) return 'Fully used';
-      if (this.allowance.remaining > 0) {
-        return `${this.formatCurrency(this.allowance.remaining)} of headroom`;
-      }
-      return 'Fully used';
     },
   },
 };
