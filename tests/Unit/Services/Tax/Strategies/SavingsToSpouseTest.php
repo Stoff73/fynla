@@ -175,7 +175,10 @@ it('tells the user what the partner then pays on the interest', function () {
     $steps = implode(' ', ActionHowTo::render($entry['steps'], $facts, $text));
     $why = implode(' ', ActionHowTo::render($entry['steps'], $facts, $text, 'why'));
 
-    expect($steps)->toContain('they pay about £'.number_format((int) ceil($gift['partner_extra_tax'])).' a year on it')
+    // The figures add up as shown: you save less what they pay is the saving.
+    $partner = floor($gift['user_tax_saved']) - $gift['estimated_annual_tax_saved'];
+    expect($steps)->toContain('they pay about £'.number_format((int) $partner).' a year on it, and you pay about £'.number_format((int) floor($gift['user_tax_saved'])).' less')
+        ->and($gift['description'])->toContain('they pay about £'.number_format((int) $partner).' more')
         ->and($steps)->toContain('from the savings that pay you the most interest')
         ->and($why)->toContain('would pay less tax on that interest than you do');
 });

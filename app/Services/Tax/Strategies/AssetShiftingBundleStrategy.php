@@ -138,6 +138,12 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             return null;
         }
         $saving = floor($move['saving']);
+        // The three figures a reader adds up must agree: what the spouse pays
+        // is shown as what the user saves less the household saving, both as
+        // shown (rounded down), and never under £1 when they pay anything.
+        $partnerShown = $move['partner_extra_tax'] >= 0.01
+            ? max(1.0, floor($move['user_tax_saved']) - $saving)
+            : 0.0;
 
         return [
             'type' => 'savings_to_spouse',
@@ -153,8 +159,8 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
                 // Down, as the how-to's figures are (ActionHowToFacts::pounds).
                 number_format((int) floor($move['interest_moved'])),
                 number_format((int) floor($move['user_tax_saved'])),
-                $move['partner_extra_tax'] >= 0.01
-                    ? 'they pay about £'.number_format((int) ceil($move['partner_extra_tax'])).' more at their own rates'
+                $partnerShown > 0
+                    ? 'they pay about £'.number_format((int) $partnerShown).' more at their own rates'
                     : 'they pay no tax on it',
             ),
             'suggested_transfer_amount' => $transfer,
@@ -167,6 +173,7 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             'pension_paid_first' => round($context->pensionPaidElsewhere, 2),
             'user_tax_saved' => $move['user_tax_saved'],
             'partner_extra_tax' => $move['partner_extra_tax'],
+            'partner_extra_tax_shown' => $partnerShown,
             'requires_advice' => true,
         ];
     }
