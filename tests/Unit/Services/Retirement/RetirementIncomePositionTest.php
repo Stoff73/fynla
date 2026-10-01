@@ -191,3 +191,13 @@ it('closes the gap when the household can afford the whole contribution', functi
         ->and($position['payable_monthly'])->toEqualWithDelta($position['needed_monthly'], 0.01)
         ->and($position['age_to_close'])->toBeNull();
 });
+
+it('reads the same planning figures from the contract with or without the Monte Carlo bands', function () {
+    $contract = app(RetirementProjectionContractService::class);
+    $full = $contract->build($this->user->fresh());
+    $planning = $contract->build($this->user->fresh(), withUncertainty: false);
+
+    expect($planning['planning_total_at_target_age'])->toBe($full['planning_total_at_target_age'])
+        ->and($planning['products'])->toBe($full['products'])
+        ->and($planning['uncertainty']['products'])->toBe([]);
+});

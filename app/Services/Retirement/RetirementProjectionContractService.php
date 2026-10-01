@@ -17,12 +17,16 @@ final class RetirementProjectionContractService
         private readonly TaxConfigService $taxConfig,
         // W-0516 — the one home for State Pension age.
         private readonly StatePensionAgeResolver $statePensionAge,
+        private readonly RetirementAgeResolver $retirementAge,
     ) {}
 
     /**
+     * @param  bool  $withUncertainty  false skips the Monte Carlo bands (the
+     *                                 planning figures do not use them), for
+     *                                 callers that need only the projection
      * @return array<string, mixed>
      */
-    public function build(User $user): array
+    public function build(User $user, bool $withUncertainty = true): array
     {
         $user->loadMissing(['dcPensions', 'dbPensions', 'statePension', 'retirementProfile']);
 
@@ -44,19 +48,27 @@ final class RetirementProjectionContractService
         $warnings = [];
 
         foreach ($user->dcPensions as $pension) {
-            $projection = $this->projectionService->projectIndividualDCPension(
-                (int) $pension->id,
-                (int) $user->id,
-            );
+            // The Monte Carlo run feeds only the uncertainty bands. Without them,
+            // the planning figures read what it reports from their own homes.
+            $projection = $withUncertainty
+                ? $this->projectionService->projectIndividualDCPension((int) $pension->id, (int) $user->id)
+                : null;
             $commencementAge = (int) ($targetRetirementAge
                 ?? $pension->retirement_age
-                ?? $projection['retirement_age']
+                ?? ($projection['retirement_age'] ?? $this->retirementAge->withSource($user)['age'])
                 ?? 67);
             // The legacy Monte Carlo service intentionally projects for at least one year.
             // The planning contract must not grow an already-commenced pension, so derive
             // the deterministic horizon directly from this product's own commencement age.
             $yearsToRetirement = max(0, $commencementAge - $currentAge);
-            $monthlyContribution = (float) ($projection['monthly_contribution'] ?? 0);
+            // Without the run, the same figure it reports (RetirementProjectionService::calculateMonthlyContribution).
+            $monthlyContribution = $projection !== null
+                ? (float) ($projection['monthly_contribution'] ?? 0)
+                : round(PensionContributionRule::monthlyIntoPot(
+                    $pension,
+                    (float) ($user->annual_employment_income ?? 0),
+                    (float) ($this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate'] ?? 0),
+                ), 2);
             $planningValue = self::calculatePlanningValue(
                 currentValue: (float) ($pension->current_fund_value ?? 0),
                 monthlyContribution: $monthlyContribution,
@@ -76,6 +88,9 @@ final class RetirementProjectionContractService
                 'annual_income' => round((float) $planningValue * $withdrawalRate, 2),
                 'income_method' => 'sustainable_withdrawal_rate',
             ];
+            if (! $withUncertainty) {
+                continue;
+            }
             $uncertaintyProducts[] = [
                 'resource_type' => 'dc_pension',
                 'resource_id' => (int) $pension->id,

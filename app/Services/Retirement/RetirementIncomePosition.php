@@ -57,7 +57,7 @@ class RetirementIncomePosition
         if ($target <= 0) {
             return null;
         }
-        $plan = $this->contract->build($user);
+        $plan = $this->contract->build($user, withUncertainty: false);
         $targetAge = (int) $plan['target_retirement_age'];
         $projected = (float) $plan['planning_total_at_target_age'];
         $shortfall = $target - $projected;
