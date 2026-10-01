@@ -89,3 +89,27 @@
 35. **Dashboard rings.** Web and `/m` compute them on the client; iOS has 0.72 and 0.85 typed in and a "Trend" that is always 0. The emergency fund target is typed in as 6, although the server sends it.
 36. **Web Inheritance Tax blocks that can never show.** They read `ihtData.iht_liability`, which is never set, with `|| 500000` typed in (`IHTPlanning.vue:627-851`).
 37. **Gifts.** Web filters gifts by date and sums them on the client; `/m` and iOS show a count; the gifting strategy shows a third liability figure.
+
+## Tax Strategy, allowances, Goals, Actions and Fyn
+
+38. **ISA allowance used: five server rules.**
+    - `TaxStrategyMath::estimateIsaSubscriptionsThisYear` (Tax Strategy tile, plan items, how-tos, thresholds);
+    - `ISATracker` (Savings on `/m` and iOS, the Fyn pointer and savings tool);
+    - `InvestmentAgent.php:186-208` (Fyn's investment tool);
+    - `TaxOptimizationAnalyzer.php:201-230` (web tax efficiency);
+    - the web `ISAAllowanceTracker.vue:142-203` client re-derivation.
+
+    They differ on the ledger, the tax-year filter, the balance fallback, the Lifetime ISA, and whether the allowance comes from a stored row or live config.
+    **One source:** `ISATracker`.
+39. **Web tax headline.** It falls back to a client sum of a different list (`TaxYearHeader.vue:40-55`).
+40. **Web headroom.** It adds up allowances that cannot be added (`AllowanceGrid.vue:79-81`); `/m` and iOS show a count.
+41. **iOS Tax Strategy.** It does not decode `counted_in_total`, `conflict_note` or `affordable_this_year`, so a budget-capped pension tile reads "Fully used".
+42. **Annual Allowance taper: three rules.** `TaxStrategyMath:284-310`, `IncomeDefinitionsService:381-388`, and `AnnualAllowanceChecker:182-196` (which has `/2` typed in and no floor).
+43. **Personal Allowance: two rules** (`TaxStrategyMath:231-273`, `IncomeDefinitionsService:371-378`). Fyn's tax band ignores the taper (`AdvicePromptBuilder:1347-1373`).
+44. **Fyn income.** Fyn reads a raw sum of the user columns (`ResolvesIncome`); the screens read `IncomeDefinitionsService`.
+45. **Retirement projected income: four sources, Fyn included.** Fixed by `RetirementHeadline`; `RetirementAgent`'s summary now reads it.
+46. **Net worth.** Fyn reads uncached `NetWorthService`; the pages read the cached one; the dashboard reads its own engine.
+47. **Goal status label.** iOS and Fyn compute their own; web and `/m` read `status_label`.
+48. **Goal progress and amount remaining.** Web and Fyn re-derive them.
+49. **Life event totals.** Computed on the client while the server sends `summary`. Fyn's "upcoming" list includes events that have already happened (W-0207).
+50. **Fyn's ranked recommendations.** They come from a different pipeline from the actions list (`CoordinatingAgent::orchestrateAnalysis` against `RecommendationsAggregatorService`).
