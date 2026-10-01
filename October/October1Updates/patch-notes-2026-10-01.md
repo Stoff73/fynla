@@ -31,7 +31,7 @@ Both were walked on the test site first, on the desktop web app (full-size windo
   - "Sam pays no more tax…"
 
   The older tax-optimisation figures and the household endpoint gave the same £252.
-- **On fynla.org:** the release is live and its server files match the released code. **It has not been walked on fynla.org.** No demo household qualifies, and making a walk account there is waiting on a decision.
+- **Live on fynla.org, desktop (full-size window) and mobile web apps:** a walk couple made for the check (Alex on £35,000, Sam with £14,000 of savings interest) saw "Claim Marriage Allowance, £252/yr" and the same steps as on the test site. The walk accounts were deleted afterwards.
 
 ## Pension suggestions sized to what you can afford
 
