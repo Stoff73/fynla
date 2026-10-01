@@ -62,6 +62,8 @@ final class RecordEditForms
 
     public const CONTEXTUAL_FORMS = [
         'employer_benefits' => 'employer_benefits',
+        // TODO item 6: "is it being paid?" has to be answerable from /m.
+        'state_pension' => 'state_pension',
     ];
 
     public function __construct(private readonly CoordinatingAgent $agent) {}
@@ -210,6 +212,11 @@ final class RecordEditForms
                 'marital_status' => $model->marital_status,
             ]), 'Your details'],
             'employer_benefits' => [CaptureForms::EMPLOYER_BENEFITS, CaptureForms::LEAD, $this->employerBenefitsAnswers($model), 'Your employer benefits'],
+            'state_pension' => [CaptureForms::STATE_PENSION, CaptureForms::LEAD, array_filter([
+                'already_receiving' => $model->already_receiving ? 'yes' : 'no',
+                'forecast_annual' => $model->state_pension_forecast_annual !== null ? (float) $model->state_pension_forecast_annual : null,
+                'ni_years_completed' => $model->ni_years_completed,
+            ], static fn ($v): bool => $v !== null), 'Your State Pension'],
             default => [null, null, [], ''],
         };
         if ($formName === null) {
@@ -286,6 +293,7 @@ final class RecordEditForms
             'expenditure' => $this->runTool('capture_monthly_expenditure', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'personal' => $this->runTool('capture_personal_details', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'employer_benefits' => $this->runTool('capture_employer_benefits', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
+            'state_pension' => $this->runTool('capture_state_pension', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             default => ['error' => true, 'message' => 'That record cannot be changed here.'],
         };
 
@@ -635,6 +643,8 @@ final class RecordEditForms
             'spouse_household' => TaxStrategyHouseholdInput::firstOrNew(['user_id' => $user->id]),
             'expenditure', 'personal' => $user,
             'employer_benefits' => ProtectionProfile::firstOrNew(['user_id' => $user->id], ProtectionProfile::blankFor($user->id)),
+            // One per user, so the user is the key (formForResource passes the user id).
+            'state_pension' => $user->statePension()->first(),
             default => null,
         };
     }
@@ -650,6 +660,7 @@ final class RecordEditForms
             'critical_illness' => trim(($model->provider ?? '').' critical illness cover'),
             'income_protection' => trim(($model->provider ?? '').' income protection'),
             'employer_benefits' => 'your employer benefits',
+            'state_pension' => 'your State Pension',
             default => 'that record',
         };
     }

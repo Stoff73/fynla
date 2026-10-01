@@ -6380,7 +6380,10 @@ class CoordinatingAgent extends BaseAgent
         $spAge = isset($input['state_pension_age']) ? (int) $input['state_pension_age'] : null;
         // Whether it is being paid now. It can be put off (deferred), so it is
         // asked, never assumed from age (https://www.gov.uk/deferring-state-pension).
-        $alreadyReceiving = isset($input['already_receiving']) ? (bool) $input['already_receiving'] : null;
+        // Fyn sends a boolean; the State Pension form sends its choice ('yes' / 'no').
+        $alreadyReceiving = isset($input['already_receiving'])
+            ? filter_var($input['already_receiving'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+            : null;
 
         if ($forecastAnnual === null && $niYears === null && $spAge === null && $alreadyReceiving === null) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide at least one State Pension field.'];

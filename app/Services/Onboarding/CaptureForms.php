@@ -75,6 +75,9 @@ final class CaptureForms
     /** The protection cover the user's employer provides, or none, ONE write through capture_employer_benefits (EmployerBenefitsWriter, shared with the web form). */
     public const EMPLOYER_BENEFITS = 'employer_benefits';
 
+    /** The State Pension: the forecast, qualifying years and whether it is paid now, ONE write through capture_state_pension (TODO item 6). */
+    public const STATE_PENSION = 'state_pension';
+
     /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
     public const EXPENDITURE_DETAILED = 'expenditure_detailed';
 
@@ -94,7 +97,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS, self::STATE_PENSION];
     }
 
     /** @return array<string, mixed>|null */
@@ -120,6 +123,7 @@ final class CaptureForms
             self::EXPENDITURE_TAX => self::expenditureTax(),
             self::PROTECTION => self::protection(),
             self::EMPLOYER_BENEFITS => self::employerBenefits(),
+            self::STATE_PENSION => self::statePension(),
             default => null,
         };
     }
@@ -289,6 +293,7 @@ final class CaptureForms
                 self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX => self::expenditureSentence($schema, self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::WORK => self::workSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::EMPLOYER_BENEFITS => self::employerBenefitsSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::STATE_PENSION => self::statePensionSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
             };
         }
@@ -1550,6 +1555,52 @@ final class CaptureForms
                 ]],
             ],
         ];
+    }
+
+    /**
+     * The State Pension (TODO item 6): its forecast, qualifying years and
+     * whether it is being paid now. It can be put off (deferred), so being
+     * paid is asked outright, never assumed from age
+     * (https://www.gov.uk/deferring-state-pension). ONE write through
+     * capture_state_pension, the same handler Fyn's own call uses.
+     *
+     * @return array<string, mixed>
+     */
+    private static function statePension(): array
+    {
+        return [
+            'name' => self::STATE_PENSION,
+            'submit_label' => 'Save',
+            'tool' => 'capture_state_pension',
+            'entity_type' => 'state_pension',
+            'lead_fields' => ['already_receiving', 'forecast_annual', 'ni_years_completed'],
+            'kinds' => [],
+            'fields' => [
+                'already_receiving' => ['type' => 'choice', 'label' => 'Is your State Pension being paid to you now?', 'required' => true, 'options' => [
+                    ['value' => 'yes', 'label' => 'Yes, it is being paid'],
+                    ['value' => 'no', 'label' => 'Not yet, or I have put it off'],
+                ]],
+                'forecast_annual' => ['type' => 'money', 'label' => 'State Pension a year', 'required' => false,
+                    'hint' => 'What it pays, or your forecast from gov.uk/check-state-pension'],
+                'ni_years_completed' => ['type' => 'percent', 'label' => 'National Insurance qualifying years', 'required' => false, 'min' => 0, 'max' => 60, 'step' => 1],
+            ],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function statePensionSentence(array $input): string
+    {
+        $parts = [];
+        if (isset($input['forecast_annual'])) {
+            $parts[] = 'my State Pension is '.self::pounds((float) $input['forecast_annual']).' a year';
+        }
+        if (isset($input['ni_years_completed'])) {
+            $parts[] = 'I have '.(int) $input['ni_years_completed'].' qualifying years';
+        }
+        $paid = ($input['already_receiving'] ?? null) === 'yes' ? 'it is being paid to me now' : 'it is not being paid to me yet';
+        $parts[] = $paid;
+
+        return ucfirst(implode(', ', $parts)).'.';
     }
 
     /** @param  array<string, mixed>  $input */
