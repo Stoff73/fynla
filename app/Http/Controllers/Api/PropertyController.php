@@ -78,29 +78,8 @@ class PropertyController extends Controller
         $properties = $properties->map(function ($property) use ($user) {
             $propertyData = (new PropertyResource($property))->toArray(request());
 
-            // Calculate user's share from full value
-            $propertyData['user_share'] = $this->calculateUserShare($property, $user->id);
-            $propertyData['full_value'] = (float) $property->current_value;
-            $propertyData['is_primary_owner'] = $this->isPrimaryOwner($property, $user->id);
-            $propertyData['is_shared'] = $this->isSharedOwnership($property);
-
-            // Add owner names for joint/TiC properties
-            $owner = $property->user;
-            $jointOwner = $property->jointOwner;
-            $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
-            $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
-
-            // Mortgage liability follows the borrower configuration, not the
-            // property's ownership percentage. Aggregate in case a property
-            // has more than one mortgage.
-            if ($property->mortgages && $property->mortgages->count() > 0) {
-                $propertyData['mortgage_user_share'] = (float) $property->mortgages
-                    ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
-                $propertyData['mortgage_full_balance'] = (float) $property->mortgages
-                    ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
-                $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
-                    ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
-            }
+            // The viewer's share, equity and mortgage, from one helper (show uses it too).
+            $propertyData = array_merge($propertyData, $this->ownershipFigures($property, $user));
 
             return $propertyData;
         });
@@ -217,29 +196,8 @@ class PropertyController extends Controller
         // Merge property resource data with summary
         $propertyData = array_merge($propertyData, $summary);
 
-        // Add user share and ownership context
-        $propertyData['user_share'] = $this->calculateUserShare($property, $user->id);
-        $propertyData['full_value'] = (float) $property->current_value;
-        $propertyData['is_primary_owner'] = $this->isPrimaryOwner($property, $user->id);
-        $propertyData['is_shared'] = $this->isSharedOwnership($property);
-
-        // Add owner names for joint/TiC properties
-        $owner = $property->user;
-        $jointOwner = $property->jointOwner;
-        $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
-        $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
-
-        // Mortgage liability follows the borrower configuration, not the
-        // property's ownership percentage. Aggregate in case a property has
-        // more than one mortgage.
-        if ($property->mortgages && $property->mortgages->count() > 0) {
-            $propertyData['mortgage_user_share'] = (float) $property->mortgages
-                ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
-            $propertyData['mortgage_full_balance'] = (float) $property->mortgages
-                ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
-            $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
-                ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
-        }
+        // The viewer's share, equity and mortgage, from the same helper as the list.
+        $propertyData = array_merge($propertyData, $this->ownershipFigures($property, $user));
 
         return response()->json([
             'success' => true,
@@ -247,6 +205,74 @@ class PropertyController extends Controller
                 'property' => $propertyData,
             ],
         ]);
+    }
+
+    /**
+     * What this viewer owns of a property, owes on it and has in it, worked out
+     * once for the list and the detail (CSJ 2026-10-01: one figure, every
+     * surface; the list rows worked equity out on each client, and the property
+     * page multiplied the mortgage by the property's ownership share).
+     *
+     * The mortgage share follows the borrower configuration, not the property's
+     * ownership percentage, and is aggregated over every mortgage on it.
+     *
+     * @return array<string, mixed>
+     */
+    private function ownershipFigures(Property $property, User $user): array
+    {
+        $owner = $property->user;
+        $jointOwner = $property->jointOwner;
+        $mortgages = $property->mortgages ?? collect();
+
+        $userShare = (float) $this->calculateUserShare($property, $user->id);
+        $mortgageUserShare = (float) $mortgages->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
+        $mortgageFull = (float) $mortgages->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
+        $userPercent = round($this->userShareFraction($property, $user->id) * 100, 2);
+        $shared = $this->isSharedOwnership($property);
+
+        $figures = [
+            'user_share' => $userShare,
+            'full_value' => (float) $property->current_value,
+            'user_share_percent' => $userPercent,
+            'other_owner_share_percent' => $shared ? round(100 - $userPercent, 2) : null,
+            'is_primary_owner' => $this->isPrimaryOwner($property, $user->id),
+            'is_shared' => $shared,
+            'owner_name' => $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null,
+            'joint_owner_name' => $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null),
+            // What the viewer owns less what the viewer owes, and the same for the
+            // whole property.
+            'user_equity' => round($userShare - $mortgageUserShare, 2),
+            'full_equity' => round((float) $property->current_value - $mortgageFull, 2),
+        ];
+
+        // The property page's other figures for this viewer (it multiplied by the
+        // stored percentage, the primary owner's, whoever was looking).
+        $fraction = $this->userShareFraction($property, $user->id);
+        $rentMonthly = (float) ($property->monthly_rental_income ?? 0);
+        $agentFee = (float) ($property->managing_agent_fee ?? 0);
+        $purchase = (float) ($property->purchase_price ?? 0);
+        $figures['rental_income_annual'] = round($rentMonthly * 12, 2);
+        $figures['rental_income_user_monthly'] = round($rentMonthly * $fraction, 2);
+        $figures['rental_income_user_annual'] = round($rentMonthly * 12 * $fraction, 2);
+        $figures['managing_agent_fee_annual'] = round($agentFee * 12, 2);
+        $figures['managing_agent_fee_user_monthly'] = round($agentFee * $fraction, 2);
+        $figures['value_change'] = $purchase > 0 ? round((float) $property->current_value - $purchase, 2) : null;
+        $figures['value_change_percent'] = $purchase > 0 ? round(((float) $property->current_value - $purchase) / $purchase * 100, 2) : null;
+        // Each mortgage at this viewer's share, by id.
+        $figures['mortgage_shares'] = $mortgages->mapWithKeys(fn ($mortgage) => [$mortgage->id => [
+            'user_share' => round($this->calculateUserMortgageShare($mortgage, $user->id), 2),
+            'user_monthly_payment' => round($this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id), 2),
+            'annual_payment' => round((float) ($mortgage->monthly_payment ?? 0) * 12, 2),
+        ]])->all();
+
+        if ($mortgages->count() > 0) {
+            $figures['mortgage_user_share'] = $mortgageUserShare;
+            $figures['mortgage_full_balance'] = $mortgageFull;
+            $figures['mortgage_user_monthly_payment'] = (float) $mortgages
+                ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
+        }
+
+        return $figures;
     }
 
     /**

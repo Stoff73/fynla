@@ -380,19 +380,24 @@ class NetWorthService
         $properties->loadMissing('mortgages');
         $propertyItems = $properties->map(function ($property) use ($userId) {
             $name = $property->address_line_1 ?: $property->property_type;
+            $value = $this->calculateUserShare($property, $userId);
+            $owed = (float) $property->mortgages
+                ->sum(fn (Mortgage $mortgage): float => $this->calculateUserMortgageShare($mortgage, $userId));
 
             return [
                 'id' => $property->id,
                 'name' => $name,
                 'type' => $property->property_type,
-                'value' => $this->calculateUserShare($property, $userId),
+                'value' => $value,
                 'full_value' => (float) $property->current_value,
                 'ownership_type' => $property->ownership_type,
                 'ownership_percentage' => (float) ($property->ownership_percentage ?? 100),
+                'user_share_percent' => round($this->userShareFraction($property, $userId) * 100, 2),
                 'is_primary_owner' => $property->user_id === $userId,
-                'outstanding_mortgage' => (float) $property->mortgages
-                    ->sum(fn (Mortgage $mortgage): float => $this->calculateUserMortgageShare($mortgage, $userId)),
+                'outstanding_mortgage' => $owed,
                 'full_outstanding_mortgage' => (float) $property->mortgages->sum('outstanding_balance'),
+                // The viewer's equity: their share less their mortgage share.
+                'user_equity' => round($value - $owed, 2),
             ];
         })->toArray();
 
@@ -416,17 +421,23 @@ class NetWorthService
             ->values()
             ->all();
 
-        $liabilityItems = Liability::query()
-            ->where('user_id', $userId)
+        // The same reach, share and exclusions as calculateLiabilitiesBreakdown,
+        // so this list totals to the net worth figure's liabilities (CSJ
+        // 2026-10-01: one figure, every surface). It read only debts the user
+        // recorded, at their full balance, and counted `mortgage` rows that net
+        // worth leaves to the property mortgages.
+        $liabilityItems = Liability::forUserOrJoint($userId)
+            ->where(fn ($q) => $q->whereNull('liability_type')->orWhere('liability_type', '!=', 'mortgage'))
             ->get()
             ->map(fn (Liability $liability): array => [
                 'id' => $liability->id,
                 'kind' => 'liability',
                 'name' => $liability->liability_name ?: str($liability->liability_type)->replace('_', ' ')->title()->toString(),
-                'value' => (float) $liability->current_balance,
+                'value' => $this->calculateUserShare($liability, $userId),
                 'full_value' => (float) $liability->current_balance,
                 'liability_type' => $liability->liability_type,
                 'ownership_type' => $liability->ownership_type,
+                'is_primary_owner' => $liability->user_id === $userId,
             ])
             ->values()
             ->all();
@@ -450,6 +461,7 @@ class NetWorthService
                 'full_value' => (float) $investment->current_value,
                 'ownership_type' => $investment->ownership_type,
                 'ownership_percentage' => (float) ($investment->ownership_percentage ?? 100),
+                'user_share_percent' => round($this->userShareFraction($investment, $userId) * 100, 2),
                 'is_primary_owner' => $investment->user_id === $userId,
             ];
         })->toArray();
@@ -471,6 +483,7 @@ class NetWorthService
                 'full_value' => (float) $account->current_balance,
                 'ownership_type' => $account->ownership_type,
                 'ownership_percentage' => (float) ($account->ownership_percentage ?? 100),
+                'user_share_percent' => round($this->userShareFraction($account, $userId) * 100, 2),
                 'is_primary_owner' => $account->user_id === $userId,
                 'is_isa' => $account->is_isa,
                 'is_emergency_fund' => $account->is_emergency_fund,
@@ -489,6 +502,7 @@ class NetWorthService
                 'full_value' => (float) $business->current_valuation,
                 'ownership_type' => $business->ownership_type,
                 'ownership_percentage' => (float) ($business->ownership_percentage ?? 100),
+                'user_share_percent' => round($this->userShareFraction($business, $userId) * 100, 2),
                 'annual_revenue' => (float) ($business->annual_revenue ?? 0),
                 'annual_profit' => (float) ($business->annual_profit ?? 0),
                 'is_primary_owner' => $business->user_id === $userId,
@@ -509,6 +523,7 @@ class NetWorthService
                 'full_value' => (float) $chattel->current_value,
                 'ownership_type' => $chattel->ownership_type,
                 'ownership_percentage' => (float) ($chattel->ownership_percentage ?? 100),
+                'user_share_percent' => round($this->userShareFraction($chattel, $userId) * 100, 2),
                 'make' => $chattel->make,
                 'model' => $chattel->model,
                 'year' => $chattel->year,
@@ -525,10 +540,16 @@ class NetWorthService
         $businessTotal = array_sum(array_column($businessItems, 'value'));
         $chattelTotal = array_sum(array_column($chattelItems, 'value'));
 
+        // Each category's share of all assets, for the Net Worth list (CSJ
+        // 2026-10-01: /m divided these itself).
+        $assetsTotal = $pensionTotal + $propertyTotal + $investmentTotal + $cashTotal + $businessTotal + $chattelTotal;
+        $shareOfAssets = static fn (float $value): int => $assetsTotal > 0 ? (int) round($value / $assetsTotal * 100) : 0;
+
         return [
             'pensions' => [
                 'count' => count($pensionItems),
                 'total_value' => round($pensionTotal, 2),
+                'percent_of_assets' => $shareOfAssets($pensionTotal),
                 'items' => $pensionItems,
                 // The figure above is Defined Contribution only, so it travels with
                 // the flag and the sentence that say so — the disclosure belongs to
@@ -544,26 +565,31 @@ class NetWorthService
             'property' => [
                 'count' => count($propertyItems),
                 'total_value' => round($propertyTotal, 2),
+                'percent_of_assets' => $shareOfAssets($propertyTotal),
                 'items' => $propertyItems,
             ],
             'investments' => [
                 'count' => count($investmentItems),
                 'total_value' => round($investmentTotal, 2),
+                'percent_of_assets' => $shareOfAssets($investmentTotal),
                 'items' => $investmentItems,
             ],
             'cash' => [
                 'count' => count($cashItems),
                 'total_value' => round($cashTotal, 2),
+                'percent_of_assets' => $shareOfAssets($cashTotal),
                 'items' => $cashItems,
             ],
             'business' => [
                 'count' => count($businessItems),
                 'total_value' => round($businessTotal, 2),
+                'percent_of_assets' => $shareOfAssets($businessTotal),
                 'items' => $businessItems,
             ],
             'chattels' => [
                 'count' => count($chattelItems),
                 'total_value' => round($chattelTotal, 2),
+                'percent_of_assets' => $shareOfAssets($chattelTotal),
                 'items' => $chattelItems,
             ],
             'liabilities' => [

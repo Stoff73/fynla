@@ -9,6 +9,7 @@ const state = {
     assets: [],
     investmentAccounts: [], // Investment accounts from Investment module
     liabilities: [],
+    liabilityTotals: {},
     gifts: [],
     trusts: [],
     lpas: [],
@@ -266,6 +267,7 @@ const actions = {
                 commit('setAssets', response.data.assets || []);
                 commit('setInvestmentAccounts', response.data.investment_accounts || []);
                 commit('setLiabilities', response.data.liabilities || []);
+                commit('setLiabilityTotals', response.data.liability_totals || {});
                 commit('setGifts', response.data.gifts || []);
                 commit('setTrusts', response.data.trusts || []);
                 commit('setIHTProfile', response.data.iht_profile);
@@ -741,6 +743,10 @@ const mutations = {
 
     setInvestmentAccounts(state, investmentAccounts) {
         state.investmentAccounts = investmentAccounts;
+    },
+
+    setLiabilityTotals(state, totals) {
+        state.liabilityTotals = totals;
     },
 
     setLiabilities(state, liabilities) {

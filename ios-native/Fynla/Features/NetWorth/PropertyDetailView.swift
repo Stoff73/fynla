@@ -51,7 +51,7 @@ struct PropertyDetailView: View {
                     MobileHeroCard(
                         label: "Current value",
                         metric: CanonicalNetWorthDetailFormatting.money(property.currentValue),
-                        sub: property.outstandingMortgage.map { "Mortgage \(CanonicalNetWorthDetailFormatting.money($0))" }
+                        sub: property.mortgageUserShare.flatMap { $0 > 0 ? "Mortgage \(CanonicalNetWorthDetailFormatting.money($0))" : nil }
                     )
                     CanonicalNetWorthDetailCard(title: "Property") {
                         CanonicalNetWorthDetailRow(key: "Type", value: CanonicalNetWorthDetailFormatting.label(property.propertyType))
@@ -59,7 +59,7 @@ struct PropertyDetailView: View {
                         CanonicalNetWorthDetailRow(key: "Purchase price", value: CanonicalNetWorthDetailFormatting.money(property.purchasePrice))
                         CanonicalNetWorthDetailRow(key: "Purchase date", value: CanonicalNetWorthDetailFormatting.date(property.purchaseDate))
                         CanonicalNetWorthDetailRow(key: "Valuation date", value: CanonicalNetWorthDetailFormatting.date(property.valuationDate))
-                        CanonicalNetWorthDetailRow(key: "Equity", value: CanonicalNetWorthDetailFormatting.money(property.equity))
+                        CanonicalNetWorthDetailRow(key: "Equity", value: CanonicalNetWorthDetailFormatting.money(property.userEquity))
                     }
                     if let mortgages = property.mortgages, !mortgages.isEmpty {
                         CanonicalNetWorthDetailCard(title: "Mortgages") {

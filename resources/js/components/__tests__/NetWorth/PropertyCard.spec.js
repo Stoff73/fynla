@@ -16,6 +16,10 @@ describe('PropertyCard.vue', () => {
     mortgages: [{ id: 101, outstanding_balance: 200000 }],
     ownership_type: 'individual',
     ownership_percentage: 100,
+    // What GET /api/properties sends (PropertyController::ownershipFigures).
+    user_share: 500000,
+    mortgage_user_share: 200000,
+    user_equity: 300000,
   };
 
   const jointPropertyMock = {
@@ -34,7 +38,9 @@ describe('PropertyCard.vue', () => {
     }],
     ownership_type: 'joint',
     ownership_percentage: 50,
+    user_share: 150000,
     mortgage_user_share: 75000,
+    user_equity: 75000,
   };
 
   const mortgageFreePropertyMock = {
@@ -118,9 +124,9 @@ describe('PropertyCard.vue', () => {
     expect(html).toContain('£500,000');
   });
 
-  it('displays mortgage outstanding when present', () => {
+  it('displays the viewer\'s mortgage liability when present', () => {
     const html = wrapper.html();
-    expect(html).toContain('Mortgage Outstanding');
+    expect(html).toContain('Your mortgage liability');
     expect(html).toContain('£200,000');
   });
 
@@ -131,8 +137,8 @@ describe('PropertyCard.vue', () => {
     expect(html).not.toContain('Mortgage Outstanding');
   });
 
-  it('calculates and displays equity correctly for sole ownership', () => {
-    // Equity = (500,000 - 200,000) * 100% = 300,000
+  it('displays the server\'s equity for sole ownership', () => {
+    // user_equity from the API: 500,000 - 200,000
     const html = wrapper.html();
     expect(html).toContain('Equity');
     expect(html).toContain('£300,000');
@@ -248,35 +254,25 @@ describe('PropertyCard.vue', () => {
     expect(wrapper.vm.mortgageLabel).toBe('Your mortgage liability');
   });
 
-  it('computes equity with ownership percentage', async () => {
-    // Sole ownership: (500,000 - 200,000) * 100% = 300,000
+  it('shows the server\'s equity, never its own subtraction (CSJ 2026-10-01)', async () => {
     expect(wrapper.vm.equity).toBe(300000);
 
-    // Joint ownership: (300,000 - 150,000) * 50% = 75,000
     await wrapper.setProps({ property: jointPropertyMock });
     expect(wrapper.vm.equity).toBe(75000);
-  });
 
-  it('handles missing ownership_percentage gracefully', async () => {
-    const propertyWithoutOwnership = {
-      ...solePropertyMock,
-      ownership_percentage: null,
-    };
-
-    await wrapper.setProps({ property: propertyWithoutOwnership });
-
-    // Should default to 100%
-    expect(wrapper.vm.equity).toBe(300000);
+    // A figure the server did not send is not invented here.
+    await wrapper.setProps({ property: { ...solePropertyMock, user_equity: 123456 } });
+    expect(wrapper.vm.equity).toBe(123456);
   });
 
   it('displays all detail rows in correct order', () => {
     const detailRows = wrapper.findAll('.detail-row');
 
-    // Should have: Current Value, Mortgage Outstanding, Equity
+    // Should have: Current Value, the mortgage liability, Equity
     expect(detailRows.length).toBe(3);
 
     expect(detailRows[0].text()).toContain('Current Value');
-    expect(detailRows[1].text()).toContain('Mortgage Outstanding');
+    expect(detailRows[1].text()).toContain('Your mortgage liability');
     expect(detailRows[2].text()).toContain('Equity');
   });
 
