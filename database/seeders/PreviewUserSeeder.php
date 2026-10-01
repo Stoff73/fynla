@@ -980,7 +980,8 @@ class PreviewUserSeeder extends Seeder
                     'planned_lump_sum_amount' => $account['planned_lump_sum_amount'] ?? null,
                     'planned_lump_sum_date' => isset($account['planned_lump_sum_date']) ? $account['planned_lump_sum_date'] : null,
                     'isa_subscription_current_year' => $isaSubscription,
-                    'tax_year' => '2025/26',
+                    // The active tax year, never a typed-in one (Rule 2).
+                    'tax_year' => app(\App\Services\TaxConfigService::class)->getTaxYear(),
                     'ownership_type' => $account['ownership_type'] ?? 'individual',
                     'ownership_percentage' => $isJoint ? 50 : 100,
                     'joint_owner_id' => $jointOwnerId,

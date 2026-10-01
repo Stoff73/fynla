@@ -1,9 +1,15 @@
 import investmentService from '@/services/investmentService';
 import { pollMonteCarloJob } from '@/utils/poller';
-import { calculateTotalUserShare } from '@/utils/ownership';
 
 const state = {
     accounts: [],
+    // Figures GET /api/investment computes once for every surface (TODO 7a):
+    // the viewer's portfolio total, the charges across accounts, and the ISA
+    // allowance status by ISATracker's rule. Read as sent, never re-derived.
+    totalValue: null,
+    feesSummary: null,
+    isaAllowance: null,
+    isaContributedThisYear: null,
     riskProfile: null,
     analysis: null,
     recommendations: null,  // { recommendation_count, recommendations: [] }
@@ -50,12 +56,17 @@ const getters = {
      * @returns {number} Total portfolio value in GBP
      */
     totalPortfolioValue: (state) => {
-        // Via the ONE ownership helper: it reads the API's user_share, which is
-        // the joint owner's complementary share when the viewer is not the
-        // primary owner. The arithmetic that used to live here gave the FULL
-        // value to both spouses of a joint account (W-0015).
-        return calculateTotalUserShare(state.accounts, { valueField: 'current_value' });
+        // The server's total_value (CrossModuleAssetAggregator, the engine net
+        // worth uses), as sent. Summing user_share here was a second engine for
+        // the same number, and /m and native each had a third (TODO 7a item 15).
+        return Number(state.totalValue ?? 0);
     },
+
+    /** Charges across every account, summed on the server (fees_summary). */
+    feesSummary: (state) => state.feesSummary,
+
+    /** ISA allowance status by ISATracker's rule (total_used, remaining, total_allowance). */
+    isaAllowance: (state) => state.isaAllowance,
 
     /**
      * Get year-to-date return percentage.
@@ -164,49 +175,18 @@ const getters = {
         return state.accounts.filter(account => account.account_type === 'isa');
     },
 
-    // Get total ISA value (user's share only for joint accounts, though ISAs should be individual)
-    totalISAValue: (state, getters) => {
-        return getters.isaAccounts.reduce((sum, account) => {
-            const fullValue = parseFloat(account.current_value || 0);
-            if (account.ownership_type === 'joint') {
-                const percentage = parseFloat(account.ownership_percentage || 50) / 100;
-                return sum + (fullValue * percentage);
-            }
-            return sum + fullValue;
-        }, 0);
-    },
+    // This tax year's investment ISA subscriptions, by ISATracker's rule
+    // (server isa_contributed_this_year). Was a client sum of the raw
+    // isa_subscription_current_year column, blind to the tax year it belonged to.
+    totalISAContributions: (state) => Number(state.isaContributedThisYear ?? 0),
 
-    // Get ISA percentage of total portfolio
-    isaPercentage: (state, getters) => {
-        const totalValue = getters.totalPortfolioValue;
-        if (totalValue === 0) return 0;
-        return Math.round((getters.totalISAValue / totalValue) * 100);
-    },
+    // Share of the whole ISA allowance used, as ISATracker computes it. Was this
+    // module's subscriptions over the allowance, with a literal 20000 fallback.
+    isaAllowancePercentage: (state) => Number(state.isaAllowance?.percentage_used ?? 0),
 
-    // Get current year ISA contributions (for allowance tracking)
-    // Uses isa_subscription_current_year which tracks ISA-specific contributions
-    totalISAContributions: (state, getters) => {
-        return getters.isaAccounts.reduce((sum, account) => {
-            return sum + parseFloat(account.isa_subscription_current_year || 0);
-        }, 0);
-    },
-
-    // Get ISA allowance percentage used (based on contributions, not value)
-    // Uses ISA allowance from savings store (fetched from TaxConfigService API)
-    isaAllowancePercentage: (state, getters, rootState, rootGetters) => {
-        const isaAllowance = rootState.savings?.isaAllowance?.total_allowance
-            || rootGetters['taxConfig/isaAnnualAllowance']
-            || 20000;
-        const contributions = getters.totalISAContributions;
-        return (contributions / isaAllowance) * 100;
-    },
-
-    // Get current year ISA subscription (S&S ISA) from ISA accounts
-    investmentISASubscription: (state, getters) => {
-        return getters.isaAccounts.reduce((sum, account) => {
-            return sum + parseFloat(account.isa_subscription_current_year || 0);
-        }, 0);
-    },
+    // The same server figure as totalISAContributions, under the name
+    // isaAllowanceMixin and ISAAllowanceSummary read.
+    investmentISASubscription: (state) => Number(state.isaContributedThisYear ?? 0),
 
     // Get Monte Carlo result by job ID
     getMonteCarloResult: (state) => (jobId) => {
@@ -263,6 +243,7 @@ const actions = {
         try {
             const response = await investmentService.getInvestmentData();
             commit('setAccounts', response.data.accounts);
+            commit('setServerFigures', response.data);
             commit('setRiskProfile', response.data.risk_profile);
             commit('setLifeEvents', response.data.life_events || []);
             commit('setLifeEventImpact', response.data.life_event_impact || null);
@@ -420,6 +401,7 @@ const actions = {
         try {
             const response = await investmentService.getInvestmentData();
             commit('setAccounts', response.data.accounts);
+            commit('setServerFigures', response.data);
             return response.data.accounts;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch accounts';
@@ -624,6 +606,13 @@ const actions = {
 const mutations = {
     setAccounts(state, accounts) {
         state.accounts = accounts;
+    },
+
+    setServerFigures(state, data) {
+        state.totalValue = data?.total_value ?? null;
+        state.feesSummary = data?.fees_summary ?? null;
+        state.isaAllowance = data?.isa_allowance ?? null;
+        state.isaContributedThisYear = data?.isa_contributed_this_year ?? null;
     },
 
     setRiskProfile(state, profile) {

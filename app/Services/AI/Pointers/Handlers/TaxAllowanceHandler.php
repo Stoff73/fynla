@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Pointers\Handlers;
 
-use App\Models\Investment\InvestmentAccount;
 use App\Services\AI\Pointers\FetchContext;
 use App\Services\AI\Pointers\FetchHandler;
 use App\Services\AI\Pointers\FetchResult;
 use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Savings\ISATracker;
-use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 
 /** Config archetype — UK allowance figures, live from TaxConfigService (Rule #3). */
@@ -19,7 +17,6 @@ final class TaxAllowanceHandler implements FetchHandler
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly ISATracker $isaTracker,
-        private readonly SavingsStore $savingsStore,
     ) {}
 
     public function id(): string
@@ -48,7 +45,7 @@ final class TaxAllowanceHandler implements FetchHandler
                 .'Stocks & Shares ISA '.$this->fmt($status['stocks_shares_isa_used']).'; '
                 .'Lifetime ISA '.$this->fmt($status['lisa_used']).'.';
 
-            $accounts = $this->subscriptionAccounts($ctx, $year);
+            $accounts = $this->subscriptionAccounts($status);
             $value .= $accounts === []
                 ? ' No account-level current-year subscription is recorded.'
                 : ' Subscription accounts: '.implode('; ', $accounts).'.';
@@ -57,37 +54,22 @@ final class TaxAllowanceHandler implements FetchHandler
         return FetchResult::make($value, 'TaxConfigService and saved ISA records', $year);
     }
 
-    /** @return list<string> */
-    private function subscriptionAccounts(FetchContext $ctx, string $year): array
+    /**
+     * The per-account lines from the same ISATracker status the totals above
+     * come from (ledger-aware, tax-year scoped), so Fyn's breakdown always
+     * adds up to the figure the Savings page shows (CSJ 2026-10-01 item 7a).
+     *
+     * @param  array<string, mixed>  $status
+     * @return list<string>
+     */
+    private function subscriptionAccounts(array $status): array
     {
-        $accounts = $this->savingsStore->forUser($ctx->user)
-            ->filter(fn ($account): bool => (bool) $account->is_isa
-                && $account->isa_subscription_year === $year
-                && (float) ($account->isa_subscription_amount ?? 0) > 0)
-            ->map(function ($account): string {
-                $name = trim((string) ($account->account_name ?: $account->institution ?: 'Cash ISA'));
-
-                return UserContentSanitiser::wrap($name).' — '
-                    .$this->fmt((float) $account->isa_subscription_amount).' subscribed';
-            })
+        return collect($status['account_breakdown'] ?? [])
+            ->filter(fn (array $row): bool => (float) ($row['contributed'] ?? 0) > 0)
+            ->map(fn (array $row): string => UserContentSanitiser::wrap(trim((string) ($row['account_name'] ?? 'ISA')))
+                .' — '.$this->fmt((float) $row['contributed']).' subscribed')
             ->values()
             ->all();
-
-        $investmentAccounts = InvestmentAccount::where('user_id', $ctx->user->id)
-            ->where('account_type', 'isa')
-            ->get()
-            ->filter(fn (InvestmentAccount $account): bool => ($account->tax_year === null || $account->tax_year === $year)
-                && (float) ($account->isa_subscription_current_year ?? 0) > 0)
-            ->map(function (InvestmentAccount $account): string {
-                $name = trim((string) ($account->account_name ?: $account->provider ?: 'Stocks & Shares ISA'));
-
-                return UserContentSanitiser::wrap($name).' — '
-                    .$this->fmt((float) $account->isa_subscription_current_year).' subscribed';
-            })
-            ->values()
-            ->all();
-
-        return [...$accounts, ...$investmentAccounts];
     }
 
     private function fmt(mixed $amount): string

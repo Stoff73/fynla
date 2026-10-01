@@ -21,6 +21,7 @@ use App\Services\Investment\Recommendation\DataReadinessService;
 use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\TaxEfficiencyCalculator;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Savings\ISATracker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
@@ -184,22 +185,14 @@ class InvestmentAgent extends BaseAgent
 
                 // Tax wrapper summary — include both investment and savings ISAs
                 $isaAccounts = $accounts->where('account_type', 'isa');
-                $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
-                $investmentIsaUsed = $isaAccounts->sum('isa_subscription_current_year');
-
-                // Include savings ISA subscriptions for accurate allowance remaining
-                $taxYear = $this->taxConfig->getTaxYear();
-                $savingsIsaUser = User::find($userId);
-                $savingsIsaUsed = $savingsIsaUser
-                    ? app(SavingsStore::class)->forUser($savingsIsaUser)
-                        ->where('user_id', $userId)
-                        ->whereIn('account_type', ['isa', 'cash_isa'])
-                        ->where('isa_subscription_year', $taxYear)
-                        ->sum('isa_subscription_amount')
-                    : 0.0;
-
-                $isaUsedThisYear = $investmentIsaUsed + $savingsIsaUsed;
-                $isaRemaining = max(0, $isaAllowance - $isaUsedThisYear);
+                // ISA allowance used and left: the one rule (ISATracker, CSJ
+                // 2026-10-01 item 7a), the same figures the Savings page and the
+                // Tax Strategy tile show.
+                $isaTracker = app(ISATracker::class);
+                $isaUser = User::find($userId);
+                $isaAllowance = $isaTracker->getTotalAllowance($isaTracker->getCurrentTaxYear());
+                $isaUsedThisYear = $isaUser ? $isaTracker->usedThisTaxYear($isaUser) : 0.0;
+                $isaRemaining = $isaUser ? $isaTracker->remainingThisTaxYear($isaUser) : $isaAllowance;
 
                 $taxWrappers = [
                     'has_isa' => $isaAccounts->isNotEmpty(),

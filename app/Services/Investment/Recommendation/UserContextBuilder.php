@@ -11,7 +11,9 @@ use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Savings\ISATracker;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
@@ -54,27 +56,18 @@ class UserContextBuilder
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
         $riskLevel = $riskProfile?->risk_level ?? 'medium';
 
-        $taxBand = $this->determineTaxBand($grossIncome);
+        $taxBand = $this->determineTaxBand($user);
 
-        // ISA usage — combine savings + investment ISAs
-        $taxYear = $this->taxConfig->getTaxYear();
-        $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
-        $investmentIsaUsed = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-        $savingsIsaUsed = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->whereIn('account_type', ['isa', 'cash_isa'])
-            ->where('isa_subscription_year', $taxYear)
-            ->sum('isa_subscription_amount');
-        $isaUsed = (float) $investmentIsaUsed + (float) $savingsIsaUsed;
-        $isaRemaining = max(0, $isaAllowance - $isaUsed);
-
-        // Pension allowance
-        $pensionAllowances = $this->taxConfig->getPensionAllowances();
-        $annualAllowance = $pensionAllowances['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE;
-        $pensionContributionsThisYear = $this->calculatePensionContributions($user);
-        $pensionRemaining = max(0, $annualAllowance - $pensionContributionsThisYear);
+        // ISA and pension allowance positions: the one server rule for each
+        // (CSJ 2026-10-01 item 7a), the figures every other surface shows.
+        [
+            'isa_allowance' => $isaAllowance,
+            'isa_used' => $isaUsed,
+            'isa_remaining' => $isaRemaining,
+            'annual_allowance' => $annualAllowance,
+            'pension_used' => $pensionContributionsThisYear,
+            'pension_remaining' => $pensionRemaining,
+        ] = $this->allowancePositions($user);
 
         // CGT
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
@@ -219,21 +212,18 @@ class UserContextBuilder
 
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
         $riskLevel = $riskProfile?->risk_level ?? 'medium';
-        $taxBand = $this->determineTaxBand($grossIncome);
+        $taxBand = $this->determineTaxBand($user);
 
-        // ISA remaining — from investmentAnalysis which already cross-checks savings ISAs
-        $taxWrappers = $investmentAnalysis['tax_wrappers'] ?? [];
-        $isaAllowance = $taxWrappers['isa_allowance']
-            ?? $this->taxConfig->getISAAllowances()['annual_allowance']
-            ?? TaxDefaults::ISA_ALLOWANCE;
-        $isaUsed = (float) ($taxWrappers['isa_used_this_year'] ?? 0);
-        $isaRemaining = (float) ($taxWrappers['isa_remaining'] ?? max(0, $isaAllowance - $isaUsed));
-
-        // Pension
-        $pensionAllowances = $this->taxConfig->getPensionAllowances();
-        $annualAllowance = $pensionAllowances['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE;
-        $pensionContributionsThisYear = $this->calculatePensionContributions($user);
-        $pensionRemaining = max(0, $annualAllowance - $pensionContributionsThisYear);
+        // ISA and pension allowance positions: the one server rule for each
+        // (CSJ 2026-10-01 item 7a), the figures every other surface shows.
+        [
+            'isa_allowance' => $isaAllowance,
+            'isa_used' => $isaUsed,
+            'isa_remaining' => $isaRemaining,
+            'annual_allowance' => $annualAllowance,
+            'pension_used' => $pensionContributionsThisYear,
+            'pension_remaining' => $pensionRemaining,
+        ] = $this->allowancePositions($user);
 
         // CGT and PSA
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
@@ -358,25 +348,35 @@ class UserContextBuilder
     // ──────────────────────────────────────────────
 
     /**
-     * Determine the user's income tax band from gross income.
+     * The user's Income Tax band from the one rule (TaxStrategyMath::incomeTaxBandFor:
+     * Personal Allowance tapered under ITA 2007 s35, bands from TaxConfigService),
+     * not a copy built on hardcoded defaults.
      */
-    private function determineTaxBand(float $grossIncome): string
+    private function determineTaxBand(User $user): string
     {
-        $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
+        return app(TaxStrategyMath::class)->incomeTaxBandFor($user);
+    }
 
-        if ($grossIncome <= $personalAllowance) {
-            return 'non_taxpayer';
-        }
+    /**
+     * ISA allowance (ISATracker, the one rule for ISA used) and pension Annual
+     * Allowance (TaxStrategyMath: tapered under FA 2004 s228ZA, Money Purchase
+     * Annual Allowance under s227ZA, pension input amount under s233(1)).
+     *
+     * @return array{isa_allowance: float, isa_used: float, isa_remaining: float, annual_allowance: float, pension_used: float, pension_remaining: float}
+     */
+    private function allowancePositions(User $user): array
+    {
+        $isaTracker = app(ISATracker::class);
+        $math = app(TaxStrategyMath::class);
 
-        if ($grossIncome <= $personalAllowance + TaxDefaults::BASIC_RATE_BAND) {
-            return 'basic';
-        }
-
-        if ($grossIncome <= TaxDefaults::ADDITIONAL_RATE_THRESHOLD) {
-            return 'higher';
-        }
-
-        return 'additional';
+        return [
+            'isa_allowance' => $isaTracker->getTotalAllowance($isaTracker->getCurrentTaxYear()),
+            'isa_used' => $isaTracker->usedThisTaxYear($user),
+            'isa_remaining' => $isaTracker->remainingThisTaxYear($user),
+            'annual_allowance' => $math->effectiveAnnualAllowanceFor($user),
+            'pension_used' => $math->estimatePensionContributionThisYear($user, null),
+            'pension_remaining' => $math->availableAnnualAllowance($user, null),
+        ];
     }
 
     /**
@@ -419,23 +419,6 @@ class UserContextBuilder
     }
 
     /**
-     * Calculate total pension contributions for the current tax year.
-     */
-    private function calculatePensionContributions(User $user): float
-    {
-        $dcPensions = $user->dcPensions()->get();
-
-        return $dcPensions->sum(function ($pension) {
-            $annualSalary = (float) ($pension->annual_salary ?? 0);
-            $employeePercent = (float) ($pension->employee_contribution_percent ?? 0);
-            $employerPercent = (float) ($pension->employer_contribution_percent ?? 0);
-
-            return ($annualSalary * ($employeePercent + $employerPercent) / 100)
-                + (float) ($pension->lump_sum_contribution ?? 0);
-        });
-    }
-
-    /**
      * Build spouse context if the user is married/civil partnership and has a linked spouse.
      */
     private function buildSpouseContext(User $user): ?array
@@ -456,26 +439,12 @@ class UserContextBuilder
         }
 
         $spouseGross = $this->resolveGrossAnnualIncome($spouse);
-        $spouseTaxBand = $this->determineTaxBand($spouseGross);
+        $spouseTaxBand = $this->determineTaxBand($spouse);
 
-        // Spouse ISA usage
-        $taxYear = $this->taxConfig->getTaxYear();
-        $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
-        $spouseInvestmentIsa = InvestmentAccount::where('user_id', $spouse->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-        $spouseSavingsIsa = app(SavingsStore::class)->forUser($spouse)
-            ->where('user_id', $spouse->id)
-            ->whereIn('account_type', ['isa', 'cash_isa'])
-            ->where('isa_subscription_year', $taxYear)
-            ->sum('isa_subscription_amount');
-        $spouseIsaUsed = (float) $spouseInvestmentIsa + (float) $spouseSavingsIsa;
-        $spouseIsaRemaining = max(0, $isaAllowance - $spouseIsaUsed);
-
-        // Spouse pension
-        $spousePensionAllowance = $this->taxConfig->getPensionAllowances()['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE;
-        $spousePensionContributions = $this->calculatePensionContributions($spouse);
-        $spousePensionRemaining = max(0, $spousePensionAllowance - $spousePensionContributions);
+        [
+            'isa_remaining' => $spouseIsaRemaining,
+            'pension_remaining' => $spousePensionRemaining,
+        ] = $this->allowancePositions($spouse);
 
         $spousePsa = $this->taxConfig->getPersonalSavingsAllowance($spouseTaxBand);
 

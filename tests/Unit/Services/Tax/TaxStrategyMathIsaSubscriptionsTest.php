@@ -40,7 +40,10 @@ describe('estimateIsaSubscriptionsThisYear — captured vs proxy', function () {
             ->toBe(100.0);
     });
 
-    it('falls back to the created-this-tax-year proxy when no subscription amounts are captured', function () {
+    // The created-this-tax-year balance proxy (65f22f4c9) is gone: a record's
+    // created_at is when it was typed into Fynla, not a subscription, and the
+    // one rule (ISATracker) never counted it (CSJ 2026-10-01 item 7a).
+    it('counts nothing for an ISA created this tax year with no amount paid in recorded', function () {
         $user = User::factory()->create();
 
         SavingsAccount::factory()->create([
@@ -49,11 +52,11 @@ describe('estimateIsaSubscriptionsThisYear — captured vs proxy', function () {
             'current_balance' => 5000,
             'isa_subscription_year' => null,
             'isa_subscription_amount' => null,
-            'created_at' => now(), // opened this tax year → proxy counts balance
+            'created_at' => now(), // created this tax year: the old proxy counted the balance
         ]);
 
         expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))
-            ->toBe(5000.0);
+            ->toBe(0.0);
     });
 
     it('sums captured amounts across multiple ISAs in the current tax year', function () {
@@ -81,7 +84,7 @@ describe('estimateIsaSubscriptionsThisYear — captured vs proxy', function () {
             ->toBe(5000.0);
     });
 
-    it('ignores captured amounts from a prior tax year and falls back to proxy', function () {
+    it('ignores captured amounts from a prior tax year', function () {
         $user = User::factory()->create();
 
         SavingsAccount::factory()->create([
@@ -93,8 +96,9 @@ describe('estimateIsaSubscriptionsThisYear — captured vs proxy', function () {
             'created_at' => now(), // proxy would count this
         ]);
 
-        // Prior-year captured amount must NOT be returned; proxy returns balance (8000).
+        // Prior-year captured amount must NOT be returned, and the balance of an
+        // ISA created this tax year is not a subscription either.
         expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))
-            ->toBe(8000.0);
+            ->toBe(0.0);
     });
 });

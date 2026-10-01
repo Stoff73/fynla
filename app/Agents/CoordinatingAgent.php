@@ -501,10 +501,8 @@ class CoordinatingAgent extends BaseAgent
                     break;
 
                 case 'isa_allowance_conflict':
-                    // Get ISA allowance from tax configuration
-                    $isaConfig = $this->taxConfig->getISAAllowances();
-                    // Fallback to 2025/26 UK ISA allowance if config unavailable
-                    $isaAllowance = $isaConfig['annual_allowance'] ?? 20000;
+                    // The ISA allowance from tax configuration (Rule 2: no typed-in fallback).
+                    $isaAllowance = (float) $this->taxConfig->getISAAllowances()['annual_allowance'];
                     $resolution = $this->conflictResolver->resolveISAAllocation($isaAllowance, $conflict['demands']);
                     $resolved['conflict_resolutions'][] = [
                         'type' => 'isa_allowance',

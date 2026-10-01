@@ -49,6 +49,12 @@ class InvestmentAccountResource extends JsonResource
             'country' => $this->country,
             'tax_year' => $this->tax_year,
             'platform_fee_percent' => $this->platform_fee_percent,
+            // A fixed platform fee is stored as type + amount + frequency. Unserialised,
+            // the edit form opened a fixed-fee account as "percentage" and the account
+            // screens priced it at 0% (data-integrity-traps, axis 7).
+            'platform_fee_type' => $this->platform_fee_type,
+            'platform_fee_amount' => $this->platform_fee_amount,
+            'platform_fee_frequency' => $this->platform_fee_frequency,
             'advisor_fee_percent' => $this->advisor_fee_percent,
             'risk_preference' => $this->risk_preference,
             'has_custom_risk' => $this->has_custom_risk,

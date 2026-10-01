@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Services\Savings\ISATracker;
 use App\Constants\EstateDefaults;
 use App\Constants\TaxDefaults;
 use App\Models\BusinessInterest;
@@ -690,16 +691,8 @@ class HouseholdPlanningService
      */
     private function calculateISAUsage(User $user): float
     {
-        $savingsISA = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('is_isa', true)
-            ->sum('isa_subscription_amount');
-
-        $investmentISA = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-
-        return (float) $savingsISA + (float) $investmentISA;
+        // The one rule for ISA allowance used (ISATracker, CSJ 2026-10-01 item 7a).
+        return app(ISATracker::class)->usedThisTaxYear($user);
     }
 
     /**

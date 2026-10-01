@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Savings\ISATracker;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -46,6 +46,9 @@ final class TaxStrategyMath
 
     /** @var array<int, bool> */
     private array $mpaaAppliesCache = [];
+
+    /** @var array<int, float> */
+    private array $isaUsedCache = [];
 
     public function __construct(
         private readonly TaxConfigService $taxConfig,
@@ -131,6 +134,22 @@ final class TaxStrategyMath
             $income > $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
             default => 'basic',
         };
+    }
+
+    /**
+     * THE user's Income Tax band, for every surface that names one (Fyn's
+     * profile line, the investment recommendation context): 'non_taxpayer'
+     * when net income is covered by the user's Personal Allowance, tapered on
+     * adjusted net income (ITA 2007 s35, personalAllowanceFor) plus any Blind
+     * Person's Allowance (ITA 2007 s38); otherwise the band bandFromIncomeFor()
+     * gives on the same net income the Tax Strategy prices (taxableIncomeFor).
+     */
+    public function incomeTaxBandFor(User $user): string
+    {
+        $income = $this->taxableIncomeFor($user);
+        $allowance = $this->personalAllowanceFor($user) + $this->taxConfig->blindPersonsAllowanceFor($user);
+
+        return $income <= $allowance ? 'non_taxpayer' : $this->bandFromIncomeFor($user, $income);
     }
 
     public function bandFromIncomeFor(User $user, float $income): string
@@ -383,65 +402,22 @@ final class TaxStrategyMath
         return SavingsInterestRate::fraction($acc->interest_rate);
     }
 
+    /**
+     * ISA allowance used this tax year: delegates to the ONE rule,
+     * ISATracker::usedThisTaxYear() (CSJ 2026-10-01, item 7a / TODO 16), so the
+     * Tax Strategy tile, plan items, how-tos and thresholds read the same
+     * figure as the Savings page on web, /m and iOS.
+     *
+     * The balance proxy that used to sit here (sum the balances of ISAs created
+     * this tax year when no amount was captured, 65f22f4c9 "P0.6") is gone. It
+     * was an approximation written to be replaced "with a per-subscription log
+     * when one exists"; that log is the ISA contribution ledger (fdb3c7ed5), and
+     * a record's created_at is when it was typed into Fynla, not when the ISA
+     * was opened or paid into.
+     */
     public function estimateIsaSubscriptionsThisYear(User $user): float
     {
-        // P0.6 / Task 4 — Prefer explicit per-account subscription amounts captured
-        // during onboarding ("how much have you put in this tax year?"). The
-        // isa_subscription_year field stores the tax-year label in 'YYYY/YY' format
-        // (e.g. '2026/27'), matching TaxConfigService::getTaxYear().
-        //
-        // If ANY account has a captured amount for the current tax year, sum those
-        // amounts and return early — they are direct user input and strictly more
-        // accurate than the proxy.
-        //
-        // Fallback (no captured amounts): P0.6 proxy — sum balances of ISAs OPENED
-        // in the current tax year. This is conservative (under-estimates top-ups to
-        // older accounts) but better than over-estimating against the £20k cap.
-        // The strategy layer caps suggestions at the allowance regardless.
-        $currentTaxYear = $this->taxConfig->getTaxYear(); // e.g. '2026/27'
-
-        // forUser() is joint-aware; the Collection-level where('user_id')
-        // post-filter preserves the original single-owner sum.
-        $allIsas = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('is_isa', true);
-
-        // Prefer captured per-account subscription amounts for the current tax year.
-        $capturedCash = $allIsas
-            ->where('isa_subscription_year', $currentTaxYear)
-            ->filter(fn ($a) => $a->isa_subscription_amount !== null)
-            ->sum('isa_subscription_amount');
-
-        // Stocks & shares / investment ISAs subscribe against the SAME £20k
-        // allowance but live on investment_accounts (account_type 'isa') under
-        // isa_subscription_current_year — NOT savings_accounts. Without this the
-        // allowance is over-stated for anyone with an S&S ISA, so ISA top-up
-        // strategies recommend wrapping more than the user can still subscribe.
-        // Mirrors the household allowance accounting in HouseholdPlanningService.
-        // (ISAs are never jointly owned, so primary-owner scope is exhaustive.)
-        $capturedInvestment = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-
-        $captured = (float) $capturedCash + (float) $capturedInvestment;
-
-        if ($captured > 0) {
-            return $captured;
-        }
-
-        // Fallback: created-this-tax-year proxy (P0.6 original logic, unchanged).
-        $taxYearStart = $this->taxConfig->getEffectiveFrom();
-
-        $accounts = $allIsas;
-
-        if ($taxYearStart !== '') {
-            // created_at is a Carbon cast; Collection::where string comparison
-            // is unreliable, so filter explicitly against a parsed boundary.
-            $boundary = Carbon::parse($taxYearStart);
-            $accounts = $accounts->filter(fn ($a) => $a->created_at >= $boundary);
-        }
-
-        return (float) $accounts->sum('current_balance');
+        return $this->isaUsedCache[(int) $user->id] ??= app(ISATracker::class)->usedThisTaxYear($user);
     }
 
     public function estimatePensionContributionThisYear(User $user, ?TaxStrategyOverridesDTO $overrides): float

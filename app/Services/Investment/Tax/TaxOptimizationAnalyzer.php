@@ -7,6 +7,7 @@ namespace App\Services\Investment\Tax;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Savings\ISATracker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
@@ -63,7 +64,8 @@ class TaxOptimizationAnalyzer
         $currentPosition = $this->calculateCurrentTaxPosition(
             $investmentAccounts,
             $savingsAccounts,
-            $taxYear
+            $taxYear,
+            $user
         );
 
         // Identify optimization opportunities
@@ -105,7 +107,8 @@ class TaxOptimizationAnalyzer
     private function calculateCurrentTaxPosition(
         Collection $investmentAccounts,
         Collection $savingsAccounts,
-        string $taxYear
+        string $taxYear,
+        ?User $user = null
     ): array {
         // Get tax allowances from config
         $isaConfig = $this->taxConfig->getISAAllowances();
@@ -114,7 +117,8 @@ class TaxOptimizationAnalyzer
 
         // ISA allowance usage
         $isaAllowance = $isaConfig['annual_allowance'];
-        $isaUsed = $this->calculateISAUsage($investmentAccounts, $savingsAccounts, $taxYear);
+        // The one rule for ISA allowance used (ISATracker, CSJ 2026-10-01 item 7a).
+        $isaUsed = $user ? app(ISATracker::class)->usedInTaxYear($user, $taxYear) : 0.0;
         $isaRemaining = max(0, $isaAllowance - $isaUsed);
 
         // Calculate unrealized gains/losses and taxable vs tax-sheltered split
@@ -188,46 +192,6 @@ class TaxOptimizationAnalyzer
             'total_portfolio_value' => round($totalPortfolioValue, 2),
             'taxable_percentage' => round($taxablePercentage, 1),
         ];
-    }
-
-    /**
-     * Calculate ISA allowance usage for current tax year
-     *
-     * @param  Collection  $investmentAccounts  Investment accounts
-     * @param  Collection  $savingsAccounts  Savings accounts
-     * @param  string  $taxYear  Tax year (e.g., "2024/25")
-     * @return float ISA usage in £
-     */
-    private function calculateISAUsage(
-        Collection $investmentAccounts,
-        Collection $savingsAccounts,
-        string $taxYear
-    ): float {
-        $usage = 0;
-
-        // Parse tax year dates
-        [$startYear] = explode('/', $taxYear);
-        $taxYearStart = "{$startYear}-04-06";
-        $taxYearEnd = ((int) $startYear + 1).'-04-05';
-
-        // Investment ISAs - use actual subscription amount for current tax year
-        foreach ($investmentAccounts as $account) {
-            if (in_array($account->account_type, ['isa', 'stocks_shares_isa'])) {
-                $usage += $account->isa_subscription_current_year ?? 0;
-            }
-        }
-
-        // Cash ISAs from Savings module - use actual subscription for current tax year
-        foreach ($savingsAccounts as $account) {
-            if ($account->account_type === 'isa' || $account->account_type === 'cash_isa') {
-                // Check if subscription is for current tax year
-                if ($account->isa_subscription_year === $taxYear) {
-                    $usage += $account->isa_subscription_amount ?? 0;
-                }
-            }
-        }
-
-        return $usage;
     }
 
     /**

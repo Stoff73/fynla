@@ -44,6 +44,47 @@ class ISATracker
     }
 
     /**
+     * ISA subscriptions the user has made in the ACTIVE tax year: THE one rule
+     * for "ISA allowance used this year" (CSJ 2026-10-01, item 7a / TODO 16).
+     * The Tax Strategy tile and plan items (TaxStrategyMath), the how-tos, the
+     * thresholds, Fyn's investment tool, web tax efficiency, the household
+     * planner and the tax action cards all delegate here, so every surface
+     * shows the same figure as the Savings page (getISAAllowanceStatus).
+     *
+     * Rule, per account: recorded ledger subscriptions for the tax year, else
+     * the captured annual summary for that year, else the account's legacy
+     * "paid in this year" column; scoped to the tax year; Lifetime ISA
+     * included, because a Lifetime ISA subscription counts towards the overall
+     * ISA limit (https://www.gov.uk/lifetime-isa: "The Lifetime ISA limit of
+     * £4,000 counts towards your annual ISA limit"). ISAs are never jointly
+     * owned (https://www.gov.uk/individual-savings-accounts: "You cannot hold
+     * an ISA with someone else"), so primary-owner scope is exhaustive.
+     */
+    public function usedThisTaxYear(User $user): float
+    {
+        return $this->usedInTaxYear($user, $this->getCurrentTaxYear());
+    }
+
+    /**
+     * The same rule as usedThisTaxYear() for a named tax year ('2026/27' or
+     * '2026-27'), with no write to the tracking table.
+     */
+    public function usedInTaxYear(User $user, string $taxYear): float
+    {
+        return (float) $this->buildOwnerStatus($user, $this->normaliseTaxYear($taxYear), 'self')['total_used'];
+    }
+
+    /**
+     * ISA allowance left in the active tax year: the live allowance from tax
+     * config (TaxConfigService::getISAAllowances()['annual_allowance']) less
+     * usedThisTaxYear(), floored at zero.
+     */
+    public function remainingThisTaxYear(User $user): float
+    {
+        return round(max(0.0, $this->getTotalAllowance($this->getCurrentTaxYear()) - $this->usedThisTaxYear($user)), 2);
+    }
+
+    /**
      * Get ISA allowance status for a user and tax year
      *
      * @return array{cash_isa_used: float, stocks_shares_isa_used: float, lisa_used: float, total_used: float, total_allowance: float, remaining: float, percentage_used: float}
@@ -74,7 +115,10 @@ class ISATracker
         $stocksSharesIsaUsed = $ownerStatus['stocks_shares_isa_used'];
         $lisaUsed = $ownerStatus['lisa_used'];
         $totalUsed = $ownerStatus['total_used'];
-        $totalAllowance = (float) $tracking->total_allowance;
+        // The live allowance from tax config, never the figure frozen on the
+        // tracking row when it was first created (Rule 2: one source for the
+        // allowance; remainingThisTaxYear() reads the same).
+        $totalAllowance = $this->getTotalAllowance($taxYear);
         $remaining = max(0, $totalAllowance - $totalUsed);
         $percentageUsed = $totalAllowance > 0
             ? ($totalUsed / $totalAllowance) * 100
@@ -82,6 +126,7 @@ class ISATracker
 
         // Update tracking record only if values changed
         $tracking->fill([
+            'total_allowance' => $totalAllowance,
             'cash_isa_used' => $cashIsaUsed,
             'stocks_shares_isa_used' => $stocksSharesIsaUsed,
             'lisa_used' => $lisaUsed,
@@ -132,10 +177,23 @@ class ISATracker
     {
         $breakdown = collect();
 
+        // Accounts with ledger entries for this tax year count even when the
+        // account's own year column names another year: the ledger is the
+        // record of what was paid in, and it is keyed by tax year.
+        $ledgerAccountIds = fn (string $class) => ISAContribution::query()
+            ->where('user_id', $owner->id)
+            ->where('account_type', $class)
+            ->where('tax_year', $taxYear)
+            ->pluck('account_id');
+
+        $savingsLedgerIds = $ledgerAccountIds(SavingsAccount::class);
         $savingsAccounts = SavingsAccount::query()
             ->where('user_id', $owner->id)
             ->where('is_isa', true)
-            ->where('isa_subscription_year', $taxYear)
+            ->where(function ($query) use ($taxYear, $savingsLedgerIds) {
+                $query->where('isa_subscription_year', $taxYear)
+                    ->orWhereIn('id', $savingsLedgerIds);
+            })
             ->get();
 
         foreach ($savingsAccounts as $account) {
@@ -154,11 +212,13 @@ class ISATracker
             ));
         }
 
+        $investmentLedgerIds = $ledgerAccountIds(InvestmentAccount::class);
         $investmentAccounts = InvestmentAccount::query()
             ->where('user_id', $owner->id)
             ->where('account_type', 'isa')
-            ->where(function ($query) use ($taxYear) {
-                $query->where('tax_year', $taxYear);
+            ->where(function ($query) use ($taxYear, $investmentLedgerIds) {
+                $query->where('tax_year', $taxYear)
+                    ->orWhereIn('id', $investmentLedgerIds);
                 if ($taxYear === $this->getCalendarTaxYear()) {
                     $query->orWhereNull('tax_year');
                 }
@@ -167,12 +227,15 @@ class ISATracker
 
         foreach ($investmentAccounts as $account) {
             $legacyAmount = (float) ($account->isa_subscription_current_year ?? $account->contributions_ytd ?? 0);
+            // A Lifetime ISA held on the investment side is account_type 'isa' +
+            // isa_type 'lifetime' (PreviewUserSeeder, InvestmentAccountNormaliser).
+            $isLifetime = in_array(strtolower((string) $account->isa_type), ['lifetime', 'lisa', 'lifetime_isa'], true);
             $breakdown->push($this->accountBreakdown(
                 $owner,
                 $relationship,
                 $account,
                 $taxYear,
-                'stocks_and_shares_isa',
+                $isLifetime ? 'lifetime_isa' : 'stocks_and_shares_isa',
                 $legacyAmount,
                 'legacy_current_year_summary',
             ));

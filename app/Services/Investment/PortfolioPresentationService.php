@@ -14,11 +14,43 @@ use Illuminate\Support\Collection;
 
 class PortfolioPresentationService
 {
+    /**
+     * Additive changes keep the version: no surface gates on its value (web, /m
+     * CanonicalPortfolio.vue and native CanonicalPortfolioModels.swift only carry
+     * it), and the wrapper-level `fees` block decodes as optional where an older
+     * payload lacks it.
+     */
     public const CONTRACT_VERSION = 'financial_portfolio_v1';
+
+    /**
+     * The growth assumed for the ten-year charges illustration, before charges.
+     *
+     * Not a forecast and not a recommendation: an illustrative rate, stated on
+     * screen beside the figures it produces. Every web panel that showed a
+     * ten-year charges figure assumed 5% on the client (AccountFeesPanel,
+     * AccountHoldingsPanel, PensionDetailInline, FeeBreakdown), each with its own
+     * arithmetic. It now lives here once and is published with the figures as
+     * `assumed_growth_percent`, so the caption cannot disagree with the sum.
+     */
+    public const ILLUSTRATIVE_GROWTH_PERCENT = 5.0;
+
+    public const FEE_IMPACT_YEARS = 10;
+
+    /**
+     * Charging periods per year for a fixed platform fee. Mirrors the
+     * `platform_fee_frequency` enum on both wrappers (migrations
+     * 2026_01_15_111814 and 2026_03_25_164053).
+     */
+    private const FIXED_FEE_PERIODS_PER_YEAR = [
+        'monthly' => 12,
+        'quarterly' => 4,
+        'annually' => 1,
+    ];
 
     public function __construct(
         private readonly PortfolioExposureService $exposureService,
         private readonly RiskPreferenceService $riskService,
+        private readonly ContributionEstimatorService $contributionEstimator,
     ) {}
 
     public function forInvestmentAccount(
@@ -50,6 +82,10 @@ class PortfolioPresentationService
             $relevantPortfolioValue,
             $snapshots,
             ['current_value'],
+            $account,
+            // The one contribution figure an investment account carries, the one
+            // its projection uses (ContributionEstimatorService).
+            $this->contributionEstimator->estimateMonthlyContribution($account),
         );
     }
 
@@ -82,6 +118,9 @@ class PortfolioPresentationService
             $relevantPortfolioValue,
             $snapshots,
             ['current_fund_value', 'current_fund_value_gbp'],
+            $pension,
+            // What reaches the pot each month (DCPension `monthly_contribution` accessor).
+            (float) ($pension->monthly_contribution ?? 0),
         );
     }
 
@@ -95,6 +134,8 @@ class PortfolioPresentationService
         float $relevantPortfolioValue,
         Collection|EloquentCollection $snapshots,
         array $snapshotColumns,
+        InvestmentAccount|DCPension $wrapper,
+        float $monthlyContribution,
     ): array {
         $analysisHoldings = collect($analysis['holdings'])->keyBy('id');
         $holdingRows = $holdings->map(function ($holding) use ($analysisHoldings, $relevantPortfolioValue) {
@@ -150,7 +191,193 @@ class PortfolioPresentationService
             'recorded_wrapper_value' => round($recordedValue, 2),
             'analysis' => $analysis,
             'holdings' => $holdingRows,
+            'fees' => $this->wrapperFees($wrapper, $recordedValue, $holdingRows, $monthlyContribution),
             'performance_history' => $this->performanceHistory($snapshots, $snapshotColumns),
+        ];
+    }
+
+    /**
+     * Every charge on the wrapper, priced once for every surface (CSJ 2026-10-01,
+     * item 7a: web priced these in five components; /m and native had none).
+     *
+     * Only what is recorded is priced. A platform or adviser fee that was never
+     * entered is `recorded: false` with no figure rather than 0%, and a holding
+     * with no recorded charge is counted in `holdings_without_recorded_ocf`
+     * rather than given an estimate. Fee columns hold percentages
+     * (0.45 = 0.45%), per the `decimal:4` casts on InvestmentAccount and DCPension.
+     *
+     * @param  array<int, array<string, mixed>>  $holdingRows
+     */
+    private function wrapperFees(
+        InvestmentAccount|DCPension $wrapper,
+        float $recordedValue,
+        array $holdingRows,
+        float $monthlyContribution,
+    ): array {
+        $platform = $this->platformFee($wrapper, $recordedValue);
+
+        $advisorPercent = $wrapper->advisor_fee_percent !== null ? (float) $wrapper->advisor_fee_percent : null;
+        $advisorCost = $advisorPercent !== null ? $recordedValue * ($advisorPercent / 100) : null;
+
+        $chargedValue = 0.0;
+        $weightedCharge = 0.0;
+        $withoutCharge = 0;
+        foreach ($holdingRows as $row) {
+            if (! ($row['fees']['available'] ?? false)) {
+                $withoutCharge++;
+
+                continue;
+            }
+            $chargedValue += (float) $row['current_value'];
+            $weightedCharge += (float) $row['current_value'] * (float) $row['fees']['ocf_percent'];
+        }
+        // Σ value × OCF% / 100 — the per-holding `estimated_annual_cost` summed unrounded.
+        $fundCost = $weightedCharge / 100;
+
+        $totalCost = ($platform['annual_cost'] ?? 0.0) + ($advisorCost ?? 0.0) + $fundCost;
+        $totalPercent = $recordedValue > 0 ? ($totalCost / $recordedValue) * 100 : null;
+
+        return [
+            'basis_value' => round($recordedValue, 2),
+            'platform' => $platform,
+            'advisor' => [
+                'recorded' => $advisorPercent !== null,
+                'percent' => $advisorPercent !== null ? round($advisorPercent, 4) : null,
+                'annual_cost' => $advisorCost !== null ? round($advisorCost, 2) : null,
+            ],
+            'fund_charges' => [
+                // Weighted over the holdings whose charge is recorded; the count
+                // beside it says how many holdings that leaves out.
+                'weighted_ocf_percent' => $chargedValue > 0 ? round($weightedCharge / $chargedValue, 4) : null,
+                'annual_cost' => round($fundCost, 2),
+                'holdings_count' => count($holdingRows),
+                'holdings_without_recorded_ocf' => $withoutCharge,
+            ],
+            'total_annual_cost' => round($totalCost, 2),
+            'total_percent' => $totalPercent !== null ? round($totalPercent, 4) : null,
+            'ten_year_impact' => $this->feeImpact($recordedValue, $monthlyContribution * 12, $totalPercent ?? 0.0),
+        ];
+    }
+
+    /**
+     * The platform fee as recorded: a percentage of the wrapper, or a fixed amount
+     * per charging period, annualised. Its effective percentage is published for
+     * both, so a fixed fee and a percentage fee total together.
+     */
+    private function platformFee(InvestmentAccount|DCPension $wrapper, float $recordedValue): array
+    {
+        if ($wrapper->platform_fee_type === 'fixed') {
+            if ($wrapper->platform_fee_amount === null) {
+                return ['recorded' => false, 'type' => 'fixed', 'percent' => null, 'fixed_amount' => null, 'frequency' => null, 'annual_cost' => null];
+            }
+
+            $frequency = $wrapper->platform_fee_frequency ?: 'annually';
+            $annualCost = (float) $wrapper->platform_fee_amount * (self::FIXED_FEE_PERIODS_PER_YEAR[$frequency] ?? 1);
+
+            return [
+                'recorded' => true,
+                'type' => 'fixed',
+                'percent' => $recordedValue > 0 ? round(($annualCost / $recordedValue) * 100, 4) : null,
+                'fixed_amount' => round((float) $wrapper->platform_fee_amount, 2),
+                'frequency' => $frequency,
+                'annual_cost' => round($annualCost, 2),
+            ];
+        }
+
+        if ($wrapper->platform_fee_percent === null) {
+            return ['recorded' => false, 'type' => 'percentage', 'percent' => null, 'fixed_amount' => null, 'frequency' => null, 'annual_cost' => null];
+        }
+
+        $percent = (float) $wrapper->platform_fee_percent;
+
+        return [
+            'recorded' => true,
+            'type' => 'percentage',
+            'percent' => round($percent, 4),
+            'fixed_amount' => null,
+            'frequency' => null,
+            'annual_cost' => round($recordedValue * ($percent / 100), 2),
+        ];
+    }
+
+    /**
+     * What charges cost over ten years at the illustrative growth rate.
+     *
+     * Each year the contribution goes in, the year's charges are taken from the
+     * value at the total charge rate, and the rest grows. The same pot grown with
+     * no charges gives `value_without_fees`; the gap between the two is
+     * `total_impact`, of which `total_fees` was paid and `lost_growth` is what
+     * those payments would have earned. Public so the cross-account summary runs
+     * this arithmetic rather than a copy of it.
+     *
+     * @return array{years: int, assumed_growth_percent: float, annual_contribution: float, total_fees: float, value_without_fees: float, value_with_fees: float, lost_growth: float, total_impact: float}
+     */
+    public function feeImpact(float $startValue, float $annualContribution, float $totalFeePercent): array
+    {
+        $growth = self::ILLUSTRATIVE_GROWTH_PERCENT / 100;
+        $feeRate = max(0.0, $totalFeePercent) / 100;
+
+        $withFees = $startValue;
+        $withoutFees = $startValue;
+        $feesPaid = 0.0;
+        for ($year = 0; $year < self::FEE_IMPACT_YEARS; $year++) {
+            $withFees += $annualContribution;
+            $feesPaid += $withFees * $feeRate;
+            $withFees *= (1 + $growth - $feeRate);
+
+            $withoutFees = ($withoutFees + $annualContribution) * (1 + $growth);
+        }
+
+        $totalImpact = max(0.0, $withoutFees - $withFees);
+
+        return [
+            'years' => self::FEE_IMPACT_YEARS,
+            'assumed_growth_percent' => self::ILLUSTRATIVE_GROWTH_PERCENT,
+            'annual_contribution' => round($annualContribution, 2),
+            'total_fees' => round($feesPaid, 2),
+            'value_without_fees' => round($withoutFees, 2),
+            'value_with_fees' => round($withFees, 2),
+            'lost_growth' => round(max(0.0, $totalImpact - $feesPaid), 2),
+            'total_impact' => round($totalImpact, 2),
+        ];
+    }
+
+    /**
+     * Charges across several wrappers, summed from each wrapper's own `fees`
+     * block so the summary cannot disagree with the accounts it lists.
+     *
+     * @param  array<int, array<string, mixed>>  $portfolios  forInvestmentAccount() / forDCPension() outputs
+     */
+    public function portfolioFeesSummary(array $portfolios): array
+    {
+        $value = 0.0;
+        $platform = 0.0;
+        $advisor = 0.0;
+        $fund = 0.0;
+        $contribution = 0.0;
+        foreach ($portfolios as $portfolio) {
+            $fees = $portfolio['fees'];
+            $value += (float) $fees['basis_value'];
+            $platform += (float) ($fees['platform']['annual_cost'] ?? 0);
+            $advisor += (float) ($fees['advisor']['annual_cost'] ?? 0);
+            $fund += (float) $fees['fund_charges']['annual_cost'];
+            $contribution += (float) $fees['ten_year_impact']['annual_contribution'];
+        }
+
+        $total = $platform + $advisor + $fund;
+        $percentOf = fn (float $cost): ?float => $value > 0 ? round(($cost / $value) * 100, 4) : null;
+
+        return [
+            'basis_value' => round($value, 2),
+            'platform_annual_cost' => round($platform, 2),
+            'platform_percent' => $percentOf($platform),
+            'advisor_annual_cost' => round($advisor, 2),
+            'advisor_percent' => $percentOf($advisor),
+            'fund_annual_cost' => round($fund, 2),
+            'fund_percent' => $percentOf($fund),
+            'total_annual_cost' => round($total, 2),
+            'total_percent' => $percentOf($total),
+            'ten_year_impact' => $this->feeImpact($value, $contribution, $value > 0 ? ($total / $value) * 100 : 0.0),
         ];
     }
 

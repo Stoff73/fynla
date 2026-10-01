@@ -89,15 +89,19 @@ describe('bandRateFromIncome', function () {
 });
 
 describe('estimateIsaSubscriptionsThisYear', function () {
-    it('counts ISAs opened in the current tax year', function () {
+    // CSJ 2026-10-01 item 7a: the created-this-tax-year balance proxy is gone;
+    // ISATracker is the one rule and never counted a balance as a subscription.
+    it('does not count the balance of an ISA created this tax year as paid in', function () {
         $user = User::factory()->create();
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => true,
             'current_balance' => 5000,
+            'isa_subscription_year' => null,
+            'isa_subscription_amount' => null,
             'created_at' => now(), // current tax year
         ]);
 
-        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(5000.0);
+        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(0.0);
     });
 
     it('excludes ISAs opened before the current tax year', function () {
@@ -111,16 +115,20 @@ describe('estimateIsaSubscriptionsThisYear', function () {
         expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(0.0);
     });
 
-    it('counts only the current-year subset when the user has a mix', function () {
+    it('counts only the current-year subscription when the user has a mix', function () {
         $user = User::factory()->create();
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => true,
             'current_balance' => 25000,
+            'isa_subscription_year' => '2019/20',
+            'isa_subscription_amount' => 20000,
             'created_at' => now()->subYears(2), // legacy
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => true,
-            'current_balance' => 8000,
+            'current_balance' => 9000,
+            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
+            'isa_subscription_amount' => 8000,
             'created_at' => now(), // current
         ]);
         // Non-ISA must never be counted regardless of created_at
@@ -144,6 +152,7 @@ describe('estimateIsaSubscriptionsThisYear', function () {
             'account_type' => 'isa',
             'isa_type' => 'stocks_and_shares',
             'isa_subscription_current_year' => 5000,
+            'tax_year' => app(TaxConfigService::class)->getTaxYear(),
         ]);
 
         expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(5000.0);
@@ -161,6 +170,7 @@ describe('estimateIsaSubscriptionsThisYear', function () {
         InvestmentAccount::factory()->for($user)->create([
             'account_type' => 'isa',
             'isa_subscription_current_year' => 5000,
+            'tax_year' => app(TaxConfigService::class)->getTaxYear(),
         ]);
 
         expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);

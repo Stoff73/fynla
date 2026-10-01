@@ -29,11 +29,14 @@ use App\Models\JointAccountLog;
 use App\Models\User;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Investment\ContributionEstimatorService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Investment\ReturnCalculationService;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Savings\ISATracker;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
@@ -79,6 +82,9 @@ class InvestmentController extends Controller
         private readonly TierGate $tierGate,
         private readonly PortfolioPresentationService $portfolioPresentation,
         private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly ContributionEstimatorService $contributionEstimator,
+        private readonly ISATracker $isaTracker,
     ) {}
 
     /**
@@ -101,29 +107,60 @@ class InvestmentController extends Controller
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
         $relevantPortfolioValue = (float) $accounts->flatMap->holdings->sum('current_value');
 
+        // ISA allowance used and left, by the one rule (ISATracker, the same
+        // status GET /api/savings/isa-allowance serves /m and native). Every
+        // investment surface reads this rather than subtracting an account's own
+        // subscription from the allowance, which ignored every other ISA.
+        $isaAllowance = $this->isaTracker->getISAAllowanceStatus($user->id, $this->isaTracker->getCurrentTaxYear());
+        $isaContributedByAccount = collect($isaAllowance['account_breakdown'] ?? [])
+            ->where('account_type', InvestmentAccount::class)
+            ->pluck('contributed', 'account_id');
+
         // Transform accounts using resource and add calculated fields
-        $accountsData = $accounts->map(function ($account) use ($user, $riskProfile, $relevantPortfolioValue) {
+        $accountsData = $accounts->map(function ($account) use ($user, $riskProfile, $relevantPortfolioValue, $isaContributedByAccount) {
             $resourceData = (new InvestmentAccountResource($account))->toArray(request());
 
             // Add user-specific calculated fields
             $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
             $resourceData['full_value'] = (float) $account->current_value;
+            // The viewer's own percentage: the primary owner's stored share, or the
+            // remainder for the joint owner (CalculatesOwnershipShare). Clients print
+            // this rather than defaulting a missing ownership_percentage to 50.
+            $resourceData['user_share_percent'] = round($this->userShareFraction($account, $user->id) * 100, 2);
             $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
             $resourceData['is_shared'] = $this->isSharedOwnership($account);
 
-            // Calculate annualised return from holdings
-            $resourceData['annualised_return'] = $this->returnCalculationService->calculateAnnualisedReturn($account);
+            // The monthly contribution every surface shows, and the one the
+            // projection assumes (ContributionEstimatorService: what the user
+            // recorded, at its frequency, else this year's contributions spread over
+            // the months elapsed, else nothing; it never invents a contribution).
+            $resourceData['estimated_monthly_contribution'] = round($this->contributionEstimator->estimateMonthlyContribution($account), 2);
+
+            // This account's ISA subscriptions this tax year, by ISATracker's rule.
+            $resourceData['isa_contributed_this_year'] = $account->account_type === 'isa'
+                ? (float) ($isaContributedByAccount[$account->id] ?? 0.0)
+                : null;
+
+            $resourceData['portfolio'] = $this->portfolioPresentation->forInvestmentAccount(
+                $account,
+                $riskProfile,
+                $relevantPortfolioValue,
+            );
+
+            // Calculate annualised return from holdings, and the same return after
+            // the account's recorded charges (portfolio.fees.total_percent).
+            $annualisedReturn = $this->returnCalculationService->calculateAnnualisedReturn($account);
+            $totalChargePercent = $resourceData['portfolio']['fees']['total_percent'];
+            $resourceData['annualised_return'] = $annualisedReturn;
+            $resourceData['annualised_return_after_charges'] = $annualisedReturn !== null && $totalChargePercent !== null
+                ? round($annualisedReturn - $totalChargePercent, 2)
+                : null;
 
             // Add owner names for joint accounts
             $owner = $account->user;
             $jointOwner = $account->jointOwner;
             $resourceData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
             $resourceData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
-            $resourceData['portfolio'] = $this->portfolioPresentation->forInvestmentAccount(
-                $account,
-                $riskProfile,
-                $relevantPortfolioValue,
-            );
 
             return $resourceData;
         });
@@ -147,6 +184,19 @@ class InvestmentController extends Controller
             'success' => true,
             'data' => [
                 'accounts' => $accountsData,
+                // The viewer's share of every account, summed by the engine net worth
+                // uses (CrossModuleAssetAggregator). Web, /m and native print this;
+                // none of them adds the accounts up itself.
+                'total_value' => round($this->assetAggregator->calculateInvestmentTotal($user->id), 2),
+                // Charges across the accounts listed, summed from each account's own
+                // portfolio.fees block (PortfolioPresentationService).
+                'fees_summary' => $this->portfolioPresentation->portfolioFeesSummary(
+                    $accountsData->pluck('portfolio')->all()
+                ),
+                'isa_allowance' => $isaAllowance,
+                // The investment side of isa_allowance.total_used: this user's
+                // investment ISAs' subscriptions this tax year, by the same rule.
+                'isa_contributed_this_year' => round((float) $isaContributedByAccount->sum(), 2),
                 // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the
                 // gate's primary-owner-only count (InvestmentAccountStore:192), NOT the
                 // joint-aware list above, so "X of Y used" matches what canCreate enforces.

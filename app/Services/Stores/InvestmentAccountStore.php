@@ -17,6 +17,7 @@ use App\Services\Savings\ISAContributionLedger;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Snapshots\SnapshotPolicies;
+use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -148,6 +149,14 @@ class InvestmentAccountStore
             fn () => DB::transaction(function () use ($account, $canonical, $source) {
                 $oldValue = $account->current_value === null ? null : (float) $account->current_value;
                 $account->fill($canonical);
+                // "Paid in this tax year" belongs to the tax year it was entered in.
+                // A changed figure with no year of its own is this year's, so the
+                // year column cannot stay on the year the account was created and
+                // hide the subscription from ISATracker, the one rule for ISA
+                // allowance used (TODO 16: £20,000 paid in read as £20,000 left).
+                if ($account->isDirty('isa_subscription_current_year') && ! array_key_exists('tax_year', $canonical)) {
+                    $account->tax_year = app(TaxConfigService::class)->getTaxYear();
+                }
                 $account->fill($this->withSchemeValue($account->getAttributes()));
                 $changes = [];
                 foreach ($account->getDirty() as $field => $newValue) {
