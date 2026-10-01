@@ -9,6 +9,30 @@ Your pension suggestions now start from what you can actually afford. A suggesti
 
 Both were walked on the test site first, on the desktop web app (full-size window) and the mobile web app, and then checked on fynla.org (see "What we checked").
 
+## Marriage Allowance follows the law (1 October, about 07:57, release #1032)
+
+- **More couples qualify.** The partner giving Marriage Allowance used to need income below the Personal Allowance, which is GOV.UK's summary. The law asks something different: once their Personal Allowance is reduced by the £1,260 they give, none of their income is taxed above the basic rate, with dividends counted in full ([Income Tax Act 2007 s55C(1)(c), (ca)](https://www.legislation.gov.uk/ukpga/2007/3/section/55C)). In the law, the "income below the Personal Allowance" test applies only to people who are not UK resident (s55C(2), through s55C(1)(d)).
+- **What it changes,** for a partner on a £35,000 salary receiving it:
+  - A partner giving it with £14,000 of savings interest now saves the household £252 a year. The income their smaller allowance no longer covers stays inside the 0% starting rate for savings ([s12](https://www.legislation.gov.uk/ukpga/2007/3/section/12)).
+  - A partner giving it with £14,000 of dividends saves the household about £116 a year: £252 less the £135 of dividend tax they then pay.
+  - For a partner whose income is wages, nothing changes. Above the Personal Allowance, the extra tax they pay equals what the other partner saves.
+- **The saving takes off any tax the giver then pays.** The steps now say so: "With a smaller allowance, Sam pays about £138 more Income Tax a year. The saving below already takes that off." A giver earning £12,000 was never told this before. Where it costs them nothing, the steps say that instead.
+- **Gift Aid and pension payments that extend your basic-rate band are counted** when the giver's extra tax is worked out ([ITA 2007 s414](https://www.legislation.gov.uk/ukpga/2007/3/section/414); [Finance Act 2004 s192(4)](https://www.legislation.gov.uk/ukpga/2004/12/section/192)).
+- **One rule everywhere.** Before, four places decided Marriage Allowance, and three of them were wrong:
+  - **The older tax-optimisation figures Fyn reads** always claimed the full £252, and they added an invented "£200" estimate for couples in different tax bands. Both are gone.
+  - **The household optimisations endpoint** returned an error for every couple who qualified.
+  - **A copy in the investment engine** was never shown, and has been removed.
+- **Fyn no longer treats a working partner as not eligible.** A partner earning £8,000 qualifies.
+- **Wording (approved by CSJ, 1 October).** The card no longer says "unused" Personal Allowance. The steps explain how a partner whose income uses all of their allowance can still give part of it. Fyn's background knowledge on Marriage Allowance says the same.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps:** a couple where Alex earns £35,000 and Sam has £14,000 of savings interest. Both apps showed "Claim Marriage Allowance, £252/yr" and these steps:
+  - "Sam's income of £14,000 uses all of their £12,570 Personal Allowance. They can still give part of it…"
+  - "Sam pays no more tax…"
+
+  The older tax-optimisation figures and the household endpoint gave the same £252.
+- **Live on fynla.org, desktop (full-size window) and mobile web apps:** a walk couple made for the check (Alex on £35,000, Sam with £14,000 of savings interest) saw "Claim Marriage Allowance, £252/yr" and the same steps as on the test site. The walk accounts were deleted afterwards.
+
 ## Pension suggestions sized to what you can afford
 
 - **One figure decides what a pension payment can be:** the money you have left in a year after your spending, the payments you already make and your goals. Someone with no income at all is sized to their savings instead. A retiree drawing a pension has income, so they are sized to what is left of it like anyone else.
