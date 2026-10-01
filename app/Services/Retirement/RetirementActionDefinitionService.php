@@ -287,7 +287,8 @@ class RetirementActionDefinitionService
                 isset($vars['platform_fee_percent']) ? 'a platform fee of '.$vars['platform_fee_percent'].'%' : null,
                 isset($vars['weighted_ocf']) ? 'fund charges averaging '.$vars['weighted_ocf'].'%' : null,
             ]);
-            $vars['charges_list'] = implode(', ', $charges);
+            $last = array_pop($charges);
+            $vars['charges_list'] = $charges === [] ? (string) $last : implode(', ', $charges).' and '.$last;
             $first = $reasons->first();
 
             $recommendations[] = [

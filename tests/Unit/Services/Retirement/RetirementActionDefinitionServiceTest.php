@@ -466,7 +466,7 @@ describe('evaluateAgentActions', function () {
             ->and($cards->pluck('account_id')->sort()->values()->all())->toBe([$pension->id, $other->id])
             ->and($cards->firstWhere('account_id', $pension->id)['title'])->toBe('Review the charges on Acme Costly SIPP')
             ->and($cards->firstWhere('account_id', $pension->id)['description'])->toContain('total charges of 1.20% a year (£1,200)')
-            ->and($cards->firstWhere('account_id', $pension->id)['description'])->toContain('a platform fee of 1.20%')
+            ->and($cards->firstWhere('account_id', $pension->id)['description'])->toContain('(£1,200) and a platform fee of 1.20%')
             ->and($cards->firstWhere('account_id', $other->id)['description'])->toContain('1.50%');
     });
 
