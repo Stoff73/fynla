@@ -28,8 +28,8 @@
             <span class="m-detail-key">{{ line.label }}</span>
             <span class="m-detail-value">{{ fmt(line.amount) }}</span>
           </div>
-          <div v-if="drawing.income.state_pension_status === 'missing' || drawing.income.state_pension_status === 'not_paid'" class="m-detail-row">
-            <span class="m-detail-key">State Pension<template v-if="drawing.income.state_pension_status === 'not_paid'">: not recorded as being paid</template></span>
+          <div v-if="statePensionNote !== null" class="m-detail-row">
+            <span class="m-detail-key">State Pension{{ statePensionNote }}</span>
             <button type="button" class="m-btn-ghost" @click="addStatePension">{{ drawing.income.state_pension_status === 'missing' ? 'Add it' : 'Update' }}</button>
           </div>
           <div class="m-detail-row">
@@ -321,6 +321,10 @@ export default {
   }),
   computed: {
     verifying() { return inOnboardingVerify(); },
+    // Past State Pension age, when it is not counted: what is missing (null when counted or not due).
+    statePensionNote() {
+      return { missing: '', not_paid: ': not recorded as being paid', no_amount: ': amount not recorded' }[this.drawing?.income?.state_pension_status] ?? null;
+    },
     retiredSinceLabel() {
       return new Date(this.drawing.retired_since.date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
     },
@@ -512,7 +516,7 @@ export default {
     // own add button does, changing the recorded State Pension as its detail
     // screen does.
     addStatePension() {
-      const recorded = this.drawing?.income?.state_pension_status === 'not_paid' && this.statePension?.id;
+      const recorded = ['not_paid', 'no_amount'].includes(this.drawing?.income?.state_pension_status) && this.statePension?.id;
       this.$refs.chrome?.openContextualFyn(buildContextualConversationRequest(recorded
         ? {
           action: 'edit',

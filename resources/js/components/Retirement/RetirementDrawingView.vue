@@ -15,10 +15,8 @@
             <dt class="text-neutral-500">{{ line.label }}</dt>
             <dd class="font-medium text-horizon-500">{{ formatCurrency(line.amount) }}</dd>
           </div>
-          <div v-if="position.income.state_pension_status === 'missing' || position.income.state_pension_status === 'not_paid'" class="flex justify-between items-center gap-4">
-            <dt class="text-neutral-500">
-              State Pension<template v-if="position.income.state_pension_status === 'not_paid'">: not recorded as being paid</template>
-            </dt>
+          <div v-if="statePensionNote !== null" class="flex justify-between items-center gap-4">
+            <dt class="text-neutral-500">State Pension{{ statePensionNote }}</dt>
             <dd>
               <button type="button" class="text-sm font-semibold text-raspberry-500 hover:text-raspberry-600" @click="$emit('add-state-pension')">
                 {{ position.income.state_pension_status === 'missing' ? 'Add it' : 'Update' }}
@@ -91,6 +89,10 @@ export default {
     retiredSinceLabel() {
       const date = new Date(this.position.retired_since.date);
       return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    },
+    // Past State Pension age, when it is not counted: what is missing (null when counted or not due).
+    statePensionNote() {
+      return { missing: '', not_paid: ': not recorded as being paid', no_amount: ': amount not recorded' }[this.position.income.state_pension_status] ?? null;
     },
     lifeExpectancySource() {
       return this.pot.life_expectancy.source === 'ons' ? 'Office for National Statistics' : 'your figure';

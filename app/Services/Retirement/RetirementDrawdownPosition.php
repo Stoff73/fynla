@@ -121,25 +121,23 @@ class RetirementDrawdownPosition
             }
         }
         $add('rental', 'Rental profit', (float) ($components['rental'] ?? 0));
-        $add('interest', 'Savings interest', (float) ($components['interest'] ?? 0));
+        $add('vesting', 'Shares vesting this year', (float) ($components['vesting'] ?? 0));
+        // The interest the tax is worked out on (estimated from the accounts
+        // when none is captured), so the lines add up to the income taxed.
+        $add('interest', 'Savings interest', (float) $this->math->incomePartsFor($user)['interest']);
         $add('dividend', 'Dividends', (float) ($components['dividend'] ?? 0));
         $add('other', 'Other income', (float) ($components['other'] ?? 0) + (float) ($components['trust'] ?? 0));
 
         $total = array_sum(array_column($lines, 'amount'));
-        $incomeTax = round($this->math->incomeTaxNow($user), 2);
-        $earnings = (float) ($components['employment'] ?? 0) + (float) ($components['self_employment'] ?? 0);
-        $ni = $earnings > 0
-            ? round((float) $this->taxCalculator->calculateDetailedNetIncome(
-                employmentIncome: (float) ($components['employment'] ?? 0),
-                selfEmploymentIncome: (float) ($components['self_employment'] ?? 0),
-            )['summary']['total_national_insurance'], 2)
-            : 0.0;
+        $incomeTax = $this->math->incomeTaxLiability($user);
+        $ni = $this->nationalInsurance($user, $components);
 
         return [
             'lines' => $lines,
             // Past State Pension age, the card says where the State Pension
             // stands rather than leaving it out silently: 'paid' (a line above),
-            // 'missing' (nothing recorded) or 'not_paid' (recorded, not marked as
+            // 'no_amount' (paid, amount not recorded), 'missing' (nothing
+            // recorded) or 'not_paid' (recorded, not marked as
             // being paid; the column is NOT NULL DEFAULT 0, so "never asked" and
             // "put off" read the same, and the card's wording holds for both).
             // It can be deferred, so it is never assumed from age
@@ -152,6 +150,41 @@ class RetirementDrawdownPosition
         ];
     }
 
+    /**
+     * National Insurance on earnings only, and none past State Pension age:
+     * Class 1 stops once it is reached (SSCBA 1992 s6(3),
+     * https://www.legislation.gov.uk/ukpga/1992/4/section/6), Class 4 from the
+     * 6 April after it (https://www.gov.uk/national-insurance/what-national-insurance-is).
+     *
+     * @param  array<string, mixed>  $components
+     */
+    private function nationalInsurance(User $user, array $components): float
+    {
+        $employment = (float) ($components['employment'] ?? 0);
+        $selfEmployment = (float) ($components['self_employment'] ?? 0);
+        if ($employment + $selfEmployment <= 0) {
+            return 0.0;
+        }
+        if ($user->date_of_birth) {
+            $statePensionDate = Carbon::parse($user->date_of_birth)->addYears($this->statePensionAge->forUser($user));
+            if ($statePensionDate->lte(Carbon::today())) {
+                $employment = 0.0;
+            }
+            $taxYearStart = $this->taxConfig->getEffectiveFrom();
+            if ($taxYearStart !== '' && $statePensionDate->lt(Carbon::parse($taxYearStart))) {
+                $selfEmployment = 0.0;
+            }
+        }
+        if ($employment + $selfEmployment <= 0) {
+            return 0.0;
+        }
+
+        return round((float) $this->taxCalculator->calculateDetailedNetIncome(
+            employmentIncome: $employment,
+            selfEmploymentIncome: $selfEmployment,
+        )['summary']['total_national_insurance'], 2);
+    }
+
     private function statePensionStatus(User $user, ?int $age): ?string
     {
         if ($age === null || $age < $this->statePensionAge->forUser($user)) {
@@ -161,8 +194,11 @@ class RetirementDrawdownPosition
 
         return match (true) {
             $statePension === null => 'missing',
-            (bool) $statePension->already_receiving => 'paid',
-            default => 'not_paid',
+            ! (bool) $statePension->already_receiving => 'not_paid',
+            // Marked as paid with no amount: it cannot be counted, so the card
+            // asks for the amount rather than leaving it out silently.
+            (float) ($statePension->state_pension_forecast_annual ?? 0) <= 0 => 'no_amount',
+            default => 'paid',
         };
     }
 

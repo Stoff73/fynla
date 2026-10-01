@@ -213,7 +213,9 @@ final class RecordEditForms
             ]), 'Your details'],
             'employer_benefits' => [CaptureForms::EMPLOYER_BENEFITS, CaptureForms::LEAD, $this->employerBenefitsAnswers($model), 'Your employer benefits'],
             'state_pension' => [CaptureForms::STATE_PENSION, CaptureForms::LEAD, array_filter([
-                'already_receiving' => $model->already_receiving ? 'yes' : 'no',
+                // Only a "yes" is known: the column is NOT NULL DEFAULT 0, so a
+                // false may never have been asked, and is left for the user to answer.
+                'already_receiving' => $model->already_receiving ? 'yes' : null,
                 'forecast_annual' => $model->state_pension_forecast_annual !== null ? (float) $model->state_pension_forecast_annual : null,
                 'ni_years_completed' => $model->ni_years_completed,
             ], static fn ($v): bool => $v !== null), 'Your State Pension'],

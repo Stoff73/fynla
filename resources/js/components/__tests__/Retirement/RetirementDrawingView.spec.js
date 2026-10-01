@@ -59,4 +59,22 @@ describe('RetirementDrawingView', () => {
     expect(text).toContain('Update');
     expect(text).not.toContain('Add it');
   });
+
+  it('asks for the amount of a State Pension marked as paid without one', () => {
+    const p = position();
+    p.income.state_pension_status = 'no_amount';
+    const text = mount(RetirementDrawingView, { props: { position: p } }).text();
+
+    expect(text).toContain('State Pension: amount not recorded');
+    expect(text).toContain('Update');
+  });
+
+  it('shows no State Pension prompt once it is counted', () => {
+    const p = position();
+    p.income.state_pension_status = 'paid';
+    const text = mount(RetirementDrawingView, { props: { position: p } }).text();
+
+    expect(text).not.toContain('Add it');
+    expect(text).not.toContain('Update');
+  });
 });

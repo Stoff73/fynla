@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\DCPension;
+use App\Models\SavingsAccount;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Investment\MonteCarloSimulator;
+use App\Services\Onboarding\RecordEditForms;
 use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementDrawdownPosition;
 use App\Services\Risk\RiskPreferenceService;
@@ -208,4 +210,55 @@ it('has no State Pension status before State Pension age', function (): void {
     $view = app(RetirementDrawdownPosition::class)->for(drawer(['date_of_birth' => '1966-01-01', 'employment_status' => 'retired', 'retirement_date' => '2025-01-01']));
 
     expect($view['income']['state_pension_status'])->toBeNull();
+});
+
+describe('tax review fixes (2026-10-01)', function () {
+    it('charges no National Insurance on pay past State Pension age (SSCBA 1992 s6(3))', function (): void {
+        // Born 1958: State Pension age 66, so 68 today. £30,000 pay and £20,000 drawn.
+        $view = app(RetirementDrawdownPosition::class)->for(
+            drawer(['employment_status' => 'employed', 'retirement_date' => null, 'annual_employment_income' => 30000], ['annual_drawdown_income' => 20000])
+        );
+
+        expect($view['income']['national_insurance'])->toBe(0.0)
+            ->and($view['income']['take_home'])->toBe($view['income']['total'] - $view['income']['income_tax']);
+    });
+
+    it('adds up the lines to the income the tax is worked out on, estimated interest included', function (): void {
+        $pat = drawer();
+        SavingsAccount::factory()->create([
+            'user_id' => $pat->id, 'current_balance' => 100000, 'interest_rate' => 4.0, 'is_isa' => false,
+            'ownership_type' => 'individual', 'joint_owner_id' => null,
+        ]);
+        $pat = $pat->fresh();
+        $parts = app(TaxStrategyMath::class)->incomePartsFor($pat);
+        $income = app(RetirementDrawdownPosition::class)->for($pat)['income'];
+
+        expect(collect($income['lines'])->firstWhere('key', 'interest')['amount'])->toEqualWithDelta($parts['interest'], 0.01)
+            ->and($income['total'])->toEqualWithDelta($parts['non_savings'] + $parts['interest'] + $parts['dividends'] + $parts['trust'], 0.01);
+    });
+
+    it('extends the band for Gift Aid rather than taking it off income (ITA 2007 s414)', function (): void {
+        // £30,000 drawn, £1,000 given with Gift Aid (£1,250 gross): still £3,486 tax,
+        // since the charity claims the basic rate and the bands only move up.
+        $pat = drawer();
+        $pat->forceFill(['annual_charitable_donations' => 1000, 'is_gift_aid' => true])->save();
+
+        expect(app(RetirementDrawdownPosition::class)->for($pat->fresh())['income']['income_tax'])->toBe(3486.0);
+    });
+
+    it('asks for the amount of a State Pension marked as paid without one', function (): void {
+        $pat = drawer();
+        StatePension::create(['user_id' => $pat->id, 'already_receiving' => true]);
+
+        expect(app(RetirementDrawdownPosition::class)->for($pat->fresh())['income']['state_pension_status'])->toBe('no_amount');
+    });
+
+    it('leaves "is it being paid?" unanswered on the edit form unless it is known', function (): void {
+        $pat = drawer();
+        StatePension::create(['user_id' => $pat->id, 'state_pension_forecast_annual' => 11502.4]);
+        $form = app(RecordEditForms::class)->formForResource($pat->fresh(), 'state_pension');
+
+        expect($form['answers']['_lead'])->not->toHaveKey('already_receiving')
+            ->and((float) $form['answers']['_lead']['forecast_annual'])->toBe(11502.4);
+    });
 });
