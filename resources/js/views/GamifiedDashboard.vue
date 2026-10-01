@@ -46,6 +46,7 @@
         </div>
 
         <div class="md-callout" role="note">
+          <!-- Commented out 2026-10-01 (CSJ: "comment out, so do not remove in case we need to reverse this"). To restore, uncomment this block.
           <div class="md-callout__top">
             <p class="md-callout__levelup">LEVEL<br>UP</p>
             <div class="md-callout__top-copy">
@@ -53,6 +54,7 @@
               <p class="md-callout__sub">Complete your actions to get further ahead, level up and change your financial future</p>
             </div>
           </div>
+          -->
 
           <div class="md-callout__carousel">
             <div class="md-accordion" role="tablist" aria-label="Focus areas">
@@ -137,6 +139,7 @@
             <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level — reach <strong>Level {{ level + 1 }}</strong></span>
           </div>
           <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: progressPercent + '%' }"></div></div>
+          <!-- Commented out 2026-10-01 (CSJ: "comment out, so do not remove in case we need to reverse this"). To restore, uncomment this block.
           <div class="gd-header__levelup">
             <span class="gd-header__lu-badge">LEVEL UP</span>
             <div>
@@ -144,6 +147,7 @@
               <p class="gd-header__lu-sub">Complete your actions to get further ahead, level up and change your financial future</p>
             </div>
           </div>
+          -->
         </section>
 
         <section class="gd-card" aria-labelledby="gdd-focus-h">
