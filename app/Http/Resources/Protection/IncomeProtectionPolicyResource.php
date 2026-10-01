@@ -19,6 +19,11 @@ class IncomeProtectionPolicyResource extends JsonResource
             'policy_number' => $this->policy_number,
             'benefit_amount' => (float) $this->benefit_amount,
             'benefit_frequency' => $this->benefit_frequency,
+            // The cover this policy gives, as every surface shows it (Rule 20;
+            // 2026-10-01 one-figure audit): the benefit, paid at
+            // `benefit_frequency`. Surfaces used to pick between `sum_assured`
+            // and `benefit_amount` themselves with `||` chains.
+            'cover_amount' => (float) $this->benefit_amount,
             'deferred_period_weeks' => $this->deferred_period_weeks,
             'benefit_period_months' => $this->benefit_period_months,
             'premium_amount' => (float) $this->premium_amount,

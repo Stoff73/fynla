@@ -14,9 +14,11 @@ use App\Constants\PensionDisclosure;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Protection\ProtectionGapPresentationService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -64,6 +66,7 @@ class MobileDashboardAggregator
         private readonly CrossModuleAssetAggregator $assetAggregator,
         private readonly NetWorthService $netWorthService,
         private readonly DailyInsightService $dailyInsight,
+        private readonly ProtectionGapPresentationService $protectionGapPresentation,
     ) {}
 
     /**
@@ -162,7 +165,7 @@ class MobileDashboardAggregator
         $data = isset($analysis['success']) ? ($analysis['data'] ?? []) : $analysis;
 
         return match ($module) {
-            'protection' => $this->extractProtectionSummary($data, $analysis),
+            'protection' => $this->extractProtectionSummary($data, $analysis, $userId),
             'savings' => $this->extractSavingsSummary($data),
             'investment' => $this->extractInvestmentSummary($data),
             'retirement' => $this->extractRetirementSummary($data, $analysis),
@@ -175,8 +178,16 @@ class MobileDashboardAggregator
     /**
      * Extract protection module summary.
      */
-    private function extractProtectionSummary(array $data, array $raw): array
+    private function extractProtectionSummary(array $data, array $raw, int $userId): array
     {
+        // The one total-cover figure (Rule 20; 2026-10-01 one-figure audit item
+        // 32): the same `coverage_gaps.totals.cover` the protection page, `/m` and
+        // iOS show, from the same service. This card used to read the agent's
+        // `coverage.total_coverage`, a second path to the same quantity that went
+        // missing entirely whenever the readiness gate stopped the agent, so the
+        // dashboard said "Add your cover" above a page listing the cover.
+        $totalCoverage = $this->protectionTotalCover($userId);
+
         // Handle case where protection profile doesn't exist, or the readiness
         // gate blocked analysis (agent returns success=true, can_proceed=false,
         // coverage=null) — treat both as not-configured rather than active-with-0.
@@ -185,6 +196,7 @@ class MobileDashboardAggregator
             return [
                 'status' => 'not_configured',
                 'message' => 'Protection profile not yet set up.',
+                'total_coverage' => $totalCoverage,
             ];
         }
 
@@ -207,10 +219,7 @@ class MobileDashboardAggregator
 
         return [
             'status' => 'active',
-            // CoverageGapAnalyzer emits 'total_coverage' (life + critical illness);
-            // 'life_coverage' is life-only. The prior 'total_life_cover' key was never
-            // produced, so this card read £0 for every user with cover.
-            'total_coverage' => round((float) ($coverage['total_coverage'] ?? 0), 2),
+            'total_coverage' => $totalCoverage,
             'policy_count' => $policyCount,
             'critical_gaps' => $criticalGaps,
             'has_income_protection' => (float) ($coverage['income_protection_coverage'] ?? 0) > 0,
@@ -218,7 +227,34 @@ class MobileDashboardAggregator
     }
 
     /**
+     * Total lump-sum cover (life plus critical illness, employer benefits
+     * included) from `ProtectionGapPresentationService` — the figure
+     * `GET /api/protection` publishes as `coverage_gaps.totals.cover`.
+     *
+     * A user with no protection profile row is measured against a blank,
+     * unsaved one, exactly as `ProtectionController::index()` would create, so
+     * a policy recorded before the profile still counts and nothing is written
+     * from a read.
+     */
+    private function protectionTotalCover(int $userId): float
+    {
+        $user = User::find($userId);
+        if ($user === null) {
+            return 0.0;
+        }
+
+        $profile = $user->protectionProfile ?? new ProtectionProfile(ProtectionProfile::blankFor($user->id));
+
+        return (float) $this->protectionGapPresentation->forUser($user, $profile)['totals']['cover'];
+    }
+
+    /**
      * Extract savings module summary.
+     *
+     * The emergency-fund target and the percentage of it held are
+     * `SavingsAgent`'s, the same figures `/savings`, `/m` and iOS show (Rule 20;
+     * 2026-10-01 one-figure audit items 23 and 35). The dashboard card used to
+     * type in a target of 6 months and work the bar out on the client.
      */
     private function extractSavingsSummary(array $data): array
     {
@@ -230,7 +266,8 @@ class MobileDashboardAggregator
             'total_savings' => round((float) ($summary['total_savings'] ?? 0), 2),
             'total_accounts' => (int) ($summary['total_accounts'] ?? 0),
             'emergency_fund_months' => round((float) ($emergencyFund['runway_months'] ?? 0), 1),
-            'emergency_fund_target_months' => (int) ($emergencyFund['target_months'] ?? 6),
+            'emergency_fund_target_months' => isset($emergencyFund['target_months']) ? (int) $emergencyFund['target_months'] : null,
+            'emergency_fund_percent_of_target' => isset($emergencyFund['percent_of_target']) ? (float) $emergencyFund['percent_of_target'] : null,
         ];
     }
 

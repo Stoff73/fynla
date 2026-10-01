@@ -79,21 +79,7 @@ class SavingsController extends Controller
         $accounts->loadMissing(['user:id,first_name,surname', 'jointOwner:id,first_name,surname']);
 
         // Transform accounts using resource and add calculated fields
-        $accounts = $accounts->map(function ($account) use ($user) {
-            $resourceData = (new SavingsAccountResource($account))->toArray(request());
-            $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
-            $resourceData['full_balance'] = (float) $account->current_balance;
-            $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
-            $resourceData['is_shared'] = $this->isSharedOwnership($account);
-            // Owner names, same shape as showAccount and the property/investment
-            // lists, so the card can name the OTHER party rather than the viewer.
-            $owner = $account->user;
-            $jointOwner = $account->jointOwner;
-            $resourceData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
-            $resourceData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
-
-            return $resourceData;
-        });
+        $accounts = $accounts->map(fn ($account) => $this->presentAccount($account, $user->id));
 
         $goals = SavingsGoal::where('user_id', $user->id)->limit(100)->get();
 
@@ -144,50 +130,46 @@ class SavingsController extends Controller
             }
         }
 
-        // Employment-based emergency fund target
-        $monthlyExpenditure = (float) ($user->monthly_expenditure ?? 0);
-        $emergencyFundTarget = $this->buildEmergencyFundTarget($user, $monthlyExpenditure);
-
         // Per-child savings status
         $childrenSavings = $this->buildChildrenSavingsStatus($user, $rawAccounts);
 
-        // The emergency-fund figures the page displays, read rather than
-        // re-derived (W-0335, Rule 20).
+        // The cash and emergency-fund figures every surface displays, read rather
+        // than re-derived (W-0335; Rule 20; 2026-10-01 one-figure audit items
+        // 21-23). Web, `/m` and iOS all read `analysis.summary.total_savings` for
+        // the cash, `analysis.summary.cash_groups` for the web page's per-group
+        // totals, and `analysis.emergency_fund` for the runway, the target, the
+        // percentage of target and the shortfall. None of them adds, divides or
+        // multiplies a financial figure on the device.
         //
-        // This key used to be `null` with the comment "Placeholder for analysis
-        // data", and nothing in the app dispatched the analyze action that would
-        // have filled it — so `/savings` computed its own runway in JavaScript and
-        // disagreed with the dashboard. The division itself is not the hard part:
-        // the DENOMINATOR is, because `SavingsAgent` divides by RESOLVED monthly
-        // expenditure — a priority chain, not the single column the payload's
-        // `expenditure_profile` carries. One household proves the chain branches:
-        // one spouse resolves from `expenditure_profile`, the other from
-        // `user_monthly`.
+        // The DENOMINATOR is why this cannot be done on a device: `SavingsAgent`
+        // divides by RESOLVED monthly expenditure — a priority chain, not the
+        // single column the payload's `expenditure_profile` carries. One household
+        // proves the chain branches: one spouse resolves from
+        // `expenditure_profile`, the other from `user_monthly`.
         //
-        // Deliberately narrow. `runway_months` and the fund value only —
-        // `adequacy.adequacy_score` stays server-side, because a numerical rating
-        // must never reach a user-facing surface (Rule 12).
+        // `SavingsAgent` builds both blocks on the readiness-gated path as well,
+        // so they are present whenever the agent answers. `adequacy_score` never
+        // leaves the server (Rule 12).
         $analysis = null;
         try {
             $savingsAnalysis = $this->savingsAgent->analyze($user->id);
 
-            if (($savingsAnalysis['emergency_fund'] ?? null) !== null) {
+            if (isset($savingsAnalysis['summary'])) {
+                $summary = $savingsAnalysis['summary'];
                 $analysis = [
                     'summary' => [
-                        'total_savings' => $savingsAnalysis['summary']['total_savings'] ?? null,
-                        'monthly_expenditure' => $savingsAnalysis['summary']['monthly_expenditure'] ?? null,
-                        'expenditure_source' => $savingsAnalysis['summary']['expenditure_source'] ?? null,
+                        'total_savings' => $summary['total_savings'] ?? null,
+                        'cash_groups' => $summary['cash_groups'] ?? [],
+                        'monthly_expenditure' => $summary['monthly_expenditure'] ?? null,
+                        'expenditure_source' => $summary['expenditure_source'] ?? null,
                     ],
-                    'emergency_fund' => [
-                        'runway_months' => $savingsAnalysis['emergency_fund']['runway_months'] ?? null,
-                        'target' => $savingsAnalysis['emergency_fund']['target'] ?? null,
-                    ],
+                    'emergency_fund' => $this->presentEmergencyFund($savingsAnalysis['emergency_fund'] ?? null),
                 ];
             }
         } catch (\Throwable $e) {
-            // The page renders without it — the store falls back to dividing the
-            // accounts' own shares by the profile's monthly figure. Reported so a
-            // silent absence is still visible somewhere.
+            // The page renders the accounts without it and shows no cash or
+            // emergency-fund figure rather than working one out on the device.
+            // Reported so a silent absence is still visible somewhere.
             report($e);
         }
 
@@ -219,7 +201,12 @@ class SavingsController extends Controller
                 'isa_allowance' => $isaAllowance,
                 'psa_position' => $psaPosition,
                 'fscs_exposure' => $fscsExposure,
-                'emergency_fund_target' => $emergencyFundTarget,
+                // DEPRECATED alias of `analysis.emergency_fund.target`: the same
+                // object from the same engine, kept only because native builds
+                // already on TestFlight decode it as required. No surface in this
+                // repository reads it. Remove once every installed build reads
+                // `analysis.emergency_fund`.
+                'emergency_fund_target' => $analysis['emergency_fund']['target'] ?? null,
                 'children_savings' => $childrenSavings,
                 'analysis' => $analysis,
                 'life_events' => $lifeEvents,
@@ -370,20 +357,9 @@ class SavingsController extends Controller
             // Load owner relationship data for name display
             $account->loadMissing(['user:id,first_name,surname', 'jointOwner:id,first_name,surname']);
 
-            $accountData = (new SavingsAccountResource($account))->toArray(request());
-            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
-            $accountData['full_balance'] = (float) $account->current_balance;
-            $accountData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
-            $accountData['is_shared'] = $this->isSharedOwnership($account);
-            // Build names from first_name and surname
-            $owner = $account->user;
-            $jointOwner = $account->jointOwner;
-            $accountData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
-            $accountData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
-
             return response()->json([
                 'success' => true,
-                'data' => $accountData,
+                'data' => $this->presentAccount($account, $user->id),
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Fetching savings account');
@@ -495,32 +471,48 @@ class SavingsController extends Controller
     }
 
     /**
-     * Build employment-based emergency fund target.
+     * One account as every surface receives it, from the list and the detail
+     * endpoint alike, so the two cannot drift.
+     *
+     * `user_share` and `user_share_percent` are this viewer's share, worked out
+     * here from whichever side of a joint record the viewer is on. Surfaces used
+     * to apply the stored `ownership_percentage` themselves, which is the
+     * PRIMARY owner's share, so the co-owner of a 75/25 account was shown 75%.
+     * `annual_interest` and `monthly_interest` come from the model's appends
+     * through the Resource; no surface multiplies balance by rate.
      */
-    private function buildEmergencyFundTarget($user, float $monthlyExpenditure): array
+    private function presentAccount($account, int $userId): array
     {
-        $baseMonths = 6;
+        $data = (new SavingsAccountResource($account))->toArray(request());
+        $data['user_share'] = $this->calculateUserShare($account, $userId);
+        $data['user_share_percent'] = round($this->userShareFraction($account, $userId) * 100, 2);
+        $data['full_balance'] = (float) $account->current_balance;
+        $data['is_primary_owner'] = $this->isPrimaryOwner($account, $userId);
+        $data['is_shared'] = $this->isSharedOwnership($account);
+        // Owner names, same shape as the property/investment lists, so the card
+        // can name the OTHER party rather than the viewer.
+        $owner = $account->user;
+        $jointOwner = $account->jointOwner;
+        $data['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+        $data['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
 
-        if (! empty($user->employment_status)) {
-            $targetMonths = match ($user->employment_status) {
-                'self_employed', 'contractor', 'freelance' => 9,
-                'unemployed', 'career_break' => 12,
-                default => $baseMonths,
-            };
-        } else {
-            $targetMonths = $baseMonths;
+        return $data;
+    }
+
+    /**
+     * The emergency-fund block as it leaves the server: everything
+     * `SavingsAgent` computed except any internal adequacy object, which carries
+     * a score (Rule 12).
+     */
+    private function presentEmergencyFund(?array $emergencyFund): ?array
+    {
+        if ($emergencyFund === null) {
+            return null;
         }
 
-        return [
-            'target_months' => $targetMonths,
-            'target_amount' => round($monthlyExpenditure * $targetMonths, 2),
-            'employment_status' => $user->employment_status ?? null,
-            'rationale' => match ($targetMonths) {
-                9 => 'Self-employed and contractor income can be irregular, so a larger buffer is recommended.',
-                12 => 'During periods without employment, a 12-month fund provides essential security.',
-                default => 'The standard recommendation is 6 months of essential expenditure.',
-            },
-        ];
+        unset($emergencyFund['adequacy']);
+
+        return $emergencyFund;
     }
 
     /**

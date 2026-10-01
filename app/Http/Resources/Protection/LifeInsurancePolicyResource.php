@@ -53,6 +53,11 @@ class LifeInsurancePolicyResource extends JsonResource
             // affordance rather than offering one that cannot work.
             'policy_number' => $this->policy_number,
             'sum_assured' => (float) $this->sum_assured,
+            // The cover this policy gives, as every surface shows it (Rule 20;
+            // 2026-10-01 one-figure audit). A lump-sum policy's cover is its sum
+            // assured. Surfaces used to pick between `sum_assured` and
+            // `benefit_amount` themselves with `||` chains.
+            'cover_amount' => (float) $this->sum_assured,
             'premium_amount' => (float) $this->premium_amount,
             'premium_frequency' => $this->premium_frequency,
             // W-0464 / Rule 20 — computed here so `/m` displays it instead of

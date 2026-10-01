@@ -269,6 +269,62 @@ class CrossModuleAssetAggregator
     }
 
     /**
+     * The same cash as `calculateCashTotal()`, split into the groups the cash page
+     * shows, each at this user's share (Rule 20, item 21 of the 2026-10-01
+     * one-figure audit).
+     *
+     * The web cash page used to filter the accounts and add up each card's total
+     * in the browser, with the PRIMARY owner's percentage applied whichever side
+     * of a joint record the viewer was on. It also let one account sit in two
+     * cards (a `savings_account` flagged `is_isa` matched both filters) and left
+     * any other `account_type` in none. Here every account lands in exactly one
+     * group, so the groups always add up to `calculateCashTotal()`.
+     *
+     * @return list<array{key: string, total: float, account_ids: list<int>}>
+     */
+    public function calculateCashGroups(int $userId): array
+    {
+        $user = User::findOrFail($userId);
+
+        $groups = [];
+        foreach (self::CASH_GROUP_KEYS as $key) {
+            $groups[$key] = ['key' => $key, 'total' => 0.0, 'account_ids' => []];
+        }
+
+        foreach ($this->savingsStore->forUser($user) as $account) {
+            $key = self::cashGroupFor($account);
+            $groups[$key]['total'] += $this->calculateUserShare($account, $userId);
+            $groups[$key]['account_ids'][] = (int) $account->id;
+        }
+
+        return array_values(array_map(static function (array $group): array {
+            $group['total'] = round($group['total'], 2);
+
+            return $group;
+        }, $groups));
+    }
+
+    /** The cash page's groups, in the order it shows them. */
+    public const CASH_GROUP_KEYS = ['current_accounts', 'savings_accounts', 'isas', 'nsi'];
+
+    /**
+     * Which one group an account belongs to. An ISA is an ISA whatever its
+     * account type says; anything not current, ISA or National Savings and
+     * Investments (NS&I) is a savings account, so no account is left out.
+     */
+    private static function cashGroupFor(object $account): string
+    {
+        $type = (string) ($account->account_type ?? '');
+
+        return match (true) {
+            (bool) ($account->is_isa ?? false) || in_array($type, ['cash_isa', 'junior_isa', 'lifetime_isa'], true) => 'isas',
+            $type === 'current_account' => 'current_accounts',
+            in_array($type, ['premium_bonds', 'nsi'], true) => 'nsi',
+            default => 'savings_accounts',
+        };
+    }
+
+    /**
      * Get business interest assets for a user.
      *
      * Single-record pattern: Query assets where user is owner OR joint_owner.

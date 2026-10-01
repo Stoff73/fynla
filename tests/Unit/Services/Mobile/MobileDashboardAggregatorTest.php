@@ -17,6 +17,7 @@ use App\Services\Dashboard\DashboardAggregator;
 use App\Services\Mobile\DailyInsightService;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Protection\ProtectionGapPresentationService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -48,6 +49,7 @@ beforeEach(function () {
         // W-0478 — the dashboard no longer composes its own insight; it reads the
         // one composer the insights endpoint reads.
         app(DailyInsightService::class),
+        app(ProtectionGapPresentationService::class),
     );
 
     // Clear cache before each test
@@ -95,15 +97,18 @@ describe('getAggregatedDashboard', function () {
             ->and($protection)->toHaveKeys(['total_coverage', 'critical_gaps', 'has_income_protection']);
     });
 
-    it('maps total_coverage from the coverage key the analyzer actually emits (regression: total_life_cover never existed)', function () {
+    it('reads total_coverage from the protection page\'s own figure, not the agent payload (regression: total_life_cover never existed)', function () {
         $user = User::factory()->create();
         setupAllAgentMocks($this, $user->id);
+        // A real £320,000 policy. The mocked agent payload says £500,000; the card
+        // must show the cover `GET /api/protection` shows (coverage_gaps.totals.cover,
+        // ProtectionGapPresentationService), so it reads £320,000 (2026-10-01
+        // one-figure audit item 32).
+        \App\Models\LifeInsurancePolicy::factory()->create(['user_id' => $user->id, 'sum_assured' => 320000]);
 
         $result = $this->service->getAggregatedDashboard($user->id);
 
-        // fakeProtectionAnalysis emits life_coverage/total_coverage = 500000. The card
-        // must read a non-zero coverage figure, not 0 (the total_life_cover bug).
-        expect($result['modules']['protection']['total_coverage'])->toBe(500000.0);
+        expect($result['modules']['protection']['total_coverage'])->toBe(320000.0);
     });
 
     it('surfaces the current DC pension pot as the retirement headline value', function () {

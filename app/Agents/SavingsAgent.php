@@ -67,6 +67,9 @@ class SavingsAgent extends BaseAgent
             if ($user) {
                 $readiness = $this->readinessService->assess($user);
                 if (! $readiness['can_proceed']) {
+                    $blockedTotal = $this->assetAggregator->calculateCashTotal($userId);
+                    $blockedResolved = $this->resolveMonthlyExpenditure($user);
+
                     return [
                         'can_proceed' => false,
                         'readiness_checks' => $readiness,
@@ -75,11 +78,14 @@ class SavingsAgent extends BaseAgent
                         // worth block, which never waited for the gate, so a spouse
                         // who has just registered from an invitation saw £0 here and
                         // their share of the joint account there (2026-09-19).
-                        'summary' => [
-                            'total_savings' => $this->roundToPenny($this->assetAggregator->calculateCashTotal($userId)),
-                            'total_accounts' => $this->savingsStore->forUser($user)->count(),
-                        ],
-                        'emergency_fund' => null,
+                        //
+                        // The emergency fund needs no date of birth or income either:
+                        // it is the same cash over resolved monthly spending. Every
+                        // surface reads this block, so a user the gate stops still sees
+                        // one runway and one target, the same on web, `/m`, iOS and the
+                        // dashboard (Rule 20, 2026-10-01 one-figure audit items 22-23).
+                        'summary' => $this->savingsSummary($user, $blockedTotal, $blockedResolved),
+                        'emergency_fund' => $this->emergencyFundBlock($user, $blockedTotal, $blockedResolved),
                         'isa_allowance' => null,
                         'liquidity' => null,
                         'rate_comparisons' => null,
@@ -109,16 +115,6 @@ class SavingsAgent extends BaseAgent
 
                 // Resolve monthly expenditure using standardised fallback chain
                 $resolved = $user ? $this->resolveMonthlyExpenditure($user) : ['amount' => 0.0, 'source' => 'none', 'label' => 'Not Set'];
-                $monthlyExpenditure = $resolved['amount'];
-
-                // Emergency Fund Analysis
-                $runway = $this->emergencyFundCalculator->calculateRunway(
-                    $totalSavings,
-                    $monthlyExpenditure
-                );
-                // Runway is measured in months against the employment-based target; no
-                // grade label (Rule 12, CSJ 2026-09-09) — every consumer shows months.
-                $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
 
                 // ISA Allowance Status
                 $taxYear = $this->isaTracker->getCurrentTaxYear();
@@ -174,9 +170,6 @@ class SavingsAgent extends BaseAgent
                     }
                 }
 
-                // Employment-based emergency fund target
-                $emergencyFundTarget = $this->calculateEmploymentBasedTarget($user, $monthlyExpenditure);
-
                 // Per-child Junior ISA status
                 $childrenSavings = $this->buildChildrenSavingsStatus($user, $accounts);
 
@@ -186,23 +179,10 @@ class SavingsAgent extends BaseAgent
 
                 return [
                     'user_id' => $userId,
-                    'summary' => [
-                        'total_savings' => $this->roundToPenny($totalSavings),
-                        'total_accounts' => $accounts->count(),
+                    'summary' => $this->savingsSummary($user, $totalSavings, $resolved) + [
                         'total_goals' => $goals->count(),
-                        'monthly_expenditure' => $this->roundToPenny($monthlyExpenditure),
-                        'expenditure_source' => $resolved['source'],
-                        'expenditure_label' => $resolved['label'],
                     ],
-                    'emergency_fund' => [
-                        // No adequacy score here (Rule 12): every LLM tool result and
-                        // API payload is built from this block, and a 0-100 figure in it
-                        // was voiced to a user as "44.67 out of 100".
-                        'runway_months' => $runway,
-                        'target_months' => $targetMonths,
-                        'recommendation' => $this->getEmergencyFundRecommendation($runway, $targetMonths),
-                        'target' => $emergencyFundTarget,
-                    ],
+                    'emergency_fund' => $this->emergencyFundBlock($user, $totalSavings, $resolved),
                     'isa_allowance' => $isaAllowance,
                     'psa_position' => $psaPosition,
                     'fscs_exposure' => $fscsExposure,
@@ -501,9 +481,86 @@ class SavingsAgent extends BaseAgent
     }
 
     /**
+     * What this user's cash is worth and what it is measured against. The one
+     * home for `summary` (Rule 20): both the gated and the full analysis build it
+     * here, so the figures cannot differ between the two paths.
+     *
+     * `cash_groups` splits `total_savings` into the cash page's groups, each at
+     * this user's share, from the same aggregator — the web page shows these
+     * rather than adding the accounts up itself.
+     *
+     * @param  array{amount: float, source: string, label: string}  $resolved
+     */
+    private function savingsSummary(?User $user, float $totalSavings, array $resolved): array
+    {
+        return [
+            'total_savings' => $this->roundToPenny($totalSavings),
+            'total_accounts' => $user ? $this->savingsStore->forUser($user)->count() : 0,
+            'cash_groups' => $user ? $this->assetAggregator->calculateCashGroups($user->id) : [],
+            'monthly_expenditure' => $this->roundToPenny($resolved['amount']),
+            'expenditure_source' => $resolved['source'],
+            'expenditure_label' => $resolved['label'],
+        ];
+    }
+
+    /**
+     * The emergency fund, computed once for every surface (Rule 20; 2026-10-01
+     * one-figure audit items 22, 23 and the emergency-fund part of 35).
+     *
+     * Before this, `/m` and iOS divided the cash by the RAW monthly column on the
+     * device, the web page multiplied a slider by the raw column in the browser,
+     * `SavingsController` built a second target from the raw column with its own
+     * month table (12 months for unemployed, where this module's table says 6),
+     * and the dashboard typed in 6. Each read differed for any household whose
+     * resolved spending is not the raw column (spending categories plus
+     * commitments, or a cashflow profile).
+     *
+     * No adequacy score here (Rule 12): every LLM tool result and API payload is
+     * built from this block, and a 0-100 figure in it was voiced to a user as
+     * "44.67 out of 100". `percent_of_target` is the cash held as a percentage of
+     * the target amount, a plain ratio of two currency figures shown beside them.
+     *
+     * `target_amount_by_months` is the target at every whole number of months
+     * the web page's what-if slider offers (3 to 12), so the slider shows a
+     * server figure instead of multiplying on the client.
+     *
+     * @param  array{amount: float, source: string, label: string}  $resolved
+     */
+    private function emergencyFundBlock(?User $user, float $totalSavings, array $resolved): array
+    {
+        $monthlyExpenditure = (float) $resolved['amount'];
+        $runway = $this->emergencyFundCalculator->calculateRunway($totalSavings, $monthlyExpenditure);
+        $target = $this->calculateEmploymentBasedTarget($user, $monthlyExpenditure);
+        $targetAmount = (float) $target['target_amount'];
+
+        $byMonths = [];
+        for ($months = self::WHAT_IF_MIN_MONTHS; $months <= self::WHAT_IF_MAX_MONTHS; $months++) {
+            $byMonths[(string) $months] = $this->roundToPenny($monthlyExpenditure * $months);
+        }
+
+        return [
+            'runway_months' => $runway,
+            'target_months' => $target['target_months'],
+            'recommendation' => $this->getEmergencyFundRecommendation($runway, $target['target_months']),
+            'target' => $target,
+            'current_amount' => $this->roundToPenny($totalSavings),
+            'percent_of_target' => $targetAmount > 0 ? round($totalSavings / $targetAmount * 100, 1) : null,
+            'shortfall' => $targetAmount > 0 ? $this->roundToPenny(max(0.0, $targetAmount - $totalSavings)) : null,
+            'target_amount_by_months' => $byMonths,
+        ];
+    }
+
+    /** The range of the web page's "Adjust target" what-if slider. */
+    private const WHAT_IF_MIN_MONTHS = 3;
+
+    private const WHAT_IF_MAX_MONTHS = 12;
+
+    /**
      * Calculate employment-based emergency fund target.
      *
-     * Self-employed/contractors: 9 months; unemployed/career break: 12 months; otherwise: 6 months.
+     * Months from `EmergencyFundCalculator::getTargetMonths()`, the one month
+     * table for the module: self-employed, freelance and contractor 9; retired 3;
+     * everyone else 6.
      */
     private function calculateEmploymentBasedTarget(?User $user, float $monthlyExpenditure): array
     {
