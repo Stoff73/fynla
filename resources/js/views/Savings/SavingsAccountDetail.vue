@@ -57,7 +57,7 @@
               <p class="text-sm text-neutral-500">Full Balance</p>
               <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(fullBalance) }}</p>
               <p v-if="account.ownership_type === 'joint'" class="text-xs text-neutral-500 mt-1">
-                Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(userShare) }}
+                Your Share ({{ userSharePercent }}%): {{ formatCurrency(userShare) }}
               </p>
             </div>
             <div class="bg-eggshell-500 rounded-lg p-4">
@@ -108,7 +108,7 @@
                   <dd class="text-sm font-medium text-horizon-500 font-semibold">{{ formatCurrency(fullBalance) }}</dd>
                 </div>
                 <div v-if="account.ownership_type === 'joint'" class="flex justify-between">
-                  <dt class="text-sm text-neutral-500">Your Share ({{ account.ownership_percentage }}%):</dt>
+                  <dt class="text-sm text-neutral-500">Your Share ({{ userSharePercent }}%):</dt>
                   <dd class="text-sm font-medium text-violet-600">{{ formatCurrency(userShare) }}</dd>
                 </div>
                 <div class="flex justify-between">
@@ -226,34 +226,30 @@ export default {
   },
 
   computed: {
+    // Every figure on this screen is the server's, read as sent (Rule 20;
+    // 2026-10-01 one-figure audit items 21 and 24): `full_balance`,
+    // `user_share` and `user_share_percent` from `SavingsController`, and the
+    // interest from the model's `annual_interest` / `monthly_interest` appends.
+    // The page used to multiply balance by rate itself, and fall back to the
+    // primary owner's percentage for the share.
     fullBalance() {
-      if (!this.account) return 0;
-      // Single-record pattern: DB stores FULL balance
-      // Use full_balance from API if available, otherwise current_balance is already full
-      return this.account.full_balance ?? this.account.current_balance ?? 0;
+      return this.account?.full_balance ?? null;
     },
 
     userShare() {
-      if (!this.account) return 0;
-      // Single-record pattern: Use user_share from API if available
-      if (this.account.user_share !== undefined) {
-        return this.account.user_share;
-      }
-      // Fallback: calculate from full balance
-      if (this.account.ownership_type === 'joint' && this.account.ownership_percentage) {
-        return this.fullBalance * (this.account.ownership_percentage / 100);
-      }
-      return this.fullBalance;
+      return this.account?.user_share ?? null;
+    },
+
+    userSharePercent() {
+      return this.account?.user_share_percent ?? null;
     },
 
     monthlyInterest() {
-      if (!this.account) return 0;
-      return (this.account.current_balance * (this.account.interest_rate / 100)) / 12;
+      return this.account?.monthly_interest ?? null;
     },
 
     annualInterest() {
-      if (!this.account) return 0;
-      return this.account.current_balance * (this.account.interest_rate / 100);
+      return this.account?.annual_interest ?? null;
     },
 
     isMatured() {

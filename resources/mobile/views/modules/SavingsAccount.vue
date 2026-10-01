@@ -80,7 +80,7 @@ import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
-import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { coOwnerName, isSharedRecord } from '../../../js/utils/ownership.js';
 
 const ACCOUNT_TYPES = {
   savings_account: 'Savings account',
@@ -143,14 +143,14 @@ export default {
     // (Rule 19 + Rule 20). The stored percentage is the PRIMARY owner's, so
     // rendering it to the joint owner shows the wrong side of the split.
     isJoint() { return isSharedRecord(this.account); },
-    fullBalance() {
-      return this.account?.full_balance ?? this.account?.current_balance ?? 0;
-    },
-    userShare() {
-      return calculateUserShare(this.account, { valueField: 'current_balance' });
-    },
+    // `full_balance`, `user_share` and `user_share_percent` are the server's
+    // (SavingsController::presentAccount), read as sent (2026-10-01 one-figure
+    // audit item 21). `user_share_percent` is the viewer's side of the split.
+    fullBalance() { return this.account?.full_balance ?? null; },
+    userShare() { return this.account?.user_share ?? null; },
     sharePercent() {
-      return `${userSharePercent(this.account).toFixed(2)}%`;
+      const pct = this.account?.user_share_percent;
+      return pct === undefined || pct === null ? '' : `${Number(pct).toFixed(2)}%`;
     },
     coOwner() {
       return coOwnerName(this.account);

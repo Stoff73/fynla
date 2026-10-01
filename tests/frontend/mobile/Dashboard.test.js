@@ -106,7 +106,8 @@ describe('mobile Dashboard retirement summary', () => {
         future_dashboard_field: { enabled: true },
         modules: {
           savings: {
-            value: 12000,
+            // The aggregator's real key (MobileDashboardAggregator::extractSavingsSummary).
+            total_savings: 12000,
             emergency_fund_months: 4,
             future_module_field: 'ignored',
           },

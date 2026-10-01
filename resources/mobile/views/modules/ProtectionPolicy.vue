@@ -234,12 +234,8 @@ export default {
     headerProvider() { return this.policy?.provider || 'Policy'; },
     isLumpSum() { return this.policyType === 'life' || this.policyType === 'criticalIllness'; },
     coverageLabel() { return this.isLumpSum ? 'Sum assured' : 'Benefit amount'; },
-    coverageAmount() {
-      if (!this.policy) return 0;
-      return this.isLumpSum
-        ? parseFloat(this.policy.sum_assured || 0)
-        : parseFloat(this.policy.benefit_amount || 0);
-    },
+    // The server's `cover_amount`, read as sent (2026-10-01 one-figure audit).
+    coverageAmount() { return this.policy?.cover_amount ?? null; },
     lifeSubtypeLabel() {
       if (this.policyType !== 'life') return null;
       const sub = this.policy?.policy_type;

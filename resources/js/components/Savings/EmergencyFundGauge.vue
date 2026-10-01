@@ -22,9 +22,12 @@ export default {
       required: true,
       default: 0,
     },
-    targetMonths: {
+    // The cash held as a percentage of the target, from the server
+    // (`analysis.emergency_fund.percent_of_target`). The gauge used to divide
+    // the runway by a target of 6 on the client.
+    percentOfTarget: {
       type: Number,
-      default: 6,
+      default: null,
     },
   },
 
@@ -34,13 +37,15 @@ export default {
     },
 
     runwayPercentage() {
-      return Math.min((this.runwayMonths / this.targetMonths) * 100, 100);
+      if (this.percentOfTarget === null) return 0;
+      return Math.max(0, Math.min(this.percentOfTarget, 100));
     },
 
+    // The same bands as `/m` and iOS: at or above the target, at least half of
+    // it, below half. Measured against the user's own target, not a fixed 6.
     runwayColour() {
-      // Use design system semantic colors for threshold-based coloring
-      if (this.runwayMonths >= 6) return SUCCESS_COLORS[500];
-      if (this.runwayMonths >= 3) return WARNING_COLORS[500];
+      if (this.percentOfTarget >= 100) return SUCCESS_COLORS[500];
+      if (this.percentOfTarget >= 50) return WARNING_COLORS[500];
       return ERROR_COLORS[500];
     },
 

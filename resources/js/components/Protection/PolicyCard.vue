@@ -107,8 +107,12 @@ export default {
       return 'Benefit Amount';
     },
 
+    // The policy's cover as the server publishes it (`cover_amount` on every
+    // protection Resource): the sum assured for a lump-sum policy, the benefit
+    // for an income policy. Read as sent; no `||` chain between two fields
+    // (2026-10-01 one-figure audit).
     coverageAmount() {
-      return this.policy.sum_assured || this.policy.benefit_amount || 0;
+      return this.policy.cover_amount ?? null;
     },
 
     // A joint-life policy covers both spouses and is recorded once, on the account

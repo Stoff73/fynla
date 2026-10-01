@@ -325,33 +325,26 @@ export default {
       return this.account.access_type || 'easy_access';
     },
 
+    // Every figure on this screen is the server's, read as sent (Rule 20;
+    // 2026-10-01 one-figure audit items 21 and 24): `full_balance`
+    // and `user_share` from `SavingsController`, and the
+    // interest from the model's `annual_interest` / `monthly_interest` appends.
+    // The page used to multiply balance by rate itself, and fall back to the
+    // primary owner's percentage for the share.
     fullBalance() {
-      if (!this.account) return 0;
-      // Single-record pattern: DB stores FULL balance
-      return this.account.full_balance ?? this.account.current_balance ?? 0;
+      return this.account?.full_balance ?? null;
     },
 
     userShare() {
-      if (!this.account) return 0;
-      // Single-record pattern: Use user_share from API if available
-      if (this.account.user_share !== undefined) {
-        return this.account.user_share;
-      }
-      // Fallback: calculate from full balance
-      if (this.account.ownership_type === 'joint' && this.account.ownership_percentage) {
-        return this.fullBalance * (this.account.ownership_percentage / 100);
-      }
-      return this.fullBalance;
+      return this.account?.user_share ?? null;
     },
 
     monthlyInterest() {
-      if (!this.account) return 0;
-      return (this.account.current_balance * (this.account.interest_rate / 100)) / 12;
+      return this.account?.monthly_interest ?? null;
     },
 
     annualInterest() {
-      if (!this.account) return 0;
-      return this.account.current_balance * (this.account.interest_rate / 100);
+      return this.account?.annual_interest ?? null;
     },
 
     isMatured() {

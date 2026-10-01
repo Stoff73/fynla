@@ -200,9 +200,8 @@ export default {
       const push = (arr, policyType) => {
         (arr || []).forEach((raw) => {
           const isLumpSum = policyType === 'life' || policyType === 'criticalIllness';
-          const cover = isLumpSum
-            ? parseFloat(raw.sum_assured || 0)
-            : parseFloat(raw.benefit_amount || 0);
+          // The server's `cover_amount` (2026-10-01 one-figure audit).
+          const cover = raw.cover_amount ?? null;
           out.push({
             ...raw,
             policyType,

@@ -2,6 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import EmergencyFundGauge from '@/components/Savings/EmergencyFundGauge.vue';
 
+/**
+ * The gauge draws the server's figures (2026-10-01 one-figure audit items 22
+ * and 23): the runway as the label, and `analysis.emergency_fund.percent_of_target`
+ * as the fill and the colour band. It used to divide the runway by a target of
+ * 6 months on the client, so a self-employed user (9-month target) or a retired
+ * one (3) saw a fill that disagreed with every other surface.
+ */
 describe('EmergencyFundGauge', () => {
   beforeEach(() => {
     if (!global.ApexCharts) {
@@ -15,159 +22,51 @@ describe('EmergencyFundGauge', () => {
     }
   });
 
-  it('renders with runway prop', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 6.5,
-      },
-    });
+  const gauge = (runwayMonths, percentOfTarget) => mount(EmergencyFundGauge, {
+    props: { runwayMonths, percentOfTarget },
+  });
+
+  it('renders the runway it is given', () => {
+    const wrapper = gauge(7.2, 120);
 
     expect(wrapper.exists()).toBe(true);
+    expect(wrapper.vm.chartOptions.plotOptions.radialBar.dataLabels.value.formatter()).toBe('7.2');
   });
 
-  it('displays correct runway in months', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 7.2,
-      },
-    });
-
-    expect(wrapper.vm.runwayMonths).toBe(7.2);
+  it('fills to the server percentage, not runway over six months', () => {
+    // 4.5 months against a 9-month target is 50%. Runway over 6 would be 75%.
+    expect(gauge(4.5, 50).vm.runwayPercentage).toBe(50);
   });
 
-  it('uses green color for excellent runway (6+ months)', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 8,
-      },
-    });
-
-    expect(wrapper.vm.runwayColour).toMatch(/^#[0-9a-f]{6}$/i);
-    expect(wrapper.vm.chartOptions.fill.colours).toEqual([wrapper.vm.runwayColour]);
+  it('caps the fill at the full ring', () => {
+    expect(gauge(12, 200).vm.runwayPercentage).toBe(100);
   });
 
-  it('uses orange color for moderate runway (3-6 months)', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 4.5,
-      },
-    });
-
-    expect(wrapper.vm.runwayColour).toMatch(/^#[0-9a-f]{6}$/i);
-    expect(wrapper.vm.runwayColour).not.toBe(mount(EmergencyFundGauge, {
-      props: { runwayMonths: 6 },
-    }).vm.runwayColour);
+  it('draws an empty ring when there is no percentage to draw', () => {
+    expect(gauge(0, null).vm.runwayPercentage).toBe(0);
   });
 
-  it('uses red color for critical runway (<3 months)', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 2,
-      },
-    });
+  it('colours by the share of the user\'s own target, in the /m bands', () => {
+    const atTarget = gauge(3, 100).vm.runwayColour;
+    const half = gauge(1.5, 50).vm.runwayColour;
+    const below = gauge(1, 33).vm.runwayColour;
 
-    expect(wrapper.vm.runwayColour).toMatch(/^#[0-9a-f]{6}$/i);
-    expect(wrapper.vm.runwayColour).not.toBe(mount(EmergencyFundGauge, {
-      props: { runwayMonths: 3 },
-    }).vm.runwayColour);
+    expect(atTarget).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(new Set([atTarget, half, below]).size).toBe(3);
+    // Three months at a three-month target is on target, even though it is
+    // below the six months the old hardcoded bands demanded.
+    expect(atTarget).toBe(gauge(8, 150).vm.runwayColour);
+    expect(gauge(4.5, 50).vm.runwayColour).toBe(half);
+    expect(wrapperColour(gauge(4.5, 50))).toEqual([half]);
   });
 
-  it('handles edge case runway of 0', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 0,
-      },
-    });
-
-    expect(wrapper.vm.runwayMonths).toBe(0);
-    expect(wrapper.vm.runwayColour).toBe(mount(EmergencyFundGauge, {
-      props: { runwayMonths: 2 },
-    }).vm.runwayColour);
-  });
-
-  it('handles exactly 6 months (target)', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 6,
-      },
-    });
-
-    expect(wrapper.vm.runwayMonths).toBe(6);
-    expect(wrapper.vm.runwayColour).toBe(mount(EmergencyFundGauge, {
-      props: { runwayMonths: 8 },
-    }).vm.runwayColour);
-  });
-
-  it('handles exactly 3 months (boundary)', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 3,
-      },
-    });
-
-    expect(wrapper.vm.runwayMonths).toBe(3);
-    expect(wrapper.vm.runwayColour).toBe(mount(EmergencyFundGauge, {
-      props: { runwayMonths: 4.5 },
-    }).vm.runwayColour);
-  });
-
-  it('displays label text for emergency fund', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 5,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/emergency.*fund|runway/i);
-  });
-
-  it('displays months unit', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 6,
-      },
-    });
-
+  it('names the basis of the figure', () => {
     // "Months from cash savings", not "Months Runway": the figure counts ALL cash,
-    // including notice and fixed-term accounts, so the label names its basis rather
-    // than implying the money is to hand (W-0276).
-    expect(wrapper.vm.chartOptions.labels).toContain('Months from cash savings');
-  });
-
-  it('calculates gauge percentage correctly', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 6,
-      },
-    });
-
-    // 6 months is 100% of target (6 months)
-    const percentage = wrapper.vm.runwayPercentage;
-    expect(percentage).toBe(100);
-  });
-
-  it('calculates gauge percentage for 3 months (50%)', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 3,
-      },
-    });
-
-    // 3 months is 50% of target (6 months)
-    const percentage = wrapper.vm.runwayPercentage;
-    expect(percentage).toBe(50);
-  });
-
-  it('caps gauge percentage at maximum', () => {
-    const wrapper = mount(EmergencyFundGauge, {
-      props: {
-        runwayMonths: 12,
-      },
-    });
-
-    // The radial gauge caps values above the six-month target.
-    const percentage = wrapper.vm.runwayPercentage;
-    expect(percentage).toBe(100);
+    // including notice and fixed-term accounts (W-0276).
+    expect(gauge(6, 100).vm.chartOptions.labels).toContain('Months from cash savings');
   });
 });
+
+function wrapperColour(wrapper) {
+  return wrapper.vm.chartOptions.fill.colours;
+}

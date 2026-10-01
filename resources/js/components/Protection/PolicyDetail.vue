@@ -415,8 +415,10 @@ export default {
       return 'Benefit Amount';
     },
 
+    // The policy's cover as the server publishes it (`cover_amount`); no `||`
+    // chain between two fields (2026-10-01 one-figure audit).
     coverageAmount() {
-      return this.policy?.sum_assured || this.policy?.benefit_amount || 0;
+      return this.policy?.cover_amount ?? null;
     },
 
     isLifeOrCriticalIllness() {
@@ -495,21 +497,12 @@ export default {
       return true; // No end date specified, assume active
     },
 
+    // `annual_premium` from `App\Support\PremiumAnnualiser`, the one
+    // conversion every surface reads (2026-10-01 one-figure audit item 31). This
+    // page had its own switch, which treated weekly as x12 against the server's
+    // x52.
     annualCost() {
-      if (!this.policy?.premium_amount) return 0;
-      const frequency = this.policy.premium_frequency || 'monthly';
-      const amount = parseFloat(this.policy.premium_amount);
-
-      switch (frequency) {
-        case 'monthly':
-          return amount * 12;
-        case 'quarterly':
-          return amount * 4;
-        case 'annually':
-          return amount;
-        default:
-          return amount * 12;
-      }
+      return this.policy?.annual_premium ?? null;
     },
 
     coveredConditions() {

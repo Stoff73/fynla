@@ -25,7 +25,7 @@ const PAYLOAD = {
   },
   modules: {
     protection: { status: 'active', total_coverage: 700000, policy_count: 3 },
-    savings: { total_savings: 74750, emergency_fund_months: 59.8 },
+    savings: { total_savings: 74750, emergency_fund_months: 59.8, emergency_fund_target_months: 6, emergency_fund_percent_of_target: 996.7 },
     retirement: { pot_value: 500000, projected_income: 35000, target_income: 50000 },
     investment: { portfolio_value: 172500, accounts_count: 3, holdings_count: 6 },
   },
@@ -53,6 +53,37 @@ describe('dashboardFigures', () => {
     expect(f.investment.value).toBe(172500);
     expect(f.investment.holdingsCount).toBe(6);
     expect(f.investment.caption).toBe('6 holdings');
+  });
+
+  it('takes the emergency-fund target and fill from the server, not a typed-in 6 months', () => {
+    // A self-employed household: 4.5 months held against a 9-month target is
+    // 50%. The old derivation divided by 6 (75%), said "/ 6 months", and
+    // called anything at 6 months "on track" (2026-10-01 audit items 23, 35).
+    const f = dashboardFigures({
+      modules: { savings: { total_savings: 9000, emergency_fund_months: 4.5, emergency_fund_target_months: 9, emergency_fund_percent_of_target: 50 } },
+    });
+
+    expect(f.savings.targetMonths).toBe(9);
+    expect(f.savings.barFill).toBe(50);
+    expect(f.savings.barUnit).toBe('/ 9 months');
+    expect(f.savings.caption).toBe('Building your fund');
+
+    const retired = dashboardFigures({
+      modules: { savings: { total_savings: 6000, emergency_fund_months: 3, emergency_fund_target_months: 3, emergency_fund_percent_of_target: 100 } },
+    });
+    expect(retired.savings.caption).toBe('Emergency fund on track');
+    expect(retired.savings.barFill).toBe(100);
+  });
+
+  it('reads one field per figure, with no fallback to another key', () => {
+    // `value` is not a key the aggregator sends; reading it as a fallback is a
+    // second path to the same number.
+    const f = dashboardFigures({
+      modules: { protection: { value: 999, total_coverage: 340000 }, savings: { value: 1, total_savings: 5000 } },
+    });
+
+    expect(f.protection.value).toBe(340000);
+    expect(f.savings.value).toBe(5000);
   });
 
   it('reads total assets from the flat field, matching the sum of the class map', () => {

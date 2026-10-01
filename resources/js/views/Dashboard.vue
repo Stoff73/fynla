@@ -705,26 +705,12 @@ export default {
 
     // Protection data
     ...mapGetters('protection', {
-      protectionTotalCoverage: 'totalCoverage',
-      protectionTotalPremium: 'totalPremium',
       protectionLifePolicies: 'lifePolicies',
       protectionCriticalIllnessPolicies: 'criticalIllnessPolicies',
       protectionIncomeProtectionPolicies: 'incomeProtectionPolicies',
       protectionDisabilityPolicies: 'disabilityPolicies',
       protectionSicknessIllnessPolicies: 'sicknessIllnessPolicies',
     }),
-
-    protectionData() {
-      return {
-        totalCoverage: this.protectionTotalCoverage || 0,
-        premiumTotal: this.protectionTotalPremium || 0, // Already monthly from store getter
-        policyCount: (this.protectionLifePolicies?.length || 0) +
-          (this.protectionCriticalIllnessPolicies?.length || 0) +
-          (this.protectionIncomeProtectionPolicies?.length || 0) +
-          (this.protectionDisabilityPolicies?.length || 0) +
-          (this.protectionSicknessIllnessPolicies?.length || 0),
-      };
-    },
 
     hasProtectionData() {
       return (this.protectionLifePolicies?.length || 0) +

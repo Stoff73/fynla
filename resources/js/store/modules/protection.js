@@ -1,21 +1,5 @@
 import protectionService from '@/services/protectionService';
 
-// Helper: Convert premium to monthly amount
-const convertPremiumToMonthly = (premium, frequency) => {
-    const amount = parseFloat(premium || 0);
-    if (frequency === 'annual') {
-        return amount / 12;
-    }
-    return amount;
-};
-
-// Helper: Calculate total monthly premium for a list of policies
-const calculateMonthlyPremium = (policies) => {
-    return policies.reduce((sum, policy) => {
-        return sum + convertPremiumToMonthly(policy.premium_amount, policy.premium_frequency || 'monthly');
-    }, 0);
-};
-
 // Action factory for creating policies
 const createPolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
     return async ({ commit, dispatch }, policyData) => {
@@ -115,19 +99,12 @@ const getters = {
         return adequacy.rating || 'Incomplete';
     },
 
-    // Get total coverage across all policy types
-    totalCoverage: (state) => {
-        const lifeCoverage = state.policies.life.reduce((sum, policy) => sum + parseFloat(policy.sum_assured || 0), 0);
-        const criticalIllnessCoverage = state.policies.criticalIllness.reduce((sum, policy) => sum + parseFloat(policy.sum_assured || 0), 0);
-        return lifeCoverage + criticalIllnessCoverage;
-    },
-
-    // Get total premium across all policy types (monthly)
-    totalPremium: (state) => {
-        return Object.values(state.policies).reduce((total, policies) => {
-            return total + calculateMonthlyPremium(policies);
-        }, 0);
-    },
+    // No client-side cover or premium totals. Total cover is the server's
+    // `coverage_gaps.totals.cover` (state.coverageBreakdown) and every policy
+    // carries its own `cover_amount` and `annual_premium` (Rule 20; 2026-10-01
+    // one-figure audit items 31 and 32). The getters that summed `sum_assured`
+    // (missing employer cover) and re-annualised premiums here fed nothing on
+    // screen and were removed rather than left to be picked up again.
 
     // Get coverage gaps from analysis
     coverageGaps: (state) => {
@@ -169,15 +146,6 @@ const getters = {
         });
 
         return allPolicies;
-    },
-
-    // Premium breakdown by policy type (monthly)
-    premiumBreakdown: (state) => {
-        const breakdown = {};
-        Object.entries(state.policies).forEach(([type, policies]) => {
-            breakdown[type] = calculateMonthlyPremium(policies);
-        });
-        return breakdown;
     },
 
     // Check if any life insurance policies are in trust

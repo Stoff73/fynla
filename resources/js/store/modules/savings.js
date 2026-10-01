@@ -1,7 +1,6 @@
 import savingsService from '@/services/savingsService';
 
 import logger from '@/utils/logger';
-import { calculateTotalUserShare } from '@/utils/ownership';
 const state = {
     accounts: [],
     expenditureProfile: null,
@@ -19,63 +18,37 @@ const state = {
 };
 
 const getters = {
-    // The cash this viewer owns.
-    //
-    // `calculateTotalUserShare` adds up the `user_share` the API already put on
-    // every account — the backend's own `calculateUserShare()` figure, one per
-    // record — so this getter transports a total, it does not re-derive one
-    // (Rule 20). The arithmetic it replaced applied `ownership_percentage`
-    // whichever side of the record the viewer was on, so the CO-OWNER of a joint
-    // account was charged the PRIMARY owner's share. On a 75/25 account the
-    // co-owner saw 75% of money that was 25% theirs; only a 50/50 split hid it,
-    // which is why this survived every earlier sweep (W-0274, F-0019 "fraction").
-    totalSavings: (state) => calculateTotalUserShare(state.accounts),
+    // The cash this viewer owns: `analysis.summary.total_savings`, which
+    // `SavingsAgent` takes from `CrossModuleAssetAggregator::calculateCashTotal()`
+    // — the same figure `/m`, iOS, the dashboard and `/net-worth` read (Rule 20;
+    // 2026-10-01 one-figure audit item 21). Read as sent. The browser used to add
+    // the accounts up itself; null here means the server did not answer, and the
+    // page shows no figure rather than working one out.
+    totalSavings: (state) => state.analysis?.summary?.total_savings ?? null,
 
-    // The emergency fund.
-    //
-    // It is the same cash. `is_emergency_fund` is a DESIGNATION — "which account
-    // has the user nominated" — not a definition of what the fund contains, and
-    // filtering on it here was the fourth surviving answer to "how much emergency
-    // fund does this household have" (W-0271, W-0274). A household with £130,780
-    // of cash and no ticked boxes does not have a £0 emergency fund, but that is
-    // exactly what `/savings` showed while the dashboard, `/m` and `/risk-profile`
-    // all read the backend's answer and showed 79.8 and 25.3 months.
-    //
-    // Deliberately identical to `totalSavings` rather than aliased: the two
-    // answer different questions that currently have the same answer, and a
-    // future narrowing (W-0276 — cash the user cannot actually reach) belongs to
-    // the backend's `CrossModuleAssetAggregator::calculateCashTotal()`, which
-    // both figures ultimately come from.
-    emergencyFundTotal: (state) => calculateTotalUserShare(state.accounts),
+    // The emergency fund block exactly as `SavingsAgent` computed it: runway,
+    // target, target months, percentage of target, shortfall, the cash it is
+    // measured on and the what-if targets for 3 to 12 months (audit items 22-23).
+    emergencyFund: (state) => state.analysis?.emergency_fund ?? null,
 
-    // Months of runway.
-    //
-    // The backend's figure when the payload carries it: `SavingsAgent` divides
-    // `calculateCashTotal()` by RESOLVED monthly expenditure — a priority chain,
-    // not a single column — and that resolution is the part the browser cannot
-    // reproduce. This household proves the chain is live: David's expenditure
-    // resolves from `expenditure_profile` and Sarah's from `user_monthly`.
-    //
-    // Where the payload has no analysis block the division falls back to the
-    // profile's own monthly figure. That keeps the fund value and the runway
-    // consistent with each other; it can still differ from the dashboard if the
-    // resolver took a different branch, which is why the backend figure wins
-    // whenever it is present.
-    emergencyFundRunway: (state, getters) => {
-        const resolved = state.analysis?.emergency_fund?.runway_months;
-        if (resolved !== undefined && resolved !== null) {
-            return parseFloat(resolved) || 0;
-        }
+    // The emergency fund is the same cash. `is_emergency_fund` is a DESIGNATION —
+    // "which account has the user nominated" — not a definition of what the fund
+    // contains (W-0271, W-0274), so this is the server's `current_amount`, which
+    // is `total_savings`.
+    emergencyFundTotal: (state) => state.analysis?.emergency_fund?.current_amount ?? null,
 
-        // Null, not 0. With no monthly figure there is no runway to state, and
-        // saying "0 months" to a household holding cash is the alarming error
-        // W-0495 exists to remove. The backend now sends null for the same
-        // reason, so both branches agree.
-        const monthlyExpenditure = getters.monthlyExpenditure;
-        if (!monthlyExpenditure) return null;
-
-        return getters.emergencyFundTotal / monthlyExpenditure;
+    // Months of runway: `SavingsAgent` divides the cash by RESOLVED monthly
+    // expenditure, a priority chain the browser cannot reproduce. Null when it
+    // cannot be worked out (W-0495) or the server did not answer — never a
+    // division on the client.
+    emergencyFundRunway: (state) => {
+        const months = state.analysis?.emergency_fund?.runway_months;
+        return months === undefined || months === null ? null : Number(months);
     },
+
+    // The cash page's per-group totals, each at this viewer's share, from the
+    // same aggregator as `total_savings` (so they add up to it).
+    cashGroups: (state) => state.analysis?.summary?.cash_groups ?? [],
 
     // Get ISA allowance remaining
     // Note: Returns 0 if ISA data not loaded - ensure fetchISAAllowance is called on init
@@ -109,14 +82,6 @@ const getters = {
         return state.isaAllowance?.cash_isa_used || 0;
     },
 
-    // Total ISA balances, at this viewer's share.
-    //
-    // The third copy of the same wrong-side arithmetic. A joint ISA does not
-    // exist in UK law, so the split should never fire here — but the copy did,
-    // and a rule with three implementations has three chances to be edited into
-    // disagreement (Rule 20).
-    totalISABalance: (state) => calculateTotalUserShare(state.accounts.filter(account => account.is_isa)),
-
     // Get accounts by access type
     accountsByAccessType: (state) => {
         const grouped = {
@@ -135,10 +100,10 @@ const getters = {
         return grouped;
     },
 
-    // Get monthly expenditure from profile
-    monthlyExpenditure: (state) => {
-        return state.expenditureProfile?.total_monthly_expenditure || 0;
-    },
+    // The monthly spending the runway and target are measured against: the
+    // RESOLVED figure from `SavingsAgent`, not the raw profile column, so the
+    // figure shown beside the target is the one that produced it.
+    monthlyExpenditure: (state) => state.analysis?.summary?.monthly_expenditure ?? null,
 
     // Life events relevant to savings module
     upcomingLifeEvents: (state) => state.lifeEvents,
@@ -287,6 +252,9 @@ const actions = {
             const response = await savingsService.createAccount(accountData);
             const account = response.data || response;
             commit('addAccount', account);
+            // The totals and the emergency fund are the server's, so they are
+            // fetched again rather than re-added in the browser (Rule 20).
+            await dispatch('fetchSavingsData');
             // Refresh net worth and recommendations
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
             dispatch('recommendations/fetchRecommendations', {}, { root: true });
@@ -319,6 +287,9 @@ const actions = {
             const response = await savingsService.updateAccount(id, accountData);
             const account = response.data || response;
             commit('updateAccount', account);
+            // The totals and the emergency fund are the server's, so they are
+            // fetched again rather than re-added in the browser (Rule 20).
+            await dispatch('fetchSavingsData');
             // Refresh net worth and recommendations
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
             dispatch('recommendations/fetchRecommendations', {}, { root: true });
@@ -339,6 +310,9 @@ const actions = {
         try {
             const response = await savingsService.deleteAccount(id);
             commit('removeAccount', id);
+            // The totals and the emergency fund are the server's, so they are
+            // fetched again rather than re-added in the browser (Rule 20).
+            await dispatch('fetchSavingsData');
             // Refresh net worth and recommendations
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
             dispatch('recommendations/fetchRecommendations', {}, { root: true });

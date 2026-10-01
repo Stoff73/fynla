@@ -148,8 +148,8 @@ export default {
       const policies = [...(this.allPolicies || [])];
       // Sort by coverage (high to low)
       policies.sort((a, b) => {
-        const aValue = a.sum_assured || a.benefit_amount || 0;
-        const bValue = b.sum_assured || b.benefit_amount || 0;
+        const aValue = a.cover_amount ?? 0;
+        const bValue = b.cover_amount ?? 0;
         return bValue - aValue;
       });
       return policies;

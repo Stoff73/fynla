@@ -7,8 +7,9 @@
           Emergency Fund Status
         </h3>
         <EmergencyFundGauge
+          v-if="emergencyFundRunway !== null"
           :runway-months="emergencyFundRunway"
-          :target-months="targetMonths"
+          :percent-of-target="percentOfTarget"
         />
         <p class="text-center text-sm text-neutral-500 mt-4">
           {{ statusMessage }}
@@ -45,7 +46,7 @@
         <!-- Show total expenditure if data exists -->
         <div v-else class="text-center py-8">
           <p class="text-sm text-neutral-500 mb-2">Total Monthly Expenditure</p>
-          <p class="text-3xl font-bold text-horizon-500">{{ formatCurrency(monthlyTotal) }}</p>
+          <p class="text-3xl font-bold text-horizon-500">{{ formatCurrency(monthlyExpenditure) }}</p>
           <p class="text-sm text-neutral-500 mt-2">
             <router-link to="/profile" class="text-violet-600 hover:text-violet-700">Update in User Profile</router-link>
           </p>
@@ -78,7 +79,7 @@
               <div
                 class="h-2 rounded-full transition-all"
                 :class="currentAmountBarColour"
-                :style="{ width: currentAmountPercentage + '%' }"
+                :style="{ width: currentAmountBarWidth + '%' }"
               ></div>
             </div>
           </div>
@@ -88,7 +89,7 @@
               <span v-if="shortfall > 0">
                 Top up needed: {{ formatCurrency(shortfall) }}
               </span>
-              <span v-else>
+              <span v-else-if="shortfall === 0">
                 Emergency fund target achieved!
               </span>
             </p>
@@ -105,23 +106,23 @@
           Target Months of Expenses
         </label>
         <input
-          v-model.number="targetMonths"
+          v-model.number="whatIfMonths"
           type="range"
-          min="3"
-          max="12"
+          :min="whatIfMin"
+          :max="whatIfMax"
           step="1"
           class="w-full"
         />
         <div class="flex justify-between text-sm text-neutral-500 mt-1">
-          <span>3 months</span>
-          <span class="font-semibold text-horizon-500">{{ targetMonths }} months</span>
-          <span>12 months</span>
+          <span>{{ whatIfMin }} months</span>
+          <span class="font-semibold text-horizon-500">{{ whatIfMonths }} months</span>
+          <span>{{ whatIfMax }} months</span>
         </div>
       </div>
-      <div class="p-4 bg-eggshell-500 rounded-lg">
+      <div v-if="whatIfAmount !== null" class="p-4 bg-eggshell-500 rounded-lg">
         <p class="text-sm text-neutral-500">
-          With {{ targetMonths }} months of expenses, your target emergency fund would be
-          <span class="font-semibold">{{ formatCurrency(targetAmount) }}</span>
+          With {{ whatIfMonths }} months of expenses, your target emergency fund would be
+          <span class="font-semibold">{{ formatCurrency(whatIfAmount) }}</span>
         </p>
       </div>
     </div>
@@ -129,10 +130,25 @@
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex';
+import { mapGetters } from 'vuex';
 import EmergencyFundGauge from './EmergencyFundGauge.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { RUNWAY_UNAVAILABLE_HINT } from '@/utils/emergencyRunway';
 
+/**
+ * The emergency fund tab. Every figure is `SavingsAgent`'s, read from
+ * `analysis.emergency_fund` as sent (Rule 20; 2026-10-01 one-figure audit items
+ * 22 and 23): the target, its months, the cash held, the percentage of target,
+ * the shortfall and the runway. The same block feeds `/m`, iOS and the
+ * dashboard.
+ *
+ * The "Adjust target" slider is a what-if. It starts at the server's target
+ * months and shows the server's target for the months chosen
+ * (`target_amount_by_months`); it never changes the target above it. The page
+ * used to multiply the raw spending column by the slider here, and let the
+ * slider rewrite the target and the top-up figure, so the tab disagreed with
+ * every other surface the moment it was touched.
+ */
 export default {
   name: 'EmergencyFund',
   mixins: [currencyMixin],
@@ -143,82 +159,78 @@ export default {
 
   data() {
     return {
-      targetMonths: 6,
+      // Null until the user moves the slider; until then it sits on the
+      // server's target months.
+      chosenMonths: null,
     };
   },
 
   computed: {
-    ...mapState('savings', ['expenditureProfile', 'analysis', 'accounts']),
-    ...mapGetters('savings', ['emergencyFundRunway', 'monthlyExpenditure', 'emergencyFundTotal']),
-
-    expenditure() {
-      if (!this.expenditureProfile) {
-        return {
-          housing: 0,
-          food: 0,
-          utilities: 0,
-          other: 0,
-        };
-      }
-
-      return {
-        housing: parseFloat(this.expenditureProfile.monthly_housing) || 0,
-        food: parseFloat(this.expenditureProfile.monthly_food) || 0,
-        utilities: parseFloat(this.expenditureProfile.monthly_utilities) || 0,
-        other: (parseFloat(this.expenditureProfile.monthly_transport) || 0) +
-               (parseFloat(this.expenditureProfile.monthly_insurance) || 0) +
-               (parseFloat(this.expenditureProfile.monthly_loans) || 0) +
-               (parseFloat(this.expenditureProfile.monthly_discretionary) || 0),
-      };
-    },
-
-    monthlyTotal() {
-      // Use total_monthly_expenditure directly since we don't have breakdown
-      if (this.expenditureProfile?.total_monthly_expenditure) {
-        return parseFloat(this.expenditureProfile.total_monthly_expenditure) || 0;
-      }
-      // Fallback to summing breakdown if it exists
-      return Object.values(this.expenditure).reduce((sum, val) => sum + val, 0);
-    },
+    ...mapGetters('savings', ['emergencyFund', 'emergencyFundRunway', 'monthlyExpenditure']),
 
     targetAmount() {
-      return this.monthlyTotal * this.targetMonths;
+      return this.emergencyFund?.target?.target_amount ?? null;
     },
 
     currentAmount() {
-      return this.emergencyFundTotal;
+      return this.emergencyFund?.current_amount ?? null;
+    },
+
+    percentOfTarget() {
+      return this.emergencyFund?.percent_of_target ?? null;
     },
 
     shortfall() {
-      return Math.max(0, this.targetAmount - this.currentAmount);
+      return this.emergencyFund?.shortfall ?? null;
     },
 
-    currentAmountPercentage() {
-      if (this.targetAmount === 0) return 0;
-      return Math.min((this.currentAmount / this.targetAmount) * 100, 100);
+    // Presentation only: the bar cannot be drawn past its track.
+    currentAmountBarWidth() {
+      if (this.percentOfTarget === null) return 0;
+      return Math.min(Math.max(this.percentOfTarget, 0), 100);
     },
 
     currentAmountBarColour() {
-      if (this.currentAmountPercentage >= 100) return 'bg-spring-600';
-      if (this.currentAmountPercentage >= 50) return 'bg-raspberry-500';
+      if (this.percentOfTarget >= 100) return 'bg-spring-600';
+      if (this.percentOfTarget >= 50) return 'bg-raspberry-500';
       return 'bg-raspberry-600';
     },
 
     hasExpenditure() {
-      return this.monthlyTotal > 0;
+      return Number(this.monthlyExpenditure) > 0;
     },
 
     statusMessage() {
       if (!this.hasExpenditure) {
-        return 'Please add your monthly expenditure to calculate emergency fund runway.';
+        return RUNWAY_UNAVAILABLE_HINT;
       }
-      if (this.emergencyFundRunway >= 6) {
-        return 'Excellent! Your emergency fund exceeds the recommended 6-month target.';
-      } else if (this.emergencyFundRunway >= 3) {
-        return 'Good progress. Consider building up to 6 months of expenses.';
-      } else {
-        return 'Priority: Build your emergency fund to at least 3-6 months of expenses.';
-      }
+      return this.emergencyFund?.recommendation ?? '';
+    },
+
+    whatIfOptions() {
+      return Object.keys(this.emergencyFund?.target_amount_by_months || {}).map(Number).sort((a, b) => a - b);
+    },
+
+    whatIfMin() {
+      return this.whatIfOptions[0] ?? null;
+    },
+
+    whatIfMax() {
+      return this.whatIfOptions[this.whatIfOptions.length - 1] ?? null;
+    },
+
+    whatIfMonths: {
+      get() {
+        return this.chosenMonths ?? this.emergencyFund?.target_months ?? null;
+      },
+      set(months) {
+        this.chosenMonths = months;
+      },
+    },
+
+    whatIfAmount() {
+      if (this.whatIfMonths === null) return null;
+      return this.emergencyFund?.target_amount_by_months?.[String(this.whatIfMonths)] ?? null;
     },
   },
 
@@ -230,4 +242,3 @@ export default {
   },
 };
 </script>
-

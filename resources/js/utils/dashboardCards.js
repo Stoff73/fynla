@@ -53,16 +53,25 @@ export function dashboardFigures(payload) {
   const equityPct = totalAssets > 0 ? clampPct((total / totalAssets) * 100) : 0;
 
   // ---- Protection ------------------------------------------------------------
+  // `total_coverage` is the protection page's own `coverage_gaps.totals.cover`
+  // (ProtectionGapPresentationService), read as sent — one field, no fallback
+  // to another key (2026-10-01 one-figure audit item 32).
   const prot = find('protection');
-  const protectionValue = num(prot.value != null ? prot.value : prot.total_coverage);
+  const protectionValue = num(prot.total_coverage);
   const covered = protectionValue > 0;
 
   // ---- Savings ---------------------------------------------------------------
+  // The target, and how much of it is held, are SavingsAgent's — the same
+  // figures `/savings`, `/m` and iOS show. The target used to be typed in here
+  // as 6 months and the bar divided on the client, so a self-employed user
+  // (9 months) or a retired one (3) saw a different target on every surface
+  // (2026-10-01 one-figure audit items 23 and 35).
   const sav = find('savings');
   const efMonths = num(sav.emergency_fund_months);
-  const efTarget = 6;
-  const savingsValue = num(sav.total_savings != null ? sav.total_savings : sav.value);
-  const efBarFill = efTarget > 0 ? clampPct((efMonths / efTarget) * 100) : 0;
+  const efTarget = sav.emergency_fund_target_months ?? null;
+  const efPercent = sav.emergency_fund_percent_of_target ?? null;
+  const savingsValue = num(sav.total_savings);
+  const efBarFill = efPercent != null ? clampPct(efPercent) : 0;
 
   // ---- Retirement ------------------------------------------------------------
   const ret = find('retirement');
@@ -101,8 +110,8 @@ export function dashboardFigures(payload) {
       targetMonths: efTarget,
       barFill: efBarFill,
       barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0',
-      barUnit: `/ ${efTarget} months`,
-      caption: efMonths >= efTarget
+      barUnit: efTarget != null ? `/ ${efTarget} months` : '',
+      caption: efPercent != null && efPercent >= 100
         ? 'Emergency fund on track'
         : (efMonths > 0 ? 'Building your fund' : 'Start your emergency fund'),
     },

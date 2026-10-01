@@ -88,7 +88,7 @@
             <span class="ms-ef__label">Cash held</span>
             <span class="ms-ef__value">{{ fmt(totalCash) }}</span>
           </div>
-          <div class="ms-ef__row">
+          <div v-if="targetMonths !== null" class="ms-ef__row">
             <span class="ms-ef__label">Target ({{ targetMonths }} {{ targetMonths === 1 ? 'month' : 'months' }})</span>
             <span class="ms-ef__value">{{ fmt(emergencyTarget) }}</span>
           </div>
@@ -157,7 +157,7 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 // The one home for the ownership-share rule, shared with the desktop bundle
 // (Rule 20). `/m` reaches it by relative path, as the investment, property and
 // savings-account screens already do.
-import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { isSharedRecord } from '../../../js/utils/ownership.js';
 import { RUNWAY_UNAVAILABLE_HINT, runwayLabel } from '../../../js/utils/emergencyRunway.js';
 
 export default {
@@ -185,50 +185,34 @@ export default {
       });
     },
     isaAllowance() { return this.payload?.isa_allowance || null; },
-    emergencyTargetData() { return this.payload?.emergency_fund_target || null; },
-    expenditure() { return this.payload?.expenditure_profile || null; },
+    // Every cash and emergency-fund figure below is the server's, read as sent
+    // (Rule 20; 2026-10-01 one-figure audit items 21-23): `SavingsAgent`
+    // publishes them in `analysis`, and web, iOS and the dashboard read the same
+    // block. This page used to add up the accounts, divide by the raw spending
+    // column and work out the percentage of target itself.
+    analysis() { return this.payload?.analysis || null; },
+    emergencyFund() { return this.analysis?.emergency_fund || null; },
 
-    // The cash this viewer owns, not the cash on the records they can see.
-    //
-    // This summed `full_balance`, so a joint account was counted whole against
-    // BOTH spouses — and every figure below it (runway, the bar, "% of target")
-    // inherited that. The account detail screen has always shown the share, so
-    // `/m` contradicted itself one tap apart. Mirrors the `/m` investment list,
-    // which already reads this helper.
-    totalCash() {
-      return calculateTotalUserShare(this.accounts, { valueField: 'current_balance' });
-    },
+    totalCash() { return this.analysis?.summary?.total_savings ?? null; },
     accountCountLabel() {
       const n = this.accounts.length;
       if (n === 0) return 'No accounts added yet.';
       return `Across ${n} ${n === 1 ? 'account' : 'accounts'}.`;
     },
 
-    monthlyExpenditure() {
-      return Number(this.expenditure?.total_monthly_expenditure || 0);
-    },
-    targetMonths() {
-      return Number(this.emergencyTargetData?.target_months || 6);
-    },
-    emergencyTarget() {
-      return Number(this.emergencyTargetData?.target_amount || 0);
-    },
-    emergencyRationale() {
-      return this.emergencyTargetData?.rationale || '';
-    },
-    runwayMonths() {
-      if (this.monthlyExpenditure <= 0) return null;
-      return this.totalCash / this.monthlyExpenditure;
-    },
+    targetMonths() { return this.emergencyFund?.target_months ?? null; },
+    emergencyTarget() { return this.emergencyFund?.target?.target_amount ?? null; },
+    emergencyRationale() { return this.emergencyFund?.target?.rationale || ''; },
+    runwayMonths() { return this.emergencyFund?.runway_months ?? null; },
+    percentOfTarget() { return this.emergencyFund?.percent_of_target ?? null; },
+    // Presentation only: the bar cannot be drawn past its track.
     runwayBarWidth() {
-      if (this.emergencyTarget <= 0) return this.totalCash > 0 ? '100%' : '0%';
-      return `${Math.min((this.totalCash / this.emergencyTarget) * 100, 100)}%`;
+      if (this.percentOfTarget === null) return '0%';
+      return `${Math.min(Math.max(this.percentOfTarget, 0), 100)}%`;
     },
     runwayStatus() {
-      if (this.emergencyTarget <= 0) return 'spring';
-      const pct = (this.totalCash / this.emergencyTarget) * 100;
-      if (pct >= 100) return 'spring';
-      if (pct >= 50) return 'violet';
+      if (this.percentOfTarget === null || this.percentOfTarget >= 100) return 'spring';
+      if (this.percentOfTarget >= 50) return 'violet';
       return 'raspberry';
     },
     // One wording on every surface (Rule 20), composed in
@@ -243,9 +227,8 @@ export default {
 
     runwayUnavailableHint: () => RUNWAY_UNAVAILABLE_HINT,
     runwayCovered() {
-      if (this.emergencyTarget <= 0) return '';
-      const pct = Math.round((this.totalCash / this.emergencyTarget) * 100);
-      return `${Math.min(pct, 100)}% of target`;
+      if (this.percentOfTarget === null) return '';
+      return `${Math.min(Math.round(this.percentOfTarget), 100)}% of target`;
     },
 
     isaTotal() { return Number(this.isaAllowance?.total_allowance || 0); },
@@ -281,14 +264,14 @@ export default {
       return `${Number(r).toFixed(2)}%`;
     },
     // The FULL balance on the record — the context line only, never a total.
-    balanceOf(a) {
-      return a.full_balance ?? a.current_balance ?? 0;
-    },
-    // What this viewer owns of it. Prefers the API's `user_share`; the helper
-    // falls back to the share arithmetic only for payloads without it.
-    userShareOf(a) { return calculateUserShare(a, { valueField: 'current_balance' }); },
+    balanceOf(a) { return a.full_balance ?? null; },
+    // What this viewer owns of it, and that share as a percentage, both from
+    // the server (SavingsController::presentAccount).
+    userShareOf(a) { return a.user_share ?? null; },
     isShared(a) { return isSharedRecord(a); },
-    sharePercent(a) { return `${userSharePercent(a).toFixed(2)}%`; },
+    sharePercent(a) {
+      return a.user_share_percent === undefined || a.user_share_percent === null ? '' : `${Number(a.user_share_percent).toFixed(2)}%`;
+    },
     openAccount(id) { this.$router.push(`/savings/account/${id}`); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     async load() {

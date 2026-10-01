@@ -9,6 +9,7 @@ describe('PolicyCard', () => {
     policy_subtype: 'level_term',
     provider: 'Test Insurance Company',
     sum_assured: 500000,
+    cover_amount: 500000,
     premium_amount: 50,
     premium_frequency: 'monthly',
     policy_start_date: '2020-01-01',
@@ -55,6 +56,7 @@ describe('PolicyCard', () => {
       policy_type: 'incomeProtection',
       provider: 'Income Protection Provider',
       benefit_amount: 2500,
+      cover_amount: 2500,
       premium_amount: 35,
       premium_frequency: 'monthly',
     });
@@ -62,6 +64,22 @@ describe('PolicyCard', () => {
     expect(wrapper.text()).toContain('Income Protection');
     expect(wrapper.text()).toContain('Benefit Amount');
     expect(wrapper.text()).toContain('£2,500');
+  });
+
+  it('shows the server\'s cover_amount, not a sum_assured || benefit_amount chain', () => {
+    // A policy carrying both columns: the chain picked sum_assured (£90,000);
+    // the server says the cover is £1,800 (2026-10-01 one-figure audit).
+    const { wrapper } = mountCard({
+      id: 4,
+      policy_type: 'incomeProtection',
+      provider: 'Both Columns Ltd',
+      sum_assured: 90000,
+      benefit_amount: 1800,
+      cover_amount: 1800,
+    });
+
+    expect(wrapper.text()).toContain('£1,800');
+    expect(wrapper.text()).not.toContain('£90,000');
   });
 
   it('falls back safely when provider and cover are missing', () => {

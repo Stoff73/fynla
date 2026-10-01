@@ -202,7 +202,7 @@ export default {
 
   computed: {
     ...mapState('savings', ['accounts']),
-    ...mapGetters('savings', ['totalSavings', 'emergencyFundRunway']),
+    ...mapGetters('savings', ['totalSavings', 'emergencyFundRunway', 'emergencyFund']),
 
     runwayUnavailableLabel: () => RUNWAY_UNAVAILABLE_LABEL,
     runwayUnavailableHint: () => RUNWAY_UNAVAILABLE_HINT,
@@ -212,9 +212,12 @@ export default {
       return this.$store.getters['preview/isPreviewMode'];
     },
 
+    // Banded on the share of the user's OWN target the server reports, as on
+    // `/m` and iOS, not on a fixed six months.
     runwayColour() {
-      if (this.emergencyFundRunway >= 6) return 'text-spring-600';
-      if (this.emergencyFundRunway >= 3) return 'text-violet-600';
+      const pct = this.emergencyFund?.percent_of_target ?? null;
+      if (pct !== null && pct >= 100) return 'text-spring-600';
+      if (pct !== null && pct >= 50) return 'text-violet-600';
       return 'text-raspberry-600';
     },
   },

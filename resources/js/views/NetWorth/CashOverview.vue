@@ -92,9 +92,9 @@
                   </span>
                 </div>
                 <div class="account-balances">
-                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span class="account-balance">{{ formatCurrency(account.user_share) }}</span>
                   <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
-                    Total: {{ formatCurrency(account.current_balance) }}
+                    Total: {{ formatCurrency(account.full_balance) }}
                   </span>
                 </div>
               </div>
@@ -139,9 +139,9 @@
                   </span>
                 </div>
                 <div class="account-balances">
-                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span class="account-balance">{{ formatCurrency(account.user_share) }}</span>
                   <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
-                    Total: {{ formatCurrency(account.current_balance) }}
+                    Total: {{ formatCurrency(account.full_balance) }}
                   </span>
                 </div>
               </div>
@@ -186,9 +186,9 @@
                   </span>
                 </div>
                 <div class="account-balances">
-                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span class="account-balance">{{ formatCurrency(account.user_share) }}</span>
                   <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
-                    Total: {{ formatCurrency(account.current_balance) }}
+                    Total: {{ formatCurrency(account.full_balance) }}
                   </span>
                 </div>
               </div>
@@ -233,9 +233,9 @@
                   </span>
                 </div>
                 <div class="account-balances">
-                  <span class="account-balance">{{ formatCurrency(getUserShare(account)) }}</span>
+                  <span class="account-balance">{{ formatCurrency(account.user_share) }}</span>
                   <span v-if="isJointAccount(account) || account.ownership_type === 'tenants_in_common'" class="total-balance">
-                    Total: {{ formatCurrency(account.current_balance) }}
+                    Total: {{ formatCurrency(account.full_balance) }}
                   </span>
                 </div>
               </div>
@@ -372,49 +372,53 @@ export default {
   computed: {
     ...mapState('savings', ['accounts', 'loading', 'error', 'expenditureProfile']),
     ...mapState('userProfile', ['incomeOccupation']),
-    ...mapGetters('savings', ['totalSavings']),
+    ...mapGetters('savings', ['cashGroups']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
     ...mapGetters('auth', ['openApiAffordance']),
 
-    // Filter accounts by type for real users view
+    // Which card each account sits in, and each card's total, are the server's
+    // (`analysis.summary.cash_groups`, CrossModuleAssetAggregator): every
+    // account in exactly one group, each total at this viewer's share, the
+    // groups adding up to `total_savings` (Rule 20; 2026-10-01 one-figure audit
+    // item 21). The page used to filter and add up here, applying the primary
+    // owner's percentage to a co-owner and listing an ISA-flagged savings
+    // account in two cards.
+    groupByKey() {
+      return Object.fromEntries((this.cashGroups || []).map((group) => [group.key, group]));
+    },
+
     currentAccounts() {
-      return this.accounts.filter(a => a.account_type === 'current_account');
+      return this.accountsInGroup('current_accounts');
     },
 
     savingsAccounts() {
-      return this.accounts.filter(a =>
-        ['savings_account', 'easy_access', 'instant_access', 'notice', 'fixed'].includes(a.account_type)
-      );
+      return this.accountsInGroup('savings_accounts');
     },
 
     isaAccounts() {
-      return this.accounts.filter(a =>
-        ['cash_isa', 'junior_isa'].includes(a.account_type) || a.is_isa
-      );
+      return this.accountsInGroup('isas');
     },
 
     nsiAccounts() {
-      return this.accounts.filter(a =>
-        ['premium_bonds', 'nsi'].includes(a.account_type)
-      );
+      return this.accountsInGroup('nsi');
     },
 
     currentAccountsTotal() {
-      return this.currentAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return this.groupByKey.current_accounts?.total ?? null;
     },
 
     savingsAccountsTotal() {
-      return this.savingsAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return this.groupByKey.savings_accounts?.total ?? null;
     },
 
     isaAccountsTotal() {
-      return this.isaAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return this.groupByKey.isas?.total ?? null;
     },
 
     nsiAccountsTotal() {
-      return this.nsiAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return this.groupByKey.nsi?.total ?? null;
     },
 
     // Monthly income from user profile (full month - assumed payday has occurred)
@@ -607,8 +611,9 @@ export default {
         if (this.$store.state.aiFormFill.pendingFill) {
           this.$store.dispatch('aiFormFill/completeFill');
         }
+        // The store's save actions fetch `/api/savings` again, so the totals
+        // shown are the server's fresh figures.
         this.closeAccountModal();
-        await this.fetchSavingsData();
       } catch (error) {
         logger.error('Failed to save account:', error);
       }
@@ -635,12 +640,9 @@ export default {
       return account.ownership_type === 'joint';
     },
 
-    getUserShare(account) {
-      const balance = parseFloat(account.current_balance) || 0;
-      if ((this.isJointAccount(account) || account.ownership_type === 'tenants_in_common') && account.ownership_percentage) {
-        return balance * (parseFloat(account.ownership_percentage) / 100);
-      }
-      return balance;
+    accountsInGroup(key) {
+      const ids = this.groupByKey[key]?.account_ids || [];
+      return ids.map((id) => this.accounts.find((account) => account.id === id)).filter(Boolean);
     },
   },
 };
