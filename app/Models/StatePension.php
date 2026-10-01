@@ -84,12 +84,27 @@ class StatePension extends Model
         return max(0, $this->ni_years_for_full_pension - (int) ($this->ni_years_completed ?? 0));
     }
 
-    /** State Pension age from its one home (W-0516, the birth-cohort schedule). */
+    /**
+     * State Pension age from its one home (W-0516, the birth-cohort schedule):
+     * the age on this record wins, as in StatePensionAgeResolver::forUser.
+     *
+     * Reads the date of birth without loading `user` onto the record: an appended
+     * attribute that loads a relation is serialised with it, and user →
+     * statePension → user never ended (memory exhausted on POST /state-pension).
+     */
     public function getResolvedStatePensionAgeAttribute(): ?int
     {
-        $user = $this->user;
+        if ($this->state_pension_age) {
+            return (int) $this->state_pension_age;
+        }
 
-        return $user === null ? $this->state_pension_age : app(StatePensionAgeResolver::class)->forUser($user);
+        if ($this->user_id === null) {
+            return null;
+        }
+
+        $dateOfBirth = User::whereKey($this->user_id)->value('date_of_birth');
+
+        return app(StatePensionAgeResolver::class)->forDateOfBirth($dateOfBirth);
     }
 
     /**
