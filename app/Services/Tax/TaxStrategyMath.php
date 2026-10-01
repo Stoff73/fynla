@@ -526,7 +526,11 @@ final class TaxStrategyMath
      *   basic-rate band (CSJ 2026-09-30: "widen to law"). GOV.UK's "income
      *   below your Personal Allowance" (https://www.gov.uk/marriage-allowance)
      *   is s55C(2), which binds only a non-resident qualifying under s56(3)
-     *   (s55C(1)(d)); the app models UK residents.
+     *   (s55C(1)(d)); the app models UK residents. The band test counts
+     *   interest in full, so a giver whose only income above the band would
+     *   be interest inside the Personal Savings Allowance (the savings nil
+     *   rate, which s55C(1)(c) allows) is not offered it: the gate can only
+     *   err towards not showing the action.
      * - s55B(2)(b),(ba): the recipient may be liable only at the basic,
      *   savings, dividend-ordinary and nil rates, i.e. their total income
      *   stays inside the basic-rate band.
@@ -560,6 +564,7 @@ final class TaxStrategyMath
         $amount = $this->marriageAllowanceAmount();
         if ($linked !== null) {
             $spouse = $this->incomePartsFor($linked);
+            $spouseExtension = $this->bandExtensionFor($linked);
             $spouseBandAt = fn (float $extra): string => $this->bandFromIncomeFor($linked, $this->taxableIncomeFor($linked) + $extra);
         } else {
             // Not working is not the same as no income: a pension or rent can
@@ -578,11 +583,17 @@ final class TaxStrategyMath
             $spouse['interest'] = $this->estimateSpouseJointInterest($user);
             $spouse['net_pay'] = 0.0;
             $spouse['trust'] = 0.0;
+            $spouseExtension = 0.0;
             $spouseNetGiven = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'];
             $spouseBandAt = fn (float $extra): string => $this->bandFromIncome($spouseNetGiven + $extra);
         }
 
         $user_ = $this->incomePartsFor($user);
+        // Tax is priced on the band the gate reads: Gift Aid and relief-at-source
+        // contributions extend it (ITA 2007 s414, FA 2004 s192(4)). Priced
+        // without that, a donor's £1,260 would be taxed as if above a band they
+        // are inside (tax compliance review of #1031).
+        $userExtension = $this->bandExtensionFor($user);
         $maxReduction = $amount * $this->bandRateForBand('basic');
         $userNet = $user_['non_savings'] + $user_['interest'] + $user_['dividends'] + $user_['trust'] - $user_['net_pay'];
         $spouseNet = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'] + $spouse['trust'] - $spouse['net_pay'];
@@ -594,13 +605,13 @@ final class TaxStrategyMath
         $options = [];
         $extraTax = [];
         if ($spouseBandAt($amount) === 'basic' && $userBandAt(0.0) === 'basic') {
-            $extraTax['to_user'] = $this->extraTaxFromLosingAllowance($spouse, $amount);
-            $options['to_user'] = min($maxReduction, $this->incomeTaxOn($user_)) - $extraTax['to_user'];
+            $extraTax['to_user'] = $this->extraTaxFromLosingAllowance($spouse, $amount, $spouseExtension);
+            $options['to_user'] = min($maxReduction, $this->incomeTaxWithBandExtension($user_, $userExtension)) - $extraTax['to_user'];
         }
         if (($mode === 'dual_earner' || $linked !== null)
             && $userBandAt($amount) === 'basic' && $spouseBandAt(0.0) === 'basic') {
-            $extraTax['to_spouse'] = $this->extraTaxFromLosingAllowance($user_, $amount);
-            $options['to_spouse'] = min($maxReduction, $this->incomeTaxOn($spouse)) - $extraTax['to_spouse'];
+            $extraTax['to_spouse'] = $this->extraTaxFromLosingAllowance($user_, $amount, $userExtension);
+            $options['to_spouse'] = min($maxReduction, $this->incomeTaxWithBandExtension($spouse, $spouseExtension)) - $extraTax['to_spouse'];
         }
 
         $options = array_filter($options, fn (float $saving): bool => $saving >= 0.01);
@@ -913,12 +924,44 @@ final class TaxStrategyMath
      *
      * @param  array{non_savings: float, interest: float, dividends: float, trust?: float, net_pay?: float}  $parts
      */
-    private function extraTaxFromLosingAllowance(array $parts, float $amount): float
+    private function extraTaxFromLosingAllowance(array $parts, float $amount, float $bandExtension = 0.0): float
     {
         $reduced = $parts;
         $reduced['non_savings'] += $amount;
 
-        return max(0.0, $this->incomeTaxOn($reduced) - $this->incomeTaxOn($parts));
+        return max(0.0, $this->incomeTaxWithBandExtension($reduced, $bandExtension) - $this->incomeTaxWithBandExtension($parts, $bandExtension));
+    }
+
+    /**
+     * Gross Gift Aid and relief-at-source contributions: both extend the basic
+     * and higher rate limits (ITA 2007 s414, FA 2004 s192(4)), as
+     * bandThresholdsFor reads them.
+     */
+    private function bandExtensionFor(User $user): float
+    {
+        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
+
+        return (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
+    }
+
+    /**
+     * Income tax from the one tax engine, UKTaxCalculator, with the band
+     * extended by $bandExtension and adjusted net income reduced by it (ITA
+     * 2007 s414, s58; FA 2004 s192(4)). Net-pay contributions come off pay as
+     * in incomeTaxOn.
+     *
+     * @param  array{non_savings: float, interest: float, dividends: float, trust?: float, net_pay?: float}  $parts
+     */
+    private function incomeTaxWithBandExtension(array $parts, float $bandExtension): float
+    {
+        return (float) app(UKTaxCalculator::class)->calculateNetIncome(
+            employmentIncome: $parts['non_savings'],
+            dividendIncome: $parts['dividends'],
+            interestIncome: $parts['interest'],
+            otherIncome: (float) ($parts['trust'] ?? 0),
+            pensionContributions: (float) ($parts['net_pay'] ?? 0),
+            giftAidGross: $bandExtension,
+        )['income_tax'];
     }
 
     /**

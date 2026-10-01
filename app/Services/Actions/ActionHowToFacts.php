@@ -204,7 +204,10 @@ final class ActionHowToFacts
             $facts['transferor_uses_whole_allowance'] = $allowance > 0 && (float) $giver >= $allowance;
         }
         if (isset($item['transferor_extra_tax'])) {
+            // "About £X more" needs a whole pound to name; "no more tax" only
+            // when it is nothing at all.
             $facts['transferor_pays_more'] = (float) $item['transferor_extra_tax'] >= 1;
+            $facts['transferor_pays_nothing'] = (float) $item['transferor_extra_tax'] < 0.01;
             $text['transferor_extra_tax'] = self::pounds((float) $item['transferor_extra_tax']);
         }
 

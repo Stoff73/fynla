@@ -359,7 +359,7 @@ when transfer_direction is to_user and transferor_uses_whole_allowance:
 2. {spouse_start}'s income of {spouse_income} uses all of their {personal_allowance} Personal Allowance. They can still give part of it: after the transfer, none of their income is taxed above the basic rate.
 when transfer_direction is to_user and transferor_pays_more:
 2. With a smaller allowance, {spouse} pays about {transferor_extra_tax} more Income Tax a year. The saving below already takes that off.
-when transfer_direction is to_user and transferor_uses_whole_allowance and not transferor_pays_more:
+when transfer_direction is to_user and transferor_uses_whole_allowance and transferor_pays_nothing:
 2. {spouse_start} pays no more tax: the income their smaller allowance no longer covers is still taxed at 0%, under the starting rate for savings, the Personal Savings Allowance or the dividend allowance.
 when transfer_direction is to_user:
 3. You qualify to receive it because you pay Income Tax at the basic rate and no higher.
@@ -373,7 +373,7 @@ when transfer_direction is to_spouse and transferor_uses_whole_allowance:
 2. Your income of {user_income} uses all of your {personal_allowance} Personal Allowance. You can still give part of it: after the transfer, none of your income is taxed above the basic rate.
 when transfer_direction is to_spouse and transferor_pays_more:
 2. With a smaller allowance, you pay about {transferor_extra_tax} more Income Tax a year. The saving below already takes that off.
-when transfer_direction is to_spouse and transferor_uses_whole_allowance and not transferor_pays_more:
+when transfer_direction is to_spouse and transferor_uses_whole_allowance and transferor_pays_nothing:
 2. You pay no more tax: the income your smaller allowance no longer covers is still taxed at 0%, under the starting rate for savings, the Personal Savings Allowance or the dividend allowance.
 when transfer_direction is to_spouse:
 3. {spouse_start} qualifies to receive it because, on their income of {spouse_income}, they pay Income Tax at the basic rate and no higher.

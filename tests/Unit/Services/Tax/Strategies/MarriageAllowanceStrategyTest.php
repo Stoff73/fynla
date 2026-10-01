@@ -331,3 +331,25 @@ it('tells a giver below the allowance what the smaller allowance costs them', fu
         ->and(implode(' ', $steps))->toContain('is below the')
         ->and(implode(' ', $steps))->toContain('pays about £'.number_format(floor($rec['transferor_extra_tax'])).' more Income Tax a year');
 });
+
+// Tax compliance review of #1031: Gift Aid extends the giver's basic-rate band
+// (ITA 2007 s414), so the gate lets them through; their extra tax must be
+// priced on the same extended band, or the £1,260 reads as taxed at the
+// dividend upper rate and a real saving disappears.
+it('prices a Gift Aid donor\'s extra tax on their extended band', function () {
+    $user = maUser([
+        'household_calculation_mode' => 'dual_earner',
+        'annual_employment_income' => 0,
+        'annual_dividend_income' => 52000,
+        'is_gift_aid' => true,
+        'annual_charitable_donations' => 4000, // £5,000 gross
+    ], ['spouse_annual_income' => 35000]);
+    $math = app(TaxStrategyMath::class);
+    $extra = $math->marriageAllowanceAmount() * (float) app(TaxConfigService::class)->getDividendTax()['basic_rate'];
+
+    $rec = maRec($user);
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['transfer_direction'])->toBe('to_spouse')
+        ->and($rec['estimated_annual_tax_saved'])->toEqualWithDelta(maBasicSaving() - $extra, 0.011);
+});

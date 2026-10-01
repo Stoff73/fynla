@@ -15,9 +15,11 @@ partner giving it (ITA 2007 s55C(1)(c), (ca)) is that, with their allowance
 smaller by the slice given, none of their income is taxed above the basic
 rate, dividends counted in full. GOV.UK summarises this as income below the
 Personal Allowance, but in the statute that test (s55C(2)) binds only a
-non-resident. So a partner whose income above the smaller allowance is
-savings interest inside the starting rate for savings, or dividends, can
-still give it. Eligibility is strict on the receiving side: the recipient must be
+non-resident. Any partner who passes that test can give it, but the household
+comes out ahead only when the income the smaller allowance no longer covers
+is taxed at less than the basic rate: income below the Personal Allowance,
+savings interest inside the starting rate for savings or the Personal Savings
+Allowance, or dividends. Eligibility is strict on the receiving side: the recipient must be
 a basic-rate taxpayer, and the claim is not available when they pay the
 higher or additional rate. That band test runs on total taxable income —
 employment, dividends, and savings interest together — so a moderately paid
@@ -35,8 +37,8 @@ is reduced, and the recipient's band judged on their total taxable income
 rather than salary alone. The saving is the transferable slice of allowance
 multiplied by the basic rate from the live tax configuration, never more than
 the recipient's tax, less any extra tax the giving partner pays on income
-their smaller allowance no longer covers. It is a modest but entirely
-dependable amount, and it recurs every year the couple's circumstances stay
+their smaller allowance no longer covers. It is a modest amount, smaller
+when the giving partner pays some tax on the slice they gave up, and it recurs every year the couple's circumstances stay
 within the rules, which is why Fynla surfaces it whenever the gate is
 genuinely passed and never when the recipient's band rules it out.
 
