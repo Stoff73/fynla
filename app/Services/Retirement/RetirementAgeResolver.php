@@ -52,6 +52,8 @@ final class RetirementAgeResolver
      */
     public const DEFAULT_RETIREMENT_AGE = 67;
 
+    public const SOURCE_RETIREMENT_DATE = 'retirement_date';
+
     public const SOURCE_RETIREMENT_PROFILE = 'retirement_profile';
 
     public const SOURCE_USER_PROFILE = 'user_profile';
@@ -77,6 +79,16 @@ final class RetirementAgeResolver
      */
     public function withSource(User $user): array
     {
+        // Someone who has already retired retired at the age they were on their
+        // retirement date: a fact, which no target overrides (TODO item 6).
+        if ($user->retirement_date !== null && $user->date_of_birth !== null
+            && $user->retirement_date->lte(now()->startOfDay())) {
+            return [
+                'age' => (int) $user->date_of_birth->diffInYears($user->retirement_date),
+                'source' => self::SOURCE_RETIREMENT_DATE,
+            ];
+        }
+
         if ($user->retirementProfile?->target_retirement_age) {
             return [
                 'age' => (int) $user->retirementProfile->target_retirement_age,

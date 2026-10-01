@@ -1140,7 +1140,24 @@ final class TaxStrategyMath
             otherIncome: (float) ($parts['trust'] ?? 0),
             pensionContributions: (float) ($parts['net_pay'] ?? 0),
             giftAidGross: $bandExtension,
+            blindPersonsAllowance: (float) ($parts['blind_persons_allowance'] ?? 0),
         )['income_tax'];
+    }
+
+    /**
+     * The Income Tax the user is liable to for the year as things stand, for a
+     * figure shown as "Income Tax": Gift Aid and relief-at-source payments
+     * extend the bands rather than coming off income (ITA 2007 s414, FA 2004
+     * s192(4)), since their basic-rate relief is given at source; the Blind
+     * Person's Allowance applies (s38). The plan's own pricing
+     * (pricingPartsFor) still treats them as deductions; see TODO item 2.
+     */
+    public function incomeTaxLiability(User $user): float
+    {
+        $parts = $this->incomePartsFor($user);
+        $parts['blind_persons_allowance'] = $this->taxConfig->blindPersonsAllowanceFor($user);
+
+        return round($this->incomeTaxWithBandExtension($parts, $this->bandExtensionFor($user)), 2);
     }
 
     /**

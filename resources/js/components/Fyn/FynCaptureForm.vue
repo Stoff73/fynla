@@ -40,7 +40,7 @@
                 type="number"
                 inputmode="decimal"
                 min="0"
-                step="1"
+                step="0.01"
                 class="form-input min-w-0"
                 :disabled="disabled || locked || isNone(block.key, fieldKey)"
                 :value="answers[block.key][fieldKey] ?? ''"

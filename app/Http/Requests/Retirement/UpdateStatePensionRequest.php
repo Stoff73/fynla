@@ -28,6 +28,8 @@ class UpdateStatePensionRequest extends FormRequest
             'state_pension_age' => ['nullable', 'integer', 'min:60', 'max:70'],
             'ni_gaps' => ['nullable', 'array'],
             'gap_fill_cost' => ['nullable', 'numeric', 'min:0'],
+            // Being paid now; it can be deferred, so it is asked (TODO item 6).
+            'already_receiving' => ['nullable', 'boolean'],
         ];
     }
 

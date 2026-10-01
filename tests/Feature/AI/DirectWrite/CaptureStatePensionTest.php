@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Retirement\RetirementDrawdownPosition;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -151,4 +152,33 @@ it('blocks preview users', function () {
 
     expect($result['blocked'] ?? false)->toBeTrue();
     expect(StatePension::count())->toBe(0);
+});
+
+it('records whether the State Pension is already being paid, so it counts as income (TODO item 6)', function () {
+    $user = User::factory()->create(['is_preview_user' => false, 'date_of_birth' => '1958-03-10', 'employment_status' => 'retired']);
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_state_pension', [
+        'forecast_annual' => 11502,
+        'already_receiving' => true,
+    ], $user);
+
+    expect($result['summary'])->toContain('already being paid');
+    $record = StatePension::where('user_id', $user->id)->first();
+    expect($record->already_receiving)->toBeTrue();
+
+    // Then it is in the retiree's income and no longer asked for.
+    $income = app(RetirementDrawdownPosition::class)->for($user->fresh())['income'];
+    expect(collect($income['lines'])->pluck('key')->all())->toContain('state_pension')
+        ->and($income['state_pension_status'])->toBe('paid');
+});
+
+it('updates only whether it is being paid on a record already on file', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    StatePension::create(['user_id' => $user->id, 'state_pension_forecast_annual' => 11502]);
+
+    app(CoordinatingAgent::class)->executeTool('capture_state_pension', ['already_receiving' => true], $user);
+
+    $record = StatePension::where('user_id', $user->id)->first();
+    expect($record->already_receiving)->toBeTrue()
+        ->and((float) $record->state_pension_forecast_annual)->toBe(11502.0);
 });

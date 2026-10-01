@@ -5834,6 +5834,8 @@ PROMPT;
                 'forecast_annual' => ['forecast', 'annual amount', 'yearly amount'],
                 'ni_years_completed' => ['national insurance', 'qualifying years'],
                 'state_pension_age' => ['state pension age'],
+                // Whether it is paid now (TODO item 6).
+                'already_receiving' => ['being paid', 'already paid', 'already receiving', 'already get', 'receiving it', 'deferred', 'put it off', 'not started'],
             ],
             'retirement_goals' => [
                 'target_retirement_age' => ['retirement age', 'want to retire'],

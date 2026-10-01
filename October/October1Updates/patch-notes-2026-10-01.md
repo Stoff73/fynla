@@ -73,6 +73,25 @@ Both were walked on the test site first, on the desktop web app (full-size windo
   - A partner who already earns £1,000 of interest: "Gift £11,700 … and save £105", with "they pay about £105 a year on it, and you pay about £210 less".
 - **A tax-compliance review** confirmed the law, the working and the example figures. Its wording and citation findings were fixed before release.
 
+## Pension relief at 40% below £100,000 (1 October, about 11:44, release #1041)
+
+- **The "Reclaim your Personal Allowance" card no longer stops at £100,000.** Once a pension payment has brought your income back to £100,000, every further £1,000 you pay in still saves £400, until your income reaches £50,270, where the higher rate starts ([ITA 2007 s35](https://www.legislation.gov.uk/ukpga/2007/3/section/35), [s58](https://www.legislation.gov.uk/ukpga/2007/3/section/58); [Finance Act 2004 s192(4)](https://www.legislation.gov.uk/ukpga/2004/12/section/192); [GOV.UK, pension tax relief](https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief)). The card now goes all the way down, within the Annual Allowance, your earnings and what you can afford.
+- **Only when we know what you can afford.** It carries on below £100,000 only once your spending is recorded (CSJ: "We ask for expenditure"). Without recorded spending, the card stays as it was. When money is short, it goes to the 60% slice first.
+- **Example:** you earn £110,000, pay 5% into a workplace pension, have £10,000 in savings and spend £3,000 a month. Before, the card said "a £4,900 pension contribution … £2,940 back". Now it says "a £35,800 pension contribution … Together that's £15,310 back this year. Income between £100,000 and £125,140 is taxed at 60%. Below £100,000, each £1,000 you pay in still saves £400, down to £50,270." Your Income Tax falls from £30,222 to £14,912.
+- **How to pay it in now uses your real figures** (CSJ: salary sacrifice where offered, then a personal payment for the rest, never either/or). The steps put through payroll what your pay can carry after your spending, for the months left in the tax year. The rest goes into a personal pension as a one-off, with its own figures. For the example: "£4,172 a month is as much as your pay can carry after your spending: £25,032 by 5 April 2027. Open a personal pension … and pay the other £10,768 into it as a one-off: you pay £8,615 and the provider adds £2,153 of basic-rate relief", then "Claim the other £2,155 … through your Self Assessment tax return". The parts add up to the £15,310. This applies to all three pension cards.
+- **The public Save Tax estimate is unchanged** (CSJ): it cannot know what someone can afford.
+- **Also fixed, from the tax review:**
+  - The card never claims back more Personal Allowance than was lost, for a Gift Aid donor above £125,140 ([s35(2)](https://www.legislation.gov.uk/ukpga/2007/3/section/35)).
+  - The Blind Person's Allowance is now counted in every tax-plan figure and in where each rate starts ([ITA 2007 s38](https://www.legislation.gov.uk/ukpga/2007/3/section/38)). The tax calculator already counted it; the plan did not.
+  - "Each £1,000 still saves £400" appears only where it is true. Taxed savings interest at the top of your income can put part of the payment at another rate.
+  - The taper ratio is read from the tax settings, not typed into the code.
+- **Wording approved by CSJ** (1 October): the new card sentence, the new step "Below £100,000, each pound you pay in still gets relief at 40%, down to £50,270, where the higher rate starts", and the payroll and one-off steps.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps:** the £110,000 household above. Both apps showed the £35,800 / £15,310 card, the new step, and the payroll and one-off steps with the figures above. A copy of the household with no spending recorded still showed £4,900 / £2,940.
+- **Live on fynla.org, desktop (full-size window) and mobile web apps:** a walk account made for the check showed the same card and steps. It was deleted afterwards.
+- **A tax-compliance review** confirmed the law, the sizing and the example figures. Its findings were fixed before release, apart from two noted under "Still to do".
+
 ## Pension suggestions sized to what you can afford
 
 - **One figure decides what a pension payment can be:** the money you have left in a year after your spending, the payments you already make and your goals. Someone with no income at all is sized to their savings instead. A retiree drawing a pension has income, so they are sized to what is left of it like anyone else.
@@ -113,6 +132,8 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 
 ## Still to do
 
+- With taxed savings interest, the £100,000 card can stop up to £500 short of a stretch that would save 60%. The figure shown is never overstated.
+- Whether earnings are recorded before or after salary sacrifice affects the relief limit when earnings are the limit; not yet checked.
 - The public Save Tax estimate still promises a partner top-up without checking affordability.
 - A pension for a child (£2,880 a year) is not yet sized to what you can afford.
 - The pension tile label is worked out separately on the desktop and mobile; it should come from the server, once.
