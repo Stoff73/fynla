@@ -100,9 +100,13 @@ final class TaxStrategyMath
     public function bandThresholdsFor(User $user): array
     {
         // Gift Aid (ITA 2007 s414) and relief-at-source pension contributions
-        // (FA 2004 s192(4)) both raise the basic and higher rate limits.
+        // (FA 2004 s192(4)) both raise the basic and higher rate limits. The
+        // Blind Person's Allowance comes off net income with the Personal
+        // Allowance (ITA 2007 s23 Step 3, s38), so in net-income terms each
+        // rate starts that much higher too.
         $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
-        $extension = (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
+        $extension = (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0)
+            + $this->taxConfig->blindPersonsAllowanceFor($user);
         $raw = $this->bandThresholds();
 
         return [
@@ -262,7 +266,10 @@ final class TaxStrategyMath
             return $full;
         }
 
-        return max(0.0, $full - floor(($adjustedNetIncome - $threshold) / 2));
+        // £1 of allowance for every £(1 / taper rate) over, from config (Rule 2).
+        $taperRate = (float) $income['personal_allowance_taper_rate'];
+
+        return max(0.0, $full - floor(($adjustedNetIncome - $threshold) * $taperRate));
     }
 
     public function moneyPurchaseAnnualAllowanceApplies(User $user): bool
@@ -851,6 +858,7 @@ final class TaxStrategyMath
             interestIncome: $parts['interest'],
             dividendIncome: $parts['dividends'],
             pensionContributions: (float) ($parts['net_pay'] ?? 0),
+            blindPersonsAllowance: (float) ($parts['blind_persons_allowance'] ?? 0),
         );
 
         return (float) $result['summary']['total_income_tax_before_credits'];
@@ -950,15 +958,39 @@ final class TaxStrategyMath
 
     /**
      * Contribution that takes adjusted net income back down to the Personal
-     * Allowance taper threshold (ITA 2007 s35), capped by the Annual Allowance
-     * left and rounded down to the nearest £100 — rounding up would relieve
-     * tax that is not paid.
+     * Allowance taper threshold (ITA 2007 s35), then $belowTaper more of
+     * income relieved at the higher rate beneath it, capped by the Annual
+     * Allowance left and rounded down to the nearest £100 — rounding up would
+     * relieve tax that is not paid. The /savetax funnel passes no $belowTaper
+     * (CSJ 2026-10-01: its trap line stays at the taper slice).
      */
-    public function taperRescueContribution(float $adjustedNetIncome, float $availableAA): float
+    public function taperRescueContribution(float $adjustedNetIncome, float $availableAA, float $belowTaper = 0.0): float
     {
         $taperThreshold = (float) $this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'];
 
-        return floor(max(0.0, min($adjustedNetIncome - $taperThreshold, $availableAA)) / 100) * 100;
+        return floor(max(0.0, min($adjustedNetIncome - $taperThreshold + max(0.0, $belowTaper), $availableAA)) / 100) * 100;
+    }
+
+    /**
+     * Income actually taxed at the higher rate: non-savings income above the
+     * limit, plus interest above it that the Personal Savings Allowance does
+     * not cover. The allowance is a nil rate on the first slice of savings
+     * income (ITA 2007 s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B),
+     * and savings income sits above non-savings income (s16). Dividends are
+     * taxed at the dividend rates (s8), never the higher rate, so they are
+     * left out: the slice can only understate, never overstate, the relief.
+     * Both pension cards that relieve at the higher rate size from here
+     * (PensionTaxReliefStrategy, IncomeBandStrategy).
+     */
+    public function higherRateSlice(User $user, float $taxable, float $limit): float
+    {
+        $parts = $this->incomePartsFor($user);
+        $interest = $parts['interest'];
+        $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
+        $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
+        $allowanceLeft = max(0.0, $this->psaForBand('higher') - ($interest - $interestAbove));
+
+        return max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
     }
 
     /**
@@ -1056,6 +1088,8 @@ final class TaxStrategyMath
         $parts['interest'] = max(0.0, $parts['interest'] - $interestSheltered);
         $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
         $parts['net_pay'] += (float) ($deductions['relief_at_source_gross'] ?? 0) + (float) ($deductions['gift_aid_gross'] ?? 0);
+        // Priced as the tax calculator prices it (ITA 2007 s38).
+        $parts['blind_persons_allowance'] = $this->taxConfig->blindPersonsAllowanceFor($user);
 
         return $parts;
     }

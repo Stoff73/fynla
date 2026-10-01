@@ -13,6 +13,7 @@ use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\PensionAffordability;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
@@ -138,28 +139,58 @@ final class ActionHowToFacts
                 $ni = fn (float $p): float => app(UKTaxCalculator::class)->employeeClass1Ni($p);
                 $niSaved = max(0.0, $ni($pay) - $ni($pay - $gross));
             }
-            $netCost = max(0.0, $gross - floor((float) ($item['estimated_annual_tax_saved'] ?? 0)) - $niSaved);
+            $saved = floor((float) ($item['estimated_annual_tax_saved'] ?? 0));
+            $netCost = max(0.0, $gross - $saved - $niSaved);
+            // Up, not down: the monthly payments must add up to the whole amount.
+            $perMonth = ceil($gross / $monthsLeft);
+            if (! empty($facts['has_workplace_pension'])) {
+                $perMonth = min($perMonth, $this->payrollCanCarryPerMonth($user, $gross > 0 ? $netCost / $gross : 1.0));
+            }
+            // Payroll takes what the pay left this year can carry; the rest goes
+            // in as a one-off relief-at-source payment (CSJ 2026-10-01: salary
+            // sacrifice first where offered, then a personal contribution, from
+            // the real figures). Relief for the year is limited by the year's
+            // earnings, not by how it is paid (FA 2004 s190, s192).
+            $payrollTotal = min($gross, $perMonth * $monthsLeft);
+            $rest = $gross - $payrollTotal;
             foreach ([
                 'ni_saved' => $niSaved,
                 'net_cost' => $netCost,
-                'take_home_per_month_left' => $netCost / $monthsLeft,
+                'take_home_per_month_left' => $gross > 0 ? $perMonth * $netCost / $gross : 0.0,
             ] as $key => $value) {
                 $facts[$key] = $value;
                 $text[$key] = self::pounds($value);
             }
             // Down, never up: the relief shown is never more than is added.
             $providerRelief = floor($gross * $basic);
-            $extra = max(0.0, floor((float) ($item['estimated_annual_tax_saved'] ?? 0)) - $providerRelief);
+            $extra = max(0.0, $saved - $providerRelief);
             foreach ([
                 'contribution' => $gross,
-                // Up, not down: the monthly payments must add up to the whole amount.
-                'contribution_per_month_left' => ceil($gross / $monthsLeft),
+                'contribution_per_month_left' => $perMonth,
                 'net_payment' => $gross - $providerRelief,
                 'provider_relief' => $providerRelief,
                 'extra_relief' => $extra,
             ] as $key => $value) {
                 $facts[$key] = $value;
                 $text[$key] = self::pounds($value);
+            }
+            $facts['payroll_short'] = $rest >= 1;
+            if ($rest >= 1) {
+                // The payroll part is relieved through pay; the one-off gets the
+                // basic rate added at source and the rest of the year's relief
+                // on a claim (FA 2004 s192(1), (4)). Both from the tax engine.
+                $restRelief = floor($rest * $basic);
+                $throughPay = floor($this->math->pensionContributionSaving($user, $payrollTotal));
+                foreach ([
+                    'payroll_total' => $payrollTotal,
+                    'payroll_rest' => $rest,
+                    'payroll_rest_net' => $rest - $restRelief,
+                    'payroll_rest_relief' => $restRelief,
+                    'payroll_rest_claim' => max(0.0, $saved - $throughPay - $restRelief),
+                ] as $key => $value) {
+                    $facts[$key] = $value;
+                    $text[$key] = self::pounds($value);
+                }
             }
         }
 
@@ -444,6 +475,24 @@ final class ActionHowToFacts
             $text['sacrifice_cap_date'] = Carbon::parse($sacrifice['nic_exemption_cap_effective_date'])->format('j F Y');
             $facts['over_sacrifice_cap'] = (float) ($facts['annual_contribution'] ?? 0) > (float) $sacrifice['nic_exemption_cap'];
         }
+    }
+
+    /**
+     * The most a payroll pension deduction can be each month: never more than
+     * the monthly pay, and, once spending is recorded, no more than the
+     * take-home it would cost leaves the monthly surplus covering
+     * (PensionAffordability). $costPerPound is what each gross pound costs in
+     * take-home once the tax and National Insurance come back.
+     */
+    private function payrollCanCarryPerMonth(User $user, float $costPerPound): float
+    {
+        $pay = (float) ($user->annual_employment_income ?? 0) / 12;
+        $money = app(PensionAffordability::class)->moneyThisYear($user);
+        if ($money !== null && $costPerPound > 0) {
+            $pay = min($pay, $money / 12 / $costPerPound);
+        }
+
+        return floor(max(0.0, $pay));
     }
 
     private function display(string $key, float $value): string

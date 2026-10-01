@@ -74,7 +74,7 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
 Released 2026-09-29 and walked live on fynla.org: #966 (#960 Ask Fyn grounding + no-certainty filter, #962 iOS keyboard, #964 savings how-tos, #965) and hotfix #967 (see `handover/September/29/handover-2026-09-29-session-1.md`).
 
 - [ ] **CSJ flushing — SiteGround dynamic cache for csjones.co** (Site Tools → Speed → Caching → Flush). `/fynla/login` and `/fynla/m` serve a cached copy of another site from a ~2-minute window when my `git reset --hard` replaced csjones's subdirectory `.htaccess` (restored; memory `feedback_never_reset_hard_on_csjones`). PURGE is refused (403). Cache-busted URLs work.
-- [ ] **CSJ decisions 2026-09-30:** tracked in `todoCurrent/TODO.md`. Item 1 (partner top-up affordability, own card capped, Save Tax asks spending) RELEASED 2026-09-30 in #1028 / #1030; items 2-4 (Marriage Allowance to s55C(1)(c), dual-earner savings shift, 40% relief below £100,000) approved, not started.
+- [ ] **Work order lives in `todoCurrent/TODO.md`.** Released 2026-10-01: Marriage Allowance to s55C(1)(c) (#1032), LEVEL UP percentile band commented out (#1034), savings gift for every couple (#1037, #1039). Next: 40% relief below £100,000 (TODO item 5).
 - [ ] **Old wizard invents a mortgage** (`OnboardingService.php:598-613`: "Mortgage Provider", 3.5%, 5 years in, 20 left) for any property balance; only reachable by typing `/onboarding/full`.
 - [ ] **Web setup never asks whether the partner is retired:** the inviter's "Now your spouse" form has no status field, so the link cannot split the income; #1016 restates it once the partner answers. Status is only known up front from the Save Tax funnel's 60%-band question.
 - [ ] **Retirement page is wrong for someone already retired** (csjones walk 2026-09-30, Pat: born 1958, retired 2020, £200,000 pot drawing £30,000): `RetirementProjectionService::projectPensionPot` never reads `retirement_date` and clamps years to go at `max(1, …)`, so it shows "Years to go 1", "Retirement age 67", "Projected Gross Income £9,235" and a required capital, as if still saving. Needs a decumulation view for retired users; same module as the retirement how-to batch.
@@ -253,6 +253,7 @@ Three small decisions, all optional:
 
 ## Deploy state
 
+- **2026-10-01: prod (fynla.org) = main `86ac5c5de` (#1039).** Four releases: #1032 (Marriage Allowance to s55C(1)(c); `ActionHowToSeeder`, `fyn:semantic:reindex`), #1034 (bundles: LEVEL UP band commented out), #1037 (savings gift for every couple: migration `2026_10_01_000001`, `TaxActionDefinitionSeeder`, `ActionHowToSeeder`, fyn-memory + `fyn:procedural:validate`), #1039 (PHP only). Backups `~/release-backups/2026-10-01*`. All walked on web and `/m`; prod walk accounts 770-773 purged. csjones on `dev`; its walk accounts 452-455 are on the purge list (TODO housekeeping).
 - **2026-09-27: prod (fynla.org) = main `569957ef8` (#947).** Morning #945 (`a675058bd`: migration `2026_09_27_000001`, `TaxConfigurationSeeder`, `ActionHowToSeeder`, both bundles); evening #947 (PHP only). Backups `~/release-backups/2026-09-27/` and `2026-09-27b/`. Walked live on web and `/m`; accounts 754 and the evening walk account purged. csjones back on `dev` at `a21778c18`; test account 428 `psa-walk-2026-09-27@example.com` left there. Prod `route:list` crashes on the Apple bridge (`invalid_configuration`) — harmless until IAP; never use it as a deploy check.
 
 - **2026-09-24:**
@@ -266,26 +267,6 @@ Three small decisions, all optional:
   - `904364c31` (#924) — threshold position, RSU value and labels, free-tier childcare and Gift Aid, Gift Aid one-write, green gate (#919–#923).
   - `f2f880fc7` (#926) — disabled-child flag, taper copy, `serialize_precision` at boot (#925); migration `2026_09_22_150000` ran.
   - `df14df1e2` (#934) — Brett's phone-walk batch #929–#933 (recap glyph, actions list, job title optional, verify-visit cards hidden, property equity on `/m`, dividends on the investment and non-working spouse forms, non-earner £2,880 yes/no, no Okay tap, Save Tax expenditure asks the tax fields only, fuller acks) and #928 (expenditure one-home, wizard prefill). No migration; three corpus files rsynced.
-
-
-- **2026-09-19: prod (fynla.org) = main `8fdaac326`.** Two releases, both verified live on web and `/m`; nothing unreleased. Backups `~/release-backups/2026-09-19a/` (full, before #915) and `2026-09-19b/` (four files, before #918).
-  - `c5fc88981` (#915) — Azlan/Laura/Brett batches #907–#914; migration `2026_09_19_120000_create_spouse_invitations_table` ran.
-  - `8fdaac326` (#918) — #916 `SpouseJointRecords::carry()` (joint records keep the invitee's id after onboarding completes) and #917 (savings card agrees with net worth before the readiness gate; "I don't know" spouse income reads back as unknown). PHP only.
-- **2026-09-17: prod (fynla.org) = main `0988f6d31`.** Three releases today, all verified live on web and `/m`; nothing unreleased. Backups `~/release-backups/2026-09-17{a,c,d}/`. `c.jones` purged after the last one.
-  - `94ad79c33` (#895) — capture forms on every entry point + the spouse holding transfer; migration `2026_09_16_220000`.
-  - `07f772d8b` (#898) — the unlinked-spouse action and the `/m` all-actions list. No migration.
-  - `e2368a982` (#900) — the module label comes from the server; both client maps deleted. No migration.
-  - `0988f6d31` (#902) — the level-up redesign. **Migration `2026_09_17_120000` ran**: it backfills `celebrated_level = level` for every row, verified on all 43 production users (zero owed a climb) and on 95 csjones users.
-- **Native iOS is on `main` but has never been run on a device.** It ships via TestFlight, not the web deploy, so nothing reached users unverified. CSJ is taking the check.
-- 2026-09-16 session 2: main `b64ec17cc` (releases #872, #874, #876, #878, #881, #883, #885). Backups `~/release-backups/2026-09-16b..f/`.
-
-- Eleven mapping PRs (#829–#839) still open and unmerged (rebased stack, parked on CSJ).
-- **TestFlight "Fynla" 1.0 (10)** on the `org.fynla.app.dev` record, Production
-  configuration reading fynla.org, VALID 2026-09-10 08:49 BST; native tree unchanged since.
-  The `org.fynla.app` record is "Fynla (legacy)" — never upload there unasked.
-- **Dashboard recommendation routing**: one home `app/Services/Mobile/RecommendationRouting.php`
-  (keys on `rule_key` since 2026-09-10); ids composed in
-  `RecommendationsAggregatorService::composeId` / `disambiguate`.
 
 ## Tech debt deferred
 
