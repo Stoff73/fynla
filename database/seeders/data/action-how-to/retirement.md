@@ -154,17 +154,27 @@ outcome:
 1. Your projection uses the real value of {scheme_name}.
 
 ## approaching_decumulation
-status: approved
-source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension (annuities, "regular payments for life", income depending on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"; flexi-access drawdown; cash sums; usually a tax-free lump sum; "not normally before 55"); https://www.gov.uk/personal-pensions-your-rights/get-help ("If you're over 50 you can book a free appointment to talk about your options"; Pension Wise does not cover the State Pension or defined benefit pensions); `pension.normal_minimum_pension_age` in tax config; the card's own figures
-figures: years_to_retirement
+status: draft
+source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension ("taking all or some of it as cash, buying a product that gives you a guaranteed income … or investing it to get a regular, adjustable income"; flexi-access drawdown; a short-term annuity from a drawdown fund "will give you regular payments for up to 5 years"; an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"; providers "may not offer all of them" and "you can transfer your pension pot to a different provider"; "not normally before 55"); https://www.gov.uk/tax-on-pension/tax-free ("You can usually take up to 25% of the amount built up in any pension as a tax-free lump sum. The most you can take is £268,275"; cash sums from a pot, each with its tax-free part; "Tax is taken off the remaining amount before you get it"); Finance Act 2004 s227G (https://www.legislation.gov.uk/ukpga/2004/12/section/227G: the Money Purchase Annual Allowance starts with the first payment from a flexi-access drawdown fund or the first uncrystallised funds pension lump sum, not with a pension commencement lump sum alone or a lifetime annuity), s227ZA; Schedule 28 para 8 (funds designated for drawdown can be some of those held); https://www.gov.uk/personal-pensions-your-rights/get-help (free Pension Wise appointment over 50, for defined contribution pensions); tax config `pension.pcls_rate`, `pension.lump_sum_allowance`, `pension.mpaa`, `pension.normal_minimum_pension_age`; the pot from the planning contract (`RetirementProjectionContractService`) and the tax-free part from `TaxConfigService::calculatePCLS`; the card's own figures
+figures: summary, years_to_retirement, before_retirement, dc_pot, tax_free_lump
 why:
-1. You are {years_to_retirement} years from your target retirement age.
+1. {summary}
+2. How you take it decides how much comes tax-free, how the rest is taxed, and how much you can pay into pensions afterwards.
 always:
-1. Look at the ways you can take a defined contribution pension: an annuity (regular payments for life), drawdown (taking money from a pot that stays invested), or cash sums. You can usually take part of it as a tax-free lump sum.
-2. If you are over 50, book a free Pension Wise appointment to talk through your options for these pensions.
-3. Compare the options on the Retirement page.
+1. The tax-free part: you can usually take up to {tax_free_share} of each pension tax-free, and no more than {lump_sum_allowance} across all your pensions. On yours that is about {tax_free_lump}. The rest is taxed as income when you take it.
+2. Flexi-access drawdown: take the tax-free part as a lump sum, the Pension Commencement Lump Sum (PCLS), and leave the rest invested. You then take a taxable income from it when you choose, in amounts you can change, and can use part of it to buy a short-term annuity paying for up to 5 years.
+3. Cash sums straight from the pot, called uncrystallised funds pension lump sums (UFPLS): {tax_free_share} of each sum is tax-free and the rest is taxed as income. You can take the whole pot this way or smaller sums over time.
+4. An annuity: a guaranteed income for life, bought with all or part of a pot. What it pays depends on your age, the size of the pot, interest rates and sometimes your health.
+5. Mixing them: you can take some of a pot one way and the rest another, for example the tax-free lump sum and an annuity with part, drawdown with the rest, and take each pension in its own way. Not every provider offers every option; if yours does not, you can move the pot to one that does.
+6. Paying in afterwards: the first taxable payment from a drawdown fund, or the first uncrystallised funds pension lump sum, brings in the Money Purchase Annual Allowance. From then on only {mpaa} a year can go into defined contribution pensions with tax relief. Taking only the tax-free lump sum, or buying a lifetime annuity, does not bring it in.
+when before_retirement:
+7. You can usually take a pension from age {normal_minimum_pension_age}. Compare the options on the Retirement page before you choose.
+when not before_retirement:
+7. Compare the options on the Retirement page, and ask each provider which of them it offers.
+always:
+8. If you are over 50, book a free Pension Wise appointment to talk through your options for these pensions.
 outcome:
-1. You know how you plan to take your pension before you retire.
+1. You know which way, or which mix, you will take each pension in, how much comes tax-free and how the rest is taxed.
 learn:
 1. How your retirement projection works | /help#retirement
 

@@ -360,7 +360,7 @@ class RetirementActionDefinitionSeeder extends Seeder
                 'key' => 'approaching_decumulation',
                 'source' => 'agent',
                 'title_template' => 'Plan how you will take your pension',
-                'description_template' => 'You are {years_to_retirement} years from your target retirement age. This is the time to compare drawdown, an annuity and your tax-free lump sum.',
+                'description_template' => '{summary}',
                 'action_template' => 'Compare the ways of taking your pension on the Retirement page.',
                 'category' => 'Decumulation',
                 'priority' => 'high',
