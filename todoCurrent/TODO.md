@@ -99,6 +99,14 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
    - Review first: do the cards come from the module's definitions, and carry `definition_key` and `figures` through `buildRecommendation` → adapter `extra` → aggregator → `ActionCardService`? (Protection did not, until #972.) Which keys fire on real households? Which cards are the same action? Is there a "your position" view, as protection got?
    - Then the how-to batch in the `savings.md` / `protection.md` format (`why`, branches, `outcome`, `learn:`, every claim sourced), with a `SOURCES` entry in `ActionHowToSeeder`. The draft must be on `dev` before CSJ reviews it; CSJ approves each entry.
    - Walk web + /m on csjones, release, walk fynla.org.
+   - Reviewed 2026-10-01: `docs/superpowers/specs/2026-10-01-retirement-cards-review-design.md` (evidence: csjones, 18 households with a retirement profile).
+   - Found: no `definition_key` or `figures` on any retirement card. The adapter types cards from a seven-row category map, so no how-to can reach them, and the ids are wrong ("Consider Adjusting Retirement Age" is `retirement_plan_retirement_income`).
+   - Found: three retirement cards duplicate Tax plan cards (Rule 20). `salary_sacrifice_available` and `salary_sacrifice_ni` both show for James 375 and David 377. `tax_relief` suggests £60,000 with no affordability check. `annual_allowance_exceeded` (£16,995 over) sits beside "pay in another £20,004" for Alex 379.
+   - Found: `contribution_increase` offers the whole remaining allowance, not the shortfall, with no affordability check (£4,375 a month, James 375).
+   - Found: retirees get saver cards ("Increase Pension Contributions" for Patricia 381 and Harold 382; "Start Pension Contributions" for 405). Pat 439, drawing with no retirement profile, gets no retirement card at all.
+   - Found: the three goal definitions never run (`evaluateGoalActions` has no caller). `pension_value_unknown` is missing from the local database (seed drift).
+   - Found: card text with unsourced figures (care £35,000, enhanced annuity 15-25%, 0.25%), product names (Vanguard, Fidelity), "free money!", and the 8% auto-enrolment minimum typed in (text and `:1642`).
+   - DECISION (CSJ): D1 to D5 in section 4 of the spec (fold the Tax plan duplicates; one retirement income card; one fees card per pension; no saver cards for a retiree; delete the dead goal definitions).
 8. [ ] **Investment module: the same review, then its how-tos** (24 definitions, none written). As item 6.
 9. [ ] **Estate module: the same review, then its how-tos** (12 definitions, none written). As item 6.
 10. [ ] **A retired partner's State Pension or final salary pension is recorded as drawdown from a personal pension** (found in the 2026-09-30 ice-cube check; #1014 and #1016 treat all of a retired partner's other income as drawdown).
