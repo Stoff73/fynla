@@ -24,6 +24,7 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
     let status: String?
     let progressPercentage: Decimal
     let amountRemaining: Decimal?
+    let serverStatusLabel: String?
     let daysRemaining: Int?
     let monthsRemaining: Int?
     let isOnTrack: Bool
@@ -54,6 +55,7 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
         case status
         case progressPercentage = "progress_percentage"
         case amountRemaining = "amount_remaining"
+        case serverStatusLabel = "status_label"
         case daysRemaining = "days_remaining"
         case monthsRemaining = "months_remaining"
         case isOnTrack = "is_on_track"
@@ -80,10 +82,8 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
             ?? goalType?.replacingOccurrences(of: "_", with: " ").capitalized
             ?? "Goal"
     }
-    var statusLabel: String {
-        if progressPercentage >= 100 || status == "completed" { return "Complete" }
-        return isOnTrack ? "On track" : "Behind"
-    }
+    /// The server's words (Goal::status_label, GoalCalculationService), as web and /m show them.
+    var statusLabel: String { serverStatusLabel ?? "" }
     var remainingLabel: String {
         if let monthsRemaining, monthsRemaining > 0 {
             return "\(monthsRemaining) \(monthsRemaining == 1 ? "month" : "months") left"

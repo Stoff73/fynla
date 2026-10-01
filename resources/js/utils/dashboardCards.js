@@ -66,9 +66,9 @@ export function dashboardFigures(payload) {
 
   // ---- Retirement ------------------------------------------------------------
   const ret = find('retirement');
-  const projectedIncome = num(ret.projected_income);
   const targetIncome = num(ret.target_income);
-  const retirementPct = targetIncome > 0 ? clampPct((projectedIncome / targetIncome) * 100) : 0;
+  // The server's progress (RetirementHeadline); clamped only for the bar.
+  const retirementPct = ret.progress_percent == null ? 0 : clampPct(num(ret.progress_percent));
 
   // ---- Investment ------------------------------------------------------------
   const inv = find('investment');
@@ -108,7 +108,7 @@ export function dashboardFigures(payload) {
     },
     retirement: {
       ...retirementHeadline(ret),
-      projectedIncome,
+      projectedIncome: num(ret.projected_income),
       targetIncome,
       pct: retirementPct,
     },

@@ -225,10 +225,9 @@ struct GoalsView: View {
         return pct >= 50 ? .violet : .raspberry
     }
 
+    /// The server's words (Goal::status_label), the ones web and /m show.
     private func statusLabel(_ goal: FinancialGoal) -> String {
-        let pct = NSDecimalNumber(decimal: goal.progressPercentage).doubleValue
-        if pct >= 100 || goal.status == "completed" { return "Complete" }
-        return goal.isOnTrack ? "On track" : "Behind"
+        goal.statusLabel
     }
 
     private func status(forPercent pct: Double) -> GoalStatus {

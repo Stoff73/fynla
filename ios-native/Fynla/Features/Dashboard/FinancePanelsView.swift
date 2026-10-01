@@ -85,12 +85,12 @@ struct FinancePanel: Identifiable {
             : (emergencyMonths > 0 ? "Building your fund" : "Start your emergency fund")
 
         let retirement = snapshot.modules.retirement
-        let projected = double(retirement.projectedIncome)
+        // Server figures only (one figure, every surface): the card value and the
+        // progress come from RetirementHeadline; the bar is clamped for display.
         let target = double(retirement.targetIncome)
-        let retirementPct = target > 0 ? min(100, (projected / target * 100).rounded()) : 0
-        let pensionAssets = netWorth.breakdown.assets.pensions ?? 0
-        let retirementValue = retirement.potValue
-            ?? (pensionAssets > 0 ? pensionAssets : retirement.incomeGap)
+        let retirementPct = min(100, max(0, Double(retirement.progressPercent ?? 0)))
+        let retirementValue = retirement.cardValue ?? 0
+        let retirementIsIncome = retirement.cardValueIsIncome ?? false
 
         let investment = snapshot.modules.investment
         let investmentValue = investment.portfolioValue ?? 0
@@ -144,10 +144,12 @@ struct FinancePanel: Identifiable {
                 label: "Retirement",
                 icon: "clock",
                 tone: .violet,
-                value: money(retirementValue),
-                caption: target > 0
-                    ? "Towards your target"
-                    : (double(retirementValue) > 0 ? "Your pension pot" : "Plan your retirement"),
+                value: retirementIsIncome ? "\(money(retirementValue))/year" : money(retirementValue),
+                caption: retirementIsIncome
+                    ? "Guaranteed retirement income"
+                    : (target > 0
+                        ? "Towards your target"
+                        : (double(retirementValue) > 0 ? "Your pension pot" : "Plan your retirement")),
                 visual: .bar(
                     fill: retirementPct / 100,
                     value: target > 0 ? "\(Int(retirementPct))%" : "Target not set",

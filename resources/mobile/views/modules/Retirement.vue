@@ -356,7 +356,6 @@ import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
-import { retirementIncomeHeadline } from '../../../js/utils/retirementHeadline.js';
 
 const TYPE_LABELS = {
   dc: 'Defined Contribution',
@@ -377,6 +376,9 @@ export default {
     pot: null,
     incomeDrawdown: null,
     planningProjection: null,
+    // RetirementHeadline: every retirement figure this screen shows, computed
+    // once on the server (one figure, every surface; CSJ 2026-10-01).
+    headline: null,
     // TODO item 6: the server's view for someone drawing their pension, or null.
     drawing: null,
     projError: '',
@@ -423,29 +425,11 @@ export default {
       });
     },
     projectedIncome() {
-      const planningTotal = this.planningProjection?.planning_total_at_target_age;
-      if (planningTotal != null && !isNaN(Number(planningTotal))) return Number(planningTotal);
-      if (this.analysisReady) {
-        const analyzed = this.analysis?.projected_income;
-        return analyzed != null && !isNaN(Number(analyzed)) ? Number(analyzed) : null;
-      }
-      if ((this.dbPensions?.length || 0) > 0) return null;
-      const projected = this.incomeDrawdown?.yearly_income?.[0]?.total_income;
-      if (projected != null && !isNaN(Number(projected))) return Number(projected);
-      return null;
+      return this.headline ? Number(this.headline.projected_income) : null;
     },
     targetIncome() {
-      const target = Number(this.analysisReady
-        ? this.analysis?.target_income
-        : this.profile?.target_retirement_income);
-      if (Number.isFinite(target) && target > 0) return target;
-
-      // W-0035. The analysis reads retirement_profiles directly with no fallback,
-      // so /m showed "—" where the web app showed a derived figure. Same source as
-      // the web app now — RequiredCapitalCalculator, one endpoint — and the caption
-      // below says which of the two it is.
-      const derived = Number(this.requiredCapital?.required_income);
-      return Number.isFinite(derived) && derived > 0 ? derived : null;
+      const target = this.headline?.target_income;
+      return target == null ? null : Number(target);
     },
     hasTargetIncome() { return this.targetIncome != null; },
     /**
@@ -454,8 +438,7 @@ export default {
      * user's own figure is the defect W-0035 fixed.
      */
     targetIsStated() {
-      return this.requiredCapital?.income_source === 'profile'
-        || Number(this.profile?.target_retirement_income) > 0;
+      return this.headline?.target_source === 'profile';
     },
     targetCaption() {
       if (!this.hasTargetIncome) {
@@ -466,10 +449,9 @@ export default {
         : 'Worked out from your income, because you have not set a target yet.';
     },
     incomeGap() {
-      // Measured against whatever the hero leads with, so a final-salary household
-      // is compared on its secured income rather than on a pot projection of zero.
-      if (!this.hasTargetIncome || this.heroHeadline.value == null) return null;
-      return this.targetIncome - this.heroHeadline.value;
+      // Signed, from the server: positive is short, negative is over.
+      const gap = this.headline?.income_gap;
+      return gap == null ? null : Number(gap);
     },
     isSurplus() { return this.hasTargetIncome && this.incomeGap != null && this.incomeGap <= 0; },
     incomeComparison() {
@@ -483,17 +465,11 @@ export default {
       };
     },
     totalPensionWealth() {
-      return this.dcPensions.reduce((sum, pension) => (
-        sum + (Number(pension.current_fund_value) || 0)
-      ), 0);
+      return Number(this.headline?.dc_value_today) || 0;
     },
     yearsToRetirement() {
-      if (!this.targetRetirementAge) return null;
-      if (Number(this.pot?.retirement_age) === Number(this.targetRetirementAge)) {
-        return this.pot?.years_to_retirement ?? null;
-      }
-      const y = this.analysisReady ? this.analysis?.years_to_retirement : null;
-      return y != null ? y : null;
+      const years = this.headline?.years_to_retirement;
+      return years == null ? null : years;
     },
     targetRetirementAge() { return this.profile?.target_retirement_age || null; },
     projectionAgeLabel() {
@@ -524,11 +500,12 @@ export default {
      * in `RetirementAgent` and never re-derived here.
      */
     heroHeadline() {
-      return retirementIncomeHeadline({
-        potValue: this.totalPensionWealth,
-        guaranteedIncome: this.analysisReady ? this.analysis?.guaranteed_annual_income : null,
-        projectedIncome: this.projectedIncome,
-      });
+      const kind = this.headline?.kind;
+      return {
+        value: this.headline ? Number(this.headline.value) : null,
+        isGuaranteed: kind === 'guaranteed',
+        label: kind === 'guaranteed' ? 'Guaranteed retirement income' : 'Projected retirement income',
+      };
     },
     gapNarrative() {
       if (this.heroHeadline.isGuaranteed && !this.hasTargetIncome) {
@@ -734,6 +711,7 @@ export default {
       this.drawing = null;
       this.incomeDrawdown = null;
       this.planningProjection = null;
+      this.headline = null;
       this.projError = '';
       this.requiredCapital = null;
       try {
@@ -777,6 +755,7 @@ export default {
           this.pot = payload.pension_pot_projection || null;
           this.incomeDrawdown = payload.income_drawdown || null;
           this.planningProjection = payload.planning_projection || null;
+          this.headline = payload.headline || null;
           this.drawing = payload.drawdown_position || null;
         } else {
           this.projError = 'Projections are not available right now.';

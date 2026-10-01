@@ -39,25 +39,18 @@ struct RetirementSnapshot: Sendable, Equatable {
         return result
     }
 
-    var totalDCPensionWealth: Decimal {
-        index.dcPensions.reduce(0) { $0 + $1.currentFundValue }
-    }
-    var projectedIncome: Decimal? {
-        if let planning = projections?.planningProjection {
-            return planning.planningTotalAtTargetAge
-        }
-        if let analysis { return analysis.projectedIncome }
-        return projections?.incomeDrawdown?.yearlyIncome.first?.totalIncome
-    }
-    var targetIncome: Decimal? {
-        if let target = analysis?.targetIncome, target > 0 { return target }
-        if let target = index.profile?.targetRetirementIncome, target > 0 { return target }
-        return nil
-    }
-    var incomeGap: Decimal? {
-        guard let targetIncome, let projectedIncome else { return nil }
-        return targetIncome - projectedIncome
-    }
+    // Every retirement figure is the server's RetirementHeadline, shown as sent
+    // (CSJ 2026-10-01: one figure, every surface). Nothing here adds, subtracts
+    // or falls back between fields.
+    var headline: RetirementHeadline? { projections?.headline }
+    var totalDCPensionWealth: Decimal { headline?.dcValueToday ?? 0 }
+    var projectedIncome: Decimal? { headline?.projectedIncome }
+    var targetIncome: Decimal? { headline?.targetIncome }
+    /// Signed: positive is short, negative is over.
+    var incomeGap: Decimal? { headline?.incomeGap }
+    var heroValue: Decimal? { headline?.value }
+    var heroIsGuaranteed: Bool { headline?.kind == "guaranteed" }
+    var yearsToRetirement: Int? { headline?.yearsToRetirement }
     var isAtAccountLimit: Bool {
         guard let limit = index.accountLimit else { return false }
         return index.accountCount >= limit
@@ -105,6 +98,8 @@ struct DCPension: Decodable, Sendable, Equatable, Identifiable {
     let employerContributionPercent: Decimal?
     let annualSalary: Decimal?
     let monthlyContributionAmount: Decimal?
+    /// The server's monthly figure (DCPension `monthly_contribution`, PensionContributionRule).
+    let serverMonthlyContribution: Decimal?
     let retirementAge: Int?
     let portfolio: CanonicalPortfolio?
 
@@ -119,22 +114,13 @@ struct DCPension: Decodable, Sendable, Equatable, Identifiable {
         case employerContributionPercent = "employer_contribution_percent"
         case annualSalary = "annual_salary"
         case monthlyContributionAmount = "monthly_contribution_amount"
+        case serverMonthlyContribution = "monthly_contribution"
         case retirementAge = "retirement_age"
         case portfolio
     }
 
     var displayName: String { schemeName ?? provider ?? "Defined Contribution Pension" }
-    var monthlyContribution: Decimal {
-        if let employeeContributionPercent,
-           employeeContributionPercent > 0,
-           let annualSalary,
-           annualSalary > 0
-        {
-            let totalPercent = employeeContributionPercent + (employerContributionPercent ?? 0)
-            return totalPercent * annualSalary / 100 / 12
-        }
-        return monthlyContributionAmount ?? 0
-    }
+    var monthlyContribution: Decimal { serverMonthlyContribution ?? 0 }
 }
 
 struct DBPension: Decodable, Sendable, Equatable, Identifiable {
@@ -165,6 +151,11 @@ struct StatePension: Decodable, Sendable, Equatable {
     let niYearsCompleted: Int?
     let niYearsRequired: Int?
     let statePensionAge: Int?
+    /// Server-computed (StatePension appends), never derived here.
+    let weeklyForecast: Decimal?
+    let niYearsForFullPension: Int?
+    let niYearsNeeded: Int?
+    let resolvedStatePensionAge: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -172,6 +163,10 @@ struct StatePension: Decodable, Sendable, Equatable {
         case niYearsCompleted = "ni_years_completed"
         case niYearsRequired = "ni_years_required"
         case statePensionAge = "state_pension_age"
+        case weeklyForecast = "weekly_forecast"
+        case niYearsForFullPension = "ni_years_for_full_pension"
+        case niYearsNeeded = "ni_years_needed"
+        case resolvedStatePensionAge = "resolved_state_pension_age"
     }
 }
 
@@ -219,11 +214,47 @@ struct RetirementProjections: Decodable, Sendable, Equatable {
     let pensionPotProjection: RetirementPotProjection?
     let incomeDrawdown: RetirementIncomeDrawdown?
     let planningProjection: RetirementPlanningProjection?
+    let headline: RetirementHeadline?
 
     private enum CodingKeys: String, CodingKey {
         case pensionPotProjection = "pension_pot_projection"
         case incomeDrawdown = "income_drawdown"
         case planningProjection = "planning_projection"
+        case headline
+    }
+}
+
+/// RetirementHeadline (app/Services/Retirement/RetirementHeadline.php): the
+/// retirement figures every surface shows, computed once on the server.
+struct RetirementHeadline: Decodable, Sendable, Equatable {
+    let kind: String
+    let value: Decimal
+    let projectedIncome: Decimal
+    let guaranteedIncome: Decimal
+    let targetIncome: Decimal?
+    let targetSource: String?
+    let incomeGap: Decimal?
+    let progressPercent: Int?
+    let targetAge: Int
+    let yearsToRetirement: Int?
+    let dcValueToday: Decimal
+    let dcValueAtRetirement: Decimal?
+    let requiredCapital: Decimal?
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case value
+        case projectedIncome = "projected_income"
+        case guaranteedIncome = "guaranteed_income"
+        case targetIncome = "target_income"
+        case targetSource = "target_source"
+        case incomeGap = "income_gap"
+        case progressPercent = "progress_percent"
+        case targetAge = "target_age"
+        case yearsToRetirement = "years_to_retirement"
+        case dcValueToday = "dc_value_today"
+        case dcValueAtRetirement = "dc_value_at_retirement"
+        case requiredCapital = "required_capital"
     }
 }
 

@@ -131,9 +131,9 @@
                         <span>Normal Retirement Age</span>
                         <span class="font-semibold">{{ pension.normal_retirement_age }}</span>
                       </div>
-                      <div v-if="pension.spouse_pension_percentage" class="guaranteed-detail-row">
+                      <div v-if="pension.spouse_pension_percent" class="guaranteed-detail-row">
                         <span>Spouse Pension</span>
-                        <span class="font-semibold">{{ pension.spouse_pension_percentage }}%</span>
+                        <span class="font-semibold">{{ pension.spouse_pension_percent }}%</span>
                       </div>
                     </div>
                   </div>
@@ -601,9 +601,18 @@ export default {
     },
 
     // Years to retirement (for drawdown card visibility)
+    /**
+     * RetirementHeadline: every retirement figure this page shows, computed once
+     * on the server and read as sent by web, /m and iOS (CSJ 2026-10-01: one
+     * figure, every surface). Nothing here adds, subtracts or falls back.
+     */
+    headline() {
+      return this.projections?.headline || null;
+    },
+
     yearsToRetirementComputed() {
-      if (!this.profile?.target_retirement_age || !this.profile?.current_age) return null;
-      return Math.max(0, this.profile.target_retirement_age - this.profile.current_age);
+      const years = this.headline?.years_to_retirement;
+      return years == null ? null : years;
     },
 
     // Show drawdown card when within 10 years of retirement and has DC pensions
@@ -630,30 +639,17 @@ export default {
     },
 
     dcPensionValue() {
-      return this.dcPensions.reduce((sum, p) => sum + parseFloat(p.current_fund_value || 0), 0);
+      return Number(this.headline?.dc_value_today) || 0;
     },
 
-    dbPensionIncome() {
-      return this.dbPensions.reduce((sum, p) => sum + parseFloat(p.accrued_annual_pension || 0), 0);
-    },
 
-    statePensionForecast() {
-      return parseFloat(this.statePension?.state_pension_forecast_annual || 0);
-    },
 
     guaranteedIncome() {
-      return this.dbPensionIncome + this.statePensionForecast;
+      return Number(this.headline?.guaranteed_income) || 0;
     },
 
     targetIncome() {
-      // Use centralised value from requiredCapital store (fetched from backend)
-      if (this.requiredCapital?.required_income) {
-        return this.requiredCapital.required_income;
-      }
-      // Fallback to projections or profile. The £35,000 that used to close this
-      // chain was invented — with no target and no projection it was shown as the
-      // user's own figure, and required capital was derived from it (W-0035).
-      return this.projections?.income_drawdown?.target_income || this.profile?.target_retirement_income || 0;
+      return Number(this.headline?.target_income) || 0;
     },
 
     /**
@@ -663,8 +659,7 @@ export default {
      * about it and nothing surfaced the distinction to the user.
      */
     targetIncomeIsStated() {
-      return this.requiredCapital?.income_source === 'profile'
-        || Number(this.profile?.target_retirement_income) > 0;
+      return this.headline?.target_source === 'profile';
     },
 
     targetIncomeLabel() {
@@ -675,30 +670,17 @@ export default {
     },
 
     requiredCapitalValue() {
-      // Use centralised value from requiredCapital store (fetched from backend)
-      if (this.requiredCapital?.required_capital_at_retirement) {
-        return this.requiredCapital.required_capital_at_retirement;
-      }
-      // Fallback: Calculate required capital based on 4.7% withdrawal rate
-      const withdrawalRate = 0.047;
-      return this.targetIncome / withdrawalRate;
+      return Number(this.headline?.required_capital) || 0;
     },
 
     projectedNetIncome() {
-      // Gross income from the income drawdown projection's first year.
-      // total_income is already DC + DB + State Pension (RetirementProjectionService
-      // ::projectIncomeDrawdown); adding state_pension again counted it twice for
-      // anyone retiring at or after State Pension age.
-      const firstYear = this.projections?.income_drawdown?.yearly_income?.[0];
-      if (firstYear) {
-        return firstYear.total_income || 0;
-      }
-      return this.targetIncome;
+      return Number(this.headline?.projected_income) || 0;
     },
 
     projectedCapitalValue() {
-      // Get projected pension pot at retirement (80% confidence from Monte Carlo)
-      return this.projections?.pension_pot_projection?.percentile_20_at_retirement || 0;
+      // The planning contract's pot at retirement, the same projection as the
+      // income; the Monte Carlo bands stay the separate uncertainty view.
+      return Number(this.headline?.dc_value_at_retirement) || 0;
     },
 
     projectedCapitalClass() {
@@ -710,9 +692,9 @@ export default {
     },
 
     incomeGap() {
-      const sustainable = this.projections?.income_drawdown?.sustainable_income || 0;
-      const total = this.guaranteedIncome + sustainable;
-      return total - this.targetIncome;
+      // The server's gap is positive when short; this page reads positive as a surplus.
+      const gap = this.headline?.income_gap;
+      return gap == null ? 0 : -Number(gap);
     },
 
     incomeGapClass() {
@@ -820,6 +802,20 @@ export default {
       this.selectedPension = pension;
       this.selectedPensionType = type;
       this.setDetailView(true);
+    },
+
+    /**
+     * `?pension=dc:283` opens that pension's detail here, the one web pension
+     * detail. `/pension/:type/:id` (an action card's "Go to it") redirects to it;
+     * it used to open a second page that read fields the API does not send.
+     */
+    openPensionFromRoute() {
+      const [type, id] = String(this.$route?.query?.pension || '').split(':');
+      if (!type || !id) return;
+      const pension = type === 'dc'
+        ? this.dcPensions.find((p) => String(p.id) === id)
+        : (type === 'db' ? this.dbPensions.find((p) => String(p.id) === id) : (type === 'state' ? this.statePension : null));
+      if (pension) this.selectPension(pension, type);
     },
 
     clearSelection() {
@@ -1034,6 +1030,7 @@ export default {
   async mounted() {
     this.setDetailView(false);
     await this.fetchRetirementData();
+    this.openPensionFromRoute();
 
     // Check for pendingFill after loading the authoritative pension count.
     const fill = this.$store.state.aiFormFill?.pendingFill;

@@ -97,11 +97,11 @@
         </div>
         <div class="m-detail-row">
           <span class="m-detail-key">Qualifying years</span>
-          <span class="m-detail-value">{{ (pension.ni_years_completed || 0) }} of {{ pension.ni_years_required || 35 }}</span>
+          <span class="m-detail-value">{{ (pension.ni_years_completed || 0) }} of {{ pension.ni_years_for_full_pension }}</span>
         </div>
         <div class="m-detail-row">
           <span class="m-detail-key">State Pension age</span>
-          <span class="m-detail-value">{{ pension.state_pension_age || '—' }}</span>
+          <span class="m-detail-value">{{ pension.resolved_state_pension_age || '—' }}</span>
         </div>
       </div>
 
@@ -213,7 +213,8 @@ export default {
       return this.pension?.scheme_name || this.pension?.provider || 'Pension';
     },
     annualForecast() { return Number(this.pension?.state_pension_forecast_annual || 0); },
-    weeklyAmount() { return this.annualForecast / 52; },
+    // The server's weekly figure (StatePension::weekly_forecast), never divided here.
+    weeklyAmount() { return Number(this.pension?.weekly_forecast) || 0; },
     weeklyLabel() {
       if (!this.pension) return '—';
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(this.weeklyAmount) + ' a week';

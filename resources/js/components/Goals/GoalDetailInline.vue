@@ -505,10 +505,9 @@ export default {
       return baseTabs;
     },
 
+    // The server's figure (Goal::progress_percentage); one figure, every surface.
     progressPercent() {
-      if (!this.goal?.target_amount) return 0;
-      const current = parseFloat(this.goal.current_amount) || 0;
-      return Math.round((current / parseFloat(this.goal.target_amount)) * 100);
+      return Math.round(Number(this.goal?.progress_percentage) || 0);
     },
 
     contributionStreak() {

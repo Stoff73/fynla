@@ -292,8 +292,22 @@ class MobileDashboardAggregator
             ];
         }
 
+        // The one home for every retirement figure (RetirementHeadline, CSJ
+        // 2026-10-01): the card shows `headline_value` as sent, labelled by
+        // `headline_kind`, and the progress percentage is the server's.
+        $headline = (array) ($summary['headline'] ?? []);
+
         return [
             'status' => 'active',
+            'headline_kind' => $headline['kind'] ?? null,
+            'headline_value' => isset($headline['value']) ? round((float) $headline['value'], 2) : null,
+            'progress_percent' => $headline['progress_percent'] ?? null,
+            // The dashboard card: the pot today, or the income already secured a
+            // year for a household with no pot (decided here, not on a client).
+            'card_value' => ($headline['kind'] ?? null) === 'guaranteed'
+                ? round((float) $headline['guaranteed_income'], 2)
+                : round((float) ($headline['dc_value_today'] ?? $summary['current_dc_value'] ?? 0), 2),
+            'card_value_is_income' => ($headline['kind'] ?? null) === 'guaranteed',
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),
             // Current defined contribution pot — the card headline where there is one.
             'pot_value' => round((float) ($summary['current_dc_value'] ?? 0), 2),
@@ -303,7 +317,7 @@ class MobileDashboardAggregator
             // them nothing. Computed once, in the agent.
             'guaranteed_income' => round((float) ($summary['guaranteed_annual_income'] ?? 0), 2),
             'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
-            'target_income' => round((float) ($summary['target_retirement_income'] ?? 0), 2),
+            'target_income' => isset($headline['target_income']) ? round((float) $headline['target_income'], 2) : round((float) ($summary['target_retirement_income'] ?? 0), 2),
             'income_gap' => round((float) ($summary['income_gap'] ?? 0), 2),
             'total_pensions' => $totalPensions,
         ];

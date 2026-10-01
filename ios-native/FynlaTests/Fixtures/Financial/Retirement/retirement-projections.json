@@ -15,7 +15,9 @@
     },
     "income_drawdown": {
       "yearly_income": [
-        { "total_income": 37500 }
+        {
+          "total_income": 37500
+        }
       ]
     },
     "planning_projection": {
@@ -23,7 +25,7 @@
       "as_of": "2026-08-10",
       "target_retirement_age": 65,
       "projection_end_age": 100,
-      "planning_total_at_target_age": 24457.70,
+      "planning_total_at_target_age": 24457.7,
       "products": [
         {
           "resource_type": "dc_pension",
@@ -33,7 +35,7 @@
           "current_value": 180000,
           "monthly_contribution": 500,
           "projected_value": 265057.45,
-          "annual_income": 12457.70,
+          "annual_income": 12457.7,
           "income_method": "sustainable_withdrawal_rate"
         },
         {
@@ -61,14 +63,20 @@
         {
           "start_age": 65,
           "end_age": 66,
-          "annual_income": 12457.70,
-          "source_ids": ["dc_pension:31"]
+          "annual_income": 12457.7,
+          "source_ids": [
+            "dc_pension:31"
+          ]
         },
         {
           "start_age": 67,
           "end_age": 100,
-          "annual_income": 35959.70,
-          "source_ids": ["dc_pension:31", "db_pension:32", "state_pension:33"]
+          "annual_income": 35959.7,
+          "source_ids": [
+            "dc_pension:31",
+            "db_pension:32",
+            "state_pension:33"
+          ]
         }
       ],
       "assumptions": {
@@ -91,6 +99,21 @@
         "products": []
       },
       "warnings": []
+    },
+    "headline": {
+      "kind": "projected",
+      "value": 24457.7,
+      "projected_income": 24457.7,
+      "guaranteed_income": 11973,
+      "target_income": 42000,
+      "target_source": "profile",
+      "income_gap": 17542.3,
+      "progress_percent": 58,
+      "target_age": 65,
+      "years_to_retirement": 20,
+      "dc_value_today": 180000,
+      "dc_value_at_retirement": 400000,
+      "required_capital": 893617.02
     }
   }
 }

@@ -80,8 +80,8 @@ struct RetirementView: View {
     // target/surplus split (mr-hero-split).
     private func heroCard(_ snapshot: RetirementSnapshot) -> some View {
         MobileHeroCard(
-            label: "Projected retirement income",
-            metric: snapshot.projectedIncome.map(MoneyFormatter.gbpWhole) ?? "—",
+            label: snapshot.heroIsGuaranteed ? "Guaranteed retirement income" : "Projected retirement income",
+            metric: snapshot.heroValue.map(MoneyFormatter.gbpWhole) ?? "—",
             metricSuffix: "a year",
             sub: gapNarrative(snapshot)
         ) {
@@ -395,8 +395,7 @@ struct RetirementView: View {
     }
 
     private func yearsToRetirement(_ snapshot: RetirementSnapshot) -> Int? {
-        snapshot.projections?.pensionPotProjection?.yearsToRetirement
-            ?? snapshot.analysis?.yearsToRetirement
+        snapshot.yearsToRetirement
     }
 
     private func money(_ value: Decimal?) -> String {

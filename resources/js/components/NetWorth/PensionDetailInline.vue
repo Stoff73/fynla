@@ -277,7 +277,7 @@
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Weekly Amount:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency((pension.state_pension_forecast_annual || 0) / 52) }}/wk</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(pension.weekly_forecast || 0) }}/wk</dd>
                     </div>
                   </dl>
                 </div>
@@ -291,11 +291,11 @@
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Years to Full Pension:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ Math.max(0, 35 - (pension.ni_years_completed || 0)) }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.ni_years_needed ?? '—' }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">State Pension Age:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.state_pension_age || 67 }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.resolved_state_pension_age || '—' }}</dd>
                     </div>
                   </dl>
                 </div>
@@ -448,8 +448,16 @@
                   <p class="text-xl font-bold text-violet-600">{{ formatCurrency(projectionData.current_value) }}</p>
                 </div>
                 <div class="bg-savannah-100 rounded-lg p-4">
-                  <p class="text-sm text-neutral-500">80% Probability at Retirement</p>
-                  <p class="text-xl font-bold text-spring-600">{{ formatCurrency(projectionData.percentile_20_at_retirement) }}</p>
+                  <p class="text-sm text-neutral-500">Planning value at retirement</p>
+                  <p class="text-xl font-bold text-spring-600">{{ formatCurrency(projectionData.planning_value_at_retirement) }}</p>
+                </div>
+                <div v-if="projectionData.planning_annual_income" class="bg-savannah-100 rounded-lg p-4">
+                  <p class="text-sm text-neutral-500">Projected income from age {{ projectionData.planning_commencement_age }}</p>
+                  <p class="text-xl font-bold text-horizon-500">{{ formatCurrency(projectionData.planning_annual_income) }} a year</p>
+                </div>
+                <div class="bg-savannah-100 rounded-lg p-4">
+                  <p class="text-sm text-neutral-500">Lower outcome (4 in 5 do better)</p>
+                  <p class="text-xl font-bold text-horizon-500">{{ formatCurrency(projectionData.percentile_20_at_retirement) }}</p>
                 </div>
               </div>
 

@@ -28,6 +28,7 @@ use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementDrawdownPosition;
+use App\Services\Retirement\RetirementHeadline;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionContractService;
 use App\Services\Retirement\RetirementProjectionService;
@@ -162,6 +163,8 @@ class RetirementController extends Controller
         $projections['planning_projection'] = $this->projectionContractService->build($user);
         // The view for someone drawing their pension; null for a saver (TODO item 6).
         $projections['drawdown_position'] = $this->drawdownPosition->for($user);
+        // The figures every surface shows, computed once (one figure, every surface).
+        $projections['headline'] = app(RetirementHeadline::class)->for($user);
 
         return response()->json([
             'success' => true,
@@ -179,6 +182,14 @@ class RetirementController extends Controller
 
         try {
             $projections = $this->projectionService->projectIndividualDCPension($id, $user->id);
+            // The planning contract's figures for this pension, the ones /m and iOS
+            // show (one figure, every surface); the Monte Carlo bands above are the
+            // separate uncertainty view.
+            $product = collect($this->projectionContractService->build($user, withUncertainty: false)['products'])
+                ->first(fn (array $p): bool => $p['resource_type'] === 'dc_pension' && (int) $p['resource_id'] === $id);
+            $projections['planning_value_at_retirement'] = $product['projected_value'] ?? null;
+            $projections['planning_annual_income'] = $product['annual_income'] ?? null;
+            $projections['planning_commencement_age'] = $product['commencement_age'] ?? null;
 
             return response()->json([
                 'success' => true,

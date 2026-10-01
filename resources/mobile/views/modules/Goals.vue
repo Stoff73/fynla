@@ -104,12 +104,11 @@ import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
-import { summariseUpcoming } from '../../utils/lifeEvents.js';
 
 export default {
   name: 'MobileGoals',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', goals: [], overview: null, lifeEvents: [] }),
+  data: () => ({ loading: true, error: '', goals: [], overview: null, lifeEvents: [], lifeEventSummary: null }),
   computed: {
     totalGoals() { return this.overview?.total_goals ?? this.goals.length; },
     onTrackCount() { return this.overview?.on_track_count ?? this.goals.filter((g) => g.is_on_track).length; },
@@ -137,7 +136,9 @@ export default {
     // still being counted as money expected in. Shared with the web events tab
     // so the two surfaces cannot drift.
     eventTotals() {
-      return summariseUpcoming(this.lifeEvents);
+      // The server's totals (LifeEventService::summariseUpcoming), one figure on
+      // every surface (CSJ 2026-10-01).
+      return this.lifeEventSummary || { expected_income: 0, expected_expense: 0, net_impact: 0, income_count: 0, expense_count: 0 };
     },
     totalEventIncome() {
       return this.eventTotals.expected_income;
@@ -228,6 +229,7 @@ export default {
       this.goals = [];
       this.overview = null;
       this.lifeEvents = [];
+      this.lifeEventSummary = null;
       try {
         // The page is titled "Goals and life events" — the same endpoint the web
         // events tab reads, so both surfaces see one set of records.
@@ -250,6 +252,7 @@ export default {
         }
         if (eventsRes.ok) {
           this.lifeEvents = eventsRes.data?.data?.events || eventsRes.data?.events || [];
+          this.lifeEventSummary = eventsRes.data?.data?.summary || null;
         }
       } catch {
         this.error = 'Network error. Please try again.';

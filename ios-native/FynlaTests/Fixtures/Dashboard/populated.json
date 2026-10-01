@@ -5,7 +5,7 @@
       "protection": {"status":"active","total_coverage":300000,"policy_count":2,"critical_gaps":1,"has_income_protection":true},
       "savings": {"status":"active","total_savings":42500.25,"total_accounts":3,"emergency_fund_months":5.2,"emergency_fund_status":"Building"},
       "investment": {"status":"active","portfolio_value":119500.25,"accounts_count":2,"holdings_count":8},
-      "retirement": {"status":"active","years_to_retirement":19,"pot_value":185000,"projected_income":26000,"target_income":32000,"income_gap":6000,"total_pensions":3},
+      "retirement": {"status":"active","years_to_retirement":19,"pot_value":185000,"card_value":185000,"card_value_is_income":false,"progress_percent":81,"projected_income":26000,"target_income":32000,"income_gap":6000,"total_pensions":3},
       "estate": {"status":"active","net_estate":347250.50,"iht_liability":0,"effective_tax_rate":0},
       "goals": {"status":"active","total_goals":2,"completed_goals":1,"total_target":50000,"total_saved":22000}
     },

@@ -14,112 +14,76 @@ afterEach(() => {
 });
 
 describe('mobile Retirement', () => {
-  it('reconciles total pension wealth with the current Defined Contribution pension values', () => {
+  // Every retirement figure on this screen is the server's RetirementHeadline,
+  // rendered as sent (CSJ 2026-10-01: one figure, every surface). These tests
+  // pin that the screen no longer works any figure out for itself.
+  const headline = (overrides = {}) => ({
+    kind: 'projected',
+    value: 18250,
+    projected_income: 18250,
+    guaranteed_income: 8000,
+    target_income: 30000,
+    target_source: 'profile',
+    income_gap: 11750,
+    progress_percent: 61,
+    target_age: 65,
+    years_to_retirement: 24,
+    dc_value_today: 60000,
+    required_capital: 640000,
+    ...overrides,
+  });
+
+  it('reads the pension value today from the server, not a sum of pensions', () => {
     const total = Retirement.computed.totalPensionWealth.call({
-      dcPensions: [
-        { current_fund_value: '47500.00' },
-        { current_fund_value: 12500 },
-      ],
-      analysis: { total_pension_wealth: 0 },
+      headline: headline({ dc_value_today: 60000 }),
+      dcPensions: [{ current_fund_value: 1 }, { current_fund_value: 2 }],
     });
 
     expect(total).toBe(60000);
   });
 
-  it('uses the conservative projection income instead of an analysis readiness placeholder', () => {
+  it('reads the projected income from the server, ignoring analysis and drawdown figures', () => {
     const projected = Retirement.computed.projectedIncome.call({
-      analysisReady: false,
-      analysis: { projected_income: 0 },
-      dbPensions: [],
-      incomeDrawdown: {
-        yearly_income: [{ total_income: 16315.91 }],
-      },
-    });
-
-    expect(projected).toBe(16315.91);
-  });
-
-  it('leads the hero with secured income for a household with no pot, and says which it is', () => {
-    // The persona case (W-0244): an NHS final salary scheme paying £35,000 a year,
-    // no Defined Contribution pot, no retirement target. `planning_projection`
-    // models pots only, so it returns a literal 0 — and the hero used to print
-    // "Projected retirement income £0 a year" over a real £35,000 entitlement.
-    //
-    // Asserting the £0 is gone would prove nothing on its own, since a broken and
-    // a correct pot are both zero here. The load-bearing assertions are the value
-    // that MOVES (£35,000) and the label that changes with it.
-    const vm = {
-      totalPensionWealth: 0,
+      headline: headline({ projected_income: 23694 }),
       analysisReady: true,
-      analysis: { guaranteed_annual_income: 35000 },
-      projectedIncome: 0,
-    };
-    const headline = Retirement.computed.heroHeadline.call(vm);
-
-    expect(headline.value).toBe(35000);
-    expect(headline.isGuaranteed).toBe(true);
-    expect(headline.label).toBe('Guaranteed retirement income');
-  });
-
-  it('keeps the projected-income hero for a household that has a pot', () => {
-    // The other direction: a pot exists, so the hero stays a projection and must
-    // not be replaced by a guaranteed-income figure.
-    const headline = Retirement.computed.heroHeadline.call({
-      totalPensionWealth: 200000,
-      analysisReady: true,
-      analysis: { guaranteed_annual_income: 8000 },
-      projectedIncome: 18250,
+      analysis: { projected_income: 99999 },
+      incomeDrawdown: { yearly_income: [{ total_income: 11111 }] },
     });
 
-    expect(headline.value).toBe(18250);
-    expect(headline.isGuaranteed).toBe(false);
-    expect(headline.label).toBe('Projected retirement income');
+    expect(projected).toBe(23694);
   });
 
-  it('measures the income gap against the secured income, not against a pot projection of zero', () => {
-    const vm = {
-      hasTargetIncome: true,
-      targetIncome: 40000,
-      heroHeadline: { value: 35000, isGuaranteed: true, label: 'Guaranteed retirement income' },
-    };
-
-    expect(Retirement.computed.incomeGap.call(vm)).toBe(5000);
-  });
-
-  it('uses full analysis income when that analysis is available', () => {
-    const projected = Retirement.computed.projectedIncome.call({
-      analysisReady: true,
-      analysis: { projected_income: 18250 },
-      dbPensions: [],
-      incomeDrawdown: { yearly_income: [{ total_income: 16315.91 }] },
+  it('leads the hero with the secured income when the server says the household has no pot', () => {
+    const hero = Retirement.computed.heroHeadline.call({
+      headline: headline({ kind: 'guaranteed', value: 35000 }),
     });
 
-    expect(projected).toBe(18250);
+    expect(hero.value).toBe(35000);
+    expect(hero.isGuaranteed).toBe(true);
+    expect(hero.label).toBe('Guaranteed retirement income');
   });
 
-  it('does not use the simplified fallback for a Defined Benefit pension', () => {
-    const projected = Retirement.computed.projectedIncome.call({
-      analysisReady: false,
-      analysis: null,
-      dbPensions: [{ id: 1 }],
-      incomeDrawdown: { yearly_income: [{ total_income: 20000 }] },
-    });
+  it('keeps the projected-income hero when the server says there is a pot', () => {
+    const hero = Retirement.computed.heroHeadline.call({ headline: headline() });
 
-    expect(projected).toBeNull();
+    expect(hero.value).toBe(18250);
+    expect(hero.isGuaranteed).toBe(false);
+    expect(hero.label).toBe('Projected retirement income');
   });
 
-  it('does not present a readiness placeholder as zero years to a target the user has not set', () => {
-    const years = Retirement.computed.yearsToRetirement.call({
-      targetRetirementAge: null,
-      analysis: { years_to_retirement: 0 },
-      profile: null,
-    });
+  it('reads the signed gap from the server instead of subtracting', () => {
+    expect(Retirement.computed.incomeGap.call({ headline: headline({ income_gap: 11306 }) })).toBe(11306);
+    expect(Retirement.computed.incomeGap.call({ headline: headline({ income_gap: -2000 }) })).toBe(-2000);
+  });
 
-    expect(years).toBeNull();
+  it('reads the target and where it came from from the server', () => {
+    expect(Retirement.computed.targetIncome.call({ headline: headline({ target_income: 28000 }) })).toBe(28000);
+    expect(Retirement.computed.targetIsStated.call({ headline: headline({ target_source: 'calculated' }) })).toBe(false);
+    expect(Retirement.computed.targetIsStated.call({ headline: headline({ target_source: 'profile' }) })).toBe(true);
   });
 
   it('does not present a missing target as a zero-value target or surplus', () => {
-    const target = Retirement.computed.targetIncome.call({ analysis: null });
+    const target = Retirement.computed.targetIncome.call({ headline: headline({ target_income: null, income_gap: null }) });
     const hasTarget = Retirement.computed.hasTargetIncome.call({ targetIncome: target });
     const comparison = Retirement.computed.incomeComparison.call({
       hasTargetIncome: hasTarget,
@@ -132,38 +96,15 @@ describe('mobile Retirement', () => {
     expect(comparison).toEqual({ label: 'Comparison', value: '—', tone: '' });
   });
 
+  it('reads years to retirement from the server', () => {
+    expect(Retirement.computed.yearsToRetirement.call({ headline: headline({ years_to_retirement: 24 }) })).toBe(24);
+    expect(Retirement.computed.yearsToRetirement.call({ headline: null })).toBeNull();
+  });
+
   it('identifies a projection age as assumed when the user has not set a target age', () => {
     const label = Retirement.computed.projectionAgeLabel.call({ targetRetirementAge: null });
 
     expect(label).toBe('an assumed retirement age');
-  });
-
-  it('uses the saved retirement-profile target when full analysis is unavailable', () => {
-    const target = Retirement.computed.targetIncome.call({
-      analysisReady: false,
-      analysis: null,
-      profile: { target_retirement_income: '28000.00' },
-    });
-
-    expect(target).toBe(28000);
-  });
-
-  it('uses projection years only when they correspond to the user target age', () => {
-    const years = Retirement.computed.yearsToRetirement.call({
-      targetRetirementAge: 65,
-      pot: { retirement_age: 65, years_to_retirement: 24 },
-      analysisReady: false,
-      analysis: null,
-    });
-    const mismatched = Retirement.computed.yearsToRetirement.call({
-      targetRetirementAge: 65,
-      pot: { retirement_age: 67, years_to_retirement: 26 },
-      analysisReady: false,
-      analysis: null,
-    });
-
-    expect(years).toBe(24);
-    expect(mismatched).toBeNull();
   });
 
   it('discloses the exact assumed current age used by a projection', () => {
@@ -206,7 +147,7 @@ describe('mobile Retirement', () => {
         if (indexCalls === 1) return oldIndex.promise;
         return { ok: true, data: { data: { profile: { target_retirement_age: 65 }, dc_pensions: [], db_pensions: [] } } };
       }
-      return { ok: true, data: { data: { pension_pot_projection: { retirement_age: 65, years_to_retirement: 24 } } } };
+      return { ok: true, data: { data: { pension_pot_projection: { retirement_age: 65, years_to_retirement: 24 }, headline: { kind: 'projected', value: 22000, projected_income: 22000, target_income: null, income_gap: null, years_to_retirement: 24, dc_value_today: 0 } } } };
     });
     apiPost.mockImplementation(async () => {
       analysisCalls += 1;
@@ -269,6 +210,19 @@ describe('mobile Retirement', () => {
             },
             income_drawdown: {
               yearly_income: [{ total_income: 16315.91 }],
+            },
+            headline: {
+              kind: 'projected',
+              value: 16315.91,
+              projected_income: 16315.91,
+              guaranteed_income: 0,
+              target_income: null,
+              target_source: null,
+              income_gap: null,
+              progress_percent: null,
+              target_age: 67,
+              years_to_retirement: 26,
+              dc_value_today: 47500,
             },
             planning_projection: {
               contract_version: 'retirement_projection_v1',
@@ -427,6 +381,7 @@ describe('mobile Retirement', () => {
               monthly_contribution: 500,
               median_at_retirement: 999999,
             },
+            headline: { kind: 'projected', value: 9400, projected_income: 9400, guaranteed_income: 19500, target_income: 30000, target_source: 'profile', income_gap: 20600, target_age: 60, years_to_retirement: 10, dc_value_today: 200000 },
             planning_projection: {
               contract_version: 'retirement_projection_v1',
               planning_total_at_target_age: 9400,

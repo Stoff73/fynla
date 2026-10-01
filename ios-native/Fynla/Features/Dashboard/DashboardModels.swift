@@ -37,6 +37,11 @@ struct DashboardModuleSummary: Decodable, Sendable, Equatable {
     let targetIncome: Decimal?
     let incomeGap: Decimal?
     let totalPensions: Int?
+    /// The retirement card, decided on the server (MobileDashboardAggregator,
+    /// from RetirementHeadline): the pot today, or the secured income a year.
+    let cardValue: Decimal?
+    let cardValueIsIncome: Bool?
+    let progressPercent: Int?
 
     let netEstate: Decimal?
     let ihtLiability: Decimal?
@@ -66,6 +71,9 @@ struct DashboardModuleSummary: Decodable, Sendable, Equatable {
         case targetIncome = "target_income"
         case incomeGap = "income_gap"
         case totalPensions = "total_pensions"
+        case cardValue = "card_value"
+        case cardValueIsIncome = "card_value_is_income"
+        case progressPercent = "progress_percent"
         case netEstate = "net_estate"
         case ihtLiability = "iht_liability"
         case effectiveTaxRate = "effective_tax_rate"

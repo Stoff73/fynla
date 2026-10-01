@@ -26,7 +26,7 @@ const PAYLOAD = {
   modules: {
     protection: { status: 'active', total_coverage: 700000, policy_count: 3 },
     savings: { total_savings: 74750, emergency_fund_months: 59.8 },
-    retirement: { pot_value: 500000, projected_income: 35000, target_income: 50000 },
+    retirement: { card_value: 500000, card_value_is_income: false, projected_income: 35000, target_income: 50000, progress_percent: 70 },
     investment: { portfolio_value: 172500, accounts_count: 3, holdings_count: 6 },
   },
 };
@@ -103,7 +103,7 @@ describe('dashboardFigures', () => {
     // fill above 100 or below 0 — both surfaces render these straight into a ring.
     const over = dashboardFigures({
       net_worth: { total: 200, breakdown: { total_assets: 100 } },
-      modules: { retirement: { pot_value: 1, projected_income: 90000, target_income: 50000 } },
+      modules: { retirement: { card_value: 1, card_value_is_income: false, projected_income: 90000, target_income: 50000, progress_percent: 180 } },
     });
 
     expect(over.netWorth.equityPct).toBe(100);
