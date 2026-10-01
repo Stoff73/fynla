@@ -237,3 +237,36 @@ describe('PensionDetailInline — the holdings table (W-0442)', () => {
     expect(form.props('holding')).toMatchObject({ id: 42, quantity: 4211 });
   });
 });
+
+describe('PensionDetailInline — the State Pension figures it shows', () => {
+  // The server's StatePension appends; the panel shows them as sent, in the
+  // same precision as /m ("£211.54 a week"), never rounded to "£212".
+  const mountState = () => mount(PensionDetailInline, {
+    props: {
+      pensionType: 'state',
+      pension: {
+        id: 217,
+        state_pension_forecast_annual: 11000,
+        weekly_forecast: 211.54,
+        ni_years_completed: 20,
+        ni_years_needed: 15,
+        resolved_state_pension_age: 68,
+      },
+    },
+    global: {
+      plugins: [buildStore()],
+      directives: { 'preview-disabled': {} },
+      stubs: { UnifiedPensionForm: true, ConfirmDialog: true, PensionPotProjectionChart: true, HoldingForm: true },
+    },
+  });
+
+  it('shows the weekly amount in pounds and pence', () => {
+    expect(mountState().text()).toContain('£211.54/wk');
+  });
+
+  it('shows the years still needed and the State Pension age from the server', () => {
+    const text = mountState().text();
+    expect(text).toContain('Years to Full Pension:15');
+    expect(text).toContain('State Pension Age:68');
+  });
+});

@@ -277,7 +277,7 @@
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Weekly Amount:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(pension.weekly_forecast || 0) }}/wk</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrencyWithPence(pension.weekly_forecast || 0) }}/wk</dd>
                     </div>
                   </dl>
                 </div>
