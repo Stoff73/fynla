@@ -517,8 +517,14 @@ export default {
         ? {
           action: 'edit',
           resourceType: 'state_pension',
-          resourceId: this.statePension.id,
-          currentDestination: { screen: 'retirement', params: {}, fallback: 'dashboard' },
+          resourceId: Number(this.statePension.id),
+          // An entity edit names the record in its destination, exactly as the
+          // pension detail screen sends it (CreateContextualConversationRequest).
+          currentDestination: {
+            screen: 'pension_detail',
+            params: { pension_id: Number(this.statePension.id), pension_type: 'state' },
+            fallback: 'retirement',
+          },
           origin: { kind: 'surface_action' },
         }
         : {

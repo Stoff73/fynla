@@ -557,3 +557,21 @@ describe('mobile Retirement pension detail', () => {
     wrapper.unmount();
   });
 });
+
+describe('mobile Retirement State Pension update (TODO item 6)', () => {
+  it('opens Fyn on the recorded State Pension the way its detail screen does', () => {
+    const openContextualFyn = vi.fn();
+    Retirement.methods.addStatePension.call({
+      drawing: { income: { state_pension_status: 'not_paid' } },
+      statePension: { id: 42 },
+      $refs: { chrome: { openContextualFyn } },
+    });
+
+    expect(openContextualFyn).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'edit',
+      resource_type: 'state_pension',
+      resource_id: 42,
+      current_destination: { screen: 'pension_detail', params: { pension_id: 42, pension_type: 'state' }, fallback: 'retirement' },
+    }));
+  });
+});
