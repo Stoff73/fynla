@@ -2,7 +2,7 @@
 fact_id: hv-pa-taper-rescue
 category: house_view
 title: Personal Allowance taper rescue — pension contributions in the taper band
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -23,10 +23,16 @@ dominate.
 
 Fynla works from the user's recorded income and the current year's thresholds
 held in the live tax configuration, never from assumed figures. The
-contribution is sized to the slice of income inside the band, capped by the
-year's remaining pension annual allowance, and the saving applies the
-standard sixty per cent effective-relief treatment to that whole slice —
-higher-rate relief plus the allowance restored at one pound for every two.
+contribution is sized first to the slice of income inside the band, where the
+saving is the sixty per cent effective relief — higher-rate relief plus the
+allowance restored at one pound for every two. Once the allowance is back,
+contributions still get higher-rate relief on income down to the higher-rate
+threshold, so when the user's spending is recorded and the money to pay is
+known, the same contribution carries on down to that threshold. Without
+recorded spending it stops at the taper threshold and Fynla asks for spending.
+Either way it is capped by the year's remaining pension annual allowance,
+relevant earnings and the money the user has, and the saving is priced by the
+tax engine on the user's own income.
 The rate is a property of the band itself, not of where in the band the user
 sits, so Fynla quotes the user's own contribution and the saving computed
 from it rather than leaving the effect as a folk figure.

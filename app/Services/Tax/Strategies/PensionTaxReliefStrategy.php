@@ -81,7 +81,7 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $band = $this->math->bandFromIncomeFor($user, $taxable);
         $contribution = $band === 'higher'
             ? min(
-                $this->higherRateSlice($user, $taxable, $this->math->bandThresholdsFor($user)['higher']),
+                $this->math->higherRateSlice($user, $taxable, $this->math->bandThresholdsFor($user)['higher']),
                 $availableAA,
                 $earnings - $this->math->grossEmployeePensionContributions($user),
             )
@@ -182,26 +182,6 @@ final class PensionTaxReliefStrategy implements TaxStrategy
                 'tax_band' => 'no_earnings',
             ],
         )];
-    }
-
-    /**
-     * Income actually taxed at the higher rate: non-savings income above the
-     * limit, plus interest above it that the Personal Savings Allowance does
-     * not cover. The allowance is a nil rate on the first slice of savings
-     * income (ITA 2007 s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B),
-     * and savings income sits above non-savings income (s16). Dividends are
-     * taxed at the dividend rates (s8), never the higher rate, so they are
-     * left out: the slice can only understate, never overstate, the relief.
-     */
-    private function higherRateSlice(User $user, float $taxable, float $limit): float
-    {
-        $parts = $this->math->incomePartsFor($user);
-        $interest = $parts['interest'];
-        $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
-        $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
-        $allowanceLeft = max(0.0, $this->math->psaForBand('higher') - ($interest - $interestAbove));
-
-        return max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
     }
 
     /**
