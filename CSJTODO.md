@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-28: four releases live (#949 action cards + lanes, #952 spouse earnings cap + carry forward gate, #955 help page, #958 how-to help links + Estate cards). Next: Fyn "Ask Fyn about this" narration.*
+*Last updated: 2026-10-01 session 4. The order of work is `todoCurrent/TODO.md`; this file is the detail record. Item 7 (retirement) is on `feat/retirement-decumulation-and-care-costs`, deployed to csjones, not merged.*
 
 ## The board position
 
@@ -200,6 +200,8 @@ Three small decisions, all optional:
   verification bridge on production.
 
 ## Known issues
+
+- **Fyn cannot reliably record care costs from plain /m chat** (2026-10-01): care costs exist only on the free-text tool `capture_retirement_goals`, with no Fyn form. Fix: a retirement goals form in `CaptureForms`/`RecordEditForms`, State Pension shape (TODO item 7, NEXT). Plain /m chat refuses (conversation 428); the repeated-message reply claimed a change that was not written.
 
 - **`users.life_stage` is overloaded by design** — it also holds the journey or focus area
   last started (`JourneyStateService`, `OnboardingService`). The client keeps only real
