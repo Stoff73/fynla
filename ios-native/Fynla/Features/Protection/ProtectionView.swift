@@ -60,6 +60,9 @@ struct ProtectionView: View {
                     }
 
                     heroCard(snapshot)
+                    if !snapshot.coverRows.isEmpty {
+                        coverCard(snapshot.coverRows)
+                    }
                     gapsCard(snapshot)
                     policiesCard(snapshot.policies)
                 }
@@ -79,6 +82,48 @@ struct ProtectionView: View {
             sub: heroSubtitle(snapshot)
         )
         .accessibilityIdentifier("protection.total-cover")
+    }
+
+    // "Your cover": where the user stands per cover type, as web and /m show it.
+    // Every figure and word is the server's (ProtectionCoverPosition).
+    private func coverCard(_ rows: [ProtectionCoverRow]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your cover".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+
+            ForEach(rows) { item in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(item.row.label)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(FynlaColor.Token.horizon500.color)
+                        Spacer()
+                        Text(item.row.statusLabel)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(coverTone(item.row.tone))
+                            .multilineTextAlignment(.trailing)
+                    }
+                    Text("You need \(item.row.needLabel). Your own policies give \(item.row.ownCoverLabel), and your job \(item.row.employerCoverLabel) (ends if you leave).")
+                        .font(.system(size: 12))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                }
+                .accessibilityIdentifier("protection.cover.\(item.key)")
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func coverTone(_ tone: String) -> Color {
+        switch tone {
+        case "short": FynlaColor.Token.raspberry500.color
+        case "attention": FynlaColor.Token.violet500.color
+        default: FynlaColor.Token.spring500.color
+        }
     }
 
     // mp-gap rows: label + severity tag head, raspberry shortfall + detail foot.

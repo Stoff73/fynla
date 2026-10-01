@@ -71,24 +71,27 @@ final class ProtectionCoverPosition
                 (float) ($coverage['life_coverage'] ?? 0),
                 (float) ($employer['death_in_service'] ?? 0),
                 'lump_sum',
+                'Life cover',
             ),
             'critical_illness' => $this->position(
                 $gross * (float) $this->taxConfig->get('protection.income_multipliers.critical_illness'),
                 (float) ($coverage['critical_illness_coverage'] ?? 0),
                 (float) ($employer['group_critical_illness'] ?? 0),
                 'lump_sum',
+                'Critical illness cover',
             ),
             'income_protection' => $this->position(
                 (float) ($needs['income_protection_need'] ?? 0) / 12,
                 $incomeCover / 12,
                 (float) ($employer['group_income_protection'] ?? 0) / 12,
                 'monthly',
+                'Income protection',
             ),
         ];
     }
 
     /** @return array<string, mixed> */
-    private function position(float $need, float $total, float $employer, string $unit): array
+    private function position(float $need, float $total, float $employer, string $unit, string $label): array
     {
         $threshold = (float) $this->taxConfig->get('protection.dis_reliance_percent');
         $share = $total > 0 ? $employer / $total : 0.0;
@@ -107,6 +110,36 @@ final class ProtectionCoverPosition
             'depends_on_job' => $employer > 0 && $share > $threshold,
             'status' => $short > 0 ? 'short' : ($over > 0 ? 'over' : 'covered'),
             'unit' => $unit,
+            // The words every surface prints (web, /m and iOS each built these;
+            // CSJ 2026-10-01: one figure, every surface).
+            'label' => $label,
+            'status_label' => $this->statusLabel($short, $over, $employer > 0 && $share > $threshold, $unit),
+            // short: raspberry; attention (over, or relies on the job): violet; covered: spring.
+            'tone' => $short > 0 ? 'short' : ($over > 0 || ($employer > 0 && $share > $threshold) ? 'attention' : 'covered'),
+            'need_label' => $this->money($need, $unit),
+            'own_cover_label' => $this->money(max(0.0, $total - $employer), $unit),
+            'employer_cover_label' => $this->money($employer, $unit),
         ];
+    }
+
+    private function statusLabel(float $short, float $over, bool $dependsOnJob, string $unit): string
+    {
+        $parts = [];
+        if ($short > 0) {
+            $parts[] = 'Short by '.$this->money($short, $unit);
+        }
+        if ($over > 0) {
+            $parts[] = 'Over by '.$this->money($over, $unit);
+        }
+        if ($dependsOnJob) {
+            $parts[] = 'Depends on your job';
+        }
+
+        return $parts === [] ? 'Covered' : implode(', ', $parts);
+    }
+
+    private function money(float $value, string $unit): string
+    {
+        return '£'.number_format(round($value), 0).($unit === 'monthly' ? ' a month' : '');
     }
 }

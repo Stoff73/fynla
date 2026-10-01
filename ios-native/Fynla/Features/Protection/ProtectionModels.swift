@@ -1,8 +1,10 @@
 import Foundation
 
 struct ProtectionSnapshot: Sendable, Equatable {
+    // Every figure is GET /api/protection's, as web and /m show it (CSJ
+    // 2026-10-01: one figure, every surface). This used to fall back to
+    // /analyze and build its own gap list when coverage_gaps was missing.
     let index: ProtectionIndex
-    let analysis: ProtectionAnalysis?
 
     var policies: [ProtectionPolicyItem] {
         var result: [ProtectionPolicyItem] = []
@@ -15,20 +17,22 @@ struct ProtectionSnapshot: Sendable, Equatable {
     }
 
     var totalLumpSumCover: Decimal? {
-        index.coverageGaps?.totals.cover ?? analysis?.coverage.totalCoverage
+        index.coverageGaps?.totals.cover
     }
     var annualIncomeCover: Decimal? {
         index.coverageGaps?.categories
             .first { $0.key == "income_protection" }?.cover
-            ?? analysis?.coverage.totalIncomeCoverage
     }
     var openGaps: [ProtectionGapSummary] {
-        if let coverageGaps = index.coverageGaps {
-            return coverageGaps.categories
-                .filter { $0.status == "gap" && $0.shortfall > 0 }
-                .map(ProtectionGapSummary.init)
-        }
-        return analysis?.gapSummaries ?? []
+        (index.coverageGaps?.categories ?? [])
+            .filter { $0.status == "gap" && $0.shortfall > 0 }
+            .map(ProtectionGapSummary.init)
+    }
+    /// Where the user stands per cover type, in the order web and /m show it.
+    var coverRows: [ProtectionCoverRow] {
+        guard let position = index.coverPosition else { return [] }
+        return [("life", position.life), ("critical_illness", position.criticalIllness), ("income_protection", position.incomeProtection)]
+            .compactMap { key, row in row.map { ProtectionCoverRow(key: key, row: $0) } }
     }
     var calculatedAt: String? { index.coverageGaps?.calculatedAt }
 
@@ -41,11 +45,49 @@ struct ProtectionIndex: Decodable, Sendable, Equatable {
     let profile: ProtectionProfile
     let policies: ProtectionPolicyGroups
     let coverageGaps: ProtectionGapPresentation?
+    let coverPosition: ProtectionCoverPosition?
 
     private enum CodingKeys: String, CodingKey {
         case profile, policies
         case coverageGaps = "coverage_gaps"
+        case coverPosition = "cover_position"
     }
+}
+
+/// ProtectionCoverPosition, figures and words as the server built them.
+struct ProtectionCoverPosition: Decodable, Sendable, Equatable {
+    struct Row: Decodable, Sendable, Equatable {
+        let label: String
+        let statusLabel: String
+        let tone: String
+        let needLabel: String
+        let ownCoverLabel: String
+        let employerCoverLabel: String
+
+        private enum CodingKeys: String, CodingKey {
+            case label, tone
+            case statusLabel = "status_label"
+            case needLabel = "need_label"
+            case ownCoverLabel = "own_cover_label"
+            case employerCoverLabel = "employer_cover_label"
+        }
+    }
+
+    let life: Row?
+    let criticalIllness: Row?
+    let incomeProtection: Row?
+
+    private enum CodingKeys: String, CodingKey {
+        case life
+        case criticalIllness = "critical_illness"
+        case incomeProtection = "income_protection"
+    }
+}
+
+struct ProtectionCoverRow: Identifiable, Sendable, Equatable {
+    let key: String
+    let row: ProtectionCoverPosition.Row
+    var id: String { key }
 }
 
 struct ProtectionGapPresentation: Decodable, Sendable, Equatable {
@@ -227,9 +269,11 @@ struct ProtectionPolicy: Decodable, Sendable, Equatable, Identifiable {
     let policyTermYears: Int?
     let beneficiaries: String?
     let conditionsCovered: [String]?
+    let annualPremiumFromServer: Decimal?
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case annualPremiumFromServer = "annual_premium"
         case policyType = "policy_type"
         case provider
         case policyNumber = "policy_number"
@@ -258,14 +302,9 @@ struct ProtectionPolicy: Decodable, Sendable, Equatable, Identifiable {
         type.isLumpSum ? sumAssured : benefitAmount
     }
 
-    var annualPremium: Decimal? {
-        guard let premiumAmount else { return nil }
-        switch premiumFrequency {
-        case "quarterly": return premiumAmount * 4
-        case "annually", "annual", "yearly": return premiumAmount
-        default: return premiumAmount * 12
-        }
-    }
+    /// The server's yearly premium (PremiumAnnualiser; weekly is 52 weeks), as
+    /// web and /m show it (CSJ 2026-10-01). This multiplied weekly by 12.
+    var annualPremium: Decimal? { annualPremiumFromServer }
 }
 
 struct ProtectionAnalysis: Decodable, Sendable, Equatable {

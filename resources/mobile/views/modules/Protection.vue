@@ -159,18 +159,14 @@ export default {
       });
     },
 
+    // Every figure and word is the server's (ProtectionCoverPosition), the same
+    // web and iOS print (CSJ 2026-10-01: one figure, every surface).
     coverRows() {
       const pos = this.payload?.cover_position || null;
       if (!pos) return [];
-      const labels = { life: 'Life cover', critical_illness: 'Critical illness cover', income_protection: 'Income protection' };
-      return Object.keys(labels).filter((k) => pos[k]).map((k) => {
+      return ['life', 'critical_illness', 'income_protection'].filter((k) => pos[k]).map((k) => {
         const p = pos[k];
-        const money = (v) => this.fmt(v) + (p.unit === 'monthly' ? ' a month' : '');
-        const parts = [];
-        if (p.short_by > 0) parts.push(`Short by ${money(p.short_by)}`);
-        if (p.over_by > 0) parts.push(`Over by ${money(p.over_by)}`);
-        if (p.depends_on_job) parts.push('Depends on your job');
-        return { key: k, label: labels[k], status: parts.length ? parts.join(', ') : 'Covered', need: money(p.need), own: money(p.own_cover), job: money(p.employer_cover) };
+        return { key: k, label: p.label, status: p.status_label, need: p.need_label, own: p.own_cover_label, job: p.employer_cover_label };
       });
     },
 
