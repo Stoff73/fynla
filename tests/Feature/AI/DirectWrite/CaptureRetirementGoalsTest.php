@@ -155,3 +155,34 @@ it('blocks preview users', function () {
     expect($result['blocked'] ?? false)->toBeTrue();
     expect(RetirementProfile::count())->toBe(0);
 });
+
+it('records care costs through the same store the forms use (CSJ 2026-10-01)', function () {
+    $user = User::factory()->create(['is_preview_user' => false, 'date_of_birth' => '1960-01-01']);
+    RetirementProfile::create(['user_id' => $user->id, 'current_age' => 66, 'target_retirement_age' => 65, 'target_retirement_income' => 30000]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_retirement_goals', [
+        'care_cost_annual' => 25000,
+        'care_start_age' => 85,
+    ], $user);
+
+    expect($result['onboarding_capture'] ?? false)->toBeTrue()
+        ->and($result['summary'])->toBe('Care costs of £25,000 a year saved from age 85.');
+    $profile = RetirementProfile::where('user_id', $user->id)->first();
+    expect((float) $profile->care_cost_annual)->toBe(25000.0)
+        ->and((int) $profile->care_start_age)->toBe(85)
+        ->and((float) $profile->target_retirement_income)->toBe(30000.0);
+});
+
+it('records "no care costs planned" as 0 alongside a goal', function () {
+    $user = User::factory()->create(['is_preview_user' => false, 'date_of_birth' => '1970-01-01']);
+
+    app(CoordinatingAgent::class)->executeTool('capture_retirement_goals', [
+        'target_retirement_age' => 65,
+        'target_retirement_income' => 30000,
+        'care_cost_annual' => 0,
+    ], $user);
+
+    $profile = RetirementProfile::where('user_id', $user->id)->first();
+    expect($profile->care_cost_annual)->not->toBeNull()
+        ->and((float) $profile->care_cost_annual)->toBe(0.0);
+});

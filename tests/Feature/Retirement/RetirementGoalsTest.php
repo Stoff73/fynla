@@ -249,3 +249,46 @@ it('asks Fyn for a date of birth rather than inventing a current age of 30', fun
 
     $this->assertDatabaseMissing('retirement_profiles', ['user_id' => $user->id]);
 });
+
+describe('care costs (CSJ 2026-10-01)', function () {
+    it('saves care costs and the age they might start through the goals endpoint', function () {
+        $user = goalsUser();
+        RetirementProfile::create(['user_id' => $user->id, 'current_age' => 48, 'target_retirement_age' => 65, 'target_retirement_income' => 30000]);
+        Sanctum::actingAs($user);
+
+        $this->putJson('/api/retirement/goals', ['care_cost_annual' => 30000, 'care_start_age' => 85])
+            ->assertOk()->assertJsonPath('data.care_start_age', 85);
+
+        $profile = RetirementProfile::where('user_id', $user->id)->first();
+        expect((float) $profile->care_cost_annual)->toBe(30000.0)
+            ->and((int) $profile->care_start_age)->toBe(85)
+            ->and((float) $profile->target_retirement_income)->toBe(30000.0);
+    });
+
+    it('records "none planned" as 0, distinct from never asked', function () {
+        $user = goalsUser();
+        RetirementProfile::create(['user_id' => $user->id, 'current_age' => 48, 'target_retirement_age' => 65, 'target_retirement_income' => 30000, 'care_cost_annual' => 20000, 'care_start_age' => 80]);
+        Sanctum::actingAs($user);
+
+        $this->putJson('/api/retirement/goals', ['care_cost_annual' => 0])->assertOk();
+
+        $profile = RetirementProfile::where('user_id', $user->id)->first();
+        expect($profile->care_cost_annual)->not->toBeNull()
+            ->and((float) $profile->care_cost_annual)->toBe(0.0)
+            ->and($profile->care_start_age)->toBeNull();
+    });
+
+    it('refuses care costs before there is a retirement target', function () {
+        Sanctum::actingAs(goalsUser());
+
+        $this->putJson('/api/retirement/goals', ['care_cost_annual' => 20000])->assertStatus(422);
+    });
+
+    it('refuses negative care costs', function () {
+        $user = goalsUser();
+        RetirementProfile::create(['user_id' => $user->id, 'current_age' => 48, 'target_retirement_age' => 65, 'target_retirement_income' => 30000]);
+        Sanctum::actingAs($user);
+
+        $this->putJson('/api/retirement/goals', ['care_cost_annual' => -5])->assertStatus(422);
+    });
+});

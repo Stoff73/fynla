@@ -113,6 +113,30 @@ class RetirementProfileStore
     }
 
     /**
+     * Care costs the user plans for in retirement: a yearly amount (0 is "none
+     * planned", an answer; the column's null is "never asked") and, optionally,
+     * the age they might start. They feed the decumulation analysis
+     * (RetirementAgent, DecumulationController). The one write path for web,
+     * /m and Fyn (CSJ 2026-10-01).
+     */
+    public function updateCareCosts(User $user, float $careCostAnnual, ?int $careStartAge = null): RetirementProfile
+    {
+        $profile = RetirementProfile::where('user_id', $user->id)->first();
+        if ($profile === null) {
+            throw new StoreValidationException([
+                'care_cost_annual' => ['Set your retirement target before adding care costs.'],
+            ]);
+        }
+        $profile->update([
+            'care_cost_annual' => round(max(0.0, $careCostAnnual), 2),
+            // No amount means no start age to keep.
+            'care_start_age' => $careCostAnnual > 0 ? $careStartAge : null,
+        ]);
+
+        return $profile->fresh();
+    }
+
+    /**
      * Keep `users.target_retirement_age` in step with the profile — see constraint
      * 3 in the class docblock.
      *

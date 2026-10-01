@@ -46,7 +46,7 @@ final class RecommendationRouting
         // Retirement — a forecast, a cost or an age the user supplies. The
         // adapter derives the type from the rule's category ("State Pension",
         // "Care Costs", "Retirement Planning"), so these are category slugs.
-        // Care costs have no capture tool, so that rule stays on the page.
+        // Care costs are captured by capture_retirement_goals since 2026-10-01.
         'retirement_state_pension' => ['action' => 'add', 'resource_type' => 'retirement'],
         'retirement_plan_retirement_income' => ['action' => 'edit', 'resource_type' => 'retirement'],
         // Retirement cards are typed by their definition key (CSJ 2026-10-01);
@@ -54,6 +54,8 @@ final class RecommendationRouting
         'retirement_state_pension_no_forecast' => ['action' => 'add', 'resource_type' => 'retirement'],
         'retirement_ni_gaps' => ['action' => 'add', 'resource_type' => 'retirement'],
         'retirement_retirement_income_position' => ['action' => 'edit', 'resource_type' => 'retirement'],
+        // Fyn's capture_retirement_goals now records care costs (CSJ 2026-10-01).
+        'retirement_care_costs_not_modelled' => ['action' => 'edit', 'resource_type' => 'retirement'],
 
         // Protection — the adapter collapses rules to their category: the
         // three cover-gap families ("add or increase cover" — the app's part

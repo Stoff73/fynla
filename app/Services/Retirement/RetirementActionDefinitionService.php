@@ -2148,7 +2148,8 @@ class RetirementActionDefinitionService
         // Step 4: Care cost assumptions check
         $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
 
-        $noCareCosts = $careCostAnnual <= 0;
+        // Null is "never asked"; 0 is the answer "none planned" (data-integrity trap 6).
+        $noCareCosts = $profile->care_cost_annual === null;
         $trace[] = [
             'question' => 'Has '.$userName.' entered any care cost assumptions in the retirement plan?',
             'data_field' => 'care_cost_annual',
@@ -2156,7 +2157,7 @@ class RetirementActionDefinitionService
             'threshold' => 'Greater than £0 per year',
             'passed' => $noCareCosts,
             'explanation' => $noCareCosts
-                ? 'No care cost assumptions have been entered. With a life expectancy of '.$lifeExpectancy.' and '.($lifeExpectancy - $targetRetirementAge).' years in retirement, this could lead to a significant underestimate of funding needs. Average UK residential care costs are approximately £35,000-£50,000 per year.'
+                ? 'No care cost assumptions have been entered. With a life expectancy of '.$lifeExpectancy.' and '.($lifeExpectancy - $targetRetirementAge).' years in retirement, care costs are not yet part of the decumulation analysis.'
                 : 'Care costs of £'.number_format($careCostAnnual, 0).' per year have been included in the retirement plan'.($careStartAge ? ' from age '.$careStartAge : '').'.',
         ];
 
@@ -2172,7 +2173,7 @@ class RetirementActionDefinitionService
             'data_value' => 'Add care cost assumptions for '.$retirementYears.' retirement years',
             'threshold' => 'Care costs not modelled for user aged '.$currentAge,
             'passed' => false,
-            'explanation' => $userName.' should add care cost assumptions to the retirement plan. With '.$retirementYears.' years in retirement (age '.$targetRetirementAge.' to '.$lifeExpectancy.'), even a few years of care at £35,000-£50,000 per year could require £100,000-£200,000 of additional funding. Adding these assumptions will provide a more realistic view of the retirement income needed.',
+            'explanation' => $userName.' should add care cost assumptions to the retirement plan. With '.$retirementYears.' years in retirement (age '.$targetRetirementAge.' to '.$lifeExpectancy.'). Adding a yearly care cost, or saying none is planned, lets the decumulation analysis include it.',
         ];
 
         return [[
