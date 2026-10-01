@@ -140,12 +140,15 @@ class RetirementDataReadinessService
 
         $passed = $grossIncome > 0;
 
-        // Already-retired users may have no employment income — downgrade from blocking to warning
+        // Already-retired users may have no employment income — downgrade from blocking to warning.
+        // Retired means past the profile's target age, or drawing their pension
+        // (RetirementDrawdownPosition::isDrawing, item 6), with or without a profile.
         $profile = $user->retirementProfile;
-        $isRetired = $profile
+        $isRetired = ($profile
             && $profile->current_age > 0
             && $profile->target_retirement_age > 0
-            && $profile->current_age >= $profile->target_retirement_age;
+            && $profile->current_age >= $profile->target_retirement_age)
+            || app(RetirementDrawdownPosition::class)->isDrawing($user);
 
         return [
             'key' => 'income',
