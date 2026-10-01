@@ -1,4 +1,26 @@
-# Tech Debt Report — Session 2026-09-30 (session 3)
+# Tech Debt Report — Session 2026-09-30 (session 4)
+
+**Files analysed:** 18 (released: #1022-#1024 in #1025; #1026, #1027 in #1028; #1029 in #1030)
+**Issues found:** 8
+**Severity breakdown:** 0 critical, 5 warnings, 3 suggestions
+
+## Warnings
+
+- **`app/Services/Tax/TaxStrategyCalculator.php:68` and `app/Services/Tax/TaxStrategyService.php:57-61`**: Category 4 (performance). One dashboard request works out the affordability figure twice: once in the calculator and again for the tile. That means two `CompositePlanService::financials()` calls, each building the profile. And when no spending is recorded, the tile calls `financials()` a third time. Fix: have the calculator return the money it used (for example on `TaxStrategyOutputDTO`) and let the tile read it.
+- **`app/Services/Coordination/HouseholdFinancialContext.php:66-67`**: Category 4 (performance). `availability()` now resolves `PensionAffordability` twice. It reads the expenditure breakdown, and for anyone who is retired or unemployed it also reads `incomePartsFor` (IncomeDefinitionsService), on every composer call. Fix: resolve once, and check `fundedFromCash` only when spending is not recorded (it already short-circuits on `||`, so only the double resolution remains).
+- **`app/Services/Tax/Strategies/PensionTaxReliefStrategy.php:60` and `app/Services/Tax/Strategies/IncomeBandStrategy.php:54`**: Category 1. The same cap block (read `tax_relief.basic_rate`, `pensionFundableGross`, `min($availableAA, …)`) is written twice. Fix: a `TaxStrategyContext::capToFundable(float $availableAA, float $basicRelief)`, or keep the basic relief rate on the context so strategies call `$context->pensionFundableGross()` with no argument.
+- **`resources/js/components/TaxStrategy/AllowanceCard.vue:72-84` and `resources/mobile/views/TaxStrategy.vue:232-239`**: Category 6 (Rule 20). Each client works out the allowance status label ("Fully used", "£0 of headroom" / "£0 available", "Not available"…) on its own, so today's fix had to be made twice. iOS was not checked. Fix: the server sends a `remaining_label` on each position (`TaxStrategyCalculator::position`) and every client renders it.
+- **`app/Services/Tax/PensionAffordability.php:51, 68`; `app/Services/Tax/Strategies/NonEarnerSpousePensionStrategy.php:52`; `app/Services/Tax/Strategies/CrossSpouseBundleStrategy.php:83`; `app/Services/Onboarding/CaptureForms.php:922`; `app/Services/Onboarding/OnboardingStateMachine.php:2648`**: Category 6. New `app()` service-locator calls, some added to avoid constructor cycles (CompositePlanService sits above the tax plan). Fix: inject where no cycle exists (the strategies can take `HouseholdFinancialContext` in the constructor). Keep the lazy resolution only in `PensionAffordability`, with its comment.
+
+## Suggestions
+
+- **`app/Services/Onboarding/CaptureForms.php:120, 279, 1291`**: Category 2. `expenditureTax()` / `EXPENDITURE_TAX` is no longer offered (#1027). It is kept only so a conversation already sitting on that step can save it. Remove it after a few weeks, once no onboarding conversation's last form is `expenditure_tax`.
+- **`app/Services/Onboarding/OnboardingChatDirector.php:3514-3519`**: Category 6. The linked-partner retry text is a state-specific branch in `emitRetry`, beside the prompt builder in `OnboardingStateMachine` (#1024). Two places hold the linked-partner wording rule. Fix: let a state's `retry_text` be a builder, as `prompt_text` is, and move the branch into the state machine.
+- **`tests/Unit/Services/Tax/PartnerPensionAffordabilityTest.php:103`**: Category 3 (Rule 2, in a test). It asserts `* 720 / 2880`, typed-in figures. Fix: read `TaxStrategyMath::nonEarnerPensionContribution()` for `relief` and `net`.
+
+---
+
+# Carried forward — Session 2026-09-30 (session 3)
 
 **Files analysed:** 18 (merged to `dev`: #1016, #1018-#1021; open PR #1022)
 **Issues found:** 7
