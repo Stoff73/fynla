@@ -41,57 +41,9 @@ const taxConfigModule = () => ({
 });
 
 describe('W-0461 — a moved rate reaches the rendered template', () => {
-  it('IHTPlanning renders the mitigation strategies at the configured rates', async () => {
-    const IHTPlanning = (await import('@/components/Estate/IHTPlanning.vue')).default;
-
-    const wrapper = mount(IHTPlanning, {
-      global: {
-        plugins: [createStore({
-          modules: {
-            taxConfig: taxConfigModule(),
-            estate: {
-              namespaced: true,
-              state: { analysis: null, gifts: [], lifeEvents: [], lifeEventImpact: null, lpas: [] },
-              getters: { netWorthValue: () => 0, ihtLiability: () => 0, ihtExemptAssets: () => 0 },
-              actions: {
-                fetchLpas: () => Promise.resolve(),
-                calculateIHT: () => Promise.resolve(null),
-                calculateIHTPlanning: () => Promise.resolve(null),
-              },
-            },
-            auth: { namespaced: true, getters: { currentUser: () => ({ marital_status: 'single' }) } },
-            preview: { namespaced: true, getters: { isPreviewMode: () => false } },
-          },
-        })],
-        mocks: { $route: { name: 'IHTPlanning' }, $router: { push: () => {} } },
-      },
-      shallow: true,
-    });
-
-    // The strategies card: a liability, no second-death strategies, no residence
-    // band — the state that renders all four captions at once.
-    await wrapper.setData({
-      loading: false,
-      ihtData: {
-        iht_liability: 100000,
-        rnrb: 0,
-        charitable_threshold: 60000,
-        charitable_baseline: 500000,
-      },
-    });
-
-    const text = wrapper.text();
-
-    // Instance 4 — the residence nil-rate band. Named by TWO verdicts (W-0399 C4
-    // item 4, then W-0461) and survived three batches as "£175,000".
-    expect(text).toContain('£190,000');
-    expect(text).not.toContain('£175,000');
-
-    // The rate pair beside it, and the Schedule 1A threshold derived from the
-    // payload's own two figures rather than spelled as "10%".
-    expect(text).toContain('from 31% to 29%');
-    expect(text).toContain('12% or more goes to charity');
-  });
+  // The IHTPlanning strategies card this case rendered could never show in
+  // production: it read `ihtData.iht_liability`, which nothing sets, and the
+  // case set it by hand. The card was deleted (audit item 36, CSJ 2026-10-01).
 
   it('EstateCurrentSituation labels the threshold with the configured reduced rate', async () => {
     const EstateCurrentSituation = (await import('@/components/Plans/Estate/EstateCurrentSituation.vue')).default;

@@ -25,6 +25,7 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
+use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\ComprehensiveEstatePlanService;
@@ -182,6 +183,10 @@ class EstateController extends Controller
                 // What the debts page totals, per type and in all, at the
                 // viewer's share (CSJ 2026-10-01: the page added these up itself).
                 'liability_totals' => $this->liabilityTotals($liabilityRows),
+                // The estate pages' own-estate figures (NetWorthAnalyzer, the same
+                // as /m, iOS and the dashboard estate card) and the gifts made in
+                // the last seven years, so no screen adds them up.
+                'summary' => $this->estateSummary($user, $gifts),
                 'gifts' => GiftResource::collection($gifts),
                 'trusts' => TrustResource::collection($trusts),
                 'iht_profile' => $ihtProfile,
@@ -195,6 +200,25 @@ class EstateController extends Controller
                 'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate'), null, report: true),
             ],
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function estateSummary(User $user, $gifts): array
+    {
+        $estate = $this->netWorthAnalyzer->calculateNetWorth($user->id);
+        $cutoff = now()->subYears(7)->startOfDay();
+        $recent = $gifts->filter(fn ($gift): bool => $gift->gift_date !== null && $gift->gift_date->gte($cutoff));
+
+        return [
+            'total_assets' => $estate['total_assets'],
+            'total_liabilities' => $estate['total_liabilities'],
+            'net_worth' => $estate['net_worth'],
+            'gifts_within_7_years' => [
+                'count' => $recent->count(),
+                'value' => round((float) $recent->sum('gift_value'), 2),
+                'ids' => $recent->pluck('id')->values()->all(),
+            ],
+        ];
     }
 
     /**

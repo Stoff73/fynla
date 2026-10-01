@@ -42,8 +42,6 @@
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
           :expanded-assets="expandedAssets"
-          :get-projected-minus-5="getProjectedValueMinus5"
-          :get-projected-plus-5="getProjectedValuePlus5"
           :subtotal-label="showSpouse ? 'Subtotal' : 'Assets Subtotal'"
           @toggle-asset="toggleAssetGroup"
         />
@@ -56,8 +54,6 @@
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
           :expanded-assets="expandedAssets"
-          :get-projected-minus-5="getProjectedValueMinus5"
-          :get-projected-plus-5="getProjectedValuePlus5"
           subtotal-label="Subtotal"
           @toggle-asset="toggleAssetGroup"
         />
@@ -439,10 +435,6 @@ export default {
     },
 
     // Growth rate for projections
-    growthRate: {
-      type: Number,
-      default: 0.047,
-    },
     yearsToDeathMinus5: {
       type: Number,
       default: 0,
@@ -746,14 +738,6 @@ export default {
       // nil-rate-band and residence-band sections belonged to the what-if layout
       // deleted under W-0132.
       this.expandedAllowances = shouldExpand;
-    },
-
-    getProjectedValueMinus5(currentValue) {
-      return currentValue * Math.pow(1 + this.growthRate, this.yearsToDeathMinus5);
-    },
-
-    getProjectedValuePlus5(currentValue) {
-      return currentValue * Math.pow(1 + this.growthRate, this.yearsToDeathPlus5);
     },
   },
 };

@@ -169,7 +169,9 @@ export default {
     assetComposition() { return this.netWorth?.asset_composition || []; },
     totalAssets() { return Number(this.netWorth?.total_assets ?? 0); },
     totalLiabilities() { return Number(this.netWorth?.total_liabilities ?? 0); },
-    netEstate() { return Number(this.netWorth?.net_worth ?? (this.totalAssets - this.totalLiabilities)); },
+    // The server's own-estate figure (NetWorthAnalyzer, the same as the dashboard
+    // estate card; CSJ 2026-10-01): never worked out here.
+    netEstate() { return Number(this.netWorth?.net_worth ?? 0); },
   },
   async created() { await this.load(); },
   methods: {

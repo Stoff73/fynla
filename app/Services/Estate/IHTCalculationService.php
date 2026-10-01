@@ -162,6 +162,23 @@ class IHTCalculationService
      *                         specific reason to capture the snapshot.
      * @return array IHT calculation results with all breakdown values
      */
+    /** Years added to the projection horizon; only calculateAtHorizonOffset sets it. */
+    private int $horizonOffsetYears = 0;
+
+    /**
+     * The same calculation with the death horizon moved by `$offsetYears`
+     * (never before today), for the table's earlier and later columns.
+     */
+    public function calculateAtHorizonOffset(User $user, ?User $spouse, bool $dataSharingEnabled, int $offsetYears): array
+    {
+        $this->horizonOffsetYears = $offsetYears;
+        try {
+            return $this->calculate($user, $spouse, $dataSharingEnabled);
+        } finally {
+            $this->horizonOffsetYears = 0;
+        }
+    }
+
     public function calculate(
         User $user,
         ?User $spouse = null,
@@ -851,6 +868,12 @@ class IHTCalculationService
         } else {
             $yearsUntilDeath = $this->calculateLifeExpectancy($user);
         }
+
+        // The Inheritance Tax table's "5 years earlier / later" columns run this
+        // same projection at a shifted horizon (calculateAtHorizonOffset), so they
+        // share its growth, liabilities and allowances (CSJ 2026-10-01: the web
+        // table grew assets at a 4.7% typed into the browser instead).
+        $yearsUntilDeath = max(0, $yearsUntilDeath + $this->horizonOffsetYears);
 
         $estimatedAgeAtDeath = $currentAge + $yearsUntilDeath;
 

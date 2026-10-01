@@ -95,3 +95,23 @@ it('lists the debts on /m at the same total net worth uses', function () {
         ->and((float) $detailed['property']['items'][0]['user_share_percent'])->toBe(30.0)
         ->and($detailed['property']['percent_of_assets'])->toBe(100);
 });
+
+it('sends the estate pages the own-estate figures and the gifts of the last seven years', function () {
+    Sanctum::actingAs($this->spouse);
+    \App\Models\Estate\Gift::create([
+        'user_id' => $this->spouse->id, 'gift_date' => now()->subYears(2)->toDateString(),
+        'recipient' => 'Child', 'gift_type' => 'pet', 'gift_value' => 20000,
+    ]);
+    \App\Models\Estate\Gift::create([
+        'user_id' => $this->spouse->id, 'gift_date' => now()->subYears(9)->toDateString(),
+        'recipient' => 'Child', 'gift_type' => 'pet', 'gift_value' => 50000,
+    ]);
+
+    $summary = $this->getJson('/api/estate')->assertOk()->json('data.summary');
+    $estate = app(\App\Services\Estate\NetWorthAnalyzer::class)->calculateNetWorth($this->spouse->id);
+
+    expect((float) $summary['net_worth'])->toBe((float) $estate['net_worth'])
+        ->and((float) $summary['total_liabilities'])->toBe(33000.0)
+        ->and($summary['gifts_within_7_years']['count'])->toBe(1)
+        ->and((float) $summary['gifts_within_7_years']['value'])->toBe(20000.0);
+});
