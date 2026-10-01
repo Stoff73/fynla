@@ -18,6 +18,7 @@
  */
 
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { STATE_PENSION_ANNUAL } from '@/constants/taxConfig';
 
 const TAX_YEAR = getCurrentTaxYear();
 
@@ -772,10 +773,10 @@ export const LIFE_STAGES = {
           quickStat: { value: '25%', label: 'Maximum tax-free cash lump sum you can take from a defined contribution pension' },
         },
         'state-pension': {
-          didYouKnow: `The full new State Pension is £11,502.40 per year (${TAX_YEAR}). It is uprated annually by the triple lock (highest of earnings growth, CPI inflation, or 2.5%), making it one of the most valuable guaranteed income streams available. Every year of National Insurance contributions matters — you can check and fill gaps in your record via the government's Check Your State Pension tool.`,
+          didYouKnow: `The full new State Pension is £${STATE_PENSION_ANNUAL.toLocaleString('en-GB', { minimumFractionDigits: 2 })} per year (${TAX_YEAR}). It is uprated annually by the triple lock (highest of earnings growth, CPI inflation, or 2.5%), making it one of the most valuable guaranteed income streams available. Every year of National Insurance contributions matters — you can check and fill gaps in your record via the government's Check Your State Pension tool.`,
           whyWeAsk: 'Your State Pension amount and start date are foundational inputs in your retirement income model. Combined with your private pensions, they determine the total guaranteed income you can rely on each year.',
           howItFits: 'State Pension income is index-linked and cannot be outlived — it is the foundation of your retirement income. Once we know this figure, we can calculate exactly how much additional income your private pensions and investments need to generate.',
-          quickStat: { value: '£11,502', label: `Full new State Pension annual amount (${TAX_YEAR})` },
+          quickStat: { value: `£${Math.round(STATE_PENSION_ANNUAL).toLocaleString('en-GB')}`, label: `Full new State Pension annual amount (${TAX_YEAR})` },
         },
         'income-tax': {
           didYouKnow: 'Retirement offers significant tax planning opportunities that employed workers cannot access. By carefully sequencing withdrawals from ISAs (tax-free), pensions (taxable above Personal Allowance), and other savings, couples can structure retirement income to pay minimal income tax whilst maintaining a high standard of living.',

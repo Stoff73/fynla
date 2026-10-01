@@ -45,7 +45,7 @@
               placeholder="e.g., 203.85"
             />
             <p class="text-xs text-neutral-500 mt-1">
-              Full new State Pension ({{ currentTaxYear }}): £221.20/week (£11,502/year)
+              Full new State Pension ({{ currentTaxYear }}): {{ fullStatePensionLabel }}
             </p>
           </div>
 
@@ -187,6 +187,7 @@
 
 <script>
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { STATE_PENSION_WEEKLY, STATE_PENSION_ANNUAL } from '@/constants/taxConfig';
 
 export default {
   name: 'StatePensionForm',
@@ -228,6 +229,13 @@ export default {
 
     currentTaxYear() {
       return getCurrentTaxYear();
+    },
+
+    // From tax config, never typed in (Rule 2): it read £221.20 under a
+    // 2026/27 label (2026-10-01).
+    fullStatePensionLabel() {
+      const weekly = STATE_PENSION_WEEKLY.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `£${weekly}/week (£${Math.round(STATE_PENSION_ANNUAL).toLocaleString('en-GB')}/year)`;
     },
   },
 

@@ -76,6 +76,7 @@
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { STATE_PENSION_WEEKLY } from '@/constants/taxConfig';
 
 export default {
   name: 'GlossaryPage',
@@ -354,7 +355,7 @@ export default {
           {
             name: 'State Pension',
             anchor: 'state-pension',
-            definition: `A regular payment from the government in retirement, based on your National Insurance record. The full new State Pension is \u00A3221.20 per week (${getCurrentTaxYear()}). You need 35 qualifying years for the full amount.`,
+            definition: `A regular payment from the government in retirement, based on your National Insurance record. The full new State Pension is \u00A3${STATE_PENSION_WEEKLY.toFixed(2)} per week (${getCurrentTaxYear()}). You need 35 qualifying years for the full amount.`,
             link: null,
           },
           {
