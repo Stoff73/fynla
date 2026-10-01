@@ -507,7 +507,9 @@ PROMPT;
             // Net worth from dedicated service — always rendered (cross-module overview)
             try {
                 $netWorthService = app(NetWorthService::class);
-                $netWorthData = $netWorthService->calculateNetWorth($user);
+                // The cached figure every page and the dashboard read, so Fyn
+                // quotes the number on screen (CSJ 2026-10-01; audit item 46).
+                $netWorthData = $netWorthService->getCachedNetWorth($user);
                 $lines[] = '- Total net worth: £'.number_format($netWorthData['net_worth'], 0);
                 $lines[] = '- Total assets: £'.number_format($netWorthData['total_assets'], 0);
                 $lines[] = '- Total liabilities: £'.number_format($netWorthData['total_liabilities'], 0);

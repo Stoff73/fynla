@@ -119,6 +119,11 @@ class ISATracker
             'total_allowance' => round($totalAllowance, 2),
             'remaining' => round($remaining, 2),
             'percentage_used' => round($percentageUsed, 2),
+            // Each kind's share of the allowance, for the bar every surface
+            // draws (CSJ 2026-10-01: the web tracker divided these itself).
+            'cash_isa_percent' => $totalAllowance > 0 ? round($cashIsaUsed / $totalAllowance * 100, 2) : 0.0,
+            'stocks_shares_isa_percent' => $totalAllowance > 0 ? round($stocksSharesIsaUsed / $totalAllowance * 100, 2) : 0.0,
+            'lisa_percent' => $totalAllowance > 0 ? round($lisaUsed / $totalAllowance * 100, 2) : 0.0,
             'projected_usage' => [
                 'cash_isa_projected' => round($projectedCashIsa, 2),
                 'total_projected' => round($projectedTotal, 2),
