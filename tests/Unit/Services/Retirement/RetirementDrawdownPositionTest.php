@@ -176,3 +176,18 @@ it('serves the view in the projections response, and null for a saver', function
     Sanctum::actingAs($saver);
     expect($this->getJson('/api/retirement/projections')->assertOk()->json('data.drawdown_position'))->toBeNull();
 });
+
+it('records from the web form that the State Pension is being paid, and counts it', function (): void {
+    $pat = drawer();
+    Sanctum::actingAs($pat);
+
+    $this->postJson('/api/retirement/state-pension', [
+        'ni_years_completed' => 35, 'ni_years_required' => 35,
+        'state_pension_forecast_annual' => 11502.4, 'already_receiving' => true,
+    ])->assertOk();
+
+    $income = app(RetirementDrawdownPosition::class)->for($pat->fresh())['income'];
+    expect(collect($income['lines'])->firstWhere('key', 'state_pension')['amount'])->toBe(11502.4)
+        ->and($income['state_pension_missing'])->toBeFalse()
+        ->and($income['total'])->toBe(41502.4);
+});
