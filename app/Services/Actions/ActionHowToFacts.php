@@ -203,6 +203,15 @@ final class ActionHowToFacts
             $allowance = (float) ($this->taxConfig->getIncomeTax()['personal_allowance'] ?? 0);
             $facts['transferor_uses_whole_allowance'] = $allowance > 0 && (float) $giver >= $allowance;
         }
+        // A savings gift: what the spouse then pays on the interest, rounded
+        // up so a few pence never reads as nothing (TODO item 4).
+        if (isset($item['partner_extra_tax'])) {
+            $facts['partner_pays_nothing'] = (float) $item['partner_extra_tax'] < 0.01;
+            $text['partner_extra_tax'] = '£'.number_format((int) ceil((float) $item['partner_extra_tax']));
+        }
+        if (isset($item['user_tax_saved'])) {
+            $text['user_tax_saved'] = self::pounds((float) $item['user_tax_saved']);
+        }
         if (isset($item['transferor_extra_tax'])) {
             // "About £X more" needs a whole pound to name; "no more tax" only
             // when it is nothing at all.

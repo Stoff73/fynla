@@ -2647,7 +2647,7 @@ final class OnboardingStateMachine
     {
         return app(HouseholdFinancialContext::class)->partnerWithOwnRecords($user) !== null
             ? self::LINKED_SPOUSE_INCOME_PROMPT
-            : 'Great. **How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?**';
+            : 'Great. **How much does your spouse earn annually, and do they have savings, ISAs, investments or pension contributions of their own?**';
     }
 
     /**

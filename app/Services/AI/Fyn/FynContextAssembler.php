@@ -577,6 +577,7 @@ final class FynContextAssembler
             'spouse_pension_input_annual' => 'Spouse annual pension contribution',
             'spouse_existing_isa_balance' => 'Spouse existing ISA balance',
             'spouse_existing_savings_balance' => 'Spouse existing savings balance',
+            'spouse_annual_savings_interest' => 'Spouse annual savings interest',
             'spouse_existing_investment_balance' => 'Spouse existing investment balance',
             'spouse_existing_dividend_holdings_value' => 'Spouse existing dividend holdings value',
             'spouse_existing_pension_balance' => 'Spouse existing pension balance',

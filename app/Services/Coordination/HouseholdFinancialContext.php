@@ -24,12 +24,14 @@ use App\Services\Tax\TaxStrategyMath;
  *   annual_income, charitable_giving, date_of_birth, dividend_income,
  *   employment_status, gia_holdings, isa_subscriptions_ytd, marital_status,
  *   pension_contributions, pension_input_history, savings_balances,
- *   spouse_income, spouse_income_amount, workplace_pension
+ *   spouse_income, spouse_income_amount, spouse_savings, workplace_pension
  *
  * spouse_income is "we know how the spouse stands" (a non-working spouse
  * counts). spouse_income_amount is the figure itself — a linked spouse's
  * records or an amount captured — which Marriage Allowance needs because a
  * non-working spouse can still have a pension or rent (CSJ 2026-09-28).
+ * spouse_savings is the spouse's own savings interest, which decides what
+ * moving savings to them saves (CSJ 2026-10-01).
  */
 final class HouseholdFinancialContext
 {
@@ -73,6 +75,7 @@ final class HouseholdFinancialContext
             'savings_balances' => $this->hasSavingsBalance($user),
             'spouse_income' => $this->spouseIncomeKnown($user),
             'spouse_income_amount' => $this->spouseIncomeAmountKnown($user),
+            'spouse_savings' => $this->spouseSavingsKnown($user),
             'workplace_pension' => $hasDcPension,
         ];
         foreach ($declared as $key) {
@@ -91,6 +94,7 @@ final class HouseholdFinancialContext
         if (! $this->math->isMarriedOrCivilPartner($user)) {
             $availability['spouse_income'] = null;
             $availability['spouse_income_amount'] = null;
+            $availability['spouse_savings'] = null;
         }
 
         return $availability;
@@ -156,6 +160,7 @@ final class HouseholdFinancialContext
             'charitable_giving' => 'charitable giving',
             'spouse_income' => "spouse's income",
             'spouse_income_amount' => "spouse's total income a year, including any pension or rent (enter 0 if none)",
+            'spouse_savings' => "spouse's savings and the interest they receive each year",
             'marital_status' => 'marital status',
             'employment_status' => 'employment status',
             'expenditure' => 'monthly spending',
@@ -328,6 +333,24 @@ final class HouseholdFinancialContext
      * (TaxStrategyMath::linkedSpouseWithIncome, the one rule), else from the
      * figure given.
      */
+    /**
+     * The spouse's own savings interest is known (their records, an interest
+     * figure, or savings given as none), or it cannot matter: when the user
+     * pays no tax on the interest they could move, no answer would change the
+     * plan, so nobody is asked (null).
+     */
+    private function spouseSavingsKnown(User $user): ?bool
+    {
+        $household = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        $position = $this->math->partnerTaxPosition($user, (string) ($user->household_calculation_mode ?? ''), $household);
+        if ($position !== null && $position['savings_known']) {
+            return true;
+        }
+        $movable = $this->math->soleNonIsaSavings($user)['interest'];
+
+        return floor($this->math->interestRemovalSaving($user, $movable)) >= 1 ? false : null;
+    }
+
     private function spouseIncomeAmountKnown(User $user): bool
     {
         return $this->math->linkedSpouseWithIncome($user) !== null

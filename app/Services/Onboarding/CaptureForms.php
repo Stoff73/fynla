@@ -230,6 +230,16 @@ final class CaptureForms
                 }
             }
 
+            // Savings left unticked beside other answers is "no savings", as
+            // nothing chosen at all is: they saw it listed (2026-10-01). Without
+            // it a savings move waits on a question already answered.
+            $savingsKind = collect($schema['kinds'] ?? [])->firstWhere('key', 'savings');
+            if ($input !== [] && $savingsKind !== null && ! is_array($form['answers']['savings'] ?? null)) {
+                foreach ($savingsKind['fields'] as $fieldKey) {
+                    $input[$fieldKey] = 0.0;
+                }
+            }
+
             if ($input !== [] && $schema['name'] === self::DEPENDANTS) {
                 // capture_dependants takes a list; the form saves one per turn.
                 $input = ['dependants' => [$input]];
@@ -646,6 +656,9 @@ final class CaptureForms
         if (($input['spouse_pays_non_earner_maximum'] ?? null) === 'yes') {
             $parts[] = 'pays '.self::pounds(self::nonEarnerNetContribution()).' a year into their pension';
         }
+        if (isset($input['spouse_annual_savings_interest'])) {
+            $parts[] = self::pounds($input['spouse_annual_savings_interest']).' a year in savings interest';
+        }
         if (isset($input['spouse_annual_dividends'])) {
             $parts[] = self::pounds($input['spouse_annual_dividends']).' a year in dividends';
         }
@@ -882,6 +895,9 @@ final class CaptureForms
             'allow_empty' => true,
             'kinds_prompt' => 'Do they have any of the following? You can choose more than one, or save with none chosen.',
             'kinds' => [
+                // Their own savings: their interest decides what moving
+                // savings to them saves (CSJ 2026-10-01, D1).
+                ['key' => 'savings', 'label' => 'Savings', 'fields' => ['spouse_existing_savings_balance', 'spouse_annual_savings_interest']],
                 ['key' => 'isa', 'label' => 'ISAs', 'fields' => ['spouse_isa_balance', 'spouse_isa_provider']],
                 ['key' => 'pension', 'label' => 'A pension', 'fields' => ['spouse_pension_input_annual', 'spouse_existing_pension_balance', 'spouse_pension_provider']],
                 ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_annual_dividends', 'spouse_unrealised_gains']],
@@ -894,6 +910,8 @@ final class CaptureForms
                 // income (FA 2004 s189-190; CSJ 2026-09-28).
                 'spouse_annual_earnings' => ['type' => 'money', 'label' => 'Of that, earnings from work', 'required' => false,
                     'hint' => 'Salary, or profit if self-employed. Not pension or rent. Leave blank if none'],
+                'spouse_existing_savings_balance' => ['type' => 'money', 'label' => 'Savings balance', 'required' => true],
+                'spouse_annual_savings_interest' => self::spouseSavingsInterestField(),
                 'spouse_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
                 'spouse_isa_provider' => ['type' => 'text', 'label' => 'Who the ISA is with', 'required' => false],
                 'spouse_pension_input_annual' => ['type' => 'money', 'label' => 'They pay in each year', 'required' => false, 'hint' => 'Leave blank if none'],
@@ -929,6 +947,18 @@ final class CaptureForms
     }
 
     /**
+     * The interest a spouse receives on their own savings, under their balance
+     * on both spouse forms (CSJ 2026-10-01, D1/D2). Optional: a balance without
+     * it leaves a savings move waiting for it.
+     *
+     * @return array<string, mixed>
+     */
+    private static function spouseSavingsInterestField(): array
+    {
+        return ['type' => 'money', 'label' => 'Interest they receive each year', 'required' => false, 'hint' => "Leave blank if you don't know"];
+    }
+
+    /**
      * Non-working spouse: what they hold in their own name — savings, ISAs,
      * investments, pension — ONE write through capture_spouse_non_working_assets.
      * Nothing chosen and saved means nothing in their own name.
@@ -946,13 +976,14 @@ final class CaptureForms
             'kinds_prompt' => 'Do they have any of the following in their own name? You can choose more than one, or save with none chosen.',
             'allow_empty' => true,
             'kinds' => [
-                ['key' => 'savings', 'label' => 'Savings', 'fields' => ['spouse_existing_savings_balance']],
+                ['key' => 'savings', 'label' => 'Savings', 'fields' => ['spouse_existing_savings_balance', 'spouse_annual_savings_interest']],
                 ['key' => 'isa', 'label' => 'ISAs', 'fields' => ['spouse_existing_isa_balance']],
                 ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value', 'spouse_annual_dividends']],
                 ['key' => 'pension', 'label' => 'A pension', 'fields' => ['spouse_existing_pension_balance', 'spouse_pays_non_earner_maximum']],
             ],
             'fields' => [
                 'spouse_existing_savings_balance' => ['type' => 'money', 'label' => 'Savings balance', 'required' => true],
+                'spouse_annual_savings_interest' => self::spouseSavingsInterestField(),
                 'spouse_existing_isa_balance' => ['type' => 'money', 'label' => 'ISA balance', 'required' => true],
                 'spouse_existing_investment_balance' => ['type' => 'money', 'label' => 'Investments value', 'required' => true],
                 'spouse_existing_dividend_holdings_value' => ['type' => 'money', 'label' => 'Of which dividend-paying shares', 'required' => false, 'hint' => 'Leave blank if none or unknown'],

@@ -135,6 +135,7 @@ describe('Path C — single_earner_couple', function () {
             'user_id' => $user->id,
             'spouse_existing_isa_balance' => 0,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
             'spouse_existing_investment_balance' => 0,
             'spouse_existing_dividend_holdings_value' => 0,
         ]);
@@ -255,6 +256,7 @@ describe('Path C — single_earner_couple', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
@@ -270,13 +272,15 @@ describe('Path C — single_earner_couple', function () {
         $shift = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
             ->firstWhere('type', 'savings_to_spouse');
 
+        // Only the £122.75 above the £500 Savings Allowance is taxed, at 40%:
+        // moving it from the 4.7% account (£2,700 rounded down to £100)
+        // saves the same as moving everything, and never more cash than held.
         expect($shift)->not->toBeNull()
-            ->and($shift['suggested_transfer_amount'])->toBe(16750.0)
+            ->and($shift['suggested_transfer_amount'])->toBe(2700.0)
             ->and($shift['estimated_annual_tax_saved'])->toBe(49.0)
-            ->and($shift['annual_interest_moved'])->toBe(622.75)
-            ->and($shift['taxable_interest_sheltered'])->toBe(122.75)
-            ->and($shift['title'])->toContain('£16,750')
-            ->and($shift['title'])->not->toContain('£17,000');
+            ->and($shift['annual_interest_moved'])->toBe(126.9)
+            ->and($shift['title'])->toContain('£2,700')
+            ->and($shift['title'])->not->toContain('£16,750');
     });
 
     /**
@@ -706,6 +710,7 @@ describe('recommendations contract (canonical)', function () {
             'user_id' => $user->id,
             'spouse_existing_isa_balance' => 0,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
@@ -895,7 +900,11 @@ describe('Phase 2 — allowance harvesting (#5, #7)', function () {
 });
 
 describe('Phase 2 — household strategy refinements (#9, #11)', function () {
-    it('breaks the spouse-savings transfer copy into stacked allowance buckets', function () {
+    // CSJ 2026-10-01 (D3): "Gift £X of savings to your spouse and save £Y in
+    // tax a year", for every couple. A higher-rate user moves the interest
+    // above their £500 Savings Allowance (ITA 2007 s12B); a spouse with no
+    // income takes it at 0%, and the card says so.
+    it('words the savings gift as the amount and the tax it saves, sized to the interest that is taxed', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 80000,
@@ -904,26 +913,29 @@ describe('Phase 2 — household strategy refinements (#9, #11)', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
             'current_balance' => 200000,
             'interest_rate' => 4.0,
         ]);
+        $shift = collect(app(TaxStrategyCalculator::class)->calculate($user)->recommendations)
+            ->firstWhere('type', 'savings_to_spouse');
 
-        $output = app(TaxStrategyCalculator::class)->calculate($user);
-
-        $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
+        // The figures themselves are pinned in SavingsToSpouseTest; here, that
+        // the card says the amount and the saving it publishes, and that some
+        // savings stay where the user's own allowance already covers them.
         expect($shift)->not->toBeNull()
-            ->and($shift['title'])->toContain('£18,570')
-            ->and($shift['description'])->toContain('Personal Allowance')
-            ->and($shift['description'])->toContain('Starting Rate for Savings')
-            ->and($shift['description'])->toContain('Personal Savings Allowance')
+            ->and($shift['title'])->toBe(sprintf(
+                'Gift £%s of savings to your spouse and save £%s in tax a year',
+                number_format((int) $shift['suggested_transfer_amount']),
+                number_format((int) $shift['estimated_annual_tax_saved']),
+            ))
+            ->and($shift['suggested_transfer_amount'])->toBeLessThan(200000.0)
+            ->and($shift['description'])->toContain('they pay no tax on it')
             ->and($shift['description'])->toContain('Capital Gains Tax')
-            ->and($shift['description'])->toContain('Inheritance Tax')
-            ->and($shift)->toHaveKey('spouse_personal_allowance')
-            ->and($shift)->toHaveKey('spouse_starting_rate_for_savings')
-            ->and($shift)->toHaveKey('spouse_personal_savings_allowance');
+            ->and($shift['description'])->toContain('Inheritance Tax');
     });
 
     it('qualifies GIA rebalance because eligible account dividends are not stored separately', function () {
@@ -981,6 +993,7 @@ describe('Phase 2 — joint-savings strategy (#15)', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
@@ -1007,6 +1020,7 @@ describe('Phase 2 — joint-savings strategy (#15)', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
@@ -1026,7 +1040,6 @@ describe('Phase 2 — joint-savings strategy (#15)', function () {
 
         expect($recommendation)->not->toBeNull()
             ->and($recommendation['annual_interest'])->toBe(622.75)
-            ->and($recommendation['shelterable_interest'])->toBe(122.5)
             ->and($recommendation['estimated_annual_tax_saved'])->toBe(49.0);
     });
 
@@ -1180,6 +1193,7 @@ describe('Phase 2 — sort order in recommendations[]', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
@@ -2234,6 +2248,7 @@ describe('PSA joint-interest attribution (issue #21)', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
@@ -2315,6 +2330,7 @@ describe('PSA joint-interest attribution (issue #21)', function () {
         TaxStrategyHouseholdInput::create([
             'user_id' => $user->id,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
         ]);
         SavingsAccount::factory()->for($user)->create([
             'is_isa' => false,
@@ -2341,6 +2357,7 @@ describe('PSA joint-interest attribution (issue #21)', function () {
             'user_id' => $user->id,
             'spouse_existing_isa_balance' => 0,
             'spouse_existing_savings_balance' => 0,
+            'spouse_annual_income' => 0, // a non-earner's income is captured (CSJ 2026-09-28)
             'spouse_existing_investment_balance' => 0,
             'spouse_existing_dividend_holdings_value' => 0,
         ]);

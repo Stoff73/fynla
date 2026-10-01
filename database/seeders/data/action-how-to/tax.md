@@ -392,15 +392,22 @@ outcome:
 
 ## savings_to_spouse
 status: approved
-source: ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626); ITA 2007 s12B (https://www.legislation.gov.uk/ukpga/2007/3/section/12B); https://www.gov.uk/inheritance-tax/gifts
-figures: suggested_transfer_amount, annual_interest_moved, spouse_stacked_interest_capacity
+source: ITTOIA 2005 s626 (https://www.legislation.gov.uk/ukpga/2005/5/section/626); ITA 2007 s12 (https://www.legislation.gov.uk/ukpga/2007/3/section/12), s12A (https://www.legislation.gov.uk/ukpga/2007/3/section/12A) and s12B (https://www.legislation.gov.uk/ukpga/2007/3/section/12B); https://www.gov.uk/inheritance-tax/gifts
+figures: suggested_transfer_amount, annual_interest_moved, user_tax_saved, partner_extra_tax
 why:
 1. Your savings earn about {annual_interest_moved} a year in interest that is taxed at your rate.
+why when partner_pays_nothing:
 2. {spouse_start} has allowances that would cover that interest.
+why when not partner_pays_nothing:
+2. {spouse_start} would pay less tax on that interest than you do.
 always:
-1. Move {suggested_transfer_amount} into an account in {spouse}'s own name.
-2. The gift must be outright, with no conditions and no way for the money to come back to you. The {annual_interest_moved} a year of interest it earns is then theirs, taxed under their own allowances.
-3. With no other income recorded for them, their Personal Allowance, starting rate for savings and Personal Savings Allowance cover up to {spouse_stacked_interest_capacity} of interest a year.
+1. Move {suggested_transfer_amount}, from the savings that pay you the most interest, into an account in {spouse}'s own name.
+2. The gift must be outright, with no conditions and no way for the money to come back to you. The {annual_interest_moved} a year of interest it earns is then theirs, taxed on their income at their own rates.
+when partner_pays_nothing:
+3. On their income, the tax-free allowances they have left for savings interest cover it, so they pay no tax on it. You pay about {user_tax_saved} less.
+when not partner_pays_nothing:
+3. On their income, they pay about {partner_extra_tax} a year on it, and you pay about {user_tax_saved} less.
+always:
 4. There is no Inheritance Tax on gifts between spouses or civil partners who live in the UK permanently. Once it is given, the money belongs to them.
 outcome when not priced_after_pension:
 1. Your household pays about {tax_saved} less tax a year.

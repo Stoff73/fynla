@@ -43,7 +43,7 @@ it('sums only real tax savings, counting ISA top-up and the savings gift once', 
         'annual_employment_income' => 60000,
         'marital_status' => 'married',
     ]);
-    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id, 'spouse_existing_savings_balance' => 0, 'spouse_annual_income' => 0]);
     SavingsAccount::factory()->for($user)->create([
         'current_balance' => 150000, 'interest_rate' => 4.5, 'is_isa' => false,
         'ownership_type' => 'individual', 'joint_owner_id' => null,

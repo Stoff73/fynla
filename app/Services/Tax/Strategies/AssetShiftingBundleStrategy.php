@@ -7,23 +7,18 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Models\Investment\InvestmentAccount;
-use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
-use App\Support\SavingsInterestRate;
-use App\Traits\CalculatesOwnershipShare;
 
 /**
- * Single_earner_couple bundle of asset-shifting strategies — savings-to-
- * spouse, ISA top-up in spouse's name, GIA-to-spouse for CGT/Dividend
- * allowance shelter. Marriage Allowance lives in MarriageAllowanceStrategy. Each emitted suggestion
+ * Asset-shifting strategies for couples: savings-to-spouse for every couple,
+ * and, for a spouse who does not work, an ISA top-up in their name and
+ * GIA-to-spouse for their Capital Gains Tax and dividend allowances. Marriage Allowance lives in MarriageAllowanceStrategy. Each emitted suggestion
  * surfaces as a separate recommendation card on the dashboard.
  */
 final class AssetShiftingBundleStrategy implements TaxStrategy
 {
-    use CalculatesOwnershipShare;
-
     public function __construct(
         private readonly TaxStrategyMath $math,
         private readonly TaxConfigService $taxConfig,
@@ -31,105 +26,34 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
 
     public function generate(TaxStrategyContext $context): array
     {
-        if ($context->mode !== 'single_earner_couple' || ! $this->math->isMarriedOrCivilPartner($context->user)) {
+        if (! $this->math->isMarriedOrCivilPartner($context->user)) {
             return [];
         }
 
         $user = $context->user;
         $household = $context->household;
         $suggestions = [];
-        $income = $this->taxConfig->getIncomeTax();
         $isaAmount = (float) $this->taxConfig->getISAAllowances()['annual_allowance'];
+        $savings = $this->math->soleNonIsaSavings($user);
+        $userSavingsTotal = $savings['balance'];
+        $annualInterest = $savings['interest'];
 
-        // M11 — HMRC band uses TOTAL taxable income (employment + dividends +
-        // savings interest), not employment alone. Computed once because
-        // taxableIncomeFor() runs a SavingsAccount query.
-        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
-
-        // 2. Savings → spouse: only price this when the campaign has explicitly
-        // confirmed that the non-earning spouse has no existing savings. A
-        // balance without an account rate is not enough to infer their interest
-        // income or unused tax-free capacity.
-        // Sole-name only: a shared account is already split 50/50 by HMRC
-        // default and cannot be "shifted" to the spouse. Ownership_type
-        // decides — the campaign's joint accounts carry a null co-owner User.
-        $userSavings = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->reject(fn ($acc) => $this->isSharedOwnership($acc))
-            ->where('is_isa', false);
-        $userSavingsTotal = (float) $userSavings->sum('current_balance');
-        $annualInterest = (float) $userSavings->sum(fn ($acc) => (float) $acc->current_balance * SavingsInterestRate::fraction($acc->interest_rate));
-        $userAvgRate = $userSavingsTotal > 0 ? $annualInterest / $userSavingsTotal : 0.0;
-
-        $personalAllowance = (float) $income['personal_allowance'];
-        // A Marriage Allowance transfer takes that slice of the spouse's
-        // Personal Allowance; it cannot also shelter gifted interest (B4).
-        $spousePersonalAllowance = $this->math->marriageAllowanceTransfer($user, $context->mode, $household) > 0
-            ? $personalAllowance - $this->math->marriageAllowanceAmount()
-            : $personalAllowance;
-        $startingRate = (float) $income['starting_rate_for_savings']['band'];
-        $spouseInterestCapacity = $spousePersonalAllowance + $startingRate + $this->math->psaForBand('basic');
-        $spouseSavingsKnownZero = $household?->spouse_existing_savings_balance !== null
-            && (float) $household->spouse_existing_savings_balance === 0.0;
-        $maxTransferableByCapacity = $userAvgRate > 0 ? $spouseInterestCapacity / $userAvgRate : 0.0;
-        $suggestedTransfer = $spouseSavingsKnownZero
-            ? min($userSavingsTotal, $maxTransferableByCapacity)
-            : 0.0;
-
-        $estimatedAnnualTaxSaved = 0.0;
-        if ($suggestedTransfer > 1000) {
-            // Marginal rate on savings interest follows the same total-income
-            // band as MA above. bandRateFor() uses raw employment so we resolve
-            // via the cached $userBand instead.
-            $psaBasic = $this->math->psaForBand('basic');
-            $stackedCapacity = $spousePersonalAllowance + $startingRate + $psaBasic;
-            $userPersonalAllowance = $this->math->personalAllowanceFor($user);
-            $userStartingRate = max(
-                0.0,
-                $startingRate - max(0.0, $this->math->nonSavingsIncomeFor($user) - $userPersonalAllowance),
-            );
-            $userTaxFreeInterest = $userStartingRate + $this->math->psaForBand($userBand);
-            $taxableInterestBefore = max(0.0, $annualInterest - $userTaxFreeInterest);
-            $annualInterestMoved = min($annualInterest, $suggestedTransfer * $userAvgRate);
-            $taxableInterestSheltered = min($taxableInterestBefore, $annualInterestMoved);
-            // Priced by the tax engine, not a flat band rate (audit 2026-09-27).
-            $estimatedAnnualTaxSaved = floor($this->math->interestRemovalSaving($user, $annualInterestMoved, 0.0, $context->pensionPaidElsewhere));
-            $reportedTransfer = round($suggestedTransfer, 2);
+        // 2. Savings → spouse, for every couple (CSJ 2026-09-30, TODO item 4):
+        // the amount that saves the household the most, priced on both
+        // partners' whole income (TaxStrategyMath::savingsMoveToPartner). It
+        // waits when the spouse's income or savings are not known.
+        $move = $this->savingsMove($context, $savings);
+        if ($move !== null) {
+            $suggestions[] = $move;
         }
-        // A gift that saves no tax is not a tax action: a couple with no income
-        // was offered "Gift £4,000 of savings to your spouse" at £0 (ice-cube,
-        // PR 991). The same £1 floor as the ISA card (IsaTopUpStrategy).
-        if ($suggestedTransfer > 1000 && $estimatedAnnualTaxSaved >= 1) {
-            $suggestions[] = [
-                'type' => 'savings_to_spouse',
-                'priority' => 'high',
-                'title' => sprintf(
-                    'Gift £%s of savings to your spouse for up to £%s of interest tax-free every year',
-                    number_format((int) round($reportedTransfer)),
-                    number_format((int) $stackedCapacity),
-                ),
-                'description' => sprintf(
-                    'Their Personal Allowance (£%s), Starting Rate for Savings (£%s) and Personal Savings Allowance (£%s) can stack because they are recorded as having no earnings or savings. The estimate only counts the £%s of your interest currently above your own tax-free savings amounts. A cash gift between eligible spouses or civil partners normally has no immediate Capital Gains Tax charge and may qualify for Inheritance Tax spouse exemption; ownership changes and conditions apply.',
-                    number_format((int) $spousePersonalAllowance),
-                    number_format((int) $startingRate),
-                    number_format((int) $psaBasic),
-                    number_format((int) round($taxableInterestSheltered)),
-                ),
-                'suggested_transfer_amount' => $reportedTransfer,
-                'estimated_annual_tax_saved' => round($estimatedAnnualTaxSaved, 2),
-                'annual_interest_moved' => round($annualInterestMoved, 2),
-                'taxable_interest_sheltered' => round($taxableInterestSheltered, 2),
-                // All the moved interest leaves the user's income, including the
-                // slice their own Savings Allowance covered: that slice still
-                // counted towards adjusted net income (ITA 2007 s58).
-                'interest_removed_from_income' => round($annualInterestMoved, 2),
-                'pension_paid_first' => round($context->pensionPaidElsewhere, 2),
-                'spouse_personal_allowance' => $spousePersonalAllowance,
-                'spouse_starting_rate_for_savings' => $startingRate,
-                'spouse_personal_savings_allowance' => $psaBasic,
-                'spouse_stacked_interest_capacity' => $stackedCapacity,
-                'requires_advice' => true,
-            ];
+
+        // The rest of the bundle is for a spouse who does not work, whose
+        // ISA and investments the campaign asks about.
+        if ($context->mode !== 'single_earner_couple') {
+            return array_map(
+                fn (array $arr) => StrategyRecommendation::fromArray(StrategyCategory::Household, $arr),
+                $suggestions,
+            );
         }
 
         $hasGia = InvestmentAccount::query()
@@ -183,5 +107,104 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             fn (array $arr) => StrategyRecommendation::fromArray(StrategyCategory::Household, $arr),
             $suggestions,
         );
+    }
+
+    /**
+     * Gift savings to the spouse: the amount that saves most, rounded down to
+     * £100 of savings and re-priced at that amount, so the card's two figures
+     * agree. Not offered for £1,000 or less of savings, or under £1 a year.
+     *
+     * @param  array{balance: float, interest: float}  $savings
+     * @return array<string, mixed>|null
+     */
+    private function savingsMove(TaxStrategyContext $context, array $savings): ?array
+    {
+        if ($savings['balance'] <= 0 || $savings['interest'] <= 0) {
+            return null;
+        }
+        $user = $context->user;
+        $best = $this->math->savingsMoveToPartner($user, $context->mode, $context->household, $savings['interest'], $context->pensionPaidElsewhere);
+        if ($best === null) {
+            return null;
+        }
+        // Sized from the highest-rate savings first, then rounded down to £100
+        // (the epsilon absorbs float noise: £2,250 at 4.5% is £50,000).
+        $transfer = min($savings['balance'], floor($this->balanceEarning($savings['accounts'], $best['interest_moved']) / 100 + 1e-9) * 100);
+        if ($transfer <= 1000) {
+            return null;
+        }
+        $move = $this->math->savingsMoveToPartner($user, $context->mode, $context->household, $savings['interest'], $context->pensionPaidElsewhere, 0.0, $this->interestOn($savings['accounts'], $transfer));
+        if ($move === null || floor($move['saving']) < 1) {
+            return null;
+        }
+        $saving = floor($move['saving']);
+
+        return [
+            'type' => 'savings_to_spouse',
+            'priority' => 'high',
+            'title' => sprintf(
+                'Gift £%s of savings to your spouse and save £%s in tax a year',
+                number_format((int) $transfer),
+                number_format((int) $saving),
+            ),
+            'description' => sprintf(
+                'Interest on savings you give your spouse outright is theirs for tax. Moving £%s moves about £%s of interest a year to them: you pay about £%s less tax on it, and %s. A cash gift between eligible spouses or civil partners normally has no immediate Capital Gains Tax charge and may qualify for Inheritance Tax spouse exemption; ownership changes and conditions apply.',
+                number_format((int) $transfer),
+                // Down, as the how-to's figures are (ActionHowToFacts::pounds).
+                number_format((int) floor($move['interest_moved'])),
+                number_format((int) floor($move['user_tax_saved'])),
+                $move['partner_extra_tax'] >= 0.01
+                    ? 'they pay about £'.number_format((int) ceil($move['partner_extra_tax'])).' more at their own rates'
+                    : 'they pay no tax on it',
+            ),
+            'suggested_transfer_amount' => $transfer,
+            'estimated_annual_tax_saved' => $saving,
+            'annual_interest_moved' => $move['interest_moved'],
+            // All the moved interest leaves the user's income, including the
+            // slice their own Savings Allowance covered: that slice still
+            // counted towards adjusted net income (ITA 2007 s58).
+            'interest_removed_from_income' => $move['interest_moved'],
+            'pension_paid_first' => round($context->pensionPaidElsewhere, 2),
+            'user_tax_saved' => $move['user_tax_saved'],
+            'partner_extra_tax' => $move['partner_extra_tax'],
+            'requires_advice' => true,
+        ];
+    }
+
+    /**
+     * The savings, taken from the highest rate down, that earn $interest a year.
+     *
+     * @param  list<array{balance: float, rate: float}>  $accounts
+     */
+    private function balanceEarning(array $accounts, float $interest): float
+    {
+        $balance = 0.0;
+        foreach ($accounts as $account) {
+            if ($interest <= 0 || $account['rate'] <= 0) {
+                break;
+            }
+            $take = min($account['balance'], $interest / $account['rate']);
+            $balance += $take;
+            $interest -= $take * $account['rate'];
+        }
+
+        return $balance;
+    }
+
+    /**
+     * The interest on $balance taken from the highest rate down.
+     *
+     * @param  list<array{balance: float, rate: float}>  $accounts
+     */
+    private function interestOn(array $accounts, float $balance): float
+    {
+        $interest = 0.0;
+        foreach ($accounts as $account) {
+            $take = min($account['balance'], max(0.0, $balance));
+            $interest += $take * $account['rate'];
+            $balance -= $take;
+        }
+
+        return $interest;
     }
 }

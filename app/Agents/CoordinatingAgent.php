@@ -5764,6 +5764,10 @@ class CoordinatingAgent extends BaseAgent
             // Provider names given in the same breath (CSJ 2026-09-12).
             'spouse_isa_provider',
             'spouse_pension_provider',
+            // Their own savings: their interest decides what moving savings
+            // to them saves (ITA 2007 s12, s12B; CSJ 2026-10-01, D1).
+            'spouse_existing_savings_balance',
+            'spouse_annual_savings_interest',
         ];
         if (array_diff(array_keys($input), $allowedFields) !== []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse household fields are not supported.'];
@@ -5783,6 +5787,7 @@ class CoordinatingAgent extends BaseAgent
         foreach ([
             'spouse_annual_income', 'spouse_annual_earnings', 'spouse_isa_balance', 'spouse_unrealised_gains',
             'spouse_annual_dividends', 'spouse_pension_input_annual', 'spouse_existing_pension_balance',
+            'spouse_existing_savings_balance', 'spouse_annual_savings_interest',
         ] as $field) {
             $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
         }
@@ -5839,6 +5844,7 @@ class CoordinatingAgent extends BaseAgent
         $allowedFields = [
             'spouse_existing_isa_balance',
             'spouse_existing_savings_balance',
+            'spouse_annual_savings_interest',
             'spouse_existing_investment_balance',
             'spouse_existing_dividend_holdings_value',
             'spouse_annual_dividends',
@@ -6835,7 +6841,7 @@ class CoordinatingAgent extends BaseAgent
                 'spouse_annual_income', 'spouse_annual_earnings', 'spouse_employment_status', 'spouse_isa_balance',
                 'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
                 'spouse_pension_input_annual', 'spouse_existing_isa_balance',
-                'spouse_existing_savings_balance', 'spouse_existing_investment_balance',
+                'spouse_existing_savings_balance', 'spouse_annual_savings_interest', 'spouse_existing_investment_balance',
                 'spouse_existing_dividend_holdings_value', 'spouse_existing_pension_balance',
             ];
             $disallowed = array_diff(array_keys($fields), $allowedFields);
@@ -6853,7 +6859,7 @@ class CoordinatingAgent extends BaseAgent
             $moneyFields = [
                 'spouse_annual_income', 'spouse_annual_earnings', 'spouse_isa_balance', 'spouse_unrealised_gains',
                 'spouse_annual_dividends', 'spouse_pension_input_annual',
-                'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                'spouse_existing_isa_balance', 'spouse_existing_savings_balance', 'spouse_annual_savings_interest',
                 'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
                 'spouse_existing_pension_balance',
             ];
@@ -6889,8 +6895,10 @@ class CoordinatingAgent extends BaseAgent
                         'household_calculation_mode' => $works ? 'dual_earner' : 'single_earner_couple',
                         'marriage_allowance_eligible' => ! $works,
                     ]);
+                    // Savings are asked in both modes (2026-10-01), so they
+                    // survive a change of work status.
                     $safeFields = array_merge($safeFields, array_fill_keys($works ? [
-                        'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                        'spouse_existing_isa_balance',
                         'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
                         'spouse_existing_pension_balance',
                     ] : [

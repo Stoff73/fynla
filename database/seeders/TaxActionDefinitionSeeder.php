@@ -176,7 +176,9 @@ class TaxActionDefinitionSeeder extends Seeder
                 'category' => 'household',
                 'priority' => 'high',
                 'claim_tier' => 'mechanical',
-                'required_data' => ['marital_status', 'savings_balances', 'spouse_income'],
+                // Priced on the spouse's own income and savings (TODO item 4,
+                // CSJ 2026-10-01): both are needed, and asked for when not known.
+                'required_data' => ['marital_status', 'savings_balances', 'spouse_income_amount', 'spouse_savings'],
                 'sequencing' => ['do_before' => [], 'conflicts_with' => ['joint_savings_psa_split', 'isa_topup_vs_psa']],
             ],
 

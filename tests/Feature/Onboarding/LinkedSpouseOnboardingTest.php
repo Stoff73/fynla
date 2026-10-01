@@ -198,7 +198,7 @@ describe("the linked partner's holdings are on their own account", function (): 
 
         $events = linkedSpouseOnboardingEmitStep($alex, linkedSpouseOnboardingConversation($alex), OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
 
-        expect(array_column(collect($events)->firstWhere('type', 'capture_form')['form']['kinds'], 'key'))->toBe(['isa', 'pension', 'investments'])
+        expect(array_column(collect($events)->firstWhere('type', 'capture_form')['form']['kinds'], 'key'))->toBe(['savings', 'isa', 'pension', 'investments'])
             ->and(OnboardingStateMachine::resolvePromptText($state, $alex->fresh()))->toContain('ISAs');
     });
 });

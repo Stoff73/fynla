@@ -5791,6 +5791,7 @@ PROMPT;
                 'spouse_annual_dividends' => ['spouse dividends', 'partner dividends'],
                 'spouse_pension_input_annual' => ['spouse pension contribution', 'partner pension contribution'],
                 'spouse_existing_savings_balance' => ['spouse savings', 'partner savings'],
+                'spouse_annual_savings_interest' => ['spouse savings interest', 'partner savings interest', 'spouse interest', 'partner interest'],
                 'spouse_existing_investment_balance' => ['spouse investments', 'partner investments'],
                 'spouse_existing_pension_balance' => ['spouse pension balance', 'partner pension balance'],
             ];
@@ -6604,6 +6605,12 @@ PROMPT;
         if ((float) ($row->spouse_annual_income ?? 0) > 0) {
             $parts[] = 'earns '.$this->wholePounds((float) $row->spouse_annual_income).' a year';
         }
+        if ((float) ($row->spouse_existing_savings_balance ?? 0) > 0) {
+            $parts[] = 'has '.$this->wholePounds((float) $row->spouse_existing_savings_balance).' in savings';
+        }
+        if ((float) ($row->spouse_annual_savings_interest ?? 0) > 0) {
+            $parts[] = 'receives '.$this->wholePounds((float) $row->spouse_annual_savings_interest).' a year in savings interest';
+        }
         if ((float) ($row->spouse_isa_balance ?? 0) > 0) {
             $parts[] = 'has '.$this->wholePounds((float) $row->spouse_isa_balance).' in ISAs'.($row->spouse_isa_provider ? ' with '.$row->spouse_isa_provider : '');
         }
@@ -6672,6 +6679,9 @@ PROMPT;
         // What they receive and pay in (2026-09-22): the form asks for both,
         // so the acknowledgement repeats both.
         $flows = [];
+        if ($row !== null && (float) ($row->spouse_annual_savings_interest ?? 0) > 0) {
+            $flows[] = 'receives '.$this->wholePounds((float) $row->spouse_annual_savings_interest).' a year in savings interest';
+        }
         if ($row !== null && (float) ($row->spouse_annual_dividends ?? 0) > 0) {
             $flows[] = 'receives '.$this->wholePounds((float) $row->spouse_annual_dividends).' a year in dividends';
         }

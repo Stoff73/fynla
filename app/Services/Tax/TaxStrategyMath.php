@@ -556,34 +556,17 @@ final class TaxStrategyMath
             return null;
         }
 
-        // A linked spouse's own records beat the onboarding answers: "does not
-        // work" is not "has no income", and a spouse with a pension or rent at
-        // or above the Personal Allowance cannot give any of it away. Records
-        // that hold no income are not an answer: the income given is used.
-        $linked = $this->linkedSpouseWithIncome($user);
+        $partner = $this->partnerTaxPosition($user, $mode, $household);
+        if ($partner === null) {
+            return null;
+        }
+        $linked = $partner['linked'];
+        $spouse = $partner['parts'];
+        $spouseExtension = $partner['band_extension'];
         $amount = $this->marriageAllowanceAmount();
         if ($linked !== null) {
-            $spouse = $this->incomePartsFor($linked);
-            $spouseExtension = $this->bandExtensionFor($linked);
             $spouseBandAt = fn (float $extra): string => $this->bandFromIncomeFor($linked, $this->taxableIncomeFor($linked) + $extra);
         } else {
-            // Not working is not the same as no income: a pension or rent can
-            // use the whole allowance. Only a captured figure counts (CSJ
-            // 2026-09-28); until then the action waits for it.
-            $spouse = match ($mode) {
-                'single_earner_couple', 'dual_earner' => $household?->spouse_annual_income === null ? null : [
-                    'non_savings' => (float) $household->spouse_annual_income,
-                    'dividends' => (float) ($household->spouse_annual_dividends ?? 0),
-                ],
-                default => null,
-            };
-            if ($spouse === null) {
-                return null;
-            }
-            $spouse['interest'] = $this->estimateSpouseJointInterest($user);
-            $spouse['net_pay'] = 0.0;
-            $spouse['trust'] = 0.0;
-            $spouseExtension = 0.0;
             $spouseNetGiven = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'];
             $spouseBandAt = fn (float $extra): string => $this->bandFromIncome($spouseNetGiven + $extra);
         }
@@ -658,6 +641,168 @@ final class TaxStrategyMath
         return ($this->marriageAllowance($user, $mode, $household)['direction'] ?? null) === 'to_user'
             ? $this->marriageAllowanceAmount()
             : 0.0;
+    }
+
+    /**
+     * The spouse's income as the tax engine stacks it, from the one place both
+     * Marriage Allowance and a savings move read it. A linked spouse's own
+     * records beat the onboarding answers: "does not work" is not "has no
+     * income", and a spouse with a pension or rent at or above the Personal
+     * Allowance cannot give any of it away. Records that hold no income are
+     * not an answer: the income given is used. Not working is not the same as
+     * no income either, so only a captured figure counts (CSJ 2026-09-28).
+     *
+     * `savings_known` says whether their own savings interest is known: from
+     * their records, an interest figure given for them, or savings given as
+     * £0 (CSJ 2026-10-01, D1/D2). When it is not, their interest is counted as
+     * their share of joint accounts only.
+     *
+     * @return array{parts: array{non_savings: float, interest: float, dividends: float, trust: float, net_pay: float}, band_extension: float, linked: ?User, savings_known: bool}|null
+     */
+    public function partnerTaxPosition(User $user, string $mode, ?TaxStrategyHouseholdInput $household): ?array
+    {
+        $linked = $this->linkedSpouseWithIncome($user);
+        if ($linked !== null) {
+            return [
+                'parts' => $this->incomePartsFor($linked),
+                'band_extension' => $this->bandExtensionFor($linked),
+                'linked' => $linked,
+                'savings_known' => true,
+            ];
+        }
+        if (! in_array($mode, ['single_earner_couple', 'dual_earner'], true) || $household?->spouse_annual_income === null) {
+            return null;
+        }
+
+        $ownInterest = $household->spouse_annual_savings_interest;
+        $savingsGivenAsNone = $household->spouse_existing_savings_balance !== null
+            && (float) $household->spouse_existing_savings_balance === 0.0;
+
+        return [
+            'parts' => [
+                'non_savings' => (float) $household->spouse_annual_income,
+                'interest' => $this->estimateSpouseJointInterest($user) + (float) ($ownInterest ?? 0),
+                'dividends' => (float) ($household->spouse_annual_dividends ?? 0),
+                'trust' => 0.0,
+                'net_pay' => 0.0,
+            ],
+            'band_extension' => 0.0,
+            'linked' => null,
+            'savings_known' => $ownInterest !== null || $savingsGivenAsNone,
+        ];
+    }
+
+    /**
+     * The user's savings priced for a gift to their spouse: sole-name and
+     * outside an ISA. Interest on a joint account is already taxed half each
+     * between spouses living together (ITA 2007 s836) unless they declare
+     * unequal shares (s837), so joint accounts are left out by choice;
+     * ownership_type decides, because the campaign's joint accounts carry a
+     * null co-owner. Interest from each
+     * account's own rate. `accounts` lists each balance and its rate, highest
+     * rate first: a gift moves the most interest per pound from there.
+     *
+     * @return array{balance: float, interest: float, accounts: list<array{balance: float, rate: float}>}
+     */
+    public function soleNonIsaSavings(User $user): array
+    {
+        $accounts = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
+            ->reject(fn ($acc) => $this->isSharedOwnership($acc))
+            ->where('is_isa', false);
+
+        return [
+            'balance' => (float) $accounts->sum('current_balance'),
+            'interest' => (float) $accounts->sum(fn ($acc) => (float) $acc->current_balance * SavingsInterestRate::fraction($acc->interest_rate)),
+            'accounts' => $accounts
+                ->map(fn ($acc): array => ['balance' => (float) $acc->current_balance, 'rate' => SavingsInterestRate::fraction($acc->interest_rate)])
+                ->sortByDesc('rate')
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * The savings interest the user can move to their spouse that saves the
+     * household the most tax this year, and what it saves (TODO item 4; spec
+     * docs/superpowers/specs/2026-10-01-savings-to-lower-tax-partner-design.md).
+     *
+     * Interest on savings given outright to a spouse is theirs for tax (ITTOIA
+     * 2005 s626), so moving £X of interest lowers the user's tax and raises
+     * the spouse's. Both sides are priced by the one tax engine on each
+     * person's whole income, so each one's Personal Allowance, starting rate
+     * for savings (ITA 2007 s12), savings nil rate (s12A) and Personal
+     * Savings Allowance (s12B) are
+     * applied as HMRC would. The best amount is found in £10 steps: moving
+     * more than it shifts interest the user paid little on, or the spouse pays
+     * more on, and a band change can make the curve jump (s12B), so every
+     * step is priced rather than assuming a shape.
+     *
+     * $pensionPaid and $interestSheltered are what other items in the same
+     * plan already do to the user's income, as interestRemovalSaving takes
+     * them. With $exactInterest, that amount is priced instead of searched
+     * (a card rounds the amount, then shows what that amount saves). Null
+     * when the spouse's income or savings are not known, or when nothing
+     * moved saves at least £1.
+     *
+     * @return array{interest_moved: float, saving: float, user_tax_saved: float, partner_extra_tax: float}|null
+     */
+    public function savingsMoveToPartner(
+        User $user,
+        string $mode,
+        ?TaxStrategyHouseholdInput $household,
+        float $movableInterest,
+        float $pensionPaid = 0.0,
+        float $interestSheltered = 0.0,
+        ?float $exactInterest = null,
+    ): ?array {
+        $partner = $this->partnerTaxPosition($user, $mode, $household);
+        if ($partner === null || ! $partner['savings_known'] || $movableInterest < 10) {
+            return null;
+        }
+
+        $userParts = $this->pricingPartsFor($user, $interestSheltered);
+        $userParts['net_pay'] += $pensionPaid;
+        $movableInterest = min($movableInterest, $userParts['interest']);
+        $partnerParts = $partner['linked'] !== null ? $this->pricingPartsFor($partner['linked'], 0.0) : $partner['parts'];
+        // A Marriage Allowance transfer to the user takes that slice of the
+        // spouse's Personal Allowance (s55B(6)); it cannot also cover interest.
+        if ($this->marriageAllowanceTransfer($user, $mode, $household) > 0) {
+            $partnerParts['non_savings'] += $this->marriageAllowanceAmount();
+        }
+
+        $userBefore = $this->incomeTaxOn($userParts);
+        $partnerBefore = $this->incomeTaxOn($partnerParts);
+        $price = function (float $x) use ($userParts, $partnerParts, $userBefore, $partnerBefore): array {
+            $userAfter = $userParts;
+            $userAfter['interest'] -= $x;
+            $partnerAfter = $partnerParts;
+            $partnerAfter['interest'] += $x;
+            $userSaved = $userBefore - $this->incomeTaxOn($userAfter);
+            $partnerExtra = $this->incomeTaxOn($partnerAfter) - $partnerBefore;
+
+            return ['interest_moved' => $x, 'saving' => $userSaved - $partnerExtra, 'user_tax_saved' => $userSaved, 'partner_extra_tax' => $partnerExtra];
+        };
+
+        $best = null;
+        if ($exactInterest !== null) {
+            $best = $price(min($exactInterest, $movableInterest));
+        } else {
+            $step = max(10.0, ceil($movableInterest / 1000 / 10) * 10);
+            $x = 0.0;
+            while ($x < $movableInterest) {
+                $x = min($x + $step, $movableInterest);
+                $priced = $price($x);
+                if ($best === null || $priced['saving'] > $best['saving'] + 0.005) {
+                    $best = $priced;
+                }
+            }
+        }
+        if ($best === null || $best['saving'] < 1) {
+            return null;
+        }
+
+        return array_map(fn (float $v): float => round($v, 2), $best);
     }
 
     /**

@@ -85,9 +85,16 @@ final class SpouseHoldingTransfer
         // ── Records ────────────────────────────────────────────────────────
         $savings = (float) ($holding->spouse_existing_savings_balance ?? 0);
         if ($savings > 0) {
-            $this->run('create_savings_account', [
+            // The interest given for them travels as the account's rate, so
+            // their savings position is not lost on linking (2026-10-01).
+            // A rate the savings form would refuse (SavingsStore: max 20%) is
+            // left off rather than losing the account.
+            $interest = $holding->spouse_annual_savings_interest;
+            $rate = $interest !== null ? round((float) $interest / $savings * 100, 2) : null;
+            $this->run('create_savings_account', array_filter([
                 'account_name' => 'Savings', 'account_type' => 'easy_access', 'current_balance' => $savings, 'ownership_type' => 'individual',
-            ], $spouse, $copied, 'savings');
+                'interest_rate' => $rate !== null && $rate <= 20 ? $rate : null,
+            ], static fn ($v): bool => $v !== null), $spouse, $copied, 'savings');
         }
 
         $isa = (float) ($holding->spouse_isa_balance ?? $holding->spouse_existing_isa_balance ?? 0);
