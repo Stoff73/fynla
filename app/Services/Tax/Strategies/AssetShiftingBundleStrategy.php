@@ -150,7 +150,8 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             'description' => sprintf(
                 'Interest on savings you give your spouse outright is theirs for tax. Moving £%s moves about £%s of interest a year to them: you pay about £%s less tax on it, and %s. A cash gift between eligible spouses or civil partners normally has no immediate Capital Gains Tax charge and may qualify for Inheritance Tax spouse exemption; ownership changes and conditions apply.',
                 number_format((int) $transfer),
-                number_format((int) round($move['interest_moved'])),
+                // Down, as the how-to's figures are (ActionHowToFacts::pounds).
+                number_format((int) floor($move['interest_moved'])),
                 number_format((int) floor($move['user_tax_saved'])),
                 $move['partner_extra_tax'] >= 0.01
                     ? 'they pay about £'.number_format((int) ceil($move['partner_extra_tax'])).' more at their own rates'
