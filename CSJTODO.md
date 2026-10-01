@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-10-01 session 4. The order of work is `todoCurrent/TODO.md`; this file is the detail record. Item 7 (retirement) is on `feat/retirement-decumulation-and-care-costs`, deployed to csjones, not merged.*
+*Last updated: 2026-10-01 session 5. The order of work is `todoCurrent/TODO.md`; this file is the detail record. Item 7 (retirement) is on `feat/retirement-decumulation-and-care-costs`, deployed to csjones, not merged.*
 
 ## The board position
 
@@ -201,7 +201,7 @@ Three small decisions, all optional:
 
 ## Known issues
 
-- **Fyn cannot reliably record care costs from plain /m chat** (2026-10-01): care costs exist only on the free-text tool `capture_retirement_goals`, with no Fyn form. Fix: a retirement goals form in `CaptureForms`/`RecordEditForms`, State Pension shape (TODO item 7, NEXT). Plain /m chat refuses (conversation 428); the repeated-message reply claimed a change that was not written.
+- **Fyn cannot reliably record care costs from plain /m chat** (2026-10-01): care costs ARE recorded, through one write path (`RetirementProfileStore::updateCareCosts`, `ec71b32f5`: web card, /m section, `PUT /api/retirement/goals`, Fyn `capture_retirement_goals` at `CoordinatingAgent.php:6245`). The defect is only that plain /m chat with no card never reaches that write (conversation 428), and the repeated-message reply claimed a change that was not written. NO new form (CSJ rejected the "retirement goals form in State Pension shape" plan, 2026-10-01 session 5).
 
 - **`users.life_stage` is overloaded by design** — it also holds the journey or focus area
   last started (`JourneyStateService`, `OnboardingService`). The client keeps only real
