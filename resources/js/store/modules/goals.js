@@ -56,22 +56,13 @@ const getters = {
         return state.goals.filter(goal => goal.status === 'completed');
     },
 
-    // Get total target amount for active goals
-    totalTargetAmount: (state, getters) => {
-        return getters.activeGoals.reduce((sum, goal) => sum + parseFloat(goal.target_amount || 0), 0);
-    },
+    // The overview's figures from the server (GoalsController overview, CSJ
+    // 2026-10-01: one figure, every surface), never summed here.
+    totalTargetAmount: (state) => Number(state.dashboardOverview?.total_target) || 0,
 
-    // Get total current amount for active goals
-    totalCurrentAmount: (state, getters) => {
-        return getters.activeGoals.reduce((sum, goal) => sum + parseFloat(goal.current_amount || 0), 0);
-    },
+    totalCurrentAmount: (state) => Number(state.dashboardOverview?.total_current) || 0,
 
-    // Get overall progress percentage
-    overallProgress: (state, getters) => {
-        const target = getters.totalTargetAmount;
-        if (target === 0) return 0;
-        return Math.round((getters.totalCurrentAmount / target) * 100);
-    },
+    overallProgress: (state) => Math.round(Number(state.dashboardOverview?.overall_progress) || 0),
 
     // Check if user has any goals
     hasGoals: (state) => {
