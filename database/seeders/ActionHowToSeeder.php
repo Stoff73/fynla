@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\ProtectionActionDefinition;
+use App\Models\RetirementActionDefinition;
 use App\Models\SavingsActionDefinition;
 use App\Models\TaxActionDefinition;
 use App\Services\Actions\ActionHowTo;
@@ -23,6 +24,7 @@ class ActionHowToSeeder extends Seeder
         'tax' => [TaxActionDefinition::class, 'strategy_type'],
         'savings' => [SavingsActionDefinition::class, 'key'],
         'protection' => [ProtectionActionDefinition::class, 'key'],
+        'retirement' => [RetirementActionDefinition::class, 'key'],
     ];
 
     public function run(): void

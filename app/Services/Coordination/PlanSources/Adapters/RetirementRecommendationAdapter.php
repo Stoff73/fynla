@@ -11,11 +11,10 @@ use Illuminate\Support\Str;
 
 /**
  * Maps RetirementAgent::generateRecommendations() rec arrays into the common
- * StrategyRecommendation DTO. Retirement recs are definition-driven but carry
- * no stable definition key through to the output, so `type` is derived from a
- * curated category→strategy_type map (the seeded source='strategy' rows key off
- * the same slugs); unmapped categories fall back to a slug so they still surface
- * (just without catalogue metadata).
+ * StrategyRecommendation DTO. `type` is the rec's `definition_key` (CSJ
+ * 2026-10-01, as protection's since #972), so each card has a stable id and
+ * its own how-to; a rec without one falls back to the curated category map,
+ * then a slug.
  */
 final class RetirementRecommendationAdapter
 {
@@ -33,7 +32,10 @@ final class RetirementRecommendationAdapter
     public function toStrategyRecommendation(array $rec): StrategyRecommendation
     {
         $category = (string) ($rec['category'] ?? '');
-        $type = self::CATEGORY_TO_STRATEGY_TYPE[$category] ?? $this->slugify($category);
+        $definitionKey = (string) ($rec['definition_key'] ?? '');
+        $type = $definitionKey !== ''
+            ? $definitionKey
+            : (self::CATEGORY_TO_STRATEGY_TYPE[$category] ?? $this->slugify($category));
 
         // One label rule (PriorityRanker); the enum has no critical case, so the
         // seeded label travels in extra for the ranker to read off the composed item.
@@ -47,6 +49,8 @@ final class RetirementRecommendationAdapter
             'account_name' => $rec['account_name'] ?? null,
             'source_category' => $category !== '' ? $category : null,
             'decision_trace' => $rec['decision_trace'] ?? null,
+            'definition_key' => $definitionKey !== '' ? $definitionKey : null,
+            'figures' => ! empty($rec['figures']) ? $rec['figures'] : null,
         ], static fn ($v) => $v !== null);
 
         return new StrategyRecommendation(

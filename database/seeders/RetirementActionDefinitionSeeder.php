@@ -10,7 +10,8 @@ use Illuminate\Database\Seeder;
 /**
  * Seed the retirement_action_definitions table with all action types.
  *
- * Seeds 15 agent-sourced and 3 goal-sourced action definitions.
+ * Seeds the agent-sourced and goal-sourced action definitions and the
+ * strategy catalogue rows.
  * Uses updateOrCreate on `key` for idempotency.
  *
  * Run: php artisan db:seed --class=RetirementActionDefinitionSeeder --force
@@ -93,14 +94,14 @@ class RetirementActionDefinitionSeeder extends Seeder
     private function getDefinitions(): array
     {
         return [
-            // ── Agent-sourced actions (7) ──────────────────────────
+            // ── Agent-sourced actions ─────────────────────────────
 
             [
                 'key' => 'employer_match',
                 'source' => 'agent',
-                'title_template' => 'Maximise Employer Pension Match',
-                'description_template' => 'Increase your contribution by {additional_percent}% to maximise employer match on {scheme_name}. This is free money!',
-                'action_template' => 'Review your workplace pension contribution level.',
+                'title_template' => 'Check your employer match on {scheme_name}',
+                'description_template' => 'You pay {employee_percent}% of your salary into {scheme_name}. If your employer adds more when you pay more, raising your share to {threshold_percent}% could bring in more from them.',
+                'action_template' => 'Ask your employer how their contributions to {scheme_name} change with yours.',
                 'category' => 'Employer_match',
                 'priority' => 'high',
                 'scope' => 'account',
@@ -135,9 +136,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'start_contributions',
                 'source' => 'agent',
-                'title_template' => 'Start Pension Contributions',
-                'description_template' => 'Your {scheme_name} has no ongoing contributions. Regular contributions would benefit from compound growth over your remaining years to retirement.',
-                'action_template' => 'Set up regular contributions to your pension.',
+                'title_template' => 'Start paying into {scheme_name}',
+                'description_template' => 'Nothing is being paid into your {scheme_name}.',
+                'action_template' => 'Set up regular payments into your pension.',
                 'category' => 'Start_contributions',
                 'priority' => 'high',
                 'scope' => 'account',
@@ -147,15 +148,15 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 20,
-                'notes' => 'Triggers when a pension has fund value but zero contributions.',
+                'notes' => 'Folded (CSJ 2026-10-01): a reason on retirement_income_position, never a card. Triggers when a pension has fund value but zero contributions.',
             ],
 
             [
                 'key' => 'contribution_increase',
                 'source' => 'agent',
-                'title_template' => 'Increase Pension Contributions',
-                'description_template' => 'To meet your retirement income target, consider contributing an additional {monthly_amount} per month across your pensions.',
-                'action_template' => 'Review your budget to find additional pension capacity.',
+                'title_template' => 'Pay more into your pensions',
+                'description_template' => 'Your projected retirement income is below your target.',
+                'action_template' => 'Work out what you could pay in each month.',
                 'category' => 'Contribution_increase',
                 'priority' => 'medium',
                 'scope' => 'portfolio',
@@ -165,7 +166,7 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 30,
-                'notes' => 'Triggers when income gap exists and additional contributions would help.',
+                'notes' => 'Folded (CSJ 2026-10-01): a reason on retirement_income_position, never a card. Triggers when income gap exists and additional contributions would help.',
             ],
 
             [
@@ -182,17 +183,17 @@ class RetirementActionDefinitionSeeder extends Seeder
                     'condition' => 'higher_rate_taxpayer_below_allowance',
                     'threshold' => 40000,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 40,
-                'notes' => 'Triggers for higher-rate taxpayers with contribution capacity below threshold.',
+                'notes' => 'Disabled (CSJ 2026-10-01, D1): the Tax plan carries this action (pension_tax_relief, pa_taper_rescue and additional_rate_avoidance), with the affordability check and approved how-tos. Two engines for one piece of advice broke Rule 20.',
             ],
 
             [
                 'key' => 'annual_allowance_exceeded',
                 'source' => 'agent',
-                'title_template' => 'Annual Allowance Exceeded',
-                'description_template' => 'You have exceeded your annual allowance by {excess_amount}. This may result in tax charges.',
-                'action_template' => 'Consult with a financial adviser to minimise tax charges.',
+                'title_template' => 'You have paid {excess_amount} more into pensions than your Annual Allowance',
+                'description_template' => 'If you go over your Annual Allowance, you or your pension provider must pay tax on the excess, and you report it on a Self Assessment tax return.',
+                'action_template' => 'Check whether unused allowance from the last three tax years covers it.',
                 'category' => 'Tax Planning',
                 'priority' => 'critical',
                 'scope' => 'portfolio',
@@ -202,15 +203,15 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 5,
-                'notes' => 'Triggers when annual allowance has been exceeded.',
+                'notes' => 'Kept (2026-10-01): the Tax plan has no card for an allowance already exceeded (tapered_annual_allowance covers only the taper), so D1 leaves this one here. Source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance.',
             ],
 
             [
                 'key' => 'ni_gaps',
                 'source' => 'agent',
-                'title_template' => 'National Insurance Gaps',
-                'description_template' => 'You need {years_short} more qualifying years but only have {years_until_spa} years until State Pension age. Consider voluntary contributions to fill the gap.',
-                'action_template' => 'Check your NI record and consider making voluntary contributions if cost-effective.',
+                'title_template' => 'Fill the gaps in your National Insurance record',
+                'description_template' => 'You need {years_short} more qualifying years for the full State Pension and have {years_until_spa} years until State Pension age. Voluntary contributions can fill some gaps from earlier years.',
+                'action_template' => 'Check your National Insurance record and what filling a gap would cost.',
                 'category' => 'State Pension',
                 'priority' => 'high',
                 'scope' => 'portfolio',
@@ -226,9 +227,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'adjust_retirement_age',
                 'source' => 'agent',
-                'title_template' => 'Consider Adjusting Retirement Age',
-                'description_template' => 'Retiring at {suggested_age} instead of {current_age} would allow additional years of contributions and growth, significantly reducing your income shortfall.',
-                'action_template' => 'Review scenarios for retiring at {suggested_age}.',
+                'title_template' => 'Think about retiring later',
+                'description_template' => 'Retiring at {suggested_age} instead of {current_age} gives more years of saving and growth.',
+                'action_template' => 'Compare your income at {suggested_age} on the Retirement page.',
                 'category' => 'Retirement Planning',
                 'priority' => 'medium',
                 'scope' => 'portfolio',
@@ -241,7 +242,7 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 60,
-                'notes' => 'Triggers when income gap exceeds threshold percentage of target income.',
+                'notes' => 'Folded (CSJ 2026-10-01): a reason on retirement_income_position, never a card. Triggers when income gap exceeds threshold percentage of target income.',
             ],
 
             // ── Engine expansion actions (8) ─────────────────────
@@ -259,17 +260,17 @@ class RetirementActionDefinitionSeeder extends Seeder
                 'trigger_config' => [
                     'condition' => 'workplace_pension_no_salary_sacrifice',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 15,
-                'notes' => 'Triggers for employed users with workplace pensions who could benefit from salary sacrifice.',
+                'notes' => 'Disabled (CSJ 2026-10-01, D1): the Tax plan carries this action (salary_sacrifice_ni), with the affordability check and approved how-tos. Two engines for one piece of advice broke Rule 20.',
             ],
 
             [
                 'key' => 'salary_sacrifice_floor_warning',
                 'source' => 'agent',
-                'title_template' => 'Salary Sacrifice Floor Warning',
-                'description_template' => 'A salary sacrifice arrangement on {scheme_name} would reduce your pay to {post_sacrifice_salary}, which is below the safe floor of {proxy_floor}. This could breach National Minimum Wage or National Living Wage requirements.',
-                'action_template' => 'Review your salary sacrifice amount carefully and seek advice before proceeding.',
+                'title_template' => 'Salary sacrifice on {scheme_name} would take your pay below {proxy_floor}',
+                'description_template' => 'Salary sacrifice on {scheme_name} would leave pay of {post_sacrifice_salary}. A salary sacrifice arrangement must not take cash pay below the National Minimum Wage.',
+                'action_template' => 'Check the amount with your employer before you agree to it.',
                 'category' => 'Salary Sacrifice',
                 'priority' => 'critical',
                 'scope' => 'account',
@@ -285,9 +286,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'auto_enrolment_below_minimum',
                 'source' => 'agent',
-                'title_template' => 'Pension Contributions Below Auto-Enrolment Minimum',
-                'description_template' => 'Your total pension contribution rate of {total_percent}% is below the auto-enrolment minimum of 8% of qualifying earnings. You may be missing out on {shortfall_annual} per year.',
-                'action_template' => 'Check with your employer that your pension contributions meet the legal minimum and consider increasing your contribution.',
+                'title_template' => 'Your pension contributions are below the auto-enrolment minimum',
+                'description_template' => 'You and your employer pay {total_percent}% in total. The auto-enrolment minimum is {minimum_percent}% of qualifying earnings, so about {shortfall_annual} a year is missing.',
+                'action_template' => 'Ask your employer to check your contributions against the minimum.',
                 'category' => 'Auto-enrolment',
                 'priority' => 'high',
                 'scope' => 'portfolio',
@@ -303,9 +304,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'enhanced_annuity_eligible',
                 'source' => 'agent',
-                'title_template' => 'You May Qualify for Enhanced Annuity Rates',
-                'description_template' => 'Based on your health profile, you may qualify for enhanced annuity rates which could provide significantly higher retirement income than standard rates. Enhanced annuities typically pay 15-25% more.',
-                'action_template' => 'When approaching retirement, request enhanced annuity quotes from providers — do not accept a standard annuity rate without checking.',
+                'title_template' => 'Ask for enhanced annuity quotes',
+                'description_template' => 'Your health or smoking may mean an annuity provider offers you a higher income than its standard rates.',
+                'action_template' => 'Give every provider your health and lifestyle details when you ask for annuity quotes.',
                 'category' => 'Annuity',
                 'priority' => 'medium',
                 'scope' => 'portfolio',
@@ -321,9 +322,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'care_costs_not_modelled',
                 'source' => 'agent',
-                'title_template' => 'Care Costs Not Included in Retirement Plan',
-                'description_template' => 'You have not entered any projected care cost assumptions. Care costs can significantly reduce your retirement income — the average annual cost of residential care in the UK exceeds £35,000.',
-                'action_template' => 'Add care cost assumptions to your retirement profile for more realistic planning.',
+                'title_template' => 'Your retirement plan leaves out care costs',
+                'description_template' => 'You have not added any care costs to your retirement plan.',
+                'action_template' => 'Add an amount for care to your retirement plan.',
                 'category' => 'Care Costs',
                 'priority' => 'low',
                 'scope' => 'portfolio',
@@ -340,9 +341,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'state_pension_no_forecast',
                 'source' => 'agent',
-                'title_template' => 'No State Pension Forecast Entered',
-                'description_template' => 'You have not entered a State Pension forecast. The State Pension can provide up to {full_state_pension} per year and is a key component of retirement income planning.',
-                'action_template' => 'Request your State Pension forecast from gov.uk and add it to your retirement profile.',
+                'title_template' => 'Add your State Pension forecast',
+                'description_template' => 'You have not added a State Pension forecast. The full new State Pension is {full_state_pension} a year.',
+                'action_template' => 'Get your forecast from gov.uk and add it on the Retirement page.',
                 'category' => 'State Pension',
                 'priority' => 'medium',
                 'scope' => 'portfolio',
@@ -358,9 +359,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'approaching_decumulation',
                 'source' => 'agent',
-                'title_template' => 'Approaching Retirement — Review Decumulation Strategy',
-                'description_template' => 'You are within {years_to_retirement} years of your target retirement age. Now is the time to review your drawdown strategy, annuity options, and Pension Commencement Lump Sum entitlement.',
-                'action_template' => 'Review the decumulation analysis in your retirement dashboard and consider seeking regulated financial advice.',
+                'title_template' => 'Plan how you will take your pension',
+                'description_template' => 'You are {years_to_retirement} years from your target retirement age. This is the time to compare drawdown, an annuity and your tax-free lump sum.',
+                'action_template' => 'Compare the ways of taking your pension on the Retirement page.',
                 'category' => 'Decumulation',
                 'priority' => 'high',
                 'scope' => 'portfolio',
@@ -377,9 +378,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'pension_consolidation_opportunity',
                 'source' => 'agent',
-                'title_template' => 'Consider Consolidating Your Defined Contribution Pensions',
-                'description_template' => 'You have {pension_count} Defined Contribution pensions. Consolidating into fewer schemes could reduce fees, simplify management, and make retirement planning easier.',
-                'action_template' => 'Compare fees and features across your pensions before consolidating. Consider seeking advice as some pensions may have valuable guarantees.',
+                'title_template' => 'Think about combining your pensions',
+                'description_template' => 'You have {pension_count} defined contribution pensions. Combining some could mean fewer charges and less to keep track of.',
+                'action_template' => 'Check each pension for guarantees and exit charges before moving it.',
                 'category' => 'Pension Management',
                 'priority' => 'medium',
                 'scope' => 'portfolio',
@@ -396,9 +397,9 @@ class RetirementActionDefinitionSeeder extends Seeder
             [
                 'key' => 'high_pension_total_fees',
                 'source' => 'agent',
-                'title_template' => 'Review total fees on {pension_name}',
-                'description_template' => 'Total annual fees on {pension_name} are {total_fee_percent}% ({annual_fees} per year). Reducing fees could significantly improve your retirement pot over time.',
-                'action_template' => 'Compare your pension provider\'s charges with lower-cost alternatives. Even a small reduction compounds significantly over decades.',
+                'title_template' => 'Review the charges on {pension_name}',
+                'description_template' => 'Total charges on {pension_name} are {total_fee_percent}% a year ({annual_fees}).',
+                'action_template' => 'Compare these charges with what other providers charge.',
                 'category' => 'Pension Fees',
                 'priority' => 'high',
                 'scope' => 'account',
@@ -409,15 +410,15 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 66,
-                'notes' => 'Triggers per DC pension when platform + advisor + weighted OCF exceeds threshold.',
+                'notes' => 'Folded (CSJ 2026-10-01): a reason on pension_charges_review, never a card. Triggers per DC pension when platform + advisor + weighted OCF exceeds threshold.',
             ],
 
             [
                 'key' => 'high_pension_platform_fees',
                 'source' => 'agent',
-                'title_template' => 'Platform fees are high on {pension_name}',
-                'description_template' => 'The platform fee on {pension_name} is {platform_fee_percent}%. Consider transferring to a lower-cost provider.',
-                'action_template' => 'Compare platform fees across providers. Platforms like Vanguard and Fidelity offer competitive rates for pension holders.',
+                'title_template' => 'Review the platform fee on {pension_name}',
+                'description_template' => 'The platform fee on {pension_name} is {platform_fee_percent}% a year.',
+                'action_template' => 'Compare this fee with what other providers charge.',
                 'category' => 'Pension Fees',
                 'priority' => 'medium',
                 'scope' => 'account',
@@ -428,15 +429,15 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 67,
-                'notes' => 'Triggers per DC pension when platform fee alone exceeds threshold.',
+                'notes' => 'Folded (CSJ 2026-10-01): a reason on pension_charges_review, never a card. Triggers per DC pension when platform fee alone exceeds threshold.',
             ],
 
             [
                 'key' => 'high_pension_fund_fees',
                 'source' => 'agent',
-                'title_template' => 'Fund charges are high on {pension_name}',
-                'description_template' => 'The weighted average fund charge on {pension_name} is {weighted_ocf}%. Switching to lower-cost index funds could save {potential_saving} per year.',
-                'action_template' => 'Review your fund selection and consider index tracker funds with ongoing charges below 0.25%.',
+                'title_template' => 'Review the fund charges on {pension_name}',
+                'description_template' => 'The funds in {pension_name} charge {weighted_ocf}% a year on average.',
+                'action_template' => 'Compare these charges with other funds your provider offers.',
                 'category' => 'Pension Fees',
                 'priority' => 'medium',
                 'scope' => 'account',
@@ -447,7 +448,41 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 68,
-                'notes' => 'Triggers per DC pension when weighted average OCF from holdings exceeds threshold.',
+                'notes' => 'Folded (CSJ 2026-10-01): a reason on pension_charges_review, never a card. Triggers per DC pension when weighted average OCF from holdings exceeds threshold.',
+            ],
+
+            // ── Consolidated cards (CSJ 2026-10-01, D2 and D3) ────
+
+            [
+                'key' => 'retirement_income_position',
+                'source' => 'agent',
+                'title_template' => 'Your retirement income is about {shortfall} a year short of your target',
+                'description_template' => '{summary}',
+                'action_template' => 'See what would close the gap.',
+                'category' => 'Retirement Income',
+                'priority' => 'high',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'contribution',
+                'trigger_config' => ['condition' => 'income_position'],
+                'is_enabled' => true,
+                'sort_order' => 25,
+                'notes' => 'CSJ 2026-10-01 (D2): one card for the shortfall the Retirement page shows (RetirementIncomePosition). Folds contribution_increase, adjust_retirement_age and start_contributions as reasons.',
+            ],
+
+            [
+                'key' => 'pension_charges_review',
+                'source' => 'agent',
+                'title_template' => 'Review the charges on {pension_name}',
+                'description_template' => '{pension_name} has {charges_list}.',
+                'action_template' => 'Compare these charges with what other providers charge.',
+                'category' => 'Pension Fees',
+                'priority' => 'medium',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => ['condition' => 'charges_position'],
+                'is_enabled' => true,
+                'sort_order' => 66,
+                'notes' => 'CSJ 2026-10-01 (D3): one card per pension. Folds high_pension_total_fees, high_pension_platform_fees and high_pension_fund_fees as reasons.',
             ],
 
             // ── Goal-sourced actions (3) ──────────────────────────
