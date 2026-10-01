@@ -388,7 +388,6 @@
           :has-spouse-linked="hasSpouseLinked"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
-          :growth-rate="growthRate"
           :years-to-death-minus-5="yearsToDeathMinus5"
           :years-to-death-plus-5="yearsToDeathPlus5"
           @toggle-minus-5="showMinus5Years = !showMinus5Years"
@@ -412,7 +411,6 @@
           :has-spouse-linked="false"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
-          :growth-rate="growthRate"
           :years-to-death-minus-5="yearsToDeathMinus5"
           :years-to-death-plus-5="yearsToDeathPlus5"
           @toggle-minus-5="showMinus5Years = !showMinus5Years"
@@ -624,76 +622,9 @@
       <p class="text-neutral-500">{{ pensionExclusionCaveat }}</p>
     </div>
 
-    <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-eggshell-500 rounded-lg p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg
-            class="h-5 w-5 text-horizon-400"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-horizon-500">Inheritance Tax Mitigation Strategies</h3>
-          <div class="mt-2 text-sm text-neutral-500">
-            <p class="font-semibold mb-2">
-              Your estate has a potential Inheritance Tax liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
-            </p>
-            <ul class="list-disc list-inside space-y-1">
-              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ (annualGiftExemption || 0).toLocaleString() }}/year)</li>
-              <!--
-                W-0451. Three rate literals in one line, in the component whose
-                sentence two cards above now moves with configuration. Under a
-                31%/12% configuration this card would have read "Reduced
-                Inheritance Tax rate of 31% applies" and "from 40% to 36%" at the
-                same time.
-              -->
-              <li>Charitable giving (can reduce Inheritance Tax rate from {{ formatPercent(ihtStandardRate) }} to {{ formatPercent(ihtReducedRate) }} if {{ charitableThresholdLabel }} or more goes to charity)</li>
-              <li>Trust planning to remove assets from your estate</li>
-              <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
-              <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to {{ formatCurrency(ihtResidenceNilRateBand) }})</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-else-if="ihtData && ihtData.iht_liability === 0" class="bg-eggshell-500 rounded-lg p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg
-            class="h-5 w-5 text-horizon-400"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-spring-800">No Inheritance Tax Liability</h3>
-          <div class="mt-2 text-sm text-spring-700">
-            <p class="mb-2">
-              Good news! Your estate is currently below the Inheritance Tax threshold with {{ formatCurrency(ihtData?.total_allowance || 500000) }} in allowances available.
-            </p>
-            <p>
-              Continue to monitor your estate value as asset prices change. Review your Inheritance Tax position annually or after significant life events.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Two blocks lived here, reading `ihtData.iht_liability` (never set) with
+         £500,000 typed in as the allowance, so neither could render (audit item
+         36, CSJ 2026-10-01). Deleted rather than switched on. -->
 
     <!-- Trust Planning Summary -->
     <div v-if="ihtData?.trust_details && ihtData.trust_details.length > 0" class="bg-white shadow rounded-lg p-6 mt-6">
@@ -912,66 +843,19 @@ export default {
       return this.lifeEvents || [];
     },
 
+    // Each event's Inheritance Tax effect and the review triggers, from the
+    // server (IHTController `life_events_impact`, the estate plan's own rule;
+    // CSJ 2026-10-01): never worked out here.
     estateLifeEventsWithIHT() {
-      if (!this.ihtData || !this.estateLifeEvents.length) return [];
-
-      const netEstate = this.ihtData.net_estate_value || 0;
-      const totalAllowances = (this.ihtData.nil_rate_band || this.ihtNilRateBand) + (this.ihtData.rnrb || 0);
-      const ihtRate = this.ihtStandardRate;
-      const currentIHT = Math.max(0, (netEstate - totalAllowances) * ihtRate);
-
-      return this.estateLifeEvents.map(event => {
-        const amount = parseFloat(event.amount) || 0;
-        const isIncome = event.impact_type === 'income';
-        const estateAfter = isIncome ? netEstate + amount : netEstate - amount;
-        const taxableAfter = Math.max(0, estateAfter - totalAllowances);
-        const ihtAfter = taxableAfter * ihtRate;
-        const ihtChange = ihtAfter - currentIHT;
-
-        return {
-          ...event,
-          projected_iht_change: Math.round(ihtChange * 100) / 100,
-          projected_iht_after_event: Math.round(ihtAfter * 100) / 100,
-        };
-      });
+      return this.secondDeathData?.life_events_impact?.events || [];
     },
 
     estateLifeEventsSummary() {
-      if (!this.lifeEventImpact) return null;
-      return {
-        total_incoming: this.lifeEventImpact.upcoming_income || 0,
-        total_outgoing: this.lifeEventImpact.upcoming_expense || 0,
-        net_estate_impact: this.lifeEventImpact.net_impact || 0,
-      };
+      return this.secondDeathData?.life_events_impact?.summary || null;
     },
 
     estateReviewTriggers() {
-      if (!this.estateLifeEventsWithIHT.length) return [];
-
-      const triggers = [];
-      this.estateLifeEventsWithIHT.forEach(event => {
-        const amount = parseFloat(event.amount) || 0;
-        const isIncome = event.impact_type === 'income';
-
-        if (isIncome && amount >= 50000) {
-          triggers.push({
-            event_name: event.event_name,
-            reason: 'Large incoming amount of ' + this.formatCurrency(amount) + ' will increase your taxable estate',
-            recommendation: event.projected_iht_change > 0
-              ? 'Consider a gifting strategy to mitigate the additional ' + this.formatCurrency(Math.abs(event.projected_iht_change)) + ' Inheritance Tax liability'
-              : 'Review your estate plan to ensure the additional funds are efficiently allocated',
-            priority: event.projected_iht_change > 10000 ? 'high' : 'medium',
-          });
-        } else if (!isIncome && event.event_type === 'gift_given' && amount >= this.annualGiftExemption) {
-          triggers.push({
-            event_name: event.event_name,
-            reason: 'Planned gift of ' + this.formatCurrency(amount) + ' is a Potentially Exempt Transfer',
-            recommendation: 'Ensure this gift is recorded for Inheritance Tax purposes. It will become exempt after 7 years.',
-            priority: 'medium',
-          });
-        }
-      });
-      return triggers;
+      return this.secondDeathData?.life_events_impact?.review_triggers || [];
     },
 
     hasPETGifts() {
@@ -1166,57 +1050,40 @@ export default {
     // `charitable_threshold`, computed by the server against the estate it is
     // testing, and it is now read from the payload instead of re-derived here.
 
-    // Estate after NRB (baseline for charitable bequest) - for non-married users
+    // The estate above the nil rate band in each column, from the server
+    // (IHTController `estate_after_nrb`; CSJ 2026-10-01). This was worked out
+    // here, and the second-death version granted a spouse's band whenever the
+    // server sent none.
     estateAfterNRB() {
-      const netEstate = this.ihtData?.net_estate_value || 0;
-      const nrb = this.ihtData?.nrb_available || this.ihtNilRateBand;
-      return Math.max(0, netEstate - nrb);
+      return Number(this.secondDeathData?.iht_summary?.current?.estate_after_nrb) || 0;
     },
 
     estateAfterNRBProjected() {
-      const netEstate = this.projection?.at_death?.net_estate || 0;
-      const nrb = this.ihtData?.nrb_available || this.ihtNilRateBand;
-      return Math.max(0, netEstate - nrb);
+      return Number(this.secondDeathData?.iht_summary?.projected?.estate_after_nrb) || 0;
     },
 
     estateAfterNRBMinus5() {
-      const netEstate = this.projectionMinus5?.net_estate || 0;
-      const nrb = this.ihtData?.nrb_available || this.ihtNilRateBand;
-      return Math.max(0, netEstate - nrb);
+      return Number(this.secondDeathData?.iht_summary?.projected_minus_5?.estate_after_nrb) || 0;
     },
 
     estateAfterNRBPlus5() {
-      const netEstate = this.projectionPlus5?.net_estate || 0;
-      const nrb = this.ihtData?.nrb_available || this.ihtNilRateBand;
-      return Math.max(0, netEstate - nrb);
+      return Number(this.secondDeathData?.iht_summary?.projected_plus_5?.estate_after_nrb) || 0;
     },
 
-    // Estate after NRB for married users (second death scenario)
     secondDeathEstateAfterNRB() {
-      const netEstate = this.secondDeathData?.second_death_analysis?.current_iht_calculation?.net_estate_value || 0;
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || this.ihtNilRateBand) +
-                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || this.ihtNilRateBand);
-      return Math.max(0, netEstate - totalNRB);
+      return this.estateAfterNRB;
     },
 
     secondDeathEstateAfterNRBProjected() {
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || this.ihtNilRateBand) +
-                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || this.ihtNilRateBand);
-      return Math.max(0, this.netEstateProjected - totalNRB);
+      return this.estateAfterNRBProjected;
     },
 
     secondDeathEstateAfterNRBMinus5() {
-      const netEstate = this.secondDeathProjectionMinus5?.net_estate || 0;
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || this.ihtNilRateBand) +
-                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || this.ihtNilRateBand);
-      return Math.max(0, netEstate - totalNRB);
+      return this.estateAfterNRBMinus5;
     },
 
     secondDeathEstateAfterNRBPlus5() {
-      const netEstate = this.secondDeathProjectionPlus5?.net_estate || 0;
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || this.ihtNilRateBand) +
-                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || this.ihtNilRateBand);
-      return Math.max(0, netEstate - totalNRB);
+      return this.estateAfterNRBPlus5;
     },
 
     // Projected subtotals for second death breakdown
@@ -1337,9 +1204,25 @@ export default {
       return this.taxableEstateProjected * this.ihtStandardRate;
     },
 
-    // Growth rate for projections (4.7% annual)
-    growthRate() {
-      return 0.047;
+    // The table's columns five years either side of the expected death, from
+    // the server's own engine at a shifted horizon (IHTController
+    // `projected_minus_5` / `projected_plus_5`, CSJ 2026-10-01). These used to
+    // grow assets at a 4.7% typed in here and could grant a spouse's nil rate
+    // band the engine had not.
+    serverColumn() {
+      return (key) => {
+        const c = this.secondDeathData?.iht_summary?.[key];
+        if (!c) return null;
+        return {
+          estimated_age_at_death: c.estimated_age_at_death,
+          years_to_death: c.years_to_death,
+          net_estate: c.net_estate,
+          assets: c.gross_assets,
+          liabilities: c.liabilities,
+          taxable_estate: c.taxable_estate,
+          iht_liability: c.iht_liability,
+        };
+      };
     },
 
     // Base years to death from projection data
@@ -1347,151 +1230,42 @@ export default {
       return this.projection?.at_death?.years_to_death || 0;
     },
 
-    // Ages for each projection column
     projectedAgeMinus5() {
-      const baseAge = this.projection?.at_death?.estimated_age_at_death || 0;
-      return Math.max(baseAge - 5, this.getCurrentAge());
+      return this.projectionMinus5?.estimated_age_at_death ?? 0;
     },
 
     projectedAgePlus5() {
-      const baseAge = this.projection?.at_death?.estimated_age_at_death || 0;
-      return baseAge + 5;
+      return this.projectionPlus5?.estimated_age_at_death ?? 0;
     },
 
-    // Years to each projection point
     yearsToDeath() {
       return this.baseYearsToDeath;
     },
 
     yearsToDeathMinus5() {
-      return Math.max(0, this.baseYearsToDeath - 5);
+      return this.projectionMinus5?.years_to_death ?? 0;
     },
 
     yearsToDeathPlus5() {
-      return this.baseYearsToDeath + 5;
+      return this.projectionPlus5?.years_to_death ?? 0;
     },
 
-    // Projection for -5 years from estimated death
     projectionMinus5() {
-      if (!this.projection?.now) return null;
-
-      const years = this.yearsToDeathMinus5;
-      const currentAssets = this.projection.now.assets || 0;
-      const currentLiabilities = this.projection.now.liabilities || 0;
-      const totalAllowance = (this.ihtData?.nrb_available || this.ihtNilRateBand) + (this.ihtData?.rnrb_available || 0);
-
-      // Calculate projected values using compound growth
-      const projectedAssets = currentAssets * Math.pow(1 + this.growthRate, years);
-      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
-      const projectedNetEstate = projectedAssets - projectedLiabilities;
-      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * this.ihtStandardRate;
-
-      return {
-        estimated_age_at_death: this.projectedAgeMinus5,
-        years_to_death: years,
-        net_estate: projectedNetEstate,
-        assets: projectedAssets,
-        liabilities: projectedLiabilities,
-        taxable_estate: projectedTaxableEstate,
-        iht_liability: projectedIHTLiability,
-      };
+      return this.serverColumn('projected_minus_5');
     },
 
-    // Projection for +5 years from estimated death
     projectionPlus5() {
-      if (!this.projection?.now) return null;
-
-      const years = this.yearsToDeathPlus5;
-      const currentAssets = this.projection.now.assets || 0;
-      const currentLiabilities = this.projection.now.liabilities || 0;
-      const totalAllowance = (this.ihtData?.nrb_available || this.ihtNilRateBand) + (this.ihtData?.rnrb_available || 0);
-
-      // Calculate projected values using compound growth
-      const projectedAssets = currentAssets * Math.pow(1 + this.growthRate, years);
-      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
-      const projectedNetEstate = projectedAssets - projectedLiabilities;
-      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * this.ihtStandardRate;
-
-      return {
-        estimated_age_at_death: this.projectedAgePlus5,
-        years_to_death: years,
-        net_estate: projectedNetEstate,
-        assets: projectedAssets,
-        liabilities: projectedLiabilities,
-        taxable_estate: projectedTaxableEstate,
-        iht_liability: projectedIHTLiability,
-      };
+      return this.serverColumn('projected_plus_5');
     },
 
-    // Second Death Projection for -5 years from estimated death (married users)
+    // The household engine already pools a married couple's estate at the
+    // second death, so the second-death columns are the same server columns.
     secondDeathProjectionMinus5() {
-      if (!this.secondDeathData?.second_death_analysis?.current_iht_calculation) {
-        return { net_estate: 0, taxable_estate: 0, iht_liability: 0 };
-      }
-
-      const years = this.yearsToDeathMinus5;
-      const currentGrossAssets = this.secondDeathData.second_death_analysis.current_iht_calculation.gross_estate_value || 0;
-      const currentLiabilities = this.secondDeathData.second_death_analysis.current_iht_calculation.liabilities || 0;
-
-      // Get total allowance for second death (includes spouse's transferred allowances)
-      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || this.ihtNilRateBand;
-      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || this.ihtNilRateBand;
-      const rnrb = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0;
-      const rnrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0;
-      const totalAllowance = nrb + nrbFromSpouse + rnrb + rnrbFromSpouse;
-
-      // Calculate projected values using compound growth
-      const projectedAssets = currentGrossAssets * Math.pow(1 + this.growthRate, years);
-      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
-      const projectedNetEstate = projectedAssets - projectedLiabilities;
-      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * this.ihtStandardRate;
-
-      return {
-        net_estate: projectedNetEstate,
-        taxable_estate: projectedTaxableEstate,
-        iht_liability: projectedIHTLiability,
-      };
+      return this.serverColumn('projected_minus_5') || { net_estate: 0, taxable_estate: 0, iht_liability: 0 };
     },
 
-    // Second Death Projection for +5 years from estimated death (married users)
     secondDeathProjectionPlus5() {
-      if (!this.secondDeathData?.second_death_analysis?.current_iht_calculation) {
-        return { net_estate: 0, taxable_estate: 0, iht_liability: 0 };
-      }
-
-      const years = this.yearsToDeathPlus5;
-      const currentGrossAssets = this.secondDeathData.second_death_analysis.current_iht_calculation.gross_estate_value || 0;
-      const currentLiabilities = this.secondDeathData.second_death_analysis.current_iht_calculation.liabilities || 0;
-
-      // Get total allowance for second death (includes spouse's transferred allowances)
-      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || this.ihtNilRateBand;
-      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || this.ihtNilRateBand;
-      const rnrb = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0;
-      const rnrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0;
-      const totalAllowance = nrb + nrbFromSpouse + rnrb + rnrbFromSpouse;
-
-      // Calculate projected values using compound growth
-      const projectedAssets = currentGrossAssets * Math.pow(1 + this.growthRate, years);
-      const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
-      const projectedNetEstate = projectedAssets - projectedLiabilities;
-      const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * this.ihtStandardRate;
-
-      return {
-        net_estate: projectedNetEstate,
-        taxable_estate: projectedTaxableEstate,
-        iht_liability: projectedIHTLiability,
-      };
-    },
-
-    // Helper to calculate projected asset value for a specific number of years
-    calculateProjectedValue() {
-      return (currentValue, years) => {
-        return currentValue * Math.pow(1 + this.growthRate, years);
-      };
+      return this.serverColumn('projected_plus_5') || { net_estate: 0, taxable_estate: 0, iht_liability: 0 };
     },
 
     // ========================================
@@ -1512,15 +1286,15 @@ export default {
         totals: {
           grossAssets: {
             now: currentCalc.gross_estate_value || 0,
-            minus5: this.getProjectedValueMinus5(currentCalc.gross_estate_value || 0),
+            minus5: this.projectionMinus5?.assets || 0,
             projected: this.totalGrossAssetsProjected,
-            plus5: this.getProjectedValuePlus5(currentCalc.gross_estate_value || 0),
+            plus5: this.projectionPlus5?.assets || 0,
           },
           liabilities: {
             now: currentCalc.liabilities || 0,
-            minus5: currentCalc.liabilities || 0,
+            minus5: this.projectionMinus5?.liabilities || 0,
             projected: this.totalLiabilitiesProjected,
-            plus5: this.totalLiabilitiesProjected,
+            plus5: this.projectionPlus5?.liabilities || 0,
           },
           netEstate: {
             now: currentCalc.net_estate_value || 0,
@@ -1530,9 +1304,10 @@ export default {
           },
         },
         allowances: {
-          nrb: currentCalc.nrb || this.ihtNilRateBand,
-          nrbFromSpouse: currentCalc.nrb_from_spouse || this.ihtNilRateBand,
-          totalNrb: (currentCalc.nrb || this.ihtNilRateBand) + (currentCalc.nrb_from_spouse || this.ihtNilRateBand),
+          // The server's bands only: a spouse's band is never assumed here.
+          nrb: currentCalc.nrb ?? 0,
+          nrbFromSpouse: currentCalc.nrb_from_spouse ?? 0,
+          totalNrb: (currentCalc.nrb ?? 0) + (currentCalc.nrb_from_spouse ?? 0),
           rnrbIndividual: currentCalc.rnrb_individual || 0,
           rnrbFromSpouse: currentCalc.rnrb_from_spouse || 0,
           totalRnrb: (currentCalc.rnrb_individual || 0) + (currentCalc.rnrb_from_spouse || 0),
@@ -1588,15 +1363,15 @@ export default {
         totals: {
           grossAssets: {
             now: this.secondDeathData.calculation?.total_gross_assets || 0,
-            minus5: this.getProjectedValueMinus5(this.secondDeathData.calculation?.total_gross_assets || 0),
+            minus5: this.projectionMinus5?.assets || 0,
             projected: this.secondDeathData.calculation?.projected_gross_assets || 0,
-            plus5: this.getProjectedValuePlus5(this.secondDeathData.calculation?.total_gross_assets || 0),
+            plus5: this.projectionPlus5?.assets || 0,
           },
           liabilities: {
             now: this.secondDeathData.calculation?.total_liabilities || 0,
-            minus5: this.secondDeathData.calculation?.total_liabilities || 0,
+            minus5: this.projectionMinus5?.liabilities || 0,
             projected: this.secondDeathData.calculation?.projected_liabilities || 0,
-            plus5: this.secondDeathData.calculation?.projected_liabilities || 0,
+            plus5: this.projectionPlus5?.liabilities || 0,
           },
           netEstate: {
             now: this.ihtData?.net_estate_value || 0,
@@ -1643,7 +1418,7 @@ export default {
           nrbFromSpouseModelled: this.ihtData?.nrb_spouse_modelled || 0,
           nrbGiftDeduction: this.ihtData?.nrb_gift_deduction || 0,
           nrbFromSpouse: this.ihtData?.nrb_transferred || 0,
-          totalNrb: this.ihtData?.projected_nrb_available ?? (this.ihtData?.nrb_available || this.ihtNilRateBand),
+          totalNrb: this.ihtData?.projected_nrb_available ?? this.ihtData?.nrb_available ?? 0,
           rnrbIndividual: this.ihtData?.projected_rnrb_individual || 0,
           rnrbSpouseModelled: this.ihtData?.projected_rnrb_spouse_modelled || 0,
           rnrbResidenceCapReduction: this.ihtData?.projected_rnrb_residence_cap_reduction || 0,
@@ -1993,18 +1768,6 @@ export default {
         settlor_interested: 'For a Settlor-Interested Trust, the full value remains in your estate (reservation of benefit).',
       };
       return explanations[type] || 'This trust type has specific Inheritance Tax treatment rules.';
-    },
-
-    // Calculate projected asset value at -5 years from life expectancy
-    getProjectedValueMinus5(currentValue) {
-      const years = this.yearsToDeathMinus5;
-      return currentValue * Math.pow(1 + 0.047, years);
-    },
-
-    // Calculate projected asset value at +5 years from life expectancy
-    getProjectedValuePlus5(currentValue) {
-      const years = this.yearsToDeathPlus5;
-      return currentValue * Math.pow(1 + 0.047, years);
     },
   },
 };

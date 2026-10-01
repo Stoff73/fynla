@@ -529,11 +529,11 @@ export default {
       return (firstYear.tax_paid || 0) / grossIncome;
     },
 
-    // First year gross income — single source: income_drawdown from projections store
+    // Projected gross income: the server's RetirementHeadline, the figure every
+    // surface shows (one figure, every surface; CSJ 2026-10-01). It used to add the
+    // State Pension again on top of a total that already included it.
     firstYearGrossIncome() {
-      const firstYear = this.projections?.income_drawdown?.yearly_income?.[0];
-      if (!firstYear) return 0;
-      return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+      return Number(this.projections?.headline?.projected_income) || 0;
     },
 
     // First year tax paid (matches Fund Depletion table)
@@ -718,7 +718,8 @@ export default {
     },
 
     projectedPotAtRetirement() {
-      return this.projections?.pension_pot_projection?.percentile_20_at_retirement || 0;
+      // The planning contract's pot, the same projection as the income.
+      return Number(this.projections?.headline?.dc_value_at_retirement) || 0;
     },
 
     totalProjectedInvestments() {

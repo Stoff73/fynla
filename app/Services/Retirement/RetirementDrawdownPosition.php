@@ -240,8 +240,14 @@ class RetirementDrawdownPosition
             'current_age' => $age,
             'end_age' => $endAge,
             'lasts_to_age' => [
-                'middle' => $this->runsOutAt($bands, 50, $age),
-                'lower' => $this->runsOutAt($bands, 20, $age),
+                'middle' => $middle = $this->runsOutAt($bands, 50, $age),
+                'lower' => $lower = $this->runsOutAt($bands, 20, $age),
+            ],
+            // The words every surface prints (CSJ 2026-10-01: web, /m and the
+            // dashboard card each built these).
+            'lasts_labels' => [
+                'middle' => $this->lastsLabel($middle, $endAge),
+                'lower' => $this->lastsLabel($lower, $endAge),
             ],
             'life_expectancy' => [
                 'age' => $lifeAge,
@@ -252,6 +258,12 @@ class RetirementDrawdownPosition
                 : null,
             'year_by_year' => $bands,
         ];
+    }
+
+    /** "runs out by about age 76", or "lasts beyond 100" when it does not run out. */
+    private function lastsLabel(?int $age, int $endAge): string
+    {
+        return $age === null ? 'lasts beyond '.$endAge : 'runs out by about age '.$age;
     }
 
     private function riskLabel(string $level): string

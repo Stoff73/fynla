@@ -107,7 +107,7 @@
             <p class="text-sm text-neutral-500">Current Value</p>
             <p class="text-2xl font-bold text-violet-600">{{ formatCurrency(account.current_value) }}</p>
             <p v-if="account.ownership_type === 'joint'" class="text-xs text-violet-600 mt-1">
-              Your {{ account.ownership_percentage ?? 50 }}%: {{ formatCurrency(userShareValue) }}
+              Your {{ userSharePercent }}%: {{ formatCurrency(userShareValue) }}
             </p>
           </div>
           <div class="bg-savannah-100 rounded-lg p-4">
@@ -137,7 +137,7 @@
             <p class="text-xl font-bold text-violet-700">
               {{ account.joint_owner_name }}<span v-if="account.joint_owner_deactivated" class="ml-1 text-xs font-normal text-neutral-400">(Deactivated)</span>
             </p>
-            <p class="text-xs text-neutral-500 mt-1">{{ 100 - (account.ownership_percentage ?? 50) }}% share</p>
+            <p class="text-xs text-neutral-500 mt-1">{{ account.other_owner_share_percent }}% share</p>
           </div>
           <!-- Holdings count (fallback) -->
           <div v-else class="bg-savannah-100 rounded-lg p-4">
@@ -488,7 +488,7 @@
 </template>
 
 <script>
-import { formatAssetType } from '@/constants/assetTypes';
+import { formatAssetClass, formatAssetType } from '@/constants/assetTypes';
 import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapActions, mapState, mapGetters } from 'vuex';
 import { coOwnerName, isPrimaryOwner } from '@/utils/ownership';
@@ -596,7 +596,6 @@ export default {
     ...mapState('auth', ['currentUser']),
     ...mapState('retirement', ['profile']),
     ...mapState('aiFormFill', ['pendingFill']),
-    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
     ...mapGetters('auth', ['currentUser']),
 
     /**
@@ -628,12 +627,15 @@ export default {
     },
 
     // ---- Header metrics ----
+    // Every figure below is the server's (GET /api/investment, CSJ 2026-10-01:
+    // one figure, every surface): the share, the recorded charges, the returns
+    // and the ISA allowance. None is worked out in the browser.
     userShareValue() {
-      if (this.account.ownership_type === 'joint') {
-        const percentage = this.account.ownership_percentage ?? 50;
-        return this.account.current_value * (percentage / 100);
-      }
-      return this.account.current_value;
+      return Number(this.account.user_share) || 0;
+    },
+
+    userSharePercent() {
+      return Number(this.account.user_share_percent) || 0;
     },
 
     holdingsCount() {
@@ -651,104 +653,55 @@ export default {
       return this.allProjections?.estimated_monthly_contribution ?? 0;
     },
 
+    // The user's ISA allowance left this year, across every ISA (ISATracker).
     isaRemaining() {
-      const contributions = this.account.isa_subscription_current_year || 0;
-      return Math.max(0, this.isaAnnualAllowance - contributions);
+      return Number(this.$store.state.investment?.isaAllowance?.remaining) || 0;
     },
 
-    // ---- Fee computations ----
+    // ---- Charges (FeeAnalyzer::recordedCharges) ----
+    charges() {
+      return this.account.charges || {};
+    },
+
     platformFeePercent() {
-      if (this.account.platform_fee_type === 'fixed') {
-        const amount = parseFloat(this.account.platform_fee_amount) || 0;
-        let annualAmount = amount;
-        if (this.account.platform_fee_frequency === 'monthly') annualAmount = amount * 12;
-        else if (this.account.platform_fee_frequency === 'quarterly') annualAmount = amount * 4;
-        const accountValue = parseFloat(this.account.current_value) || 0;
-        return accountValue > 0 ? (annualAmount / accountValue) * 100 : 0;
-      }
-      return parseFloat(this.account.platform_fee_percent) || 0;
+      return Number(this.charges.platform_fee_percent) || 0;
     },
 
     platformFeeDisplay() {
-      if (this.account.platform_fee_type === 'fixed') {
-        const amount = parseFloat(this.account.platform_fee_amount) || 0;
+      if (this.charges.platform_fee_type === 'fixed') {
         const freq = { monthly: '/month', quarterly: '/quarter', annually: '/year' };
-        return `${this.formatCurrency(amount)}${freq[this.account.platform_fee_frequency] || '/year'}`;
+        return `${this.formatCurrency(this.charges.platform_fee_amount)}${freq[this.charges.platform_fee_frequency] || '/year'}`;
       }
       return `${this.platformFeePercent.toFixed(2)}%`;
     },
 
     advisorFeePercent() {
-      return parseFloat(this.account.advisor_fee_percent) || 0;
-    },
-
-    totalHoldingsValue() {
-      if (!this.account.holdings?.length) return parseFloat(this.account.current_value) || 0;
-      return this.account.holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
+      return Number(this.charges.advisor_fee_percent) || 0;
     },
 
     weightedAverageOCF() {
-      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return 0;
-      const totalWeightedOCF = this.account.holdings.reduce((sum, h) => {
-        return sum + ((parseFloat(h.current_value) || 0) * (parseFloat(h.ocf_percent) || 0));
-      }, 0);
-      return totalWeightedOCF / this.totalHoldingsValue;
+      return Number(this.charges.weighted_ocf_percent) || 0;
     },
 
     totalFeePercent() {
-      return this.platformFeePercent + this.advisorFeePercent + this.weightedAverageOCF;
+      return Number(this.charges.total_fee_percent) || 0;
     },
 
     totalAnnualFeeCost() {
-      const accountValue = parseFloat(this.account.current_value) || 0;
-      return accountValue * (this.totalFeePercent / 100);
+      return Number(this.charges.total_annual_cost) || 0;
     },
 
-    // ---- Return computations ----
-    totalCostBasis() {
-      if (!this.account.holdings?.length) return 0;
-      return this.account.holdings.reduce((sum, h) => {
-        const costBasis = h.cost_basis || ((h.quantity || 0) * (h.purchase_price || 0)) || 0;
-        return sum + costBasis;
-      }, 0);
-    },
-
+    // ---- Returns (ReturnCalculationService) ----
     totalReturnPercent() {
-      if (!this.totalCostBasis || this.totalCostBasis === 0) return null;
-      return ((this.totalHoldingsValue - this.totalCostBasis) / this.totalCostBasis) * 100;
-    },
-
-    weightedHoldingPeriodYears() {
-      if (!this.account.holdings?.length || this.totalHoldingsValue === 0) return 3;
-      const now = new Date();
-      let weightedDays = 0;
-      let valueWithDates = 0;
-      this.account.holdings.forEach(h => {
-        if (h.purchase_date && h.current_value) {
-          const purchaseDate = new Date(h.purchase_date);
-          const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
-          if (daysDiff > 0) {
-            weightedDays += daysDiff * h.current_value;
-            valueWithDates += h.current_value;
-          }
-        }
-      });
-      if (valueWithDates < this.totalHoldingsValue * 0.5) return 3;
-      const avgDays = weightedDays / valueWithDates;
-      return Math.max(avgDays / 365.25, 30 / 365.25);
+      return this.account.total_return_percent ?? null;
     },
 
     grossReturnPercent() {
-      if (this.totalReturnPercent === null) return null;
-      const years = this.weightedHoldingPeriodYears;
-      const totalReturn = this.totalReturnPercent / 100;
-      if (years < 0.25) return (totalReturn / years) * 100;
-      return (Math.pow(1 + totalReturn, 1 / years) - 1) * 100;
+      return this.account.annualised_return ?? null;
     },
 
     netReturnPercent() {
-      if (this.grossReturnPercent === null) return null;
-      return this.grossReturnPercent - this.totalFeePercent;
+      return this.account.net_return_percent ?? null;
     },
 
     // ---- Projection computations ----
@@ -835,17 +788,12 @@ export default {
     },
 
     // ---- Holdings donut chart ----
+    // The account's allocation as the server classified it (the portfolio
+    // contract /m and iOS show), not regrouped here.
     assetAllocationSummary() {
-      if (!this.hasHoldings) return [];
-      const allocation = {};
-      this.account.holdings.forEach(holding => {
-        const value = parseFloat(holding.current_value || 0);
-        const assetType = holding.asset_type || 'other';
-        if (!allocation[assetType]) allocation[assetType] = 0;
-        allocation[assetType] += value;
-      });
-      return Object.entries(allocation)
-        .map(([type, value]) => ({ type, value, percentage: this.totalHoldingsValue > 0 ? (value / this.totalHoldingsValue) * 100 : 0 }))
+      const rows = this.account.portfolio?.analysis?.allocation || [];
+      return rows
+        .map((row) => ({ type: row.asset_class, value: Number(row.value) || 0, percentage: Number(row.portfolio_percentage) || 0 }))
         .sort((a, b) => b.percentage - a.percentage);
     },
 
@@ -858,7 +806,8 @@ export default {
     },
 
     allocationLabels() {
-      return this.assetAllocationSummary.map(a => this.formatAssetType(a.type));
+      // The server's asset classes, from the shared vocabulary (W-0443).
+      return this.assetAllocationSummary.map(a => formatAssetClass(a.type));
     },
 
     allocationChartOptions() {

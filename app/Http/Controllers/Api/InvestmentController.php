@@ -29,11 +29,15 @@ use App\Models\JointAccountLog;
 use App\Models\User;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Investment\ContributionEstimatorService;
 use App\Services\Investment\DiversificationAnalyzer;
+use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Investment\ReturnCalculationService;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Savings\ISATracker;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
@@ -79,6 +83,9 @@ class InvestmentController extends Controller
         private readonly TierGate $tierGate,
         private readonly PortfolioPresentationService $portfolioPresentation,
         private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly FeeAnalyzer $feeAnalyzer,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly ISATracker $isaTracker,
     ) {}
 
     /**
@@ -107,12 +114,31 @@ class InvestmentController extends Controller
 
             // Add user-specific calculated fields
             $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
+            // The viewer's own percentage (the primary owner's share, or the
+            // co-owner's complement), so no screen labels the wrong side.
+            $resourceData['user_share_percent'] = round($this->userShareFraction($account, $user->id) * 100, 2);
+            $resourceData['other_owner_share_percent'] = $this->isSharedOwnership($account)
+                ? round(100 - $resourceData['user_share_percent'], 2)
+                : null;
             $resourceData['full_value'] = (float) $account->current_value;
             $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
             $resourceData['is_shared'] = $this->isSharedOwnership($account);
 
             // Calculate annualised return from holdings
             $resourceData['annualised_return'] = $this->returnCalculationService->calculateAnnualisedReturn($account);
+            // The account's recorded charges and its returns, as every screen shows
+            // them (CSJ 2026-10-01: one figure, every surface; the web account page
+            // worked all of these out in the browser).
+            $charges = $this->feeAnalyzer->recordedCharges($account);
+            $resourceData['charges'] = $charges;
+            // The monthly contribution as the projection uses it (the one rule,
+            // ContributionEstimatorService), never the raw column, which may be
+            // quarterly or yearly.
+            $resourceData['monthly_contribution'] = round(app(ContributionEstimatorService::class)->estimateMonthlyContribution($account), 2);
+            $resourceData['total_return_percent'] = $this->returnCalculationService->calculateTotalReturnPercent($account);
+            $resourceData['net_return_percent'] = $resourceData['annualised_return'] === null
+                ? null
+                : round($resourceData['annualised_return'] - $charges['total_fee_percent'], 2);
 
             // Add owner names for joint accounts
             $owner = $account->user;
@@ -147,6 +173,12 @@ class InvestmentController extends Controller
             'success' => true,
             'data' => [
                 'accounts' => $accountsData,
+                // The portfolio figures every surface shows, as sent (CSJ
+                // 2026-10-01): the user's share of every account, from the one
+                // home net worth and the dashboard read, and this year's ISA
+                // allowance from the one ISA tracker.
+                'summary' => $this->portfolioSummary($user, $accounts),
+                'isa_allowance' => $this->isaTracker->getISAAllowanceStatus($user->id, $this->isaTracker->getCurrentTaxYear()),
                 // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the
                 // gate's primary-owner-only count (InvestmentAccountStore:192), NOT the
                 // joint-aware list above, so "X of Y used" matches what canCreate enforces.
@@ -165,6 +197,31 @@ class InvestmentController extends Controller
                 'goals_summary' => $goalsSummary,
             ],
         ]);
+    }
+
+    /**
+     * The portfolio figures every investment screen shows (CSJ 2026-10-01: one
+     * figure, every surface): the user's share of every account from the one
+     * home net worth and the dashboard read, and the stocks and shares ISAs
+     * within it.
+     *
+     * @return array<string, int|float>
+     */
+    private function portfolioSummary(User $user, $accounts): array
+    {
+        $total = round($this->assetAggregator->calculateInvestmentTotal($user->id), 2);
+        $isaValue = round((float) $accounts
+            ->filter(fn ($a): bool => $a->account_type === 'isa')
+            ->sum(fn ($a): float => $this->calculateUserShare($a, $user->id)), 2);
+
+        return [
+            'total_value' => $total,
+            'isa_value' => $isaValue,
+            'isa_percent' => $total > 0 ? (int) round($isaValue / $total * 100) : 0,
+            'accounts_count' => $accounts->count(),
+            'holdings_count' => (int) $accounts->sum(fn ($a): int => $a->holdings->count()),
+            'charges' => $this->feeAnalyzer->portfolioRecordedCharges($accounts),
+        ];
     }
 
     /**

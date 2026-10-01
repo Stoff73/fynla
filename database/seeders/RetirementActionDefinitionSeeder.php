@@ -333,9 +333,9 @@ class RetirementActionDefinitionSeeder extends Seeder
                     'condition' => 'no_care_costs_entered_over_50',
                     'age_threshold' => 50,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 95,
-                'notes' => 'Triggers when user is over 50 and has no care cost assumptions entered.',
+                'notes' => 'Disabled (CSJ 2026-10-01: "take it out"): care costs are not captured anywhere, so the card could not be followed.',
             ],
 
             [
@@ -360,7 +360,7 @@ class RetirementActionDefinitionSeeder extends Seeder
                 'key' => 'approaching_decumulation',
                 'source' => 'agent',
                 'title_template' => 'Plan how you will take your pension',
-                'description_template' => 'You are {years_to_retirement} years from your target retirement age. This is the time to compare drawdown, an annuity and your tax-free lump sum.',
+                'description_template' => '{summary}',
                 'action_template' => 'Compare the ways of taking your pension on the Retirement page.',
                 'category' => 'Decumulation',
                 'priority' => 'high',

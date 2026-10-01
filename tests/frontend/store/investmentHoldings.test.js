@@ -61,39 +61,25 @@ describe('investment/updateHolding', () => {
 });
 
 describe('investment/totalPortfolioValue', () => {
-  it('counts only the viewer’s share of a joint account', () => {
-    // /net-worth/investments used to total the FULL value of a joint account
-    // while the wealth summary counted half — the same session, the same
-    // account, £47,500 apart (W-0015).
+  // The server's total at the viewer's share (GET /api/investment `summary`),
+  // the figure net worth and the dashboard read on every surface (CSJ
+  // 2026-10-01). W-0015's share rule lives in CrossModuleAssetAggregator now;
+  // the getter transports the figure and never adds up accounts.
+  it('reads the server total, not the accounts', () => {
     const state = {
+      summary: { total_value: 132500 },
       accounts: [
         { id: 13, ownership_type: 'individual', current_value: 85000, user_share: 85000 },
-        {
-          id: 14,
-          ownership_type: 'joint',
-          ownership_percentage: 50,
-          current_value: 95000,
-          user_share: 47500,
-          is_primary_owner: true,
-        },
+        { id: 14, ownership_type: 'joint', ownership_percentage: 50, current_value: 95000, user_share: 47500 },
       ],
     };
 
     expect(investment.getters.totalPortfolioValue(state)).toBe(132500);
   });
 
-  it('gives the joint owner the complementary share, not the full value', () => {
-    const state = {
-      accounts: [{
-        id: 14,
-        ownership_type: 'joint',
-        ownership_percentage: 50,
-        current_value: 95000,
-        user_share: 47500,
-        is_primary_owner: false,
-      }],
-    };
+  it('shows nothing rather than a sum of its own before the server answers', () => {
+    const state = { summary: null, accounts: [{ id: 14, current_value: 95000, user_share: 47500 }] };
 
-    expect(investment.getters.totalPortfolioValue(state)).toBe(47500);
+    expect(investment.getters.totalPortfolioValue(state)).toBe(0);
   });
 });

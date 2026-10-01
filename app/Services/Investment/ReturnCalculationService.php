@@ -79,4 +79,22 @@ class ReturnCalculationService
 
         return round($annualisedReturn, 2);
     }
+
+    /**
+     * The whole return since purchase as a percentage, on the same holdings and
+     * cost basis as calculateAnnualisedReturn (only holdings with a recorded
+     * cost basis count). Null when no holding has one.
+     */
+    public function calculateTotalReturnPercent(InvestmentAccount $account): ?float
+    {
+        $priced = $account->holdings->filter(fn ($h): bool => (float) ($h->cost_basis ?? 0) > 0);
+        $cost = (float) $priced->sum(fn ($h): float => (float) $h->cost_basis);
+        if ($cost <= 0) {
+            return null;
+        }
+
+        $value = (float) $priced->sum(fn ($h): float => (float) ($h->current_value ?? 0));
+
+        return round(($value - $cost) / $cost * 100, 2);
+    }
 }

@@ -225,10 +225,9 @@ struct GoalsView: View {
         return pct >= 50 ? .violet : .raspberry
     }
 
+    /// The server's words (Goal::status_label), the ones web and /m show.
     private func statusLabel(_ goal: FinancialGoal) -> String {
-        let pct = NSDecimalNumber(decimal: goal.progressPercentage).doubleValue
-        if pct >= 100 || goal.status == "completed" { return "Complete" }
-        return goal.isOnTrack ? "On track" : "Behind"
+        goal.statusLabel
     }
 
     private func status(forPercent pct: Double) -> GoalStatus {
@@ -249,32 +248,27 @@ struct GoalsView: View {
         .frame(height: 6)
     }
 
+    // The server's overview figures only (GoalsController overview, CSJ
+    // 2026-10-01): /m and web show the same and never add up goals themselves.
     private func totalGoals(_ snapshot: GoalsSnapshot) -> Int {
-        snapshot.overview?.totalGoals ?? snapshot.goals.count
+        snapshot.overview?.totalGoals ?? 0
     }
 
     private func onTrackCount(_ snapshot: GoalsSnapshot) -> Int {
-        snapshot.overview?.onTrackCount ?? snapshot.goals.filter(\.isOnTrack).count
+        snapshot.overview?.onTrackCount ?? 0
     }
 
     private func totalTarget(_ snapshot: GoalsSnapshot) -> Decimal {
-        snapshot.overview?.totalTarget
-            ?? snapshot.goals.reduce(0) { $0 + $1.targetAmount }
+        snapshot.overview?.totalTarget ?? 0
     }
 
     private func totalCurrent(_ snapshot: GoalsSnapshot) -> Decimal {
-        snapshot.overview?.totalCurrent
-            ?? snapshot.goals.reduce(0) { $0 + $1.currentAmount }
+        snapshot.overview?.totalCurrent ?? 0
     }
 
     private func overallProgress(_ snapshot: GoalsSnapshot) -> Int {
-        if let progress = snapshot.overview?.overallProgress {
-            return Int(NSDecimalNumber(decimal: progress).doubleValue.rounded())
-        }
-        let target = totalTarget(snapshot)
-        guard target > 0 else { return 0 }
-        let ratio = NSDecimalNumber(decimal: totalCurrent(snapshot) / target).doubleValue
-        return Int((ratio * 100).rounded())
+        guard let progress = snapshot.overview?.overallProgress else { return 0 }
+        return Int(NSDecimalNumber(decimal: progress).doubleValue.rounded())
     }
 
     private func savedLabel(_ snapshot: GoalsSnapshot) -> String {

@@ -39,6 +39,10 @@ class LiabilityResource extends JsonResource
                 ? round($this->calculateUserShare($this->resource, $viewerId), 2)
                 : null,
             'monthly_payment' => $this->monthly_payment,
+            // This viewer's part of the monthly payment, from the same share.
+            'user_monthly_payment_share' => $viewerId !== null
+                ? round((float) ($this->monthly_payment ?? 0) * $this->userShareFraction($this->resource, $viewerId), 2)
+                : null,
             'interest_rate' => $this->interest_rate,
             'maturity_date' => $this->maturity_date?->toDateString(),
             'secured_against' => $this->secured_against,

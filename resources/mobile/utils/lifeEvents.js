@@ -27,26 +27,3 @@ export function upcomingEvents(events) {
   return (events || []).filter((event) => !hasOccurred(event));
 }
 
-/**
- * Expected income, expected expenditure and the net of the two, counting only
- * what is still to come. Mirrors LifeEventService::summariseUpcoming().
- */
-export function summariseUpcoming(events) {
-  const upcoming = upcomingEvents(events);
-  const byImpact = (impact) => upcoming.filter((event) => event.impact_type === impact);
-
-  const income = byImpact('income');
-  const expense = byImpact('expense');
-  const total = (list) => list.reduce((sum, event) => sum + (Number(event.amount) || 0), 0);
-
-  const expectedIncome = total(income);
-  const expectedExpense = total(expense);
-
-  return {
-    expected_income: expectedIncome,
-    expected_expense: expectedExpense,
-    net_impact: expectedIncome - expectedExpense,
-    income_count: income.length,
-    expense_count: expense.length,
-  };
-}

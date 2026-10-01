@@ -144,7 +144,7 @@
                     <span class="text-violet-700 truncate">{{ goal.name }}</span>
                   </div>
                   <span class="text-violet-600 flex-shrink-0 ml-2">
-                    {{ formatCurrency(goal.target_amount - goal.current_amount) }} remaining
+                    {{ formatCurrency(goal.amount_remaining) }} remaining
                   </span>
                 </div>
               </div>

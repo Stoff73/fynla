@@ -3,9 +3,8 @@ import SwiftUI
 // Transcribes /m's "Your finances" grid (md-panels in Dashboard.vue +
 // dashboard.css): 2-up centred tiles with a soft per-tone gradient tint, a
 // donut (conic pie with white inner) or progress-bar visual on top, then the
-// uppercase label with a small glyph, headline value and caption. All value
-// derivations are display-only mappings of server figures, matching /m's
-// finances() computed exactly.
+// uppercase label with a small glyph, headline value and caption. Every figure
+// is the server's DashboardCards block, rendered as sent.
 struct FinancePanel: Identifiable {
     enum Tone {
         case horizon
@@ -48,131 +47,53 @@ struct FinancePanel: Identifiable {
     let wide: Bool
     let route: AppRoute
 
-    // Builds the /m panel list from the dashboard snapshot.
+    // Builds the panel list from the server's `cards` block (DashboardCards):
+    // every figure, ring and caption is rendered as sent, the same fields web
+    // and /m render (CSJ 2026-10-01: one figure, every surface). Only labels,
+    // glyphs, tones and routes are this surface's own.
     static func panels(from snapshot: DashboardSnapshot) -> [FinancePanel] {
-        func money(_ value: Decimal?) -> String {
-            MoneyFormatter.gbpWhole(value ?? 0)
+        func panel(
+            _ card: DashboardCard?,
+            id: String,
+            label: String,
+            icon: String,
+            tone: Tone,
+            wide: Bool = false,
+            route: AppRoute
+        ) -> FinancePanel {
+            let value = card?.value ?? 0
+            let money = MoneyFormatter.gbpWhole(value)
+            let visual = card?.visual
+            let progress = Double(visual?.progress ?? 0) / 100
+            let number = visual?.number ?? ""
+            let caption = visual?.label ?? ""
+            return FinancePanel(
+                id: id,
+                label: label,
+                icon: icon,
+                tone: tone,
+                value: (card?.valueIsIncome ?? false) ? "\(money)/year" : money,
+                caption: card?.caption ?? "",
+                visual: visual?.type == "donut"
+                    ? .donut(progress: progress, number: number, caption: caption)
+                    : .bar(fill: progress, value: number, unit: caption),
+                wide: wide,
+                route: route
+            )
         }
-        func double(_ value: Decimal?) -> Double {
-            NSDecimalNumber(decimal: value ?? 0).doubleValue
-        }
 
-        let netWorth = snapshot.netWorth
-        let assets = netWorth.breakdown.totalAssets ?? {
-            let breakdown = netWorth.breakdown.assets
-            return [
-                breakdown.property, breakdown.savings, breakdown.investments,
-                breakdown.pensions, breakdown.business, breakdown.chattels,
-                breakdown.cash,
-            ].compactMap { $0 }.reduce(0, +)
-        }()
-        let trend = double(netWorth.trend)
-        let trendLabel = (trend >= 0 ? "+" : "") + trend.formatted(.number.precision(.fractionLength(0...1))) + "%"
-
-        let protection = snapshot.modules.protection
-        let protectionValue = protection.totalCoverage ?? 0
-        let hasCover = protectionValue > 0
-
-        let savings = snapshot.modules.savings
-        let emergencyMonths = double(savings.emergencyFundMonths)
-        let emergencyTarget = 6.0
-        let emergencyFill = min(1, emergencyMonths / emergencyTarget)
-        let monthsLabel = emergencyMonths > 0
-            ? (emergencyMonths * 10).rounded() / 10
-            : 0
-        let savingsCaption = emergencyMonths >= emergencyTarget
-            ? "Emergency fund on track"
-            : (emergencyMonths > 0 ? "Building your fund" : "Start your emergency fund")
-
-        let retirement = snapshot.modules.retirement
-        let projected = double(retirement.projectedIncome)
-        let target = double(retirement.targetIncome)
-        let retirementPct = target > 0 ? min(100, (projected / target * 100).rounded()) : 0
-        let pensionAssets = netWorth.breakdown.assets.pensions ?? 0
-        let retirementValue = retirement.potValue
-            ?? (pensionAssets > 0 ? pensionAssets : retirement.incomeGap)
-
-        let investment = snapshot.modules.investment
-        let investmentValue = investment.portfolioValue ?? 0
-        let investmentAccounts = investment.accountsCount ?? 0
-        let investmentHoldings = investment.holdingsCount ?? 0
-
+        let cards = snapshot.cards
         return [
-            FinancePanel(
-                id: "net_worth",
-                label: "Net worth",
-                icon: "chart.bar",
-                tone: .horizon,
-                value: money(netWorth.total),
-                caption: money(assets) + " assets",
-                visual: .donut(progress: 0.72, number: trendLabel, caption: "Trend"),
-                wide: false,
-                route: .netWorth(category: nil)
-            ),
-            FinancePanel(
-                id: "protection",
-                label: "Protection",
-                icon: "checkmark.shield",
-                tone: .raspberry,
-                value: money(protectionValue),
-                caption: hasCover ? "Cover in place" : "Add your cover",
-                visual: .donut(
-                    progress: hasCover ? 0.85 : 0,
-                    number: hasCover ? "Active" : "None",
-                    caption: "Cover"
-                ),
-                wide: false,
-                route: .protection(policyType: nil, id: nil)
-            ),
-            FinancePanel(
-                id: "savings",
-                label: "Bank Accounts",
-                icon: "creditcard",
-                tone: .spring,
-                value: money(savings.totalSavings),
-                caption: savingsCaption,
-                visual: .bar(
-                    fill: emergencyFill,
-                    value: monthsLabel.formatted(.number.precision(.fractionLength(0...1))),
-                    unit: "/ 6 months"
-                ),
-                wide: false,
-                route: .savings(accountID: nil)
-            ),
-            FinancePanel(
-                id: "retirement",
-                label: "Retirement",
-                icon: "clock",
-                tone: .violet,
-                value: money(retirementValue),
-                caption: target > 0
-                    ? "Towards your target"
-                    : (double(retirementValue) > 0 ? "Your pension pot" : "Plan your retirement"),
-                visual: .bar(
-                    fill: retirementPct / 100,
-                    value: target > 0 ? "\(Int(retirementPct))%" : "Target not set",
-                    unit: target > 0 ? "of target" : ""
-                ),
-                wide: false,
-                route: .retirement(pensionType: nil, id: nil)
-            ),
-            FinancePanel(
-                id: "investment",
-                label: "Investment",
-                icon: "chart.line.uptrend.xyaxis",
-                tone: .horizon,
-                value: money(investmentValue),
-                caption: investmentValue > 0
-                    ? "\(investmentHoldings) \(investmentHoldings == 1 ? "holding" : "holdings")"
-                    : "Add your investments",
-                visual: .donut(
-                    progress: investmentValue > 0 ? 0.72 : 0,
-                    number: "\(investmentAccounts)",
-                    caption: investmentAccounts == 1 ? "Account" : "Accounts"
-                ),
-                wide: true,
-                route: .investment(accountID: nil)
-            ),
+            panel(cards?.netWorth, id: "net_worth", label: "Net worth", icon: "chart.bar", tone: .horizon,
+                  route: .netWorth(category: nil)),
+            panel(cards?.protection, id: "protection", label: "Protection", icon: "checkmark.shield", tone: .raspberry,
+                  route: .protection(policyType: nil, id: nil)),
+            panel(cards?.savings, id: "savings", label: "Bank Accounts", icon: "creditcard", tone: .spring,
+                  route: .savings(accountID: nil)),
+            panel(cards?.retirement, id: "retirement", label: "Retirement", icon: "clock", tone: .violet,
+                  route: .retirement(pensionType: nil, id: nil)),
+            panel(cards?.investment, id: "investment", label: "Investment", icon: "chart.line.uptrend.xyaxis",
+                  tone: .horizon, wide: true, route: .investment(accountID: nil)),
         ]
     }
 }

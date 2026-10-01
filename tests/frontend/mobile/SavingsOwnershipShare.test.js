@@ -69,6 +69,15 @@ const coOwnerPayload = {
   expenditure_profile: { total_monthly_expenditure: 1000 },
   emergency_fund_target: { target_months: 6, target_amount: 6000 },
   isa_allowance: null,
+  // The server's figures (SavingsPosition): her share, £6,280 + £6,000.
+  position: {
+    total_cash: 12280,
+    emergency_fund: {
+      runway_label: '12 months from cash savings', runway_hint: null, target_months: 6, target_amount: 6000,
+      rationale: '', covered_percent: 100, covered_label: '100% of target', status: 'on_track',
+    },
+    isa: { total_allowance: 20000, used: 0, remaining: 20000, percent_used: 0, status: 'open', remaining_label: '£20,000 remaining' },
+  },
 };
 
 function mountSavings() {
@@ -81,27 +90,22 @@ describe('mobile bank accounts', () => {
     apiGet.mockResolvedValue({ ok: true, status: 200, data: { data: coOwnerPayload } });
   });
 
-  it('counts the co-owner\'s share of a joint account, not the whole balance', async () => {
+  it('shows the server\'s total at her share, never the whole joint balance', async () => {
     const wrapper = mountSavings();
     await flushPromises();
 
-    // £6,280 + £6,000. The defect summed £6,280 + £20,000 = £26,280 — £14,000 of
-    // it her husband's.
+    // One figure, every surface (CSJ 2026-10-01): the total is the server's
+    // (£12,280), not £6,280 + £20,000 added up here.
     expect(wrapper.vm.totalCash).toBe(12280);
   });
 
-  it('carries that share into the runway, the bar and the target coverage', async () => {
+  it('shows the server\'s runway, bar and target coverage as sent', async () => {
     const wrapper = mountSavings();
     await flushPromises();
 
-    // 12,280 / 1,000. Under the defect this read 26 months — and the bar and
-    // "% of target" were wrong by the same money.
-    // The label rounds to whole months above ten, so 12.28 renders as "12".
-    // Wording is "from cash savings" rather than "of cover" since W-0276; the
-    // number is what this case is about and is unchanged.
-    expect(wrapper.vm.runwayMonths).toBeCloseTo(12.28, 2);
     expect(wrapper.text()).toContain('12 months from cash savings');
     expect(wrapper.vm.runwayCovered).toBe('100% of target');
+    expect(wrapper.vm.runwayBarWidth).toBe('100%');
   });
 
   it('names the share on the row rather than showing the full balance alone', async () => {
@@ -114,8 +118,8 @@ describe('mobile bank accounts', () => {
   });
 
   it('gives the primary owner the complementary share of the same record', async () => {
-    // The same account, seen from the other side. The two views must not both be
-    // the same number — which is exactly what a 50/50 fixture would allow.
+    // The same account, seen from the other side: the row names her husband's
+    // 70% and the total is the server's for him.
     apiGet.mockResolvedValue({
       ok: true,
       status: 200,
@@ -123,6 +127,7 @@ describe('mobile bank accounts', () => {
         data: {
           ...coOwnerPayload,
           accounts: [{ ...coOwnerPayload.accounts[1], user_share: 14000, is_primary_owner: true }],
+          position: { ...coOwnerPayload.position, total_cash: 14000 },
         },
       },
     });

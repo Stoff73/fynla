@@ -104,21 +104,19 @@ import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
-import { summariseUpcoming } from '../../utils/lifeEvents.js';
 
 export default {
   name: 'MobileGoals',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', goals: [], overview: null, lifeEvents: [] }),
+  data: () => ({ loading: true, error: '', goals: [], overview: null, lifeEvents: [], lifeEventSummary: null }),
   computed: {
-    totalGoals() { return this.overview?.total_goals ?? this.goals.length; },
-    onTrackCount() { return this.overview?.on_track_count ?? this.goals.filter((g) => g.is_on_track).length; },
-    totalTarget() { return Number(this.overview?.total_target ?? this.goals.reduce((s, g) => s + (Number(g.target_amount) || 0), 0)); },
-    totalCurrent() { return Number(this.overview?.total_current ?? this.goals.reduce((s, g) => s + (Number(g.current_amount) || 0), 0)); },
-    overallProgress() {
-      if (this.overview?.overall_progress != null) return Math.round(Number(this.overview.overall_progress));
-      return this.totalTarget > 0 ? Math.round((this.totalCurrent / this.totalTarget) * 100) : 0;
-    },
+    // The server's totals (GET /api/goals/dashboard-overview), as the web reads
+    // them; no client sums (one figure, every surface, CSJ 2026-10-01).
+    totalGoals() { return Number(this.overview?.total_goals) || 0; },
+    onTrackCount() { return Number(this.overview?.on_track_count) || 0; },
+    totalTarget() { return Number(this.overview?.total_target) || 0; },
+    totalCurrent() { return Number(this.overview?.total_current) || 0; },
+    overallProgress() { return Math.round(Number(this.overview?.overall_progress) || 0); },
     overallBarWidth() { return `${Math.min(this.overallProgress, 100)}%`; },
     overallStatus() {
       if (this.overallProgress >= 100) return 'spring';
@@ -137,7 +135,9 @@ export default {
     // still being counted as money expected in. Shared with the web events tab
     // so the two surfaces cannot drift.
     eventTotals() {
-      return summariseUpcoming(this.lifeEvents);
+      // The server's totals (LifeEventService::summariseUpcoming), one figure on
+      // every surface (CSJ 2026-10-01).
+      return this.lifeEventSummary || { expected_income: 0, expected_expense: 0, net_impact: 0, income_count: 0, expense_count: 0 };
     },
     totalEventIncome() {
       return this.eventTotals.expected_income;
@@ -163,9 +163,7 @@ export default {
     // Served by the same GoalCalculationService the web reads, so /m cannot
     // drift into calling an overdue goal "Complete" (W-0411, Rules 19 + 20).
     statusLabel(goal) {
-      if (goal.status_label) return goal.status_label;
-      if ((Number(goal.progress_percentage) || 0) >= 100 || goal.status === 'completed') return 'Complete';
-      return goal.is_on_track ? 'On track' : 'Behind';
+      return goal.status_label;
     },
     remainingLabel(goal) {
       const months = Number(goal.months_remaining);
@@ -228,6 +226,7 @@ export default {
       this.goals = [];
       this.overview = null;
       this.lifeEvents = [];
+      this.lifeEventSummary = null;
       try {
         // The page is titled "Goals and life events" — the same endpoint the web
         // events tab reads, so both surfaces see one set of records.
@@ -247,9 +246,13 @@ export default {
         }
         if (overviewRes.ok) {
           this.overview = overviewRes.data?.data || overviewRes.data || null;
+        } else {
+          this.error = overviewRes.data?.message || 'We could not load your goals.';
+          return;
         }
         if (eventsRes.ok) {
           this.lifeEvents = eventsRes.data?.data?.events || eventsRes.data?.events || [];
+          this.lifeEventSummary = eventsRes.data?.data?.summary || null;
         }
       } catch {
         this.error = 'Network error. Please try again.';

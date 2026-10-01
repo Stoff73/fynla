@@ -112,6 +112,11 @@ export function getFullValue(item, valueField = null) {
  */
 export function userSharePercent(item, viewerId = null) {
   if (!item) return 0;
+  // The server's figure for this viewer, wherever the payload carries it (CSJ
+  // 2026-10-01: one figure, every surface).
+  if (item.user_share_percent != null && item.user_share_percent !== '') {
+    return parseFloat(item.user_share_percent) || 0;
+  }
   if (!isSharedRecord(item)) return 100;
 
   const stored = item.ownership_percentage == null

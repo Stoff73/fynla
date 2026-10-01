@@ -197,9 +197,16 @@ struct InvestmentView: View {
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(MoneyFormatter.gbpWhole(account.currentValue))
+                    // The viewer's share, as /m shows it; a joint account names
+                    // the share and the full value it came from.
+                    Text(MoneyFormatter.gbpWhole(account.userShare ?? 0))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    if account.isShared == true, let percent = account.userSharePercent {
+                        Text("Your \(MoneyFormatter.percentage(percent)) of \(MoneyFormatter.gbpWhole(account.currentValue))")
+                            .font(.system(size: 11))
+                            .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    }
                     Text("View".uppercased())
                         .font(.system(size: 11, weight: .bold))
                         .kerning(0.5)

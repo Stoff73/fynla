@@ -130,7 +130,6 @@ const CashOverview = () => import('@/views/NetWorth/CashOverview.vue');
 const RiskProfilePage = () => import('@/views/Risk/RiskProfilePage.vue');
 const RiskLevelsExplainedPage = () => import('@/views/Risk/RiskLevelsExplainedPage.vue');
 const RiskFactorDetailPage = () => import('@/views/Risk/RiskFactorDetailPage.vue');
-const PensionDetail = () => import('@/views/Retirement/PensionDetail.vue');
 const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
 const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
@@ -819,17 +818,11 @@ const routes = [
     ],
   },
   {
+    // One web pension detail: the Retirement page's inline view. This page read
+    // fields the API does not send (CSJ 2026-10-01 audit, item 12).
     path: '/pension/:type/:id',
     name: 'PensionDetail',
-    component: PensionDetail,
-    meta: {
-      requiresAuth: true,
-      breadcrumb: [
-        { label: 'Home', path: '/dashboard' },
-        { label: 'Retirement', path: '/net-worth/retirement' },
-        { label: 'Pension Details', path: '' },
-      ],
-    },
+    redirect: (to) => ({ path: '/net-worth/retirement', query: { pension: `${to.params.type}:${to.params.id}` } }),
   },
   {
     path: '/protection',

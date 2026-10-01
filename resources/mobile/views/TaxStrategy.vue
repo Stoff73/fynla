@@ -205,8 +205,8 @@ export default {
         ? 'Move assets to use spouse allowances'
         : 'Coordinate as a household';
     },
-    headroom() { return this.userAllowances.filter((a) => a.available !== false && a.known !== false && Number(a.remaining) > 0); },
-    headroomCount() { return this.headroom.length; },
+    // The server's count of allowances with headroom (TaxStrategyService summary).
+    headroomCount() { return Number(this.dashboard?.summary?.headroom_count) || 0; },
     taxBasisNote() {
       // One home for the sentence: TaxStrategyOutputDTO::TAX_BASIS_NOTE.
       return this.dashboard?.tax_basis_note || '';
@@ -223,20 +223,19 @@ export default {
     barWidth(a) { return `${Math.min(Number(a.utilisation_pct) || 0, 100)}%`; },
     // Server caps pension headroom at a year of affordable surplus
     // (TaxStrategyService::withAffordablePensionHeadroom); say so when it bites.
+    // The state is the server's (TaxStrategyService `tile_state` and
+    // `budget_limited`, CSJ 2026-10-01); the words are /m's approved copy.
     budgetNote(a) {
-      return a.affordable_this_year !== undefined
-        && Number(a.remaining) < Number(a.amount) - Number(a.used) - 0.5
-        ? 'Limited to what you can afford this year'
-        : null;
+      return a.budget_limited === true ? 'Limited to what you can afford this year' : null;
     },
     remainingLabel(a) {
-      if (a.available === false) return 'Not available';
-      if (a.known === false) return 'Current-year use not confirmed';
-      // Brought to £0 by what is affordable, not by use: say the figure
-      // (fynla.org 2026-09-30: £7,500 of £60,000 read "Fully used").
-      if (this.budgetNote(a) && Number(a.remaining) <= 0) return `${this.fmt(0)} available`;
-      if (Number(a.utilisation_pct) >= 100 || Number(a.remaining) <= 0) return 'Fully used';
-      return `${this.fmt(a.remaining)} available`;
+      switch (a.tile_state) {
+        case 'unavailable': return 'Not available';
+        case 'unconfirmed': return 'Current-year use not confirmed';
+        case 'budget_capped': return `${this.fmt(0)} available`;
+        case 'open': return `${this.fmt(a.remaining)} available`;
+        default: return 'Fully used';
+      }
     },
     nextStep(rec) { return NEXT_STEPS[rec.type] || null; },
     goToNextStep(rec) {

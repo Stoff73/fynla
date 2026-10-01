@@ -67,7 +67,12 @@ const EVENTS = [
   },
 ];
 
-function mockEndpoints({ events = EVENTS } = {}) {
+// What LifeEventController sends for EVENTS: LifeEventService::summariseUpcoming
+// leaves the 2020 inheritance out (W-0207). The page shows it as sent.
+const SUMMARY = { expected_income: 350000, expected_expense: 85000, net_impact: 265000, income_count: 1, expense_count: 1 };
+const EMPTY_SUMMARY = { expected_income: 0, expected_expense: 0, net_impact: 0, income_count: 0, expense_count: 0 };
+
+function mockEndpoints({ events = EVENTS, summary = events.length ? SUMMARY : EMPTY_SUMMARY } = {}) {
   apiGet.mockImplementation((path) => {
     if (path === '/api/goals') {
       return Promise.resolve({ ok: true, status: 200, data: { data: { goals: GOALS } } });
@@ -80,7 +85,7 @@ function mockEndpoints({ events = EVENTS } = {}) {
       });
     }
     if (path === '/api/life-events') {
-      return Promise.resolve({ ok: true, status: 200, data: { data: { events, count: events.length } } });
+      return Promise.resolve({ ok: true, status: 200, data: { data: { events, count: events.length, summary } } });
     }
     return Promise.resolve({ ok: true, status: 200, data: {} });
   });
@@ -186,7 +191,7 @@ describe('/m goals page', () => {
   // in the fixture above was counted as money still expected in. The test shared
   // the code's misconception and so could never have failed on it; it named the
   // offending record and asserted it as income in the same breath.
-  it('leaves an event that has already happened out of the expected totals', async () => {
+  it('shows the server totals, which leave an event that has already happened out', async () => {
     const wrapper = mountGoals();
     await flushPromises();
 

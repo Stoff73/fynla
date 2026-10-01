@@ -7,9 +7,12 @@ struct SavingsSnapshot: Decodable, Sendable, Equatable {
     let expenditureProfile: SavingsExpenditureProfile
     let isaAllowance: SavingsISAAllowance?
     let emergencyFundTarget: SavingsEmergencyFundTarget
+    /// What the page shows, built on the server (SavingsPosition): the same block
+    /// web and /m render (CSJ 2026-10-01: one figure, every surface).
+    let position: SavingsPosition?
 
     private enum CodingKeys: String, CodingKey {
-        case accounts
+        case accounts, position
         case accountCount = "account_count"
         case accountLimit = "account_limit"
         case expenditureProfile = "expenditure_profile"
@@ -19,7 +22,8 @@ struct SavingsSnapshot: Decodable, Sendable, Equatable {
 
     var bankAccounts: [SavingsAccount] { accounts.filter { !$0.isISA } }
     var cashISAs: [SavingsAccount] { accounts.filter(\.isISA) }
-    var totalCash: Decimal { accounts.reduce(0) { $0 + $1.fullBalanceValue } }
+    /// The user's share of all their cash, as the server sent it.
+    var totalCash: Decimal { position?.totalCash ?? 0 }
     var isAtAccountLimit: Bool {
         guard let accountLimit else { return false }
         return accountCount >= accountLimit
@@ -51,9 +55,17 @@ struct SavingsAccount: Decodable, Sendable, Equatable, Identifiable {
     let isShared: Bool?
     let ownerName: String?
     let jointOwnerName: String?
+    /// Server figures (SavingsAccount model): interest on the full balance and
+    /// the time to maturity, printed as sent.
+    let annualInterest: Decimal?
+    let monthlyInterest: Decimal?
+    let timeToMaturity: String?
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case annualInterest = "annual_interest"
+        case monthlyInterest = "monthly_interest"
+        case timeToMaturity = "time_to_maturity"
         case accountName = "account_name"
         case provider
         case institution
@@ -84,6 +96,55 @@ struct SavingsAccount: Decodable, Sendable, Equatable, Identifiable {
         provider ?? institution ?? accountName ?? (isISA ? "Cash ISA" : "Bank account")
     }
     var isJoint: Bool { ownershipType == "joint" }
+}
+
+struct SavingsPosition: Decodable, Sendable, Equatable {
+    struct EmergencyFund: Decodable, Sendable, Equatable {
+        let runwayLabel: String
+        let runwayHint: String?
+        let targetMonths: Int
+        let targetAmount: Decimal
+        let rationale: String
+        let coveredPercent: Int?
+        let coveredLabel: String
+        let status: String
+
+        private enum CodingKeys: String, CodingKey {
+            case rationale, status
+            case runwayLabel = "runway_label"
+            case runwayHint = "runway_hint"
+            case targetMonths = "target_months"
+            case targetAmount = "target_amount"
+            case coveredPercent = "covered_percent"
+            case coveredLabel = "covered_label"
+        }
+    }
+
+    struct ISA: Decodable, Sendable, Equatable {
+        let totalAllowance: Decimal
+        let used: Decimal
+        let remaining: Decimal
+        let percentUsed: Decimal
+        let status: String
+        let remainingLabel: String
+
+        private enum CodingKeys: String, CodingKey {
+            case used, remaining, status
+            case totalAllowance = "total_allowance"
+            case percentUsed = "percent_used"
+            case remainingLabel = "remaining_label"
+        }
+    }
+
+    let totalCash: Decimal
+    let emergencyFund: EmergencyFund
+    let isa: ISA
+
+    private enum CodingKeys: String, CodingKey {
+        case isa
+        case totalCash = "total_cash"
+        case emergencyFund = "emergency_fund"
+    }
 }
 
 struct SavingsExpenditureProfile: Decodable, Sendable, Equatable {

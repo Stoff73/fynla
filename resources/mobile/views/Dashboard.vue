@@ -359,7 +359,7 @@ import { primaryNavigationSections } from '../navigation/navigationModel.js';
 import { issueWebHandoff } from '../navigation/webHandoff.js';
 // Shared with the web dashboard by relative path — the ownership.js precedent
 // (W-0015/F-0002). One rule, both surfaces.
-import { dashboardFigures } from '../../js/utils/dashboardCards.js';
+import { dashboardCard } from '../../js/utils/dashboardCards.js';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -564,73 +564,21 @@ export default {
     shareIcon() {
       return NAV_ICON.share;
     },
-    // Figures come from the shared derivation (js/utils/dashboardCards.js) so this
-    // and the web dashboard cannot answer the same question differently — the
-    // W-0238 retirement-headline precedent applied to the other four cards
-    // (W-0245). Everything below the call is this surface's own presentation:
-    // "Bank Accounts" rather than "Savings", /m app routes rather than web SPA
-    // routes, and the visualisation each card uses.
+    // Every figure, ring and caption comes from the server's `cards` block
+    // (DashboardCards), the same fields web and iOS render (CSJ 2026-10-01).
+    // What stays here is /m's own presentation: "Bank Accounts", /m routes, colours.
     finances() {
-      const f = dashboardFigures(this.data);
+      const card = (key) => {
+        const c = dashboardCard(this.data, key);
+        return { ...c, value: this.fmt(c.value) + (c.valueIsIncome ? '/year' : '') };
+      };
 
       return [
-        {
-          key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth,
-          value: this.fmt(f.netWorth.total), route: '/net-worth',
-          viz: 'donut',
-          // W-0504 — the arc, the number and the caption are now one quantity.
-          //
-          // This ring was `progress: 72` beside `vizNum: <trend>%`: a constant arc next
-          // to a live figure, so on `peak_earners` it rendered at 72% against `+0%`.
-          //
-          // It shows EQUITY, not trend, matching web (`GamifiedDashboard.vue:320`) and
-          // the same `equityPct` field on the shared derivation. Trend was the wrong
-          // quantity for this shape whatever it was filled with: it is signed, and a
-          // 0-100 arc cannot render a fall — which is likely why it was left constant.
-          progress: f.netWorth.equityPct, vizNum: f.netWorth.equityPct + '%', vizCap: 'Equity',
-          caption: this.fmt(f.netWorth.totalAssets) + ' assets',
-        },
-        {
-          key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield,
-          value: this.fmt(f.protection.value), route: '/protection',
-          viz: 'donut',
-          // W-0504 — was `covered ? 85 : 0`. Cover is binary here, so the arc is
-          // full or empty; 85 drew a partial arc for a state that has no partial.
-          progress: f.protection.covered ? 100 : 0,
-          vizNum: f.protection.vizNum, vizCap: 'Cover',
-          caption: f.protection.caption,
-        },
-        {
-          key: 'savings', label: 'Bank Accounts', tone: 'spring', icon: ICON.card,
-          value: this.fmt(f.savings.value), route: '/savings',
-          viz: 'bar',
-          barFill: f.savings.barFill,
-          barValue: f.savings.barValue,
-          barUnit: f.savings.barUnit,
-          caption: f.savings.caption,
-        },
-        {
-          key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock,
-          value: this.fmt(f.retirement.value) + (f.retirement.isAnnualIncome ? '/year' : ''), route: '/retirement',
-          viz: 'bar',
-          barFill: f.retirement.pct,
-          // /m says "Target not set" where web prints "0%". Kept — it is the better
-          // empty state and it is this surface's wording, not drift in the figure.
-          barValue: f.retirement.targetIncome > 0 ? f.retirement.pct + '%' : 'Target not set',
-          barUnit: f.retirement.targetIncome > 0 ? 'of target' : '',
-          caption: f.retirement.caption,
-        },
-        {
-          key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true,
-          value: this.fmt(f.investment.value), route: '/investment',
-          viz: 'donut',
-          // W-0504 — was `value > 0 ? 72 : 0`, so every household with any investment
-          // saw the same 72% arc. `peak_earners` holds 11%.
-          progress: f.investment.sharePct,
-          vizNum: f.investment.vizNum,
-          vizCap: f.investment.vizCap,
-          caption: f.investment.caption,
-        },
+        { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, route: '/net-worth', ...card('net_worth') },
+        { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, route: '/protection', ...card('protection') },
+        { key: 'savings', label: 'Bank Accounts', tone: 'spring', icon: ICON.card, route: '/savings', ...card('savings') },
+        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, route: '/retirement', ...card('retirement') },
+        { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, route: '/investment', ...card('investment') },
       ];
     },
   },

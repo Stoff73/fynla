@@ -1,11 +1,11 @@
 import savingsService from '@/services/savingsService';
 
 import logger from '@/utils/logger';
-import { calculateTotalUserShare } from '@/utils/ownership';
 const state = {
     accounts: [],
     expenditureProfile: null,
     analysis: null,
+    position: null,
     isaAllowance: null,
     recommendations: [],
     lifeEvents: [],
@@ -19,90 +19,23 @@ const state = {
 };
 
 const getters = {
-    // The cash this viewer owns.
-    //
-    // `calculateTotalUserShare` adds up the `user_share` the API already put on
-    // every account — the backend's own `calculateUserShare()` figure, one per
-    // record — so this getter transports a total, it does not re-derive one
-    // (Rule 20). The arithmetic it replaced applied `ownership_percentage`
-    // whichever side of the record the viewer was on, so the CO-OWNER of a joint
-    // account was charged the PRIMARY owner's share. On a 75/25 account the
-    // co-owner saw 75% of money that was 25% theirs; only a 50/50 split hid it,
-    // which is why this survived every earlier sweep (W-0274, F-0019 "fraction").
-    totalSavings: (state) => calculateTotalUserShare(state.accounts),
-
-    // The emergency fund.
-    //
-    // It is the same cash. `is_emergency_fund` is a DESIGNATION — "which account
-    // has the user nominated" — not a definition of what the fund contains, and
-    // filtering on it here was the fourth surviving answer to "how much emergency
-    // fund does this household have" (W-0271, W-0274). A household with £130,780
-    // of cash and no ticked boxes does not have a £0 emergency fund, but that is
-    // exactly what `/savings` showed while the dashboard, `/m` and `/risk-profile`
-    // all read the backend's answer and showed 79.8 and 25.3 months.
-    //
-    // Deliberately identical to `totalSavings` rather than aliased: the two
-    // answer different questions that currently have the same answer, and a
-    // future narrowing (W-0276 — cash the user cannot actually reach) belongs to
-    // the backend's `CrossModuleAssetAggregator::calculateCashTotal()`, which
-    // both figures ultimately come from.
-    emergencyFundTotal: (state) => calculateTotalUserShare(state.accounts),
-
-    // Months of runway.
-    //
-    // The backend's figure when the payload carries it: `SavingsAgent` divides
-    // `calculateCashTotal()` by RESOLVED monthly expenditure — a priority chain,
-    // not a single column — and that resolution is the part the browser cannot
-    // reproduce. This household proves the chain is live: David's expenditure
-    // resolves from `expenditure_profile` and Sarah's from `user_monthly`.
-    //
-    // Where the payload has no analysis block the division falls back to the
-    // profile's own monthly figure. That keeps the fund value and the runway
-    // consistent with each other; it can still differ from the dashboard if the
-    // resolver took a different branch, which is why the backend figure wins
-    // whenever it is present.
+    // Every savings figure is the server's (SavingsPosition via GET /api/savings,
+    // CSJ 2026-10-01: one figure, every surface): /m and iOS render the same
+    // block. These getters transport it; none adds up accounts, divides by
+    // spending or works out a percentage.
+    position: (state) => state.position || {},
+    totalSavings: (state, getters) => Number(getters.position.total_cash) || 0,
+    emergencyFundTotal: (state, getters) => Number(getters.position.total_cash) || 0,
+    groupTotals: (state, getters) => getters.position.group_totals || {},
+    emergencyFund: (state, getters) => getters.position.emergency_fund || {},
+    // Months of runway, or null when no spending is recorded (W-0495).
     emergencyFundRunway: (state, getters) => {
-        const resolved = state.analysis?.emergency_fund?.runway_months;
-        if (resolved !== undefined && resolved !== null) {
-            return parseFloat(resolved) || 0;
-        }
-
-        // Null, not 0. With no monthly figure there is no runway to state, and
-        // saying "0 months" to a household holding cash is the alarming error
-        // W-0495 exists to remove. The backend now sends null for the same
-        // reason, so both branches agree.
-        const monthlyExpenditure = getters.monthlyExpenditure;
-        if (!monthlyExpenditure) return null;
-
-        return getters.emergencyFundTotal / monthlyExpenditure;
+        const months = getters.emergencyFund.runway_months;
+        return months === null || months === undefined ? null : Number(months);
     },
-
-    // Get ISA allowance remaining
-    // Note: Returns 0 if ISA data not loaded - ensure fetchISAAllowance is called on init
-    isaAllowanceRemaining: (state) => {
-        if (!state.isaAllowance) {
-            // Return 0 instead of hardcoded fallback - forces proper API fetch
-            console.warn('ISA allowance not loaded - call fetchISAAllowance first');
-            return 0;
-        }
-
-        const cashISAUsed = state.isaAllowance.cash_isa_used || 0;
-        const stocksISAUsed = state.isaAllowance.stocks_shares_isa_used || 0;
-        const totalAllowance = state.isaAllowance.total_allowance || 0;
-
-        return totalAllowance - cashISAUsed - stocksISAUsed;
-    },
-
-    // Get ISA usage percentage
-    isaUsagePercent: (state, getters) => {
-        if (!state.isaAllowance) return 0;
-
-        const totalAllowance = state.isaAllowance.total_allowance || 0;
-        if (totalAllowance === 0) return 0;
-        const remaining = getters.isaAllowanceRemaining;
-
-        return Math.round(((totalAllowance - remaining) / totalAllowance) * 100);
-    },
+    isaPosition: (state, getters) => getters.position.isa || {},
+    isaAllowanceRemaining: (state, getters) => Number(getters.isaPosition.remaining) || 0,
+    isaUsagePercent: (state, getters) => Number(getters.isaPosition.percent_used) || 0,
 
     // Get current year ISA subscription (Cash ISA)
     currentYearISASubscription: (state) => {
@@ -115,7 +48,7 @@ const getters = {
     // exist in UK law, so the split should never fire here — but the copy did,
     // and a rule with three implementations has three chances to be edited into
     // disagreement (Rule 20).
-    totalISABalance: (state) => calculateTotalUserShare(state.accounts.filter(account => account.is_isa)),
+    totalISABalance: (state, getters) => Number(getters.groupTotals.isas) || 0,
 
     // Get accounts by access type
     accountsByAccessType: (state) => {
@@ -136,9 +69,8 @@ const getters = {
     },
 
     // Get monthly expenditure from profile
-    monthlyExpenditure: (state) => {
-        return state.expenditureProfile?.total_monthly_expenditure || 0;
-    },
+    // The spending the runway is worked out from (resolved on the server).
+    monthlyExpenditure: (state, getters) => Number(getters.position.monthly_expenditure) || 0,
 
     // Life events relevant to savings module
     upcomingLifeEvents: (state) => state.lifeEvents,
@@ -180,6 +112,7 @@ const actions = {
             commit('setAccounts', data.accounts || []);
             commit('setExpenditureProfile', data.expenditure_profile || null);
             commit('setAnalysis', data.analysis || null);
+            commit('setPosition', data.position || null);
             commit('setISAAllowance', data.isa_allowance || null);
             commit('setLifeEvents', data.life_events || []);
             commit('setLifeEventImpact', data.life_event_impact || null);
@@ -382,6 +315,10 @@ const mutations = {
 
     setExpenditureProfile(state, profile) {
         state.expenditureProfile = profile;
+    },
+
+    setPosition(state, position) {
+        state.position = position;
     },
 
     setAnalysis(state, analysis) {

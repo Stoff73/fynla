@@ -140,6 +140,7 @@ class IHTFormattingService
                 'assets' => $userAssetsForIHT,
                 'total' => $userAssetsTotal,
                 'projected_total' => $userAssetsProjectedTotal,
+                'group_totals' => $this->groupTotals($userAssetsForIHT),
             ],
             'spouse' => null,
         ];
@@ -187,6 +188,7 @@ class IHTFormattingService
                 'assets' => $spouseAssetsForIHT,
                 'total' => $spouseAssetsTotal,
                 'projected_total' => $spouseAssetsProjectedTotal,
+                'group_totals' => $this->groupTotals($spouseAssetsForIHT),
             ];
         }
 
@@ -309,6 +311,21 @@ class IHTFormattingService
             'assumptions' => $projection['assumptions'],
             'years' => $projection['years'],
         ];
+    }
+
+    /**
+     * Each asset group's total today and at the projected death, so the table
+     * prints the server's sums rather than adding rows (CSJ 2026-10-01).
+     *
+     * @param  array<string, array<int, array<string, mixed>>>  $groups
+     * @return array<string, array{value: float, projected: float}>
+     */
+    private function groupTotals(array $groups): array
+    {
+        return array_map(static fn (array $rows): array => [
+            'value' => round((float) array_sum(array_column($rows, 'value')), 2),
+            'projected' => round((float) array_sum(array_column($rows, 'projected_value')), 2),
+        ], $groups);
     }
 
     /**

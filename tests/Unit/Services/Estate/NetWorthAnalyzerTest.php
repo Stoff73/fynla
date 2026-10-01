@@ -241,3 +241,36 @@ describe('generateSummary', function () {
         expect($hasDebtPenalty)->toBe(true);
     });
 });
+
+// One figure, every surface (CSJ 2026-10-01): the /m and iOS estate value is
+// the own-estate figure the dashboard estate card shows, at the user's share.
+it('charges a co-owner their share of a debt their spouse recorded', function () {
+    $spouse = User::factory()->create();
+    Liability::create([
+        'user_id' => $spouse->id,
+        'joint_owner_id' => $this->user->id,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 70,
+        'liability_type' => 'personal_loan',
+        'liability_name' => 'Car loan',
+        'current_balance' => 10000,
+    ]);
+    Asset::create([
+        'user_id' => $this->user->id,
+        'asset_type' => 'investment',
+        'asset_name' => 'Shares',
+        'current_value' => 50000,
+        'ownership_type' => 'individual',
+        'valuation_date' => Carbon::now(),
+    ]);
+
+    $result = $this->analyzer->calculateNetWorth($this->user->id);
+    $estate = app(\App\Services\Estate\EstateAssetAggregatorService::class);
+    $expected = (float) $estate->gatherUserAssets($this->user)->reject(fn ($a) => $a->is_iht_exempt ?? false)->sum('current_value')
+        - $estate->calculateUserLiabilities($this->user);
+
+    // £3,000 of the £10,000 loan; it counted none of it before.
+    expect($result['total_liabilities'])->toBe(3000.0)
+        ->and($result['net_worth'])->toBe(round($expected, 2))
+        ->and($result['net_worth'])->toBe(47000.0);
+});

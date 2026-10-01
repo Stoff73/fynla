@@ -127,16 +127,16 @@
         W-0495. This printed "0.0 months" whenever no expenditure was recorded,
         which is not a low runway but an unmeasurable one — and it read as an
         alarm to a household with ample cash. The prompt and the wording come
-        from `@/utils/emergencyRunway` so `/m` says exactly the same thing.
+        come from the server (SavingsPosition) so `/m` and iOS say exactly the same thing.
       -->
       <div class="bg-eggshell-500 rounded-lg p-6 border border-light-gray">
         <h3 class="text-sm font-medium text-neutral-500 mb-2">Emergency Fund Runway</h3>
-        <template v-if="emergencyFundRunway === null || emergencyFundRunway === undefined">
-          <p class="text-xl font-bold text-horizon-500">{{ runwayUnavailableLabel }}</p>
-          <p class="text-sm text-neutral-500 mt-1">{{ runwayUnavailableHint }}</p>
+        <template v-if="emergencyFund.runway_hint">
+          <p class="text-xl font-bold text-horizon-500">{{ emergencyFund.runway_label }}</p>
+          <p class="text-sm text-neutral-500 mt-1">{{ emergencyFund.runway_hint }}</p>
         </template>
         <p v-else class="text-3xl font-bold" :class="runwayColour">
-          {{ emergencyFundRunway.toFixed(1) }} months
+          {{ emergencyFund.runway_label }}
         </p>
       </div>
 
@@ -177,7 +177,6 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
-import { RUNWAY_UNAVAILABLE_HINT, RUNWAY_UNAVAILABLE_LABEL } from '@/utils/emergencyRunway';
 export default {
   name: 'SavingsModuleOverview',
 
@@ -202,20 +201,16 @@ export default {
 
   computed: {
     ...mapState('savings', ['accounts']),
-    ...mapGetters('savings', ['totalSavings', 'emergencyFundRunway']),
-
-    runwayUnavailableLabel: () => RUNWAY_UNAVAILABLE_LABEL,
-    runwayUnavailableHint: () => RUNWAY_UNAVAILABLE_HINT,
+    ...mapGetters('savings', ['totalSavings', 'emergencyFund']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
 
+    // The server's status against the user's own target (SavingsPosition).
     runwayColour() {
-      if (this.emergencyFundRunway >= 6) return 'text-spring-600';
-      if (this.emergencyFundRunway >= 3) return 'text-violet-600';
-      return 'text-raspberry-600';
+      return { on_track: 'text-spring-600', part: 'text-violet-600', low: 'text-raspberry-600' }[this.emergencyFund.status] || 'text-horizon-500';
     },
   },
 

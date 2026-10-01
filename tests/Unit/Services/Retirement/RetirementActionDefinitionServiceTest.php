@@ -792,3 +792,17 @@ it('reads the full new State Pension from tax configuration rather than a litera
     expect($source)->not->toContain('11502');
     expect((float) app(TaxConfigService::class)->get('pension.state_pension.full_new_state_pension'))->toBeGreaterThan(12000);
 });
+
+it('never shows the care costs card: care costs were taken out (CSJ 2026-10-01)', function () {
+    $this->user->update(['date_of_birth' => now()->subYears(60)->toDateString()]);
+    $this->profile->update(['current_age' => 60]);
+    $analysisData = [
+        'profile' => $this->profile->fresh()->toArray(),
+        'summary' => ['income_gap' => 0, 'target_retirement_income' => 30000, 'target_retirement_age' => 65],
+        'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 60000, 'carry_forward_available' => 0],
+    ];
+
+    $keys = collect($this->service->evaluateAgentActions($analysisData)['recommendations'])->pluck('definition_key')->all();
+
+    expect($keys)->not->toContain('care_costs_not_modelled');
+});

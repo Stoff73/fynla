@@ -8,7 +8,11 @@ struct InvestmentTests {
     func decodesTheExistingInvestmentResponse() throws {
         let snapshot = try decode("investment-populated")
 
-        #expect(snapshot.totalValue == Decimal(60000))
+        // The server's total at the user's share (48,000 + half of 12,000), never
+        // the full joint values added up on the device (60,000) (CSJ 2026-10-01).
+        #expect(snapshot.totalValue == Decimal(54000))
+        #expect(snapshot.accounts[1].userShare == Decimal(6000))
+        #expect(snapshot.accounts[1].userSharePercent == Decimal(50))
         #expect(snapshot.accountCount == 2)
         #expect(snapshot.isAtAccountLimit)
         #expect(snapshot.riskLabel == "Moderately Adventurous")

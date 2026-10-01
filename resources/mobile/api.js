@@ -116,6 +116,13 @@ export async function apiStream(path, body, token, onDelta, onEvent, { idempoten
   });
 
   if (!res.ok) {
+    // The consent gate before the stream answers 403 in JSON, not SSE. Hand it
+    // to onEvent as the same consent_required event the stream would send, so
+    // the caller says why instead of "trouble responding".
+    if (res.status === 403 && onEvent) {
+      const data = await res.json().catch(() => ({}));
+      if (data && data.error === 'consent_required') onEvent({ type: 'consent_required' });
+    }
     return { ok: false, status: res.status, text: '' };
   }
 

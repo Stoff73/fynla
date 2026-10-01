@@ -5,15 +5,19 @@ struct InvestmentSnapshot: Decodable, Sendable, Equatable {
     let accountCount: Int
     let accountLimit: Int?
     let riskProfile: InvestmentRiskProfile?
+    /// The portfolio figures, built on the server (GET /api/investment `summary`)
+    /// and shown as sent, as web and /m show them (CSJ 2026-10-01).
+    let summary: InvestmentSummary?
 
     private enum CodingKeys: String, CodingKey {
-        case accounts
+        case accounts, summary
         case accountCount = "account_count"
         case accountLimit = "account_limit"
         case riskProfile = "risk_profile"
     }
 
-    var totalValue: Decimal { accounts.reduce(0) { $0 + $1.currentValue } }
+    /// The user's share of every account, as the server sent it.
+    var totalValue: Decimal { summary?.totalValue ?? 0 }
     var isAtAccountLimit: Bool {
         guard let accountLimit else { return false }
         return accountCount >= accountLimit
@@ -25,6 +29,14 @@ struct InvestmentSnapshot: Decodable, Sendable, Equatable {
             return riskProfile?.riskLevel.map(String.init)
         }
         return value.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+}
+
+struct InvestmentSummary: Decodable, Sendable, Equatable {
+    let totalValue: Decimal
+
+    private enum CodingKeys: String, CodingKey {
+        case totalValue = "total_value"
     }
 }
 
@@ -61,9 +73,20 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
     let ownerName: String?
     let holdings: [InvestmentHolding]
     let portfolio: CanonicalPortfolio?
+    /// The viewer's own share and percentage, from the server (never the stored
+    /// percentage, which is the primary owner's).
+    let userShare: Decimal?
+    let userSharePercent: Decimal?
+    let isShared: Bool?
+    /// The monthly contribution the projection uses (ContributionEstimatorService).
+    let monthlyContribution: Decimal?
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case monthlyContribution = "monthly_contribution"
+        case userShare = "user_share"
+        case userSharePercent = "user_share_percent"
+        case isShared = "is_shared"
         case accountName = "account_name"
         case accountType = "account_type"
         case accountTypeOther = "account_type_other"

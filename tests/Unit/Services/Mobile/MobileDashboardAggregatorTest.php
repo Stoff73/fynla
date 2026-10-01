@@ -15,9 +15,9 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use App\Services\Mobile\DailyInsightService;
+use App\Services\Mobile\DashboardCards;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\NetWorth\NetWorthService;
-use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Facades\Cache;
@@ -41,13 +41,11 @@ beforeEach(function () {
         $this->estateAgent,
         $this->goalsAgent,
         $this->dashboardAggregator,
-        $this->savingsStore,
-        $this->propertyStore,
-        app(CrossModuleAssetAggregator::class),
         app(NetWorthService::class),
         // W-0478 — the dashboard no longer composes its own insight; it reads the
         // one composer the insights endpoint reads.
         app(DailyInsightService::class),
+        new DashboardCards,
     );
 
     // Clear cache before each test
@@ -433,11 +431,18 @@ describe('net worth calculation', function () {
         expect($result['net_worth']['total'])->toBeGreaterThan(0.0)
             ->and($result['net_worth']['breakdown'])->toHaveKeys(['assets', 'liabilities', 'total_assets', 'total_liabilities'])
             ->and($result['net_worth']['breakdown']['assets'])->toHaveKeys([
-                'property', 'savings', 'investments', 'pensions', 'business', 'chattels', 'cash',
+                'property', 'savings', 'investments', 'pensions', 'business', 'chattels',
             ])
             ->and($result['net_worth']['breakdown']['liabilities'])->toHaveKeys([
                 'mortgages', 'other_liabilities',
             ]);
+
+        // One engine (CSJ 2026-10-01): the dashboard's figure is /net-worth's.
+        $page = app(NetWorthService::class)->calculateNetWorth($user);
+        expect($result['net_worth']['total'])->toEqual($page['net_worth'])
+            ->and($result['net_worth']['breakdown']['total_assets'])->toEqual($page['total_assets'])
+            ->and($result['net_worth']['breakdown']['total_liabilities'])->toEqual($page['total_liabilities'])
+            ->and($result['cards']['net_worth']['value'])->toEqual($page['net_worth']);
     });
 
     it('handles joint assets correctly with ownership percentages', function () {

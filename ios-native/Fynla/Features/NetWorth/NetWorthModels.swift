@@ -169,9 +169,15 @@ struct PropertyDetail: Decodable, Sendable, Equatable, Identifiable {
     let outstandingMortgage: Decimal?
     let isPrimaryOwner: Bool?
     let mortgages: [PropertyMortgageSummary]?
+    /// The viewer's equity and mortgage share, from the server (PropertyController),
+    /// as web and /m show them (CSJ 2026-10-01).
+    let userEquity: Decimal?
+    let mortgageUserShare: Decimal?
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case userEquity = "user_equity"
+        case mortgageUserShare = "mortgage_user_share"
         case addressLine1 = "address_line_1"
         case propertyType = "property_type"
         case currentValue = "current_value"

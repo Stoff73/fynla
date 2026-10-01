@@ -85,7 +85,13 @@ struct SavingsView: View {
                     emergencyFundCard(snapshot)
 
                     if let allowance = snapshot.isaAllowance {
-                        isaAllowanceCard(model.isaAllowance ?? allowance)
+                        let shown = model.isaAllowance ?? allowance
+                        // The server's position block is this tax year's; a past
+                        // year chosen in the history shows that year's own figures.
+                        isaAllowanceCard(
+                            shown,
+                            position: shown.taxYear == allowance.taxYear ? snapshot.position?.isa : nil
+                        )
                     }
                 }
                 .padding(.horizontal, 16)
@@ -215,10 +221,14 @@ struct SavingsView: View {
     }
 
     // ms-ef: cash/target rows, status-coloured runway bar, runway + covered.
+    // Every value is the server's (SavingsPosition, CSJ 2026-10-01), the same
+    // block web and /m render.
     private func emergencyFundCard(_ snapshot: SavingsSnapshot) -> some View {
+        let fund = snapshot.position?.emergencyFund
         let target = snapshot.emergencyFundTarget
-        let status = runwayStatus(snapshot)
-        let fill = barFill(current: snapshot.totalCash, target: target.targetAmount)
+        let status = RunwayStatus(server: fund?.status)
+        let fill = Double(fund?.coveredPercent ?? 0) / 100
+        let months = fund?.targetMonths ?? target.targetMonths
         return VStack(alignment: .leading, spacing: 4) {
             Text("Emergency fund".uppercased())
                 .font(.system(size: 12, weight: .bold))
@@ -228,8 +238,8 @@ struct SavingsView: View {
 
             efRow("Cash held", MoneyFormatter.gbpWhole(snapshot.totalCash))
             efRow(
-                "Target (\(target.targetMonths) \(target.targetMonths == 1 ? "month" : "months"))",
-                MoneyFormatter.gbpWhole(target.targetAmount)
+                "Target (\(months) \(months == 1 ? "month" : "months"))",
+                MoneyFormatter.gbpWhole(fund?.targetAmount ?? target.targetAmount)
             )
 
             statusBar(fill: fill, color: status.color)
@@ -237,13 +247,20 @@ struct SavingsView: View {
                 .accessibilityIdentifier("savings.emergency-progress")
 
             HStack(alignment: .firstTextBaseline) {
-                Text(runwayLabel(snapshot))
+                Text(fund?.runwayLabel ?? "")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(status.color)
                 Spacer()
-                Text(runwayCovered(snapshot))
+                Text(fund?.coveredLabel ?? "")
                     .font(.system(size: 13))
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
+            }
+
+            if let hint = fund?.runwayHint, !hint.isEmpty {
+                Text(hint)
+                    .font(.system(size: 13))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    .padding(.top, 6)
             }
 
             if let rationale = target.rationale, !rationale.isEmpty {
@@ -260,9 +277,10 @@ struct SavingsView: View {
     }
 
     // mts-allow: label/cap head, status bar, remaining/used foot.
-    private func isaAllowanceCard(_ allowance: SavingsISAAllowance) -> some View {
-        let pct = NSDecimalNumber(decimal: allowance.percentageUsed).doubleValue
-        let status: RunwayStatus = pct >= 100 ? .spring : (pct >= 80 ? .violet : .spring)
+    private func isaAllowanceCard(_ allowance: SavingsISAAllowance, position: SavingsPosition.ISA?) -> some View {
+        // The server's percentage, status and wording (SavingsPosition).
+        let pct = NSDecimalNumber(decimal: position?.percentUsed ?? allowance.percentageUsed).doubleValue
+        let status: RunwayStatus = position?.status == "nearly" ? .violet : .spring
         return VStack(alignment: .leading, spacing: 6) {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -298,11 +316,7 @@ struct SavingsView: View {
             statusBar(fill: min(max(pct / 100, 0), 1), color: status.color)
 
             HStack(alignment: .firstTextBaseline) {
-                Text(
-                    pct >= 100 || allowance.remaining <= 0
-                        ? "Fully used"
-                        : "\(MoneyFormatter.gbpWhole(allowance.remaining)) remaining"
-                )
+                Text(position?.remainingLabel ?? "\(MoneyFormatter.gbpWhole(allowance.remaining)) remaining")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(status.color)
                 Spacer()
@@ -357,9 +371,18 @@ struct SavingsView: View {
         .frame(height: 6)
     }
 
-    // /m runwayStatus: spring ≥100% of target, violet ≥50%, raspberry below.
+    // The server's status against the user's own target (SavingsPosition):
+    // on_track, part or low; the colour is this surface's.
     private enum RunwayStatus {
         case spring, violet, raspberry
+
+        init(server: String?) {
+            switch server {
+            case "part": self = .violet
+            case "low": self = .raspberry
+            default: self = .spring
+            }
+        }
 
         var color: Color {
             switch self {
@@ -368,40 +391,6 @@ struct SavingsView: View {
             case .raspberry: FynlaColor.Token.raspberry500.color
             }
         }
-    }
-
-    private func runwayStatus(_ snapshot: SavingsSnapshot) -> RunwayStatus {
-        let target = snapshot.emergencyFundTarget.targetAmount
-        guard target > 0 else { return .spring }
-        let pct = NSDecimalNumber(decimal: snapshot.totalCash / target).doubleValue * 100
-        if pct >= 100 { return .spring }
-        if pct >= 50 { return .violet }
-        return .raspberry
-    }
-
-    private func barFill(current: Decimal, target: Decimal) -> Double {
-        guard target > 0 else { return current > 0 ? 1 : 0 }
-        return min(max(NSDecimalNumber(decimal: current / target).doubleValue, 0), 1)
-    }
-
-    private func runwayLabel(_ snapshot: SavingsSnapshot) -> String {
-        let monthly = snapshot.expenditureProfile.totalMonthlyExpenditure
-        guard monthly > 0 else { return "Runway unavailable" }
-        let months = NSDecimalNumber(decimal: snapshot.totalCash / monthly).doubleValue
-        let rounded = months >= 10 ? months.rounded() : (months * 10).rounded() / 10
-        // "from cash savings", not "of cover". Runway divides ALL cash by monthly
-        // spend, including money in notice and fixed-term accounts that cannot be
-        // reached on the day it is needed. Naming the basis is the agreed answer to
-        // W-0276 — the figure is deliberately unchanged, the wording stops implying
-        // the money is to hand. One wording on every surface (Rule 20).
-        return "\(rounded.formatted()) \(rounded == 1 ? "month" : "months") from cash savings"
-    }
-
-    private func runwayCovered(_ snapshot: SavingsSnapshot) -> String {
-        let target = snapshot.emergencyFundTarget.targetAmount
-        guard target > 0 else { return "" }
-        let pct = Int((NSDecimalNumber(decimal: snapshot.totalCash / target).doubleValue * 100).rounded())
-        return "\(min(pct, 100))% of target"
     }
 
     private func rateLabel(_ rate: Decimal?) -> String {

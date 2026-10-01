@@ -127,8 +127,9 @@ export default {
       ];
       if (this.isIsa) rows.splice(3, 0, { label: 'Owner', value: a.owner_name || 'You' });
       else rows.splice(3, 0, { label: 'Ownership', value: capitalise(a.ownership_type) || 'Individual' });
-      if (a.monthly_contribution_amount) {
-        rows.push({ label: 'Monthly contribution', value: this.fmt(a.monthly_contribution_amount) });
+      // The server's monthly figure (ContributionEstimatorService), as web shows it.
+      if (Number(a.monthly_contribution) > 0) {
+        rows.push({ label: 'Monthly contribution', value: this.fmt(a.monthly_contribution) });
       }
       return rows;
     },

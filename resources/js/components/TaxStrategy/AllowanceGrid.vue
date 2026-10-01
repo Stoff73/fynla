@@ -2,8 +2,10 @@
   <div>
     <div class="flex items-baseline justify-between mb-4">
       <h2 class="text-h3 font-bold text-horizon-500">Allowances for {{ taxYearShort }}</h2>
-      <span v-if="totalHeadroom > 0" class="text-body-sm font-semibold text-raspberry-500">
-        {{ formatCurrency(Math.round(totalHeadroom)) }} of headroom
+      <!-- A count, not a total: allowances of different kinds cannot be added
+           (audit item 40, CSJ 2026-10-01), as /m and iOS show it. -->
+      <span v-if="headroomCount > 0" class="text-body-sm font-semibold text-raspberry-500">
+        {{ headroomCount }} {{ headroomCount === 1 ? 'allowance' : 'allowances' }} with headroom
       </span>
     </div>
 
@@ -58,26 +60,27 @@ export default {
     allowances: { type: Array, required: true },
   },
   computed: {
-    ...mapGetters('taxStrategy', ['taxYear']),
+    ...mapGetters('taxStrategy', ['taxYear', 'summary']),
     taxYearShort() {
       return this.taxYear || '';
     },
+    // Grouped by the server's tile state (TaxStrategyService `tile_state`).
     headroom() {
       return [...this.allowances]
-        .filter((a) => a.available !== false && a.known !== false && a.utilisation_pct < 90)
+        .filter((a) => a.tile_state === 'open')
         .sort((b, a) => (a.remaining || 0) - (b.remaining || 0));
     },
     utilised() {
-      return this.allowances.filter((a) => a.available !== false && a.known !== false && a.utilisation_pct >= 90);
+      return this.allowances.filter((a) => a.tile_state === 'full' || a.tile_state === 'budget_capped');
     },
     unconfirmed() {
-      return this.allowances.filter((a) => a.available !== false && a.known === false);
+      return this.allowances.filter((a) => a.tile_state === 'unconfirmed');
     },
     unavailable() {
-      return this.allowances.filter((a) => a.available === false);
+      return this.allowances.filter((a) => a.tile_state === 'unavailable');
     },
-    totalHeadroom() {
-      return this.headroom.reduce((sum, a) => sum + (Number(a.remaining) || 0), 0);
+    headroomCount() {
+      return Number(this.summary?.headroom_count) || 0;
     },
   },
 };

@@ -192,7 +192,7 @@ export default {
       }
       if (a.access_type === 'fixed' && a.maturity_date) {
         rows.push({ key: 'Maturity date', value: this.fmtDate(a.maturity_date) });
-        rows.push({ key: 'Time to maturity', value: this.timeToMaturity(a.maturity_date) });
+        rows.push({ key: 'Time to maturity', value: a.time_to_maturity || '—' });
       }
       if (a.country) rows.push({ key: 'Country', value: a.country });
       if (a.is_isa) rows.push({ key: 'Owner', value: a.owner_name || 'You' });
@@ -227,20 +227,6 @@ export default {
       const parsed = new Date(d);
       if (isNaN(parsed.getTime())) return '—';
       return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    },
-    timeToMaturity(d) {
-      if (!d) return '—';
-      const maturity = new Date(d);
-      if (isNaN(maturity.getTime())) return '—';
-      const diffDays = Math.ceil((maturity - new Date()) / (1000 * 60 * 60 * 24));
-      if (diffDays <= 0) return 'Matured';
-      if (diffDays < 31) return `${diffDays} days`;
-      const months = Math.ceil(diffDays / 30.44);
-      const years = Math.floor(months / 12);
-      const rem = months % 12;
-      if (years === 0) return `${rem} ${rem === 1 ? 'month' : 'months'}`;
-      if (rem === 0) return `${years} ${years === 1 ? 'year' : 'years'}`;
-      return `${years} ${years === 1 ? 'year' : 'years'}, ${rem} ${rem === 1 ? 'month' : 'months'}`;
     },
     goBack() { this.$router.push('/savings'); },
     async load() {

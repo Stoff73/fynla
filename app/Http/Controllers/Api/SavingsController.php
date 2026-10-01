@@ -30,7 +30,6 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -144,13 +143,6 @@ class SavingsController extends Controller
             }
         }
 
-        // Employment-based emergency fund target
-        $monthlyExpenditure = (float) ($user->monthly_expenditure ?? 0);
-        $emergencyFundTarget = $this->buildEmergencyFundTarget($user, $monthlyExpenditure);
-
-        // Per-child savings status
-        $childrenSavings = $this->buildChildrenSavingsStatus($user, $rawAccounts);
-
         // The emergency-fund figures the page displays, read rather than
         // re-derived (W-0335, Rule 20).
         //
@@ -168,6 +160,7 @@ class SavingsController extends Controller
         // `adequacy.adequacy_score` stays server-side, because a numerical rating
         // must never reach a user-facing surface (Rule 12).
         $analysis = null;
+        $savingsAnalysis = [];
         try {
             $savingsAnalysis = $this->savingsAgent->analyze($user->id);
 
@@ -219,8 +212,13 @@ class SavingsController extends Controller
                 'isa_allowance' => $isaAllowance,
                 'psa_position' => $psaPosition,
                 'fscs_exposure' => $fscsExposure,
-                'emergency_fund_target' => $emergencyFundTarget,
-                'children_savings' => $childrenSavings,
+                // SavingsAgent's, the one engine (CSJ 2026-10-01): this controller
+                // had its own target (the raw spending column, its own month table)
+                // and its own children's savings with the Junior ISA allowance typed in.
+                'emergency_fund_target' => $savingsAnalysis['emergency_fund']['target'] ?? $this->savingsAgent->emergencyFundTargetFor($user),
+                'children_savings' => $savingsAnalysis['children_savings'] ?? [],
+                // What every savings screen shows, as sent (SavingsPosition).
+                'position' => $savingsAnalysis['position'] ?? $this->savingsAgent->positionFor($user),
                 'analysis' => $analysis,
                 'life_events' => $lifeEvents,
                 'life_event_impact' => $lifeEventImpact,
@@ -492,91 +490,5 @@ class SavingsController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Toggling retirement inclusion');
         }
-    }
-
-    /**
-     * Build employment-based emergency fund target.
-     */
-    private function buildEmergencyFundTarget($user, float $monthlyExpenditure): array
-    {
-        $baseMonths = 6;
-
-        if (! empty($user->employment_status)) {
-            $targetMonths = match ($user->employment_status) {
-                'self_employed', 'contractor', 'freelance' => 9,
-                'unemployed', 'career_break' => 12,
-                default => $baseMonths,
-            };
-        } else {
-            $targetMonths = $baseMonths;
-        }
-
-        return [
-            'target_months' => $targetMonths,
-            'target_amount' => round($monthlyExpenditure * $targetMonths, 2),
-            'employment_status' => $user->employment_status ?? null,
-            'rationale' => match ($targetMonths) {
-                9 => 'Self-employed and contractor income can be irregular, so a larger buffer is recommended.',
-                12 => 'During periods without employment, a 12-month fund provides essential security.',
-                default => 'The standard recommendation is 6 months of essential expenditure.',
-            },
-        ];
-    }
-
-    /**
-     * Build per-child savings status including Junior ISA details.
-     */
-    private function buildChildrenSavingsStatus($user, $accounts): array
-    {
-        $children = $user->familyMembers()
-            ->where('relationship', 'child')
-            ->get();
-
-        if ($children->isEmpty()) {
-            return [];
-        }
-
-        $jisaAllowance = 9000.0;
-        try {
-            $isaAllowances = app(TaxConfigService::class)->getISAAllowances();
-            $jisaAllowance = (float) ($isaAllowances['junior_isa']['annual_allowance'] ?? 9000);
-        } catch (\Throwable $e) {
-            // Use default
-        }
-
-        return $children->map(function ($child) use ($accounts, $jisaAllowance) {
-            $dob = $child->date_of_birth;
-            $age = $dob ? (int) Carbon::parse($dob)->age : null;
-            $isUnder18 = $age !== null && $age < 18;
-
-            // Find JISA accounts for this child
-            $jisaAccounts = $accounts->filter(
-                fn ($a) => $a->isJuniorIsa() && $a->beneficiary_id === $child->id
-            );
-
-            $totalJisaBalance = $jisaAccounts->sum('current_balance');
-            $totalJisaSubscription = $jisaAccounts->sum('isa_subscription_amount');
-            $jisaRemaining = max(0, $jisaAllowance - (float) $totalJisaSubscription);
-
-            // Find non-JISA savings for this child
-            $otherAccounts = $accounts->filter(
-                fn ($a) => $a->beneficiary_id === $child->id && ! $a->isJuniorIsa()
-            );
-            $totalOtherBalance = $otherAccounts->sum('current_balance');
-
-            return [
-                'child_id' => $child->id,
-                'child_name' => $child->name,
-                'age' => $age,
-                'is_under_18' => $isUnder18,
-                'has_jisa' => $jisaAccounts->isNotEmpty(),
-                'jisa_balance' => round((float) $totalJisaBalance, 2),
-                'jisa_allowance' => $jisaAllowance,
-                'jisa_used' => round((float) $totalJisaSubscription, 2),
-                'jisa_remaining' => round($jisaRemaining, 2),
-                'other_savings_balance' => round((float) $totalOtherBalance, 2),
-                'total_savings' => round((float) $totalJisaBalance + (float) $totalOtherBalance, 2),
-            ];
-        })->values()->toArray();
     }
 }

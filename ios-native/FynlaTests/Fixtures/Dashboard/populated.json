@@ -5,9 +5,16 @@
       "protection": {"status":"active","total_coverage":300000,"policy_count":2,"critical_gaps":1,"has_income_protection":true},
       "savings": {"status":"active","total_savings":42500.25,"total_accounts":3,"emergency_fund_months":5.2,"emergency_fund_status":"Building"},
       "investment": {"status":"active","portfolio_value":119500.25,"accounts_count":2,"holdings_count":8},
-      "retirement": {"status":"active","years_to_retirement":19,"pot_value":185000,"projected_income":26000,"target_income":32000,"income_gap":6000,"total_pensions":3},
+      "retirement": {"status":"active","years_to_retirement":19,"pot_value":185000,"card_value":185000,"card_value_is_income":false,"progress_percent":81,"projected_income":26000,"target_income":32000,"income_gap":6000,"total_pensions":3},
       "estate": {"status":"active","net_estate":347250.50,"iht_liability":0,"effective_tax_rate":0},
       "goals": {"status":"active","total_goals":2,"completed_goals":1,"total_target":50000,"total_saved":22000}
+    },
+    "cards": {
+      "net_worth": {"value":347250.5,"value_is_income":false,"caption":"£512,001 assets","visual":{"type":"donut","progress":68,"number":"68%","label":"Equity"}},
+      "protection": {"value":300000,"value_is_income":false,"caption":"Cover in place","visual":{"type":"donut","progress":100,"number":"Active","label":"Cover"}},
+      "savings": {"value":42500.25,"value_is_income":false,"caption":"Building your fund","visual":{"type":"bar","progress":75,"number":"4.5","label":"/ 6 months"}},
+      "retirement": {"value":26514,"value_is_income":true,"caption":"Your income this year","visual":{"type":"bar","progress":0,"number":"runs out by about age 76","label":""}},
+      "investment": {"value":70000,"value_is_income":false,"caption":"3 holdings","visual":{"type":"donut","progress":14,"number":"1","label":"Account"}}
     },
     "net_worth": {
       "total": 347250.50,

@@ -81,3 +81,25 @@ it('counts a joint-life policy the spouse holds as the other life\'s own cover (
 it('has no position for a user with no protection profile', function () {
     expect(app(ProtectionCoverPosition::class)->forUser(User::factory()->create()))->toBe([]);
 });
+
+// One figure, every surface (CSJ 2026-10-01): the words web, /m and iOS print
+// come from here, not from three client copies.
+it('words each cover type for every surface', function () {
+    $position = app(\App\Services\Protection\ProtectionCoverPosition::class)->fromAnalysis(
+        ['total_need' => 400000, 'gross_income' => 0, 'income_protection_need' => 30000],
+        ['life_coverage' => 250000, 'income_protection_coverage' => 30000, 'employer_benefits' => []],
+    );
+
+    expect($position['life'])->toMatchArray([
+        'label' => 'Life cover',
+        'status_label' => 'Short by £150,000',
+        'tone' => 'short',
+        'need_label' => '£400,000',
+        'own_cover_label' => '£250,000',
+        'employer_cover_label' => '£0',
+    ])->and($position['income_protection'])->toMatchArray([
+        'status_label' => 'Covered',
+        'tone' => 'covered',
+        'need_label' => '£2,500 a month',
+    ]);
+});

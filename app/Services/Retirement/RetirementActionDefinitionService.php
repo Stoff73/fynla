@@ -39,7 +39,7 @@ class RetirementActionDefinitionService
     private const SAVER_KEYS = [
         'contribution_increase', 'start_contributions', 'adjust_retirement_age', 'employer_match',
         'auto_enrolment_below_minimum', 'salary_sacrifice_available', 'salary_sacrifice_floor_warning',
-        'approaching_decumulation', 'retirement_income_position',
+        'retirement_income_position',
     ];
 
     /** CSJ 2026-10-01, D2: these are reasons on the one retirement income card, never cards. */
@@ -2148,7 +2148,8 @@ class RetirementActionDefinitionService
         // Step 4: Care cost assumptions check
         $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
 
-        $noCareCosts = $careCostAnnual <= 0;
+        // Null is "never asked"; 0 is the answer "none planned" (data-integrity trap 6).
+        $noCareCosts = $profile->care_cost_annual === null;
         $trace[] = [
             'question' => 'Has '.$userName.' entered any care cost assumptions in the retirement plan?',
             'data_field' => 'care_cost_annual',
@@ -2156,7 +2157,7 @@ class RetirementActionDefinitionService
             'threshold' => 'Greater than £0 per year',
             'passed' => $noCareCosts,
             'explanation' => $noCareCosts
-                ? 'No care cost assumptions have been entered. With a life expectancy of '.$lifeExpectancy.' and '.($lifeExpectancy - $targetRetirementAge).' years in retirement, this could lead to a significant underestimate of funding needs. Average UK residential care costs are approximately £35,000-£50,000 per year.'
+                ? 'No care cost assumptions have been entered. With a life expectancy of '.$lifeExpectancy.' and '.($lifeExpectancy - $targetRetirementAge).' years in retirement, care costs are not yet part of the decumulation analysis.'
                 : 'Care costs of £'.number_format($careCostAnnual, 0).' per year have been included in the retirement plan'.($careStartAge ? ' from age '.$careStartAge : '').'.',
         ];
 
@@ -2172,7 +2173,7 @@ class RetirementActionDefinitionService
             'data_value' => 'Add care cost assumptions for '.$retirementYears.' retirement years',
             'threshold' => 'Care costs not modelled for user aged '.$currentAge,
             'passed' => false,
-            'explanation' => $userName.' should add care cost assumptions to the retirement plan. With '.$retirementYears.' years in retirement (age '.$targetRetirementAge.' to '.$lifeExpectancy.'), even a few years of care at £35,000-£50,000 per year could require £100,000-£200,000 of additional funding. Adding these assumptions will provide a more realistic view of the retirement income needed.',
+            'explanation' => $userName.' should add care cost assumptions to the retirement plan. With '.$retirementYears.' years in retirement (age '.$targetRetirementAge.' to '.$lifeExpectancy.'). Adding a yearly care cost, or saying none is planned, lets the decumulation analysis include it.',
         ];
 
         return [[
@@ -2391,24 +2392,42 @@ class RetirementActionDefinitionService
                 : $userName.' has already reached or passed the target retirement age of '.$targetRetirementAge.'.',
         ];
 
-        if ($yearsToRetirement > $yearsThreshold || $yearsToRetirement <= 0) {
+        // At or past the target age the choice is still ahead for anyone who has
+        // not yet taken money from a defined contribution pension (CSJ 2026-10-01:
+        // the ways of taking it are the card).
+        $accessed = $dcPensions->contains(fn ($p): bool => (bool) $p->has_flexibly_accessed || (float) ($p->annual_drawdown_income ?? 0) > 0);
+        if ($yearsToRetirement > $yearsThreshold || ($yearsToRetirement <= 0 && $accessed) || $dcPensions->isEmpty()) {
             return [];
         }
 
         // Step 6: Recommendation
-        // PCLS capped at the Lump Sum Allowance (£268,275) — was uncapped 0.25 × pot.
-        $taxFreeLump = round($this->taxConfig->calculatePCLS((float) $totalDCValue), 0);
+        // The pot from the planning contract, the projection every surface shows
+        // (one figure, every surface); the tax-free part capped at the Lump Sum
+        // Allowance by tax config.
+        $plan = app(RetirementProjectionContractService::class)->build(User::findOrFail($userId), withUncertainty: false);
+        $pot = (float) collect($plan['products'])->where('resource_type', 'dc_pension')->sum('projected_value');
+        if ($pot <= 0) {
+            return [];
+        }
+        $taxFreeLump = round($this->taxConfig->calculatePCLS($pot), 0);
         $trace[] = [
             'question' => 'What is the recommended action?',
             'data_field' => 'Recommendation',
-            'data_value' => 'Plan decumulation strategy for £'.number_format($totalDCValue, 0).' pension funds within '.$yearsToRetirement.' years',
+            'data_value' => 'Plan decumulation strategy for £'.number_format($pot, 0).' pension funds within '.max(0, $yearsToRetirement).' years',
             'threshold' => 'Approaching retirement — decumulation planning needed',
             'passed' => false,
-            'explanation' => 'With '.$yearsToRetirement.' years until retirement, '.$userName.' should consider: the 25% tax-free lump sum (up to £'.number_format($taxFreeLump, 0).'), whether to use drawdown, annuity, or a combination, and the investment strategy shift towards lower risk as retirement approaches. Projected income is £'.number_format($projectedIncome, 0).'/year against a target of £'.number_format($targetIncome, 0).'/year.',
+            'explanation' => 'With '.max(0, $yearsToRetirement).' years until retirement, '.$userName.' should consider: the tax-free lump sum (up to £'.number_format($taxFreeLump, 0).'), whether to use drawdown, annuity, or a combination, and the investment strategy shift towards lower risk as retirement approaches. Projected income is £'.number_format($projectedIncome, 0).'/year against a target of £'.number_format($targetIncome, 0).'/year.',
         ];
 
+        $before = $yearsToRetirement > 0;
         $vars = [
-            'years_to_retirement' => (string) $yearsToRetirement,
+            'summary' => $before
+                ? 'You are '.$yearsToRetirement.' years from your target retirement age, with defined contribution pensions on course to be worth about '.$this->formatCurrency($pot).'.'
+                : 'You have reached your target retirement age and have not yet taken money from your defined contribution pensions, worth about '.$this->formatCurrency($pot).'.',
+            'years_to_retirement' => (string) max(0, $yearsToRetirement),
+            'before_retirement' => $before,
+            'dc_pot' => $this->formatCurrency($pot),
+            'tax_free_lump' => $this->formatCurrency($taxFreeLump),
         ];
 
         return [[

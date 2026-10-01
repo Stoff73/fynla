@@ -11,6 +11,8 @@ const state = {
 
     // Life Events
     lifeEvents: [],
+    // The server's totals of what is still to come (LifeEventService::summariseUpcoming).
+    lifeEventSummary: null,
     lifeEventsLoading: false,
     eventTypes: [],
 
@@ -54,22 +56,13 @@ const getters = {
         return state.goals.filter(goal => goal.status === 'completed');
     },
 
-    // Get total target amount for active goals
-    totalTargetAmount: (state, getters) => {
-        return getters.activeGoals.reduce((sum, goal) => sum + parseFloat(goal.target_amount || 0), 0);
-    },
+    // The overview's figures from the server (GoalsController overview, CSJ
+    // 2026-10-01: one figure, every surface), never summed here.
+    totalTargetAmount: (state) => Number(state.dashboardOverview?.total_target) || 0,
 
-    // Get total current amount for active goals
-    totalCurrentAmount: (state, getters) => {
-        return getters.activeGoals.reduce((sum, goal) => sum + parseFloat(goal.current_amount || 0), 0);
-    },
+    totalCurrentAmount: (state) => Number(state.dashboardOverview?.total_current) || 0,
 
-    // Get overall progress percentage
-    overallProgress: (state, getters) => {
-        const target = getters.totalTargetAmount;
-        if (target === 0) return 0;
-        return Math.round((getters.totalCurrentAmount / target) * 100);
-    },
+    overallProgress: (state) => Math.round(Number(state.dashboardOverview?.overall_progress) || 0),
 
     // Check if user has any goals
     hasGoals: (state) => {
@@ -183,6 +176,10 @@ const mutations = {
     // Life Events mutations
     SET_LIFE_EVENTS(state, events) {
         state.lifeEvents = events;
+    },
+
+    SET_LIFE_EVENT_SUMMARY(state, summary) {
+        state.lifeEventSummary = summary;
     },
 
     SET_LIFE_EVENTS_LOADING(state, loading) {
@@ -468,6 +465,7 @@ const actions = {
             if (response.success) {
                 // API returns { events: [...], count: n } - extract just the events array
                 commit('SET_LIFE_EVENTS', response.data.events || response.data || []);
+                commit('SET_LIFE_EVENT_SUMMARY', response.data.summary || null);
             }
             return response;
         } catch (error) {
@@ -511,6 +509,8 @@ const actions = {
             const response = await goalsService.createLifeEvent(eventData);
             if (response.success) {
                 commit('ADD_LIFE_EVENT', response.data);
+                // The totals are the server's: fetch them again rather than re-add here.
+                dispatch('fetchLifeEvents');
                 // Refresh projection data
                 dispatch('fetchProjection');
             }
@@ -533,6 +533,8 @@ const actions = {
             const response = await goalsService.updateLifeEvent(eventId, eventData);
             if (response.success) {
                 commit('UPDATE_LIFE_EVENT', response.data);
+                // The totals are the server's: fetch them again rather than re-add here.
+                dispatch('fetchLifeEvents');
                 // Refresh projection data
                 dispatch('fetchProjection');
             }
@@ -555,6 +557,8 @@ const actions = {
             const response = await goalsService.deleteLifeEvent(eventId);
             if (response.success) {
                 commit('REMOVE_LIFE_EVENT', eventId);
+                // The totals are the server's: fetch them again rather than re-add here.
+                dispatch('fetchLifeEvents');
                 // Refresh projection data
                 dispatch('fetchProjection');
             }

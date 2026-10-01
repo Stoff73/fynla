@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 
 class SavingsAccount extends Model
@@ -138,6 +139,38 @@ class SavingsAccount extends Model
     public function getMonthlyInterestAttribute(): float
     {
         return round($this->annual_interest / 12, 2);
+    }
+
+    /**
+     * How long until a fixed-term account matures, as every surface prints it
+     * ("Matured", "12 days", "1 year, 3 months"). Worked out once here; web, /m
+     * and iOS each had their own copy (CSJ 2026-10-01: one figure, every surface).
+     */
+    public function timeToMaturityLabel(?Carbon $today = null): ?string
+    {
+        if ($this->maturity_date === null) {
+            return null;
+        }
+
+        $days = (int) ceil(($this->maturity_date->copy()->startOfDay()->getTimestamp() - ($today ?? Carbon::today())->copy()->startOfDay()->getTimestamp()) / 86400);
+        if ($days <= 0) {
+            return 'Matured';
+        }
+        if ($days < 31) {
+            return $days.' '.($days === 1 ? 'day' : 'days');
+        }
+
+        $months = (int) ceil($days / 30.44);
+        $years = intdiv($months, 12);
+        $rest = $months % 12;
+        $yearText = $years.' '.($years === 1 ? 'year' : 'years');
+        $monthText = $rest.' '.($rest === 1 ? 'month' : 'months');
+
+        return match (true) {
+            $years === 0 => $monthText,
+            $rest === 0 => $yearText,
+            default => $yearText.', '.$monthText,
+        };
     }
 
     /** @var array<string, string> account_type => how the product is named to the user */

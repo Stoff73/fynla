@@ -46,7 +46,7 @@ final class RecommendationRouting
         // Retirement — a forecast, a cost or an age the user supplies. The
         // adapter derives the type from the rule's category ("State Pension",
         // "Care Costs", "Retirement Planning"), so these are category slugs.
-        // Care costs have no capture tool, so that rule stays on the page.
+        // Care costs were taken out (CSJ 2026-10-01); their card is disabled.
         'retirement_state_pension' => ['action' => 'add', 'resource_type' => 'retirement'],
         'retirement_plan_retirement_income' => ['action' => 'edit', 'resource_type' => 'retirement'],
         // Retirement cards are typed by their definition key (CSJ 2026-10-01);

@@ -14,7 +14,7 @@ This file is the one source for the steps on each retirement action's detail car
   - `high_pension_total_fees`, `high_pension_platform_fees` and `high_pension_fund_fees` are reasons on `pension_charges_review` (D3).
   - `auto_enrolment_below_minimum` is a reason on `employer_match` when both fire (D3); its own entry covers it when it fires alone.
 - **Disabled, the Tax plan carries them (D1):** `tax_relief` (Tax plan `pension_tax_relief`, `pa_taper_rescue`, `additional_rate_avoidance`) and `salary_sacrifice_available` (Tax plan `salary_sacrifice_ni`).
-- `care_costs_not_modelled`: there is nowhere to enter care costs. No form, API or Fyn tool writes `retirement_profiles.care_cost_annual`, so no step could be followed (see `todoCurrent/TODO.md` item 7).
+- **Disabled (CSJ 2026-10-01, "take it out"):** `care_costs_not_modelled`. Care costs are not captured anywhere, so the card could not be followed.
 - `goal_no_contribution`, `goal_behind_schedule`, `goal_deadline_approaching`: Retirement plan page only (`RetirementPlanService`), never a card.
 - `strategy_*`: the composer's catalogue rows, never a card.
 
@@ -25,7 +25,7 @@ Rules for these steps:
 - **No tax figure is typed in** (Rule 2): rates, allowances and ages come from the card's figures or tax config.
 
 ## retirement_income_position
-status: draft
+status: approved
 source: the Retirement page's projection (`RetirementAgent::analyze` summary: target, projected income, shortfall; `PensionProjector`); the contribution that closes it inverts the same projection (`PensionProjector::extraContributionForIncome`); what can be paid is capped by `PensionAffordability` (CSJ 2026-09-30, "affordability check always") and by the relief limit: Finance Act 2004 s190 relevant UK earnings less what the member already pays this year, the basic amount only on relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/190, s191(7)), s227ZA and s227G Money Purchase Annual Allowance once a pension is flexibly accessed; s192 relief at source (https://www.legislation.gov.uk/ukpga/2004/12/section/192); s188(3)(a) no relief from 75 (`pension.relief_max_age`); https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (relief at source and net pay; claiming higher-rate relief); https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye ("A salary sacrifice arrangement must not reduce an employee's cash earnings below the National Minimum Wage"); the card's own figures
 figures: summary, shortfall, target_income, projected_income, target_age, years_to_retirement, needed_monthly, affordable_monthly, payable_monthly, payable_net_monthly, age_to_close, short_at_last_age, last_age, affordability_known, closes_gap, pays_something, contribution_increase, start_contributions, adjust_retirement_age, scheme_name
 why:
@@ -63,7 +63,7 @@ learn:
 1. How your retirement projection works | /help#retirement
 
 ## employer_match
-status: draft
+status: approved
 source: https://www.gov.uk/workplace-pensions/what-you-your-employer-and-the-government-pay (minimum "8%" in total, at least "3%" from the employer, on earnings between the lower and upper qualifying earnings limits; schemes may pay more than the minimum); Pensions Act 2008; `pension.auto_enrolment` in tax config; the card's own figures
 figures: scheme_name, employee_percent, additional_percent, auto_enrolment_below_minimum, total_percent, minimum_percent, shortfall_annual
 why:
@@ -83,7 +83,7 @@ learn:
 1. How your retirement projection works | /help#retirement
 
 ## auto_enrolment_below_minimum
-status: draft
+status: approved
 source: https://www.gov.uk/workplace-pensions/what-you-your-employer-and-the-government-pay (minimum "8%" in total, at least "3%" from the employer, on qualifying earnings); Pensions Act 2008; `pension.auto_enrolment` in tax config; the card's own figures
 figures: total_percent, minimum_percent, shortfall_annual
 why:
@@ -96,7 +96,7 @@ outcome:
 1. At least the legal minimum goes into your workplace pension.
 
 ## annual_allowance_exceeded
-status: draft
+status: approved
 source: https://www.gov.uk/tax-on-your-private-pension/annual-allowance ("If you go over your annual allowance, either you or your pension provider must pay the tax"; reported on a Self Assessment tax return; "You might be able to carry over any annual allowance you did not use from the previous 3 tax years"; the lower "money purchase annual allowance" once you flexibly access your pension); Finance Act 2004 s228A carry forward (https://www.legislation.gov.uk/ukpga/2004/12/section/228A), s227ZA Money Purchase Annual Allowance; the excess is after the carry forward recorded (`AnnualAllowanceChecker`); `pension.carry_forward_years` in tax config; the card's own figures
 figures: excess_amount, carry_forward_years, carry_forward_recorded, mpaa_applies
 why:
@@ -114,7 +114,7 @@ learn:
 1. Annual allowance | /help#retirement
 
 ## ni_gaps
-status: draft
+status: approved
 source: https://www.gov.uk/check-national-insurance-record (gaps, National Insurance credits, whether voluntary contributions would benefit you, the cost, and how your forecast would change); https://www.gov.uk/voluntary-national-insurance-contributions ("check if you're eligible for National Insurance credits … before deciding to pay voluntary contributions"; check your State Pension forecast first; at or past State Pension age, contact the Pension Service); `pension.state_pension.qualifying_years` in tax config; the card's own figures
 figures: years_short, years_until_spa
 why:
@@ -128,7 +128,7 @@ outcome:
 1. Your State Pension forecast moves towards the full amount.
 
 ## state_pension_no_forecast
-status: draft
+status: approved
 source: https://www.gov.uk/check-state-pension (how much you could get, when, and whether you can increase it; online, in the HMRC app, by form BR19 or the Future Pension Centre if State Pension age is more than 30 days away); `pension.state_pension.full_new_state_pension` in tax config; the card's own figures
 figures: full_state_pension
 why:
@@ -141,7 +141,7 @@ outcome:
 1. Your retirement projection counts the State Pension you are on course to get.
 
 ## pension_value_unknown
-status: draft
+status: approved
 source: https://www.gov.uk/find-pension-contact-details (finds a provider's contact details; "will not tell you whether you have a pension, or what its value is"); the card's own figures
 figures: scheme_name
 why:
@@ -155,21 +155,31 @@ outcome:
 
 ## approaching_decumulation
 status: draft
-source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension (annuities, "regular payments for life", income depending on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"; flexi-access drawdown; cash sums; usually a tax-free lump sum; "not normally before 55"); https://www.gov.uk/personal-pensions-your-rights/get-help ("If you're over 50 you can book a free appointment to talk about your options"; Pension Wise does not cover the State Pension or defined benefit pensions); `pension.normal_minimum_pension_age` in tax config; the card's own figures
-figures: years_to_retirement
+source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension ("taking all or some of it as cash, buying a product that gives you a guaranteed income … or investing it to get a regular, adjustable income"; flexi-access drawdown; a short-term annuity from a drawdown fund "will give you regular payments for up to 5 years"; an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"; providers "may not offer all of them" and "you can transfer your pension pot to a different provider"; "not normally before 55"); https://www.gov.uk/tax-on-pension/tax-free ("You can usually take up to 25% of the amount built up in any pension as a tax-free lump sum. The most you can take is £268,275"; cash sums from a pot, each with its tax-free part; "Tax is taken off the remaining amount before you get it"); Finance Act 2004 s227G (https://www.legislation.gov.uk/ukpga/2004/12/section/227G: the Money Purchase Annual Allowance starts with the first payment from a flexi-access drawdown fund or the first uncrystallised funds pension lump sum, not with a pension commencement lump sum alone or a lifetime annuity), s227ZA; Schedule 28 para 8 (funds designated for drawdown can be some of those held); https://www.gov.uk/personal-pensions-your-rights/get-help (free Pension Wise appointment over 50, for defined contribution pensions); tax config `pension.pcls_rate`, `pension.lump_sum_allowance`, `pension.mpaa`, `pension.normal_minimum_pension_age`; the pot from the planning contract (`RetirementProjectionContractService`) and the tax-free part from `TaxConfigService::calculatePCLS`; the card's own figures
+figures: summary, years_to_retirement, before_retirement, dc_pot, tax_free_lump
 why:
-1. You are {years_to_retirement} years from your target retirement age.
+1. {summary}
+2. How you take it decides how much comes tax-free, how the rest is taxed, and how much you can pay into pensions afterwards.
 always:
-1. Look at the ways you can take a defined contribution pension: an annuity (regular payments for life), drawdown (taking money from a pot that stays invested), or cash sums. You can usually take part of it as a tax-free lump sum.
-2. If you are over 50, book a free Pension Wise appointment to talk through your options for these pensions.
-3. Compare the options on the Retirement page.
+1. The tax-free part: you can usually take up to {tax_free_share} of each pension tax-free, and no more than {lump_sum_allowance} across all your pensions. On yours that is about {tax_free_lump}. The rest is taxed as income when you take it.
+2. Flexi-access drawdown: take the tax-free part as a lump sum, the Pension Commencement Lump Sum (PCLS), and leave the rest invested. You then take a taxable income from it when you choose, in amounts you can change, and can use part of it to buy a short-term annuity paying for up to 5 years.
+3. Cash sums straight from the pot, called uncrystallised funds pension lump sums (UFPLS): {tax_free_share} of each sum is tax-free and the rest is taxed as income. You can take the whole pot this way or smaller sums over time.
+4. An annuity: a guaranteed income for life, bought with all or part of a pot. What it pays depends on your age, the size of the pot, interest rates and sometimes your health.
+5. Mixing them: you can take some of a pot one way and the rest another, for example the tax-free lump sum and an annuity with part, drawdown with the rest, and take each pension in its own way. Not every provider offers every option; if yours does not, you can move the pot to one that does.
+6. Paying in afterwards: the first taxable payment from a drawdown fund, or the first uncrystallised funds pension lump sum, brings in the Money Purchase Annual Allowance. From then on only {mpaa} a year can go into defined contribution pensions with tax relief. Taking only the tax-free lump sum, or buying a lifetime annuity, does not bring it in.
+when before_retirement:
+7. You can usually take a pension from age {normal_minimum_pension_age}. Compare the options on the Retirement page before you choose.
+when not before_retirement:
+7. Compare the options on the Retirement page, and ask each provider which of them it offers.
+always:
+8. If you are over 50, book a free Pension Wise appointment to talk through your options for these pensions.
 outcome:
-1. You know how you plan to take your pension before you retire.
+1. You know which way, or which mix, you will take each pension in, how much comes tax-free and how the rest is taxed.
 learn:
 1. How your retirement projection works | /help#retirement
 
 ## pension_consolidation_opportunity
-status: draft
+status: approved
 source: https://www.gov.uk/transferring-your-pension/transferring-to-a-uk-pension-scheme (check the scheme allows a transfer and the new one accepts it; transfer fees; you might lose the right to take your pension at a specific age, fixed or enhanced protection, or a tax-free lump sum above the usual amount; contact both providers); https://www.gov.uk/transferring-your-pension (free information from MoneyHelper; independent financial advisers for paid advice); Pension Schemes Act 2015 s48, advice before transferring safeguarded benefits (https://www.legislation.gov.uk/ukpga/2015/8/section/48); the card's own figures
 figures: pension_count
 why:
@@ -185,7 +195,7 @@ outcome:
 1. Fewer pensions to keep track of, with charges you have compared.
 
 ## pension_charges_review
-status: draft
+status: approved
 source: the card's own figures (`RetirementActionDefinitionService::consolidateCharges`: platform and adviser fees and the holdings' weighted ongoing charge); https://www.gov.uk/transferring-your-pension/transferring-to-a-uk-pension-scheme (transfer fees and what you might lose before moving)
 figures: pension_name, charges_list, total_fee_percent, annual_fees, platform_fee_percent, weighted_ocf, high_pension_total_fees, high_pension_platform_fees, high_pension_fund_fees
 why:
@@ -206,7 +216,7 @@ outcome:
 1. You know what {pension_name} costs you each year, and whether a cheaper option is worth the move.
 
 ## salary_sacrifice_floor_warning
-status: draft
+status: approved
 source: https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye ("A salary sacrifice arrangement must not reduce an employee's cash earnings below the National Minimum Wage (NMW) rates"); the card's own figures
 figures: scheme_name, post_sacrifice_salary
 why:
@@ -219,7 +229,7 @@ outcome:
 1. Your pension payments go in without taking your pay below the legal minimum.
 
 ## enhanced_annuity_eligible
-status: draft
+status: approved
 source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension (an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"); https://www.gov.uk/personal-pensions-your-rights/get-help (free Pension Wise appointment over 50, for defined contribution pensions)
 figures:
 why:

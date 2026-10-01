@@ -18,34 +18,31 @@
 </template>
 
 <script>
-import { currencyMixin } from '@/mixins/currencyMixin';
+const ORDER = ['life', 'critical_illness', 'income_protection'];
+const TONES = { short: 'text-raspberry-600 font-medium', attention: 'text-violet-600 font-medium', covered: 'text-spring-600 font-medium' };
 
-const LABELS = { life: 'Life cover', critical_illness: 'Critical illness cover', income_protection: 'Income protection' };
-
-/** Where the user stands per cover type (ProtectionCoverPosition, the cards' own figures). */
+/**
+ * Where the user stands per cover type (ProtectionCoverPosition, the cards' own
+ * figures). Every figure and word is the server's, the same /m and iOS print
+ * (CSJ 2026-10-01: one figure, every surface).
+ */
 export default {
   name: 'CoverPositionSection',
-  mixins: [currencyMixin],
   props: { position: { type: Object, default: null } },
   data: () => ({ open: null }),
   computed: {
     rows() {
       if (!this.position) return [];
-      return Object.keys(LABELS).filter((key) => this.position[key]).map((key) => {
+      return ORDER.filter((key) => this.position[key]).map((key) => {
         const p = this.position[key];
-        const money = (v) => this.formatCurrency(v) + (p.unit === 'monthly' ? ' a month' : '');
-        const parts = [];
-        if (p.short_by > 0) parts.push(`Short by ${money(p.short_by)}`);
-        if (p.over_by > 0) parts.push(`Over by ${money(p.over_by)}`);
-        if (p.depends_on_job) parts.push('Depends on your job');
         return {
           key,
-          label: LABELS[key],
-          status: parts.length ? parts.join(', ') : 'Covered',
-          tone: p.short_by > 0 ? 'text-raspberry-600 font-medium' : (p.over_by > 0 || p.depends_on_job ? 'text-violet-600 font-medium' : 'text-spring-600 font-medium'),
-          need: money(p.need),
-          own: money(p.own_cover),
-          job: money(p.employer_cover),
+          label: p.label,
+          status: p.status_label,
+          tone: TONES[p.tone] || TONES.covered,
+          need: p.need_label,
+          own: p.own_cover_label,
+          job: p.employer_cover_label,
         };
       });
     },

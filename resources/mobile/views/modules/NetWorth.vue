@@ -110,7 +110,8 @@ export default {
         const value = Number(section?.total_value ?? 0);
         const count = Number(section?.count ?? 0);
         if (!section || (value === 0 && count === 0)) continue;
-        const pct = this.totalAssets > 0 ? Math.round((value / this.totalAssets) * 100) : 0;
+        // The server's share of assets (NetWorthService), not divided here.
+        const pct = Number(section?.percent_of_assets ?? 0);
         cats.push({ key, label: ASSET_LABELS[key] || key, value, count, pct });
       }
       return cats;
