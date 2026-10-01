@@ -43,3 +43,18 @@ it('falls back to a slugified type when the category is unmapped', function (): 
         ->and($dto->priority)->toBe('medium')
         ->and($dto->requiredMonthlyCost)->toBeNull();
 });
+
+it('types a rec by its definition key and carries the key and figures (CSJ 2026-10-01)', function (): void {
+    $dto = (new RetirementRecommendationAdapter)->toStrategyRecommendation([
+        'category' => 'Retirement Income',
+        'title' => 'Your retirement income is about £8,000 a year short of your target',
+        'description' => 'At 65 your pensions are on course for about £22,000 a year.',
+        'impact' => 'High',
+        'definition_key' => 'retirement_income_position',
+        'figures' => ['shortfall' => '£8,000', 'closes_gap' => false],
+    ]);
+
+    expect($dto->type)->toBe('retirement_income_position')
+        ->and($dto->extra['definition_key'])->toBe('retirement_income_position')
+        ->and($dto->extra['figures'])->toBe(['shortfall' => '£8,000', 'closes_gap' => false]);
+});

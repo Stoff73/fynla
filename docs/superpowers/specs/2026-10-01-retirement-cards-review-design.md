@@ -1,6 +1,6 @@
 # Retirement cards: review and design
 
-**Status:** for CSJ review. Section 4 lists the decisions. No code until approved, except section 3.1, which copies #972.
+**Status:** APPROVED. CSJ answered D1 to D5 on 2026-10-01, each as recommended.
 **Date:** 2026-10-01
 **Item:** `todoCurrent/TODO.md` item 7.
 
@@ -36,7 +36,7 @@ So `ActionCardService::howTo` (`:200`) gets no key and returns nothing for any r
 
 These never fired: `salary_sacrifice_floor_warning`, `approaching_decumulation`, `pension_value_unknown`, `enhanced_annuity_eligible`, `pension_consolidation_opportunity`, `high_pension_platform_fees`, `high_pension_fund_fees`.
 
-**The three goal definitions can never fire.** `goal_no_contribution`, `goal_behind_schedule` and `goal_deadline_approaching` are evaluated only by `evaluateGoalActions`, and nothing calls it (`grep` across `app/`). Goal cards come from the Goals module.
+**The three goal definitions are not cards.** `goal_no_contribution`, `goal_behind_schedule` and `goal_deadline_approaching` are evaluated by `evaluateGoalActions`, which only the Retirement plan page calls (`RetirementPlanService:58`). They never reach the actions list, so they need no how-to. (CORRECTED 2026-10-01: the first draft said nothing calls it; a truncated search hid `RetirementPlanService:58`.)
 
 **`pension_value_unknown` is missing from the local database** (25 rows, seeder 26). That is seed drift; a reseed fixes it.
 
@@ -106,11 +106,18 @@ Item 6 defined who is drawing: retired, past a recorded retirement date, or a pe
 
 ### 3.2 One engine per action (decision D1)
 
-**Recommended:**
-- `tax_relief`, `salary_sacrifice_available` and `annual_allowance_exceeded` stop producing cards (disabled in the seeder; kept in the file with a note pointing at the Tax plan type that carries each one).
+**Approved and built:**
+- `tax_relief` and `salary_sacrifice_available` stop producing cards (disabled in the seeder, kept in the file with a note pointing at the Tax plan type that carries each one).
 - The Tax plan's approved cards carry these actions, with affordability and how-tos already in place.
 - `salary_sacrifice_floor_warning` stays: no Tax plan card checks the pay floor.
-- **Check before disabling:** does the Tax plan's pension relief card stop when the allowance is already exceeded? It must, or Alex's contradiction stays (verified as part of the build).
+
+**Corrected during the build (2026-10-01):** `annual_allowance_exceeded` stays enabled. The first draft said the Tax plan carries it through `tapered_annual_allowance` and `pension_aa_carry_forward`. It does not:
+- `TaperedAnnualAllowanceStrategy` warns only about the taper;
+- no Tax plan card warns someone who has already paid in more than their allowance.
+
+D1's intent was to leave to the Tax plan what it already carries, so this card stays, rewritten from gov.uk ("If you go over your annual allowance, either you or your pension provider must pay the tax", https://www.gov.uk/tax-on-your-private-pension/annual-allowance).
+
+Alex's contradiction still goes: the Tax plan's relief card stops once the allowance is used (`PensionTaxReliefStrategy` reads `TaxStrategyMath::availableAnnualAllowance`), and the retirement `tax_relief` card is gone.
 
 ### 3.3 One retirement income card (decision D2)
 
@@ -129,7 +136,8 @@ Item 6 defined who is drawing: retired, past a recorded retirement date, or a pe
 **Recommended:**
 - **For anyone `isDrawing` and no longer working:** no contribution, salary sacrifice, employer match, auto-enrolment or retirement-age card.
 - **For someone drawing while still working:** contribution cards stay, capped at the Money Purchase Annual Allowance once a pension has been flexibly accessed.
-- **Without a retirement profile,** the definitions that need none still run: State Pension forecast, National Insurance gaps, fees, consolidation and care costs. Pat (439) gets them.
+- **Without a retirement profile,** the definitions that need none still run: pension value, State Pension forecast, National Insurance gaps, fees and consolidation (care costs needs the profile's care cost field).
+- **Built:** the retirement readiness gate stopped Pat (439) with "Gross annual income is required". Someone drawing now gets the retiree downgrade (`RetirementDataReadinessService::checkIncome`). Pat's own data fires none of these cards: the State Pension is recorded and paid, there are no fees and only one pension.
 
 ### 3.5 Fees: one card per pension (decision D3)
 
@@ -142,17 +150,17 @@ Item 6 defined who is drawing: retired, past a recorded retirement date, or a pe
 - **Write titles** in sentence case with the user's figure, as the approved modules do ("Pay 2% more into {scheme} to get your employer's full match").
 - **Approval:** the new titles go to CSJ with the how-to batch.
 
-### 3.7 Goal definitions (decision D5)
+### 3.7 Goal definitions (D5, withdrawn)
 
-**Recommended:** delete the three goal definitions, which nothing evaluates (1.2). Goal cards come from the Goals module.
+Withdrawn after approval: the premise was wrong (1.2, corrected). The goal definitions feed the Retirement plan page and stay as they are.
 
 ## 4. Decisions for CSJ
 
-- **D1.** Retirement stops carrying the three actions the Tax plan already carries (3.2)?
+- **D1.** Retirement stops carrying the actions the Tax plan already carries (3.2). Built for two of the three: the Annual Allowance excess has no Tax plan card, so it stays.
 - **D2.** One "retirement income position" card replaces the contribution, start and retire-later cards (3.3)?
 - **D3.** One card per pension for charges, and for employer match with the auto-enrolment minimum (3.5)?
 - **D4.** No saver cards for someone drawing who no longer works; drawing while working is capped by the Money Purchase Annual Allowance (3.4)?
-- **D5.** Delete the three goal definitions that never run (3.7)?
+- **D5.** Withdrawn (3.7): the goal definitions do run, on the Retirement plan page.
 
 ## 5. How-tos
 

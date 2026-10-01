@@ -140,7 +140,9 @@ describe('evaluateAgentActions', function () {
 
         expect($employerMatch)->not->toBeNull()
             ->and($employerMatch['scope'])->toBe('account')
-            ->and($employerMatch['title'])->toContain('Maximise Employer Pension Match');
+            ->and($employerMatch['title'])->toBe('Check your employer match on Test Workplace')
+            ->and($employerMatch['definition_key'])->toBe('employer_match')
+            ->and($employerMatch['figures'])->toMatchArray(['employee_percent' => '3.0', 'additional_percent' => '2.0']);
     });
 
     it('does not produce employer match when contribution meets threshold', function () {
@@ -205,7 +207,7 @@ describe('evaluateAgentActions', function () {
         expect($employerMatch)->toBeNull();
     });
 
-    it('produces annual allowance exceeded recommendation', function () {
+    it('warns when the Annual Allowance is exceeded, which no Tax plan card does', function () {
         $analysisData = [
             'profile' => $this->profile->toArray(),
             'summary' => [
@@ -219,11 +221,10 @@ describe('evaluateAgentActions', function () {
             ],
         ];
 
-        $result = $this->service->evaluateAgentActions($analysisData);
-        $aaRec = collect($result['recommendations'])->first(fn ($r) => str_contains($r['title'] ?? '', 'Annual Allowance'));
+        $aaRec = collect($this->service->evaluateAgentActions($analysisData)['recommendations'])->firstWhere('definition_key', 'annual_allowance_exceeded');
 
-        expect($aaRec)->not->toBeNull()
-            ->and($aaRec['description'])->toContain('5,000');
+        expect($aaRec['title'])->toBe('You have paid £5,000 more into pensions than your allowance this year')
+            ->and($aaRec['figures'])->toMatchArray(['carry_forward_years' => '3', 'mpaa_applies' => false]);
     });
 
     it('shows only increase contributions when user has a contributing pension and a dormant one', function () {
@@ -255,7 +256,7 @@ describe('evaluateAgentActions', function () {
             'profile' => $this->profile->toArray(),
             'summary' => [
                 'income_gap' => 10000,
-                'target_retirement_income' => 30000,
+                'target_retirement_income' => 150000, // above what the pensions project, so there is a shortfall
                 'target_retirement_age' => 65,
             ],
             'annual_allowance' => [
@@ -268,11 +269,14 @@ describe('evaluateAgentActions', function () {
         $result = $this->service->evaluateAgentActions($analysisData);
         $recs = $result['recommendations'];
 
-        $startContrib = collect($recs)->firstWhere('category', 'Start_contributions');
-        $increaseContrib = collect($recs)->firstWhere('category', 'Contribution_increase');
+        // CSJ 2026-10-01 (D2): one income card; the folded actions are its reasons.
+        $keys = collect($recs)->pluck('definition_key')->all();
+        $card = collect($recs)->firstWhere('definition_key', 'retirement_income_position');
 
-        expect($startContrib)->toBeNull('start_contributions should be suppressed when user has a contributing pension')
-            ->and($increaseContrib)->not->toBeNull('increase contributions should still show');
+        expect($keys)->not->toContain('start_contributions')->not->toContain('contribution_increase')
+            ->and($card)->not->toBeNull()
+            ->and($card['figures'])->toHaveKey('contribution_increase')
+            ->and($card['figures'])->not->toHaveKey('start_contributions');
     });
 
     it('shows only start contributions when user has no contributing pensions', function () {
@@ -306,11 +310,11 @@ describe('evaluateAgentActions', function () {
         $result = $this->service->evaluateAgentActions($analysisData);
         $recs = $result['recommendations'];
 
-        $startContrib = collect($recs)->firstWhere('category', 'Start_contributions');
-        $increaseContrib = collect($recs)->firstWhere('category', 'Contribution_increase');
+        $card = collect($recs)->firstWhere('definition_key', 'retirement_income_position');
 
-        expect($increaseContrib)->toBeNull('contribution_increase should be suppressed when user has no contributing pensions')
-            ->and($startContrib)->not->toBeNull('start contributions should still show');
+        expect($card)->not->toBeNull()
+            ->and($card['figures'])->toHaveKey('start_contributions')
+            ->and($card['figures'])->not->toHaveKey('contribution_increase');
     });
 
     it('produces retirement age adjustment when gap exceeds threshold', function () {
@@ -329,85 +333,12 @@ describe('evaluateAgentActions', function () {
         ];
 
         $result = $this->service->evaluateAgentActions($analysisData);
-        $ageRec = collect($result['recommendations'])->firstWhere('category', 'Retirement Planning');
+        $card = collect($result['recommendations'])->firstWhere('definition_key', 'retirement_income_position');
 
-        expect($ageRec)->not->toBeNull()
-            ->and($ageRec['title'])->toContain('Consider Adjusting Retirement Age');
-    });
-
-    it('caps contribution-increase headroom at relevant earnings', function () {
-        // Tax-relievable personal contributions are limited to relevant UK
-        // earnings — a £9k earner must never be told they can use £60k.
-        $this->user->update(['annual_employment_income' => 9000]);
-
-        DCPension::create([
-            'user_id' => $this->user->id,
-            'scheme_name' => 'Part-time Workplace',
-            'scheme_type' => 'workplace',
-            'pension_type' => 'occupational',
-            'employee_contribution_percent' => 3.0,
-            'employer_contribution_percent' => 3.0,
-            'current_fund_value' => 5000,
-            'annual_salary' => 9000,
-        ]);
-
-        $analysisData = [
-            'profile' => $this->profile->toArray(),
-            'summary' => [
-                'income_gap' => 5000,
-                'target_retirement_income' => 30000,
-                'target_retirement_age' => 65,
-            ],
-            'annual_allowance' => [
-                'has_excess' => false,
-                'remaining_allowance' => 59460,
-                'carry_forward_available' => 0,
-            ],
-        ];
-
-        $result = $this->service->evaluateAgentActions($analysisData);
-        $rec = collect($result['recommendations'])->firstWhere('category', 'Contribution_increase');
-
-        expect($rec)->not->toBeNull()
-            ->and($rec['available_annual_headroom'])->toBeLessThanOrEqual(9000.0)
-            ->and($rec['available_annual_headroom'])->toBeGreaterThan(0.0);
-    });
-
-    it('floors the contribution-increase cap at the non-earner gross amount', function () {
-        // A user with no relevant earnings can still contribute £2,880 net
-        // (£3,600 gross) — the headroom must say £3,600, not the full allowance.
-        $this->user->update(['annual_employment_income' => 0]);
-
-        DCPension::create([
-            'user_id' => $this->user->id,
-            'scheme_name' => 'Personal Pension',
-            'scheme_type' => 'sipp',
-            'pension_type' => 'personal',
-            'employee_contribution_percent' => 0,
-            'employer_contribution_percent' => 0,
-            'monthly_contribution_amount' => 100,
-            'current_fund_value' => 20000,
-        ]);
-
-        $analysisData = [
-            'profile' => $this->profile->toArray(),
-            'summary' => [
-                'income_gap' => 5000,
-                'target_retirement_income' => 30000,
-                'target_retirement_age' => 65,
-            ],
-            'annual_allowance' => [
-                'has_excess' => false,
-                'remaining_allowance' => 58800,
-                'carry_forward_available' => 0,
-            ],
-        ];
-
-        $result = $this->service->evaluateAgentActions($analysisData);
-        $rec = collect($result['recommendations'])->firstWhere('category', 'Contribution_increase');
-
-        expect($rec)->not->toBeNull()
-            ->and($rec['available_annual_headroom'])->toBe(3600.0);
+        expect(collect($result['recommendations'])->pluck('definition_key')->all())->not->toContain('adjust_retirement_age')
+            ->and($card['figures'])->toHaveKey('adjust_retirement_age')
+            // No pensions recorded: the planning projection is nothing, so the whole target is short.
+            ->and($card['title'])->toBe('Your retirement income is about £30,000 a year short of your target');
     });
 
     it('suppresses contribution-increase from age 75 (no tax relief)', function () {
@@ -442,9 +373,9 @@ describe('evaluateAgentActions', function () {
         ];
 
         $result = $this->service->evaluateAgentActions($analysisData);
-        $rec = collect($result['recommendations'])->firstWhere('category', 'Contribution_increase');
-
-        expect($rec)->toBeNull();
+        // No relief from 75 (FA 2004 s188(3)(a)): no income card either.
+        expect(collect($result['recommendations'])->pluck('definition_key')->all())
+            ->not->toContain('contribution_increase')->not->toContain('retirement_income_position');
     });
 
     it('does not suggest adjusting retirement age to a retired user', function () {
@@ -465,9 +396,8 @@ describe('evaluateAgentActions', function () {
         ];
 
         $result = $this->service->evaluateAgentActions($analysisData);
-        $ageRec = collect($result['recommendations'])->firstWhere('category', 'Retirement Planning');
-
-        expect($ageRec)->toBeNull();
+        expect(collect($result['recommendations'])->pluck('definition_key')->all())
+            ->not->toContain('adjust_retirement_age')->not->toContain('retirement_income_position');
     });
 
     it('does not suggest adjusting retirement age past the target age', function () {
@@ -490,9 +420,137 @@ describe('evaluateAgentActions', function () {
         ];
 
         $result = $this->service->evaluateAgentActions($analysisData);
-        $ageRec = collect($result['recommendations'])->firstWhere('category', 'Retirement Planning');
+        expect(collect($result['recommendations'])->pluck('definition_key')->all())
+            ->not->toContain('adjust_retirement_age')->not->toContain('retirement_income_position');
+    });
 
-        expect($ageRec)->toBeNull();
+    it('carries its definition key and figures on every card', function () {
+        DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Test Workplace', 'scheme_type' => 'workplace',
+            'pension_type' => 'occupational', 'employee_contribution_percent' => 3.0, 'employer_contribution_percent' => 3.0,
+            'current_fund_value' => 50000, 'annual_salary' => 55000,
+        ]);
+
+        $recs = $this->service->evaluateAgentActions([
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 0, 'target_retirement_income' => 30000, 'target_retirement_age' => 65],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 56700, 'carry_forward_available' => 0],
+        ])['recommendations'];
+
+        expect($recs)->not->toBeEmpty();
+        foreach ($recs as $rec) {
+            expect($rec['definition_key'] ?? null)->toBeString()
+                ->and(RetirementActionDefinition::where('key', $rec['definition_key'])->exists())->toBeTrue();
+        }
+    });
+
+    it('folds the three charge actions on one pension into one charges card (D3)', function () {
+        $pension = DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Costly SIPP', 'provider' => 'Acme', 'scheme_type' => 'sipp',
+            'pension_type' => 'sipp', 'current_fund_value' => 100000, 'platform_fee_percent' => 1.2,
+        ]);
+        $other = DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Second SIPP', 'provider' => 'Acme', 'scheme_type' => 'sipp',
+            'pension_type' => 'sipp', 'current_fund_value' => 50000, 'platform_fee_percent' => 1.5,
+        ]);
+
+        $recs = collect($this->service->evaluateAgentActions([
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 0, 'target_retirement_income' => 30000, 'target_retirement_age' => 65],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 60000, 'carry_forward_available' => 0],
+        ])['recommendations']);
+
+        $cards = $recs->where('definition_key', 'pension_charges_review')->values();
+        expect($recs->pluck('definition_key')->intersect(['high_pension_total_fees', 'high_pension_platform_fees', 'high_pension_fund_fees']))->toBeEmpty()
+            ->and($cards)->toHaveCount(2)
+            ->and($cards->pluck('account_id')->sort()->values()->all())->toBe([$pension->id, $other->id])
+            ->and($cards->firstWhere('account_id', $pension->id)['title'])->toBe('Review the charges on Acme Costly SIPP')
+            ->and($cards->firstWhere('account_id', $pension->id)['description'])->toContain('total charges of 1.20% a year (£1,200)')
+            ->and($cards->firstWhere('account_id', $pension->id)['description'])->toContain('(£1,200) and a platform fee of 1.20%')
+            ->and($cards->firstWhere('account_id', $other->id)['description'])->toContain('1.50%');
+    });
+
+    it('makes the auto-enrolment minimum a reason on the employer match card (D3)', function () {
+        DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Test Workplace', 'scheme_type' => 'workplace',
+            'pension_type' => 'occupational', 'employee_contribution_percent' => 2.0, 'employer_contribution_percent' => 2.0,
+            'current_fund_value' => 50000, 'annual_salary' => 55000,
+        ]);
+
+        $recs = collect($this->service->evaluateAgentActions([
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 0, 'target_retirement_income' => 30000, 'target_retirement_age' => 65],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 57800, 'carry_forward_available' => 0],
+        ])['recommendations']);
+
+        $match = $recs->firstWhere('definition_key', 'employer_match');
+        expect($recs->pluck('definition_key')->all())->not->toContain('auto_enrolment_below_minimum')
+            ->and($match['figures']['auto_enrolment_below_minimum'] ?? null)->toBeTrue()
+            ->and($match['figures']['minimum_percent'])->toBe('8')
+            ->and($match['description'])->toContain('auto-enrolment minimum is 8%');
+    });
+
+    it('gives a retired user drawing their pension no saving cards (D4)', function () {
+        $this->user->update(['employment_status' => 'retired', 'annual_employment_income' => 0, 'date_of_birth' => now()->subYears(62)->toDateString()]);
+        DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Old Workplace', 'scheme_type' => 'workplace',
+            'pension_type' => 'occupational', 'employee_contribution_percent' => 0, 'employer_contribution_percent' => 0,
+            'monthly_contribution_amount' => 0, 'current_fund_value' => 80000, 'annual_drawdown_income' => 6000,
+        ]);
+
+        $keys = collect($this->service->evaluateAgentActions([
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 10000, 'target_retirement_income' => 30000, 'target_retirement_age' => 65, 'years_to_retirement' => 3],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 60000, 'carry_forward_available' => 0],
+        ])['recommendations'])->pluck('definition_key')->all();
+
+        expect($keys)->not->toContain('retirement_income_position')
+            ->not->toContain('start_contributions')
+            ->not->toContain('contribution_increase')
+            ->not->toContain('employer_match')
+            ->not->toContain('auto_enrolment_below_minimum')
+            ->and($keys)->toContain('state_pension_no_forecast');
+    });
+
+    it('keeps the income card for someone drawing while still working (D4)', function () {
+        $this->user->update(['employment_status' => 'employed', 'date_of_birth' => now()->subYears(58)->toDateString()]);
+        DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Old SIPP', 'scheme_type' => 'sipp', 'pension_type' => 'sipp',
+            'current_fund_value' => 40000, 'annual_drawdown_income' => 3000, 'has_flexibly_accessed' => true,
+        ]);
+
+        $keys = collect($this->service->evaluateAgentActions([
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 10000, 'target_retirement_income' => 30000, 'target_retirement_age' => 65, 'years_to_retirement' => 7],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 60000, 'carry_forward_available' => 0],
+        ])['recommendations'])->pluck('definition_key')->all();
+
+        expect($keys)->toContain('retirement_income_position');
+    });
+
+    it('still gives a household with no retirement profile the actions that need no target (D4)', function () {
+        $this->profile->delete();
+        DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Costly SIPP', 'provider' => 'Acme', 'scheme_type' => 'sipp',
+            'pension_type' => 'sipp', 'current_fund_value' => 100000, 'platform_fee_percent' => 1.2,
+            'employee_contribution_percent' => 0, 'employer_contribution_percent' => 0, 'monthly_contribution_amount' => 0,
+        ]);
+
+        $keys = collect($this->service->evaluateAgentActions([
+            'profile' => null,
+            'user_id' => $this->user->id,
+            'summary' => ['income_gap' => null, 'target_retirement_income' => null],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 60000, 'carry_forward_available' => 0],
+        ])['recommendations'])->pluck('definition_key')->all();
+
+        expect($keys)->toContain('state_pension_no_forecast')
+            ->toContain('pension_charges_review')
+            ->not->toContain('start_contributions')
+            ->not->toContain('retirement_income_position');
+    });
+
+    it('leaves the pension relief and salary sacrifice saving to the Tax plan (D1)', function () {
+        expect(RetirementActionDefinition::whereIn('key', ['tax_relief', 'salary_sacrifice_available'])->where('is_enabled', true)->count())->toBe(0);
     });
 });
 
@@ -712,7 +770,7 @@ describe('template rendering', function () {
             'scheme_name' => 'HSBC Workplace',
         ]);
 
-        expect($rendered)->toContain('Maximise Employer Pension Match');
+        expect($rendered)->toBe('Check your employer match on HSBC Workplace');
     });
 
     it('renders description with placeholders', function () {

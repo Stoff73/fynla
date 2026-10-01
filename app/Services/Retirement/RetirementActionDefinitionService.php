@@ -23,6 +23,34 @@ class RetirementActionDefinitionService
 {
     use FormatsCurrency;
 
+    /**
+     * The actions that need no retirement target, so they still run for a
+     * household with no retirement profile (CSJ 2026-10-01, D4).
+     */
+    private const NEEDS_NO_PROFILE = [
+        'pension_value_unknown', 'state_pension_no_forecast', 'ni_gaps',
+        'pension_consolidation_opportunity', 'high_pension_total_fees', 'high_pension_platform_fees', 'high_pension_fund_fees',
+    ];
+
+    /**
+     * Saving actions: never for someone retired and drawing their pension
+     * (CSJ 2026-10-01, D4). Someone drawing while still working keeps them.
+     */
+    private const SAVER_KEYS = [
+        'contribution_increase', 'start_contributions', 'adjust_retirement_age', 'employer_match',
+        'auto_enrolment_below_minimum', 'salary_sacrifice_available', 'salary_sacrifice_floor_warning',
+        'approaching_decumulation', 'retirement_income_position',
+    ];
+
+    /** CSJ 2026-10-01, D2: these are reasons on the one retirement income card, never cards. */
+    private const FOLDED_INCOME = ['contribution_increase', 'adjust_retirement_age', 'start_contributions'];
+
+    /** CSJ 2026-10-01, D3: one card per pension for its charges. */
+    private const FOLDED_CHARGES = ['high_pension_total_fees', 'high_pension_platform_fees', 'high_pension_fund_fees'];
+
+    /** Reason figures the income card states from its own position instead. */
+    private const INCOME_OWNED_FIGURES = ['monthly_amount', 'suggested_age', 'current_age'];
+
     public function __construct(
         private readonly PensionContributionOptimizer $optimizer,
         private readonly TaxConfigService $taxConfig,
@@ -45,26 +73,40 @@ class RetirementActionDefinitionService
         $recommendations = [];
         $priority = 1;
 
-        if (empty($analysisData['profile'])) {
+        // A household with no retirement profile still gets the actions that
+        // need no target (CSJ 2026-10-01, D4): the analysis carries its user id.
+        $userId = $analysisData['profile']['user_id'] ?? $analysisData['user_id'] ?? null;
+        if ($userId === null) {
             return [];
         }
-
-        $userId = $analysisData['profile']['user_id'];
-        $profile = RetirementProfile::find($analysisData['profile']['id']);
+        $analysisData['user_id'] = (int) $userId;
+        $user = User::findOrFail($userId);
+        $profile = isset($analysisData['profile']['id']) ? RetirementProfile::find($analysisData['profile']['id']) : null;
         $dcPensions = app(PensionStore::class)
-            ->forUserByType(User::findOrFail($userId), 'dc')
+            ->forUserByType($user, 'dc')
             ->load('holdings');
+        $retired = $this->isRetiredAndDrawing($user);
 
         foreach ($definitions as $definition) {
+            if ($profile === null && ! in_array($definition->key, self::NEEDS_NO_PROFILE, true)) {
+                continue;
+            }
+            if ($retired && in_array($definition->key, self::SAVER_KEYS, true)) {
+                continue;
+            }
             $results = $this->evaluateAgentTrigger($definition, $analysisData, $profile, $dcPensions, $priority);
 
             foreach ($results as $rec) {
+                $rec['definition_key'] = $definition->key;
                 $recommendations[] = $rec;
                 $priority++;
             }
         }
 
         $recommendations = $this->resolveContributionConflicts($recommendations, $dcPensions);
+        $recommendations = $this->consolidateIncome($recommendations, $analysisData, $user, $profile, $retired);
+        $recommendations = $this->consolidateCharges($recommendations);
+        $recommendations = $this->foldAutoEnrolmentIntoEmployerMatch($recommendations);
 
         return [
             'recommendations' => $recommendations,
@@ -97,6 +139,207 @@ class RetirementActionDefinitionService
             $recommendations,
             fn ($r) => ($r['category'] ?? '') !== $removeCategory
         ));
+    }
+
+    /**
+     * Retired and drawing their pension: retired, or drawing
+     * (RetirementDrawdownPosition::isDrawing, item 6) with no earnings from
+     * work. Someone drawing while still working is not.
+     */
+    private function isRetiredAndDrawing(User $user): bool
+    {
+        if ($user->employment_status === 'retired') {
+            return true;
+        }
+        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+
+        return $earnings <= 0 && app(RetirementDrawdownPosition::class)->isDrawing($user);
+    }
+
+    /**
+     * A card's figures: the scalars its title and description were written
+     * from, which its how-to fills in (ActionCardService::howTo).
+     *
+     * @param  array<string, mixed>  $vars
+     * @return array<string, scalar>
+     */
+    private static function figuresOf(array $vars): array
+    {
+        return array_filter($vars, static fn ($v): bool => is_scalar($v));
+    }
+
+    /**
+     * One card for a retirement income shortfall (CSJ 2026-10-01, D2): the
+     * folded definitions leave the list and become its reasons. It shows when
+     * the page's projection falls short of the target; with no shortfall the
+     * folded actions have nothing to close and are dropped.
+     *
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return list<array<string, mixed>>
+     */
+    private function consolidateIncome(array $recommendations, array $analysisData, User $user, ?RetirementProfile $profile, bool $retired): array
+    {
+        $reasons = array_values(array_filter($recommendations, static fn (array $r): bool => in_array($r['definition_key'] ?? null, self::FOLDED_INCOME, true)));
+        $recommendations = array_values(array_filter($recommendations, static fn (array $r): bool => ! in_array($r['definition_key'] ?? null, self::FOLDED_INCOME, true)));
+
+        $definition = RetirementActionDefinition::getEnabledBySource('agent')->firstWhere('key', 'retirement_income_position');
+        if ($definition === null || $profile === null || $retired) {
+            return $recommendations;
+        }
+        // No relief, so no contribution to suggest, from 75 (FA 2004 s188(3)(a)).
+        $age = $user->date_of_birth ? (int) Carbon::parse($user->date_of_birth)->age : null;
+        if ($age !== null && $age >= (int) $this->taxConfig->get('pension.relief_max_age')) {
+            return $recommendations;
+        }
+        // At or past the target age the shortfall "at {target_age}" is no longer ahead.
+        $targetAge = (int) ($analysisData['summary']['target_retirement_age'] ?? 0);
+        if ($age !== null && $targetAge > 0 && $age >= $targetAge) {
+            return $recommendations;
+        }
+        $position = app(RetirementIncomePosition::class)->for($user, $analysisData);
+        if ($position === null) {
+            return $recommendations;
+        }
+
+        $vars = $this->incomePositionVars($position, $reasons);
+        $recommendations[] = [
+            'priority' => min(array_merge([2], array_column($reasons, 'priority'))),
+            'category' => $definition->category,
+            'title' => $definition->renderTitle($vars),
+            'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
+            'action' => $definition->renderAction($vars) ?? '',
+            'impact' => ucfirst($definition->priority),
+            'scope' => $definition->scope,
+            'definition_key' => $definition->key,
+            'decision_trace' => array_merge(...array_map(static fn (array $r): array => (array) ($r['decision_trace'] ?? []), $reasons ?: [[]])),
+        ];
+
+        return $recommendations;
+    }
+
+    /**
+     * @param  array<string, mixed>  $position  RetirementIncomePosition::for()
+     * @param  list<array<string, mixed>>  $reasons
+     * @return array<string, mixed>
+     */
+    private function incomePositionVars(array $position, array $reasons): array
+    {
+        $money = fn (?float $v): ?string => $v === null ? null : $this->formatCurrency($v);
+        $vars = [
+            'summary' => $position['projected_income'] > 0
+                ? 'At '.$position['target_age'].' your retirement income is on course for about '.$money($position['projected_income']).' a year, against your target of '.$money($position['target_income']).'.'
+                : 'No retirement income is projected for you yet, against your target of '.$money($position['target_income']).' a year.',
+            'shortfall' => $money($position['shortfall']),
+            'target_income' => $money($position['target_income']),
+            'projected_income' => $money($position['projected_income']),
+            'target_age' => (string) $position['target_age'],
+            'years_to_retirement' => (string) $position['years_to_retirement'],
+            'needed_monthly' => $money($position['needed_monthly']),
+            'affordable_monthly' => $money($position['affordable_monthly']),
+            'payable_monthly' => $money($position['payable_monthly']),
+            'payable_net_monthly' => $money($position['payable_net_monthly']),
+            'age_to_close' => $position['age_to_close'] === null ? null : (string) $position['age_to_close'],
+            'short_at_last_age' => $money($position['short_at_last_age']),
+            'last_age' => (string) $position['last_age'],
+            'affordability_known' => $position['affordability_known'],
+            'closes_gap' => $position['closes_gap'],
+            'pays_something' => ($position['payable_monthly'] ?? 0) > 0,
+        ];
+        foreach ($reasons as $reason) {
+            $vars[(string) $reason['definition_key']] = true;
+            foreach ((array) ($reason['figures'] ?? []) as $key => $value) {
+                if (! in_array($key, self::INCOME_OWNED_FIGURES, true) && ! array_key_exists($key, $vars)) {
+                    $vars[$key] = $value;
+                }
+            }
+        }
+
+        return array_filter($vars, static fn ($v): bool => $v !== null);
+    }
+
+    /**
+     * One card per pension for its charges (CSJ 2026-10-01, D3): the total,
+     * platform and fund charge actions on a pension become one card listing
+     * whichever charges fired.
+     *
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return list<array<string, mixed>>
+     */
+    private function consolidateCharges(array $recommendations): array
+    {
+        $folded = array_values(array_filter($recommendations, static fn (array $r): bool => in_array($r['definition_key'] ?? null, self::FOLDED_CHARGES, true)));
+        $recommendations = array_values(array_filter($recommendations, static fn (array $r): bool => ! in_array($r['definition_key'] ?? null, self::FOLDED_CHARGES, true)));
+
+        $definition = RetirementActionDefinition::getEnabledBySource('agent')->firstWhere('key', 'pension_charges_review');
+        if ($definition === null) {
+            return $recommendations;
+        }
+
+        foreach (collect($folded)->groupBy('account_id') as $accountId => $reasons) {
+            $vars = [];
+            foreach ($reasons as $reason) {
+                $vars[(string) $reason['definition_key']] = true;
+                $vars += (array) ($reason['figures'] ?? []);
+            }
+            $charges = array_filter([
+                isset($vars['total_fee_percent']) ? 'total charges of '.$vars['total_fee_percent'].'% a year ('.$vars['annual_fees'].')' : null,
+                isset($vars['platform_fee_percent']) ? 'a platform fee of '.$vars['platform_fee_percent'].'%' : null,
+                isset($vars['weighted_ocf']) ? 'fund charges averaging '.$vars['weighted_ocf'].'%' : null,
+            ]);
+            $last = array_pop($charges);
+            $vars['charges_list'] = $charges === [] ? (string) $last : implode(', ', $charges).' and '.$last;
+            $first = $reasons->first();
+
+            $recommendations[] = [
+                'priority' => (int) $reasons->min('priority'),
+                'category' => $definition->category,
+                'title' => $definition->renderTitle($vars),
+                'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
+                'action' => $definition->renderAction($vars) ?? '',
+                'impact' => ucfirst($definition->priority),
+                'scope' => 'account',
+                'account_id' => $first['account_id'] ?? null,
+                'account_name' => $first['account_name'] ?? null,
+                'definition_key' => $definition->key,
+                'decision_trace' => $reasons->flatMap(static fn (array $r): array => (array) ($r['decision_trace'] ?? []))->all(),
+            ];
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * Employer match and the auto-enrolment minimum on one workplace pension
+     * are one action, raising what is paid in (CSJ 2026-10-01, D3): the
+     * minimum becomes a reason on the employer match card.
+     *
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return list<array<string, mixed>>
+     */
+    private function foldAutoEnrolmentIntoEmployerMatch(array $recommendations): array
+    {
+        $minimum = collect($recommendations)->firstWhere('definition_key', 'auto_enrolment_below_minimum');
+        $hasMatch = collect($recommendations)->contains('definition_key', 'employer_match');
+        if ($minimum === null || ! $hasMatch) {
+            return $recommendations;
+        }
+
+        $out = [];
+        foreach ($recommendations as $rec) {
+            if (($rec['definition_key'] ?? null) === 'auto_enrolment_below_minimum') {
+                continue;
+            }
+            if (($rec['definition_key'] ?? null) === 'employer_match') {
+                $rec['figures'] = array_merge((array) ($minimum['figures'] ?? []), (array) ($rec['figures'] ?? []), ['auto_enrolment_below_minimum' => true]);
+                $rec['description'] = trim(($rec['description'] ?? '').' '.($minimum['description'] ?? ''));
+                $rec['priority'] = min((int) $rec['priority'], (int) $minimum['priority']);
+            }
+            $out[] = $rec;
+        }
+
+        return $out;
     }
 
     /**
@@ -199,8 +442,19 @@ class RetirementActionDefinitionService
             'pension_total_fee_percent_above' => $this->evaluateHighPensionTotalFees($definition, $dcPensions, $config, $priority),
             'pension_platform_fee_percent_above' => $this->evaluateHighPensionPlatformFees($definition, $dcPensions, $config, $priority),
             'pension_weighted_ocf_above' => $this->evaluateHighPensionFundFees($definition, $dcPensions, $config, $priority),
+            'income_position' => $this->evaluateConsolidated(),
+            'charges_position' => $this->evaluateConsolidated(),
             default => [],
         };
+    }
+
+    /**
+     * A consolidated card is not evaluated on its own: consolidateIncome() and
+     * consolidateCharges() build it from the folded definitions' results.
+     */
+    private function evaluateConsolidated(): array
+    {
+        return [];
     }
 
     /**
@@ -212,7 +466,8 @@ class RetirementActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $threshold = (float) ($config['threshold'] ?? 5.0);
+        // The auto-enrolment minimum employee share, from tax config.
+        $threshold = (float) ($config['threshold'] ?? (float) $this->taxConfig->get('pension.auto_enrolment.minimum_employee_contribution') * 100);
         $results = [];
 
         // Resolve user for profile context
@@ -314,6 +569,7 @@ class RetirementActionDefinitionService
 
             $vars = [
                 'additional_percent' => number_format($additionalPercent, 1),
+                'employee_percent' => number_format($employeePct, 1),
                 'scheme_name' => $pension->scheme_name ?: 'pension',
             ];
 
@@ -322,6 +578,7 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars) ?? 'See detailed recommendations',
                 'impact' => ucfirst($definition->priority),
                 'scope' => 'account',
@@ -437,6 +694,7 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars) ?? 'See detailed recommendations',
                 'impact' => ucfirst($definition->priority),
                 'scope' => 'account',
@@ -515,6 +773,7 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars) ?? 'Add the current value from your latest statement.',
                 'impact' => ucfirst($definition->priority),
                 'scope' => 'account',
@@ -545,7 +804,7 @@ class RetirementActionDefinitionService
             return [];
         }
 
-        $userId = $analysisData['profile']['user_id'] ?? null;
+        $userId = $analysisData['user_id'];
         $user = $userId ? User::find($userId) : null;
 
         // Step 1: User profile data gathered
@@ -731,6 +990,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'See detailed recommendations',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
@@ -888,6 +1148,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'See detailed recommendations',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
@@ -906,7 +1167,7 @@ class RetirementActionDefinitionService
     ): array {
         $trace = [];
 
-        $userId = $analysisData['profile']['user_id'] ?? null;
+        $userId = $analysisData['user_id'];
         $user = $userId ? User::find($userId) : null;
         $userName = $user ? ($user->first_name.' '.$user->surname) : 'Unknown';
         $dob = $user?->date_of_birth ? Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not set';
@@ -1000,7 +1261,12 @@ class RetirementActionDefinitionService
         ];
 
         $vars = [
-            'excess_amount' => '£'.number_format($excess, 2),
+            'excess_amount' => '£'.number_format($excess, 0),
+            'carry_forward_years' => (string) (int) $this->taxConfig->get('pension.carry_forward_years'),
+            // The excess is already after any carry forward recorded (AnnualAllowanceChecker),
+            // and none is usable once the Money Purchase Annual Allowance applies.
+            'carry_forward_recorded' => $carryForward > 0,
+            'mpaa_applies' => (bool) ($analysisData['annual_allowance']['mpaa_applies'] ?? false),
         ];
 
         return [[
@@ -1008,6 +1274,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'Consult with a financial adviser to minimise tax charges.',
             'impact' => 'High',
             'scope' => $definition->scope,
@@ -1026,7 +1293,7 @@ class RetirementActionDefinitionService
     ): array {
         $trace = [];
 
-        $userId = $analysisData['profile']['user_id'];
+        $userId = $analysisData['user_id'];
         $user = User::find($userId);
         $statePension = $user ? app(PensionStore::class)->statePension($user) : null;
 
@@ -1131,6 +1398,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'Check your NI record and consider making voluntary contributions if cost-effective.',
             'impact' => 'High',
             'scope' => $definition->scope,
@@ -1149,7 +1417,7 @@ class RetirementActionDefinitionService
     ): array {
         $trace = [];
 
-        $userId = $analysisData['profile']['user_id'] ?? null;
+        $userId = $analysisData['user_id'];
         $user = $userId ? User::find($userId) : null;
         $userName = $user ? ($user->first_name.' '.$user->surname) : 'Unknown';
         $dob = $user?->date_of_birth ? Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not set';
@@ -1251,6 +1519,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? sprintf('Review scenarios for retiring at %d.', $suggestedAge),
             'impact' => 'High',
             'scope' => $definition->scope,
@@ -1267,7 +1536,7 @@ class RetirementActionDefinitionService
         $dcPensions,
         int $priority
     ): array {
-        $userId = $analysisData['profile']['user_id'];
+        $userId = $analysisData['user_id'];
         $user = User::find($userId);
 
         if (! $user || $user->employment_status === 'self_employed') {
@@ -1398,6 +1667,7 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars) ?? 'Review salary sacrifice options with your employer.',
                 'impact' => ucfirst($definition->priority),
                 'scope' => 'account',
@@ -1419,7 +1689,7 @@ class RetirementActionDefinitionService
         $dcPensions,
         int $priority
     ): array {
-        $userId = $analysisData['profile']['user_id'];
+        $userId = $analysisData['user_id'];
         $user = User::find($userId);
 
         if (! $user || $user->employment_status === 'self_employed') {
@@ -1538,7 +1808,7 @@ class RetirementActionDefinitionService
 
             $vars = [
                 'scheme_name' => $pension->scheme_name ?: 'workplace pension',
-                'post_sacrifice_salary' => '£'.number_format($postSacrifice, 2),
+                'post_sacrifice_salary' => '£'.number_format($postSacrifice, 0),
                 'proxy_floor' => '£'.number_format($proxyFloor, 0),
             ];
 
@@ -1547,6 +1817,7 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars) ?? 'Review your salary sacrifice amount.',
                 'impact' => 'High',
                 'scope' => 'account',
@@ -1560,7 +1831,7 @@ class RetirementActionDefinitionService
     }
 
     /**
-     * Auto-enrolment below minimum: triggers when total contributions are below 8%.
+     * Auto-enrolment below minimum: triggers when total contributions are below the minimum in tax config.
      */
     private function evaluateAutoEnrolmentMinimum(
         RetirementActionDefinition $definition,
@@ -1570,7 +1841,7 @@ class RetirementActionDefinitionService
     ): array {
         $trace = [];
 
-        $userId = $analysisData['profile']['user_id'];
+        $userId = $analysisData['user_id'];
         $user = User::find($userId);
 
         if (! $user) {
@@ -1639,18 +1910,20 @@ class RetirementActionDefinitionService
         // Step 4: Minimum contribution check
         $meetsMinimum = $compliance['meets_minimum_total'];
         $totalPercent = (float) ($compliance['total_contribution_percent'] ?? 0);
-        $shortfallPercent = max(0, 8.0 - $totalPercent);
+        // The minimum total from tax config (Pensions Act 2008; gov.uk "8%").
+        $minimumPercent = (float) $this->taxConfig->get('pension.auto_enrolment.minimum_total_contribution') * 100;
+        $shortfallPercent = max(0, $minimumPercent - $totalPercent);
         $shortfallAnnual = (float) ($compliance['shortfall_annual'] ?? 0);
 
         $trace[] = [
-            'question' => 'Do total contributions meet the auto-enrolment minimum of 8% (5% employee + 3% employer)?',
+            'question' => 'Do total contributions meet the auto-enrolment minimum of '.number_format($minimumPercent, 0).'%?',
             'data_field' => 'Total contribution percent',
             'data_value' => number_format($totalPercent, 1).'% total'.($shortfallPercent > 0 ? ', '.number_format($shortfallPercent, 1).'% below minimum' : ''),
-            'threshold' => '8% minimum total contribution',
+            'threshold' => number_format($minimumPercent, 0).'% minimum total contribution',
             'passed' => ! $meetsMinimum,
             'explanation' => $meetsMinimum
-                ? 'Total contributions of '.number_format($totalPercent, 1).'% meet the 8% auto-enrolment minimum.'
-                : 'Total contributions of '.number_format($totalPercent, 1).'% are '.number_format($shortfallPercent, 1).'% below the 8% auto-enrolment minimum — a shortfall of £'.number_format($shortfallAnnual, 0).' per year.',
+                ? 'Total contributions of '.number_format($totalPercent, 1).'% meet the '.number_format($minimumPercent, 0).'% auto-enrolment minimum.'
+                : 'Total contributions of '.number_format($totalPercent, 1).'% are '.number_format($shortfallPercent, 1).'% below the '.number_format($minimumPercent, 0).'% auto-enrolment minimum — a shortfall of £'.number_format($shortfallAnnual, 0).' per year.',
         ];
 
         if ($meetsMinimum) {
@@ -1663,14 +1936,15 @@ class RetirementActionDefinitionService
             'question' => 'What is the recommended action?',
             'data_field' => 'Recommendation',
             'data_value' => 'Increase contributions by '.number_format($shortfallPercent, 1).'% (£'.number_format($shortfallAnnual, 0).'/year, £'.number_format($monthlyShortfall, 0).'/month)',
-            'threshold' => 'Meet the 8% auto-enrolment minimum',
+            'threshold' => 'Meet the '.number_format($minimumPercent, 0).'% auto-enrolment minimum',
             'passed' => false,
-            'explanation' => $userName.' needs to increase total pension contributions by '.number_format($shortfallPercent, 1).'% (£'.number_format($shortfallAnnual, 0).' per year, £'.number_format($monthlyShortfall, 0).' per month) to meet the statutory 8% auto-enrolment minimum. Check with the employer whether the employee or employer portion needs increasing.',
+            'explanation' => $userName.' needs to increase total pension contributions by '.number_format($shortfallPercent, 1).'% (£'.number_format($shortfallAnnual, 0).' per year, £'.number_format($monthlyShortfall, 0).' per month) to meet the statutory '.number_format($minimumPercent, 0).'% auto-enrolment minimum. Check with the employer whether the employee or employer portion needs increasing.',
         ];
 
         $vars = [
             'total_percent' => number_format($compliance['total_contribution_percent'], 1),
-            'shortfall_annual' => '£'.number_format($compliance['shortfall_annual'], 2),
+            'minimum_percent' => number_format($minimumPercent, 0),
+            'shortfall_annual' => '£'.number_format($compliance['shortfall_annual'], 0),
         ];
 
         return [[
@@ -1678,6 +1952,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'Review your pension contribution levels.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
@@ -1695,7 +1970,7 @@ class RetirementActionDefinitionService
     ): array {
         $trace = [];
 
-        $userId = $analysisData['profile']['user_id'];
+        $userId = $analysisData['user_id'];
         $user = User::with('protectionProfile')->find($userId);
 
         if (! $user) {
@@ -1821,7 +2096,7 @@ class RetirementActionDefinitionService
             return [];
         }
 
-        $userId = $analysisData['profile']['user_id'] ?? $profile->user_id;
+        $userId = $analysisData['user_id'];
         $user = User::find($userId);
         $userName = $user ? ($user->first_name.' '.$user->surname) : 'Unknown';
         $dob = $user?->date_of_birth ? Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not set';
@@ -1922,7 +2197,7 @@ class RetirementActionDefinitionService
     ): array {
         $trace = [];
 
-        $userId = $analysisData['profile']['user_id'];
+        $userId = $analysisData['user_id'];
         $user = User::find($userId);
         $userName = $user ? ($user->first_name.' '.$user->surname) : 'Unknown';
         $dob = $user?->date_of_birth ? Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not set';
@@ -2015,6 +2290,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'Request your State Pension forecast from gov.uk.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
@@ -2033,7 +2309,7 @@ class RetirementActionDefinitionService
     ): array {
         $trace = [];
 
-        $userId = $analysisData['profile']['user_id'] ?? null;
+        $userId = $analysisData['user_id'];
         $user = $userId ? User::find($userId) : null;
         $userName = $user ? ($user->first_name.' '.$user->surname) : 'Unknown';
         $dob = $user?->date_of_birth ? Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not set';
@@ -2140,6 +2416,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'Review your decumulation strategy.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
@@ -2269,6 +2546,7 @@ class RetirementActionDefinitionService
             'category' => $definition->category,
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'action' => $definition->renderAction($vars) ?? 'Compare fees and features before consolidating.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
@@ -2317,10 +2595,12 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars),
                 'impact' => ucfirst($definition->priority),
-                'scope' => $definition->scope,
-                'estimated_impact' => round($annualFees * 0.4, 2),
+                'scope' => 'account',
+                'account_id' => $pension->id,
+                'account_name' => $pension->scheme_name,
                 'decision_trace' => [[
                     'question' => 'Are total fees on this pension above '.number_format($threshold, 1).'%?',
                     'data_field' => 'total_fee_percent',
@@ -2372,9 +2652,12 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars),
                 'impact' => ucfirst($definition->priority),
-                'scope' => $definition->scope,
+                'scope' => 'account',
+                'account_id' => $pension->id,
+                'account_name' => $pension->scheme_name,
                 'decision_trace' => [[
                     'question' => 'Is the platform fee above '.number_format($threshold, 1).'%?',
                     'data_field' => 'platform_fee_percent',
@@ -2414,13 +2697,11 @@ class RetirementActionDefinitionService
                 continue;
             }
 
-            $potentialSaving = round($fundValue * ($weightedOCF - 0.25) / 100, 0);
             $pensionName = ($pension->provider ?? '').' '.($pension->scheme_name ?? 'Pension');
 
             $vars = [
                 'pension_name' => trim($pensionName),
                 'weighted_ocf' => number_format($weightedOCF, 2),
-                'potential_saving' => '£'.number_format(max(0, $potentialSaving), 0),
             ];
 
             $results[] = [
@@ -2428,9 +2709,12 @@ class RetirementActionDefinitionService
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
                 'description' => $definition->renderDescription($vars),
+                'figures' => self::figuresOf($vars),
                 'action' => $definition->renderAction($vars),
                 'impact' => ucfirst($definition->priority),
-                'scope' => $definition->scope,
+                'scope' => 'account',
+                'account_id' => $pension->id,
+                'account_name' => $pension->scheme_name,
                 'decision_trace' => [[
                     'question' => 'Is the weighted fund charge above '.number_format($threshold, 1).'%?',
                     'data_field' => 'weighted_ocf',
@@ -2587,6 +2871,7 @@ class RetirementActionDefinitionService
         return [
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'category' => $definition->category,
             'priority' => $definition->priority,
             'source' => 'goal',
@@ -2705,6 +2990,7 @@ class RetirementActionDefinitionService
         return [
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'category' => $definition->category,
             'priority' => $definition->priority,
             'source' => 'goal',
@@ -2813,6 +3099,7 @@ class RetirementActionDefinitionService
         return [
             'title' => $definition->renderTitle($vars),
             'description' => $definition->renderDescription($vars),
+            'figures' => self::figuresOf($vars),
             'category' => $definition->category,
             'priority' => $definition->priority,
             'source' => 'goal',

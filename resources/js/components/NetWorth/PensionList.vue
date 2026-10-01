@@ -674,10 +674,13 @@ export default {
     },
 
     projectedNetIncome() {
-      // Use gross income from income drawdown projection (first year: DC + DB + State Pension)
+      // Gross income from the income drawdown projection's first year.
+      // total_income is already DC + DB + State Pension (RetirementProjectionService
+      // ::projectIncomeDrawdown); adding state_pension again counted it twice for
+      // anyone retiring at or after State Pension age.
       const firstYear = this.projections?.income_drawdown?.yearly_income?.[0];
       if (firstYear) {
-        return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+        return firstYear.total_income || 0;
       }
       return this.targetIncome;
     },

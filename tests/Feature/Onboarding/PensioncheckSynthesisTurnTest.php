@@ -7,6 +7,7 @@ use App\Models\AiMessage;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
+use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -232,13 +233,29 @@ it('pensioncheck synthesis degrades to a sensible line when the plan is empty', 
         'onboarding_fyn_selection' => 'pensioncheck',
         'first_name' => 'Pat',
     ]);
-    // No pensions, no retirement profile → composed plan has no items.
+    // No pensions, no retirement profile, and a State Pension forecast in →
+    // composed plan has no items (a household with no profile still gets the
+    // actions that need no target, CSJ 2026-10-01 D4, so the forecast is in).
+    StatePension::create(['user_id' => $user->id, 'state_pension_forecast_annual' => 12548, 'ni_years_completed' => 35, 'ni_years_required' => 35]);
 
     $text = pensioncheckSynthesisAdvice($user->fresh());
 
     expect($text)->not->toBeNull()
         ->and(trim((string) $text))->not->toBe('')
         ->and($text)->toContain('Pat');
+});
+
+it('voices the State Pension forecast for a pensioncheck user with no retirement profile (D4)', function () {
+    $user = User::factory()->create([
+        'date_of_birth' => '1990-03-01',
+        'marital_status' => 'single',
+        'employment_status' => 'full_time',
+        'annual_employment_income' => 24000,
+        'onboarding_fyn_selection' => 'pensioncheck',
+        'first_name' => 'Pat',
+    ]);
+
+    expect(pensioncheckSynthesisAdvice($user->fresh()))->toContain('Add your State Pension forecast');
 });
 
 it('synthesis fallback voices a campaign-specific closing line, never silence', function () {

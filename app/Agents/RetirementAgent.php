@@ -364,6 +364,9 @@ class RetirementAgent extends BaseAgent
             ),
             // The absent target, stated as the absence it is.
             'profile' => null,
+            // Whose analysis this is, so the actions that need no target still
+            // run (RetirementActionDefinitionService, CSJ 2026-10-01 D4).
+            'user_id' => $userId,
             'decumulation' => null,
             'post_retirement_goals' => [],
             'missing_for_quality_advice' => $this->findMissingForQualityAdvice(
