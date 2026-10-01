@@ -17,7 +17,7 @@
            state in particular: a user with no pensions yet is exactly who needs to
            state what they are aiming at before anything is projected for them. -->
       <RetirementTargetCard
-        v-if="!loading && !error"
+        v-if="!loading && !error && !drawdownPosition"
         ref="retirementTarget"
         :profile="profile"
         :required-capital="requiredCapital"
@@ -181,8 +181,15 @@
 
             <!-- Projections Content -->
             <template v-else>
+              <!-- Someone drawing their pension sees their income and how long the
+                   pot lasts, not a saver's target (TODO item 6, CSJ 2026-10-01). -->
+              <RetirementDrawingView
+                v-if="drawdownPosition"
+                :position="drawdownPosition"
+                @add-state-pension="openStatePensionForm"
+              />
               <!-- Retirement Planner Cards Row -->
-              <div class="planner-cards-row">
+              <div v-else class="planner-cards-row">
                 <!-- Retirement Income Planner Card -->
                 <div class="planner-card income clickable module-gradient" @click="setActiveTab('income')">
                   <div class="planner-card-header">
@@ -330,7 +337,7 @@
                 </div>
 
                 <!-- Fund Depletion Warning -->
-                <div v-if="fundDepletionAge && hasDCPensions && !isRetired" class="depletion-warning-standalone">
+                <div v-if="fundDepletionAge && hasDCPensions && !isRetired && !drawdownPosition" class="depletion-warning-standalone">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
@@ -339,8 +346,23 @@
 
               </div>
 
+              <!-- Drawn down from today, for someone drawing their pension -->
+              <div v-if="drawdownPosition && drawdownPosition.pot" class="chart-card module-gradient">
+                <div class="chart-header">
+                  <h3 class="chart-title">Your pension pot, drawn down from today</h3>
+                  <span class="risk-badge-corner">{{ drawdownPosition.pot.risk_level_label }} Risk</span>
+                </div>
+                <PensionPotProjectionChart
+                  :data="{ year_by_year: drawdownPosition.pot.year_by_year }"
+                  :expected-return="drawdownPosition.pot.expected_return"
+                  :risk-level="drawdownPosition.pot.risk_level"
+                />
+                <p class="text-xs text-neutral-500 mt-3">
+                  Drawing the same {{ formatCurrency(drawdownPosition.pot.drawing_per_year) }} each year, at your {{ drawdownPosition.pot.risk_level_label }} risk level's returns ({{ drawdownPosition.pot.expected_return }}% a year), until age {{ drawdownPosition.pot.end_age }}.
+                </p>
+              </div>
               <!-- Monte Carlo Chart (right column) -->
-              <div class="chart-card module-gradient">
+              <div v-else class="chart-card module-gradient">
                 <div class="chart-header">
                   <h3 class="chart-title">Pension Pot Projection <span class="text-sm font-normal">(using high probability of 80% of achieving {{ projections.pension_pot_projection?.expected_return }}% returns)</span></h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
@@ -495,6 +517,7 @@ import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
 import RetirementTargetCard from '@/components/Retirement/RetirementTargetCard.vue';
+import RetirementDrawingView from '@/components/Retirement/RetirementDrawingView.vue';
 import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrategyCard.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
@@ -517,6 +540,7 @@ export default {
     RetirementIncomeTab,
     CapitalAdequacyTab,
     RetirementTargetCard,
+    RetirementDrawingView,
     DecumulationStrategyCard,
     ModuleStatusBar,
     LimitReachedModal,
@@ -556,6 +580,11 @@ export default {
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     // Check if user is retired
+    // TODO item 6: the server's view for someone drawing their pension, or null.
+    drawdownPosition() {
+      return this.projections?.drawdown_position || null;
+    },
+
     isRetired() {
       return this.currentUser?.employment_status === 'retired';
     },

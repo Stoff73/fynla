@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Retirement" subtitle="Your projected retirement income, pensions and projections" :loading="loading" loading-label="your retirement" :contextual-request="contextualRequest">
+  <MobileChrome ref="chrome" title="Retirement" :subtitle="drawing ? 'Your retirement income and pensions' : 'Your projected retirement income, pensions and projections'" :loading="loading" loading-label="your retirement" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your retirement position…</p>
     </div>
@@ -12,7 +12,42 @@
     <template v-else>
       <!-- Projected income vs target hero. Hidden on the onboarding verify
            visit (CSJ 2026-09-22): that visit checks the pensions entered. -->
-      <div v-if="!verifying" class="m-card m-hero">
+      <!-- Someone drawing their pension: this year's income and how long the pot
+           lasts, from the server's drawdown_position, the same block the web page
+           reads (TODO item 6, CSJ 2026-10-01; Rule 20). -->
+      <template v-if="drawing && !verifying">
+        <div class="m-card m-hero" data-testid="retirement-drawing-hero">
+          <p class="m-sub m-label">Your take-home this year</p>
+          <p class="m-metric">{{ fmt(drawing.income.take_home) }}<span class="mr-hero-per">a year</span></p>
+          <p v-if="drawing.retired_since" class="m-hero-sub">Retired since {{ retiredSinceLabel }}<template v-if="drawing.retired_since.age !== null">, at {{ drawing.retired_since.age }}</template></p>
+        </div>
+
+        <div class="m-card m-detail-rows" data-testid="retirement-drawing-income">
+          <p class="m-section-label" style="margin-top:0">Your income this year</p>
+          <div v-for="line in drawing.income.lines" :key="line.key" class="m-detail-row">
+            <span class="m-detail-key">{{ line.label }}</span>
+            <span class="m-detail-value">{{ fmt(line.amount) }}</span>
+          </div>
+          <div v-if="drawing.income.state_pension_missing" class="m-detail-row">
+            <span class="m-detail-key">State Pension</span>
+            <button type="button" class="m-btn-ghost" @click="addStatePension">Add it</button>
+          </div>
+          <div class="m-detail-row">
+            <span class="m-detail-key">Income Tax</span>
+            <span class="m-detail-value">{{ fmt(drawing.income.income_tax) }}</span>
+          </div>
+          <div v-if="drawing.income.national_insurance > 0" class="m-detail-row">
+            <span class="m-detail-key">National Insurance</span>
+            <span class="m-detail-value">{{ fmt(drawing.income.national_insurance) }}</span>
+          </div>
+          <div class="m-detail-row">
+            <span class="m-detail-key"><strong>Take-home</strong></span>
+            <span class="m-detail-value"><strong>{{ fmt(drawing.income.take_home) }}</strong></span>
+          </div>
+        </div>
+      </template>
+
+      <div v-if="!verifying && !drawing" class="m-card m-hero">
         <p class="m-sub m-label">{{ heroHeadline.label }}</p>
         <p class="m-metric">{{ fmt(heroHeadline.value) }}<span class="mr-hero-per">a year</span></p>
         <p class="m-hero-sub">{{ gapNarrative }}</p>
@@ -30,7 +65,7 @@
 
       <!-- Retirement target (W-0035). Same endpoint as the web card, same store
            behind it — /m does not get its own write path (Rule 20). -->
-      <section v-if="!verifying" class="m-card mr-target">
+      <section v-if="!verifying && !drawing" class="m-card mr-target">
         <div class="mr-target__head">
           <p class="m-section-label" style="margin-top:0">Your retirement target</p>
           <button
@@ -135,19 +170,50 @@
           <span class="m-detail-key">Defined Contribution pension value</span>
           <span class="m-detail-value">{{ fmt(totalPensionWealth) }}</span>
         </div>
-        <div class="m-detail-row">
-          <span class="m-detail-key">Years to retirement</span>
-          <span class="m-detail-value">{{ yearsToRetirement != null ? yearsToRetirement : '—' }}</span>
-        </div>
-        <div class="m-detail-row">
-          <span class="m-detail-key">Target retirement age</span>
-          <span class="m-detail-value">{{ targetRetirementAge || '—' }}</span>
-        </div>
+        <template v-if="!drawing">
+          <div class="m-detail-row">
+            <span class="m-detail-key">Years to retirement</span>
+            <span class="m-detail-value">{{ yearsToRetirement != null ? yearsToRetirement : '—' }}</span>
+          </div>
+          <div class="m-detail-row">
+            <span class="m-detail-key">Target retirement age</span>
+            <span class="m-detail-value">{{ targetRetirementAge || '—' }}</span>
+          </div>
+        </template>
       </div>
 
       <!-- Server-owned product reconciliation and age-banded projection.
            Hidden on the onboarding verify visit with the hero above. -->
-      <div v-if="!verifying" class="m-card m-detail-rows">
+      <div v-if="drawing && drawing.pot && !verifying" class="m-card m-detail-rows" data-testid="retirement-drawing-lasts">
+        <p class="m-section-label" style="margin-top:0">How long your pension lasts</p>
+        <p class="mr-proj-intro">
+          <template v-if="drawing.pot.drawing_per_year > 0">Drawing {{ fmt(drawing.pot.drawing_per_year) }} a year from {{ fmt(drawing.pot.value) }}</template>
+          <template v-else>No drawdown recorded from your {{ fmt(drawing.pot.value) }}</template>
+        </p>
+        <template v-if="drawing.pot.drawing_per_year > 0">
+          <div class="m-detail-row">
+            <span class="m-detail-key">Middle outcome</span>
+            <span class="m-detail-value">{{ lastsLabel(drawing.pot.lasts_to_age.middle) }}</span>
+          </div>
+          <div class="m-detail-row">
+            <span class="m-detail-key">Lower outcome (4 in 5 do better)</span>
+            <span class="m-detail-value">{{ lastsLabel(drawing.pot.lasts_to_age.lower) }}</span>
+          </div>
+        </template>
+        <div class="m-detail-row">
+          <span class="m-detail-key">Life expectancy</span>
+          <span class="m-detail-value">{{ drawing.pot.life_expectancy.age }} ({{ drawing.pot.life_expectancy.source === 'ons' ? 'Office for National Statistics' : 'your figure' }})</span>
+        </div>
+        <div v-if="drawing.pot.income_to_last_to_life_expectancy !== null" class="m-detail-row">
+          <span class="m-detail-key"><strong>To last to {{ drawing.pot.life_expectancy.age }}</strong></span>
+          <span class="m-detail-value"><strong>about {{ fmt(drawing.pot.income_to_last_to_life_expectancy) }} a year</strong></span>
+        </div>
+        <p class="mr-proj-note">
+          Drawing the same amount each year, at your {{ drawing.pot.risk_level_label }} risk level's returns ({{ drawing.pot.expected_return }}% a year), until age {{ drawing.pot.end_age }}.<template v-if="drawing.pot.income_to_last_to_life_expectancy !== null"> The last figure is the yearly income that still lasts to {{ drawing.pot.life_expectancy.age }} in 4 out of 5 outcomes.</template>
+        </p>
+      </div>
+
+      <div v-if="!verifying && !drawing" class="m-card m-detail-rows">
         <p class="m-section-label" style="margin-top:0">Retirement income projection</p>
         <p v-if="projError" class="m-sub" style="margin-bottom:0">{{ projError }}</p>
         <template v-else-if="planningProjection">
@@ -240,6 +306,8 @@ export default {
     pot: null,
     incomeDrawdown: null,
     planningProjection: null,
+    // TODO item 6: the server's view for someone drawing their pension, or null.
+    drawing: null,
     projError: '',
     loadGeneration: 0,
     // W-0035 — the retirement target, and whether the user chose it.
@@ -251,6 +319,9 @@ export default {
   }),
   computed: {
     verifying() { return inOnboardingVerify(); },
+    retiredSinceLabel() {
+      return new Date(this.drawing.retired_since.date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    },
     profile() { return this.data?.profile || null; },
     dcPensions() { return this.data?.dc_pensions || []; },
     dbPensions() { return this.data?.db_pensions || []; },
@@ -432,6 +503,18 @@ export default {
     this.load();
   },
   methods: {
+    lastsLabel(age) {
+      return age === null ? `lasts beyond ${this.drawing.pot.end_age}` : `lasts to age ${age}`;
+    },
+    // Adding a pension on /m goes through Fyn, as the screen's own add button does.
+    addStatePension() {
+      this.$refs.chrome?.openContextualFyn(buildContextualConversationRequest({
+        action: 'add',
+        resourceType: 'retirement',
+        currentDestination: { screen: 'retirement', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      }));
+    },
     fmt(v) { return formatCurrency(v); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     openPension(p) {
@@ -506,6 +589,7 @@ export default {
       this.analysis = null;
       this.analysisReady = false;
       this.pot = null;
+      this.drawing = null;
       this.incomeDrawdown = null;
       this.planningProjection = null;
       this.projError = '';
@@ -551,6 +635,7 @@ export default {
           this.pot = payload.pension_pot_projection || null;
           this.incomeDrawdown = payload.income_drawdown || null;
           this.planningProjection = payload.planning_projection || null;
+          this.drawing = payload.drawdown_position || null;
         } else {
           this.projError = 'Projections are not available right now.';
         }

@@ -181,6 +181,8 @@ class RetirementDrawdownPosition
             'value' => round($value, 2),
             'drawing_per_year' => round($drawing, 2),
             'risk_level' => $risk['level'],
+            // One label for both surfaces ("Lower-Medium"), from the risk level's own config.
+            'risk_level_label' => $this->riskLabel($risk['level']),
             'expected_return' => $params['expected_return_typical'],
             'current_age' => $age,
             'end_age' => $endAge,
@@ -197,6 +199,15 @@ class RetirementDrawdownPosition
                 : null,
             'year_by_year' => $bands,
         ];
+    }
+
+    private function riskLabel(string $level): string
+    {
+        try {
+            return (string) $this->riskService->getRiskLevelConfig($level)['display_name'];
+        } catch (\InvalidArgumentException) {
+            return ucfirst(str_replace('_', ' ', $level));
+        }
     }
 
     private function run(User $user, float $value, float $drawing, float $return, float $volatility, int $years): array
