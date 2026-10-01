@@ -3,17 +3,24 @@
 declare(strict_types=1);
 
 use App\DataTransferObjects\StrategyRecommendation;
+use App\Models\DCPension;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Actions\ActionCardService;
+use App\Services\Actions\ActionHowToFacts;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Tax\PensionAffordability;
 use App\Services\Tax\Strategies\IncomeBandStrategy;
 use App\Services\Tax\Strategies\TaxStrategyContext;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator as UKTaxCalculatorAlias;
 use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 
 /**
  * The tax-trap card stopped once the Personal Allowance was back at £100,000;
@@ -119,4 +126,79 @@ it('shows the how-to step for the part below £100,000 only when the card reache
 
     expect(collect($below['how_to'])->flatten()->implode("\n"))->toContain($step)
         ->and(collect($within['how_to'])->flatten()->implode("\n"))->not->toContain($step);
+});
+
+it('never claims more allowance back than was lost (tax review F1)', function (): void {
+    // £140,000 pay with £10,000 of gross Gift Aid: adjusted net income
+    // £130,000, past the end of the band, so the whole £12,570 is gone and
+    // that is all that can come back (ITA 2007 s35(2)).
+    $user = taperEarner(140000);
+    $user->forceFill(['annual_charitable_donations' => 8000, 'is_gift_aid' => true])->save();
+    $card = trapCard($user->fresh(), 1000000.0);
+
+    expect($card)->not->toBeNull()
+        ->and($card->description)->toContain('Reclaim £12,570 of your Personal Allowance, saving £5,028');
+});
+
+it('counts the Blind Person\'s Allowance in where the higher rate starts (tax review F3)', function (): void {
+    $bpa = app(TaxConfigService::class)->getBlindPersonsAllowance();
+    $user = taperEarner();
+    $user->forceFill(['is_registered_blind' => true])->save();
+    $user = $user->fresh();
+    $card = trapCard($user, 1000000.0);
+    $math = app(TaxStrategyMath::class);
+
+    // The higher rate starts £$bpa later, so the card stops there, and every
+    // pound of it is still relieved at 40%.
+    expect($card->extra['suggested_contribution'])->toBe(floor((59730.0 - $bpa) / 100) * 100)
+        ->and($card->estimatedAnnualTaxSaved)->toEqualWithDelta(
+            app(UKTaxCalculatorAlias::class)->calculateDetailedNetIncome(employmentIncome: 110000, blindPersonsAllowance: $bpa)['summary']['total_income_tax_before_credits']
+            - app(UKTaxCalculatorAlias::class)->calculateDetailedNetIncome(employmentIncome: 110000, pensionContributions: $card->extra['suggested_contribution'], blindPersonsAllowance: $bpa)['summary']['total_income_tax_before_credits'],
+            1.0,
+        )
+        ->and($math->incomeTaxNow($user))->toBeLessThan($math->incomeTaxNow(taperEarner()));
+});
+
+it('leaves out the 40% sentence when taxed interest puts part of it at another rate (tax review F4)', function (): void {
+    $user = taperEarner(100000);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'current_balance' => 100000, 'interest_rate' => 4.0, 'is_isa' => false,
+        'ownership_type' => 'individual', 'joint_owner_id' => null,
+    ]);
+    $card = trapCard($user->fresh(), 1000000.0);
+
+    expect($card)->not->toBeNull()
+        ->and($card->description)->not->toContain('each £1,000 you pay in still saves')
+        ->and($card->extra['below_taper'])->toBeFalse();
+});
+
+it('puts what pay can carry through payroll and the rest in as a one-off (CSJ 2026-10-01)', function (): void {
+    Carbon::setTestNow('2026-10-01');
+    $this->seed(TaxActionDefinitionSeeder::class);
+    (new ActionHowToSeeder)->loadModule('tax');
+    $user = taperEarner(110000, 2500.0);
+    DCPension::factory()->create([
+        'user_id' => $user->id, 'scheme_type' => 'workplace', 'current_fund_value' => 100000,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 5,
+        'monthly_contribution_amount' => 5500 / 12, 'annual_salary' => 110000, 'salary_sacrifice' => false,
+    ]);
+    $user = $user->fresh();
+    $item = collect(app(ComposedTaxPlanService::class)->forUser($user)['items'])->firstWhere('type', 'pa_taper_rescue');
+    ['facts' => $facts] = app(ActionHowToFacts::class)->for($user, $item);
+    $money = (float) app(PensionAffordability::class)->moneyThisYear($user);
+    $gross = (float) $item['suggested_contribution'];
+    $saved = floor((float) $item['estimated_annual_tax_saved']);
+    $perMonth = floor(min(110000 / 12, $money / 12 / (($gross - $saved) / $gross)));
+
+    expect($facts['payroll_short'])->toBeTrue()
+        ->and($facts['contribution_per_month_left'])->toBe($perMonth)
+        ->and($facts['payroll_total'] + $facts['payroll_rest'])->toBe($gross)
+        ->and($facts['payroll_rest_net'] + $facts['payroll_rest_relief'])->toBe($facts['payroll_rest'])
+        // Through pay, added at source and claimed: the card's saving, no more.
+        ->and(floor(app(TaxStrategyMath::class)->pensionContributionSaving($user, $facts['payroll_total'])) + $facts['payroll_rest_relief'] + $facts['payroll_rest_claim'])->toBe($saved);
+
+    $steps = collect(app(ActionCardService::class)->for($user, 'tax_pa_taper_rescue')['how_to'])->implode("\n");
+    expect($steps)->toContain('a month is as much as your pay can carry after your spending')
+        ->and($steps)->not->toContain('claim the other £'.number_format((int) $facts['extra_relief']));
+    Carbon::setTestNow();
 });

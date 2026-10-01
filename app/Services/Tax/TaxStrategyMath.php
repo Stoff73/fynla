@@ -100,9 +100,13 @@ final class TaxStrategyMath
     public function bandThresholdsFor(User $user): array
     {
         // Gift Aid (ITA 2007 s414) and relief-at-source pension contributions
-        // (FA 2004 s192(4)) both raise the basic and higher rate limits.
+        // (FA 2004 s192(4)) both raise the basic and higher rate limits. The
+        // Blind Person's Allowance comes off net income with the Personal
+        // Allowance (ITA 2007 s23 Step 3, s38), so in net-income terms each
+        // rate starts that much higher too.
         $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
-        $extension = (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
+        $extension = (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0)
+            + $this->taxConfig->blindPersonsAllowanceFor($user);
         $raw = $this->bandThresholds();
 
         return [
@@ -262,7 +266,10 @@ final class TaxStrategyMath
             return $full;
         }
 
-        return max(0.0, $full - floor(($adjustedNetIncome - $threshold) / 2));
+        // £1 of allowance for every £(1 / taper rate) over, from config (Rule 2).
+        $taperRate = (float) $income['personal_allowance_taper_rate'];
+
+        return max(0.0, $full - floor(($adjustedNetIncome - $threshold) * $taperRate));
     }
 
     public function moneyPurchaseAnnualAllowanceApplies(User $user): bool
@@ -851,6 +858,7 @@ final class TaxStrategyMath
             interestIncome: $parts['interest'],
             dividendIncome: $parts['dividends'],
             pensionContributions: (float) ($parts['net_pay'] ?? 0),
+            blindPersonsAllowance: (float) ($parts['blind_persons_allowance'] ?? 0),
         );
 
         return (float) $result['summary']['total_income_tax_before_credits'];
@@ -1080,6 +1088,8 @@ final class TaxStrategyMath
         $parts['interest'] = max(0.0, $parts['interest'] - $interestSheltered);
         $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
         $parts['net_pay'] += (float) ($deductions['relief_at_source_gross'] ?? 0) + (float) ($deductions['gift_aid_gross'] ?? 0);
+        // Priced as the tax calculator prices it (ITA 2007 s38).
+        $parts['blind_persons_allowance'] = $this->taxConfig->blindPersonsAllowanceFor($user);
 
         return $parts;
     }

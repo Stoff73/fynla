@@ -24,6 +24,7 @@ This file is the one source for the steps on each tax action's detail card. `Act
   - `{net_payment}`: what you pay to a personal pension.
   - `{provider_relief}`: the basic-rate relief the provider adds.
   - `{extra_relief}`: the relief above the basic rate that you claim back.
+  - `{payroll_total}`, `{payroll_rest}`, `{payroll_rest_net}`, `{payroll_rest_relief}`, `{payroll_rest_claim}`: when the pay left this year cannot carry the whole payment through payroll (`payroll_short`), what payroll takes and the one-off that goes into a personal pension for the rest. `{contribution_per_month_left}` is then what payroll can carry each month.
 - **Outcome:** `{tax_now}`, `{tax_after}`, `{tax_saved}` (this action alone, priced by the tax engine), `{net_cost}` (a pension payment after the tax comes back), `{take_home_per_month_left}`, `{ni_saved}`.
 - **Tax config:** `{basic_rate}`, `{personal_allowance}`, `{normal_minimum_pension_age}`, `{carry_forward_years}`, `{isa_allowance}`, `{junior_isa_allowance}`, `{taper_threshold}`, `{taper_per_pound}`, `{sacrifice_cap}`, `{sacrifice_cap_date}`, and the Lifetime ISA and Junior ISA ages.
 
@@ -48,6 +49,12 @@ when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
 2. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
 3. Ask payroll how the scheme gives tax relief. Most workplace schemes take your contribution before Income Tax, so the relief comes through your pay. Some use relief at source instead: your contribution comes out after tax, the scheme adds {provider_relief} of basic-rate relief.
+when payroll_short and has_personal_pension:
+4. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Pay the other {payroll_rest} into {personal_pension} as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
+when payroll_short and not has_personal_pension:
+4. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Open a personal pension or self-invested personal pension (SIPP) and pay the other {payroll_rest} into it as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
+when payroll_short and payroll_rest_claim:
+5. Claim the other {payroll_rest_claim} on that one-off through your Self Assessment tax return.
 when auto_enrolled and not has_workplace_pension and not has_db_pension:
 1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
 when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
@@ -63,9 +70,9 @@ learn when has_db_pension:
 1. Paying more in alongside a defined benefit pension | /help#avcs
 when has_no_pension:
 6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP) with a provider, then pay {net_payment} into it. The provider claims {provider_relief} of basic-rate relief and adds it, so {contribution} goes in.
-when above_basic and not has_salary_sacrifice:
+when above_basic and not has_salary_sacrifice and not payroll_short:
 7. If the money goes into a pension that uses relief at source, claim the other {extra_relief} on your Self Assessment tax return. If you do not file one, GOV.UK explains how to claim from HM Revenue and Customs (HMRC).
-when above_basic and has_salary_sacrifice and has_personal_pension:
+when above_basic and has_salary_sacrifice and has_personal_pension and not payroll_short:
 7. If you pay into {personal_pension} instead, claim the other {extra_relief} on your Self Assessment tax return. If you do not file one, GOV.UK explains how to claim from HM Revenue and Customs (HMRC).
 always:
 8. Pay it in by {tax_year_end}. Relief goes to the tax year you pay in.
@@ -250,6 +257,12 @@ when has_salary_sacrifice:
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
 4. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when payroll_short and has_personal_pension:
+5. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Pay the other {payroll_rest} into {personal_pension} as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
+when payroll_short and not has_personal_pension:
+5. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Open a personal pension or self-invested personal pension (SIPP) and pay the other {payroll_rest} into it as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
+when payroll_short and payroll_rest_claim:
+6. Claim the other {payroll_rest_claim} on that one-off through your Self Assessment tax return.
 when auto_enrolled and not has_workplace_pension and not has_db_pension:
 1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
 when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
@@ -265,9 +278,9 @@ learn when has_db_pension:
 1. Paying more in alongside a defined benefit pension | /help#avcs
 when has_no_pension:
 7. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
-when not has_salary_sacrifice:
+when not has_salary_sacrifice and not payroll_short:
 8. If the money goes into a pension that uses relief at source, claim the other {extra_relief} on your Self Assessment tax return. That claim also gives back the Personal Allowance.
-when has_salary_sacrifice and has_personal_pension:
+when has_salary_sacrifice and has_personal_pension and not payroll_short:
 8. If you pay into {personal_pension} instead, claim the other {extra_relief} on your Self Assessment tax return. That claim also gives back the Personal Allowance.
 always:
 9. Pay it in by {tax_year_end}. Relief goes to the tax year you pay in.
@@ -290,6 +303,12 @@ when has_salary_sacrifice:
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
 3. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when payroll_short and has_personal_pension:
+4. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Pay the other {payroll_rest} into {personal_pension} as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
+when payroll_short and not has_personal_pension:
+4. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Open a personal pension or self-invested personal pension (SIPP) and pay the other {payroll_rest} into it as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
+when payroll_short and payroll_rest_claim:
+5. Claim the other {payroll_rest_claim} on that one-off through your Self Assessment tax return.
 when auto_enrolled and not has_workplace_pension and not has_db_pension:
 1. You are {age}, employed and earn {employment_pay}, so the law requires your employer to enrol you in a workplace pension and pay in at least {ae_min_employer} of your qualifying earnings. You are in it unless you opted out. Ask payroll which scheme it is, and whether they offer salary sacrifice, before paying in anywhere else.
 when employed and not auto_enrolled and not has_workplace_pension and not has_db_pension:
@@ -305,9 +324,9 @@ learn when has_db_pension:
 1. Paying more in alongside a defined benefit pension | /help#avcs
 when has_no_pension:
 6. You have no pension recorded. Open a personal pension or self-invested personal pension (SIPP), then pay {net_payment} into it. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
-when not has_salary_sacrifice:
+when not has_salary_sacrifice and not payroll_short:
 7. If the money goes into a pension that uses relief at source, claim the other {extra_relief} on your Self Assessment tax return.
-when has_salary_sacrifice and has_personal_pension:
+when has_salary_sacrifice and has_personal_pension and not payroll_short:
 7. If you pay into {personal_pension} instead, claim the other {extra_relief} on your Self Assessment tax return.
 always:
 8. Pay it in by {tax_year_end}. Relief goes to the tax year you pay in.
