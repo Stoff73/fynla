@@ -125,6 +125,13 @@ const aiChatService = {
                 return { rejected: true, reason: 'queue_full', message: payload.message || null };
             }
             const errorText = await response.text().catch(() => '');
+            // The consent gate before the stream answers 403 in JSON, not SSE.
+            // Hand it to the store as the same refusal the mid-stream event is.
+            if (response.status === 403) {
+                let payload = {};
+                try { payload = JSON.parse(errorText); } catch { payload = {}; }
+                if (payload.error === 'consent_required') return { consentRequired: true };
+            }
             throw new Error(`Chat request failed: ${response.status} ${errorText}`);
         }
 
