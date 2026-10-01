@@ -190,6 +190,23 @@ final class ActionHowToFacts
             $facts['above_scottish_ma_limit'] = (float) $recipient > (float) $scotLimit;
             $text['scottish_ma_limit'] = self::pounds((float) $scotLimit);
         }
+        // The giver need not have allowance going unused: the law asks only that,
+        // with the smaller allowance, none of their income is taxed above the
+        // basic rate (ITA 2007 s55C(1)(c)). What the smaller allowance costs them
+        // is already netted off the saving (s55B(6)).
+        $giver = match ($item['transfer_direction'] ?? null) {
+            'to_user' => $item['spouse_income'] ?? null,
+            'to_spouse' => $item['user_income'] ?? null,
+            default => null,
+        };
+        if ($giver !== null) {
+            $allowance = (float) ($this->taxConfig->getIncomeTax()['personal_allowance'] ?? 0);
+            $facts['transferor_uses_whole_allowance'] = $allowance > 0 && (float) $giver >= $allowance;
+        }
+        if (isset($item['transferor_extra_tax'])) {
+            $facts['transferor_pays_more'] = (float) $item['transferor_extra_tax'] >= 1;
+            $text['transferor_extra_tax'] = self::pounds((float) $item['transferor_extra_tax']);
+        }
 
         return ['facts' => $facts, 'text' => $text];
     }

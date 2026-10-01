@@ -7,6 +7,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Tax\TaxOptimisationService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,7 +33,8 @@ beforeEach(function () {
 
     $this->service = new TaxOptimisationService(
         $this->taxConfig,
-        $this->allowanceChecker
+        $this->allowanceChecker,
+        app(TaxStrategyMath::class),
     );
 });
 
@@ -190,9 +192,36 @@ describe('generateStrategies', function () {
 
         $spousalStrategy = collect($result['strategies'])->firstWhere('type', 'spousal_optimisation');
 
+        // No figure without a source (Rule 23): moving assets is not sized
+        // here, so it no longer carries an invented £200.
         expect($spousalStrategy)->not->toBeNull()
             ->and($spousalStrategy['details']['user_tax_band'])->toBe('higher')
-            ->and($spousalStrategy['details']['spouse_tax_band'])->toBe('basic');
+            ->and($spousalStrategy['details']['spouse_tax_band'])->toBe('basic')
+            ->and($spousalStrategy['estimated_annual_saving'])->toBe(0.0);
+    });
+
+    it('prices Marriage Allowance with the plan\'s rule, net of the tax the giver then pays (s55B(6))', function () {
+        $spouse = User::factory()->create([
+            'annual_employment_income' => 12000, // £570 below the allowance, less than the £1,260 given
+            'marital_status' => 'married',
+        ]);
+        $user = User::factory()->create([
+            'annual_employment_income' => 30000,
+            'marital_status' => 'married',
+            'spouse_id' => $spouse->id,
+        ]);
+        $spouse->update(['spouse_id' => $user->id]);
+
+        $plan = app(TaxStrategyMath::class)->marriageAllowance($user->fresh(), '', null);
+        $strategy = collect($this->service->generateStrategies($user->fresh())['strategies'])
+            ->firstWhere('type', 'spousal_optimisation');
+
+        expect($plan)->not->toBeNull()
+            ->and($strategy['estimated_annual_saving'])->toBe($plan['saving'])
+            ->and($plan['saving'])->toBeLessThan(round(
+                (float) $this->taxConfig->getIncomeTax()['marriage_allowance']['amount'] * (float) $this->taxConfig->getIncomeTax()['bands'][0]['rate'],
+                2
+            ));
     });
 
     it('prices Marriage Allowance from configuration, rounded up as the statute requires', function () {

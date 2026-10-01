@@ -342,25 +342,39 @@ outcome when not uses_gift_aid and tax_saved:
 
 ## marriage_allowance_transfer
 status: approved
-source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/eligibility; https://www.gov.uk/marriage-allowance/how-to-apply; ITA 2007 s55B (https://www.legislation.gov.uk/ukpga/2007/3/section/55B) and s55C (https://www.legislation.gov.uk/ukpga/2007/3/section/55C); s45 Married Couple's Allowance (https://www.legislation.gov.uk/ukpga/2007/3/section/45)
-figures: amount_transferred, transfer_direction, user_income, spouse_income, estimated_annual_tax_saved
-why:
+source: https://www.gov.uk/marriage-allowance; https://www.gov.uk/marriage-allowance/eligibility; https://www.gov.uk/marriage-allowance/how-to-apply; ITA 2007 s55B (https://www.legislation.gov.uk/ukpga/2007/3/section/55B) and s55C (https://www.legislation.gov.uk/ukpga/2007/3/section/55C); starting rate for savings s12 (https://www.legislation.gov.uk/ukpga/2007/3/section/12), Personal Savings Allowance s12B (https://www.legislation.gov.uk/ukpga/2007/3/section/12B), dividend nil rate s13A (https://www.legislation.gov.uk/ukpga/2007/3/section/13A); s45 Married Couple's Allowance (https://www.legislation.gov.uk/ukpga/2007/3/section/45)
+figures: amount_transferred, transfer_direction, user_income, spouse_income, transferor_extra_tax, estimated_annual_tax_saved
+why when not transferor_uses_whole_allowance:
 1. One of you has Personal Allowance going unused while the other pays Income Tax at the basic rate.
-eligibility (checked before the action is shown, TaxStrategyMath::marriageAllowance): married or in a civil partnership; the person giving it has income below the Personal Allowance; the person receiving it pays no rate above the basic rate, dividends counted in full (s55B(2)(b), (ba)). The spouse's income must be known: a linked spouse's own records or an amount entered. "Does not work" alone leaves the action waiting on "Add your spouse's income" (CSJ 2026-09-28). Scottish rates are not modelled, so recipients above the Scottish limit get a caveat line (CSJ 2026-09-28).
+why when transferor_uses_whole_allowance:
+1. One of you can give part of your Personal Allowance away and still pay no Income Tax above the basic rate, while the other pays Income Tax at the basic rate.
+eligibility (checked before the action is shown, TaxStrategyMath::marriageAllowance): married or in a civil partnership; the person giving it, once their allowance is smaller by the amount given (s55B(6)), pays no rate above the basic rate, dividends counted in full (s55C(1)(c), (ca); CSJ 2026-09-30 "widen to law": GOV.UK's "income below your Personal Allowance" is s55C(2), which binds only a non-resident under s55C(1)(d)); the person receiving it pays no rate above the basic rate, dividends counted in full (s55B(2)(b), (ba)). The spouse's income must be known: a linked spouse's own records or an amount entered. "Does not work" alone leaves the action waiting on "Add your spouse's income" (CSJ 2026-09-28). Scottish rates are not modelled, so recipients above the Scottish limit get a caveat line (CSJ 2026-09-28).
 when transfer_direction is to_user:
 1. The claim is made by {spouse}. They transfer {amount_transferred} of their Personal Allowance to you.
 when transfer_direction is to_user and spouse_income_is_nil:
 2. {spouse_start} has no income recorded, so their {personal_allowance} Personal Allowance goes unused.
-when transfer_direction is to_user and not spouse_income_is_nil:
+when transfer_direction is to_user and not spouse_income_is_nil and not transferor_uses_whole_allowance:
 2. {spouse_start}'s income of {spouse_income} is below the {personal_allowance} Personal Allowance, so part of it goes unused.
+when transfer_direction is to_user and transferor_uses_whole_allowance:
+2. {spouse_start}'s income of {spouse_income} uses all of their {personal_allowance} Personal Allowance. They can still give part of it: after the transfer, none of their income is taxed above the basic rate.
+when transfer_direction is to_user and transferor_pays_more:
+2. With a smaller allowance, {spouse} pays about {transferor_extra_tax} more Income Tax a year. The saving below already takes that off.
+when transfer_direction is to_user and transferor_uses_whole_allowance and not transferor_pays_more:
+2. {spouse_start} pays no more tax: the income their smaller allowance no longer covers is still taxed at 0%, under the starting rate for savings, the Personal Savings Allowance or the dividend allowance.
 when transfer_direction is to_user:
 3. You qualify to receive it because you pay Income Tax at the basic rate and no higher.
 when transfer_direction is to_spouse:
 1. You make the claim. You transfer {amount_transferred} of your Personal Allowance to {spouse}.
 when transfer_direction is to_spouse and user_income_is_nil:
 2. You have no income recorded, so your {personal_allowance} Personal Allowance goes unused.
-when transfer_direction is to_spouse and not user_income_is_nil:
+when transfer_direction is to_spouse and not user_income_is_nil and not transferor_uses_whole_allowance:
 2. Your income of {user_income} is below the {personal_allowance} Personal Allowance, so part of it goes unused.
+when transfer_direction is to_spouse and transferor_uses_whole_allowance:
+2. Your income of {user_income} uses all of your {personal_allowance} Personal Allowance. You can still give part of it: after the transfer, none of your income is taxed above the basic rate.
+when transfer_direction is to_spouse and transferor_pays_more:
+2. With a smaller allowance, you pay about {transferor_extra_tax} more Income Tax a year. The saving below already takes that off.
+when transfer_direction is to_spouse and transferor_uses_whole_allowance and not transferor_pays_more:
+2. You pay no more tax: the income your smaller allowance no longer covers is still taxed at 0%, under the starting rate for savings, the Personal Savings Allowance or the dividend allowance.
 when transfer_direction is to_spouse:
 3. {spouse_start} qualifies to receive it because, on their income of {spouse_income}, they pay Income Tax at the basic rate and no higher.
 when transfer_direction is to_user and above_scottish_ma_limit:

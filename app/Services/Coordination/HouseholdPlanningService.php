@@ -15,11 +15,13 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
@@ -124,6 +126,7 @@ class HouseholdPlanningService
         private readonly TaxConfigService $taxConfig,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly TaxStrategyMath $math,
     ) {}
 
     /**
@@ -302,13 +305,7 @@ class HouseholdPlanningService
         }
 
         // Marriage allowance recommendation
-        $marriageAllowanceRec = $this->generateMarriageAllowanceRecommendation(
-            $user,
-            $spouse,
-            $userIncome,
-            $spouseIncome,
-            $personalAllowance
-        );
+        $marriageAllowanceRec = $this->generateMarriageAllowanceRecommendation($user, $spouse);
         if ($marriageAllowanceRec) {
             $recommendations[] = $marriageAllowanceRec;
         }
@@ -806,46 +803,29 @@ class HouseholdPlanningService
     }
 
     /**
-     * Generate marriage allowance recommendation.
+     * Marriage Allowance from the plan's one rule (TaxStrategyMath::marriageAllowance:
+     * ITA 2007 s55B, s55C), so this and the Tax Strategy plan cannot disagree.
      */
-    private function generateMarriageAllowanceRecommendation(
-        User $user,
-        User $spouse,
-        float $userIncome,
-        float $spouseIncome,
-        float $personalAllowance
-    ): ?array {
-        // Marriage allowance: one spouse can transfer 10% of PA if they are non-taxpayer
-        // and the other is a basic rate taxpayer
-        $transferAmount = floor($personalAllowance * 0.10);
-
-        $nonTaxpayer = null;
-        $basicRate = null;
-
-        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
-        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
-
-        if ($userIncome <= $personalAllowance && $spouseIncome > $personalAllowance && $spouseIncome <= ($personalAllowance + $basicRateBand)) {
-            $nonTaxpayer = $user;
-            $basicRate = $spouse;
-        } elseif ($spouseIncome <= $personalAllowance && $userIncome > $personalAllowance && $userIncome <= ($personalAllowance + $basicRateBand)) {
-            $nonTaxpayer = $spouse;
-            $basicRate = $user;
-        }
-
-        if (! $nonTaxpayer || ! $basicRate) {
+    private function generateMarriageAllowanceRecommendation(User $user, User $spouse): ?array
+    {
+        $position = $this->math->marriageAllowance(
+            $user,
+            (string) ($user->household_calculation_mode ?? ''),
+            TaxStrategyHouseholdInput::where('user_id', $user->id)->first(),
+        );
+        if ($position === null) {
             return null;
         }
 
-        $basicRate = $this->getMarginalRate('basic');
-        $saving = $transferAmount * $basicRate; // Basic rate tax saving on transferred allowance
-        $nonTaxpayerName = $nonTaxpayer->first_name ?? 'the non-taxpayer';
-        $basicRateName = $basicRate->first_name ?? 'the basic rate taxpayer';
+        [$giver, $receiver] = $position['direction'] === 'to_user' ? [$spouse, $user] : [$user, $spouse];
+        $amount = $this->math->marriageAllowanceAmount();
+        $giverName = $giver->first_name ?: 'Your partner';
+        $receiverName = $receiver->first_name ?: 'your partner';
 
         return [
             'type' => 'marriage_allowance',
-            'description' => "{$nonTaxpayerName} could transfer {$this->formatCurrencyValue($transferAmount)} of their Personal Allowance to {$basicRateName}, saving {$this->formatCurrencyValue($saving)} per year in income tax.",
-            'potential_savings' => round($saving, 2),
+            'description' => "{$giverName} could transfer {$this->formatCurrencyValue($amount)} of their Personal Allowance to {$receiverName}, saving your household {$this->formatCurrencyValue($position['saving'])} a year in income tax.",
+            'potential_savings' => $position['saving'],
             'action' => 'Apply for Marriage Allowance transfer via HMRC.',
         ];
     }

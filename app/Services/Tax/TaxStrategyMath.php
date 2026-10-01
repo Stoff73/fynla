@@ -520,11 +520,13 @@ final class TaxStrategyMath
      * - s55C(1)(a): the couple must be married or civil partners.
      * - s55C(1)(c),(ca): once their Personal Allowance is reduced under
      *   s55B(6), the transferor may be liable only at the basic, savings,
-     *   dividend-ordinary and nil rates. The code applies the narrower GOV.UK
-     *   test instead: net income below the Personal Allowance
-     *   (https://www.gov.uk/marriage-allowance). In the statute that test,
-     *   s55C(2), binds only someone who is not UK resident and qualifies
-     *   under s56(3) (s55C(1)(d)).
+     *   dividend-ordinary and nil rates, dividends counted in full. Their
+     *   taxable income is then net income less (allowance − transferable
+     *   amount), so the test is net income + transferable amount inside the
+     *   basic-rate band (CSJ 2026-09-30: "widen to law"). GOV.UK's "income
+     *   below your Personal Allowance" (https://www.gov.uk/marriage-allowance)
+     *   is s55C(2), which binds only a non-resident qualifying under s56(3)
+     *   (s55C(1)(d)); the app models UK residents.
      * - s55B(2)(b),(ba): the recipient may be liable only at the basic,
      *   savings, dividend-ordinary and nil rates, i.e. their total income
      *   stays inside the basic-rate band.
@@ -534,11 +536,15 @@ final class TaxStrategyMath
      *   Step 5, so it can never exceed the recipient's tax.
      * - s55B(6): the transferor's Personal Allowance falls by the transferable
      *   amount, so any extra tax they then pay comes off the household saving.
+     *   Income the smaller allowance no longer covers can fall at a nil rate
+     *   (starting rate for savings s12, Personal Savings Allowance s12B,
+     *   dividend allowance s13A), so a transferor above the allowance can
+     *   still save the household tax.
      *
      * The spouse's income must be known: a non-earner (single_earner_couple)
      * or captured income (dual_earner). Returns null when nothing is saved.
      *
-     * @return array{saving: float, direction: 'to_user'|'to_spouse', user_income: float, spouse_income: float}|null
+     * @return array{saving: float, direction: 'to_user'|'to_spouse', user_income: float, spouse_income: float, transferor_extra_tax: float}|null
      */
     public function marriageAllowance(User $user, string $mode, ?TaxStrategyHouseholdInput $household): ?array
     {
@@ -551,9 +557,10 @@ final class TaxStrategyMath
         // or above the Personal Allowance cannot give any of it away. Records
         // that hold no income are not an answer: the income given is used.
         $linked = $this->linkedSpouseWithIncome($user);
+        $amount = $this->marriageAllowanceAmount();
         if ($linked !== null) {
             $spouse = $this->incomePartsFor($linked);
-            $spouseBand = $this->bandFromIncomeFor($linked, $this->taxableIncomeFor($linked));
+            $spouseBandAt = fn (float $extra): string => $this->bandFromIncomeFor($linked, $this->taxableIncomeFor($linked) + $extra);
         } else {
             // Not working is not the same as no income: a pension or rent can
             // use the whole allowance. Only a captured figure counts (CSJ
@@ -571,29 +578,29 @@ final class TaxStrategyMath
             $spouse['interest'] = $this->estimateSpouseJointInterest($user);
             $spouse['net_pay'] = 0.0;
             $spouse['trust'] = 0.0;
-            $spouseBand = null;
+            $spouseNetGiven = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'];
+            $spouseBandAt = fn (float $extra): string => $this->bandFromIncome($spouseNetGiven + $extra);
         }
 
         $user_ = $this->incomePartsFor($user);
-        $personalAllowance = (float) ($this->taxConfig->getIncomeTax()['personal_allowance'] ?? 0);
-        $amount = $this->marriageAllowanceAmount();
         $maxReduction = $amount * $this->bandRateForBand('basic');
         $userNet = $user_['non_savings'] + $user_['interest'] + $user_['dividends'] + $user_['trust'] - $user_['net_pay'];
         $spouseNet = $spouse['non_savings'] + $spouse['interest'] + $spouse['dividends'] + $spouse['trust'] - $spouse['net_pay'];
-        $spouseBand ??= $this->bandFromIncome($spouseNet);
+        $userBandAt = fn (float $extra): string => $this->bandFromIncomeFor($user, $this->taxableIncomeFor($user) + $extra);
 
+        // Each way round: the recipient pays no rate above the basic rate
+        // (s55B(2)(b),(ba)), nor does the transferor once their allowance is
+        // reduced by the transferable amount (s55C(1)(c),(ca)).
         $options = [];
-        if ($spouseNet < $personalAllowance
-            && $this->bandFromIncomeFor($user, $this->taxableIncomeFor($user)) === 'basic') {
-            $options['to_user'] = min($maxReduction, $this->incomeTaxOn($user_))
-                - $this->extraTaxFromLosingAllowance($spouse, $amount);
+        $extraTax = [];
+        if ($spouseBandAt($amount) === 'basic' && $userBandAt(0.0) === 'basic') {
+            $extraTax['to_user'] = $this->extraTaxFromLosingAllowance($spouse, $amount);
+            $options['to_user'] = min($maxReduction, $this->incomeTaxOn($user_)) - $extraTax['to_user'];
         }
-        // The recipient may pay no rate above the basic rate, dividends counted
-        // in full (ITA 2007 s55B(2)(b), (ba)).
-        if (($mode === 'dual_earner' || $linked !== null) && $userNet < $personalAllowance
-            && $spouseBand === 'basic') {
-            $options['to_spouse'] = min($maxReduction, $this->incomeTaxOn($spouse))
-                - $this->extraTaxFromLosingAllowance($user_, $amount);
+        if (($mode === 'dual_earner' || $linked !== null)
+            && $userBandAt($amount) === 'basic' && $spouseBandAt(0.0) === 'basic') {
+            $extraTax['to_spouse'] = $this->extraTaxFromLosingAllowance($user_, $amount);
+            $options['to_spouse'] = min($maxReduction, $this->incomeTaxOn($spouse)) - $extraTax['to_spouse'];
         }
 
         $options = array_filter($options, fn (float $saving): bool => $saving >= 0.01);
@@ -601,12 +608,14 @@ final class TaxStrategyMath
             return null;
         }
         arsort($options);
+        $direction = (string) key($options);
 
         return [
             'saving' => round((float) reset($options), 2),
-            'direction' => (string) key($options),
+            'direction' => $direction,
             'user_income' => round($userNet, 2),
             'spouse_income' => round($spouseNet, 2),
+            'transferor_extra_tax' => round($extraTax[$direction], 2),
         ];
     }
 

@@ -11,7 +11,9 @@ use App\Models\User;
 use App\Services\Coordination\HouseholdPlanningService;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
 
 function createHouseholdService(array $ihtOverrides = []): HouseholdPlanningService
 {
@@ -36,7 +38,7 @@ function createHouseholdService(array $ihtOverrides = []): HouseholdPlanningServ
         'annual_allowance' => 60000,
     ]);
 
-    return new HouseholdPlanningService($taxConfig, app(PropertyStore::class), app(MortgageStore::class));
+    return new HouseholdPlanningService($taxConfig, app(PropertyStore::class), app(MortgageStore::class), app(TaxStrategyMath::class));
 }
 
 function createMarriedCouple(): array
@@ -191,6 +193,26 @@ describe('HouseholdPlanningService', function () {
             expect($pensionRec)->not->toBeNull();
             expect($pensionRec['potential_savings'])->toBeGreaterThan(0);
             expect($pensionRec['description'])->toContain('James');
+        });
+
+        // It used to overwrite the recipient with the basic rate and read a name
+        // off the float, so every couple who qualified got an error.
+        it('words Marriage Allowance from the plan\'s rule, giver to receiver', function () {
+            $this->seed(TaxConfigurationSeeder::class);
+            [$user, $spouse] = createMarriedCouple();
+            $user->update(['annual_employment_income' => 35000, 'annual_dividend_income' => 0]);
+            $spouse->update(['annual_employment_income' => 6000]);
+
+            $rec = collect(createHouseholdService()->generateSpousalOptimisations($user->fresh()))
+                ->firstWhere('type', 'marriage_allowance');
+            $plan = app(TaxStrategyMath::class)->marriageAllowance($user->fresh(), '', null);
+
+            expect($plan)->not->toBeNull()
+                ->and($rec['potential_savings'])->toBe($plan['saving'])
+                ->and($rec['description'])->toStartWith(sprintf(
+                    'Emily could transfer £%s of their Personal Allowance to James',
+                    number_format(app(TaxStrategyMath::class)->marriageAllowanceAmount()),
+                ));
         });
     });
 

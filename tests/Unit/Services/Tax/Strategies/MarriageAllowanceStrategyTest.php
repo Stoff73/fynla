@@ -78,6 +78,63 @@ it('offers Marriage Allowance in dual_earner mode when the spouse earns below th
     expect(maRec($user)['estimated_annual_tax_saved'])->toBe(maBasicSaving());
 });
 
+/*
+ * The giver's test is s55C(1)(c),(ca), not GOV.UK's "income below the Personal
+ * Allowance" (CSJ 2026-09-30: "widen to law"; ITA 2007 s55C,
+ * https://www.legislation.gov.uk/ukpga/2007/3/section/55C). After their
+ * allowance falls by the transferable amount (s55B(6)) they may pay no rate
+ * above the basic rate. Income the smaller allowance no longer covers can
+ * still fall at a nil rate, so the transfer costs them less than it saves.
+ */
+it('offers it from a linked spouse whose savings interest sits in the starting rate for savings (s12)', function () {
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 35000]);
+    $spouse = User::factory()->create([
+        'marital_status' => 'married', 'annual_employment_income' => 0,
+        'annual_interest_income' => 14000, 'spouse_id' => $user->id,
+    ]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    $rec = maRec($user->fresh());
+
+    // £14,000 less a £11,310 allowance leaves £2,690, all inside the £5,000
+    // starting rate for savings: the spouse pays nothing more.
+    expect($rec)->not->toBeNull()
+        ->and($rec['transfer_direction'])->toBe('to_user')
+        ->and($rec['estimated_annual_tax_saved'])->toBe(maBasicSaving())
+        ->and($rec['transferor_extra_tax'])->toBe(0.0);
+});
+
+it('offers it from a spouse with dividends above the allowance, net of the dividend tax the transfer adds (s13A, s55C(1)(ca))', function () {
+    $user = maUser(
+        ['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 35000],
+        ['spouse_annual_income' => 0, 'spouse_annual_dividends' => 14000],
+    );
+    $math = app(TaxStrategyMath::class);
+    $extra = round($math->marriageAllowanceAmount() * (float) app(TaxConfigService::class)->getDividendTax()['basic_rate'], 2);
+
+    $rec = maRec($user);
+
+    // Within a penny: the tax engine rounds each year's dividend tax to the
+    // penny before the two are subtracted.
+    expect($rec)->not->toBeNull()
+        ->and($rec['estimated_annual_tax_saved'])->toEqualWithDelta(maBasicSaving() - $extra, 0.011)
+        ->and($rec['transferor_extra_tax'])->toEqualWithDelta($extra, 0.011);
+});
+
+it('nets off the tax a giver below the allowance pays once part of it is given away', function () {
+    $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 35000], ['spouse_annual_income' => 12000]);
+    $pa = (float) app(TaxConfigService::class)->getIncomeTax()['personal_allowance'];
+    $math = app(TaxStrategyMath::class);
+    $extra = round(($math->marriageAllowanceAmount() - ($pa - 12000)) * $math->bandRateForBand('basic'), 2);
+
+    $rec = maRec($user);
+
+    expect($rec['estimated_annual_tax_saved'])->toBe(round(maBasicSaving() - $extra, 2))
+        ->and($rec['transferor_extra_tax'])->toBe($extra);
+});
+
+// A giver whose income above the smaller allowance is pay pays exactly the
+// reduction in extra tax, so the household saves nothing and it is not shown.
 it('does not offer it when the spouse earns above the Personal Allowance or their income is unknown', function (?float $spouseIncome) {
     $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 35000], ['spouse_annual_income' => $spouseIncome]);
 
@@ -112,11 +169,8 @@ it('shrinks the spouse Personal Allowance used for the savings gift by the trans
 /*
  * Eligibility, pinned to the law (CSJ 2026-09-28: show it only to people who
  * qualify). ITA 2007 s55B(2)(b) and (ba): the person receiving it pays no rate
- * above the basic rate, with dividends counted in full. GOV.UK
- * (https://www.gov.uk/marriage-allowance): the person giving it has income
- * below the Personal Allowance. That is narrower than s55C(1)(c),(ca); in the
- * statute the income test is s55C(2), which binds only a non-resident who
- * qualifies under s56(3) (s55C(1)(d)).
+ * above the basic rate, with dividends counted in full. s55C(1)(c),(ca): the
+ * person giving it passes the same test once their allowance is reduced.
  */
 it('does not offer it to a recipient who pays the higher rate', function () {
     $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 60000]);
@@ -236,4 +290,44 @@ it('warns a recipient above the Scottish limit that it does not apply if they li
     expect($rec)->not->toBeNull()
         ->and(collect($steps)->first(fn ($s) => str_starts_with($s, 'If you live in Scotland')))
         ->toContain('£43,662');
+});
+
+function maSteps(User $user): array
+{
+    $rec = maRec($user);
+    $entry = ActionHowToSeeder::parse((string) file_get_contents(ActionHowToSeeder::sourcePath('tax')))['marriage_allowance_transfer'];
+    ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $rec);
+
+    return [
+        'why' => ActionHowTo::render($entry['steps'], $facts, $text, 'why'),
+        'steps' => ActionHowTo::render($entry['steps'], $facts, $text),
+    ];
+}
+
+it('tells a giver above the allowance why they can still give it, and that it costs them nothing', function () {
+    $user = maUser(['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 35000]);
+    $spouse = User::factory()->create([
+        'first_name' => 'Sam', 'marital_status' => 'married', 'annual_employment_income' => 0,
+        'annual_interest_income' => 14000, 'spouse_id' => $user->id,
+    ]);
+    $user->update(['spouse_id' => $spouse->id]);
+
+    ['why' => $why, 'steps' => $steps] = maSteps($user->fresh());
+
+    expect(implode(' ', $why))->toContain('still pay no Income Tax above the basic rate')
+        ->and(implode(' ', $steps))->toContain('uses all of their')
+        ->and(implode(' ', $steps))->toContain('pays no more tax')
+        ->and(implode(' ', $steps))->not->toContain('is below the')
+        ->and(implode(' ', $steps))->not->toContain('more Income Tax a year');
+});
+
+it('tells a giver below the allowance what the smaller allowance costs them', function () {
+    $user = maUser(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 35000], ['spouse_annual_income' => 12000]);
+
+    $rec = maRec($user);
+    ['why' => $why, 'steps' => $steps] = maSteps($user);
+
+    expect(implode(' ', $why))->toContain('going unused')
+        ->and(implode(' ', $steps))->toContain('is below the')
+        ->and(implode(' ', $steps))->toContain('pays about £'.number_format(floor($rec['transferor_extra_tax'])).' more Income Tax a year');
 });
