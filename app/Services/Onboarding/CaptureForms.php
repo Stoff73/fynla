@@ -692,7 +692,9 @@ final class CaptureForms
      */
     private static function pounds(float $amount): string
     {
-        return '£'.rtrim(rtrim(number_format($amount, 2), '0'), '.');
+        // Whole pounds without pence; otherwise both digits ("£11,502.40",
+        // never "£11,502.4", walked 2026-10-01).
+        return '£'.(fmod(round($amount, 2), 1.0) === 0.0 ? number_format($amount) : number_format($amount, 2));
     }
 
     /** @return array<string, mixed> */

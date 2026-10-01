@@ -62,6 +62,8 @@ it('saves "being paid" through the edit path, so it counts as income', function 
         ]])->assertOk()->streamedContent();
 
     expect(StatePension::where('user_id', $user->id)->first()->already_receiving)->toBeTrue();
+    $reply = AiConversation::findOrFail($id)->messages()->where('role', 'assistant')->latest('id')->first()->content;
+    expect($reply)->toContain('£11,502.40 a year')->toContain('being paid to me now');
 });
 
 it('records "not yet" as not being paid', function (): void {
