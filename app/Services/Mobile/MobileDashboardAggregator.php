@@ -302,6 +302,7 @@ class MobileDashboardAggregator
             'card_value_is_income' => in_array($headline['kind'] ?? null, ['drawing', 'guaranteed'], true),
             // Someone drawing: the Retirement page's own figures (RetirementDrawdownPosition).
             'drawing_lasts_to_age' => $headline['drawing_lasts_to_age'] ?? null,
+            'drawing_lasts_label' => $headline['drawing_lasts_label'] ?? null,
             'drawing_pot_end_age' => $headline['drawing_pot_end_age'] ?? null,
             'drawing_per_year' => $headline['drawing_per_year'] ?? null,
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),

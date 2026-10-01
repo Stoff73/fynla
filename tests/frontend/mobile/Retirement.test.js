@@ -322,6 +322,7 @@ describe('mobile Retirement', () => {
             value: 200000, drawing_per_year: 30000, risk_level: 'lower_medium', risk_level_label: 'Lower-Medium',
             expected_return: 3.5, current_age: 68, end_age: 100,
             lasts_to_age: { middle: 76, lower: 75 },
+            lasts_labels: { middle: 'runs out by about age 76', lower: 'runs out by about age 75' },
             life_expectancy: { age: 86, source: 'ons' },
             income_to_last_to_life_expectancy: 13400,
             year_by_year: [],

@@ -67,6 +67,7 @@ class RetirementHeadline
             // The drawing view's own figures, for someone drawing; null otherwise.
             'drawing_income' => $drawing !== null ? round((float) $drawing['income']['total'], 2) : null,
             'drawing_lasts_to_age' => $drawing['pot']['lasts_to_age']['middle'] ?? null,
+            'drawing_lasts_label' => $drawing['pot']['lasts_labels']['middle'] ?? null,
             'drawing_pot_end_age' => $drawing['pot']['end_age'] ?? null,
             'drawing_per_year' => isset($drawing['pot']) ? round((float) $drawing['pot']['drawing_per_year'], 2) : null,
             'projected_income' => round($projected, 2),

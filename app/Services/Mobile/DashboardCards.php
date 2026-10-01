@@ -95,10 +95,9 @@ final class DashboardCards
         // Someone drawing sees the Retirement page's own figure and wording:
         // this year's income, and how long the pot lasts in the middle outcome.
         if ($kind === 'drawing') {
-            $lastsTo = $module['drawing_lasts_to_age'] ?? null;
-            $endAge = $module['drawing_pot_end_age'] ?? null;
+            // The drawing position's own words (RetirementDrawdownPosition).
             $lasts = ((float) ($module['drawing_per_year'] ?? 0)) > 0
-                ? ($lastsTo !== null ? 'runs out by about age '.$lastsTo : ($endAge !== null ? 'lasts beyond '.$endAge : ''))
+                ? (string) ($module['drawing_lasts_label'] ?? '')
                 : '';
 
             return $this->card(

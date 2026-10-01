@@ -61,7 +61,7 @@ it('shows someone drawing the Retirement page\'s own income, not a saver project
     $card = $this->cards->build(['retirement' => [
         'headline_kind' => 'drawing', 'card_value' => 26514, 'card_value_is_income' => true,
         'target_income' => 40000, 'progress_percent' => 18,
-        'drawing_per_year' => 30000, 'drawing_lasts_to_age' => 76, 'drawing_pot_end_age' => 95,
+        'drawing_per_year' => 30000, 'drawing_lasts_to_age' => 76, 'drawing_lasts_label' => 'runs out by about age 76',
     ]], $this->netWorth)['retirement'];
 
     expect($card)->toMatchArray(['value' => 26514.0, 'value_is_income' => true, 'caption' => 'Your income this year'])
@@ -71,7 +71,7 @@ it('shows someone drawing the Retirement page\'s own income, not a saver project
 it('says the pot lasts beyond the projection when it does not run out', function () {
     $card = $this->cards->build(['retirement' => [
         'headline_kind' => 'drawing', 'card_value' => 20000, 'card_value_is_income' => true,
-        'drawing_per_year' => 5000, 'drawing_lasts_to_age' => null, 'drawing_pot_end_age' => 95,
+        'drawing_per_year' => 5000, 'drawing_lasts_to_age' => null, 'drawing_lasts_label' => 'lasts beyond 95',
     ]], $this->netWorth)['retirement'];
 
     expect($card['visual']['number'])->toBe('lasts beyond 95');

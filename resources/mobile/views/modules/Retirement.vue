@@ -193,11 +193,11 @@
         <template v-if="drawing.pot.drawing_per_year > 0">
           <div class="m-detail-row">
             <span class="m-detail-key">Middle outcome (half do better)</span>
-            <span class="m-detail-value">{{ lastsLabel(drawing.pot.lasts_to_age.middle) }}</span>
+            <span class="m-detail-value">{{ drawing.pot.lasts_labels.middle }}</span>
           </div>
           <div class="m-detail-row">
             <span class="m-detail-key">Lower outcome (4 in 5 do better)</span>
-            <span class="m-detail-value">{{ lastsLabel(drawing.pot.lasts_to_age.lower) }}</span>
+            <span class="m-detail-value">{{ drawing.pot.lasts_labels.lower }}</span>
           </div>
         </template>
         <div class="m-detail-row">
@@ -486,9 +486,6 @@ export default {
     this.load();
   },
   methods: {
-    lastsLabel(age) {
-      return age === null ? `lasts beyond ${this.drawing.pot.end_age}` : `runs out by about age ${age}`;
-    },
     // On /m a pension is added or changed through Fyn: adding as the screen's
     // own add button does, changing the recorded State Pension as its detail
     // screen does.

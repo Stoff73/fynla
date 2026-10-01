@@ -51,6 +51,10 @@ struct RetirementSnapshot: Sendable, Equatable {
     var heroValue: Decimal? { headline?.value }
     var heroIsGuaranteed: Bool { headline?.kind == "guaranteed" }
     var yearsToRetirement: Int? { headline?.yearsToRetirement }
+    /// Someone drawing their pension: this year's income and how long the pot
+    /// lasts, the server's drawdown_position, as web and /m show it (TODO item 6;
+    /// audit item 13, CSJ 2026-10-01).
+    var drawing: RetirementDrawdownPosition? { projections?.drawdownPosition }
     var isAtAccountLimit: Bool {
         guard let limit = index.accountLimit else { return false }
         return index.accountCount >= limit
@@ -215,12 +219,86 @@ struct RetirementProjections: Decodable, Sendable, Equatable {
     let incomeDrawdown: RetirementIncomeDrawdown?
     let planningProjection: RetirementPlanningProjection?
     let headline: RetirementHeadline?
+    let drawdownPosition: RetirementDrawdownPosition?
 
     private enum CodingKeys: String, CodingKey {
         case pensionPotProjection = "pension_pot_projection"
         case incomeDrawdown = "income_drawdown"
         case planningProjection = "planning_projection"
         case headline
+        case drawdownPosition = "drawdown_position"
+    }
+}
+
+/// RetirementDrawdownPosition (app/Services/Retirement/RetirementDrawdownPosition.php):
+/// the drawing view's figures and words, built on the server.
+struct RetirementDrawdownPosition: Decodable, Sendable, Equatable {
+    struct RetiredSince: Decodable, Sendable, Equatable {
+        let date: String
+        let age: Int?
+    }
+
+    struct IncomeLine: Decodable, Sendable, Equatable, Identifiable {
+        let key: String
+        let label: String
+        let amount: Decimal
+        var id: String { key }
+    }
+
+    struct Income: Decodable, Sendable, Equatable {
+        let lines: [IncomeLine]
+        let statePensionStatus: String?
+        let total: Decimal
+        let incomeTax: Decimal
+        let nationalInsurance: Decimal
+        let takeHome: Decimal
+
+        private enum CodingKeys: String, CodingKey {
+            case lines, total
+            case statePensionStatus = "state_pension_status"
+            case incomeTax = "income_tax"
+            case nationalInsurance = "national_insurance"
+            case takeHome = "take_home"
+        }
+    }
+
+    struct Labels: Decodable, Sendable, Equatable {
+        let middle: String
+        let lower: String
+    }
+
+    struct LifeExpectancy: Decodable, Sendable, Equatable {
+        let age: Int
+        let source: String
+    }
+
+    struct Pot: Decodable, Sendable, Equatable {
+        let value: Decimal
+        let drawingPerYear: Decimal
+        let riskLevelLabel: String
+        let expectedReturn: Decimal
+        let lastsLabels: Labels
+        let lifeExpectancy: LifeExpectancy
+        let incomeToLastToLifeExpectancy: Decimal?
+
+        private enum CodingKeys: String, CodingKey {
+            case value
+            case drawingPerYear = "drawing_per_year"
+            case riskLevelLabel = "risk_level_label"
+            case expectedReturn = "expected_return"
+            case lastsLabels = "lasts_labels"
+            case lifeExpectancy = "life_expectancy"
+            case incomeToLastToLifeExpectancy = "income_to_last_to_life_expectancy"
+        }
+    }
+
+    let retiredSince: RetiredSince?
+    let income: Income
+    let pot: Pot?
+
+    private enum CodingKeys: String, CodingKey {
+        case income, pot
+        case retiredSince = "retired_since"
     }
 }
 

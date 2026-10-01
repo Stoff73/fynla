@@ -62,10 +62,21 @@ struct RetirementView: View {
                         offlineNotice
                     }
 
-                    heroCard(snapshot)
-                    pensionsCard(snapshot)
-                    overviewCard(snapshot)
-                    projectionCard(snapshot.projections)
+                    if let drawing = snapshot.drawing {
+                        // Someone drawing: this year's income and how long the
+                        // pot lasts, as web and /m show it (no saver projection).
+                        drawingHero(drawing)
+                        drawingIncomeCard(drawing.income)
+                        pensionsCard(snapshot)
+                        if let pot = drawing.pot {
+                            drawingPotCard(pot)
+                        }
+                    } else {
+                        heroCard(snapshot)
+                        pensionsCard(snapshot)
+                        overviewCard(snapshot)
+                        projectionCard(snapshot.projections)
+                    }
                     recommendationsCard(snapshot.analysis?.recommendations ?? [])
                 }
                 .padding(.horizontal, 16)
@@ -109,6 +120,89 @@ struct RetirementView: View {
             .padding(.top, 16)
         }
         .accessibilityIdentifier("retirement.projected-income")
+    }
+
+    // The drawing view (/m Retirement.vue, `drawing`): every figure and the
+    // "runs out by about age" words are the server's drawdown_position.
+    private func drawingHero(_ drawing: RetirementDrawdownPosition) -> some View {
+        MobileHeroCard(
+            label: "Your take-home this year",
+            metric: MoneyFormatter.gbpWhole(drawing.income.takeHome),
+            metricSuffix: "a year",
+            sub: drawing.retiredSince.map { since in
+                "Retired since \(retiredSinceLabel(since.date))" + (since.age.map { ", at \($0)" } ?? "")
+            }
+        )
+        .accessibilityIdentifier("retirement.drawing-hero")
+    }
+
+    private func drawingIncomeCard(_ income: RetirementDrawdownPosition.Income) -> some View {
+        detailCard("Your income this year") {
+            ForEach(income.lines) { line in
+                detailRow(line.label, MoneyFormatter.gbpWhole(line.amount))
+            }
+            if let note = statePensionNote(income.statePensionStatus) {
+                detailRow("State Pension\(note)", income.statePensionStatus == "missing" ? "Not added" : "—")
+            }
+            detailRow("Income Tax", MoneyFormatter.gbpWhole(income.incomeTax))
+            if income.nationalInsurance > 0 {
+                detailRow("National Insurance", MoneyFormatter.gbpWhole(income.nationalInsurance))
+            }
+            detailRow("Take-home", MoneyFormatter.gbpWhole(income.takeHome), showsDivider: false)
+        }
+        .accessibilityIdentifier("retirement.drawing-income")
+    }
+
+    private func drawingPotCard(_ pot: RetirementDrawdownPosition.Pot) -> some View {
+        let ons = pot.lifeExpectancy.source == "ons"
+        return detailCard("How long your pension lasts") {
+            Text(pot.drawingPerYear > 0
+                ? "Drawing \(MoneyFormatter.gbpWhole(pot.drawingPerYear)) a year from \(MoneyFormatter.gbpWhole(pot.value))"
+                : "No drawdown recorded from your \(MoneyFormatter.gbpWhole(pot.value))")
+                .font(.system(size: 14))
+                .foregroundStyle(FynlaColor.Token.neutral600.color)
+                .padding(.bottom, 6)
+            if pot.drawingPerYear > 0 {
+                detailRow("Middle outcome (half do better)", pot.lastsLabels.middle)
+                detailRow("Lower outcome (4 in 5 do better)", pot.lastsLabels.lower)
+            }
+            detailRow(
+                "Life expectancy (\(ons ? "Office for National Statistics" : "your figure"))",
+                "\(pot.lifeExpectancy.age)\(ons ? " on average" : "")",
+                showsDivider: pot.incomeToLastToLifeExpectancy != nil
+            )
+            if let lasting = pot.incomeToLastToLifeExpectancy {
+                detailRow("To last to \(pot.lifeExpectancy.age)", "about \(MoneyFormatter.gbpWhole(lasting)) a year", showsDivider: false)
+            }
+            Text((ons ? "Many people live longer than the average. " : "")
+                + (pot.incomeToLastToLifeExpectancy != nil ? "The last figure is the yearly income that still lasts to \(pot.lifeExpectancy.age) in 4 out of 5 outcomes. " : "")
+                + "These are projections, not guarantees. They assume the same \(MoneyFormatter.gbpWhole(pot.drawingPerYear)) each year at your \(pot.riskLevelLabel) risk level's returns (\(pot.expectedReturn)% a year), with no charges or inflation.")
+                .font(.system(size: 12))
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .padding(.top, 8)
+        }
+        .accessibilityIdentifier("retirement.drawing-lasts")
+    }
+
+    /// As /m: what is missing about the State Pension, or nil when it is counted.
+    private func statePensionNote(_ status: String?) -> String? {
+        switch status {
+        case "missing": return ""
+        case "not_paid": return ": not recorded as being paid"
+        case "no_amount": return ": amount not recorded"
+        default: return nil
+        }
+    }
+
+    private func retiredSinceLabel(_ date: String) -> String {
+        let input = DateFormatter()
+        input.locale = Locale(identifier: "en_GB")
+        input.dateFormat = "yyyy-MM-dd"
+        guard let parsed = input.date(from: date) else { return date }
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "en_GB")
+        output.dateFormat = "MMMM yyyy"
+        return output.string(from: parsed)
     }
 
     // mr-hero-stat: light cap + white 18/900 value (toned for surplus/shortfall).

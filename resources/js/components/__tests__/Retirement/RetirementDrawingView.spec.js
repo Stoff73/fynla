@@ -14,6 +14,7 @@ const position = (pot = {}) => ({
   pot: {
     value: 200000, drawing_per_year: 30000, end_age: 100,
     lasts_to_age: { middle: 76, lower: 75 },
+    lasts_labels: { middle: 'runs out by about age 76', lower: 'runs out by about age 75' },
     life_expectancy: { age: 86, source: 'ons' },
     income_to_last_to_life_expectancy: 13400,
     ...pot,
@@ -38,7 +39,7 @@ describe('RetirementDrawingView', () => {
 
   it('says a pot outlasts the horizon, and the user\'s own life expectancy figure', () => {
     const text = mount(RetirementDrawingView, {
-      props: { position: position({ lasts_to_age: { middle: null, lower: null }, life_expectancy: { age: 90, source: 'user_override' } }) },
+      props: { position: position({ lasts_to_age: { middle: null, lower: null }, lasts_labels: { middle: 'lasts beyond 100', lower: 'lasts beyond 100' }, life_expectancy: { age: 90, source: 'user_override' } }) },
     }).text();
 
     expect(text).toContain('lasts beyond 100');
