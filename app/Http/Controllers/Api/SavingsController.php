@@ -218,7 +218,7 @@ class SavingsController extends Controller
                 'emergency_fund_target' => $savingsAnalysis['emergency_fund']['target'] ?? $this->savingsAgent->emergencyFundTargetFor($user),
                 'children_savings' => $savingsAnalysis['children_savings'] ?? [],
                 // What every savings screen shows, as sent (SavingsPosition).
-                'position' => $savingsAnalysis['position'] ?? null,
+                'position' => $savingsAnalysis['position'] ?? $this->savingsAgent->positionFor($user),
                 'analysis' => $analysis,
                 'life_events' => $lifeEvents,
                 'life_event_impact' => $lifeEventImpact,

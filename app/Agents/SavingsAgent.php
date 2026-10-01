@@ -85,6 +85,8 @@ class SavingsAgent extends BaseAgent
                         'liquidity' => null,
                         'rate_comparisons' => null,
                         'goals' => null,
+                        // The savings screens' figures need no income either.
+                        'position' => $this->positionFor($user),
                     ];
                 }
             }
@@ -515,6 +517,27 @@ class SavingsAgent extends BaseAgent
      *
      * Self-employed/contractors: 9 months; unemployed/career break: 12 months; otherwise: 6 months.
      */
+    /**
+     * The savings screens' figures on their own, for when the full analysis is
+     * blocked by its readiness gate (no income recorded): the same pieces and
+     * the same SavingsPosition rule as analyze(), so every savings screen still
+     * has its cash, runway, target and ISA allowance (CSJ 2026-10-01).
+     */
+    public function positionFor(User $user): array
+    {
+        $totalSavings = $this->assetAggregator->calculateCashTotal($user->id);
+        $monthly = $this->resolveMonthlyExpenditure($user)['amount'];
+
+        return app(SavingsPosition::class)->build(
+            $totalSavings,
+            $monthly,
+            $this->emergencyFundCalculator->calculateRunway($totalSavings, $monthly),
+            $this->calculateEmploymentBasedTarget($user, $monthly),
+            $this->isaTracker->getISAAllowanceStatus($user->id, $this->isaTracker->getCurrentTaxYear()),
+            $this->atUserShare($this->savingsStore->forUser($user), $user->id),
+        );
+    }
+
     /**
      * The emergency fund target on its own, for a reader that needs it when the
      * full analysis is blocked (the savings endpoint always sends a target).

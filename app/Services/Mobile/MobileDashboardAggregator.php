@@ -213,14 +213,17 @@ class MobileDashboardAggregator
     private function extractSavingsSummary(array $data): array
     {
         $summary = $data['summary'] ?? [];
-        $emergencyFund = $data['emergency_fund'] ?? [];
+        // SavingsPosition, the block every savings screen reads (CSJ 2026-10-01);
+        // present even when the full analysis is blocked. The target fell back to
+        // a 6 typed in here.
+        $fund = $data['position']['emergency_fund'] ?? [];
 
         return [
             'status' => 'active',
             'total_savings' => round((float) ($summary['total_savings'] ?? 0), 2),
             'total_accounts' => (int) ($summary['total_accounts'] ?? 0),
-            'emergency_fund_months' => round((float) ($emergencyFund['runway_months'] ?? 0), 1),
-            'emergency_fund_target_months' => (int) ($emergencyFund['target_months'] ?? 6),
+            'emergency_fund_months' => round((float) ($fund['runway_months'] ?? 0), 1),
+            'emergency_fund_target_months' => (int) ($fund['target_months'] ?? 0),
         ];
     }
 
