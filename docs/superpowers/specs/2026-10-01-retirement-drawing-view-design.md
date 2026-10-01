@@ -70,7 +70,7 @@ drawdown_position: {
   - Income Tax comes from the engine.
   - National Insurance applies to earnings only, from `UKTaxCalculator`.
   - Take-home is the total less both.
-- **When a pension is not recorded:** past State Pension age with no State Pension recorded as received, the card shows "State Pension: add it". This opens the existing State Pension form.
+- **When a pension is not recorded:** past State Pension age, the card shows "State Pension: add it" when none is recorded, or "not recorded as being paid" with Update when one is recorded but not marked as paid (section 6b).
 
 ## 5. What each surface shows
 
@@ -100,6 +100,18 @@ The pension cards, "Add Pension", "Upload Statement" and the other tabs stay.
 ## 6. Also fixed in the path
 
 - **`RetirementAgeResolver`** reads `retirement_date` first when it is on or before today. The age is the age on that date, with source `retirement_date`. A retired person's retirement age is a fact, not a target.
+
+## 6b. Found while walking, fixed in the path
+
+- **Nothing ever wrote `state_pension.already_receiving`.** So a recorded State Pension never counted as income anywhere (`ResolvesIncome` gates on it), and "State Pension: add it" could never clear. It can be deferred ([GOV.UK, deferring your State Pension](https://www.gov.uk/deferring-state-pension)), so it is asked, never assumed. It is now captured in four places:
+  - a checkbox on the web State Pension form;
+  - the `UpdateStatePensionRequest` rule;
+  - `already_receiving` on Fyn's `capture_state_pension` (both provider schemas, golden fixtures recaptured);
+  - a State Pension edit form (`CaptureForms::STATE_PENSION`), which a Fyn edit of the State Pension now opens on.
+- **The income card's State Pension line** is driven by `state_pension_status`: `missing` shows "Add it"; `not_paid` shows "not recorded as being paid" with Update. The column is `NOT NULL DEFAULT 0`, so "never asked" and "deferred" read the same, and that wording holds for both.
+- **The full new State Pension was typed in as £221.20 a week (£11,502)** under a 2026/27 label: on both pension forms, the life-stage panel and the glossary. 2026/27 is £241.30 ([GOV.UK](https://www.gov.uk/new-state-pension/what-youll-get); `pension.state_pension.full_new_state_pension` 12,547.60). All four now read `taxConfig.js`.
+- **Every Fyn edit form's money box took whole pounds only** (`step="1"`), so a prefilled amount with pence could not be saved. Both renderers now use `step="0.01"`.
+- **Form openings and summaries:** "Here are your state pension" became "Here is your State Pension"; "£11,502.4" became "£11,502.40".
 
 ## 7. Not in this item
 
