@@ -76,7 +76,7 @@ it('fills an approved employer match how-to with the card\'s own figures, one ca
     expect($item['id'])->toBe('retirement_employer_match_a'.$pension->id)
         ->and($item['card']['figures'])->toMatchArray(['employee_percent' => '3.0', 'scheme_name' => 'Test Workplace'])
         ->and(implode(' ', $card['why']))->toContain('You pay 3.0% of your salary into Test Workplace.')
-        ->and(implode(' ', $card['how_to']))->toContain('for example to 5.0%');
+        ->and(implode(' ', $card['how_to']))->toContain('Ask your employer, or check the scheme\'s rules, how their contribution to Test Workplace changes with yours');
 });
 
 it('gives the charges and income cards their own ids and figures', function () {

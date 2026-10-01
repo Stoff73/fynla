@@ -136,7 +136,8 @@ Alex's contradiction still goes: the Tax plan's relief card stops once the allow
 **Recommended:**
 - **For anyone `isDrawing` and no longer working:** no contribution, salary sacrifice, employer match, auto-enrolment or retirement-age card.
 - **For someone drawing while still working:** contribution cards stay, capped at the Money Purchase Annual Allowance once a pension has been flexibly accessed.
-- **Without a retirement profile,** the definitions that need none still run: State Pension forecast, National Insurance gaps, fees, consolidation and care costs. Pat (439) gets them.
+- **Without a retirement profile,** the definitions that need none still run: pension value, State Pension forecast, National Insurance gaps, fees and consolidation (care costs needs the profile's care cost field).
+- **Built:** the retirement readiness gate stopped Pat (439) with "Gross annual income is required". Someone drawing now gets the retiree downgrade (`RetirementDataReadinessService::checkIncome`). Pat's own data fires none of these cards: the State Pension is recorded and paid, there are no fees and only one pension.
 
 ### 3.5 Fees: one card per pension (decision D3)
 

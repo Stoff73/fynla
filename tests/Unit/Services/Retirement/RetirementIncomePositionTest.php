@@ -31,10 +31,11 @@ afterEach(function () {
 });
 
 /** Affordability as a household with $net a year of spare money (null: spending not recorded). */
-function affordWith(?float $net): void
+function affordWith(?float $net, bool $fromCash = false): void
 {
     $mock = Mockery::mock(PensionAffordability::class);
     $mock->shouldReceive('moneyThisYear')->andReturn($net);
+    $mock->shouldReceive('fundedFromCash')->andReturn($fromCash);
     app()->instance(PensionAffordability::class, $mock);
 }
 
@@ -97,22 +98,59 @@ it('caps what can be paid at what the household can afford', function () {
         ->and($position['closes_gap'])->toBeFalse();
 });
 
-it('caps what can be paid at relevant UK earnings (FA 2004 s190)', function () {
+it('caps what can be paid at relevant UK earnings less what the member already pays (FA 2004 s190)', function () {
     $this->user->update(['annual_employment_income' => 9000]);
+    DCPension::where('user_id', $this->user->id)->update(['annual_salary' => 9000]);
     affordWith(100000.0);
     $position = app(RetirementIncomePosition::class)->for($this->user->fresh(), analysisFor(20000, 20, 59460));
 
-    expect($position['limit_monthly'])->toEqualWithDelta(750.0, 0.01)
-        ->and($position['payable_monthly'])->toBeLessThanOrEqual(750.0)
-        ->and($position['payable_monthly'])->toBeGreaterThan(0.0);
+    // £9,000 of earnings less the 5% (£450) already paid through payroll.
+    expect($position['limit_monthly'])->toEqualWithDelta(8550 / 12, 0.01)
+        ->and($position['payable_monthly'])->toEqualWithDelta(8550 / 12, 0.01);
 });
 
-it('floors the cap at the basic amount for someone with no earnings', function () {
+it('lifts the cap to the basic amount for someone with no earnings who can pay by relief at source', function () {
     $this->user->update(['annual_employment_income' => 0]);
+    DCPension::where('user_id', $this->user->id)->delete();
+    DCPension::create([
+        'user_id' => $this->user->id, 'scheme_name' => 'SIPP', 'scheme_type' => 'sipp', 'pension_type' => 'sipp',
+        'current_fund_value' => 20000,
+    ]);
     affordWith(100000.0);
-    $position = app(RetirementIncomePosition::class)->for($this->user->fresh(), analysisFor(20000, 20, 58800));
+    $position = app(RetirementIncomePosition::class)->for($this->user->fresh(), analysisFor(20000, 20, 60000));
 
     expect($position['limit_monthly'])->toEqualWithDelta(300.0, 0.01);
+});
+
+it('leaves nothing under the basic amount once the member already pays it in', function () {
+    $this->user->update(['annual_employment_income' => 0]);
+    DCPension::where('user_id', $this->user->id)->delete();
+    DCPension::create([
+        'user_id' => $this->user->id, 'scheme_name' => 'SIPP', 'scheme_type' => 'sipp', 'pension_type' => 'sipp',
+        'current_fund_value' => 20000, 'monthly_contribution_amount' => 240, // £2,880 net, £3,600 gross
+    ]);
+    affordWith(100000.0);
+    $position = app(RetirementIncomePosition::class)->for($this->user->fresh(), analysisFor(20000, 20, 56400));
+
+    expect($position['limit_monthly'])->toEqualWithDelta(0.0, 0.01)
+        ->and($position['payable_monthly'])->toEqualWithDelta(0.0, 0.01);
+});
+
+it('gives no basic-amount lift on a net-pay workplace scheme alone (s191(7))', function () {
+    $this->user->update(['annual_employment_income' => 0]);
+    DCPension::where('user_id', $this->user->id)->update(['employee_contribution_percent' => 0, 'employer_contribution_percent' => 0, 'annual_salary' => 0]);
+    affordWith(100000.0);
+    $position = app(RetirementIncomePosition::class)->for($this->user->fresh(), analysisFor(20000, 20, 60000));
+
+    expect($position['limit_monthly'])->toEqualWithDelta(0.0, 0.01);
+});
+
+it('spreads savings over the years to retirement for someone paying from cash', function () {
+    affordWith(12000.0, fromCash: true);
+    $position = app(RetirementIncomePosition::class)->for($this->user, analysisFor(20000, 20));
+
+    // £12,000 of savings, grossed up at the basic rate, over 20 years.
+    expect($position['affordable_monthly'])->toEqualWithDelta(12000 / 0.8 / 20 / 12, 0.01);
 });
 
 it('caps at the Money Purchase Annual Allowance once a pension is flexibly accessed', function () {

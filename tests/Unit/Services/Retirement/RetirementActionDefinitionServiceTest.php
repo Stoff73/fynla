@@ -142,7 +142,7 @@ describe('evaluateAgentActions', function () {
             ->and($employerMatch['scope'])->toBe('account')
             ->and($employerMatch['title'])->toBe('Check your employer match on Test Workplace')
             ->and($employerMatch['definition_key'])->toBe('employer_match')
-            ->and($employerMatch['figures'])->toMatchArray(['employee_percent' => '3.0', 'threshold_percent' => '5.0']);
+            ->and($employerMatch['figures'])->toMatchArray(['employee_percent' => '3.0', 'additional_percent' => '2.0']);
     });
 
     it('does not produce employer match when contribution meets threshold', function () {
@@ -223,7 +223,8 @@ describe('evaluateAgentActions', function () {
 
         $aaRec = collect($this->service->evaluateAgentActions($analysisData)['recommendations'])->firstWhere('definition_key', 'annual_allowance_exceeded');
 
-        expect($aaRec['title'])->toBe('You have paid £5,000 more into pensions than your Annual Allowance');
+        expect($aaRec['title'])->toBe('You have paid £5,000 more into pensions than your allowance this year')
+            ->and($aaRec['figures'])->toMatchArray(['carry_forward_years' => '3', 'mpaa_applies' => false]);
     });
 
     it('shows only increase contributions when user has a contributing pension and a dormant one', function () {

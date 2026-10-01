@@ -28,7 +28,7 @@ class RetirementActionDefinitionService
      * household with no retirement profile (CSJ 2026-10-01, D4).
      */
     private const NEEDS_NO_PROFILE = [
-        'pension_value_unknown', 'state_pension_no_forecast', 'ni_gaps', 'care_costs_not_modelled',
+        'pension_value_unknown', 'state_pension_no_forecast', 'ni_gaps',
         'pension_consolidation_opportunity', 'high_pension_total_fees', 'high_pension_platform_fees', 'high_pension_fund_fees',
     ];
 
@@ -465,7 +465,8 @@ class RetirementActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $threshold = (float) ($config['threshold'] ?? 5.0);
+        // The auto-enrolment minimum employee share, from tax config.
+        $threshold = (float) ($config['threshold'] ?? (float) $this->taxConfig->get('pension.auto_enrolment.minimum_employee_contribution') * 100);
         $results = [];
 
         // Resolve user for profile context
@@ -568,7 +569,6 @@ class RetirementActionDefinitionService
             $vars = [
                 'additional_percent' => number_format($additionalPercent, 1),
                 'employee_percent' => number_format($employeePct, 1),
-                'threshold_percent' => number_format($threshold, 1),
                 'scheme_name' => $pension->scheme_name ?: 'pension',
             ];
 
@@ -1261,6 +1261,11 @@ class RetirementActionDefinitionService
 
         $vars = [
             'excess_amount' => '£'.number_format($excess, 0),
+            'carry_forward_years' => (string) (int) $this->taxConfig->get('pension.carry_forward_years'),
+            // The excess is already after any carry forward recorded (AnnualAllowanceChecker),
+            // and none is usable once the Money Purchase Annual Allowance applies.
+            'carry_forward_recorded' => $carryForward > 0,
+            'mpaa_applies' => (bool) ($analysisData['annual_allowance']['mpaa_applies'] ?? false),
         ];
 
         return [[
