@@ -38,12 +38,12 @@ final class MarriageAllowanceStrategy implements TaxStrategy
             title: 'Claim Marriage Allowance',
             description: $position['direction'] === 'to_user'
                 ? sprintf(
-                    'Your spouse or civil partner can transfer £%s of their unused Personal Allowance to you, saving your household around £%s a year in income tax.',
+                    'Your spouse or civil partner can transfer £%s of their Personal Allowance to you, saving your household around £%s a year in income tax.',
                     number_format((int) $amount),
                     number_format((int) floor($saving)),
                 )
                 : sprintf(
-                    'You can transfer £%s of your unused Personal Allowance to your spouse or civil partner, saving your household around £%s a year in income tax.',
+                    'You can transfer £%s of your Personal Allowance to your spouse or civil partner, saving your household around £%s a year in income tax.',
                     number_format((int) $amount),
                     number_format((int) floor($saving)),
                 ),
@@ -54,6 +54,9 @@ final class MarriageAllowanceStrategy implements TaxStrategy
                 // Each partner's income, so the steps can say why this way round.
                 'user_income' => $position['user_income'],
                 'spouse_income' => $position['spouse_income'],
+                // What the giver pays once their allowance is smaller (s55B(6)),
+                // already netted off the saving.
+                'transferor_extra_tax' => $position['transferor_extra_tax'],
             ],
         )];
     }

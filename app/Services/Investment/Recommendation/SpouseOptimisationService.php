@@ -9,7 +9,7 @@ use App\Services\TaxConfigService;
 use Illuminate\Support\Str;
 
 /**
- * 7 spouse optimisation strategies for married/civil partnership users.
+ * 6 spouse optimisation strategies for married/civil partnership users.
  *
  * Gate: user must be married/civil_partnership AND have a linked spouse.
  * All thresholds from TaxConfigService.
@@ -35,7 +35,7 @@ class SpouseOptimisationService
             return [
                 'recommendations' => [],
                 'strategies_triggered' => 0,
-                'strategies_total' => 7,
+                'strategies_total' => 6,
             ];
         }
 
@@ -77,12 +77,9 @@ class SpouseOptimisationService
             $triggered++;
         }
 
-        // Strategy 6: Marriage Allowance
-        $s6 = $this->strategyMarriageAllowance($context, $spouseContext);
-        if ($s6 !== null) {
-            $recommendations[] = $s6;
-            $triggered++;
-        }
+        // Marriage Allowance is not assessed here: the Tax Strategy plan owns it
+        // (TaxStrategyMath::marriageAllowance), and the investment plan filtered
+        // this copy out (InvestmentPlanService) anyway.
 
         // Strategy 7: Inheritance Tax planning
         $s7 = $this->strategyIHTPlan($context, $spouseContext);
@@ -94,7 +91,7 @@ class SpouseOptimisationService
         return [
             'recommendations' => $recommendations,
             'strategies_triggered' => $triggered,
-            'strategies_total' => 7,
+            'strategies_total' => 6,
         ];
     }
 
@@ -480,70 +477,6 @@ class SpouseOptimisationService
             sprintf('Net cost: £%s per year for £%s gross pension contribution.', number_format($netCost, 0, '.', ','), number_format($grossContribution, 0, '.', ',')),
             'high',
             (float) $netCost
-        );
-        $rec['decision_trace'] = $trace;
-
-        return $rec;
-    }
-
-    /**
-     * Strategy 6: Marriage Allowance (transfer 10% of Personal Allowance).
-     */
-    private function strategyMarriageAllowance(array $context, array $spouseContext): ?array
-    {
-        $userTaxBand = $context['financial']['tax_band'] ?? 'basic';
-        $spouseTaxBand = $spouseContext['tax_band'] ?? 'basic';
-        $userGrossIncome = $context['financial']['gross_income'] ?? 0;
-        $spouseGrossIncome = $spouseContext['gross_income'] ?? 0;
-
-        $spouseName = $spouseContext['name'] ?? 'Partner';
-
-        // Marriage Allowance: non-taxpayer transfers 10% of PA to basic rate partner
-        $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
-        $transferable = (int) ($personalAllowance * 0.10);
-
-        $eligible = false;
-        $direction = '';
-
-        if ($userTaxBand === 'non_taxpayer' && $spouseTaxBand === 'basic') {
-            $eligible = true;
-            $direction = sprintf('The primary holder (income £%s) transfers £%s of their unused Personal Allowance to %s (%s rate, income £%s).', number_format($userGrossIncome, 0, '.', ','), number_format($transferable, 0, '.', ','), $spouseName, $spouseTaxBand, number_format($spouseGrossIncome, 0, '.', ','));
-        } elseif ($spouseTaxBand === 'non_taxpayer' && $userTaxBand === 'basic') {
-            $eligible = true;
-            $direction = sprintf('%s (income £%s) transfers £%s of their unused Personal Allowance to the primary holder (%s rate, income £%s).', $spouseName, number_format($spouseGrossIncome, 0, '.', ','), number_format($transferable, 0, '.', ','), $userTaxBand, number_format($userGrossIncome, 0, '.', ','));
-        }
-
-        $annualSaving = $transferable * 0.20; // 20% basic rate saving
-
-        $trace = [];
-
-        $trace[] = [
-            'question' => 'Is one partner a non-taxpayer and the other a basic rate taxpayer?',
-            'data_field' => 'financial.tax_band + spouse.tax_band',
-            'data_value' => 'Primary: '.$userTaxBand.' rate (£'.number_format($userGrossIncome, 0).' gross). '.$spouseName.': '.$spouseTaxBand.' rate (£'.number_format($spouseGrossIncome, 0).' gross).',
-            'threshold' => 'One non_taxpayer + one basic rate',
-            'passed' => $eligible,
-            'explanation' => $eligible
-                ? $direction.' Annual tax saving: £'.number_format($annualSaving, 0).' (£'.number_format($transferable, 0).' × 20% basic rate).'
-                : 'Marriage Allowance requires one non-taxpayer and one basic rate taxpayer. Current bands ('.$userTaxBand.' and '.$spouseTaxBand.') do not qualify.',
-        ];
-
-        if (! $eligible) {
-            return null;
-        }
-
-        $rec = $this->buildRecommendation(
-            'marriage_allowance',
-            'Claim Marriage Allowance',
-            sprintf(
-                'Marriage Allowance lets a non-taxpayer transfer £%s of their Personal Allowance to a basic rate taxpayer partner. %s This saves £%s per year in income tax.',
-                number_format($transferable, 0, '.', ','),
-                $direction,
-                number_format($annualSaving, 0, '.', ',')
-            ),
-            sprintf('Annual tax saving: £%s. Apply online at gov.uk — can be backdated up to 4 years (potential total saving: £%s).', number_format($annualSaving, 0, '.', ','), number_format($annualSaving * 4, 0, '.', ',')),
-            'high',
-            $annualSaving
         );
         $rec['decision_trace'] = $trace;
 

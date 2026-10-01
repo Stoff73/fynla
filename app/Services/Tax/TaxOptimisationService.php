@@ -6,6 +6,7 @@ namespace App\Services\Tax;
 
 use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\SavingsStore;
@@ -27,7 +28,8 @@ class TaxOptimisationService
 
     public function __construct(
         private readonly TaxConfigService $taxConfig,
-        private readonly AnnualAllowanceChecker $allowanceChecker
+        private readonly AnnualAllowanceChecker $allowanceChecker,
+        private readonly TaxStrategyMath $math,
     ) {}
 
     /**
@@ -405,8 +407,17 @@ class TaxOptimisationService
         $spouseIncome = $this->resolveGrossAnnualIncome($spouse);
         $spouseTaxBand = $this->determineTaxBand($spouseIncome);
 
-        // Only suggest if there is a tax band difference
-        if ($taxBand === $spouseTaxBand) {
+        // Marriage Allowance from the plan's one rule, so this and the Tax
+        // Strategy plan cannot disagree: the law's tests (ITA 2007 s55B(2),
+        // s55C(1)(c),(ca)) and the saving net of the giver's extra tax.
+        $marriage = $this->math->marriageAllowance(
+            $user,
+            (string) ($user->household_calculation_mode ?? ''),
+            TaxStrategyHouseholdInput::where('user_id', $user->id)->first(),
+        );
+
+        // Otherwise only suggest if there is a tax band difference
+        if ($taxBand === $spouseTaxBand && $marriage === null) {
             return null;
         }
 
@@ -419,23 +430,9 @@ class TaxOptimisationService
         $estimatedSaving = 0.0;
         $actions = [];
 
-        // Marriage Allowance check (basic rate to non-taxpayer transfer)
-        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
-        $personalAllowance = (float) ($incomeTaxConfig['personal_allowance'] ?? TaxDefaults::PERSONAL_ALLOWANCE);
-
-        $lowerEarnerIncome = $grossIncome >= $spouseIncome ? $spouseIncome : $grossIncome;
-        if ($lowerEarnerIncome < $personalAllowance && $higherBand === 'basic') {
-            // The transferable amount is NOT 10% of the personal allowance: ITA 2007
-            // s55B(5) rounds it UP to the nearest £10, so 2025/26 is £1,260 against a
-            // £12,570 allowance, not £1,257. Both the amount and the rate it saves at
-            // come from configuration (Rule 2) — `income_tax.marriage_allowance.amount`
-            // is the same figure the public allowances page publishes.
-            $marriageAllowanceAmount = (float) ($incomeTaxConfig['marriage_allowance']['amount']
-                ?? round($personalAllowance * 0.10 / 10) * 10);
-            $basicRate = (float) ($incomeTaxConfig['bands'][0]['rate'] ?? 0.20);
-            $marriageAllowanceSaving = round($marriageAllowanceAmount * $basicRate, 2);
-            $estimatedSaving += $marriageAllowanceSaving;
-            $actions[] = 'Apply for Marriage Allowance to transfer unused personal allowance';
+        if ($marriage !== null) {
+            $estimatedSaving += $marriage['saving'];
+            $actions[] = 'Apply for Marriage Allowance to transfer part of a Personal Allowance between you';
         }
 
         // Check ISA usage for both partners
@@ -460,12 +457,11 @@ class TaxOptimisationService
             );
         }
 
-        // Income shifting suggestion for higher/basic band gap
+        // Income shifting suggestion for higher/basic band gap. It carries no
+        // figure: nothing here sizes the assets moved (Rule 23); the plan's
+        // savings_to_spouse and gia_to_spouse price the move.
         if ($higherBand === 'higher' && $lowerBand === 'basic') {
             $actions[] = 'Consider transferring income-producing assets to the lower-rate spouse to reduce overall tax';
-            if ($estimatedSaving === 0.0) {
-                $estimatedSaving = 200.0; // Conservative estimate
-            }
         }
 
         if (empty($actions)) {
@@ -476,11 +472,13 @@ class TaxOptimisationService
             'type' => 'spousal_optimisation',
             'priority' => 'low',
             'title' => 'Spousal Tax Optimisation',
-            'description' => sprintf(
-                'You and your spouse are in different tax bands (%s rate vs %s rate), creating opportunities to reduce your household tax bill.',
-                $higherBand,
-                $lowerBand
-            ),
+            'description' => $higherBand === $lowerBand
+                ? 'Marriage Allowance can reduce your household tax bill.'
+                : sprintf(
+                    'You and your spouse are in different tax bands (%s rate vs %s rate), creating opportunities to reduce your household tax bill.',
+                    $higherBand,
+                    $lowerBand
+                ),
             'action' => implode('. ', $actions),
             'estimated_annual_saving' => round($estimatedSaving, 2),
             'details' => [

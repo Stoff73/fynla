@@ -5730,10 +5730,12 @@ class CoordinatingAgent extends BaseAgent
             'household_calculation_mode' => $works ? 'dual_earner' : 'single_earner_couple',
         ]);
 
+        // No eligibility verdict goes back to Fyn: whether a partner who works
+        // can give part of their allowance depends on their income (ITA 2007
+        // s55C(1)(c)), which the Tax Strategy plan tests once it is known.
         return [
             'updated' => true,
             'household_calculation_mode' => $user->household_calculation_mode,
-            'marriage_allowance_eligible' => $user->marriage_allowance_eligible,
             'message' => $works
                 ? 'Recorded that your spouse works — we\'ll capture more details next.'
                 : 'Recorded that your spouse doesn\'t currently work — Marriage Allowance may apply.',
