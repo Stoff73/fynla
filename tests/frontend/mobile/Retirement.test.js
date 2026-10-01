@@ -389,7 +389,7 @@ describe('mobile Retirement', () => {
     expect(text).toContain('Drawing £30,000 a year from £200,000');
     expect(text).toContain('Middle outcomelasts to age 76');
     expect(text).toContain('Lower outcome (4 in 5 do better)lasts to age 75');
-    expect(text).toContain('Life expectancy86 (Office for National Statistics)');
+    expect(text).toContain('Life expectancy (Office for National Statistics)86');
     expect(text).toContain('about £13,400 a year');
     expect(text).toContain('Lower-Medium risk level');
     // The saver's view is gone.

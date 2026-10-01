@@ -201,8 +201,10 @@
           </div>
         </template>
         <div class="m-detail-row">
-          <span class="m-detail-key">Life expectancy</span>
-          <span class="m-detail-value">{{ drawing.pot.life_expectancy.age }} ({{ drawing.pot.life_expectancy.source === 'ons' ? 'Office for National Statistics' : 'your figure' }})</span>
+          <!-- The source sits with the label: at phone width the value column
+               cannot hold it (walked at 390px, 2026-10-01). -->
+          <span class="m-detail-key">Life expectancy ({{ drawing.pot.life_expectancy.source === 'ons' ? 'Office for National Statistics' : 'your figure' }})</span>
+          <span class="m-detail-value">{{ drawing.pot.life_expectancy.age }}</span>
         </div>
         <div v-if="drawing.pot.income_to_last_to_life_expectancy !== null" class="m-detail-row">
           <span class="m-detail-key"><strong>To last to {{ drawing.pot.life_expectancy.age }}</strong></span>
