@@ -12,6 +12,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -26,6 +27,7 @@ class NetWorthService
     public function __construct(
         private CrossModuleAssetAggregator $assetAggregator,
         private readonly PropertyStore $propertyStore,
+        private readonly PropertyService $propertyService,
     ) {}
 
     /**
@@ -52,16 +54,11 @@ class NetWorthService
 
         $totalAssets = $propertyValue + $investmentValue + $cashValue + $pensionValue + $businessValue + $chattelValue;
 
-        // Use CrossModuleAssetAggregator for mortgages
-        $mortgages = $this->assetAggregator->calculateMortgageTotal($userId);
-
-        // Calculate all liabilities breakdown
-        $liabilitiesBreakdown = $this->calculateLiabilitiesBreakdown($userId);
-
-        // Add mortgages to the breakdown
-        $liabilitiesBreakdown['mortgages'] = $mortgages;
-
-        $totalLiabilities = array_sum($liabilitiesBreakdown);
+        // What this user owes, at THEIR share, from the one engine every Net
+        // Worth surface reads (audit item 26). Mortgage-type liability rows are
+        // counted on the mortgages line; see the engine's docblock.
+        $liabilitiesBreakdown = $this->assetAggregator->calculateLiabilityBreakdown($userId);
+        $totalLiabilities = $liabilitiesBreakdown['total'];
 
         // Calculate net worth
         $netWorth = $totalAssets - $totalLiabilities;
@@ -95,6 +92,39 @@ class NetWorthService
     }
 
     /**
+     * A couple's combined figures, summed ONCE on the server from each partner's
+     * `calculateNetWorth()` result — the household total column on the wealth
+     * summary and the combined bar chart read these instead of adding the two
+     * columns in the browser (2026-10-01, one figure every surface).
+     *
+     * Each side is already at its owner's share, so a jointly held asset is
+     * counted once in full and a third party's share is counted by nobody.
+     *
+     * @param  array<string, mixed>  $user  calculateNetWorth() for the viewer
+     * @param  array<string, mixed>  $spouse  calculateNetWorth() for the partner
+     * @return array{total_assets: float, total_liabilities: float, net_worth: float, breakdown: array<string, float>, liabilities_breakdown: array<string, float>}
+     */
+    public function householdNetWorth(array $user, array $spouse): array
+    {
+        $sum = function (array $a, array $b): array {
+            $out = [];
+            foreach (array_keys($a + $b) as $key) {
+                $out[$key] = round((float) ($a[$key] ?? 0) + (float) ($b[$key] ?? 0), 2);
+            }
+
+            return $out;
+        };
+
+        return [
+            'total_assets' => round($user['total_assets'] + $spouse['total_assets'], 2),
+            'total_liabilities' => round($user['total_liabilities'] + $spouse['total_liabilities'], 2),
+            'net_worth' => round($user['net_worth'] + $spouse['net_worth'], 2),
+            'breakdown' => $sum($user['breakdown'], $spouse['breakdown']),
+            'liabilities_breakdown' => $sum($user['liabilities_breakdown'], $spouse['liabilities_breakdown']),
+        ];
+    }
+
+    /**
      * Calculate total business value for user
      *
      * Single-Record Architecture:
@@ -121,85 +151,6 @@ class NetWorthService
     private function calculateChattelValue(int $userId): float
     {
         return $this->assetAggregator->calculateChattelTotal($userId);
-    }
-
-    /**
-     * Calculate liabilities breakdown by type, **at this user's share of each**.
-     *
-     * Returns an array with keys: loans, credit_cards, other
-     * (mortgages are calculated separately via CrossModuleAssetAggregator)
-     *
-     * **W-0226 — the sixth mechanism answering "what does this user owe", and the
-     * last one still answering it wrong.**
-     *
-     * This read `Liability::where('user_id', $userId)` and summed `current_balance`
-     * at face value, so a joint loan was charged WHOLLY to whoever recorded it and
-     * the co-owner was shown none of it — both halves of the same failure W-0187
-     * fixed for the protection need, W-0206 for the goals projection and W-0173 for
-     * rental income.
-     *
-     * **The docblock here used to assert the opposite, and that is why nobody
-     * looked.** It said "For joint liabilities, reciprocal records exist with each
-     * owner's share stored in current_balance". That is not how this application
-     * models joint records: `App\Models\Estate\Liability` is fillable on
-     * `ownership_type`, `ownership_percentage` and `joint_owner_id` and has a
-     * `joint_owner_id` relation — ONE record carrying a share, per Rule 6. A reader
-     * checking whether this had been dealt with found a note saying it had, and
-     * stopped. Corrected here rather than left as a second completion claim.
-     *
-     * Reach from `forUserOrJoint()`, fraction from `calculateUserShare()` — the same
-     * two homes `CrossModuleAssetAggregator::calculateLiabilityTotals()` uses, so a
-     * share belonging to someone with no account here reduces this user's figure
-     * without being credited to anybody.
-     */
-    private function calculateLiabilitiesBreakdown(int $userId): array
-    {
-        // Every liability this user is a party to — as recorder OR as joint owner.
-        $liabilities = Liability::forUserOrJoint($userId)->get();
-
-        $breakdown = [
-            'mortgages' => 0.0, // Will be filled with property mortgages
-            'loans' => 0.0,
-            'credit_cards' => 0.0,
-            'other' => 0.0,
-        ];
-
-        foreach ($liabilities as $liability) {
-            // The user's OWN share, not the whole balance (W-0226).
-            $balance = $this->calculateUserShare($liability, $userId);
-
-            // Map granular liability types to display categories
-            switch ($liability->liability_type) {
-                // Loan types - all map to 'loans'
-                case 'loan':
-                case 'secured_loan':
-                case 'personal_loan':
-                case 'hire_purchase':
-                case 'student_loan':
-                case 'business_loan':
-                    $breakdown['loans'] += $balance;
-                    break;
-
-                    // Credit card debt
-                case 'credit_card':
-                    $breakdown['credit_cards'] += $balance;
-                    break;
-
-                    // Mortgages - skip as they're tracked via property mortgages
-                case 'mortgage':
-                    // Skip mortgages from liabilities table - they're tracked via property mortgages
-                    break;
-
-                    // Other liabilities
-                case 'overdraft':
-                case 'other':
-                default:
-                    $breakdown['other'] += $balance;
-                    break;
-            }
-        }
-
-        return $breakdown;
     }
 
     /**
@@ -380,19 +331,25 @@ class NetWorthService
         $properties->loadMissing('mortgages');
         $propertyItems = $properties->map(function ($property) use ($userId) {
             $name = $property->address_line_1 ?: $property->property_type;
+            // Every per-viewer figure (share, share %, mortgage shares, equity)
+            // from the one home the property endpoints also read (audit items
+            // 28-30), so the list row and the detail screen cannot disagree.
+            $figures = $this->propertyService->viewerFigures($property, $userId);
 
             return [
                 'id' => $property->id,
                 'name' => $name,
                 'type' => $property->property_type,
-                'value' => $this->calculateUserShare($property, $userId),
-                'full_value' => (float) $property->current_value,
+                'value' => $figures['user_share'],
+                'full_value' => $figures['full_value'],
                 'ownership_type' => $property->ownership_type,
                 'ownership_percentage' => (float) ($property->ownership_percentage ?? 100),
+                'user_share_percent' => $figures['user_share_percent'],
                 'is_primary_owner' => $property->user_id === $userId,
-                'outstanding_mortgage' => (float) $property->mortgages
-                    ->sum(fn (Mortgage $mortgage): float => $this->calculateUserMortgageShare($mortgage, $userId)),
-                'full_outstanding_mortgage' => (float) $property->mortgages->sum('outstanding_balance'),
+                'mortgage_user_share' => $figures['mortgage_user_share'],
+                'mortgage_full_balance' => $figures['mortgage_full_balance'],
+                'user_equity' => $figures['user_equity'],
+                'full_equity' => $figures['full_equity'],
             ];
         })->toArray();
 
@@ -416,17 +373,22 @@ class NetWorthService
             ->values()
             ->all();
 
-        $liabilityItems = Liability::query()
-            ->where('user_id', $userId)
+        // Every liability this user is a party to, at THEIR share — the same reach
+        // and fraction as the total below. This read `where('user_id')` at the full
+        // balance, so the co-owner of a joint loan saw none of it and its recorder
+        // saw all of it, while the overview charged each their share (item 26).
+        $liabilityItems = Liability::forUserOrJoint($userId)
             ->get()
             ->map(fn (Liability $liability): array => [
                 'id' => $liability->id,
                 'kind' => 'liability',
                 'name' => $liability->liability_name ?: str($liability->liability_type)->replace('_', ' ')->title()->toString(),
-                'value' => (float) $liability->current_balance,
+                'value' => round($this->calculateUserShare($liability, $userId), 2),
                 'full_value' => (float) $liability->current_balance,
                 'liability_type' => $liability->liability_type,
                 'ownership_type' => $liability->ownership_type,
+                'user_share_percent' => $this->userSharePercent($liability, $userId),
+                'is_primary_owner' => $liability->user_id === $userId,
             ])
             ->values()
             ->all();
@@ -447,6 +409,7 @@ class NetWorthService
                 'account_type' => $investment->account_type,
                 'provider' => $investment->provider,
                 'value' => $this->calculateUserShare($investment, $userId),
+                'user_share_percent' => $this->userSharePercent($investment, $userId),
                 'full_value' => (float) $investment->current_value,
                 'ownership_type' => $investment->ownership_type,
                 'ownership_percentage' => (float) ($investment->ownership_percentage ?? 100),
@@ -468,6 +431,7 @@ class NetWorthService
                 'account_type' => $account->account_type,
                 'institution' => $account->institution,
                 'value' => $this->calculateUserShare($account, $userId),
+                'user_share_percent' => $this->userSharePercent($account, $userId),
                 'full_value' => (float) $account->current_balance,
                 'ownership_type' => $account->ownership_type,
                 'ownership_percentage' => (float) ($account->ownership_percentage ?? 100),
@@ -486,6 +450,7 @@ class NetWorthService
                 'name' => $business->business_name,
                 'business_type' => $business->business_type,
                 'value' => $this->calculateUserShare($business, $userId),
+                'user_share_percent' => $this->userSharePercent($business, $userId),
                 'full_value' => (float) $business->current_valuation,
                 'ownership_type' => $business->ownership_type,
                 'ownership_percentage' => (float) ($business->ownership_percentage ?? 100),
@@ -506,6 +471,7 @@ class NetWorthService
                 'name' => $chattel->name,
                 'chattel_type' => $chattel->chattel_type,
                 'value' => $this->calculateUserShare($chattel, $userId),
+                'user_share_percent' => $this->userSharePercent($chattel, $userId),
                 'full_value' => (float) $chattel->current_value,
                 'ownership_type' => $chattel->ownership_type,
                 'ownership_percentage' => (float) ($chattel->ownership_percentage ?? 100),
@@ -568,10 +534,24 @@ class NetWorthService
             ],
             'liabilities' => [
                 'count' => count($debtItems),
-                'total_value' => round((float) array_sum(array_column($debtItems, 'value')), 2),
+                // The one engine's total — the same figure the overview publishes
+                // as `total_liabilities` — not a sum of this list (item 26).
+                'total_value' => $this->assetAggregator->calculateLiabilityBreakdown($userId)['total'],
                 'items' => $debtItems,
             ],
         ];
+    }
+
+    /**
+     * The viewer's own percentage of a record — the joint owner holds the
+     * complement of the stored primary-owner figure, and a business interest's
+     * percentage is a shareholding even when individually held. Published beside
+     * `value` so no surface prints the stored `ownership_percentage` to the wrong
+     * party (audit item 29).
+     */
+    private function userSharePercent(object $record, int $userId): float
+    {
+        return round($this->userShareFraction($record, $userId) * 100, 2);
     }
 
     /**

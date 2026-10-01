@@ -61,7 +61,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { calculateUserShare, coOwnerName, userSharePercent } from '@/utils/ownership';
+import { coOwnerName } from '@/utils/ownership';
 
 export default {
   name: 'PropertyCard',
@@ -106,19 +106,16 @@ export default {
       return this.isTenantsInCommon ? 'Tenants in common' : 'Joint';
     },
 
+    // Every figure on this card is the server's, rendered as sent
+    // (`PropertyService::viewerFigures`, 2026-10-01, one figure every surface).
+    // The card used to work out the share, the percentage, the mortgage and the
+    // equity itself, so the list row could disagree with the detail screen.
     fullPropertyValue() {
-      // Single-record pattern: current_value in DB is the FULL value
-      // Use full_value from API response if available, otherwise current_value
-      return this.property.full_value ?? this.property.current_value ?? 0;
+      return this.property.full_value;
     },
 
-    // The viewer's share, percentage and counterparty all come from the ONE
-    // ownership helper. Rendering the record's stored joint_owner_name
-    // unconditionally told the spouse the property was "Joint with <herself>",
-    // and would name the wrong party on a tenants-in-common asset held with
-    // someone outside the household (W-0016).
     userShare() {
-      return calculateUserShare(this.property, { valueField: 'current_value' });
+      return this.property.user_share;
     },
 
     monthlyRent() {
@@ -127,54 +124,30 @@ export default {
       return this.property.property_type === 'buy_to_let' ? (parseFloat(this.property.monthly_rental_income) || 0) : 0;
     },
     sharePercent() {
-      return userSharePercent(this.property).toFixed(2);
+      return Number(this.property.user_share_percent).toFixed(2);
     },
 
+    // The counterparty's name — never the viewer's own (W-0016).
     coOwner() {
       return coOwnerName(this.property);
     },
 
+    // The label the live card has always shown, since the API has always sent
+    // `mortgage_user_share` for a property with a mortgage.
     mortgageLabel() {
-      if (this.property.mortgage_user_share !== undefined) {
-        return 'Your mortgage liability';
-      }
-      return 'Mortgage Outstanding';
+      return 'Your mortgage liability';
     },
 
     hasMortgage() {
-      // Check if property has mortgages relationship loaded
-      if (this.property.mortgages && this.property.mortgages.length > 0) {
-        return this.property.mortgages.some(m => m.outstanding_balance > 0);
-      }
-      return (this.property.mortgage_balance > 0) || (this.property.outstanding_mortgage > 0);
+      return Number(this.property.mortgage_full_balance) > 0;
     },
 
     mortgageAmount() {
-      // Prefer the borrower-based liability calculated by the API. Property
-      // ownership and mortgage liability can have different percentages.
-      if (this.property.mortgage_user_share !== undefined) {
-        return parseFloat(this.property.mortgage_user_share) || 0;
-      }
-
-      if (this.property.mortgages && this.property.mortgages.length > 0) {
-        return this.property.mortgages.reduce((sum, mortgage) => {
-          const balance = parseFloat(mortgage.outstanding_balance) || 0;
-
-          if (mortgage.ownership_type === 'joint') {
-            return sum + (balance * ((parseFloat(mortgage.ownership_percentage) || 50) / 100));
-          }
-
-          return sum + balance;
-        }, 0);
-      }
-
-      // Fallback for properties without detailed mortgage records
-      return this.property.mortgage_balance || this.property.outstanding_mortgage || 0;
+      return this.property.mortgage_user_share;
     },
 
     equity() {
-      // Single-record pattern: Calculate equity from user's share values
-      return this.userShare - this.mortgageAmount;
+      return this.property.user_equity;
     },
   },
 

@@ -166,10 +166,15 @@ class GoalsProjectionService
         $goalsByYear = $this->indexEventsByYear($goals, $user, 'target_date');
         $lifeEventsByYear = $this->indexEventsByYear($lifeEvents, $user, 'expected_date');
 
-        // Non-mortgage liabilities (credit cards, loans, etc.)
-        $otherLiabilities = ($netWorth['liabilities_breakdown']['credit_cards'] ?? 0)
-            + ($netWorth['liabilities_breakdown']['loans'] ?? 0)
-            + ($netWorth['liabilities_breakdown']['other'] ?? 0);
+        // Every liability held flat across the projection: all that the one
+        // liability engine says this user owes, less the `mortgages`-table
+        // balances amortised separately above. That includes the user's share of
+        // any mortgage recorded as a LIABILITY row, which NetWorthService now
+        // counts on its mortgages line (2026-10-01, one figure every surface) —
+        // reading only loans, cards and other here would have dropped it and
+        // parted /goals from the dashboard again (W-0206).
+        $otherLiabilities = (float) $netWorth['total_liabilities']
+            - $this->assetAggregator->calculateMortgageTotal($user->id);
 
         for ($age = $currentAge; $age <= $endAge; $age++) {
             $year = $currentYear + ($age - $currentAge);

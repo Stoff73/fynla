@@ -7,6 +7,7 @@ namespace App\Services\Property;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\PropertyStore;
+use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
@@ -80,41 +81,108 @@ class PropertyService
     }
 
     /**
-     * Calculate property equity (current value - outstanding mortgage balance)
+     * The property's FULL equity: its full value less the full balance of every
+     * mortgage secured on it. **The one home for full equity** — the
+     * `Property::equity` accessor, `getPropertySummary()['equity']` and
+     * `viewerFigures()['full_equity']` all read it (audit item 28).
      *
-     * Single-record pattern: Returns FULL equity (not user's share).
-     * Use calculateUserEquity() for user's share.
+     * Two copies used to disagree. This one floored at zero and fell back to the
+     * derived `properties.outstanding_mortgage` column; the accessor's copy in
+     * `PropertyCalculationService` did neither, and its docblock claimed both
+     * figures were "already stored as the user's share", which they are not —
+     * one record holds the full value (Rule 6). Negative equity is a real state
+     * and net worth carries it unfloored, so this does too. The derived column is
+     * a recalc of the mortgages sum (`PropertyDerivedColumnCalculator`), so the
+     * relation is read directly rather than a copy of it.
      */
     public function calculateEquity(Property $property): float
     {
-        $currentValue = $property->current_value ?? 0;
+        $property->loadMissing('mortgages');
 
-        // Get total outstanding mortgage balance from detailed records
-        $mortgageBalance = $property->mortgages()
-            ->sum('outstanding_balance');
-
-        // Fall back to simple outstanding_mortgage field if no detailed records exist
-        if ($mortgageBalance == 0 && $property->outstanding_mortgage > 0) {
-            $mortgageBalance = $property->outstanding_mortgage;
-        }
-
-        // Single-record pattern: Both current_value and mortgageBalance are FULL values
-        return max(0, $currentValue - $mortgageBalance);
+        return round(
+            (float) ($property->current_value ?? 0) - $this->fullMortgageBalance($property),
+            2
+        );
     }
 
     /**
-     * Calculate user's share of property equity.
-     *
-     * Single-record pattern: Applies ownership percentage to calculate
-     * the user's share of the total equity.
+     * The viewer's equity: THEIR share of the property less THEIR share of the
+     * mortgages on it. Each share comes from its own rule in
+     * `CalculatesOwnershipShare` — a mortgage's share follows the property unless
+     * a liability share is declared (W-0228, W-0483) — so this is the difference
+     * of the two published shares, never full equity times a fraction.
      */
     public function calculateUserEquity(Property $property, int $userId): float
     {
-        // Composed from the one home rather than re-derived. This was a
-        // byte-equivalent inline copy of the share rule — the fourth — and it has
-        // no callers today, which is exactly how a copy survives long enough to
-        // drift from the original (W-0228).
-        return $this->calculateEquity($property) * $this->userShareFraction($property, $userId);
+        $property->loadMissing('mortgages');
+
+        return round(
+            $this->calculateUserShare($property, $userId) - $this->userMortgageShare($property, $userId),
+            2
+        );
+    }
+
+    /**
+     * Every per-viewer figure a property screen prints, computed once on the
+     * server (2026-10-01, one figure every surface: audit items 28, 29, 30).
+     *
+     * The web cards, the web detail, the `/m` list and detail, native iOS and the
+     * Net Worth summary all read these keys. Before this, the list rows worked
+     * out equity and the share percentage on the client, the web detail
+     * multiplied the mortgage by the PRIMARY owner's percentage, and `/m` and iOS
+     * printed the stored `outstanding_mortgage` column.
+     *
+     * `user_share_percent` is the viewer's own percentage (the joint owner holds
+     * the complement of the stored primary-owner figure); `co_owner_share_percent`
+     * is the other party's. `mortgage_*` and `*_equity` are always present, zero
+     * when there is no mortgage, so no client needs a fallback.
+     *
+     * @return array{user_share: float, user_share_percent: float, co_owner_share_percent: float, full_value: float, mortgage_user_share: float, mortgage_full_balance: float, mortgage_user_monthly_payment: float, user_equity: float, full_equity: float, monthly_rental_income_user_share: float, managing_agent_fee_user_share: float}
+     */
+    public function viewerFigures(Property $property, int $userId): array
+    {
+        $property->loadMissing('mortgages');
+
+        $fraction = $this->userShareFraction($property, $userId);
+        $userSharePercent = round($fraction * 100, 2);
+
+        return [
+            'user_share' => round($this->calculateUserShare($property, $userId), 2),
+            'user_share_percent' => $userSharePercent,
+            'co_owner_share_percent' => $this->coOwnerSharePercent($property, $userSharePercent),
+            'full_value' => (float) ($property->current_value ?? 0),
+            'mortgage_user_share' => round($this->userMortgageShare($property, $userId), 2),
+            'mortgage_full_balance' => round($this->fullMortgageBalance($property), 2),
+            'mortgage_user_monthly_payment' => round((float) $property->mortgages
+                ->sum(fn ($mortgage): float => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $userId)), 2),
+            'user_equity' => $this->calculateUserEquity($property, $userId),
+            'full_equity' => $this->calculateEquity($property),
+            'monthly_rental_income_user_share' => round((float) ($property->monthly_rental_income ?? 0) * $fraction, 2),
+            'managing_agent_fee_user_share' => round((float) ($property->managing_agent_fee ?? 0) * $fraction, 2),
+        ];
+    }
+
+    /**
+     * The other party's percentage on a shared property; zero when there is no
+     * other party. A business-style shareholding does not apply to property, so
+     * the two sides of a shared record always sum to 100.
+     */
+    private function coOwnerSharePercent(Property $property, float $userSharePercent): float
+    {
+        return SharedOwnership::isShared($property->ownership_type ?? 'individual')
+            ? round(100 - $userSharePercent, 2)
+            : 0.0;
+    }
+
+    private function fullMortgageBalance(Property $property): float
+    {
+        return (float) $property->mortgages->sum(fn ($mortgage): float => (float) $mortgage->outstanding_balance);
+    }
+
+    private function userMortgageShare(Property $property, int $userId): float
+    {
+        return (float) $property->mortgages
+            ->sum(fn ($mortgage): float => $this->calculateUserMortgageShare($mortgage, $userId));
     }
 
     /**

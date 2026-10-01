@@ -403,20 +403,144 @@ class CrossModuleAssetAggregator
      */
     public function calculateLiabilityTotals(int $userId): array
     {
-        $liabilities = Liability::forUserOrJoint($userId)->get();
-
-        $share = fn (Liability $liability): float => $this->calculateUserShare($liability, $userId);
-
-        $mortgages = $this->calculateMortgageTotal($userId)
-            + $liabilities->where('liability_type', 'mortgage')->sum($share);
-
-        $other = (float) $liabilities->where('liability_type', '!=', 'mortgage')->sum($share);
+        $breakdown = $this->calculateLiabilityBreakdown($userId);
+        $other = $breakdown['loans'] + $breakdown['credit_cards'] + $breakdown['other'];
 
         return [
-            'mortgages' => round((float) $mortgages, 2),
+            'mortgages' => $breakdown['mortgages'],
             'other' => round($other, 2),
-            'total' => round((float) $mortgages + $other, 2),
+            'total' => $breakdown['total'],
         ];
+    }
+
+    /**
+     * Liability `liability_type` values grouped into the four lines every Net
+     * Worth surface draws. The one home for the mapping: it used to live inside
+     * `NetWorthService::calculateLiabilitiesBreakdown`, a second engine that read
+     * the same records and disagreed with this class about mortgage-type rows.
+     */
+    private const LIABILITY_BUCKETS = [
+        'mortgage' => 'mortgages',
+        'loan' => 'loans',
+        'secured_loan' => 'loans',
+        'personal_loan' => 'loans',
+        'hire_purchase' => 'loans',
+        'student_loan' => 'loans',
+        'business_loan' => 'loans',
+        'credit_card' => 'credit_cards',
+    ];
+
+    /**
+     * What this user owes, split into the four Net Worth lines, at THEIR share —
+     * **the one engine for the liability side of net worth** (2026-10-01, one
+     * figure every surface, audit item 26).
+     *
+     * `NetWorthService::calculateNetWorth()` (the overview every surface reads),
+     * the dashboard, the `/m` and native liability list, the web liability list
+     * and `calculateLiabilityTotals()` (profile, protection) all read this, so
+     * "Total owed" is one number wherever it is printed.
+     *
+     * **A mortgage-type liability row is a debt, counted on the mortgages line.**
+     * `LiabilityForm.vue` offers `mortgage` as a liability type with its own
+     * mortgage fields, and nothing in the application mirrors a `mortgages` row
+     * into `liabilities`, so such a row is a mortgage recorded only here (an
+     * overseas home, a property not entered in Property). `NetWorthService` used
+     * to skip these rows "as tracked via property mortgages", which was untrue:
+     * the user's net worth silently omitted the debt while the profile, the
+     * protection need and the Inheritance Tax estate all counted it.
+     *
+     * @return array{mortgages: float, loans: float, credit_cards: float, other: float, total: float}
+     */
+    public function calculateLiabilityBreakdown(int $userId): array
+    {
+        $byType = $this->liabilityTotalsByType($userId);
+
+        $breakdown = ['mortgages' => 0.0, 'loans' => 0.0, 'credit_cards' => 0.0, 'other' => 0.0];
+
+        foreach ($byType as $type => $totals) {
+            $breakdown[self::LIABILITY_BUCKETS[$type] ?? 'other'] += $totals['balance'];
+        }
+
+        $breakdown = array_map(fn (float $value): float => round($value, 2), $breakdown);
+        $breakdown['total'] = round(array_sum($breakdown), 2);
+
+        return $breakdown;
+    }
+
+    /**
+     * Every liability this user is a party to, plus every mortgage they owe part
+     * of, totalled by `liability_type` at THEIR share — balance and monthly
+     * payment. `mortgage` covers both the `mortgages` table (two-leg reach, the
+     * share following the securing property per W-0228) and mortgage-type
+     * liability rows.
+     *
+     * The web liability list filters by these same types, so its "Total Balance
+     * Owed" for any filter is a key of this array, not a client-side sum.
+     *
+     * @return array<string, array{balance: float, monthly_payment: float}>
+     */
+    public function liabilityTotalsByType(int $userId): array
+    {
+        $totals = [];
+
+        $add = function (string $type, float $balance, float $monthly) use (&$totals): void {
+            $totals[$type] ??= ['balance' => 0.0, 'monthly_payment' => 0.0];
+            $totals[$type]['balance'] += $balance;
+            $totals[$type]['monthly_payment'] += $monthly;
+        };
+
+        foreach ($this->getMortgages($userId) as $mortgage) {
+            $add(
+                'mortgage',
+                $this->calculateUserMortgageShare($mortgage, $userId),
+                $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $userId),
+            );
+        }
+
+        foreach (Liability::forUserOrJoint($userId)->get() as $liability) {
+            $add(
+                (string) ($liability->liability_type ?: 'other'),
+                $this->calculateUserShare($liability, $userId),
+                $this->calculateLiabilityMonthlyPaymentShare($liability, $userId),
+            );
+        }
+
+        return array_map(fn (array $row): array => [
+            'balance' => round($row['balance'], 2),
+            'monthly_payment' => round($row['monthly_payment'], 2),
+        ], $totals);
+    }
+
+    /**
+     * The liability list's summary bar: the total for every row (`all`) and for
+     * each type the list can be filtered to (`by_type`), balance and monthly
+     * payment, at the user's share. `all.balance` is the same figure as
+     * `calculateLiabilityBreakdown()['total']` and the overview's
+     * `total_liabilities` — one engine, so the web list, `/m`, native and the
+     * wealth summary print one "total owed".
+     *
+     * @return array{all: array{balance: float, monthly_payment: float}, by_type: array<string, array{balance: float, monthly_payment: float}>}
+     */
+    public function liabilityTotals(int $userId): array
+    {
+        $byType = $this->liabilityTotalsByType($userId);
+
+        return [
+            'all' => [
+                'balance' => round(array_sum(array_column($byType, 'balance')), 2),
+                'monthly_payment' => round(array_sum(array_column($byType, 'monthly_payment')), 2),
+            ],
+            'by_type' => $byType,
+        ];
+    }
+
+    /**
+     * This user's share of a liability's monthly payment — the same fraction
+     * `calculateUserShare` applies to its balance.
+     */
+    public function calculateLiabilityMonthlyPaymentShare(Liability $liability, int $userId): float
+    {
+        return (float) ($liability->monthly_payment ?? 0) * $this->userShareFraction($liability, $userId);
     }
 
     /**

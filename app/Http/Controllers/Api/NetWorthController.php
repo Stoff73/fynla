@@ -91,9 +91,20 @@ class NetWorthController extends Controller
             // require it for the same class of data, and that inconsistency is a
             // decision to be taken openly rather than smuggled in as part of this fix.
             $spouseData = null;
+            $householdData = null;
             // W-0530 — CONSENT, not only reciprocity. This is the whole net worth.
             if ($spouse = $user->financiallySharedSpouse()) {
                 $spouseNetWorth = $this->netWorthService->getCachedNetWorth($spouse);
+                // The household column, summed on the server (one figure every
+                // surface) — the wealth summary renders these as sent.
+                $household = $this->netWorthService->householdNetWorth($netWorth, $spouseNetWorth);
+                $householdData = [
+                    'totalAssets' => $household['total_assets'],
+                    'totalLiabilities' => $household['total_liabilities'],
+                    'netWorth' => $household['net_worth'],
+                    'breakdown' => $household['breakdown'],
+                    'liabilitiesBreakdown' => $household['liabilities_breakdown'],
+                ];
                 $spouseData = [
                     'totalAssets' => $spouseNetWorth['total_assets'],
                     'totalLiabilities' => $spouseNetWorth['total_liabilities'],
@@ -111,6 +122,7 @@ class NetWorthController extends Controller
 
             if ($spouseData) {
                 $response['spouse_data'] = $spouseData;
+                $response['household_data'] = $householdData;
             }
 
             return response()->json($response);

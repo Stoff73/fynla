@@ -96,7 +96,7 @@ describe('the module cards agree with the net worth block beside them', function
         $dashboard = ($this->dashboardFor)($this->recorder);
 
         expect($dashboard['modules']['savings']['total_savings'])
-            ->toEqualWithDelta($dashboard['net_worth']['breakdown']['assets']['savings'], 0.01)
+            ->toEqualWithDelta($dashboard['net_worth']['breakdown']['assets']['cash'], 0.01)
             // 25,000 individually + half of the 4,500 joint account.
             ->toEqualWithDelta(27250.0, 0.01);
     });
@@ -105,7 +105,7 @@ describe('the module cards agree with the net worth block beside them', function
         $dashboard = ($this->dashboardFor)($this->coOwner);
 
         expect($dashboard['modules']['savings']['total_savings'])
-            ->toEqualWithDelta($dashboard['net_worth']['breakdown']['assets']['savings'], 0.01)
+            ->toEqualWithDelta($dashboard['net_worth']['breakdown']['assets']['cash'], 0.01)
             // 6,280 individually + the other half of the joint account, which was
             // invisible to this login entirely before the reach was fixed.
             ->toEqualWithDelta(8530.0, 0.01);

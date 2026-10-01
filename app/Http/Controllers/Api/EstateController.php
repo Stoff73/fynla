@@ -30,6 +30,7 @@ use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\LiabilityStore;
@@ -59,6 +60,7 @@ class EstateController extends Controller
         private readonly EstateIhtExposureDetector $ihtExposureDetector,
         private readonly TierConfigurationStore $tierStore,
         private readonly LiabilityStore $liabilityStore,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
     ) {}
 
     /**
@@ -94,12 +96,21 @@ class EstateController extends Controller
         }
 
         $assets = Asset::where('user_id', $user->id)->limit(100)->get();
-        $liabilities = Liability::where('user_id', $user->id)->limit(100)->get();
+
+        // The liability list reaches exactly what the one liability engine
+        // (`CrossModuleAssetAggregator::liabilityTotals`) totals: every liability
+        // the user is a party to, as recorder OR joint owner, and every mortgage
+        // they owe part of (two legs, W-0338). It read `where('user_id')`, so the
+        // co-owner of a joint loan was shown none of it while the overview charged
+        // them their share — the rows could never add up to the "total owed"
+        // printed everywhere else (2026-10-01, audit item 26).
+        $liabilities = Liability::forUserOrJoint($user->id)->limit(100)->get();
 
         // Include mortgages as liabilities for net worth display
-        $mortgages = Mortgage::whereHas('property', function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
-        })->with('property')->limit(100)->get();
+        $mortgages = Mortgage::with('property')
+            ->whereIn('id', $this->assetAggregator->getMortgages($user->id)->pluck('id'))
+            ->limit(100)
+            ->get();
 
         // The share is applied HERE, not on the client. This used to hand the
         // frontend the securing property's ownership pair and leave it to work the
@@ -176,6 +187,10 @@ class EstateController extends Controller
                     ->merge($mortgageLiabilities)
                     ->values()
                     ->all(),
+                // The summary bar's figures, totalled on the server for every row
+                // and for each type the list filters to. `all.balance` is the
+                // overview's `total_liabilities` (one engine).
+                'liabilities_totals' => $this->assetAggregator->liabilityTotals($user->id),
                 'gifts' => GiftResource::collection($gifts),
                 'trusts' => TrustResource::collection($trusts),
                 'iht_profile' => $ihtProfile,

@@ -16,6 +16,13 @@ describe('PropertyCard.vue', () => {
     mortgages: [{ id: 101, outstanding_balance: 200000 }],
     ownership_type: 'individual',
     ownership_percentage: 100,
+    full_value: 500000,
+    user_share: 500000,
+    user_share_percent: 100,
+    mortgage_user_share: 200000,
+    mortgage_full_balance: 200000,
+    user_equity: 300000,
+    full_equity: 300000,
   };
 
   const jointPropertyMock = {
@@ -34,7 +41,13 @@ describe('PropertyCard.vue', () => {
     }],
     ownership_type: 'joint',
     ownership_percentage: 50,
+    full_value: 300000,
+    user_share: 150000,
+    user_share_percent: 50,
     mortgage_user_share: 75000,
+    mortgage_full_balance: 150000,
+    user_equity: 75000,
+    full_equity: 150000,
   };
 
   const mortgageFreePropertyMock = {
@@ -48,6 +61,13 @@ describe('PropertyCard.vue', () => {
     mortgages: [],
     ownership_type: 'individual',
     ownership_percentage: 100,
+    full_value: 250000,
+    user_share: 250000,
+    user_share_percent: 100,
+    mortgage_user_share: 0,
+    mortgage_full_balance: 0,
+    user_equity: 250000,
+    full_equity: 250000,
   };
 
   beforeEach(() => {
@@ -120,7 +140,7 @@ describe('PropertyCard.vue', () => {
 
   it('displays mortgage outstanding when present', () => {
     const html = wrapper.html();
-    expect(html).toContain('Mortgage Outstanding');
+    expect(html).toContain('Your mortgage liability');
     expect(html).toContain('£200,000');
   });
 
@@ -128,7 +148,7 @@ describe('PropertyCard.vue', () => {
     await wrapper.setProps({ property: mortgageFreePropertyMock });
 
     const html = wrapper.html();
-    expect(html).not.toContain('Mortgage Outstanding');
+    expect(html).not.toContain('Your mortgage liability');
   });
 
   it('calculates and displays equity correctly for sole ownership', () => {
@@ -199,7 +219,7 @@ describe('PropertyCard.vue', () => {
     const html = wrapper.html();
     // Current value should equal equity when no mortgage
     expect(html).toContain('£250,000'); // Both current value and equity
-    expect(html).not.toContain('Mortgage Outstanding');
+    expect(html).not.toContain('Your mortgage liability');
   });
 
   it('computes property type label correctly', () => {
@@ -257,16 +277,29 @@ describe('PropertyCard.vue', () => {
     expect(wrapper.vm.equity).toBe(75000);
   });
 
-  it('handles missing ownership_percentage gracefully', async () => {
-    const propertyWithoutOwnership = {
-      ...solePropertyMock,
-      ownership_percentage: null,
-    };
+  // 2026-10-01, one figure every surface (audit items 28-30). Each figure is
+  // the SERVER's field: the values below are deliberately ones the card's old
+  // arithmetic could not produce (user share less mortgage share, the stored
+  // primary-owner percentage), so these fail if the card computes again.
+  it('renders the server equity, share percentage and mortgage share as sent', async () => {
+    await wrapper.setProps({
+      property: {
+        ...jointPropertyMock,
+        ownership_percentage: 60, // the PRIMARY owner's share
+        is_primary_owner: false,
+        user_share: 120000,
+        user_share_percent: 40, // the viewer's share, from the server
+        mortgage_user_share: 48000,
+        user_equity: 71234, // not 120000 - 48000: proves the source
+      },
+    });
 
-    await wrapper.setProps({ property: propertyWithoutOwnership });
-
-    // Should default to 100%
-    expect(wrapper.vm.equity).toBe(300000);
+    expect(wrapper.vm.equity).toBe(71234);
+    expect(wrapper.vm.sharePercent).toBe('40.00');
+    expect(wrapper.vm.mortgageAmount).toBe(48000);
+    expect(wrapper.html()).toContain('£71,234');
+    expect(wrapper.html()).toContain('Joint (40.00%)');
+    expect(wrapper.html()).not.toContain('60.00%');
   });
 
   it('displays all detail rows in correct order', () => {
@@ -276,7 +309,7 @@ describe('PropertyCard.vue', () => {
     expect(detailRows.length).toBe(3);
 
     expect(detailRows[0].text()).toContain('Current Value');
-    expect(detailRows[1].text()).toContain('Mortgage Outstanding');
+    expect(detailRows[1].text()).toContain('Your mortgage liability');
     expect(detailRows[2].text()).toContain('Equity');
   });
 

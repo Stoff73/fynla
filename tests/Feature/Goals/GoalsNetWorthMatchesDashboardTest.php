@@ -210,21 +210,13 @@ it('carries a non-mortgage liability into the goals figure rather than dropping 
 });
 
 it('keeps agreeing with the dashboard when a mortgage is recorded as a liability row rather than a mortgage row', function () {
-    // A tripwire, not a statement that the current answer is right.
-    //
-    // Today both surfaces value a mortgage-typed `liabilities` row at ZERO:
-    // NetWorthService::calculateLiabilitiesBreakdown() skips `case 'mortgage'`
-    // on the stated grounds that property mortgages come from the mortgages
-    // table, and the goals projection reaches the mortgages table directly. They
-    // agree by both omitting it. (CrossModuleAssetAggregator disagrees with both
-    // and counts the user's share of it — raised separately.)
-    //
-    // The hazard is the fix, not the bug. The goals projection derives its
-    // mortgage figure from getMortgages() and never reads
-    // liabilities_breakdown['mortgages'], so the day anybody teaches
-    // NetWorthService to count these rows, the dashboard will move and /goals
-    // will not — which is W-0206 again, reintroduced by a fix to something else.
-    // This test goes red at that moment instead of a persona run finding it.
+    // This was a tripwire for exactly the change made on 2026-10-01: NetWorthService
+    // used to skip mortgage-typed `liabilities` rows, so both surfaces valued them
+    // at zero and agreed by both omitting them. Net worth now takes its liability
+    // side from CrossModuleAssetAggregator::calculateLiabilityBreakdown(), which
+    // counts the user's share of such a row on the mortgages line, and the goals
+    // projection holds everything the engine counts beyond the amortised
+    // `mortgages` rows flat. The tripwire fired; the goals side moved with it.
     projectionFixtureMortgage($this->borrower, $this->jointOwner, 'joint', 50.0, 180_000);
 
     Liability::factory()->create([
@@ -238,9 +230,13 @@ it('keeps agreeing with the dashboard when a mortgage is recorded as a liability
     ]);
 
     foreach ([$this->borrower, $this->jointOwner] as $user) {
-        $dashboard = round((float) $this->netWorth->calculateNetWorth($user)['net_worth']);
+        $netWorth = $this->netWorth->calculateNetWorth($user);
+        $dashboard = round((float) $netWorth['net_worth']);
 
-        expect(goalsStartingNetWorth($this->projection, $user))->toBe($dashboard);
+        // Each spouse's half of the £180,000 mortgage row AND half of the £50,000
+        // mortgage-typed liability row. On the old code the second half was 0.
+        expect($netWorth['liabilities_breakdown']['mortgages'])->toBe(115000.0)
+            ->and(goalsStartingNetWorth($this->projection, $user))->toBe($dashboard);
     }
 });
 

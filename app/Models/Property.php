@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Concerns\AwardsDataEntryPoints;
 use App\Models\Estate\Trust;
 use App\Services\Property\PropertyCalculationService;
+use App\Services\Property\PropertyService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -237,16 +238,12 @@ class Property extends Model
     }
 
     /**
-     * Calculate equity for this property.
-     *
-     * IMPORTANT: Both current_value and mortgage balances are already stored as the user's share
-     * in the database (divided by ownership_percentage when saving). Therefore, we do NOT
-     * multiply by ownership_percentage here - that would divide the equity in half again.
-     *
-     * Equity = current_value - sum(all mortgages for this property)
+     * The property's FULL equity — full value less the full balance of every
+     * mortgage on it — from its one home, `PropertyService::calculateEquity()`.
+     * The viewer's own equity is `PropertyService::calculateUserEquity()`.
      */
     public function getEquityAttribute(): float
     {
-        return app(PropertyCalculationService::class)->calculateEquity($this);
+        return app(PropertyService::class)->calculateEquity($this);
     }
 }

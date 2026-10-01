@@ -74,6 +74,10 @@ class MortgageController extends Controller
             return (new MortgageResource($mortgage))->additional([
                 'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
                 'full_balance' => (float) $mortgage->outstanding_balance,
+                // The viewer's share of the monthly payment, from the same rule as
+                // the balance — the web property detail printed the full payment
+                // times the PRIMARY owner's percentage (2026-10-01, audit item 29).
+                'user_monthly_payment_share' => round($this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id), 2),
                 'is_primary_owner' => $this->isPrimaryOwner($mortgage, $user->id),
             ]);
         });

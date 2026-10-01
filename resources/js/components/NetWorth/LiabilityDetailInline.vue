@@ -30,7 +30,10 @@
             </div>
             <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ liability.liability_name || 'Unnamed Liability' }}</h1>
           </div>
-          <div class="flex space-x-2 w-full sm:w-auto">
+          <!-- Only the recording owner can change or delete the record. The list now
+               reaches liabilities the viewer is the JOINT owner of (2026-10-01); the
+               API refuses their writes, so the buttons are not offered. -->
+          <div v-if="liability.is_primary_owner !== false" class="flex space-x-2 w-full sm:w-auto">
             <button
               v-preview-disabled="'edit'"
               @click="$emit('edit', liability)"

@@ -90,17 +90,10 @@ class PropertyController extends Controller
             $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
             $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
-            // Mortgage liability follows the borrower configuration, not the
-            // property's ownership percentage. Aggregate in case a property
-            // has more than one mortgage.
-            if ($property->mortgages && $property->mortgages->count() > 0) {
-                $propertyData['mortgage_user_share'] = (float) $property->mortgages
-                    ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
-                $propertyData['mortgage_full_balance'] = (float) $property->mortgages
-                    ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
-                $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
-                    ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
-            }
+            // Every per-viewer figure — share, share %, mortgage shares, equity —
+            // from the one home (PropertyService::viewerFigures, audit items
+            // 28-30). Always present, zero when there is no mortgage.
+            $propertyData = array_merge($propertyData, $this->propertyService->viewerFigures($property, $user->id));
 
             return $propertyData;
         });
@@ -181,6 +174,7 @@ class PropertyController extends Controller
         $propertyData['full_value'] = (float) $property->current_value;
         $propertyData['is_primary_owner'] = true;
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
+        $propertyData = array_merge($propertyData, $this->propertyService->viewerFigures($property, $user->id));
 
         return response()->json([
             'success' => true,
@@ -229,17 +223,8 @@ class PropertyController extends Controller
         $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
         $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
-        // Mortgage liability follows the borrower configuration, not the
-        // property's ownership percentage. Aggregate in case a property has
-        // more than one mortgage.
-        if ($property->mortgages && $property->mortgages->count() > 0) {
-            $propertyData['mortgage_user_share'] = (float) $property->mortgages
-                ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
-            $propertyData['mortgage_full_balance'] = (float) $property->mortgages
-                ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
-            $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
-                ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
-        }
+        // Every per-viewer figure from the one home (audit items 28-30).
+        $propertyData = array_merge($propertyData, $this->propertyService->viewerFigures($property, $user->id));
 
         return response()->json([
             'success' => true,
@@ -315,6 +300,7 @@ class PropertyController extends Controller
         $propertyData['full_value'] = (float) $property->current_value;
         $propertyData['is_primary_owner'] = true;
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
+        $propertyData = array_merge($propertyData, $this->propertyService->viewerFigures($property, $user->id));
 
         return response()->json([
             'success' => true,

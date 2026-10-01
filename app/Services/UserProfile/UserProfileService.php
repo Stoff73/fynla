@@ -20,6 +20,7 @@ use App\Services\Benefits\ChildBenefitService;
 use App\Services\Estate\WillAnalysisService;
 use App\Services\Gamification\PointsService;
 use App\Services\Income\EmploymentIncomeService;
+use App\Services\NetWorth\NetWorthService;
 use App\Services\Property\PropertyService;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -49,6 +50,8 @@ class UserProfileService
         private readonly WillAnalysisService $willAnalysis,
         // W-0511 — the Blind Person's Allowance entitlement is answered in one place.
         private readonly TaxConfigService $taxConfig,
+        // 2026-10-01 — net worth has one engine; the profile prints its figure.
+        private readonly NetWorthService $netWorthService,
     ) {}
 
     /**
@@ -74,10 +77,19 @@ class UserProfileService
             'statePension',
         ]);
 
+        // Net worth and its two totals come from the one engine every Net Worth
+        // surface reads (2026-10-01, one figure every surface). This used to be a
+        // fourth engine — its own pension sum over `dcPensions` and
+        // `assets total - liabilities total` worked out here — shown as "Net
+        // Worth" on the `/m` personal information screen.
+        $netWorth = $this->netWorthService->getCachedNetWorth($user);
+
         // Calculate asset summary
-        $assetsSummary = $this->calculateAssetsSummary($user);
+        $assetsSummary = $this->calculateAssetsSummary($user, $netWorth);
 
         // Calculate liabilities summary
+        // Its `total` is `calculateLiabilityTotals()['total']` — the same engine
+        // as `$netWorth['total_liabilities']`.
         $liabilitiesSummary = $this->calculateLiabilitiesSummary($user);
 
         return [
@@ -153,7 +165,7 @@ class UserProfileService
             'domicile_info' => $user->getDomicileInfo(),
             'assets_summary' => $assetsSummary,
             'liabilities_summary' => $liabilitiesSummary,
-            'net_worth' => $assetsSummary['total'] - $liabilitiesSummary['total'],
+            'net_worth' => $netWorth['net_worth'],
         ];
     }
 
@@ -732,7 +744,7 @@ class UserProfileService
     /**
      * Calculate total assets for the user
      */
-    private function calculateAssetsSummary(User $user): array
+    private function calculateAssetsSummary(User $user, array $netWorth): array
     {
         // Use CrossModuleAssetAggregator for cross-module assets
         $breakdown = $this->assetAggregator->getAssetBreakdown($user->id);
@@ -749,8 +761,9 @@ class UserProfileService
         // ownership_percentage to individually-owned records that are wholly theirs.
         $chattelsTotal = (float) $breakdown['chattel']['total'];
 
-        // Calculate pensions
-        $pensionsTotal = $user->dcPensions->sum('current_fund_value');
+        // Pensions: what a pension contributes to net worth has one home
+        // (NetWorthService::calculatePensionBreakdown, W-0241).
+        $pensionsTotal = $netWorth['breakdown']['pensions'];
 
         return [
             'cash' => [
@@ -777,7 +790,7 @@ class UserProfileService
                 'total' => $pensionsTotal,
                 'count' => $user->dcPensions->count(),
             ],
-            'total' => $breakdown['cash']['total'] + $breakdown['investment']['total'] + $breakdown['property']['total'] + $businessTotal + $chattelsTotal + $pensionsTotal,
+            'total' => $netWorth['total_assets'],
         ];
     }
 

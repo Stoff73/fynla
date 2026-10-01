@@ -17,7 +17,6 @@ use App\Services\Dashboard\DashboardAggregator;
 use App\Services\Mobile\DailyInsightService;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\NetWorth\NetWorthService;
-use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Facades\Cache;
@@ -41,9 +40,6 @@ beforeEach(function () {
         $this->estateAgent,
         $this->goalsAgent,
         $this->dashboardAggregator,
-        $this->savingsStore,
-        $this->propertyStore,
-        app(CrossModuleAssetAggregator::class),
         app(NetWorthService::class),
         // W-0478 — the dashboard no longer composes its own insight; it reads the
         // one composer the insights endpoint reads.
@@ -432,11 +428,13 @@ describe('net worth calculation', function () {
 
         expect($result['net_worth']['total'])->toBeGreaterThan(0.0)
             ->and($result['net_worth']['breakdown'])->toHaveKeys(['assets', 'liabilities', 'total_assets', 'total_liabilities'])
+            // NetWorthService's `breakdown` and `liabilities_breakdown`, verbatim
+            // (2026-10-01, one figure every surface).
             ->and($result['net_worth']['breakdown']['assets'])->toHaveKeys([
-                'property', 'savings', 'investments', 'pensions', 'business', 'chattels', 'cash',
+                'property', 'investments', 'pensions', 'business', 'chattels', 'cash',
             ])
             ->and($result['net_worth']['breakdown']['liabilities'])->toHaveKeys([
-                'mortgages', 'other_liabilities',
+                'mortgages', 'loans', 'credit_cards', 'other',
             ]);
     });
 

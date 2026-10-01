@@ -112,6 +112,15 @@ export function getFullValue(item, valueField = null) {
  */
 export function userSharePercent(item, viewerId = null) {
   if (!item) return 0;
+
+  // The server's figure when it is sent — computed once by
+  // `CalculatesOwnershipShare` (2026-10-01, one figure every surface). It is
+  // right where the arithmetic below is not: a business interest's percentage
+  // is a shareholding even when individually held.
+  if (item.user_share_percent != null && item.user_share_percent !== '') {
+    return parseFloat(item.user_share_percent) || 0;
+  }
+
   if (!isSharedRecord(item)) return 100;
 
   const stored = item.ownership_percentage == null

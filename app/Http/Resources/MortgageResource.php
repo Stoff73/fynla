@@ -102,6 +102,7 @@ class MortgageResource extends JsonResource
             // Computed ownership fields (set via additional data)
             'user_share' => $this->when(isset($this->additional['user_share']), fn () => $this->additional['user_share']),
             'full_balance' => $this->when(isset($this->additional['full_balance']), fn () => $this->additional['full_balance']),
+            'user_monthly_payment_share' => $this->when(isset($this->additional['user_monthly_payment_share']), fn () => $this->additional['user_monthly_payment_share']),
             'is_primary_owner' => $this->when(isset($this->additional['is_primary_owner']), fn () => $this->additional['is_primary_owner']),
 
             // Relationships

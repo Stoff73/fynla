@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Estate;
 
 use App\Models\User;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -39,6 +40,11 @@ class LiabilityResource extends JsonResource
                 ? round($this->calculateUserShare($this->resource, $viewerId), 2)
                 : null,
             'monthly_payment' => $this->monthly_payment,
+            // The viewer's share of the monthly payment, same fraction as
+            // `user_share` (2026-10-01, one figure every surface).
+            'user_monthly_payment_share' => $viewerId !== null
+                ? round(app(CrossModuleAssetAggregator::class)->calculateLiabilityMonthlyPaymentShare($this->resource, $viewerId), 2)
+                : null,
             'interest_rate' => $this->interest_rate,
             'maturity_date' => $this->maturity_date?->toDateString(),
             'secured_against' => $this->secured_against,
