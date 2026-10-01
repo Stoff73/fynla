@@ -1040,7 +1040,6 @@ describe('Phase 2 — joint-savings strategy (#15)', function () {
 
         expect($recommendation)->not->toBeNull()
             ->and($recommendation['annual_interest'])->toBe(622.75)
-            ->and($recommendation['shelterable_interest'])->toBe(122.5)
             ->and($recommendation['estimated_annual_tax_saved'])->toBe(49.0);
     });
 

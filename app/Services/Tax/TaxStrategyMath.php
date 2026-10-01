@@ -693,10 +693,12 @@ final class TaxStrategyMath
     }
 
     /**
-     * The user's savings that can be given to their spouse: sole-name and
-     * outside an ISA. A joint account is already split 50/50 for tax (ITA
-     * 2007 s836), so it cannot be moved; ownership_type decides, because the
-     * campaign's joint accounts carry a null co-owner. Interest from each
+     * The user's savings priced for a gift to their spouse: sole-name and
+     * outside an ISA. Interest on a joint account is already taxed half each
+     * between spouses living together (ITA 2007 s836) unless they declare
+     * unequal shares (s837), so joint accounts are left out by choice;
+     * ownership_type decides, because the campaign's joint accounts carry a
+     * null co-owner. Interest from each
      * account's own rate. `accounts` lists each balance and its rate, highest
      * rate first: a gift moves the most interest per pound from there.
      *
@@ -729,7 +731,8 @@ final class TaxStrategyMath
      * 2005 s626), so moving £X of interest lowers the user's tax and raises
      * the spouse's. Both sides are priced by the one tax engine on each
      * person's whole income, so each one's Personal Allowance, starting rate
-     * for savings (ITA 2007 s12) and Personal Savings Allowance (s12B) are
+     * for savings (ITA 2007 s12), savings nil rate (s12A) and Personal
+     * Savings Allowance (s12B) are
      * applied as HMRC would. The best amount is found in £10 steps: moving
      * more than it shifts interest the user paid little on, or the spouse pays
      * more on, and a band change can make the curve jump (s12B), so every

@@ -224,3 +224,21 @@ it('keeps the partner\'s savings when their work status changes', function () {
 
     expect((float) TaxStrategyHouseholdInput::where('user_id', $user->id)->first()->spouse_existing_savings_balance)->toBe(25000.0);
 });
+
+it('says only that the allowances the partner has left cover it, when they pay nothing', function () {
+    // A partner on £20,000 has no Personal Allowance or starting rate left:
+    // only their Savings Allowance covers the interest (tax review, item 4).
+    $user = stsCouple(
+        ['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 60000],
+        ['spouse_annual_income' => 20000, 'spouse_existing_savings_balance' => 0],
+        20000, 4.5,
+    );
+    $gift = stsGift($user);
+    $entry = ActionHowToSeeder::parse((string) file_get_contents(ActionHowToSeeder::sourcePath('tax')))['savings_to_spouse'];
+    ['facts' => $facts, 'text' => $text] = app(ActionHowToFacts::class)->for($user, $gift);
+    $steps = implode(' ', ActionHowTo::render($entry['steps'], $facts, $text));
+
+    expect($gift['partner_extra_tax'])->toBeLessThan(0.01)
+        ->and($steps)->toContain('the tax-free allowances they have left for savings interest cover it')
+        ->and($steps)->not->toContain('Personal Allowance, starting rate');
+});
