@@ -55,6 +55,7 @@
              its own clearance margin now the nudge that used to do that job is
              gone (hence no md-callout--below-nudge binding). -->
         <div class="md-callout" role="note">
+          <!-- Commented out 2026-10-01 (CSJ: "comment out, so do not remove in case we need to reverse this"). To restore, uncomment this block.
           <div class="md-callout__top">
             <p class="md-callout__levelup">LEVEL<br>UP</p>
             <div class="md-callout__top-copy">
@@ -62,6 +63,7 @@
               <p class="md-callout__sub">Complete your actions to get further ahead, level up and change your financial future</p>
             </div>
           </div>
+          -->
 
           <div class="md-callout__carousel">
             <!-- Focus-area cards: swipeable (scroll-snap) + tappable -->

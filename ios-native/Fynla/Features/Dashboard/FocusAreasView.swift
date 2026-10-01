@@ -30,7 +30,10 @@ struct FocusAreasView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            topHalf
+            // topHalf (LEVEL UP + "You're ahead of X% of people") commented
+            // out 2026-10-01 (CSJ: "comment out, so do not remove in case we
+            // need to reverse this"). To restore, uncomment the next line.
+            // topHalf
             lowerHalf
         }
         .background(
