@@ -18,6 +18,10 @@ describe('mobile Dashboard retirement summary', () => {
             pot_value: 47500,
             guaranteed_income: 0,
             target_income: 0,
+            // MobileDashboardAggregator: the card figure and progress are the server's.
+            card_value: 47500,
+            card_value_is_income: false,
+            progress_percent: null,
           },
         },
         net_worth: {
@@ -55,6 +59,9 @@ describe('mobile Dashboard retirement summary', () => {
             pot_value: 0,
             guaranteed_income: 35000,
             target_income: 0,
+            card_value: 35000,
+            card_value_is_income: true,
+            progress_percent: null,
           },
         },
         net_worth: { total: 0, breakdown: { assets: {}, total_assets: 0, total_liabilities: 0 } },
@@ -68,7 +75,7 @@ describe('mobile Dashboard retirement summary', () => {
     });
   });
 
-  it('prefers the retirement summary pot when the full analysis is available', () => {
+  it('shows the server card figure and progress when a target is set', () => {
     const finances = Dashboard.computed.finances.call({
       data: {
         modules: {
@@ -77,6 +84,9 @@ describe('mobile Dashboard retirement summary', () => {
             pot_value: 60000,
             projected_income: 24000,
             target_income: 30000,
+            card_value: 60000,
+            card_value_is_income: false,
+            progress_percent: 80,
           },
         },
         net_worth: {
@@ -114,6 +124,9 @@ describe('mobile Dashboard retirement summary', () => {
             pot_value: 50000,
             projected_income: 20000,
             target_income: 25000,
+            card_value: 50000,
+            card_value_is_income: false,
+            progress_percent: 80,
             future_module_field: ['ignored'],
           },
           investment: {
