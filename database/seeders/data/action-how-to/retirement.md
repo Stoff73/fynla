@@ -14,6 +14,7 @@ This file is the one source for the steps on each retirement action's detail car
   - `high_pension_total_fees`, `high_pension_platform_fees` and `high_pension_fund_fees` are reasons on `pension_charges_review` (D3).
   - `auto_enrolment_below_minimum` is a reason on `employer_match` when both fire (D3); its own entry covers it when it fires alone.
 - **Disabled, the Tax plan carries them (D1):** `tax_relief` (Tax plan `pension_tax_relief`, `pa_taper_rescue`, `additional_rate_avoidance`) and `salary_sacrifice_available` (Tax plan `salary_sacrifice_ni`).
+- **Disabled (CSJ 2026-10-01, "take it out"):** `care_costs_not_modelled`. Care costs are not captured anywhere, so the card could not be followed.
 - `goal_no_contribution`, `goal_behind_schedule`, `goal_deadline_approaching`: Retirement plan page only (`RetirementPlanService`), never a card.
 - `strategy_*`: the composer's catalogue rows, never a card.
 
@@ -239,16 +240,3 @@ always:
 3. If you are over 50, a free Pension Wise appointment can talk you through your options for a defined contribution pension.
 outcome:
 1. Your annuity quotes take your health into account.
-
-## care_costs_not_modelled
-status: draft
-source: the Care costs input on the Retirement page (web and /m) and Fyn's `capture_retirement_goals`, all writing `PUT /api/retirement/goals` → `RetirementProfileStore::updateCareCosts` (CSJ 2026-10-01); care costs feed the decumulation analysis (`RetirementAgent`, `DecumulationController`); https://www.gov.uk/apply-needs-assessment-social-services ("A health and social care assessment is carried out by social services to find out what help and support you need"; England and Wales only)
-figures:
-why:
-1. Your retirement plan has no care costs in it yet, so its decumulation analysis assumes none.
-always:
-1. Open Care costs in retirement on the Retirement page and add the yearly amount you plan for care in later life, and the age it might start. Or tell Fyn.
-2. If you plan for no care costs, enter 0, so your plan records that as your answer.
-3. If you or someone you look after needs help now, social services can carry out a needs assessment to find out what help and support is needed (England and Wales).
-outcome:
-1. Your decumulation analysis includes the care costs you plan for.

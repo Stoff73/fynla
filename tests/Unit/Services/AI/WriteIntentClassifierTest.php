@@ -189,38 +189,3 @@ describe('WriteIntentClassifier::proposalAcceptanceIntent — accepting Fyn\'s o
         expect($this->classifier->proposalAcceptanceIntent($long, $offer))->toBeNull();
     });
 });
-
-/**
- * Care costs joined capture_retirement_goals on 2026-10-01 (ec71b32f5) without
- * reaching the classifier, so "I plan for care costs of £40,000 a year from age
- * 85" fell to the read-only advice model, which asked about fields the app does
- * not store and then said "Recorded" with nothing written (csjones conversation
- * 425, user 460). These are the walk's own messages.
- */
-describe('WriteIntentClassifier — care costs reach the retirement goals capture', function () {
-    it('routes "I plan for care costs" to retirement_goals', function () {
-        $result = $this->classifier->classify('I plan for care costs of £40,000 a year from age 85');
-        expect($result['entity_type'] ?? null)->toBe('retirement_goals');
-    });
-
-    it('routes "add care costs" to retirement_goals', function () {
-        expect($this->classifier->classify('Add care costs of £30,000 a year')['entity_type'] ?? null)->toBe('retirement_goals');
-    });
-
-    it('routes "we plan for no care costs" to retirement_goals', function () {
-        expect($this->classifier->classify('We plan for no care costs')['entity_type'] ?? null)->toBe('retirement_goals');
-    });
-
-    it('routes care fees phrasing to retirement_goals', function () {
-        expect($this->classifier->classify('Record £25,000 a year for care fees from 80')['entity_type'] ?? null)->toBe('retirement_goals');
-    });
-
-    it('leaves a question about care costs to the advice model', function () {
-        expect($this->classifier->classify('How much should I plan for care costs?'))->toBeNull();
-    });
-
-    it('routes a yes to an offer whose record is named in the sentence before the question', function () {
-        $offer = "Thank you. I now have the three points needed.\n\nI can capture this as a care-cost assumption in your retirement plan. Shall I go ahead and record it?";
-        expect($this->classifier->proposalAcceptanceIntent('Yes', $offer)['entity_type'] ?? null)->toBe('retirement_goals');
-    });
-});

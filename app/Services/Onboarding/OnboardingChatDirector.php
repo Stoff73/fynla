@@ -9009,10 +9009,7 @@ PROMPT;
             $focus = match ($entity) {
                 'protection_policy', 'life_insurance_policy', 'critical_illness_policy', 'income_protection_policy' => 'protection',
                 'savings_account', 'cash_account' => 'savings',
-                // retirement_goals and state_pension fell to the 'savings'
-                // fallback, so "we plan for no care costs" was framed as a
-                // savings capture and refused (csjones conversation 428).
-                'dc_pension', 'db_pension', 'pension', 'state_pension', 'retirement_goals' => 'retirement',
+                'dc_pension', 'db_pension', 'pension' => 'retirement',
                 'investment_account', 'holding' => 'investment',
                 'goal', 'life_event' => 'goals',
                 'business_interest', 'business' => 'business',

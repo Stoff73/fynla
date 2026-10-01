@@ -6231,30 +6231,9 @@ class CoordinatingAgent extends BaseAgent
 
         $age = isset($input['target_retirement_age']) ? (int) $input['target_retirement_age'] : null;
         $income = isset($input['target_retirement_income']) ? (float) $input['target_retirement_income'] : null;
-        $careCost = isset($input['care_cost_annual']) ? (float) $input['care_cost_annual'] : null;
-        $careStartAge = isset($input['care_start_age']) ? (int) $input['care_start_age'] : null;
 
-        if ($age === null && $income === null && $careCost === null) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide a target retirement age, an income, care costs, or a mix.'];
-        }
-
-        // Care costs only: the same store method the web and /m forms use
-        // (RetirementProfileStore::updateCareCosts, CSJ 2026-10-01).
         if ($age === null && $income === null) {
-            try {
-                app(RetirementProfileStore::class)->updateCareCosts($user, $careCost, $careStartAge);
-            } catch (StoreValidationException $e) {
-                return ['error' => true, 'error_type' => 'validation_failed', 'errors' => $e->errors, 'message' => 'Validation failed for care costs.'];
-            }
-            $this->invalidateUserCache($user->id);
-
-            return [
-                'onboarding_capture' => true,
-                'field_group' => 'campaign_retirement_goals',
-                'summary' => $careCost > 0
-                    ? 'Care costs of £'.number_format($careCost, 0).' a year saved'.($careStartAge !== null ? ' from age '.$careStartAge : '').'.'
-                    : 'Saved: no care costs planned.',
-            ];
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Provide a target retirement age, an income, or both.'];
         }
 
         if ($age !== null && ($age < 55 || $age > 75)) {
@@ -6288,9 +6267,6 @@ class CoordinatingAgent extends BaseAgent
             // and Fyn must ask rather than assume.
             try {
                 app(RetirementProfileStore::class)->updateGoals($user, $age, $income);
-                if ($careCost !== null) {
-                    app(RetirementProfileStore::class)->updateCareCosts($user, $careCost, $careStartAge);
-                }
             } catch (StoreValidationException $e) {
                 // Reached only when the profile has to be created and the user has no
                 // date of birth. This used to write a fabricated current_age of 30 —
@@ -6338,9 +6314,6 @@ class CoordinatingAgent extends BaseAgent
         }
         if ($income !== null) {
             $parts[] = sprintf('income £%s per year', number_format($income, 0));
-        }
-        if ($careCost !== null) {
-            $parts[] = $careCost > 0 ? sprintf('care costs £%s per year', number_format($careCost, 0)) : 'no care costs planned';
         }
 
         return [

@@ -24,15 +24,6 @@
         @save="handleRetirementTargetSave"
       />
 
-      <!-- Care costs (CSJ 2026-10-01): for savers and for anyone drawing, since
-           later-life care matters most once retired. Needs a retirement profile. -->
-      <RetirementCareCostsCard
-        v-if="!loading && !error && profile"
-        ref="careCosts"
-        :profile="profile"
-        @save="handleCareCostsSave"
-      />
-
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -526,7 +517,6 @@ import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
 import RetirementTargetCard from '@/components/Retirement/RetirementTargetCard.vue';
-import RetirementCareCostsCard from '@/components/Retirement/RetirementCareCostsCard.vue';
 import RetirementDrawingView from '@/components/Retirement/RetirementDrawingView.vue';
 import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrategyCard.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
@@ -550,7 +540,6 @@ export default {
     RetirementIncomeTab,
     CapitalAdequacyTab,
     RetirementTargetCard,
-    RetirementCareCostsCard,
     RetirementDrawingView,
     DecumulationStrategyCard,
     ModuleStatusBar,
@@ -903,22 +892,6 @@ export default {
         // Keeps the form open with the message on it (Rule 3), rather than closing
         // and letting the user assume it saved.
         this.$refs.retirementTarget?.saveFailed(error.response?.data?.message);
-      }
-    },
-
-    /** Care costs go through the same endpoint and store action as the target. */
-    async handleCareCostsSave(payload) {
-      try {
-        await this.updateRetirementGoals(payload);
-        this.$refs.careCosts?.saveSucceeded();
-        this.successMessage = 'Care costs saved';
-        if (this.successTimeout) clearTimeout(this.successTimeout);
-        this.successTimeout = setTimeout(() => {
-          this.successMessage = null;
-        }, 5000);
-      } catch (error) {
-        logger.error('Failed to save care costs:', error);
-        this.$refs.careCosts?.saveFailed(error.response?.data?.message);
       }
     },
 

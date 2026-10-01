@@ -41,8 +41,6 @@ final class WriteIntentClassifier
         'i pay', 'we pay',
         'i hold', 'we hold',
         'i own', 'we own',
-        // Care costs in retirement are stated as a plan, not a holding (2026-10-01).
-        'i plan for', 'we plan for', "i'm planning for", "we're planning for",
     ];
 
     /**
@@ -152,9 +150,6 @@ final class WriteIntentClassifier
         ],
         'retirement_goals' => [
             'retirement income', 'retire at', 'target retirement age',
-            // capture_retirement_goals records care costs since 2026-10-01;
-            // without these the message fell to the read-only advice model.
-            'care costs', 'care cost', 'care-cost', 'cost of care', 'care fees',
         ],
         'goal' => [
             'savings goal', 'goal', 'target',
@@ -309,15 +304,6 @@ final class WriteIntentClassifier
         }
         $clause = $m[0];
 
-        // "I can capture this as a care-cost assumption in your retirement plan.
-        // Shall I go ahead and record it?" names the record in the sentence
-        // before the question, not in it: read that sentence too, and no more.
-        if ($this->entityIn($clause) === null) {
-            $before = substr($offer, 0, (int) strpos($offer, $clause));
-            $sentences = preg_split('/(?<=[.!?])\s+/', trim($before)) ?: [];
-            $clause = trim((string) end($sentences)).' '.$clause;
-        }
-
         $goalKeyword = $this->firstMatch($clause, self::ENTITY_KEYWORDS['goal']);
         if ($goalKeyword !== null) {
             return $this->buildResult('goal', 'proposal_accepted', $goalKeyword);
@@ -326,18 +312,6 @@ final class WriteIntentClassifier
             $matched = $this->firstMatch($clause, $keywords);
             if ($matched !== null) {
                 return $this->buildResult($entityType, 'proposal_accepted', $matched);
-            }
-        }
-
-        return null;
-    }
-
-    /** The first entity type a phrase names, in ENTITY_KEYWORDS order. */
-    private function entityIn(string $phrase): ?string
-    {
-        foreach (self::ENTITY_KEYWORDS as $entityType => $keywords) {
-            if ($this->firstMatch($phrase, $keywords) !== null) {
-                return $entityType;
             }
         }
 

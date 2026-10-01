@@ -685,25 +685,17 @@ class RetirementController extends Controller
     {
         $user = $request->user();
         $validated = $request->validated();
-        $age = array_key_exists('target_retirement_age', $validated) && $validated['target_retirement_age'] !== null
-            ? (int) $validated['target_retirement_age']
-            : null;
-        $income = array_key_exists('target_retirement_income', $validated) && $validated['target_retirement_income'] !== null
-            ? (float) $validated['target_retirement_income']
-            : null;
 
         try {
-            $profile = null;
-            if ($age !== null || $income !== null || ! array_key_exists('care_cost_annual', $validated)) {
-                $profile = $this->retirementProfileStore->updateGoals($user, $age, $income);
-            }
-            if (array_key_exists('care_cost_annual', $validated)) {
-                $profile = $this->retirementProfileStore->updateCareCosts(
-                    $user,
-                    (float) $validated['care_cost_annual'],
-                    isset($validated['care_start_age']) ? (int) $validated['care_start_age'] : null,
-                );
-            }
+            $profile = $this->retirementProfileStore->updateGoals(
+                $user,
+                array_key_exists('target_retirement_age', $validated) && $validated['target_retirement_age'] !== null
+                    ? (int) $validated['target_retirement_age']
+                    : null,
+                array_key_exists('target_retirement_income', $validated) && $validated['target_retirement_income'] !== null
+                    ? (float) $validated['target_retirement_income']
+                    : null,
+            );
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         }

@@ -333,9 +333,9 @@ class RetirementActionDefinitionSeeder extends Seeder
                     'condition' => 'no_care_costs_entered_over_50',
                     'age_threshold' => 50,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 95,
-                'notes' => 'Triggers when user is over 50 and has no care cost assumptions entered.',
+                'notes' => 'Disabled (CSJ 2026-10-01: "take it out"): care costs are not captured anywhere, so the card could not be followed.',
             ],
 
             [

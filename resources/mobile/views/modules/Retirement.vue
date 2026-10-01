@@ -131,75 +131,6 @@
         </form>
       </section>
 
-      <!-- Care costs (CSJ 2026-10-01). Same endpoint and store as the web card;
-           shown to savers and to anyone drawing. Needs a retirement profile. -->
-      <section v-if="!verifying && profile" class="m-card mr-target" data-testid="care-costs">
-        <div class="mr-target__head">
-          <p class="m-section-label" style="margin-top:0">Care costs in retirement</p>
-          <button
-            v-if="!editingCare"
-            type="button"
-            class="m-btn-ghost mr-target__edit"
-            data-testid="care-costs-edit"
-            @click="startEditingCare"
-          >{{ careAnswered ? 'Change' : 'Add' }}</button>
-        </div>
-
-        <p v-if="careError" class="m-err" role="alert" data-testid="care-costs-error">{{ careError }}</p>
-
-        <template v-if="!editingCare">
-          <template v-if="careAnswered">
-            <div class="m-detail-row">
-              <span class="m-detail-key">Each year</span>
-              <span class="m-detail-value" data-testid="care-costs-annual">{{ careAnnual > 0 ? fmt(careAnnual) + ' a year' : 'None planned' }}</span>
-            </div>
-            <div v-if="careAnnual > 0" class="m-detail-row">
-              <span class="m-detail-key">From age</span>
-              <span class="m-detail-value" data-testid="care-costs-start-age">{{ profile.care_start_age || 'Not set' }}</span>
-            </div>
-            <p class="m-sub mr-target__caption">Your decumulation analysis includes this.</p>
-          </template>
-          <p v-else class="m-sub mr-target__caption">Add what you plan for care in later life, or say you plan for none, and your decumulation analysis will include it.</p>
-        </template>
-
-        <form v-else class="mr-target__form" @submit.prevent="saveCare">
-          <label class="mr-target__field">
-            <span class="mr-target__label">Care costs each year</span>
-            <input
-              v-model="careForm.care_cost_annual"
-              type="number"
-              min="0"
-              step="500"
-              inputmode="numeric"
-              class="mr-target__input"
-              data-testid="care-costs-annual-input"
-            />
-          </label>
-
-          <label class="mr-target__field">
-            <span class="mr-target__label">Age care might start</span>
-            <input
-              v-model="careForm.care_start_age"
-              type="number"
-              min="50"
-              max="125"
-              inputmode="numeric"
-              class="mr-target__input"
-              data-testid="care-costs-start-age-input"
-            />
-          </label>
-
-          <p class="m-sub mr-target__caption">Enter 0 if you plan for no care costs.</p>
-
-          <div class="mr-target__actions">
-            <button type="button" class="m-btn-ghost" :disabled="savingCare" @click="cancelEditingCare">Cancel</button>
-            <button type="submit" class="m-btn" :disabled="savingCare" data-testid="care-costs-save">
-              {{ savingCare ? 'Saving…' : 'Save care costs' }}
-            </button>
-          </div>
-        </form>
-      </section>
-
       <!-- Pensions list (CSJ: pension account cards near the top, under the hero) -->
       <div class="m-card">
         <div class="m-cap-head" style="margin-top:0">
@@ -388,10 +319,6 @@ export default {
     editingTarget: false,
     savingTarget: false,
     targetError: '',
-    editingCare: false,
-    savingCare: false,
-    careError: '',
-    careForm: { care_cost_annual: null, care_start_age: null },
     targetForm: { target_retirement_income: null, target_retirement_age: null },
   }),
   computed: {
@@ -404,9 +331,6 @@ export default {
       return new Date(this.drawing.retired_since.date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
     },
     profile() { return this.data?.profile || null; },
-    // null is "never asked", 0 is "none planned" (CSJ 2026-10-01).
-    careAnswered() { return this.profile?.care_cost_annual !== null && this.profile?.care_cost_annual !== undefined; },
-    careAnnual() { return Number(this.profile?.care_cost_annual) || 0; },
     dcPensions() { return this.data?.dc_pensions || []; },
     dbPensions() { return this.data?.db_pensions || []; },
     statePension() { return this.data?.state_pension || null; },
@@ -649,49 +573,6 @@ export default {
         this.targetError = 'Network error. Please try again.';
       } finally {
         this.savingTarget = false;
-      }
-    },
-
-    startEditingCare() {
-      this.careError = '';
-      this.careForm = {
-        care_cost_annual: this.careAnswered ? this.careAnnual : null,
-        care_start_age: this.profile?.care_start_age ?? null,
-      };
-      this.editingCare = true;
-    },
-
-    cancelEditingCare() {
-      this.editingCare = false;
-      this.careError = '';
-    },
-
-    /** Same endpoint and store as the web card and Fyn: PUT /api/retirement/goals. */
-    async saveCare() {
-      const annual = this.toNumberOrNull(this.careForm.care_cost_annual);
-      const startAge = this.toNumberOrNull(this.careForm.care_start_age);
-      if (annual === null) {
-        this.careError = 'Enter a yearly amount, or 0 if you plan for none.';
-        return;
-      }
-      const payload = { care_cost_annual: annual };
-      if (startAge !== null) payload.care_start_age = startAge;
-
-      this.savingCare = true;
-      this.careError = '';
-      try {
-        const { ok, status, data } = await apiPut('/api/retirement/goals', payload, store.token);
-        if (handleAuthExpiry({ status }, this.$router)) return;
-        if (!ok) {
-          this.careError = data?.message || 'We could not save your care costs.';
-          return;
-        }
-        this.editingCare = false;
-        await this.load();
-      } catch {
-        this.careError = 'Network error. Please try again.';
-      } finally {
-        this.savingCare = false;
       }
     },
 

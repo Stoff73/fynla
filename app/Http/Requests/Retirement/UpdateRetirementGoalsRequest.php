@@ -47,22 +47,6 @@ class UpdateRetirementGoalsRequest extends FormRequest
                 'min:'.ValidationLimits::MIN_CURRENCY_VALUE,
                 'max:'.ValidationLimits::MAX_CURRENCY_VALUE,
             ],
-            // Care costs in retirement (CSJ 2026-10-01). 0 is an answer ("none
-            // planned"); the column's null is "never asked" (data-integrity trap 6).
-            // decimal(10,2): the currency maximum would not fit the column.
-            'care_cost_annual' => [
-                'sometimes',
-                'numeric',
-                'min:0',
-                'max:99999999.99',
-            ],
-            'care_start_age' => [
-                'sometimes',
-                'nullable',
-                'integer',
-                'min:'.ValidationLimits::MIN_RETIREMENT_AGE,
-                'max:'.ValidationLimits::MAX_AGE,
-            ],
         ];
     }
 
@@ -75,9 +59,6 @@ class UpdateRetirementGoalsRequest extends FormRequest
             'target_retirement_age.min' => 'Target retirement age must be at least '.ValidationLimits::MIN_RETIREMENT_AGE.'.',
             'target_retirement_age.max' => 'Target retirement age cannot be more than '.ValidationLimits::MAX_RETIREMENT_AGE.'.',
             'target_retirement_income.min' => 'Target retirement income cannot be negative.',
-            'care_cost_annual.min' => 'Care costs cannot be negative.',
-            'care_start_age.min' => 'The age care might start must be at least '.ValidationLimits::MIN_RETIREMENT_AGE.'.',
-            'care_start_age.max' => 'The age care might start cannot be more than '.ValidationLimits::MAX_AGE.'.',
         ];
     }
 }
