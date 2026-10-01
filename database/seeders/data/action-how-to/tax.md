@@ -47,7 +47,10 @@ when has_salary_sacrifice:
 1. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year. Your cash pay after the sacrifice must not fall below the National Minimum Wage. The amount comes off your pay before tax, so there is no relief to claim.
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
+when has_workplace_pension and not has_salary_sacrifice and not payroll_short:
 2. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when has_workplace_pension and not has_salary_sacrifice and payroll_short:
+2. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year.
 3. Ask payroll how the scheme gives tax relief. Most workplace schemes take your contribution before Income Tax, so the relief comes through your pay. Some use relief at source instead: your contribution comes out after tax, the scheme adds {provider_relief} of basic-rate relief.
 when payroll_short and has_personal_pension:
 4. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Pay the other {payroll_rest} into {personal_pension} as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
@@ -61,7 +64,7 @@ when employed and not auto_enrolled and not has_workplace_pension and not has_db
 1. Your employer does not have to enrol you automatically, but you can usually ask to join their pension and they cannot refuse. Ask payroll, and whether they offer salary sacrifice.
 when has_personal_pension and not has_workplace_pension:
 4. Pay {net_payment} into {personal_pension}. The provider claims {provider_relief} of basic-rate relief from HM Revenue and Customs (HMRC) and adds it, so {contribution} goes into your pension.
-when has_personal_pension and has_workplace_pension:
+when has_personal_pension and has_workplace_pension and not payroll_short:
 5. Or pay {net_payment} into {personal_pension} instead. The provider claims {provider_relief} of basic-rate relief from HM Revenue and Customs (HMRC) and adds it, so {contribution} goes into your pension.
 when has_db_pension_only:
 1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
@@ -256,7 +259,10 @@ when has_salary_sacrifice:
 3. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year. Your cash pay after the sacrifice must not fall below the National Minimum Wage.
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
+when has_workplace_pension and not has_salary_sacrifice and not payroll_short:
 4. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when has_workplace_pension and not has_salary_sacrifice and payroll_short:
+4. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year.
 when payroll_short and has_personal_pension:
 5. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Pay the other {payroll_rest} into {personal_pension} as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
 when payroll_short and not has_personal_pension:
@@ -269,7 +275,7 @@ when employed and not auto_enrolled and not has_workplace_pension and not has_db
 1. Your employer does not have to enrol you automatically, but you can usually ask to join their pension and they cannot refuse. Ask payroll, and whether they offer salary sacrifice.
 when has_personal_pension and not has_workplace_pension:
 5. Pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
-when has_personal_pension and has_workplace_pension:
+when has_personal_pension and has_workplace_pension and not payroll_short:
 6. Or pay {net_payment} into {personal_pension} instead. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when has_db_pension_only:
 1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
@@ -302,7 +308,10 @@ when has_salary_sacrifice:
 2. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year. Your cash pay after the sacrifice must not fall below the National Minimum Wage.
 when has_workplace_pension and not has_salary_sacrifice:
 1. Ask your employer first whether they offer salary sacrifice. If they do, paying in that way saves National Insurance as well as Income Tax.
+when has_workplace_pension and not has_salary_sacrifice and not payroll_short:
 3. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year, or pay a one-off {contribution} if the scheme allows it.
+when has_workplace_pension and not has_salary_sacrifice and payroll_short:
+3. Otherwise, ask your employer to increase your contribution to {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year.
 when payroll_short and has_personal_pension:
 4. {contribution_per_month_left} a month is as much as your pay can carry after your spending: {payroll_total} by {tax_year_end}. Pay the other {payroll_rest} into {personal_pension} as a one-off: you pay {payroll_rest_net} and the provider adds {payroll_rest_relief} of basic-rate relief.
 when payroll_short and not has_personal_pension:
@@ -315,7 +324,7 @@ when employed and not auto_enrolled and not has_workplace_pension and not has_db
 1. Your employer does not have to enrol you automatically, but you can usually ask to join their pension and they cannot refuse. Ask payroll, and whether they offer salary sacrifice.
 when has_personal_pension and not has_workplace_pension:
 4. Pay {net_payment} into {personal_pension}. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
-when has_personal_pension and has_workplace_pension:
+when has_personal_pension and has_workplace_pension and not payroll_short:
 5. Or pay {net_payment} into {personal_pension} instead. The provider adds {provider_relief} of basic-rate relief, so {contribution} goes in.
 when has_db_pension_only:
 1. Your {db_pension} is a defined benefit scheme, which pays a pension based on your salary and years of service. Ask the scheme administrator how you can pay in more. The scheme may let you buy extra pension, or pay additional voluntary contributions (AVCs) into a separate defined contribution pot, often with another provider.
