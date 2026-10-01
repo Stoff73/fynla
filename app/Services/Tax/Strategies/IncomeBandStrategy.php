@@ -69,13 +69,21 @@ final class IncomeBandStrategy implements TaxStrategy
         $recommendations = [];
 
         // #1 — Personal Allowance Taper Rescue (60% effective rate band).
-        // Effective only when contributing to drop income BELOW the taper
-        // threshold, i.e. only the slice between £100k and the user's income
-        // counts. Cap by both the in-band slice and the available AA.
+        // First the slice between the taper threshold and the user's income,
+        // then, once the allowance is back, the income still taxed at the
+        // higher rate down to where that rate starts (SaveTax matrix E3), as
+        // #2 already does. The part below the threshold is suggested only when
+        // the money to pay it is known (CSJ 2026-09-30, "We ask for
+        // expenditure"); short money goes to the 60% slice first.
         if ($adjustedNetIncome > $taperThreshold && $adjustedNetIncome <= $additionalRateThreshold) {
-            // Shared with the /savetax funnel (TaxStrategyMath), so its promise
-            // and this card size the contribution the same way.
-            $displayContribution = (int) $this->math->taperRescueContribution($adjustedNetIncome, $availableAA);
+            $taperSlice = $adjustedNetIncome - $taperThreshold;
+            $belowTaper = $fundable !== null
+                ? max(0.0, $this->math->higherRateSlice($user, $taxableIncome, $higherRateThreshold) - $taperSlice)
+                : 0.0;
+            // Sized in TaxStrategyMath, where the /savetax funnel sizes its
+            // taper line (without the part below the threshold).
+            $displayContribution = (int) $this->math->taperRescueContribution($adjustedNetIncome, $availableAA, $belowTaper);
+            $reachesBelow = $displayContribution > $taperSlice;
             if ($displayContribution > 0) {
                 // Split the 60% saving into the two mechanisms the user can see
                 // in their own figures (CSJ): (1) Personal Allowance reclaimed —
@@ -89,7 +97,8 @@ final class IncomeBandStrategy implements TaxStrategy
                 // the Personal Savings Allowance and dividends are priced at
                 // their own rates; the direct relief is what the reclaimed
                 // allowance does not account for.
-                $paReclaimed = (int) ($displayContribution / 2);
+                // Only the part inside the band wins allowance back.
+                $paReclaimed = (int) (min($displayContribution, $taperSlice) / 2);
                 $paReclaimSaving = (int) round($paReclaimed * $higherRate);
                 $totalSaving = (int) round($this->math->pensionContributionSaving($user, $displayContribution));
                 $directRelief = max(0, $totalSaving - $paReclaimSaving);
@@ -101,6 +110,30 @@ final class IncomeBandStrategy implements TaxStrategy
                     : sprintf("Reduce the rest of your income tax by £%s.\n\n", number_format($directRelief));
                 $paReclaimPct = (int) round($higherRate * 50);
                 $effectivePct = (int) round($taperEffectiveRate * 100);
+                $reclaimShare = $reachesBelow ? '' : sprintf(' (%d%% of your contribution)', $paReclaimPct);
+                // Wording approved by CSJ 2026-10-01 (spec section 3.2). The
+                // floor is the higher-rate threshold before any extension:
+                // the card speaks in adjusted net income, which is already
+                // net of Gift Aid and relief at source (ITA 2007 s58).
+                $closing = $reachesBelow
+                    ? sprintf(
+                        "Together that's £%s back this year. Income between £%s and £%s is taxed at %d%%. Below £%s, each £%s you pay in still saves £%s, down to £%s.",
+                        number_format($totalSaving),
+                        number_format((int) $taperThreshold),
+                        number_format((int) $taperEnd),
+                        $effectivePct,
+                        number_format((int) $taperThreshold),
+                        number_format(1000),
+                        number_format((int) round(1000 * $higherRate)),
+                        number_format((int) $this->math->bandThresholds()['higher']),
+                    )
+                    : sprintf(
+                        "Together that's £%s back this year — income between £%s and £%s is taxed at %d%%.",
+                        number_format($totalSaving),
+                        number_format((int) $taperThreshold),
+                        number_format((int) $taperEnd),
+                        $effectivePct,
+                    );
 
                 $recommendations[] = new StrategyRecommendation(
                     type: 'pa_taper_rescue',
@@ -109,24 +142,25 @@ final class IncomeBandStrategy implements TaxStrategy
                     title: 'Reclaim your Personal Allowance with a pension contribution',
                     description: sprintf(
                         "For your income of £%s, a £%s pension contribution would:\n\n"
-                        ."Reclaim £%s of your Personal Allowance, saving £%s (%d%% of your contribution).\n\n"
+                        ."Reclaim £%s of your Personal Allowance, saving £%s%s.\n\n"
                         .'%s'
-                        ."Together that's £%s back this year — income between £%s and £%s is taxed at %d%%.",
+                        .'%s',
                         number_format((int) round($adjustedNetIncome)),
                         number_format($displayContribution),
                         number_format($paReclaimed),
                         number_format($paReclaimSaving),
-                        $paReclaimPct,
+                        $reclaimShare,
                         $directLine,
-                        number_format($totalSaving),
-                        number_format((int) $taperThreshold),
-                        number_format((int) $taperEnd),
-                        $effectivePct,
+                        $closing,
                     ),
                     estimatedAnnualTaxSaved: (float) $totalSaving,
                     extra: [
                         'suggested_contribution' => (float) $displayContribution,
                         'effective_marginal_rate' => round($taperEffectiveRate, 4),
+                        // The how-to's step for the part below the threshold.
+                        'below_taper' => $reachesBelow,
+                        'higher_relief_rate' => $higherRate,
+                        'higher_rate_threshold' => $this->math->bandThresholds()['higher'],
                     ],
                 );
             }

@@ -950,15 +950,39 @@ final class TaxStrategyMath
 
     /**
      * Contribution that takes adjusted net income back down to the Personal
-     * Allowance taper threshold (ITA 2007 s35), capped by the Annual Allowance
-     * left and rounded down to the nearest £100 — rounding up would relieve
-     * tax that is not paid.
+     * Allowance taper threshold (ITA 2007 s35), then $belowTaper more of
+     * income relieved at the higher rate beneath it, capped by the Annual
+     * Allowance left and rounded down to the nearest £100 — rounding up would
+     * relieve tax that is not paid. The /savetax funnel passes no $belowTaper
+     * (CSJ 2026-10-01: its trap line stays at the taper slice).
      */
-    public function taperRescueContribution(float $adjustedNetIncome, float $availableAA): float
+    public function taperRescueContribution(float $adjustedNetIncome, float $availableAA, float $belowTaper = 0.0): float
     {
         $taperThreshold = (float) $this->taxConfig->getIncomeTax()['personal_allowance_taper_threshold'];
 
-        return floor(max(0.0, min($adjustedNetIncome - $taperThreshold, $availableAA)) / 100) * 100;
+        return floor(max(0.0, min($adjustedNetIncome - $taperThreshold + max(0.0, $belowTaper), $availableAA)) / 100) * 100;
+    }
+
+    /**
+     * Income actually taxed at the higher rate: non-savings income above the
+     * limit, plus interest above it that the Personal Savings Allowance does
+     * not cover. The allowance is a nil rate on the first slice of savings
+     * income (ITA 2007 s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B),
+     * and savings income sits above non-savings income (s16). Dividends are
+     * taxed at the dividend rates (s8), never the higher rate, so they are
+     * left out: the slice can only understate, never overstate, the relief.
+     * Both pension cards that relieve at the higher rate size from here
+     * (PensionTaxReliefStrategy, IncomeBandStrategy).
+     */
+    public function higherRateSlice(User $user, float $taxable, float $limit): float
+    {
+        $parts = $this->incomePartsFor($user);
+        $interest = $parts['interest'];
+        $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
+        $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
+        $allowanceLeft = max(0.0, $this->psaForBand('higher') - ($interest - $interestAbove));
+
+        return max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
     }
 
     /**

@@ -236,13 +236,15 @@ outcome:
 
 ## pa_taper_rescue
 status: approved
-source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/income-tax-rates/income-over-100000; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58)
+source: Pensions Act 2008 s3 automatic enrolment (https://www.legislation.gov.uk/ukpga/2008/30/section/3); https://www.gov.uk/workplace-pensions/joining-a-workplace-pension; https://www.gov.uk/income-tax-rates/income-over-100000; https://www.gov.uk/guidance/adjusted-net-income; https://www.gov.uk/guidance/salary-sacrifice-and-the-effects-on-paye (National Minimum Wage floor); ITA 2007 s58 (https://www.legislation.gov.uk/ukpga/2007/3/section/58); Finance Act 2004 s192(4) (https://www.legislation.gov.uk/ukpga/2004/12/section/192); https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (relief below the threshold, CSJ 2026-10-01)
 figures: contribution, effective_marginal_rate, net_payment, provider_relief, extra_relief
 why:
 1. Above {taper_threshold} you lose £1 of Personal Allowance for every {taper_per_pound}, so that income is taxed at an effective {effective_marginal_rate}.
 always:
 1. Your adjusted net income is above {taper_threshold}, so your Personal Allowance goes down by £1 for every {taper_per_pound} over it. Income in that range is taxed at an effective {effective_marginal_rate}.
 2. Pension payments reduce your adjusted net income. For a pension that uses relief at source, the amount taken off is the gross {contribution}, not just what you pay.
+when below_taper:
+3. Below {taper_threshold}, each pound you pay in still gets relief at {higher_relief_rate}, down to {higher_rate_threshold}, where the higher rate starts.
 when has_salary_sacrifice:
 3. Ask your employer to increase your salary sacrifice into {workplace_pension} by {contribution_per_month_left} a month for the {months_left} months left in this tax year. Your cash pay after the sacrifice must not fall below the National Minimum Wage.
 when has_workplace_pension and not has_salary_sacrifice:
