@@ -256,7 +256,7 @@ describe('evaluateAgentActions', function () {
             'profile' => $this->profile->toArray(),
             'summary' => [
                 'income_gap' => 10000,
-                'target_retirement_income' => 30000,
+                'target_retirement_income' => 150000, // above what the pensions project, so there is a shortfall
                 'target_retirement_age' => 65,
             ],
             'annual_allowance' => [
@@ -337,7 +337,8 @@ describe('evaluateAgentActions', function () {
 
         expect(collect($result['recommendations'])->pluck('definition_key')->all())->not->toContain('adjust_retirement_age')
             ->and($card['figures'])->toHaveKey('adjust_retirement_age')
-            ->and($card['title'])->toBe('Your retirement income is about £10,000 a year short of your target');
+            // No pensions recorded: the planning projection is nothing, so the whole target is short.
+            ->and($card['title'])->toBe('Your retirement income is about £30,000 a year short of your target');
     });
 
     it('suppresses contribution-increase from age 75 (no tax relief)', function () {

@@ -176,7 +176,7 @@ class PensionProjector
     /**
      * Project total retirement income from all pension sources.
      */
-    public function projectTotalRetirementIncome(int $userId, int $extraYears = 0): array
+    public function projectTotalRetirementIncome(int $userId): array
     {
         $user = User::findOrFail($userId);
         $store = app(PensionStore::class);
@@ -194,8 +194,7 @@ class PensionProjector
         // Project DC pensions (each may have its own risk preference)
         foreach ($dcPensions as $dcPension) {
             $retirementAge = $dcPension->retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
-            // $extraYears: the same pension, drawn that many years later.
-            $yearsToRetirement = max(0, $retirementAge - $currentAge) + $extraYears;
+            $yearsToRetirement = max(0, $retirementAge - $currentAge);
 
             // Get growth rate for this specific pension (may have custom risk)
             $growthRate = $this->getGrowthRateForPension($dcPension, $userId);
@@ -221,7 +220,8 @@ class PensionProjector
         }
 
         // Estimate DC pension income using safe withdrawal rate
-        $dcAnnualIncome = $totalDCValue * $this->safeWithdrawalRate();
+        $safeWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
+        $dcAnnualIncome = $totalDCValue * $safeWithdrawalRate;
 
         $totalProjectedIncome = $dcAnnualIncome + $totalDBIncome + $statePensionIncome;
 
@@ -266,40 +266,6 @@ class PensionProjector
         }
 
         return 40; // Conservative fallback
-    }
-
-    /**
-     * The extra yearly contribution, paid in from now until retirement, whose
-     * pot buys $annualIncome a year at retirement. It inverts this projection:
-     * the pot is income / the safe withdrawal rate (as `dc_annual_income`), and
-     * contributions grow at the user's own rate. Gross: what reaches the pension.
-     */
-    public function extraContributionForIncome(int $userId, float $annualIncome, int $years): float
-    {
-        if ($annualIncome <= 0 || $years <= 0) {
-            return 0.0;
-        }
-        $pot = $annualIncome / $this->safeWithdrawalRate();
-        $growth = $this->getGrowthRateForUser($userId);
-
-        return $growth > 0 ? $pot * $growth / (pow(1 + $growth, $years) - 1) : $pot / $years;
-    }
-
-    /** What an extra yearly contribution for $years years adds to the pot, at the user's own rate. */
-    public function potFromExtraContribution(int $userId, float $annualContribution, int $years): float
-    {
-        if ($annualContribution <= 0 || $years <= 0) {
-            return 0.0;
-        }
-        $growth = $this->getGrowthRateForUser($userId);
-
-        return $growth > 0 ? $annualContribution * (pow(1 + $growth, $years) - 1) / $growth : $annualContribution * $years;
-    }
-
-    /** The rate a pot is turned into income at (`dc_annual_income`). */
-    public function safeWithdrawalRate(): float
-    {
-        return (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
     }
 
     /**

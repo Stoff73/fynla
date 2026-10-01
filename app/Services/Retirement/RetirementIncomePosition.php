@@ -16,10 +16,13 @@ use App\Services\TaxConfigService;
  * shortfall; memory "compute the real split, never either/or"). Spec:
  * docs/superpowers/specs/2026-10-01-retirement-cards-review-design.md, 3.3.
  *
- * - The shortfall, target and projection are the Retirement page's own
- *   (RetirementAgent::analyze summary), so card and page agree.
- * - The contribution that closes it inverts the same projection
- *   (PensionProjector::extraContributionForIncome).
+ * - The projection is the planning contract (RetirementProjectionContractService,
+ *   plan 2026-08-10): the server-owned primary projection /m and iOS show,
+ *   on the user's own assumptions, each pension from its own start age, a
+ *   defined contribution pot turned into income at the sustainable withdrawal
+ *   rate. The shortfall is the target less its income at the target age.
+ * - The contribution that closes it inverts the same contract
+ *   (calculatePlanningValue at the same net return and compounding).
  * - What can be paid is capped by the one affordability rule
  *   (PensionAffordability, "affordability check always", CSJ 2026-09-30) and
  *   by the relief limit: the remaining Annual Allowance plus carry forward,
@@ -30,16 +33,15 @@ use App\Services\TaxConfigService;
  *   once a pension has been flexibly accessed (FA 2004 s227ZA, s227G).
  * - Net money buys gross at the basic rate on relief at source (s192), the
  *   route the how-to gives a figure for.
- * - When that falls short, the retirement age at which the projection with
- *   the affordable payment reaches the target, up to the last age relief is
+ * - When that falls short, the retirement age at which the contract with the
+ *   affordable payment reaches the target, up to the last age relief is
  *   given (FA 2004 s188(3)(a), `pension.relief_max_age`).
  */
 class RetirementIncomePosition
 {
     public function __construct(
-        private readonly PensionProjector $projector,
+        private readonly RetirementProjectionContractService $contract,
         private readonly PensionAffordability $affordability,
-        private readonly StatePensionAgeResolver $statePensionAge,
         private readonly TaxConfigService $taxConfig,
         private readonly IncomeDefinitionsService $incomeDefinitions,
     ) {}
@@ -51,15 +53,21 @@ class RetirementIncomePosition
     public function for(User $user, array $analysisData): ?array
     {
         $summary = (array) ($analysisData['summary'] ?? []);
-        $shortfall = (float) ($summary['income_gap'] ?? 0);
         $target = (float) ($summary['target_retirement_income'] ?? 0);
-        $targetAge = (int) ($summary['target_retirement_age'] ?? 0);
-        $years = (int) ($summary['years_to_retirement'] ?? 0);
-        if ($shortfall <= 0 || $target <= 0 || $targetAge <= 0) {
+        if ($target <= 0) {
+            return null;
+        }
+        $plan = $this->contract->build($user);
+        $targetAge = (int) $plan['target_retirement_age'];
+        $projected = (float) $plan['planning_total_at_target_age'];
+        $shortfall = $target - $projected;
+        $currentAge = (int) ($user->date_of_birth?->age ?? 0);
+        $years = max(0, $targetAge - $currentAge);
+        if ($shortfall <= 0 || $targetAge <= 0) {
             return null;
         }
 
-        $neededYearly = $this->projector->extraContributionForIncome($user->id, $shortfall, $years);
+        $neededYearly = $this->contributionFor($plan, $shortfall, $years);
         $limitYearly = $this->reliefLimit($user, (array) ($analysisData['annual_allowance'] ?? []));
         $money = $this->affordability->moneyThisYear($user);
         // Net money buys more gross through relief at source (FA 2004 s192).
@@ -77,12 +85,12 @@ class RetirementIncomePosition
 
         [$ageToClose, $shortAtLastAge] = $payableYearly === null || $closes
             ? [null, null]
-            : $this->ageThatCloses($user, $target, $targetAge, $years, $payableYearly);
+            : $this->ageThatCloses($user, $plan, $target, $currentAge, $payableYearly);
 
         return [
             'shortfall' => round($shortfall, 2),
             'target_income' => round($target, 2),
-            'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
+            'projected_income' => round($projected, 2),
             'target_age' => $targetAge,
             'years_to_retirement' => $years,
             'needed_monthly' => round($neededYearly / 12, 2),
@@ -96,6 +104,37 @@ class RetirementIncomePosition
             'short_at_last_age' => $shortAtLastAge,
             'last_age' => (int) $this->taxConfig->get('pension.relief_max_age'),
         ];
+    }
+
+    /**
+     * The extra yearly contribution, paid in from now for $years years, whose
+     * pot buys $annualIncome at the contract's withdrawal rate, net return and
+     * compounding. Gross: what reaches the pension.
+     *
+     * @param  array<string, mixed>  $plan  RetirementProjectionContractService::build()
+     */
+    private function contributionFor(array $plan, float $annualIncome, int $years): float
+    {
+        if ($annualIncome <= 0 || $years <= 0) {
+            return 0.0;
+        }
+        $pot = $annualIncome / (float) $plan['assumptions']['sustainable_withdrawal_rate']['decimal'];
+        // The pot a £1 a month contribution builds; the contract is linear in it.
+        $perPound = $this->extraPot($plan, 1.0, $years);
+
+        return $perPound > 0 ? $pot / $perPound * 12 : 0.0;
+    }
+
+    /** @param  array<string, mixed>  $plan */
+    private function extraPot(array $plan, float $monthly, int $years): float
+    {
+        return RetirementProjectionContractService::calculatePlanningValue(
+            currentValue: 0.0,
+            monthlyContribution: $monthly,
+            annualReturnPercent: (float) $plan['assumptions']['net_growth_rate_percent'],
+            years: $years,
+            compoundPeriods: (int) $plan['assumptions']['compound_periods'],
+        );
     }
 
     /**
@@ -134,30 +173,41 @@ class RetirementIncomePosition
     }
 
     /**
-     * The first age, after the target, at which the projection with the
-     * payable contribution reaches the target; otherwise what is still short
-     * at the last age relief is given.
+     * The first age, after the target, at which the contract with the payable
+     * contribution reaches the target: each defined contribution pension
+     * drawn from that age instead, a defined benefit pension or the State
+     * Pension once it has started. Otherwise what is still short at the last
+     * age relief is given.
      *
+     * @param  array<string, mixed>  $plan  RetirementProjectionContractService::build()
      * @return array{0: int|null, 1: float|null}
      */
-    private function ageThatCloses(User $user, float $target, int $targetAge, int $years, float $payableYearly): array
+    private function ageThatCloses(User $user, array $plan, float $target, int $currentAge, float $payableYearly): array
     {
         $lastAge = (int) $this->taxConfig->get('pension.relief_max_age');
-        $statePensionAge = $this->statePensionAge->forUser($user);
-        $rate = $this->projector->safeWithdrawalRate();
+        $rate = (float) $plan['assumptions']['sustainable_withdrawal_rate']['decimal'];
         $income = 0.0;
-        for ($age = $targetAge + 1; $age <= $lastAge; $age++) {
-            $extraYears = $age - $targetAge;
-            $projection = $this->projector->projectTotalRetirementIncome($user->id, $extraYears);
-            $income = $projection['dc_annual_income']
-                + $this->projector->potFromExtraContribution($user->id, $payableYearly, $years + $extraYears) * $rate
-                + $projection['db_annual_income']
-                + ($age >= $statePensionAge ? $projection['state_pension_income'] : 0.0);
+        for ($age = (int) $plan['target_retirement_age'] + 1; $age <= $lastAge; $age++) {
+            $years = max(0, $age - $currentAge);
+            $income = $this->extraPot($plan, $payableYearly / 12, $years) * $rate;
+            foreach ($plan['products'] as $product) {
+                if ($product['resource_type'] === 'dc_pension') {
+                    $income += RetirementProjectionContractService::calculatePlanningValue(
+                        currentValue: (float) $product['current_value'],
+                        monthlyContribution: (float) $product['monthly_contribution'],
+                        annualReturnPercent: (float) $plan['assumptions']['net_growth_rate_percent'],
+                        years: $years,
+                        compoundPeriods: (int) $plan['assumptions']['compound_periods'],
+                    ) * $rate;
+                } elseif ((int) $product['commencement_age'] <= $age) {
+                    $income += (float) $product['annual_income'];
+                }
+            }
             if ($income >= $target) {
                 return [$age, null];
             }
         }
 
-        return [null, $lastAge > $targetAge ? round($target - $income, 2) : null];
+        return [null, $lastAge > (int) $plan['target_retirement_age'] ? round($target - $income, 2) : null];
     }
 }
