@@ -145,6 +145,21 @@ final class TaxStrategyMath
     }
 
     /**
+     * The user's Income Tax band as the Tax plan prices it: 'none' when net
+     * income is within the Personal Allowance after its taper (ITA 2007 s35)
+     * and any Blind Person's Allowance (s38), otherwise the band from
+     * bandFromIncomeFor() on taxable income. Fyn names this band (audit item
+     * 44), so it never works out a second one.
+     */
+    public function incomeTaxBandFor(User $user): string
+    {
+        $taxable = $this->taxableIncomeFor($user);
+        $allowances = $this->personalAllowanceFor($user) + $this->taxConfig->blindPersonsAllowanceFor($user);
+
+        return $taxable <= $allowances ? 'none' : $this->bandFromIncomeFor($user, $taxable);
+    }
+
+    /**
      * Marginal income-tax rate for the user, derived from their HMRC band on
      * TOTAL taxable income (employment + dividends + savings interest), not
      * employment alone. This is the right basis for the marginal rate on
@@ -1169,7 +1184,12 @@ final class TaxStrategyMath
     }
 
     /** @return array<string, mixed> */
-    private function incomeDefinitionsFor(User $user): array
+    /**
+     * The user's income definitions (IncomeDefinitionsService), cached per user:
+     * the Income page's figures, and the one home for "this user's income" that
+     * Fyn reads too (audit item 44).
+     */
+    public function incomeDefinitionsFor(User $user): array
     {
         $key = (int) $user->id;
         if (! isset($this->incomeDefinitionsCache[$key])) {

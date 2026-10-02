@@ -9,8 +9,8 @@ use App\Constants\QuerySchemas;
 use App\Events\Eval\GateChecked;
 use App\Models\User;
 use App\Services\PrerequisiteGateService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Traits\ResolvesExpenditure;
-use App\Traits\ResolvesIncome;
 use LogicException;
 
 /**
@@ -20,7 +20,6 @@ use LogicException;
 class KycGateChecker
 {
     use ResolvesExpenditure;
-    use ResolvesIncome;
 
     public function __construct(
         private readonly PrerequisiteGateService $prerequisiteGate,
@@ -77,7 +76,10 @@ class KycGateChecker
             QuerySchemas::REQUIREMENT_DATE_OF_BIRTH => $user->date_of_birth
                 ? null
                 : ['label' => 'Date of birth', 'destination' => GateRoutes::PERSONAL_DETAILS],
-            QuerySchemas::REQUIREMENT_INCOME => $this->resolveGrossAnnualIncome($user) > 0
+            // The Income page's total (audit item 44): a pension being paid,
+            // rental profit and share vests are income, so a retiree is not told
+            // to add an income they already have.
+            QuerySchemas::REQUIREMENT_INCOME => (float) (app(TaxStrategyMath::class)->incomeDefinitionsFor($user)['total_income'] ?? 0) > 0
                 ? null
                 : ['label' => 'Annual income', 'destination' => GateRoutes::INCOME],
             QuerySchemas::REQUIREMENT_EXPENDITURE => $this->resolveMonthlyExpenditure($user)['amount'] > 0

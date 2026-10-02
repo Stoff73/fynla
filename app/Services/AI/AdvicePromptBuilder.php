@@ -33,10 +33,9 @@ use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
-use App\Services\Tax\IncomeTaxBands;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
-use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +58,6 @@ use Illuminate\Support\Facades\Log;
 class AdvicePromptBuilder
 {
     use ResolvesExpenditure;
-    use ResolvesIncome;
 
     public function __construct(
         private readonly TaxConfigService $taxConfig,
@@ -362,30 +360,46 @@ PROMPT;
             $lines[] = "- Marital status: {$user->marital_status}";
         }
 
-        $totalIncome = $this->calculateTotalUserIncome($user);
+        // The Income page's figures (IncomeDefinitionsService) and the Tax plan's
+        // band (TaxStrategyMath), so Fyn never works out a second income or band
+        // (CSJ 2026-10-01, one figure; audit item 44). The raw sum of the users
+        // columns this replaces left out a pension being paid, rental profit and
+        // share vests.
+        $taxMath = app(TaxStrategyMath::class);
+        $definitions = $taxMath->incomeDefinitionsFor($user);
+        $totalIncome = (float) ($definitions['total_income'] ?? 0);
         if ($totalIncome > 0) {
-            $formatted = number_format($totalIncome, 2);
-            $lines[] = "- Total annual income: £{$formatted}";
+            $lines[] = '- Total annual income: £'.number_format($totalIncome, 2);
+            $lines[] = '- Estimated income tax band: '.$this->taxBandLabel($taxMath, $taxMath->incomeTaxBandFor($user));
 
-            $taxBand = $this->estimateTaxBand($totalIncome);
-            $lines[] = "- Estimated income tax band: {$taxBand}";
-
+            // FA 2004 s189(2): employment and trading income are relevant UK
+            // earnings; pensions, rent, dividends, interest and trust income are not.
             $incomeTypes = [
-                'Employment (PAYE)' => (float) ($user->annual_employment_income ?? 0),
-                'Self-employment' => (float) ($user->annual_self_employment_income ?? 0),
-                'Rental (property)' => (float) ($user->annual_rental_income ?? 0),
-                'Dividend' => (float) ($user->annual_dividend_income ?? 0),
-                'Savings interest' => (float) ($user->annual_interest_income ?? 0),
-                'Trust' => (float) ($user->annual_trust_income ?? 0),
+                'employment' => ['Employment (PAYE)', true],
+                'self_employment' => ['Self-employment', true],
+                'pension_income' => ['Pension income being paid', false],
+                'rental' => ['Rental profit (property)', false],
+                'dividend' => ['Dividend', false],
+                'interest' => ['Savings interest', false],
+                'trust' => ['Trust', false],
+                'other' => ['Other income', null],
+                'vesting' => ['Share scheme vests this tax year', null],
             ];
-            $nonZero = array_filter($incomeTypes, fn ($v) => $v > 0);
-            if (count($nonZero) > 1 || (count($nonZero) === 1 && ! isset($nonZero['Employment (PAYE)']))) {
+            $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
+            $nonZero = array_filter(
+                array_intersect_key($components, $incomeTypes),
+                static fn ($amount): bool => (float) $amount > 0,
+            );
+            if (count($nonZero) > 1 || (count($nonZero) === 1 && ! isset($nonZero['employment']))) {
                 $lines[] = '- Income breakdown:';
-                foreach ($nonZero as $type => $amount) {
-                    $label = in_array($type, ['Employment (PAYE)', 'Self-employment'])
-                        ? "{$type} [relevant UK earnings]"
-                        : "{$type} [not relevant UK earnings]";
-                    $lines[] = "  - {$label}: £".number_format($amount, 2);
+                foreach ($nonZero as $key => $amount) {
+                    [$label, $relevant] = $incomeTypes[$key];
+                    $tag = match ($relevant) {
+                        true => ' [relevant UK earnings]',
+                        false => ' [not relevant UK earnings]',
+                        null => '',
+                    };
+                    $lines[] = "  - {$label}{$tag}: £".number_format((float) $amount, 2);
                 }
             }
         }
@@ -1334,15 +1348,6 @@ PROMPT;
 
     // ─── Helper Methods ──────────────────────────────────────────────
 
-    public function calculateTotalUserIncome(User $user): float
-    {
-        // Delegates to ResolvesIncome trait — canonical income resolution
-        // used by 20+ sibling services. Earlier hand-rolled version returned
-        // 0 when the user had only annual_expenditure populated, which
-        // produced wrong tax-band estimates in Fyn advice.
-        return $this->resolveGrossAnnualIncome($user);
-    }
-
     public function calculateTotalExpenditure(User $user): float
     {
         // Delegates to ResolvesExpenditure trait — same priority chain
@@ -1351,33 +1356,16 @@ PROMPT;
         return $this->resolveMonthlyExpenditure($user)['amount'];
     }
 
-    public function estimateTaxBand(float $totalIncome): string
+    /** The band's name and rate as Fyn reads it, the rate from tax config. */
+    private function taxBandLabel(TaxStrategyMath $taxMath, string $band): string
     {
-        // The bands every screen uses, with the Personal Allowance after its
-        // taper (IncomeTaxBands, ITA 2007 s35) and the rates from tax config
-        // (CSJ 2026-10-01; audit item 43). This ignored the taper and fell back
-        // to typed-in figures, so Fyn could call £110,000 "Higher rate" with a
-        // full allowance.
-        $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = IncomeTaxBands::taperedPersonalAllowance($incomeTax, $totalIncome);
-        $bands = $incomeTax['bands'];
-        $basicRateLimit = $personalAllowance + (float) $bands[0]['max'];
-        $additionalRateLimit = (float) $incomeTax['additional_rate_threshold'];
-        $percent = static fn (array $band): string => rtrim(rtrim(number_format((float) $band['rate'] * 100, 2), '0'), '.').'%';
-
-        if ($totalIncome <= $personalAllowance) {
+        if ($band === 'none') {
             return 'No tax (below Personal Allowance)';
         }
 
-        if ($totalIncome <= $basicRateLimit) {
-            return 'Basic rate ('.$percent($bands[0]).')';
-        }
+        $rate = rtrim(rtrim(number_format($taxMath->bandRateForBand($band) * 100, 2), '0'), '.');
 
-        if ($totalIncome <= $additionalRateLimit) {
-            return 'Higher rate ('.$percent($bands[1]).')';
-        }
-
-        return 'Additional rate ('.$percent($bands[2]).')';
+        return ucfirst($band).' rate ('.$rate.'%)';
     }
 
     public function formatInvestmentAccountType(string $type): string
