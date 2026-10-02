@@ -154,8 +154,8 @@ outcome:
 1. Your projection uses the real value of {scheme_name}.
 
 ## approaching_decumulation
-status: draft
-source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension ("taking all or some of it as cash, buying a product that gives you a guaranteed income … or investing it to get a regular, adjustable income"; flexi-access drawdown; a short-term annuity from a drawdown fund "will give you regular payments for up to 5 years"; an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"; providers "may not offer all of them" and "you can transfer your pension pot to a different provider"; "not normally before 55"); https://www.gov.uk/tax-on-pension/tax-free ("You can usually take up to 25% of the amount built up in any pension as a tax-free lump sum. The most you can take is £268,275"; cash sums from a pot, each with its tax-free part; "Tax is taken off the remaining amount before you get it"); Finance Act 2004 s227G (https://www.legislation.gov.uk/ukpga/2004/12/section/227G: the Money Purchase Annual Allowance starts with the first payment from a flexi-access drawdown fund or the first uncrystallised funds pension lump sum, not with a pension commencement lump sum alone or a lifetime annuity), s227ZA; Schedule 28 para 8 (funds designated for drawdown can be some of those held); https://www.gov.uk/personal-pensions-your-rights/get-help (free Pension Wise appointment over 50, for defined contribution pensions); tax config `pension.pcls_rate`, `pension.lump_sum_allowance`, `pension.mpaa`, `pension.normal_minimum_pension_age`; the pot from the planning contract (`RetirementProjectionContractService`) and the tax-free part from `TaxConfigService::calculatePCLS`; the card's own figures
+status: approved
+source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension ("taking all or some of it as cash, buying a product that gives you a guaranteed income … or investing it to get a regular, adjustable income"; flexi-access drawdown; a short-term annuity from a drawdown fund "will give you regular payments for up to 5 years"; an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"; providers "may not offer all of them" and "you can transfer your pension pot to a different provider"; "not normally before 55"); https://www.gov.uk/tax-on-pension/tax-free ("You can usually take up to 25% of the amount built up in any pension as a tax-free lump sum. The most you can take is £268,275"; cash sums from a pot, each with its tax-free part; "Tax is taken off the remaining amount before you get it"); Finance Act 2004 s227G (https://www.legislation.gov.uk/ukpga/2004/12/section/227G: the Money Purchase Annual Allowance starts with the first payment from a flexi-access drawdown fund or the first uncrystallised funds pension lump sum, not with a pension commencement lump sum alone or a lifetime annuity), s227ZA; Schedule 28 para 8 (funds designated for drawdown can be some of those held); tax config `pension.pcls_rate`, `pension.lump_sum_allowance`, `pension.mpaa`, `pension.normal_minimum_pension_age`; the pot from the planning contract (`RetirementProjectionContractService`) and the tax-free part from `TaxConfigService::calculatePCLS`; the card's own figures
 figures: summary, years_to_retirement, before_retirement, dc_pot, tax_free_lump
 why:
 1. {summary}
@@ -171,16 +171,14 @@ when before_retirement:
 7. You can usually take a pension from age {normal_minimum_pension_age}. Compare the options on the Retirement page before you choose.
 when not before_retirement:
 7. Compare the options on the Retirement page, and ask each provider which of them it offers.
-always:
-8. If you are over 50, book a free Pension Wise appointment to talk through your options for these pensions.
 outcome:
 1. You know which way, or which mix, you will take each pension in, how much comes tax-free and how the rest is taxed.
 learn:
 1. How your retirement projection works | /help#retirement
 
 ## pension_consolidation_opportunity
-status: approved
-source: https://www.gov.uk/transferring-your-pension/transferring-to-a-uk-pension-scheme (check the scheme allows a transfer and the new one accepts it; transfer fees; you might lose the right to take your pension at a specific age, fixed or enhanced protection, or a tax-free lump sum above the usual amount; contact both providers); https://www.gov.uk/transferring-your-pension (free information from MoneyHelper; independent financial advisers for paid advice); Pension Schemes Act 2015 s48, advice before transferring safeguarded benefits (https://www.legislation.gov.uk/ukpga/2015/8/section/48); the card's own figures
+status: draft
+source: https://www.gov.uk/transferring-your-pension/transferring-to-a-uk-pension-scheme (check the scheme allows a transfer and the new one accepts it; transfer fees; you might lose the right to take your pension at a specific age, fixed or enhanced protection, or a tax-free lump sum above the usual amount; contact both providers); Pension Schemes Act 2015 s48, advice before transferring safeguarded benefits (https://www.legislation.gov.uk/ukpga/2015/8/section/48); the card's own figures
 figures: pension_count
 why:
 1. You have {pension_count} defined contribution pensions, each with its own charges and paperwork.
@@ -188,9 +186,8 @@ always:
 1. Ask each provider whether the pension allows a transfer, whether there is a transfer fee, and whether you would lose anything by moving it: the right to take it at a particular age, fixed or enhanced protection, or a tax-free lump sum above the usual amount.
 2. If a pension has a guarantee, such as a guaranteed annuity rate, ask the provider whether you must take regulated financial advice before it can be transferred.
 3. Check that the pension you want to move them into will accept the transfer.
-4. MoneyHelper gives free information; an independent financial adviser can advise, for a fee.
-5. Start the transfer through the provider you are moving to.
-6. Update your pensions on the Retirement page once the transfer completes.
+4. Start the transfer through the provider you are moving to.
+5. Update your pensions on the Retirement page once the transfer completes.
 outcome:
 1. Fewer pensions to keep track of, with charges you have compared.
 
@@ -229,14 +226,13 @@ outcome:
 1. Your pension payments go in without taking your pay below the legal minimum.
 
 ## enhanced_annuity_eligible
-status: approved
-source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension (an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)"); https://www.gov.uk/personal-pensions-your-rights/get-help (free Pension Wise appointment over 50, for defined contribution pensions)
+status: draft
+source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension (an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)")
 figures:
 why:
 1. What an annuity pays can depend on your health, so a provider may offer you more than its standard rates.
 always:
 1. When you ask for annuity quotes, give every provider your health details.
 2. Compare quotes from several providers before you choose.
-3. If you are over 50, a free Pension Wise appointment can talk you through your options for a defined contribution pension.
 outcome:
 1. Your annuity quotes take your health into account.
