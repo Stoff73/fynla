@@ -277,6 +277,25 @@ describe('evaluateAgentActions — savings triggers', function () {
             ->and($rec['category'])->toBe('Emergency Fund');
     });
 
+    it('says nothing about the emergency fund when no savings analysis is given', function () {
+        // InvestmentAgent::generateRecommendations (the dashboard and Fyn path)
+        // passes no savings analysis. The runway is unknown there, not 0: on
+        // fynla.org the Mitchell demo was told "critically low at 0 months"
+        // beside the Savings figure of 14 months (CSJ 2026-10-01, one figure).
+        $investmentAnalysis = [
+            'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
+            'allocation_deviation' => ['needs_rebalancing' => false],
+        ];
+
+        $result = $this->service->evaluateAgentActions(
+            $investmentAnalysis, [], collect(), collect(), $this->user->id, []
+        );
+
+        $keys = collect($result['recommendations'])->pluck('definition_key');
+        expect($keys)->not->toContain('emergency_fund_critical')
+            ->and($keys)->not->toContain('emergency_fund_grow');
+    });
+
     it('fires emergency_fund_grow when runway is between 3 and 6 months', function () {
         $savingsAnalysis = [
             'emergency_fund' => ['runway_months' => 4],
