@@ -9,7 +9,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxActionDefinition;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
-use App\Services\Stores\SavingsStore;
+use App\Services\Savings\ISATracker;
 use App\Services\TaxConfigService;
 use App\Support\HouseholdPooling;
 use App\Traits\CalculatesOwnershipShare;
@@ -101,22 +101,11 @@ class TaxActionDefinitionService
         User $user,
         int $priority
     ): array {
-        $isaConfig = $this->taxConfig->getISAAllowances();
-        $isaAllowance = (float) ($isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
-
-        // Investment ISAs
-        $investmentISASubscribed = (float) InvestmentAccount::where('user_id', $user->id)
-            ->whereIn('account_type', ['isa', 'stocks_shares_isa'])
-            ->sum('isa_subscription_current_year');
-
-        // Cash ISAs from savings
-        $cashISASubscribed = (float) app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_amount');
-
-        $totalUsed = $investmentISASubscribed + $cashISASubscribed;
-        $remaining = $isaAllowance - $totalUsed;
+        // The one ISA-used rule (ISATracker::usedThisTaxYear, CSJ 2026-10-01).
+        $isaUse = app(ISATracker::class)->usedThisTaxYear($user);
+        $isaAllowance = $isaUse['total_allowance'];
+        $totalUsed = $isaUse['total_used'];
+        $remaining = $isaUse['remaining'];
 
         if ($remaining <= 0) {
             return [];
@@ -293,18 +282,8 @@ class TaxActionDefinitionService
         }
 
         // Check if user has ISA remaining capacity
-        $isaConfig = $this->taxConfig->getISAAllowances();
-        $isaAllowance = (float) ($isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
-
-        $investmentISASubscribed = (float) InvestmentAccount::where('user_id', $user->id)
-            ->whereIn('account_type', ['isa', 'stocks_shares_isa'])
-            ->sum('isa_subscription_current_year');
-        $cashISASubscribed = (float) app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_amount');
-
-        $isaRemaining = $isaAllowance - ($investmentISASubscribed + $cashISASubscribed);
+        // The one ISA-used rule (ISATracker::usedThisTaxYear, CSJ 2026-10-01).
+        $isaRemaining = app(ISATracker::class)->usedThisTaxYear($user)['remaining'];
         if ($isaRemaining <= 0) {
             return [];
         }

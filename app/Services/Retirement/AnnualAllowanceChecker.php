@@ -7,6 +7,7 @@ namespace App\Services\Retirement;
 use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
+use App\Services\Tax\AnnualAllowanceTaper;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -181,18 +182,9 @@ class AnnualAllowanceChecker
      */
     public function calculateTapering(float $thresholdIncome, float $adjustedIncome): float
     {
-        if ($thresholdIncome <= $this->getThresholdIncome() || $adjustedIncome <= $this->getAdjustedIncomeThreshold()) {
-            return $this->getStandardAnnualAllowance();
-        }
-
-        // Calculate reduction
-        $excessIncome = $adjustedIncome - $this->getAdjustedIncomeThreshold();
-        $reduction = $excessIncome / 2;
-
-        // Apply reduction but ensure minimum allowance
-        $taperedAllowance = $this->getStandardAnnualAllowance() - $reduction;
-
-        return max($this->getMinimumTaperedAllowance(), $taperedAllowance);
+        // The one home for the FA 2004 s228ZA taper (CSJ 2026-10-01; audit item
+        // 42). This halved the excess with a typed-in 2 and did not round down.
+        return AnnualAllowanceTaper::allowance($this->taxConfig->getPensionAllowances(), $thresholdIncome, $adjustedIncome);
     }
 
     /**

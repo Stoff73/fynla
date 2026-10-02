@@ -11,6 +11,7 @@ use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Savings\ISATracker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
@@ -56,19 +57,11 @@ class UserContextBuilder
 
         $taxBand = $this->determineTaxBand($grossIncome);
 
-        // ISA usage — combine savings + investment ISAs
-        $taxYear = $this->taxConfig->getTaxYear();
-        $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
-        $investmentIsaUsed = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-        $savingsIsaUsed = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->whereIn('account_type', ['isa', 'cash_isa'])
-            ->where('isa_subscription_year', $taxYear)
-            ->sum('isa_subscription_amount');
-        $isaUsed = (float) $investmentIsaUsed + (float) $savingsIsaUsed;
-        $isaRemaining = max(0, $isaAllowance - $isaUsed);
+        // ISA usage: the one ISA-used rule (ISATracker::usedThisTaxYear, CSJ 2026-10-01).
+        $isaUse = app(ISATracker::class)->usedThisTaxYear($user);
+        $isaAllowance = $isaUse['total_allowance'];
+        $isaUsed = $isaUse['total_used'];
+        $isaRemaining = $isaUse['remaining'];
 
         // Pension allowance
         $pensionAllowances = $this->taxConfig->getPensionAllowances();
@@ -458,19 +451,11 @@ class UserContextBuilder
         $spouseGross = $this->resolveGrossAnnualIncome($spouse);
         $spouseTaxBand = $this->determineTaxBand($spouseGross);
 
-        // Spouse ISA usage
-        $taxYear = $this->taxConfig->getTaxYear();
-        $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
-        $spouseInvestmentIsa = InvestmentAccount::where('user_id', $spouse->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-        $spouseSavingsIsa = app(SavingsStore::class)->forUser($spouse)
-            ->where('user_id', $spouse->id)
-            ->whereIn('account_type', ['isa', 'cash_isa'])
-            ->where('isa_subscription_year', $taxYear)
-            ->sum('isa_subscription_amount');
-        $spouseIsaUsed = (float) $spouseInvestmentIsa + (float) $spouseSavingsIsa;
-        $spouseIsaRemaining = max(0, $isaAllowance - $spouseIsaUsed);
+        // Spouse ISA usage: the one ISA-used rule (ISATracker::usedThisTaxYear).
+        $spouseIsaUse = app(ISATracker::class)->usedThisTaxYear($spouse);
+        $isaAllowance = $spouseIsaUse['total_allowance'];
+        $spouseIsaUsed = $spouseIsaUse['total_used'];
+        $spouseIsaRemaining = $spouseIsaUse['remaining'];
 
         // Spouse pension
         $spousePensionAllowance = $this->taxConfig->getPensionAllowances()['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE;

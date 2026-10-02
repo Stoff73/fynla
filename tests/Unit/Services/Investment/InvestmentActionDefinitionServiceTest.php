@@ -250,6 +250,33 @@ describe('evaluateAgentActions — tax efficiency triggers', function () {
         $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'open_isa');
         expect($rec)->toBeNull();
     });
+
+    it('writes the money on the tax wrapper cards as pounds', function () {
+        // csjones 2026-10-02, Mitchell demo: "You have 10,000 ISA allowance
+        // remaining … holdings (47,500)", with no pound sign.
+        $investmentAnalysis = [
+            'portfolio_summary' => ['accounts_count' => 2, 'holdings_count' => 3],
+            'allocation_deviation' => ['needs_rebalancing' => false],
+            'tax_wrappers' => [
+                'has_gia' => true,
+                'has_isa' => true,
+                'gia_value' => 75000,
+                'isa_remaining' => 10000,
+                'isa_used_this_year' => 10000,
+                'isa_allowance' => 20000,
+            ],
+        ];
+
+        $result = $this->service->evaluateAgentActions(
+            $investmentAnalysis, [], collect(), collect(), $this->user->id, []
+        );
+        $recs = collect($result['recommendations'])->keyBy('definition_key');
+
+        expect($recs['use_isa_allowance']['description'])
+            ->toContain('£10,000 ISA allowance')
+            ->toContain('(£75,000)')
+            ->and($recs['consider_bonds']['description'])->toContain('£75,000');
+    });
 });
 
 // =========================================================================
@@ -275,6 +302,25 @@ describe('evaluateAgentActions — savings triggers', function () {
         $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'emergency_fund_critical');
         expect($rec)->not->toBeNull()
             ->and($rec['category'])->toBe('Emergency Fund');
+    });
+
+    it('says nothing about the emergency fund when no savings analysis is given', function () {
+        // InvestmentAgent::generateRecommendations (the dashboard and Fyn path)
+        // passes no savings analysis. The runway is unknown there, not 0: on
+        // fynla.org the Mitchell demo was told "critically low at 0 months"
+        // beside the Savings figure of 14 months (CSJ 2026-10-01, one figure).
+        $investmentAnalysis = [
+            'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
+            'allocation_deviation' => ['needs_rebalancing' => false],
+        ];
+
+        $result = $this->service->evaluateAgentActions(
+            $investmentAnalysis, [], collect(), collect(), $this->user->id, []
+        );
+
+        $keys = collect($result['recommendations'])->pluck('definition_key');
+        expect($keys)->not->toContain('emergency_fund_critical')
+            ->and($keys)->not->toContain('emergency_fund_grow');
     });
 
     it('fires emergency_fund_grow when runway is between 3 and 6 months', function () {

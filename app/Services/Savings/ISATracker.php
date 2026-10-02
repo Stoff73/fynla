@@ -133,15 +133,43 @@ class ISATracker
         ]);
     }
 
+    /**
+     * What this person has paid into ISAs this tax year: THE one rule for "ISA
+     * allowance used", read by every engine (CSJ 2026-10-01: one figure, every
+     * surface; CSJTODO "one rule, with the year kept right on each payment").
+     * Each amount counts only in the tax year it belongs to.
+     *
+     * @return array{cash_isa_used: float, stocks_shares_isa_used: float, lisa_used: float, total_used: float, total_allowance: float, remaining: float}
+     */
+    public function usedThisTaxYear(User $user): array
+    {
+        $taxYear = $this->getCurrentTaxYear();
+        $status = $this->buildOwnerStatus($user, $taxYear, 'self');
+        $allowance = $this->getTotalAllowance($taxYear);
+
+        return [
+            'cash_isa_used' => $status['cash_isa_used'],
+            'stocks_shares_isa_used' => $status['stocks_shares_isa_used'],
+            'lisa_used' => $status['lisa_used'],
+            'total_used' => $status['total_used'],
+            'total_allowance' => round($allowance, 2),
+            'remaining' => round(max(0.0, $allowance - $status['total_used']), 2),
+        ];
+    }
+
     private function buildOwnerStatus(User $owner, string $taxYear, string $relationship): array
     {
         $breakdown = collect();
 
+        // A Junior ISA has its own allowance and is the child's, not the
+        // holder's (gov.uk/junior-individual-savings-accounts), so it never uses
+        // this person's ISA allowance.
         $savingsAccounts = SavingsAccount::query()
             ->where('user_id', $owner->id)
             ->where('is_isa', true)
             ->where('isa_subscription_year', $taxYear)
-            ->get();
+            ->get()
+            ->reject(fn (SavingsAccount $account): bool => $account->isJuniorIsa());
 
         foreach ($savingsAccounts as $account) {
             $isaType = in_array(strtolower((string) $account->isa_type), ['lisa', 'lifetime_isa'], true)

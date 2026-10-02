@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Savings\ISATracker;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -11,90 +13,74 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+/*
+ * One rule for "ISA allowance used this year" (CSJ 2026-10-01; CSJTODO "one
+ * rule, with the year kept right on each payment"): TaxStrategyMath reads
+ * ISATracker, so the Tax Strategy tile, the plan, the Savings page and every
+ * engine give one figure. Only amounts recorded for this tax year count; a
+ * balance alone is not a subscription (it can be a transfer in, which does not
+ * use the allowance).
+ */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->math = app(TaxStrategyMath::class);
+    $this->taxYear = app(TaxConfigService::class)->getTaxYear();
 });
 
-// Step 0 verdict: isa_subscription_year is stored as 'YYYY/YY' (slash format).
-// OnboardingService writes $this->taxConfig->getTaxYear() → '2026/27'.
-// The SavingsAccountFactory::isa() state incorrectly uses '2025-26' (dash) —
-// tests here use the real stored format from TaxConfigService::getTaxYear().
+it('counts what was paid in this tax year, from cash and stocks and shares ISAs', function () {
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'account_type' => 'cash_isa', 'current_balance' => 19000,
+        'isa_subscription_year' => $this->taxYear, 'isa_subscription_amount' => 3000,
+    ]);
+    InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'isa', 'current_value' => 40000,
+        'isa_subscription_current_year' => 5000, 'tax_year' => $this->taxYear,
+    ]);
 
-describe('estimateIsaSubscriptionsThisYear — captured vs proxy', function () {
+    expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))->toBe(8000.0)
+        ->and($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))
+        ->toBe((float) app(ISATracker::class)->usedThisTaxYear($user->fresh())['total_used']);
+});
 
-    it('prefers captured isa_subscription_amount for the current tax year', function () {
-        $user = User::factory()->create();
-        $taxYear = app(TaxConfigService::class)->getTaxYear(); // '2026/27'
+it('does not count last year\'s subscriptions', function () {
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'account_type' => 'cash_isa', 'current_balance' => 8000,
+        'isa_subscription_year' => '2025/26', 'isa_subscription_amount' => 7500,
+    ]);
+    InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'isa', 'current_value' => 20000,
+        'isa_subscription_current_year' => 20000, 'tax_year' => '2025/26',
+    ]);
 
-        SavingsAccount::factory()->create([
-            'user_id' => $user->id,
-            'is_isa' => true,
-            'current_balance' => 19000,
-            'isa_subscription_year' => $taxYear,
-            'isa_subscription_amount' => 100,
-            'created_at' => now()->subYears(3), // proxy would say £0 — captured says £100
-        ]);
+    expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))->toBe(0.0);
+});
 
-        expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))
-            ->toBe(100.0);
-    });
+it('does not treat the balance of an ISA opened this year as a subscription', function () {
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'account_type' => 'cash_isa', 'current_balance' => 5000,
+        'isa_subscription_year' => null, 'isa_subscription_amount' => null, 'created_at' => now(),
+    ]);
 
-    it('falls back to the created-this-tax-year proxy when no subscription amounts are captured', function () {
-        $user = User::factory()->create();
+    expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))->toBe(0.0);
+});
 
-        SavingsAccount::factory()->create([
-            'user_id' => $user->id,
-            'is_isa' => true,
-            'current_balance' => 5000,
-            'isa_subscription_year' => null,
-            'isa_subscription_amount' => null,
-            'created_at' => now(), // opened this tax year → proxy counts balance
-        ]);
+it('leaves a Junior ISA out of the holder\'s allowance', function () {
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'account_type' => 'junior_isa', 'current_balance' => 4000,
+        'isa_subscription_year' => $this->taxYear, 'isa_subscription_amount' => 4000,
+    ]);
 
-        expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))
-            ->toBe(5000.0);
-    });
+    expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))->toBe(0.0);
+});
 
-    it('sums captured amounts across multiple ISAs in the current tax year', function () {
-        $user = User::factory()->create();
-        $taxYear = app(TaxConfigService::class)->getTaxYear();
+it('stamps the current tax year on a subscription written without one', function () {
+    $data = \App\Services\Stores\Normalisers\InvestmentAccountNormaliser::fromForm([
+        'account_type' => 'isa', 'current_value' => 1000, 'isa_subscription_current_year' => 1000,
+    ], User::factory()->create());
 
-        SavingsAccount::factory()->create([
-            'user_id' => $user->id,
-            'is_isa' => true,
-            'current_balance' => 10000,
-            'isa_subscription_year' => $taxYear,
-            'isa_subscription_amount' => 3000,
-            'created_at' => now()->subYears(2),
-        ]);
-        SavingsAccount::factory()->create([
-            'user_id' => $user->id,
-            'is_isa' => true,
-            'current_balance' => 5000,
-            'isa_subscription_year' => $taxYear,
-            'isa_subscription_amount' => 2000,
-            'created_at' => now()->subYears(1),
-        ]);
-
-        expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))
-            ->toBe(5000.0);
-    });
-
-    it('ignores captured amounts from a prior tax year and falls back to proxy', function () {
-        $user = User::factory()->create();
-
-        SavingsAccount::factory()->create([
-            'user_id' => $user->id,
-            'is_isa' => true,
-            'current_balance' => 8000,
-            'isa_subscription_year' => '2025/26', // prior year — must not count
-            'isa_subscription_amount' => 7500,
-            'created_at' => now(), // proxy would count this
-        ]);
-
-        // Prior-year captured amount must NOT be returned; proxy returns balance (8000).
-        expect($this->math->estimateIsaSubscriptionsThisYear($user->fresh()))
-            ->toBe(8000.0);
-    });
+    expect($data['tax_year'])->toBe($this->taxYear);
 });

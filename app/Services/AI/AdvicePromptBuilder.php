@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Constants\QuerySchemas;
-use App\Constants\TaxDefaults;
 use App\Models\AiConversation;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
@@ -34,6 +33,7 @@ use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\IncomeTaxBands;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
@@ -1353,30 +1353,31 @@ PROMPT;
 
     public function estimateTaxBand(float $totalIncome): string
     {
-        try {
-            $incomeTax = $this->taxConfig->getIncomeTax();
-            $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? TaxDefaults::PERSONAL_ALLOWANCE);
-            $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? TaxDefaults::BASIC_RATE_BAND);
-            $additionalRateLimit = (float) ($incomeTax['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
-        } catch (\Exception) {
-            $personalAllowance = (float) TaxDefaults::PERSONAL_ALLOWANCE;
-            $basicRateLimit = (float) TaxDefaults::HIGHER_RATE_THRESHOLD;
-            $additionalRateLimit = (float) TaxDefaults::ADDITIONAL_RATE_THRESHOLD;
-        }
+        // The bands every screen uses, with the Personal Allowance after its
+        // taper (IncomeTaxBands, ITA 2007 s35) and the rates from tax config
+        // (CSJ 2026-10-01; audit item 43). This ignored the taper and fell back
+        // to typed-in figures, so Fyn could call £110,000 "Higher rate" with a
+        // full allowance.
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = IncomeTaxBands::taperedPersonalAllowance($incomeTax, $totalIncome);
+        $bands = $incomeTax['bands'];
+        $basicRateLimit = $personalAllowance + (float) $bands[0]['max'];
+        $additionalRateLimit = (float) $incomeTax['additional_rate_threshold'];
+        $percent = static fn (array $band): string => rtrim(rtrim(number_format((float) $band['rate'] * 100, 2), '0'), '.').'%';
 
         if ($totalIncome <= $personalAllowance) {
             return 'No tax (below Personal Allowance)';
         }
 
         if ($totalIncome <= $basicRateLimit) {
-            return 'Basic rate (20%)';
+            return 'Basic rate ('.$percent($bands[0]).')';
         }
 
         if ($totalIncome <= $additionalRateLimit) {
-            return 'Higher rate (40%)';
+            return 'Higher rate ('.$percent($bands[1]).')';
         }
 
-        return 'Additional rate (45%)';
+        return 'Additional rate ('.$percent($bands[2]).')';
     }
 
     public function formatInvestmentAccountType(string $type): string

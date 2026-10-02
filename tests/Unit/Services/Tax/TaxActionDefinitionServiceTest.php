@@ -81,8 +81,10 @@ describe('isa_not_maxed trigger', function () {
 
         SavingsAccount::factory()->create([
             'user_id' => $this->user->id,
-            'account_type' => 'isa',
+            'account_type' => 'cash_isa',
+            'is_isa' => true,
             'isa_subscription_amount' => 10000,
+            'isa_subscription_year' => app(\App\Services\TaxConfigService::class)->getTaxYear(),
         ]);
 
         $result = $this->service->evaluateActions($this->user);

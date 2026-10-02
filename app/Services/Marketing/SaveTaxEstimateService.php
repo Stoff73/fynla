@@ -6,6 +6,7 @@ namespace App\Services\Marketing;
 
 use App\Services\Onboarding\FunnelIncomeBand;
 use App\Services\Stores\SavingsMarketRateStore;
+use App\Services\Tax\IncomeTaxBands;
 use App\Services\Tax\Strategies\PensionTaxReliefStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -711,18 +712,10 @@ class SaveTaxEstimateService
         return $this->requiredArrayInt($this->taxConfig->getPensionAllowances(), 'relief_max_age', 'pension.relief_max_age');
     }
 
-    /** Personal Allowance after the £1-per-£2 taper above £100k. */
+    /** Personal Allowance after its taper: the one home, IncomeTaxBands (ITA 2007 s35). */
     private function personalAllowance(int $income): float
     {
-        $base = $this->personalAllowanceBase();
-        $threshold = $this->taperThreshold();
-        $taperRate = $this->taxNumber('income_tax.personal_allowance_taper_rate');
-
-        if ($income <= $threshold) {
-            return (float) $base;
-        }
-
-        return max(0.0, $base - ($income - $threshold) * $taperRate);
+        return IncomeTaxBands::taperedPersonalAllowance($this->taxConfig->getIncomeTax(), (float) $income);
     }
 
     /** @return array{basic:float,higher:float,additional:float} */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Services\Tax\IncomeTaxBands;
 use App\Services\TaxConfigService;
 
 class DividendTaxCalculator
@@ -52,11 +53,9 @@ class DividendTaxCalculator
         // that have not yet been updated to pass deduction values.
         $totalIncome = $nonDividendIncome + $dividendIncome;
         $adjustedNetIncome = max(0.0, $totalIncome - $pensionContributions - $giftAidGross);
-        $taperThreshold = (float) ($incomeTaxConfig['personal_allowance_taper_threshold'] ?? 100000);
-        if ($adjustedNetIncome > $taperThreshold) {
-            $reduction = ($adjustedNetIncome - $taperThreshold) / 2;
-            $personalAllowance = max(0, $personalAllowance - $reduction);
-        }
+        // The one home for the ITA 2007 s35 taper (CSJ 2026-10-01; audit item 43);
+        // this halved the excess with a typed-in 2 and did not round down.
+        $personalAllowance = IncomeTaxBands::taperedPersonalAllowance($incomeTaxConfig, $adjustedNetIncome);
 
         // Recalculate band boundaries with tapered PA
         $basicBandCeiling = $personalAllowance + $basicRateBand;
