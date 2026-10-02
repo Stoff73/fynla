@@ -10,6 +10,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
 use App\Models\User;
+use App\Traits\ResolvesIncome;
 
 /**
  * Data Readiness Gate for the Investment Module
@@ -20,6 +21,8 @@ use App\Models\User;
  */
 class DataReadinessService
 {
+    use ResolvesIncome;
+
     /**
      * Assess data readiness for investment analysis.
      *
@@ -353,13 +356,9 @@ class DataReadinessService
      */
     private function calculateGrossIncome(User $user): float
     {
-        return (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
+        // The Income page's total (ResolvesIncome, CSJ 2026-10-02): a pension being
+        // paid, rental profit and share vests count, as on every screen.
+        return $this->resolveGrossAnnualIncome($user);
     }
 
     /**
