@@ -5,23 +5,24 @@ declare(strict_types=1);
 namespace App\Traits;
 
 use App\Models\User;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
 trait ResolvesIncome
 {
     /**
-     * Resolve gross annual income from all user income sources.
+     * The user's total income: the Income page's figure (IncomeDefinitionsService
+     * `total_income`, ITA 2007 s23 Step 1), so every engine reads the one figure
+     * the user sees (CSJ 2026-10-02: "why are we not using the income figure
+     * provided?"). This summed the users income columns, so it left out a
+     * pension being paid, used gross rent instead of the rental profit and
+     * missed share vests: a retiree on £9,000 of pension was told "gross annual
+     * income is required" by the module checks.
      */
     protected function resolveGrossAnnualIncome(User $user): float
     {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        return (float) (app(IncomeDefinitionsService::class)->calculateFor($user)['total_income'] ?? 0);
     }
 
     /**
@@ -48,8 +49,10 @@ trait ResolvesIncome
 
         $age = $user->date_of_birth?->age;
 
+        // Each pension's owner is this user: hand it over, so isInPayment never
+        // reloads it when no date of birth is recorded (lazy-load guard).
         $income = $user->dbPensions
-            ->filter(fn ($pension): bool => $pension->isInPayment($age))
+            ->filter(fn ($pension): bool => $pension->setRelation('user', $user)->isInPayment($age))
             ->sum(fn ($pension): float => (float) ($pension->accrued_annual_pension ?? 0));
 
         $statePension = $user->statePension;

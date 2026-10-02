@@ -22,7 +22,17 @@ class IncomeDefinitionsService
 
     public function calculate(int $userId): array
     {
-        $user = User::with(['dcPensions', 'dbPensions', 'statePension'])->findOrFail($userId);
+        return $this->calculateFor(User::with(['dcPensions', 'dbPensions', 'statePension'])->findOrFail($userId));
+    }
+
+    /**
+     * The same definitions from a user model already in hand, so a caller
+     * holding one (ResolvesIncome, the one home for "this user's income") need
+     * not reload it, and an unsaved model works.
+     */
+    public function calculateFor(User $user): array
+    {
+        $user->loadMissing(['dcPensions', 'dbPensions', 'statePension']);
         $pensionContributions = $this->getPensionContributions($user);
 
         // 1. Total Income — from all sources including computed rental and pension income

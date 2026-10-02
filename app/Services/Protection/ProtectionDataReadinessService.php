@@ -9,9 +9,12 @@ use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Support\HouseholdPooling;
+use App\Traits\ResolvesIncome;
 
 class ProtectionDataReadinessService
 {
+    use ResolvesIncome;
+
     /**
      * Readiness levels that determine whether analysis can proceed.
      */
@@ -252,13 +255,9 @@ class ProtectionDataReadinessService
      */
     private function hasIncome(User $user): bool
     {
-        return ($user->annual_employment_income ?? 0) > 0
-            || ($user->annual_self_employment_income ?? 0) > 0
-            || ($user->annual_rental_income ?? 0) > 0
-            || ($user->annual_dividend_income ?? 0) > 0
-            || ($user->annual_interest_income ?? 0) > 0
-            || ($user->annual_other_income ?? 0) > 0
-            || ($user->annual_trust_income ?? 0) > 0;
+        // The Income page's total (ResolvesIncome, CSJ 2026-10-02): a pension being
+        // paid, rental profit and share vests count, as on every screen.
+        return $this->resolveGrossAnnualIncome($user) > 0;
     }
 
     /**
@@ -440,12 +439,8 @@ class ProtectionDataReadinessService
             return false;
         }
 
-        return ($spouse->annual_employment_income ?? 0) > 0
-            || ($spouse->annual_self_employment_income ?? 0) > 0
-            || ($spouse->annual_rental_income ?? 0) > 0
-            || ($spouse->annual_dividend_income ?? 0) > 0
-            || ($spouse->annual_other_income ?? 0) > 0
-            || ($spouse->annual_trust_income ?? 0) > 0;
+        // The spouse's Income page total, as for the user (this left out interest).
+        return $this->resolveGrossAnnualIncome($spouse) > 0;
     }
 
     /**

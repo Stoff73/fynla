@@ -42,8 +42,7 @@ use Illuminate\Database\Eloquent\Model;
  * - RiskProfile: risk_profiles table (user_id)
  * - RetirementProfile: retirement_profiles.target_retirement_age
  * - Retirement target: users.retirement_date, users.target_retirement_age, retirement_profiles.target_retirement_age
- * - Income: users.annual_employment_income + annual_self_employment_income + annual_rental_income
- *           + annual_dividend_income + annual_interest_income + annual_other_income + annual_trust_income
+ * - Income: the Income page's total (ResolvesIncome -> IncomeDefinitionsService `total_income`)
  */
 class PrerequisiteGateService
 {
