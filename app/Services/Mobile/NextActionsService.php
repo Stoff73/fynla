@@ -77,6 +77,32 @@ class NextActionsService
     }
 
     /**
+     * The open actions list as Fyn reads it: buildAll()'s items, order and ids,
+     * so Fyn names what the dashboard, /m and the action cards show and never
+     * an action the user has marked done (CSJ 2026-10-01, one figure; audit
+     * item 50). Every field of every item and its card reaches the model
+     * unsummarised (INV-2.6.2); only the clients' tap routing (`action`) is
+     * left out, and the card's fields sit beside the names the prompt reads.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function forModel(int $userId): array
+    {
+        return array_map(static function (array $item): array {
+            $card = is_array($item['card'] ?? null) ? $item['card'] : [];
+            unset($item['card'], $item['action']);
+
+            return array_merge($item, $card, [
+                'recommendation_id' => $item['id'] ?? null,
+                'module' => (string) ($item['module'] ?? 'general'),
+                'title' => (string) ($item['title'] ?? ''),
+                'description' => $item['detail'] ?? null,
+                'estimated_saving' => $card['potential_benefit'] ?? null,
+            ]);
+        }, $this->buildAll($userId));
+    }
+
+    /**
      * The merged, value-ranked open list shared by build()/buildAll().
      *
      * @return array<int,array<string,mixed>>
@@ -432,6 +458,9 @@ class NextActionsService
                     'timeline' => $rec['timeline'] ?? null,
                     'personalised_context' => array_values(array_filter((array) ($rec['personalised_context'] ?? []), 'is_string')),
                     'conflict_note' => $rec['conflict_note'] ?? null,
+                    // The composer's sentence naming the other choices (L3-3),
+                    // so Fyn voices it from the list it reads (audit item 50).
+                    'alternatives_note' => $rec['alternatives_note'] ?? null,
                     'potential_benefit' => $benefit,
                     'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
                     'definition_key' => $rec['definition_key'] ?? null,

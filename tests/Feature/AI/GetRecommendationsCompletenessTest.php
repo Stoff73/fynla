@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\User;
+use App\Services\Mobile\NextActionsService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 /**
- * INV-2.6.2 — handleRecommendations returns the full ranked_recommendations
- * array from orchestrateAnalysis with no summarisation. Every metadata
- * field the engine emits (id, priority_score, timeline, category, impact,
- * recommendation_text, rationale, personalised_context, etc.) round-trips
- * to the model so the LLM can answer the user with full context.
+ * INV-2.6.2 — handleRecommendations returns the user's actions list with no
+ * summarisation. Since audit item 50 (CSJ 2026-10-01, one figure) the list is
+ * NextActionsService::buildAll, the one the dashboard, /m and the action cards
+ * show, not orchestrateAnalysis's own ranking. Every field of every item and
+ * of its card (category, timeline, personalised_context, figures, etc.)
+ * round-trips to the model; only the clients' tap routing (`action`) is left out.
  *
- * The test stubs orchestrateAnalysis with a fixed payload, calls the
- * handler, and asserts every field on every recommendation appears in
- * the handler output unchanged.
+ * The test stubs the actions list and orchestrateAnalysis (still read for the
+ * surplus), calls the handler, and asserts every field arrives unchanged.
  */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
@@ -27,6 +28,23 @@ beforeEach(function () {
 afterEach(function () {
     Mockery::close();
 });
+
+/** @param list<array<string, mixed>> $items */
+function stubActionsList(array $items): void
+{
+    // Partial: the real forModel() runs over the stubbed list.
+    $actions = Mockery::mock(NextActionsService::class)->makePartial();
+    $actions->shouldReceive('buildAll')->andReturn($items);
+    app()->instance(NextActionsService::class, $actions);
+}
+
+function callHandleRecommendations(CoordinatingAgent $agent, User $user): array
+{
+    $method = (new ReflectionClass($agent))->getMethod('handleRecommendations');
+    $method->setAccessible(true);
+
+    return $method->invoke($agent, $user);
+}
 
 /**
  * Build a CoordinatingAgent subclass that returns a fixed
@@ -59,75 +77,80 @@ function buildAgentWithFixedAnalysis(array $analysis): CoordinatingAgent
     return $stub;
 }
 
-it('returns the full ranked_recommendations array verbatim with all metadata fields', function () {
+it('returns the full actions list verbatim with all metadata fields', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $rankedRecommendations = [
+    $items = [
         [
-            'id' => 'rec-001',
-            'priority_score' => 95,
-            'timeline' => 'immediate',
-            'category' => 'protection',
-            'impact' => 'high',
-            'recommendation_text' => 'Increase your life cover to £500,000.',
-            'rationale' => 'Your current cover leaves a £200k gap relative to your dependants and outstanding mortgage.',
-            'personalised_context' => [
-                'gap_amount' => 200000,
-                'dependants' => 2,
-                'monthly_premium_estimate' => 35.0,
+            'id' => 'protection_life_cover_gap',
+            'type' => 'recommendation',
+            'module' => 'protection',
+            'title' => 'Increase your life cover to £500,000',
+            'detail' => 'Your current cover leaves a £200,000 gap against your dependants and mortgage.',
+            'meta' => 'Cover',
+            'value' => 95.0,
+            'done' => false,
+            'module_label' => 'Protection',
+            'action' => ['kind' => 'navigate', 'route' => '/protection'],
+            'card' => [
+                'category' => 'protection',
+                'timeline' => 'immediate',
+                'personalised_context' => ['You have 2 dependants.'],
+                'conflict_note' => null,
+                'alternatives_note' => null,
+                'potential_benefit' => null,
+                'requires_advice' => false,
+                'definition_key' => 'life_cover_gap',
+                'figures' => ['gap' => 200000, 'dependants' => 2],
             ],
-            'action_definition_id' => 12,
-            'expected_value_uplift' => 200000.0,
-            'confidence' => 'high',
         ],
         [
-            'id' => 'rec-002',
-            'priority_score' => 80,
-            'timeline' => 'short_term',
-            'category' => 'savings',
-            'impact' => 'medium',
-            'recommendation_text' => 'Build an emergency fund covering 6 months of expenditure.',
-            'rationale' => 'Current liquid reserves cover 2 months. The shortfall is the biggest single resilience risk in your plan.',
-            'personalised_context' => [
-                'months_covered' => 2,
-                'target_months' => 6,
-                'monthly_expenditure' => 3200.0,
+            'id' => 'savings_emergency_fund_low',
+            'type' => 'recommendation',
+            'module' => 'savings',
+            'title' => 'Build your emergency fund',
+            'detail' => 'Your cash covers 2 months of spending; the target is 6.',
+            'meta' => 'You could save £19,200',
+            'value' => 80.0,
+            'done' => false,
+            'module_label' => 'Savings',
+            'action' => ['kind' => 'navigate', 'route' => '/savings'],
+            'card' => [
+                'category' => 'emergency_fund',
+                'timeline' => 'short_term',
+                'personalised_context' => [],
+                'conflict_note' => 'Do this before investing.',
+                'alternatives_note' => 'This is one choice with the ISA top-up.',
+                'potential_benefit' => 19200.0,
+                'requires_advice' => false,
+                'definition_key' => 'emergency_fund_low',
+                'figures' => ['months' => 2, 'target_months' => 6],
             ],
-            'action_definition_id' => 5,
-            'expected_value_uplift' => 19200.0,
-            'confidence' => 'medium',
         ],
     ];
+    stubActionsList($items);
 
-    $agent = buildAgentWithFixedAnalysis([
-        'ranked_recommendations' => $rankedRecommendations,
-        'available_surplus' => 1500.0,
-    ]);
+    $result = callHandleRecommendations(buildAgentWithFixedAnalysis(['available_surplus' => 1500.0]), $user);
 
-    $reflection = new ReflectionClass($agent);
-    $method = $reflection->getMethod('handleRecommendations');
-    $method->setAccessible(true);
+    expect($result['total'] ?? null)->toBe(2)
+        ->and($result['surplus'] ?? null)->toBe(1500.0)
+        ->and($result['recommendations'] ?? [])->toHaveCount(2);
 
-    $result = $method->invoke($agent, $user);
-
-    expect($result)->toBeArray();
-    expect($result['total'] ?? null)->toBe(2);
-    expect($result['surplus'] ?? null)->toBe(1500.0);
-
-    expect($result['recommendations'] ?? [])->toHaveCount(2);
-
-    // Every field on every recommendation round-trips byte-for-byte —
-    // no summariseToolResult / summariseToolAnalysis stripping.
-    foreach ($rankedRecommendations as $idx => $expected) {
+    // Every field of every item and of its card round-trips byte-for-byte.
+    foreach ($items as $idx => $item) {
         $actual = $result['recommendations'][$idx];
+        $expected = array_merge(array_diff_key($item, ['card' => true, 'action' => true]), $item['card']);
         foreach ($expected as $field => $value) {
             expect($actual)->toHaveKey($field);
-            expect($actual[$field])->toBe($value, "Field `{$field}` did not round-trip on rec #{$idx}");
+            expect($actual[$field])->toBe($value, "Field `{$field}` did not round-trip on item #{$idx}");
         }
+        expect($actual)->not->toHaveKey('action')
+            ->and($actual['recommendation_id'])->toBe($item['id'])
+            ->and($actual['description'])->toBe($item['detail']);
     }
 });
 
-it('passes through nested personalised_context arrays without flattening or truncating', function () {
+it('passes through nested personalised_context and figures without flattening or truncating', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 
     $deeplyNested = [
@@ -144,42 +167,27 @@ it('passes through nested personalised_context arrays without flattening or trun
         'tags' => ['tax_efficient', 'pre_retirement', 'higher_rate'],
     ];
 
-    $agent = buildAgentWithFixedAnalysis([
-        'ranked_recommendations' => [[
-            'id' => 'rec-nested',
-            'priority_score' => 70,
-            'timeline' => 'medium_term',
-            'category' => 'tax',
-            'impact' => 'high',
-            'recommendation_text' => 'Top up your SIPP before the tax year end.',
-            'rationale' => 'You have unused annual allowance and are inside the higher-rate band.',
-            'personalised_context' => $deeplyNested,
-        ]],
-        'available_surplus' => 0,
-    ]);
+    stubActionsList([[
+        'id' => 'tax_pension_relief',
+        'type' => 'recommendation',
+        'module' => 'tax',
+        'title' => 'Pay more into your pension before the tax year ends',
+        'detail' => 'You have unused annual allowance and are inside the higher-rate band.',
+        'card' => ['figures' => $deeplyNested, 'personalised_context' => ['You pay 40% on the slice above £50,270.']],
+    ]]);
 
-    $reflection = new ReflectionClass($agent);
-    $method = $reflection->getMethod('handleRecommendations');
-    $method->setAccessible(true);
+    $result = callHandleRecommendations(buildAgentWithFixedAnalysis(['available_surplus' => 0]), $user);
 
-    $result = $method->invoke($agent, $user);
-
-    expect($result['recommendations'][0]['personalised_context'])->toBe($deeplyNested);
+    expect($result['recommendations'][0]['figures'])->toBe($deeplyNested)
+        ->and($result['recommendations'][0]['personalised_context'])->toBe(['You pay 40% on the slice above £50,270.']);
 });
 
-it('returns an empty list when orchestrateAnalysis returns no recommendations', function () {
+it('returns an empty list when the actions list is empty', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    $agent = buildAgentWithFixedAnalysis([
-        'ranked_recommendations' => [],
-        'available_surplus' => 0,
-    ]);
+    stubActionsList([]);
 
-    $reflection = new ReflectionClass($agent);
-    $method = $reflection->getMethod('handleRecommendations');
-    $method->setAccessible(true);
-
-    $result = $method->invoke($agent, $user);
+    $result = callHandleRecommendations(buildAgentWithFixedAnalysis(['available_surplus' => 0]), $user);
 
     expect($result['total'])->toBe(0);
     expect($result['recommendations'])->toBe([]);
