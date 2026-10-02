@@ -606,6 +606,10 @@ class UserProfileService
      */
     public function incomeAndTaxFor(User $user): array
     {
+        // What buildIncomeOccupation reads, loaded up front so a user taken from
+        // a collection never lazy-loads (the guard is on outside production).
+        $user->loadMissing(['dcPensions', 'dbPensions', 'statePension', 'trusts']);
+
         return $this->buildIncomeOccupation($user);
     }
 
