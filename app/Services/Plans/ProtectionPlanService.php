@@ -8,9 +8,12 @@ use App\Agents\ProtectionAgent;
 use App\Models\User;
 use App\Services\Protection\ComprehensiveProtectionPlanService;
 use App\Services\Protection\ProtectionActionDefinitionService;
+use App\Traits\ResolvesIncome;
 
 class ProtectionPlanService extends BasePlanService
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly ProtectionAgent $protectionAgent,
         private readonly ComprehensiveProtectionPlanService $comprehensivePlanService,
@@ -215,14 +218,8 @@ class ProtectionPlanService extends BasePlanService
             ->map(fn ($child) => $child->name)
             ->toArray();
 
-        // Income
-        $grossIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        // Income: The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        $grossIncome = $this->resolveGrossAnnualIncome($user);
 
         $incomeData = $this->incomeAccessor->getForUser($user);
 

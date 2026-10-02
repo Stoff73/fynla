@@ -14,6 +14,7 @@ use App\Services\Plans\DisposableIncomeAccessor;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 
 /**
  * CashFlowCoordinator
@@ -24,6 +25,7 @@ use App\Traits\ResolvesExpenditure;
 class CashFlowCoordinator
 {
     use ResolvesExpenditure;
+    use ResolvesIncome;
 
     /**
      * Calculate available monthly surplus using the same disposable income
@@ -208,13 +210,8 @@ class CashFlowCoordinator
      */
     private function calculateMonthlyIncome(User $user): float
     {
-        $annualIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        $annualIncome = $this->resolveGrossAnnualIncome($user);
 
         return round($annualIncome / 12, 2);
     }

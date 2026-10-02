@@ -344,12 +344,8 @@ class PersonalizedGiftingStrategyService
      */
     private function buildGiftingFromIncomeStrategy(User $user, int $years, float $ihtRate): ?array
     {
-        // Cast all database values to float to prevent type errors
-        $totalIncome = (float) ($user->annual_employment_income ?? 0) +
-                       (float) ($user->annual_self_employment_income ?? 0) +
-                       (float) ($user->annual_rental_income ?? 0) +
-                       (float) ($user->annual_dividend_income ?? 0) +
-                       (float) ($user->annual_other_income ?? 0);
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        $totalIncome = $this->resolveGrossAnnualIncome($user);
 
         $annualExpenditure = (float) ($user->annual_expenditure ?? 0);
 

@@ -10,6 +10,7 @@ use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use Carbon\Carbon;
@@ -151,7 +152,8 @@ class RetirementActionDefinitionService
         if ($user->employment_status === 'retired') {
             return true;
         }
-        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+        // The one earnings figure (FA 2004 s189(2); TaxStrategyMath::relevantEarningsFor).
+        $earnings = app(TaxStrategyMath::class)->relevantEarningsFor($user);
 
         return $earnings <= 0 && app(RetirementDrawdownPosition::class)->isDrawing($user);
     }
@@ -912,8 +914,8 @@ class RetirementActionDefinitionService
         // earnings (employment + self-employment), with a £3,600 gross floor
         // for non-earners (£2,880 net + basic-rate uplift). Without this cap a
         // low earner would be told the full allowance is usable — it isn't.
-        $relevantEarnings = (float) ($user?->annual_employment_income ?? 0)
-            + (float) ($user?->annual_self_employment_income ?? 0);
+        // The one earnings figure (FA 2004 s189(2); TaxStrategyMath::relevantEarningsFor).
+        $relevantEarnings = $user ? app(TaxStrategyMath::class)->relevantEarningsFor($user) : 0.0;
         $nonEarnerGross = (float) (TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION + TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT);
         $taxRelievableCap = max($relevantEarnings, $nonEarnerGross);
         $availableHeadroom = min($availableHeadroom, $taxRelievableCap);

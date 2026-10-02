@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\Property\PropertyTaxService;
 use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
@@ -24,6 +25,10 @@ class PropertyTaxServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // The user's band comes from the real tax maths (TaxStrategyMath,
+        // CSJ 2026-10-02: one income figure), which reads the seeded config.
+        $this->seed(TaxConfigurationSeeder::class);
 
         // Mock TaxConfigService with comprehensive tax data
         $mockTaxConfig = Mockery::mock(TaxConfigService::class);
@@ -64,6 +69,10 @@ class PropertyTaxServiceTest extends TestCase
         $mockTaxConfig->shouldReceive('getCapitalGainsTax')
             ->andReturn([
                 'annual_exempt_amount' => 3000,
+                // As the seeded config has them (TaxConfigurationSeeder): the
+                // service reads these keys, with no typed-in fallback.
+                'residential_property_basic_rate' => 0.18,
+                'residential_property_higher_rate' => 0.24,
                 'rates' => [
                     'residential' => [
                         'basic_rate' => 0.18,

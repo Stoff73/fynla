@@ -25,11 +25,14 @@ use App\Services\Investment\Recommendation\SpouseOptimisationService;
 use App\Services\Investment\Recommendation\TransferRecommendationService;
 use App\Services\Investment\Recommendation\UserContextBuilder;
 use App\Services\Stores\SavingsStore;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class InvestmentPlanService extends BasePlanService
 {
+    use ResolvesIncome;
+
     /** Contribution action categories that should show a funding source. */
     private const CONTRIBUTION_CATEGORIES = [
         'ISA Allowance',
@@ -472,14 +475,8 @@ class InvestmentPlanService extends BasePlanService
             ->map(fn ($child) => $child->name)
             ->toArray();
 
-        // Income
-        $grossIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        // Income: The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        $grossIncome = $this->resolveGrossAnnualIncome($user);
 
         $incomeData = $this->incomeAccessor->getForUser($user);
 

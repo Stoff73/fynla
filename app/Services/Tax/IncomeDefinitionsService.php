@@ -220,7 +220,7 @@ class IncomeDefinitionsService
             // income under ITEPA 2003, so it reaches every definition below. Assumed NOT
             // already inside `annual_employment_income`, which the form captures as
             // salary. ponytail: no per-account include flag; add one on a double-count report.
-            'vesting' => $this->vests->annualVestIncome($user),
+            'vesting' => $user->exists ? $this->vests->annualVestIncome($user) : 0.0,
         ];
     }
 
@@ -240,6 +240,11 @@ class IncomeDefinitionsService
      */
     private function calculateRentalIncome(User $user): float
     {
+        // An unsaved model owns no property records.
+        if (! $user->exists) {
+            return 0.0;
+        }
+
         return (float) $this->propertyService->annualRentalTaxPosition($user)['total'];
     }
 

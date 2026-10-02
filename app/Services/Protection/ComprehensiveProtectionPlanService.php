@@ -10,6 +10,7 @@ use App\Exceptions\FinancialCalculationException;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Shared\DependantsReach;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Support\PremiumAnnualiser;
 use App\Traits\FormatsCurrency;
 use Carbon\Carbon;
@@ -283,7 +284,9 @@ class ComprehensiveProtectionPlanService
         $incomeBreakdown = [
             'employment_income' => (float) ($user->annual_employment_income ?? 0),
             'self_employment_income' => (float) ($user->annual_self_employment_income ?? 0),
-            'rental_income' => (float) ($user->annual_rental_income ?? 0),
+            // The rental profit the Income page shows (IncomeDefinitionsService;
+            // CSJ 2026-10-02, one income figure), not the stored users column.
+            'rental_income' => (float) app(IncomeDefinitionsService::class)->calculateFor($user)['components']['rental'],
             'dividend_income' => (float) ($user->annual_dividend_income ?? 0),
             'other_income' => (float) ($user->annual_other_income ?? 0),
         ];
