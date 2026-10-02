@@ -250,6 +250,33 @@ describe('evaluateAgentActions — tax efficiency triggers', function () {
         $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'open_isa');
         expect($rec)->toBeNull();
     });
+
+    it('writes the money on the tax wrapper cards as pounds', function () {
+        // csjones 2026-10-02, Mitchell demo: "You have 10,000 ISA allowance
+        // remaining … holdings (47,500)", with no pound sign.
+        $investmentAnalysis = [
+            'portfolio_summary' => ['accounts_count' => 2, 'holdings_count' => 3],
+            'allocation_deviation' => ['needs_rebalancing' => false],
+            'tax_wrappers' => [
+                'has_gia' => true,
+                'has_isa' => true,
+                'gia_value' => 75000,
+                'isa_remaining' => 10000,
+                'isa_used_this_year' => 10000,
+                'isa_allowance' => 20000,
+            ],
+        ];
+
+        $result = $this->service->evaluateAgentActions(
+            $investmentAnalysis, [], collect(), collect(), $this->user->id, []
+        );
+        $recs = collect($result['recommendations'])->keyBy('definition_key');
+
+        expect($recs['use_isa_allowance']['description'])
+            ->toContain('£10,000 ISA allowance')
+            ->toContain('(£75,000)')
+            ->and($recs['consider_bonds']['description'])->toContain('£75,000');
+    });
 });
 
 // =========================================================================

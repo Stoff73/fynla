@@ -656,7 +656,7 @@ class InvestmentActionDefinitionService
             ?? $this->taxConfig->getISAAllowances()['annual_allowance']
             ?? TaxDefaults::ISA_ALLOWANCE;
         $vars = [
-            'isa_allowance' => number_format($isaAllowance),
+            'isa_allowance' => $this->formatCurrency((float) $isaAllowance),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -712,8 +712,8 @@ class InvestmentActionDefinitionService
         }
 
         $vars = [
-            'isa_remaining' => number_format($isaRemaining),
-            'gia_value' => number_format($giaValue),
+            'isa_remaining' => $this->formatCurrency((float) $isaRemaining),
+            'gia_value' => $this->formatCurrency((float) $giaValue),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -768,7 +768,7 @@ class InvestmentActionDefinitionService
         }
 
         $vars = [
-            'gia_value' => number_format($giaValue),
+            'gia_value' => $this->formatCurrency((float) $giaValue),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
