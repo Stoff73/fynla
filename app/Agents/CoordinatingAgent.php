@@ -39,6 +39,7 @@ use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\StatePension;
@@ -78,7 +79,10 @@ use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Payment\SubscriptionStatusService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Protection\EmployerBenefitsWriter;
+use App\Services\Protection\ProtectionGapPresentationService;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Retirement\RetirementHeadline;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Shared\DependantsReach;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
@@ -2454,7 +2458,7 @@ class CoordinatingAgent extends BaseAgent
                 'priority' => $g->priority,
                 'target_amount' => round((float) $g->target_amount, 2),
                 'current_amount' => round((float) $g->current_amount, 2),
-                'remaining' => round(max(0, (float) $g->target_amount - (float) $g->current_amount), 2),
+                'remaining' => round((float) $g->amount_remaining, 2),
                 'progress_percentage' => $g->progress_percentage,
                 'is_on_track' => $g->is_on_track,
                 'is_overdue' => $g->is_overdue,
@@ -2667,23 +2671,32 @@ class CoordinatingAgent extends BaseAgent
                 'qualifying_years' => $statePension->ni_years_completed,
                 'state_pension_age' => $statePension->state_pension_age,
             ] : null;
-            $analysis['total_pension_value'] = (float) collect($records['dc_pension'])->sum('current_value');
-            $analysis['projected_annual_income'] = (float) collect($records['db_pension'])->sum('annual_pension')
-                + (float) ($analysis['state_pension']['forecast_annual'] ?? 0);
+            // One figure, every surface (CSJ 2026-10-01): Fyn quotes the figures
+            // the Retirement page shows, from RetirementHeadline, never its own sums.
+            $headline = app(RetirementHeadline::class)->for($user);
+            $analysis['total_pension_value'] = $headline['dc_value_today'];
+            $analysis['projected_annual_income'] = $headline['projected_income'];
+            $analysis['guaranteed_annual_income'] = $headline['guaranteed_income'];
+            $analysis['target_annual_income'] = $headline['target_income'];
+            $analysis['income_gap'] = $headline['income_gap'];
         }
 
         if ($module === 'savings') {
-            $analysis['total_savings'] = (float) collect($records['savings_account'])->sum('balance');
+            // The cash total the screens show (SavingsAgent total_savings), joint shares included once.
+            $analysis['total_savings'] = app(CrossModuleAssetAggregator::class)->calculateCashTotal($user->id);
         }
 
         if ($module === 'investment') {
-            $analysis['total_portfolio_value'] = (float) collect($records['investment_account'])->sum('current_value');
+            $analysis['total_portfolio_value'] = app(CrossModuleAssetAggregator::class)->calculateInvestmentTotal($user->id);
         }
 
         if ($module === 'protection') {
+            // The cover total the Protection page shows (coverage_gaps.totals.cover).
+            $profile = ProtectionProfile::where('user_id', $user->id)->first();
             $analysis['full_analysis'] = [
-                'total_cover' => (float) collect($records['life_insurance'])->sum('sum_assured')
-                    + (float) collect($records['critical_illness'])->sum('sum_assured'),
+                'total_cover' => $profile === null
+                    ? null
+                    : (float) (app(ProtectionGapPresentationService::class)->forUser($user, $profile)['totals']['cover'] ?? 0),
             ];
         }
 

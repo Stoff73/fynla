@@ -10,19 +10,10 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
-use App\Constants\PensionDisclosure;
-use App\Models\BusinessInterest;
-use App\Models\Chattel;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use App\Services\NetWorth\NetWorthService;
-use App\Services\Shared\CrossModuleAssetAggregator;
-use App\Services\Stores\PropertyStore;
-use App\Services\Stores\SavingsStore;
-use App\Traits\CalculatesOwnershipShare;
 use App\Traits\StructuredLogging;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -45,7 +36,6 @@ use Illuminate\Support\Facades\Cache;
  */
 class MobileDashboardAggregator
 {
-    use CalculatesOwnershipShare;
     use StructuredLogging;
 
     /** Backstop only — freshness comes from invalidation, not expiry. See the class docblock. */
@@ -59,11 +49,9 @@ class MobileDashboardAggregator
         private readonly EstateAgent $estateAgent,
         private readonly GoalsAgent $goalsAgent,
         private readonly DashboardAggregator $dashboardAggregator,
-        private readonly SavingsStore $savingsStore,
-        private readonly PropertyStore $propertyStore,
-        private readonly CrossModuleAssetAggregator $assetAggregator,
         private readonly NetWorthService $netWorthService,
         private readonly DailyInsightService $dailyInsight,
+        private readonly DashboardCards $cards,
     ) {}
 
     /**
@@ -100,6 +88,8 @@ class MobileDashboardAggregator
             return [
                 'modules' => $modules,
                 'net_worth' => $netWorth,
+                // The five dashboard cards, rendered as sent on every surface.
+                'cards' => $this->cards->build($modules, $netWorth),
                 'alerts' => $alerts,
                 'fyn_insight' => $fynInsight,
                 'cached_at' => now()->toIso8601String(),
@@ -223,14 +213,17 @@ class MobileDashboardAggregator
     private function extractSavingsSummary(array $data): array
     {
         $summary = $data['summary'] ?? [];
-        $emergencyFund = $data['emergency_fund'] ?? [];
+        // SavingsPosition, the block every savings screen reads (CSJ 2026-10-01);
+        // present even when the full analysis is blocked. The target fell back to
+        // a 6 typed in here.
+        $fund = $data['position']['emergency_fund'] ?? [];
 
         return [
             'status' => 'active',
             'total_savings' => round((float) ($summary['total_savings'] ?? 0), 2),
             'total_accounts' => (int) ($summary['total_accounts'] ?? 0),
-            'emergency_fund_months' => round((float) ($emergencyFund['runway_months'] ?? 0), 1),
-            'emergency_fund_target_months' => (int) ($emergencyFund['target_months'] ?? 6),
+            'emergency_fund_months' => round((float) ($fund['runway_months'] ?? 0), 1),
+            'emergency_fund_target_months' => (int) ($fund['target_months'] ?? 0),
         ];
     }
 
@@ -292,8 +285,29 @@ class MobileDashboardAggregator
             ];
         }
 
+        // The one home for every retirement figure (RetirementHeadline, CSJ
+        // 2026-10-01): the card shows `headline_value` as sent, labelled by
+        // `headline_kind`, and the progress percentage is the server's.
+        $headline = (array) ($summary['headline'] ?? []);
+
         return [
             'status' => 'active',
+            'headline_kind' => $headline['kind'] ?? null,
+            'headline_value' => isset($headline['value']) ? round((float) $headline['value'], 2) : null,
+            'progress_percent' => $headline['progress_percent'] ?? null,
+            // The dashboard card: the pot today, or the income already secured a
+            // year for a household with no pot (decided here, not on a client).
+            'card_value' => match ($headline['kind'] ?? null) {
+                'drawing' => round((float) $headline['value'], 2),
+                'guaranteed' => round((float) $headline['guaranteed_income'], 2),
+                default => round((float) ($headline['dc_value_today'] ?? $summary['current_dc_value'] ?? 0), 2),
+            },
+            'card_value_is_income' => in_array($headline['kind'] ?? null, ['drawing', 'guaranteed'], true),
+            // Someone drawing: the Retirement page's own figures (RetirementDrawdownPosition).
+            'drawing_lasts_to_age' => $headline['drawing_lasts_to_age'] ?? null,
+            'drawing_lasts_label' => $headline['drawing_lasts_label'] ?? null,
+            'drawing_pot_end_age' => $headline['drawing_pot_end_age'] ?? null,
+            'drawing_per_year' => $headline['drawing_per_year'] ?? null,
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),
             // Current defined contribution pot — the card headline where there is one.
             'pot_value' => round((float) ($summary['current_dc_value'] ?? 0), 2),
@@ -303,7 +317,7 @@ class MobileDashboardAggregator
             // them nothing. Computed once, in the agent.
             'guaranteed_income' => round((float) ($summary['guaranteed_annual_income'] ?? 0), 2),
             'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
-            'target_income' => round((float) ($summary['target_retirement_income'] ?? 0), 2),
+            'target_income' => isset($headline['target_income']) ? round((float) $headline['target_income'], 2) : round((float) ($summary['target_retirement_income'] ?? 0), 2),
             'income_gap' => round((float) ($summary['income_gap'] ?? 0), 2),
             'total_pensions' => $totalPensions,
         ];
@@ -355,203 +369,60 @@ class MobileDashboardAggregator
     }
 
     /**
-     * Calculate user's net worth with joint asset ownership shares.
+     * The dashboard's net worth is NetWorthService's, the engine `/net-worth`
+     * reads on every surface (CSJ 2026-10-01: one figure, every surface; audit
+     * item 25). This used to be a third engine of its own, which added cash
+     * accounts NetWorthService does not and counted every liability at its full
+     * balance rather than the user's share.
      */
     private function calculateNetWorth(int $userId): array
     {
-        try {
-            $user = User::with([
-                'properties',
-                'savingsAccounts',
-                'investmentAccounts',
-                'mortgages',
-                'liabilities',
-                'businessInterests',
-                'chattels',
-                'cashAccounts',
-            ])->find($userId);
+        $empty = [
+            'total' => 0.0,
+            'breakdown' => [],
+            'has_db_pensions' => false,
+            'db_pension_disclosure' => null,
+        ];
 
+        try {
+            $user = User::find($userId);
             if (! $user) {
-                return [
-                    'total' => 0.0,
-                    'breakdown' => [],
-                    'has_db_pensions' => false,
-                    'db_pension_disclosure' => null,
-                ];
+                return $empty;
             }
 
-            // Calculate asset totals using ownership shares
-            $propertyValue = $this->sumUserShares($user->properties, $userId);
-            $savingsValue = $this->sumUserShares($user->savingsAccounts, $userId);
-            $investmentValue = $this->sumUserShares($user->investmentAccounts, $userId);
-
-            // Also include joint assets where user is the joint_owner_id
-            $propertyValue += $this->sumPropertyJointOwnerShares($user, $userId);
-            $savingsValue += $this->sumSavingsJointOwnerShares($user, $userId);
-            $investmentValue += $this->sumJointOwnerShares(InvestmentAccount::class, $userId);
-
-            // What a pension contributes to net worth has one home, and it is
-            // NetWorthService — the same rule `/net-worth` reads on all three
-            // surfaces. This used to be two local sums, the second of which read
-            // `db_pensions.transfer_value`, a column that has never existed. Over a
-            // Collection a missing attribute reads as null, so it silently summed to
-            // £0 for every user, forever, while the code read as though Defined
-            // Benefit schemes were being valued (W-0241).
-            $pensionBreakdown = $this->netWorthService->calculatePensionBreakdown($userId);
-            $pensionValue = round($pensionBreakdown['dc'], 2);
-
-            $businessValue = $this->sumUserShares($user->businessInterests, $userId);
-            $businessValue += $this->sumJointOwnerShares(BusinessInterest::class, $userId);
-
-            $chattelValue = $this->sumUserShares($user->chattels, $userId);
-            $chattelValue += $this->sumJointOwnerShares(Chattel::class, $userId);
-
-            $cashValue = (float) $user->cashAccounts->sum('current_balance');
-
-            // Calculate liabilities. One home for what this user owes on the
-            // mortgages — reach-complete across both legs, and share-correct per
-            // W-0228's ruling.
-            $mortgageBalance = $this->assetAggregator->calculateMortgageTotal($userId);
-
-            $liabilityBalance = (float) $user->liabilities->sum('current_balance');
-
-            $totalAssets = round(
-                $propertyValue + $savingsValue + $investmentValue +
-                $pensionValue + $businessValue + $chattelValue + $cashValue,
-                2
-            );
-            $totalLiabilities = round($mortgageBalance + $liabilityBalance, 2);
-            $netWorth = round($totalAssets - $totalLiabilities, 2);
+            $nw = $this->netWorthService->getCachedNetWorth($user);
+            $assets = $nw['breakdown'];
+            $owed = $nw['liabilities_breakdown'];
 
             return [
-                'total' => $netWorth,
+                'total' => (float) $nw['net_worth'],
                 'breakdown' => [
                     'assets' => [
-                        'property' => round($propertyValue, 2),
-                        'savings' => round($savingsValue, 2),
-                        'investments' => round($investmentValue, 2),
-                        'pensions' => $pensionValue,
-                        'business' => round($businessValue, 2),
-                        'chattels' => round($chattelValue, 2),
-                        'cash' => round($cashValue, 2),
+                        'property' => (float) $assets['property'],
+                        'savings' => (float) $assets['cash'],
+                        'investments' => (float) $assets['investments'],
+                        'pensions' => (float) $assets['pensions'],
+                        'business' => (float) $assets['business'],
+                        'chattels' => (float) $assets['chattels'],
                     ],
                     'liabilities' => [
-                        'mortgages' => round($mortgageBalance, 2),
-                        'other_liabilities' => round($liabilityBalance, 2),
+                        'mortgages' => (float) $owed['mortgages'],
+                        'other_liabilities' => round((float) $owed['loans'] + (float) $owed['credit_cards'] + (float) $owed['other'], 2),
                     ],
-                    'total_assets' => $totalAssets,
-                    'total_liabilities' => $totalLiabilities,
+                    'total_assets' => (float) $nw['total_assets'],
+                    'total_liabilities' => (float) $nw['total_liabilities'],
                 ],
-                // Same keys, same meaning, same source as `/net-worth` returns
-                // (W-0241). The pensions figure above is Defined Contribution only;
-                // these are how a surface knows to say so instead of presenting the
-                // total as complete — and the sentence comes from its one home, so
-                // no surface keeps its own copy of the wording (Rule 20).
-                'has_db_pensions' => $pensionBreakdown['has_db'],
-                'db_pension_disclosure' => $pensionBreakdown['has_db']
-                    ? PensionDisclosure::DEFINED_BENEFIT_EXCLUDED
-                    : null,
+                'has_db_pensions' => $nw['has_db_pensions'],
+                'db_pension_disclosure' => $nw['db_pension_disclosure'],
             ];
         } catch (\Throwable $e) {
             $this->logError('Mobile dashboard: failed to calculate net worth', [
                 'user_id' => $userId,
             ], $e);
 
-            return [
-                'total' => 0.0,
-                'breakdown' => [],
-                'has_db_pensions' => false,
-                'db_pension_disclosure' => null,
-            ];
+            return $empty;
         }
     }
-
-    /**
-     * Sum user's ownership shares for a collection of assets (where user is primary owner).
-     *
-     * @param  Collection  $assets  Collection of asset models
-     * @param  int  $userId  The user ID
-     * @return float The total value of user's shares
-     */
-    private function sumUserShares($assets, int $userId): float
-    {
-        $total = 0.0;
-
-        foreach ($assets as $asset) {
-            $total += $this->calculateUserShare($asset, $userId);
-        }
-
-        return $total;
-    }
-
-    /**
-     * Sum user's ownership shares for assets where the user is the joint_owner_id.
-     */
-    private function sumJointOwnerShares(string $modelClass, int $userId): float
-    {
-        if (! class_exists($modelClass)) {
-            return 0.0;
-        }
-
-        $assets = $modelClass::where('joint_owner_id', $userId)->get();
-        $total = 0.0;
-
-        foreach ($assets as $asset) {
-            $total += $this->calculateUserShare($asset, $userId);
-        }
-
-        return $total;
-    }
-
-    /**
-     * Sum savings joint-owner shares via SavingsStore, filtering to records
-     * where the user is the joint_owner_id (avoids double-counting with
-     * the primary-owner path that reads via $user->savingsAccounts relation).
-     */
-    private function sumSavingsJointOwnerShares(User $user, int $userId): float
-    {
-        $total = 0.0;
-
-        foreach ($this->savingsStore->forUser($user)->filter(fn ($a) => $a->joint_owner_id === $userId) as $account) {
-            $total += $this->calculateUserShare($account, $userId);
-        }
-
-        return $total;
-    }
-
-    /**
-     * Sum property joint-owner shares via PropertyStore, filtering to records
-     * where the user is the joint_owner_id (avoids double-counting with
-     * the primary-owner path that reads via $user->properties relation).
-     */
-    private function sumPropertyJointOwnerShares(User $user, int $userId): float
-    {
-        $total = 0.0;
-
-        foreach ($this->propertyStore->forUser($user)->filter(fn ($p) => $p->joint_owner_id === $userId) as $property) {
-            $total += $this->calculateUserShare($property, $userId);
-        }
-
-        return $total;
-    }
-
-    /*
-     * `sumMortgageShares()` and `sumMortgageJointOwnerShares()` were deleted here
-     * (W-0228).
-     *
-     * Both reached mortgages by the owner columns on the MORTGAGE row — one
-     * through `$user->mortgages`, the other by filtering `joint_owner_id`. Under
-     * CSJ's ruling a debt is shared as the property securing it is shared, so a
-     * user can owe part of a mortgage whose row names someone else entirely, and
-     * a mortgage-keyed reach cannot see it. The fraction was fixed in
-     * `CalculatesOwnershipShare`; the reach had to move with it, or the figure
-     * would be a correct share of an incomplete set.
-     *
-     * `CrossModuleAssetAggregator::calculateMortgageTotal()` already reaches both
-     * legs — mortgages the user holds, and mortgages on properties the user owns —
-     * and is what `/net-worth` and the wealth summary read. The dashboard now
-     * reads it too, so the two cannot disagree.
-     */
 
     /**
      * Get aggregated alerts from the existing DashboardAggregator.

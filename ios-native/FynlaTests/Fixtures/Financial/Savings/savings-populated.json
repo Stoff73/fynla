@@ -121,6 +121,25 @@
         }
       ]
     },
+    "position": {
+      "total_cash": 22500,
+      "monthly_expenditure": 3000,
+      "group_totals": {"current_accounts": 12500, "savings_accounts": 0, "isas": 10000, "nsi": 0},
+      "emergency_fund": {
+        "runway_months": 7.5,
+        "runway_label": "7.5 months from cash savings",
+        "runway_figure": "7.5",
+        "runway_hint": null,
+        "target_months": 6,
+        "target_amount": 18000,
+        "rationale": "The standard recommendation is 6 months of essential expenditure.",
+        "covered_percent": 100,
+        "shortfall": 0,
+        "covered_label": "100% of target",
+        "status": "on_track"
+      },
+      "isa": {"total_allowance": 20000, "used": 8000, "remaining": 12000, "percent_used": 40, "status": "open", "remaining_label": "£12,000 remaining"}
+    },
     "emergency_fund_target": {
       "target_months": 6,
       "target_amount": 18000,

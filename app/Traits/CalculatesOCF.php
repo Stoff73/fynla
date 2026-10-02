@@ -39,7 +39,12 @@ trait CalculatesOCF
 
         foreach ($holdings as $holding) {
             $weight = $holding->current_value / $totalValue;
-            $ocf = $holding->ocf ?? $this->estimateOCF($holding->asset_type);
+            // The recorded charge is `ocf_percent` (0.25 means 0.25%). This read
+            // `$holding->ocf`, a column that does not exist, so every holding was
+            // estimated by asset type and the user's own figure was never used.
+            $ocf = $holding->ocf_percent !== null
+                ? (float) $holding->ocf_percent / 100
+                : $this->estimateOCF((string) $holding->asset_type);
             $weightedOCF += $weight * $ocf;
         }
 

@@ -10,8 +10,11 @@ struct TaxStrategyDashboard: Decodable, Sendable, Equatable {
     let userAllowances: [TaxAllowance]
     let spouseAllowances: [TaxAllowance]?
     let composedPlan: ComposedTaxPlan
+    /// The header's figures, decided on the server (TaxStrategyService::withDisplayState).
+    let summary: TaxStrategySummary?
 
     private enum CodingKeys: String, CodingKey {
+        case summary
         case taxYear = "tax_year"
         case calculationMode = "calculation_mode"
         case userAllowances = "user_allowances"
@@ -31,10 +34,17 @@ struct TaxStrategyDashboard: Decodable, Sendable, Equatable {
     var householdRecommendations: [TaxRecommendation] {
         composedPlan.items.filter { $0.category == "household" }
     }
-    var headroomCount: Int {
-        userAllowances.filter {
-            $0.available != false && $0.known != false && ($0.remaining ?? 0) > 0
-        }.count
+    /// The server's count of allowances with headroom, as web and /m show it.
+    var headroomCount: Int { summary?.headroomCount ?? 0 }
+}
+
+struct TaxStrategySummary: Decodable, Sendable, Equatable {
+    let totalSaving: Decimal?
+    let headroomCount: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case totalSaving = "total_saving"
+        case headroomCount = "headroom_count"
     }
 }
 
@@ -50,10 +60,17 @@ struct TaxAllowance: Decodable, Sendable, Equatable, Identifiable {
     let status: String?
     let available: Bool?
     let known: Bool?
+    /// The tile's state and the affordability cap, from the server
+    /// (TaxStrategyService `tile_state`, `budget_limited`). iOS did not read
+    /// the cap, so a capped pension tile read "Fully used" (audit item 41).
+    let tileState: String?
+    let budgetLimited: Bool?
 
     var id: String { key }
 
     private enum CodingKeys: String, CodingKey {
+        case tileState = "tile_state"
+        case budgetLimited = "budget_limited"
         case key
         case label
         case amount
@@ -65,14 +82,20 @@ struct TaxAllowance: Decodable, Sendable, Equatable, Identifiable {
         case known
     }
 
+    // The words are /m's approved copy; the state is the server's.
     var remainingLabel: String {
-        if available == false { return "Not available" }
-        if known == false { return "Current-year use not confirmed" }
-        if (utilisationPercentage ?? 0) >= 100 || (remaining ?? 0) <= 0 {
-            return "Fully used"
+        switch tileState {
+        case "unavailable": return "Not available"
+        case "unconfirmed": return "Current-year use not confirmed"
+        case "budget_capped": return "\(MoneyFormatter.gbpWhole(0)) available"
+        case "open": return "\(remaining.map(MoneyFormatter.gbpWhole) ?? "—") available"
+        default: return "Fully used"
         }
-        // /m: `${fmt(a.remaining)} available` — whole pounds, em-dash for null.
-        return "\(remaining.map(MoneyFormatter.gbpWhole) ?? "—") available"
+    }
+
+    /// As /m: say when what is affordable, not use, lowered the figure.
+    var budgetNote: String? {
+        budgetLimited == true ? "Limited to what you can afford this year" : nil
     }
 }
 

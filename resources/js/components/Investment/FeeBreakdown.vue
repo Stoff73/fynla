@@ -78,7 +78,7 @@
             <tfoot>
               <tr class="bg-savannah-100 font-semibold">
                 <td class="py-3 px-4">Total Portfolio</td>
-                <td class="text-right py-3 px-4">{{ formatCurrency(totalPortfolioValue) }}</td>
+                <td class="text-right py-3 px-4">{{ formatCurrency(portfolioValue) }}</td>
                 <td class="text-right py-3 px-4">{{ formatPercent(weightedPlatformFee) }}</td>
                 <td class="text-right py-3 px-4">{{ formatPercent(weightedOCF) }}</td>
                 <td class="text-right py-3 px-4">{{ formatPercent(weightedAdvisorFee) }}</td>
@@ -96,7 +96,7 @@
       <div class="bg-white rounded-lg border border-light-gray p-6">
         <h3 class="text-lg font-semibold text-horizon-500 mb-4">10-Year Fee Impact</h3>
         <p class="text-sm text-neutral-500 mb-4">
-          Projected cumulative fees over 10 years, assuming 5% annual portfolio growth.
+          Projected cumulative fees over 10 years, assuming {{ projectionGrowthPercent }}% annual portfolio growth.
         </p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="text-center p-4 bg-eggshell-500 rounded-lg">
@@ -149,132 +149,45 @@ export default {
   mixins: [currencyMixin],
 
   computed: {
-    ...mapGetters('investment', ['accounts', 'totalPortfolioValue']),
+    ...mapGetters('investment', ['accounts']),
 
-    // Calculate fee data for each account
+    // Every figure is the server's (CSJ 2026-10-01: one figure, every surface):
+    // each account's recorded charges (FeeAnalyzer::recordedCharges) and the
+    // portfolio's (FeeAnalyzer::portfolioRecordedCharges, on GET /api/investment).
+    portfolio() {
+      return this.$store.state.investment?.summary?.charges || {};
+    },
+
     accountFeeData() {
-      return this.accounts.map(account => {
-        const value = parseFloat(account.current_value) || 0;
-        let platformFee = 0;
-        if (account.platform_fee_type === 'fixed') {
-          const feeAmt = parseFloat(account.platform_fee_amount) || 0;
-          let annual = feeAmt;
-          if (account.platform_fee_frequency === 'monthly') annual = feeAmt * 12;
-          else if (account.platform_fee_frequency === 'quarterly') annual = feeAmt * 4;
-          platformFee = value > 0 ? (annual / value) * 100 : 0;
-        } else {
-          platformFee = parseFloat(account.platform_fee_percent) || 0;
-        }
-        const advisorFee = parseFloat(account.advisor_fee_percent) || 0;
-
-        // Calculate weighted average OCF for this account's holdings
-        const holdings = account.holdings || [];
-        let avgOCF = 0;
-        if (holdings.length > 0) {
-          const totalHoldingValue = holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
-          if (totalHoldingValue > 0) {
-            avgOCF = holdings.reduce((sum, h) => {
-              const hValue = parseFloat(h.current_value) || 0;
-              const hOCF = parseFloat(h.ocf_percent) || 0;
-              return sum + (hValue * hOCF);
-            }, 0) / totalHoldingValue;
-          }
-        }
-
-        const totalPercent = platformFee + avgOCF + advisorFee;
-        const annualCost = value * (totalPercent / 100);
-
+      return this.accounts.map((account) => {
+        const c = account.charges || {};
         return {
           id: account.id,
           provider: account.provider,
           name: account.account_name,
-          value,
-          platformFee,
-          avgOCF,
-          advisorFee,
-          totalPercent,
-          annualCost,
+          value: Number(account.current_value) || 0,
+          platformFee: Number(c.platform_fee_percent) || 0,
+          avgOCF: Number(c.weighted_ocf_percent) || 0,
+          advisorFee: Number(c.advisor_fee_percent) || 0,
+          totalPercent: Number(c.total_fee_percent) || 0,
+          annualCost: Number(c.total_annual_cost) || 0,
         };
       });
     },
 
-    // Weighted average platform fee across all accounts
-    weightedPlatformFee() {
-      if (this.totalPortfolioValue === 0) return 0;
-      return this.accountFeeData.reduce((sum, a) => sum + (a.value * a.platformFee), 0) / this.totalPortfolioValue;
-    },
-
-    // Weighted average OCF across all accounts
-    weightedOCF() {
-      if (this.totalPortfolioValue === 0) return 0;
-      return this.accountFeeData.reduce((sum, a) => sum + (a.value * a.avgOCF), 0) / this.totalPortfolioValue;
-    },
-
-    // Weighted average advisor fee across all accounts
-    weightedAdvisorFee() {
-      if (this.totalPortfolioValue === 0) return 0;
-      return this.accountFeeData.reduce((sum, a) => sum + (a.value * a.advisorFee), 0) / this.totalPortfolioValue;
-    },
-
-    // Total fee percentage
-    totalFeePercent() {
-      return this.weightedPlatformFee + this.weightedOCF + this.weightedAdvisorFee;
-    },
-
-    // Annual fee amounts
-    annualPlatformFees() {
-      return this.totalPortfolioValue * (this.weightedPlatformFee / 100);
-    },
-
-    annualFundFees() {
-      return this.totalPortfolioValue * (this.weightedOCF / 100);
-    },
-
-    annualAdvisorFees() {
-      return this.totalPortfolioValue * (this.weightedAdvisorFee / 100);
-    },
-
-    totalAnnualFees() {
-      return this.annualPlatformFees + this.annualFundFees + this.annualAdvisorFees;
-    },
-
-    // 10-year projections
-    tenYearTotalFees() {
-      const growthRate = 0.05;
-      const feeRate = this.totalFeePercent / 100;
-      let totalFees = 0;
-      let portfolioValue = this.totalPortfolioValue;
-
-      for (let year = 1; year <= 10; year++) {
-        const feesThisYear = portfolioValue * feeRate;
-        totalFees += feesThisYear;
-        portfolioValue = (portfolioValue - feesThisYear) * (1 + growthRate);
-      }
-
-      return totalFees;
-    },
-
-    tenYearFeeDrag() {
-      const growthRate = 0.05;
-      const feeRate = this.totalFeePercent / 100;
-
-      // Value with fees
-      let valueWithFees = this.totalPortfolioValue;
-      for (let year = 1; year <= 10; year++) {
-        const feesThisYear = valueWithFees * feeRate;
-        valueWithFees = (valueWithFees - feesThisYear) * (1 + growthRate);
-      }
-
-      // Value without fees
-      const valueWithoutFees = this.totalPortfolioValue * Math.pow(1 + growthRate, 10);
-
-      // Fee drag is the difference minus fees paid
-      return (valueWithoutFees - valueWithFees) - this.tenYearTotalFees;
-    },
-
-    tenYearTotalImpact() {
-      return this.tenYearTotalFees + this.tenYearFeeDrag;
-    },
+    portfolioValue() { return Number(this.portfolio.value) || 0; },
+    weightedPlatformFee() { return Number(this.portfolio.platform_fee_percent) || 0; },
+    weightedOCF() { return Number(this.portfolio.weighted_ocf_percent) || 0; },
+    weightedAdvisorFee() { return Number(this.portfolio.advisor_fee_percent) || 0; },
+    totalFeePercent() { return Number(this.portfolio.total_fee_percent) || 0; },
+    annualPlatformFees() { return Number(this.portfolio.annual_platform_fees) || 0; },
+    annualFundFees() { return Number(this.portfolio.annual_fund_fees) || 0; },
+    annualAdvisorFees() { return Number(this.portfolio.annual_advisor_fees) || 0; },
+    totalAnnualFees() { return Number(this.portfolio.total_annual_fees) || 0; },
+    projectionGrowthPercent() { return Number(this.portfolio.projection_growth_percent) || 0; },
+    tenYearTotalFees() { return Number(this.portfolio.ten_year_fees) || 0; },
+    tenYearFeeDrag() { return Number(this.portfolio.ten_year_lost_growth) || 0; },
+    tenYearTotalImpact() { return Number(this.portfolio.ten_year_total_impact) || 0; },
   },
 
   methods: {

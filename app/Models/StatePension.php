@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Retirement\StatePensionAgeResolver;
+use App\Services\TaxConfigService;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -55,6 +57,55 @@ class StatePension extends Model
         'years_to_state_pension_age' => 'integer',
         'years_to_state_pension_age_calculated_at' => 'datetime',
     ];
+
+    /**
+     * Figures every surface shows, worked out here once (CSJ 2026-10-01: one
+     * figure, every surface). Web, /m and iOS each divided by 52, typed in 35
+     * qualifying years and 67 for the age, or read fields that do not exist.
+     */
+    protected $appends = ['weekly_forecast', 'ni_years_for_full_pension', 'ni_years_needed', 'resolved_state_pension_age'];
+
+    /** The forecast a week (the State Pension is set as a weekly rate). */
+    public function getWeeklyForecastAttribute(): ?float
+    {
+        return $this->state_pension_forecast_annual === null ? null : round((float) $this->state_pension_forecast_annual / 52, 2);
+    }
+
+    /** Qualifying years for the full amount: the record's own, else tax config `pension.state_pension.qualifying_years`. */
+    public function getNiYearsForFullPensionAttribute(): int
+    {
+        return (int) ($this->ni_years_required
+            ?? (app(TaxConfigService::class)->getPensionAllowances()['state_pension']['qualifying_years'] ?? 0));
+    }
+
+    /** Qualifying years still needed for the full amount. */
+    public function getNiYearsNeededAttribute(): int
+    {
+        return max(0, $this->ni_years_for_full_pension - (int) ($this->ni_years_completed ?? 0));
+    }
+
+    /**
+     * State Pension age from its one home (W-0516, the birth-cohort schedule):
+     * the age on this record wins, as in StatePensionAgeResolver::forUser.
+     *
+     * Reads the date of birth without loading `user` onto the record: an appended
+     * attribute that loads a relation is serialised with it, and user →
+     * statePension → user never ended (memory exhausted on POST /state-pension).
+     */
+    public function getResolvedStatePensionAgeAttribute(): ?int
+    {
+        if ($this->state_pension_age) {
+            return (int) $this->state_pension_age;
+        }
+
+        if ($this->user_id === null) {
+            return null;
+        }
+
+        $dateOfBirth = User::whereKey($this->user_id)->value('date_of_birth');
+
+        return app(StatePensionAgeResolver::class)->forDateOfBirth($dateOfBirth);
+    }
 
     /**
      * Get the user that owns the state pension record.

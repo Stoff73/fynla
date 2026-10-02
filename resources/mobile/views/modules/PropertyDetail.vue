@@ -10,7 +10,7 @@
         <p class="m-metric">{{ fmt(property.current_value) }}</p>
         <p v-if="isShared" class="m-hero-sub">Your share ({{ sharePercent }}): {{ fmt(userShare) }}</p>
         <p v-if="coOwner" class="m-hero-sub">Held with {{ coOwner }}</p>
-        <p v-if="Number(property.outstanding_mortgage) > 0" class="m-hero-sub pd-debt">Mortgage {{ fmt(property.outstanding_mortgage) }}</p>
+        <p v-if="Number(property.mortgage_user_share) > 0" class="m-hero-sub pd-debt">Mortgage {{ fmt(property.mortgage_user_share) }}</p>
       </div>
       <div class="m-card m-detail-rows">
         <p class="m-section-label">Property</p>
@@ -126,7 +126,9 @@ export default {
         { key: 'Purchase price', value: fmt(this.property.purchase_price) },
         { key: 'Purchase date', value: date(this.property.purchase_date) },
         { key: 'Valuation date', value: date(this.property.valuation_date) },
-        { key: 'Equity', value: fmt(this.property.equity) },
+        // The viewer's equity and mortgage share, from the server
+        // (PropertyController), as web shows them (CSJ 2026-10-01).
+        { key: 'Equity', value: fmt(this.property.user_equity) },
       ];
       // Rule 19 parity with the web detail: a buy to let shows the rent it earns.
       if (this.property.property_type === 'buy_to_let' && Number(this.property.monthly_rental_income) > 0) {

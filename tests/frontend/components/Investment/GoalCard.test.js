@@ -16,6 +16,9 @@ describe('GoalCard', () => {
     goal_type: 'retirement',
     is_on_track: true,
     contribution_streak: 0,
+    // Server fields (GoalResource); the card renders them as sent.
+    progress_percentage: 25,
+    status_label: 'On track',
   };
 
   const mountCard = (props = {}) => mount(GoalCard, {
@@ -37,47 +40,51 @@ describe('GoalCard', () => {
     expect(wrapper.text()).toContain('£1,000,000');
   });
 
-  it('calculates progress from the goal amounts', () => {
+  it('shows the server progress figure', () => {
     const wrapper = mountCard();
 
     expect(wrapper.vm.progressPercent).toBe(25);
     expect(wrapper.text()).toContain('25%');
   });
 
-  it('caps the rendered progress-bar width at one hundred percent', () => {
-    const wrapper = mountCard({ goal: { ...goal, current_amount: 1250000 } });
+  it('fills the progress bar to the server figure, which caps at one hundred percent', () => {
+    const wrapper = mountCard({
+      goal: { ...goal, current_amount: 1250000, progress_percentage: 100, status_label: 'Goal achieved' },
+    });
     const bar = wrapper.findAll('div').find(item => (
       item.classes().includes('h-2.5') && item.classes().includes('transition-all')
     ));
 
-    expect(wrapper.vm.progressPercent).toBe(125);
+    expect(wrapper.vm.progressPercent).toBe(100);
     expect(bar.attributes('style')).toContain('width: 100%');
   });
 
   it('uses descriptive on-track status rather than a financial score', () => {
     const wrapper = mountCard();
 
-    expect(wrapper.vm.statusText).toBe('On Track');
-    expect(wrapper.text()).toContain('On Track');
+    expect(wrapper.vm.statusText).toBe('On track');
+    expect(wrapper.text()).toContain('On track');
     expect(wrapper.text()).not.toMatch(/\/100/);
   });
 
   it('shows behind-schedule status when the goal is not on track', () => {
-    const wrapper = mountCard({ goal: { ...goal, is_on_track: false } });
+    const wrapper = mountCard({ goal: { ...goal, is_on_track: false, status_label: 'Behind schedule' } });
 
-    expect(wrapper.vm.statusText).toBe('Behind Schedule');
+    expect(wrapper.vm.statusText).toBe('Behind schedule');
   });
 
   it('shows not-started status when no amount has been saved', () => {
-    const wrapper = mountCard({ goal: { ...goal, current_amount: 0, is_on_track: false } });
+    const wrapper = mountCard({
+      goal: { ...goal, current_amount: 0, is_on_track: false, progress_percentage: 0, status_label: 'Not started' },
+    });
 
-    expect(wrapper.vm.statusText).toBe('Not Started');
+    expect(wrapper.vm.statusText).toBe('Not started');
     expect(wrapper.vm.progressBarClass).toBe('bg-horizon-300');
   });
 
   it('shows completion using the spring success palette', () => {
     const wrapper = mountCard({
-      goal: { ...goal, current_amount: 1000000, status: 'completed' },
+      goal: { ...goal, current_amount: 1000000, status: 'completed', progress_percentage: 100, status_label: 'Completed' },
     });
 
     expect(wrapper.vm.statusText).toBe('Completed');

@@ -34,6 +34,7 @@ final class TaxStrategyController extends Controller
         $payload = $this->service->getDashboardPayload($user);
         $payload['composed_plan'] = $this->composedTaxPlan->forUser($user);
         $payload = $this->attachCompletionState($user, $payload);
+        $payload = $this->service->withDisplayState($payload);
 
         // WP-5 — the first quantified annual saving is a milestone; detected
         // here because the composed plan is already in hand (recomputing it
@@ -113,7 +114,7 @@ final class TaxStrategyController extends Controller
     public function calculate(TaxStrategyCalculateRequest $request): JsonResponse
     {
         $overrides = TaxStrategyOverridesDTO::fromArray($request->validated());
-        $payload = $this->service->recalculate($request->user(), $overrides);
+        $payload = $this->service->withDisplayState($this->service->recalculate($request->user(), $overrides));
 
         return response()->json(['data' => $payload]);
     }

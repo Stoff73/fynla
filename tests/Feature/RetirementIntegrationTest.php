@@ -7,6 +7,7 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementProjectionContractService;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Retirement\StatePensionAgeResolver;
@@ -89,6 +90,7 @@ describe('Shared retirement projection contract', function () {
                 $assumptionsService,
                 $taxConfig,
                 app(StatePensionAgeResolver::class),
+                app(RetirementAgeResolver::class),
             ),
         );
 
@@ -256,13 +258,10 @@ describe('Contribution Optimization Flow', function () {
         expect($recommendations)->toBeArray()
             ->and($recommendations)->not->toBeEmpty();
 
-        // Should recommend increasing contributions
-        $hasContributionRec = collect($recommendations)->contains(function ($rec) {
-            return str_contains(strtolower($rec['title'] ?? ''), 'contribution') ||
-                   str_contains(strtolower($rec['description'] ?? ''), 'contribution');
-        });
-
-        expect($hasContributionRec)->toBeTrue();
+        // Should recommend paying more in: the employer match card for the 3%
+        // contribution, or the income card for the shortfall (CSJ 2026-10-01, D2).
+        expect(collect($recommendations)->pluck('definition_key')->intersect(['employer_match', 'retirement_income_position']))
+            ->not->toBeEmpty();
     });
 
     it('identifies employer match opportunities', function () {

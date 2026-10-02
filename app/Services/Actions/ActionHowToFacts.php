@@ -400,6 +400,16 @@ final class ActionHowToFacts
                 $text[$key] = (string) (int) $pension[$key];
             }
         }
+        // Taking a pension: the tax-free share, its cap, and the lower allowance
+        // flexible access brings (FA 2004 Sch 29, s227ZA).
+        if (is_numeric($pension['pcls_rate'] ?? null)) {
+            $text['tax_free_share'] = self::percent((float) $pension['pcls_rate']);
+        }
+        foreach (['lump_sum_allowance', 'mpaa'] as $key) {
+            if (is_numeric($pension[$key] ?? null)) {
+                $text[$key] = self::pounds((float) $pension[$key]);
+            }
+        }
 
         $income = $this->taxConfig->getIncomeTax();
         if (is_numeric($income['personal_allowance'] ?? null)) {

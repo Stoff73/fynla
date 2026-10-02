@@ -324,6 +324,124 @@ class FeeAnalyzer
     }
 
     /**
+     * The charges recorded on one account, as every screen shows them (CSJ
+     * 2026-10-01: one figure, every surface). The web account page used to work
+     * these out in the browser.
+     *
+     * Only what the user recorded: the platform fee (a percentage, or a fixed
+     * amount turned into a yearly figure), the adviser fee and the funds' own
+     * charges (OCF) weighted by value. A holding with no recorded charge adds
+     * nothing and `ocf_recorded_for_all` says so; nothing is estimated.
+     *
+     * @return array<string, mixed>
+     */
+    public function recordedCharges(InvestmentAccount $account): array
+    {
+        $holdings = $account->holdings;
+        $accountValue = (float) ($account->current_value ?? 0);
+        $holdingsValue = $holdings->isNotEmpty() ? (float) $holdings->sum('current_value') : 0.0;
+
+        $fixed = $account->platform_fee_type === 'fixed';
+        $fixedAmount = (float) ($account->platform_fee_amount ?? 0);
+        $frequency = $account->platform_fee_frequency ?? 'annually';
+        $platformAnnual = $fixed
+            ? $fixedAmount * match ($frequency) {
+                'monthly' => 12,
+                'quarterly' => 4,
+                default => 1,
+            }
+        : $accountValue * ((float) ($account->platform_fee_percent ?? 0) / 100);
+        $platformPercent = $fixed
+            ? ($accountValue > 0 ? $platformAnnual / $accountValue * 100 : 0.0)
+            : (float) ($account->platform_fee_percent ?? 0);
+
+        $ocfPercent = 0.0;
+        if ($holdingsValue > 0) {
+            foreach ($holdings as $holding) {
+                $ocfPercent += (float) $holding->current_value / $holdingsValue * (float) ($holding->ocf_percent ?? 0);
+            }
+        }
+
+        $advisorPercent = (float) ($account->advisor_fee_percent ?? 0);
+        $totalPercent = $platformPercent + $advisorPercent + $ocfPercent;
+
+        return [
+            'platform_fee_percent' => round($platformPercent, 4),
+            // How the platform fee was recorded, for its label ("£10/month" or "0.25%").
+            'platform_fee_type' => $fixed ? 'fixed' : 'percentage',
+            'platform_fee_amount' => $fixed ? round($fixedAmount, 2) : null,
+            'platform_fee_frequency' => $fixed ? $frequency : null,
+            'advisor_fee_percent' => round($advisorPercent, 4),
+            'weighted_ocf_percent' => round($ocfPercent, 4),
+            'ocf_recorded_for_all' => $holdings->every(fn ($h): bool => $h->ocf_percent !== null),
+            'total_fee_percent' => round($totalPercent, 4),
+            'total_annual_cost' => round($accountValue * $totalPercent / 100, 2),
+        ];
+    }
+
+    /**
+     * Growth assumed for the fees page's ten-year view, stated on the page
+     * ("assuming 5% annual portfolio growth"). Moved here from the browser so
+     * every screen uses the same figure.
+     */
+    private const FEE_PROJECTION_GROWTH = 0.05;
+
+    /**
+     * The fees page's portfolio figures from each account's recorded charges,
+     * weighted by each account's full value (the charge is levied on the whole
+     * account), with the ten-year cost of those charges.
+     *
+     * @param  iterable<InvestmentAccount>  $accounts
+     * @return array<string, float>
+     */
+    public function portfolioRecordedCharges(iterable $accounts): array
+    {
+        $value = 0.0;
+        $platform = 0.0;
+        $ocf = 0.0;
+        $advisor = 0.0;
+        foreach ($accounts as $account) {
+            $accountValue = (float) ($account->current_value ?? 0);
+            $charges = $this->recordedCharges($account);
+            $value += $accountValue;
+            $platform += $accountValue * $charges['platform_fee_percent'] / 100;
+            $ocf += $accountValue * $charges['weighted_ocf_percent'] / 100;
+            $advisor += $accountValue * $charges['advisor_fee_percent'] / 100;
+        }
+
+        $total = $platform + $ocf + $advisor;
+        $percent = static fn (float $cost): float => $value > 0 ? round($cost / $value * 100, 4) : 0.0;
+
+        // Ten years of the same charges on a pot growing at the stated rate.
+        $feeRate = $value > 0 ? $total / $value : 0.0;
+        $withFees = $value;
+        $feesPaid = 0.0;
+        for ($year = 1; $year <= 10; $year++) {
+            $charge = $withFees * $feeRate;
+            $feesPaid += $charge;
+            $withFees = ($withFees - $charge) * (1 + self::FEE_PROJECTION_GROWTH);
+        }
+        $withoutFees = $value * (1 + self::FEE_PROJECTION_GROWTH) ** 10;
+        $lostGrowth = ($withoutFees - $withFees) - $feesPaid;
+
+        return [
+            'value' => round($value, 2),
+            'platform_fee_percent' => $percent($platform),
+            'weighted_ocf_percent' => $percent($ocf),
+            'advisor_fee_percent' => $percent($advisor),
+            'total_fee_percent' => $percent($total),
+            'annual_platform_fees' => round($platform, 2),
+            'annual_fund_fees' => round($ocf, 2),
+            'annual_advisor_fees' => round($advisor, 2),
+            'total_annual_fees' => round($total, 2),
+            'projection_growth_percent' => self::FEE_PROJECTION_GROWTH * 100,
+            'ten_year_fees' => round($feesPaid, 2),
+            'ten_year_lost_growth' => round($lostGrowth, 2),
+            'ten_year_total_impact' => round($feesPaid + $lostGrowth, 2),
+        ];
+    }
+
+    /**
      * Analyze fees for a single investment account
      *
      * @param  InvestmentAccount  $account  Investment account

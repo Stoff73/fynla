@@ -6,6 +6,7 @@ namespace App\Services\Estate;
 
 use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
+use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -13,36 +14,39 @@ use Illuminate\Support\Collection;
 class NetWorthAnalyzer
 {
     public function __construct(
-        private CrossModuleAssetAggregator $assetAggregator
-    ) {}
+        private CrossModuleAssetAggregator $assetAggregator,
+        private ?EstateAssetAggregatorService $estateAssets = null,
+    ) {
+        $this->estateAssets ??= app(EstateAssetAggregatorService::class);
+    }
 
     /**
      * Calculate current net worth for a user
      */
     public function calculateNetWorth(int $userId): array
     {
-        // Get all manually entered assets (Estate module specific)
-        $manualAssets = Asset::where('user_id', $userId)->get();
+        // The own-estate figure the dashboard estate card shows
+        // (EstateAgent::buildAssetSummary): the estate gatherer at this user's
+        // share, co-owned records included, Inheritance Tax-exempt assets left
+        // out, less what they owe at their share (CSJ 2026-10-01: one figure,
+        // every surface). This counted only debts the user recorded, at their
+        // full balance.
+        $user = User::findOrFail($userId);
+        $allAssets = $this->estateAssets->gatherUserAssets($user)
+            ->reject(fn ($asset) => $asset->is_iht_exempt ?? false)
+            ->values();
+        $totalAssets = (float) $allAssets->sum('current_value');
 
-        // Get cross-module assets using shared aggregator (eliminates duplication)
-        $crossModuleAssets = $this->assetAggregator->getAllAssets($userId);
-
-        // Get totals for each cross-module asset type
         $assetTotals = $this->assetAggregator->getAssetTotals($userId);
         $investmentTotalValue = $assetTotals['investment'];
         $propertyTotalValue = $assetTotals['property'];
         $savingsTotalValue = $assetTotals['cash'];
+        $manualAssets = Asset::where('user_id', $userId)->get();
 
-        // Merge all assets (manual + cross-module)
-        $allAssets = $manualAssets->concat($crossModuleAssets);
-        $totalAssets = $allAssets->sum('current_value');
-
-        // Get all liabilities (manual + mortgages)
-        $liabilities = Liability::where('user_id', $userId)->get();
+        $liabilities = Liability::forUserOrJoint($userId)->get();
         $mortgagesTotal = $this->assetAggregator->calculateMortgageTotal($userId);
-
-        $manualLiabilitiesTotal = $liabilities->sum('current_balance');
-        $totalLiabilities = $manualLiabilitiesTotal + $mortgagesTotal;
+        $totalLiabilities = $this->estateAssets->calculateUserLiabilities($user);
+        $manualLiabilitiesTotal = max(0.0, $totalLiabilities - $mortgagesTotal);
 
         // Calculate net worth
         $netWorth = $totalAssets - $totalLiabilities;

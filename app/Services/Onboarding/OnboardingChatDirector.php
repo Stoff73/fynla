@@ -1486,23 +1486,25 @@ final class OnboardingChatDirector
     ];
 
     /**
-     * Strategy types voiced per pensioncheck section — keys are section names,
-     * values are the composed-retirement-plan item types to surface. These are
-     * the source='strategy' type IDs from RetirementActionDefinitionSeeder.
+     * Item types voiced per pensioncheck section — keys are section names,
+     * values are the composed-retirement-plan item types to surface. Retirement
+     * items are typed by their definition key (CSJ 2026-10-01); these are the
+     * keys that replaced the category types this section voiced before.
      *
      * Mapping rationale:
-     * - pensions: contribution/sacrifice types that fire for DC-pension users
-     * - state_pension: empty — ni_gaps/state_pension_no_forecast are agent-sourced
-     *   and not in the strategy catalogue; the advice turn fires but emits nothing
-     * - retirement_goals: plan_retirement_income fires when decumulation planning
-     *   is relevant (user within 10 years of retirement with DC pension value)
+     * - pensions: the contribution cards that fire for DC-pension users (the
+     *   income shortfall card, employer match, the salary sacrifice pay floor).
+     *   The pension relief and salary sacrifice saving are the Tax plan's (D1).
+     * - state_pension: empty, as before.
+     * - retirement_goals: decumulation planning (user within 10 years of
+     *   retirement with DC pension value)
      *
      * @var array<string, list<string>>
      */
     private const PENSIONCHECK_SECTION_STRATEGY_TYPES = [
-        'pensions' => ['increase_pension_contribution', 'salary_sacrifice_pension', 'carry_forward_unused_allowance'],
+        'pensions' => ['retirement_income_position', 'employer_match', 'salary_sacrifice_floor_warning'],
         'state_pension' => [],
-        'retirement_goals' => ['plan_retirement_income'],
+        'retirement_goals' => ['approaching_decumulation'],
     ];
 
     /**

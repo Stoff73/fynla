@@ -25,6 +25,7 @@ use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Retirement\RetirementDataReadinessService;
+use App\Services\Retirement\RetirementHeadline;
 use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Stores\PensionStore;
@@ -191,6 +192,7 @@ class RetirementAgent extends BaseAgent
                     'has_retirement_target' => true,
                     'guaranteed_annual_income' => $this->guaranteedAnnualIncome($incomeProjection),
                 ];
+                $summary = $this->withHeadline($summary, $user);
 
                 // Detailed breakdown
                 $breakdown = [
@@ -364,6 +366,9 @@ class RetirementAgent extends BaseAgent
             ),
             // The absent target, stated as the absence it is.
             'profile' => null,
+            // Whose analysis this is, so the actions that need no target still
+            // run (RetirementActionDefinitionService, CSJ 2026-10-01 D4).
+            'user_id' => $userId,
             'decumulation' => null,
             'post_retirement_goals' => [],
             'missing_for_quality_advice' => $this->findMissingForQualityAdvice(
@@ -406,7 +411,7 @@ class RetirementAgent extends BaseAgent
             ? $this->projector->projectTotalRetirementIncome($user->id)
             : [];
 
-        return [
+        $summary = [
             // Target-derived — null, not zero. Zero is a figure; these are absent.
             'years_to_retirement' => null,
             'target_retirement_age' => null,
@@ -431,6 +436,36 @@ class RetirementAgent extends BaseAgent
             'has_retirement_target' => $user?->retirementProfile !== null,
             'guaranteed_annual_income' => $this->guaranteedAnnualIncome($incomeProjection),
         ];
+
+        return $user === null ? $summary : $this->withHeadline($summary, $user, targetDerived: false);
+    }
+
+    /**
+     * The figures every surface shows come from RetirementHeadline, the one
+     * home (CSJ 2026-10-01: one figure, every surface). The summary carries the
+     * headline itself, and its own projection, guaranteed income, gap, years and
+     * pot value are the headline's, so the dashboard, the cards and Fyn read the
+     * same numbers as the Retirement page on every client.
+     *
+     * @param  array<string, mixed>  $summary
+     * @param  bool  $targetDerived  false on the branches with no usable target,
+     *                               whose target-derived fields stay null
+     * @return array<string, mixed>
+     */
+    private function withHeadline(array $summary, User $user, bool $targetDerived = true): array
+    {
+        $headline = app(RetirementHeadline::class)->for($user);
+        $summary['headline'] = $headline;
+        $summary['guaranteed_annual_income'] = $headline['guaranteed_income'];
+        $summary['current_dc_value'] = $headline['dc_value_today'];
+        if ($targetDerived) {
+            $summary['projected_retirement_income'] = $headline['projected_income'];
+            $summary['years_to_retirement'] = $headline['years_to_retirement'] ?? $summary['years_to_retirement'];
+            // Rules test "short"; the signed figure is the headline's.
+            $summary['income_gap'] = max(0.0, (float) ($headline['income_gap'] ?? 0));
+        }
+
+        return $summary;
     }
 
     /**

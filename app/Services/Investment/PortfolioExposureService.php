@@ -190,7 +190,11 @@ class PortfolioExposureService
         $assetClass = strtolower(trim($assetClass));
 
         return match ($assetClass) {
-            'equity', 'equities', 'stock', 'stocks' => 'equities',
+            // The holding column's own equity types (uk_equity, us_equity,
+            // international_equity) and the ones the efficient-frontier mapping
+            // already treats as equities; they fell to "unclassified".
+            'equity', 'equities', 'stock', 'stocks', 'uk_equity', 'us_equity', 'international_equity',
+            'global_equity', 'emerging_markets' => 'equities',
             'bond', 'bonds', 'fixed_income' => 'bonds',
             'cash', 'money_market' => 'cash',
             'alternative', 'alternatives', 'property', 'real_estate' => 'alternatives',

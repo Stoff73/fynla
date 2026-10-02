@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-28: four releases live (#949 action cards + lanes, #952 spouse earnings cap + carry forward gate, #955 help page, #958 how-to help links + Estate cards). Next: Fyn "Ask Fyn about this" narration.*
+*Last updated: 2026-10-01 session 5. The order of work is `todoCurrent/TODO.md`; this file is the detail record. Item 7 (retirement) is on `feat/retirement-decumulation-and-care-costs`, deployed to csjones, not merged.*
 
 ## The board position
 
@@ -77,7 +77,6 @@ Released 2026-09-29 and walked live on fynla.org: #966 (#960 Ask Fyn grounding +
 - [ ] **Work order lives in `todoCurrent/TODO.md`.** Released 2026-10-01: Marriage Allowance to s55C(1)(c) (#1032), LEVEL UP percentile band commented out (#1034), savings gift for every couple (#1037, #1039). Next: 40% relief below £100,000 (TODO item 5).
 - [ ] **Old wizard invents a mortgage** (`OnboardingService.php:598-613`: "Mortgage Provider", 3.5%, 5 years in, 20 left) for any property balance; only reachable by typing `/onboarding/full`.
 - [ ] **Web setup never asks whether the partner is retired:** the inviter's "Now your spouse" form has no status field, so the link cannot split the income; #1016 restates it once the partner answers. Status is only known up front from the Save Tax funnel's 60%-band question.
-- [ ] **Retirement page is wrong for someone already retired** (csjones walk 2026-09-30, Pat: born 1958, retired 2020, £200,000 pot drawing £30,000): `RetirementProjectionService::projectPensionPot` never reads `retirement_date` and clamps years to go at `max(1, …)`, so it shows "Years to go 1", "Retirement age 67", "Projected Gross Income £9,235" and a required capital, as if still saving. Needs a decumulation view for retired users; same module as the retirement how-to batch.
 - [ ] **Open, not fixed:** the Apple bridge (`services/apple_store_bridge` + `.venv`) is not installed on fynla.org (`route:list` fails `invalid_configuration`); prod `vendor/` carries dev packages.
 - [ ] **Retirement how-to batch (26) — NEXT**, then investment (17), estate (12). One module at a time: draft, CSJ approves, walk, release. Follow `database/seeders/data/action-how-to/protection.md` + `savings.md` headers (user's own money, never "Fynla", sourced, household branches). First check the module's cards really come from its definitions and carry `definition_key` + `figures` (protection did not — #972); add to `ActionHowToSeeder::SOURCES`.
 - [ ] **Protection still has two engines:** `RecommendationEngine` still feeds `ProtectionAgent::analyze()['recommendations']` (the plan page's own recommendations section and the composed-flag-off rollback path); the cards no longer use it.
@@ -201,6 +200,8 @@ Three small decisions, all optional:
   verification bridge on production.
 
 ## Known issues
+
+- **Fyn cannot reliably record care costs from plain /m chat** (2026-10-01): care costs ARE recorded, through one write path (`RetirementProfileStore::updateCareCosts`, `ec71b32f5`: web card, /m section, `PUT /api/retirement/goals`, Fyn `capture_retirement_goals` at `CoordinatingAgent.php:6245`). The defect is only that plain /m chat with no card never reaches that write (conversation 428), and the repeated-message reply claimed a change that was not written. NO new form (CSJ rejected the "retirement goals form in State Pension shape" plan, 2026-10-01 session 5).
 
 - **`users.life_stage` is overloaded by design** — it also holds the journey or focus area
   last started (`JourneyStateService`, `OnboardingService`). The client keeps only real

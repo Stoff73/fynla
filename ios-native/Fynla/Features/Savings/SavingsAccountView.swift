@@ -134,8 +134,9 @@ struct SavingsAccountView: View {
             ))
         }
         rows.append(("Interest rate", rateLabel(account.interestRate)))
-        rows.append(("Monthly interest", MoneyFormatter.gbpWhole(annualInterest(account) / 12)))
-        rows.append(("Annual interest", MoneyFormatter.gbpWhole(annualInterest(account))))
+        // The server's figures (SavingsAccount model), as web and /m show them.
+        rows.append(("Monthly interest", MoneyFormatter.gbpWhole(account.monthlyInterest ?? 0)))
+        rows.append(("Annual interest", MoneyFormatter.gbpWhole(account.annualInterest ?? 0)))
         return rows
     }
 
@@ -150,7 +151,7 @@ struct SavingsAccountView: View {
         }
         if account.accessType == "fixed", let maturity = account.maturityDate {
             rows.append(("Maturity date", dateLabel(maturity)))
-            rows.append(("Time to maturity", timeToMaturity(maturity)))
+            rows.append(("Time to maturity", account.timeToMaturity ?? "—"))
         }
         if let country = account.country, !country.isEmpty {
             rows.append(("Country", country))
@@ -187,17 +188,9 @@ struct SavingsAccountView: View {
     }
 
     // /m userShare: explicit user_share, else joint split, else full balance.
+    // The server's share for this viewer (SavingsController `user_share`).
     private func userShare(_ account: SavingsAccount) -> Decimal {
-        if let share = account.userShare { return share }
-        if account.isJoint, let percentage = account.ownershipPercentage {
-            return account.fullBalanceValue * percentage / 100
-        }
-        return account.fullBalanceValue
-    }
-
-    // ponytail: client-side simple-interest estimate is /m-parity (ledger P0-1).
-    private func annualInterest(_ account: SavingsAccount) -> Decimal {
-        account.fullBalanceValue * (account.interestRate ?? 0) / 100
+        account.userShare ?? 0
     }
 
     private func rateLabel(_ rate: Decimal?) -> String {
@@ -266,20 +259,6 @@ struct SavingsAccountView: View {
         output.locale = Locale(identifier: "en_GB")
         output.dateFormat = "dd/MM/yyyy"
         return output.string(from: date)
-    }
-
-    // /m timeToMaturity: days under a month, else months, else years+months.
-    private func timeToMaturity(_ value: String) -> String {
-        guard let date = parsedDate(value) else { return "—" }
-        let days = Int(ceil(date.timeIntervalSinceNow / 86_400))
-        if days <= 0 { return "Matured" }
-        if days < 31 { return "\(days) days" }
-        let months = Int(ceil(Double(days) / 30.44))
-        let years = months / 12
-        let remainder = months % 12
-        if years == 0 { return "\(remainder) \(remainder == 1 ? "month" : "months")" }
-        if remainder == 0 { return "\(years) \(years == 1 ? "year" : "years")" }
-        return "\(years) \(years == 1 ? "year" : "years"), \(remainder) \(remainder == 1 ? "month" : "months")"
     }
 
     // /m's MobileChrome keeps the gradient page hero visible during

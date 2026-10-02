@@ -178,7 +178,6 @@ import LifeEventForm from './LifeEventForm.vue';
 import LifeEventDetailInline from './LifeEventDetailInline.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import { tierLimitMixin } from '@/mixins/tierLimitMixin';
-import { summariseUpcoming } from '../../../mobile/utils/lifeEvents.js';
 
 import logger from '@/utils/logger';
 export default {
@@ -207,7 +206,7 @@ export default {
   },
 
   computed: {
-    ...mapState('goals', ['lifeEvents', 'lifeEventsLoading']),
+    ...mapState('goals', ['lifeEvents', 'lifeEventsLoading', 'lifeEventSummary']),
     ...mapState('aiFormFill', ['pendingFill']),
     subNavAction() { return this.$store.getters['subNav/pendingAction']; },
     subNavCounter() { return this.$store.getters['subNav/actionCounter']; },
@@ -250,7 +249,9 @@ export default {
     // The totals come from the one shared helper rather than being summed here,
     // so the /m goals screen cannot disagree with this page.
     eventTotals() {
-      return summariseUpcoming(this.lifeEvents);
+      // The server's totals (LifeEventService::summariseUpcoming), one figure on
+      // every surface (CSJ 2026-10-01).
+      return this.lifeEventSummary || { expected_income: 0, expected_expense: 0, net_impact: 0, income_count: 0, expense_count: 0 };
     },
 
     totalIncome() {

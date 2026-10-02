@@ -7,8 +7,7 @@ struct ProtectionTests {
     @Test
     func decodesPoliciesAndServerCalculatedGaps() throws {
         let index = try decode(ProtectionIndex.self, "protection-index")
-        let analysis = try decode(ProtectionAnalysis.self, "protection-analysis")
-        let snapshot = ProtectionSnapshot(index: index, analysis: analysis)
+        let snapshot = ProtectionSnapshot(index: index)
 
         #expect(snapshot.policies.count == 2)
         #expect(snapshot.policies.map(\.type) == [.life, .incomeProtection])
@@ -22,6 +21,10 @@ struct ProtectionTests {
         #expect(snapshot.calculatedAt == "2026-08-10T12:00:00Z")
         #expect(snapshot.policy(type: .life, id: 41)?.provider == "Example Life")
         #expect(snapshot.policy(type: .life, id: 999) == nil)
+        // The cover position as the server worded it (CSJ 2026-10-01).
+        #expect(snapshot.coverRows.map(\.key) == ["life", "income_protection"])
+        #expect(snapshot.coverRows[0].row.statusLabel == "Short by £150,000")
+        #expect(snapshot.coverRows[1].row.needLabel == "£2,500 a month")
     }
 
     @Test
@@ -56,7 +59,7 @@ struct ProtectionTests {
     func modelLoadsAndClears() async throws {
         let index = try decode(ProtectionIndex.self, "protection-index")
         let analysis = try decode(ProtectionAnalysis.self, "protection-analysis")
-        let snapshot = ProtectionSnapshot(index: index, analysis: analysis)
+        let snapshot = ProtectionSnapshot(index: index)
         let model = ProtectionModel(client: ProtectionClientStub(index: index, analysis: analysis))
 
         await model.load()

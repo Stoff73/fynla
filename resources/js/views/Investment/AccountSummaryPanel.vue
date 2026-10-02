@@ -40,8 +40,8 @@
           <span class="detail-value highlight">{{ formatCurrency(displayValue) }}</span>
         </div>
         <div v-if="account.ownership_type === 'joint'" class="detail-item">
-          <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-          <span class="detail-value">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
+          <span class="detail-label">Your Share ({{ userSharePercent }}%)</span>
+          <span class="detail-value">{{ formatCurrency(userShare) }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">YTD Return</span>
@@ -68,7 +68,7 @@
           <span class="detail-value" :class="isaRemainingClass">{{ formatCurrency(isaRemaining) }}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">{{ lisaEligible ? 'Annual Allowance (excl. Lifetime ISA)' : 'Annual Allowance' }}</span>
+          <span class="detail-label">Annual Allowance</span>
           <span class="detail-value">{{ formatCurrency(isaAnnualAllowance) }}</span>
         </div>
         <div class="detail-item">
@@ -106,7 +106,7 @@
           <span class="detail-value">{{ primaryAssetClass.label }} {{ primaryAssetClass.percentage }}</span>
         </div>
         <div v-for="(allocation, index) in assetAllocation" :key="index" class="detail-item">
-          <span class="detail-label">{{ formatAssetType(allocation.type) }}</span>
+          <span class="detail-label">{{ allocation.label }}</span>
           <span class="detail-value">{{ allocation.percentage.toFixed(1) }}%</span>
         </div>
       </div>
@@ -124,9 +124,8 @@
 </template>
 
 <script>
-import { formatAssetType } from '@/constants/assetTypes';
+import { formatAssetClass } from '@/constants/assetTypes';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { mapGetters, mapState } from 'vuex';
 
 export default {
   name: 'AccountSummaryPanel',
@@ -140,35 +139,24 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['currentUser']),
-    ...mapState('netWorth', ['overview']),
-    ...mapGetters('taxConfig', { storeIsaAnnualAllowance: 'isaAnnualAllowance' }),
-
-    userAge() {
-      const dob = this.currentUser?.date_of_birth;
-      if (!dob) return null;
-      const birth = new Date(dob);
-      const now = new Date();
-      let age = now.getFullYear() - birth.getFullYear();
-      const m = now.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
-      return age;
-    },
-
-    lisaEligible() {
-      if (this.userAge === null) return false;
-      if (this.userAge >= 40) return false;
-      const overviewData = this.overview || {};
-      return !(overviewData.breakdown?.property > 0);
-    },
-
-    isaAnnualAllowance() {
-      return this.lisaEligible ? 16000 : this.storeIsaAnnualAllowance;
+    // Every figure is the server's (GET /api/investment, CSJ 2026-10-01: one
+    // figure, every surface): the viewer's share, the ISA allowance from the
+    // one ISA tracker and the allocation the portfolio contract classified.
+    isaStatus() {
+      return this.$store.state.investment?.isaAllowance || {};
     },
 
     displayValue() {
       // current_value IS the full value (single-record pattern)
       return this.account.current_value;
+    },
+
+    userSharePercent() {
+      return Number(this.account.user_share_percent) || 0;
+    },
+
+    userShare() {
+      return Number(this.account.user_share) || 0;
     },
 
     holdingsCount() {
@@ -183,90 +171,37 @@ export default {
       return this.account.isa_subscription_current_year || 0;
     },
 
+    // What is left of the user's one ISA allowance this year, across every ISA.
     isaRemaining() {
-      return Math.max(0, this.isaAnnualAllowance - this.isaContributions);
+      return Number(this.isaStatus.remaining) || 0;
+    },
+
+    isaAnnualAllowance() {
+      return Number(this.isaStatus.total_allowance) || 0;
     },
 
     isaRemainingClass() {
-      if (this.isaRemaining <= 0) return 'text-raspberry-600';
-      if (this.isaRemaining < 5000) return 'text-violet-600';
-      return 'text-spring-600';
+      return Number(this.isaStatus.percentage_used) >= 100 ? 'text-raspberry-600' : 'text-spring-600';
     },
 
     currentTaxYear() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      // Tax year starts April 6
-      if (month < 3 || (month === 3 && now.getDate() < 6)) {
-        return `${year - 1}/${year.toString().slice(-2)}`;
-      }
-      return `${year}/${(year + 1).toString().slice(-2)}`;
+      return this.isaStatus.tax_year || '';
+    },
+
+    allocationRows() {
+      return (this.account.portfolio?.analysis?.allocation || [])
+        .map((row) => ({ type: row.asset_class, percentage: Number(row.portfolio_percentage) || 0, value: Number(row.value) || 0 }))
+        .sort((x, y) => y.percentage - x.percentage);
     },
 
     primaryAssetClass() {
-      if (!this.hasHoldings) {
-        return { label: 'Cash', percentage: '(100%)' };
-      }
-
-      const allocation = {};
-      let totalValue = 0;
-
-      this.account.holdings.forEach(holding => {
-        const value = parseFloat(holding.current_value || 0);
-        const assetType = holding.asset_type || 'other';
-
-        if (!allocation[assetType]) {
-          allocation[assetType] = 0;
-        }
-        allocation[assetType] += value;
-        totalValue += value;
-      });
-
-      let primaryAsset = 'cash';
-      let primaryValue = 0;
-
-      Object.entries(allocation).forEach(([assetType, value]) => {
-        if (value > primaryValue) {
-          primaryValue = value;
-          primaryAsset = assetType;
-        }
-      });
-
-      const percentage = totalValue > 0
-        ? ((primaryValue / totalValue) * 100).toFixed(0)
-        : 100;
-
-      return {
-        label: this.formatAssetType(primaryAsset),
-        percentage: `(${percentage}%)`,
-      };
+      const top = this.allocationRows[0];
+      if (!top) return { label: '—', percentage: '' };
+      return { label: this.classLabel(top.type), percentage: `(${Math.round(top.percentage)}%)` };
     },
 
     assetAllocation() {
-      if (!this.hasHoldings) return [];
-
-      const allocation = {};
-      let totalValue = 0;
-
-      this.account.holdings.forEach(holding => {
-        const value = parseFloat(holding.current_value || 0);
-        const assetType = holding.asset_type || 'other';
-
-        if (!allocation[assetType]) {
-          allocation[assetType] = 0;
-        }
-        allocation[assetType] += value;
-        totalValue += value;
-      });
-
-      return Object.entries(allocation)
-        .map(([type, value]) => ({
-          type,
-          value,
-          percentage: totalValue > 0 ? (value / totalValue) * 100 : 0,
-        }))
-        .sort((a, b) => b.percentage - a.percentage);
+      return this.allocationRows.map((row) => ({ ...row, label: this.classLabel(row.type) }));
     },
 
     returnColorClass() {
@@ -321,9 +256,8 @@ export default {
       return types[type] || 'Individual';
     },
 
-    // W-0443 — one vocabulary, in one module. This was a private map;
-    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
-    formatAssetType,
+    // The server's asset classes, from the shared vocabulary (W-0443).
+    classLabel: formatAssetClass,
   },
 };
 </script>

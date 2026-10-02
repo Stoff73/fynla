@@ -9,6 +9,8 @@ const state = {
     assets: [],
     investmentAccounts: [], // Investment accounts from Investment module
     liabilities: [],
+    liabilityTotals: {},
+    summary: null,
     gifts: [],
     trusts: [],
     lpas: [],
@@ -45,23 +47,14 @@ const getters = {
         return [...manualAssets, ...investmentAssets].filter(asset => asset != null);
     },
 
-    // Total assets value (including investment accounts)
-    totalAssets: (state, getters) => {
-        return getters.allAssets.reduce((sum, asset) => {
-            if (!asset || asset.current_value === undefined) return sum;
-            return sum + parseFloat(asset.current_value || 0);
-        }, 0);
-    },
+    // The own-estate figures, from the server (EstateController `summary`,
+    // NetWorthAnalyzer: the same as /m, iOS and the dashboard estate card; CSJ
+    // 2026-10-01). These added up full values and full balances here.
+    totalAssets: (state) => Number(state.summary?.total_assets) || 0,
 
-    // Total liabilities value
-    totalLiabilities: (state) => {
-        return state.liabilities.reduce((sum, liability) => sum + parseFloat(liability.current_balance || 0), 0);
-    },
+    totalLiabilities: (state) => Number(state.summary?.total_liabilities) || 0,
 
-    // Net worth value
-    netWorthValue: (state, getters) => {
-        return getters.totalAssets - getters.totalLiabilities;
-    },
+    netWorthValue: (state) => Number(state.summary?.net_worth) || 0,
 
     // IHT liability from analysis
     ihtLiability: (state) => {
@@ -81,21 +74,13 @@ const getters = {
         return state.analysis?.iht_liability || 0;
     },
 
-    // Gifts made within last 7 years (PETs)
+    // Gifts made in the last seven years, as the server dated them.
     giftsWithin7Years: (state) => {
-        const sevenYearsAgo = new Date();
-        sevenYearsAgo.setFullYear(sevenYearsAgo.getFullYear() - 7);
-
-        return state.gifts.filter(gift => {
-            const giftDate = new Date(gift.gift_date);
-            return giftDate >= sevenYearsAgo;
-        });
+        const ids = state.summary?.gifts_within_7_years?.ids || [];
+        return state.gifts.filter(gift => ids.includes(gift.id));
     },
 
-    // Total value of gifts within 7 years
-    giftsWithin7YearsValue: (state, getters) => {
-        return getters.giftsWithin7Years.reduce((sum, gift) => sum + parseFloat(gift.gift_value || 0), 0);
-    },
+    giftsWithin7YearsValue: (state) => Number(state.summary?.gifts_within_7_years?.value) || 0,
 
     // Assets by type (including investment accounts)
     assetsByType: (state, getters) => {
@@ -266,6 +251,8 @@ const actions = {
                 commit('setAssets', response.data.assets || []);
                 commit('setInvestmentAccounts', response.data.investment_accounts || []);
                 commit('setLiabilities', response.data.liabilities || []);
+                commit('setLiabilityTotals', response.data.liability_totals || {});
+                commit('setSummary', response.data.summary || null);
                 commit('setGifts', response.data.gifts || []);
                 commit('setTrusts', response.data.trusts || []);
                 commit('setIHTProfile', response.data.iht_profile);
@@ -741,6 +728,14 @@ const mutations = {
 
     setInvestmentAccounts(state, investmentAccounts) {
         state.investmentAccounts = investmentAccounts;
+    },
+
+    setSummary(state, summary) {
+        state.summary = summary;
+    },
+
+    setLiabilityTotals(state, totals) {
+        state.liabilityTotals = totals;
     },
 
     setLiabilities(state, liabilities) {

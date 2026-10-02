@@ -246,3 +246,85 @@ describe('calculateSimpleFeeDrag', function () {
         expect($drag)->toBe(0.25);
     });
 });
+
+// One figure, every surface (CSJ 2026-10-01): the charges every screen shows
+// are worked out here, once, from what the user recorded.
+describe('recordedCharges', function () {
+    $account = function (array $attributes, array $holdings): InvestmentAccount {
+        $account = new InvestmentAccount($attributes);
+        $account->setRelation('holdings', collect(array_map(fn ($h) => new Holding($h), $holdings)));
+
+        return $account;
+    };
+
+    it('weights the recorded fund charges by value and adds platform and adviser fees', function () use ($account) {
+        $charges = $this->feeAnalyzer->recordedCharges($account(
+            ['current_value' => 100000, 'platform_fee_type' => 'percentage', 'platform_fee_percent' => 0.25, 'advisor_fee_percent' => 0.5],
+            [['current_value' => 75000, 'ocf_percent' => 0.2], ['current_value' => 25000, 'ocf_percent' => 0.6]],
+        ));
+
+        expect($charges)->toMatchArray([
+            'platform_fee_percent' => 0.25,
+            'advisor_fee_percent' => 0.5,
+            'weighted_ocf_percent' => 0.3,
+            'ocf_recorded_for_all' => true,
+            'total_fee_percent' => 1.05,
+            'total_annual_cost' => 1050.0,
+        ]);
+    });
+
+    it('turns a fixed platform fee into a yearly percentage of the account', function () use ($account) {
+        $charges = $this->feeAnalyzer->recordedCharges($account(
+            ['current_value' => 50000, 'platform_fee_type' => 'fixed', 'platform_fee_amount' => 10, 'platform_fee_frequency' => 'monthly'],
+            [],
+        ));
+
+        expect($charges)->toMatchArray([
+            'platform_fee_type' => 'fixed',
+            'platform_fee_amount' => 10.0,
+            'platform_fee_frequency' => 'monthly',
+            'platform_fee_percent' => 0.24,
+        ]);
+    });
+
+    it('estimates nothing for a holding with no recorded charge, and says so', function () use ($account) {
+        $charges = $this->feeAnalyzer->recordedCharges($account(
+            ['current_value' => 10000],
+            [['current_value' => 5000, 'ocf_percent' => 0.4], ['current_value' => 5000, 'ocf_percent' => null, 'asset_type' => 'equity']],
+        ));
+
+        expect($charges['weighted_ocf_percent'])->toBe(0.2)
+            ->and($charges['ocf_recorded_for_all'])->toBeFalse();
+    });
+
+    it('weights the portfolio by each account\'s full value and states its ten-year growth rate', function () use ($account) {
+        $portfolio = $this->feeAnalyzer->portfolioRecordedCharges([
+            $account(['current_value' => 100000, 'platform_fee_percent' => 0.2], []),
+            $account(['current_value' => 100000, 'platform_fee_percent' => 0.4], []),
+        ]);
+
+        expect($portfolio)->toMatchArray([
+            'value' => 200000.0,
+            'platform_fee_percent' => 0.3,
+            'total_annual_fees' => 600.0,
+            'projection_growth_percent' => 5.0,
+        ])->and($portfolio['ten_year_fees'])->toBeGreaterThan(6000.0);
+    });
+});
+
+describe('weighted OCF', function () {
+    it('uses the recorded ocf_percent rather than always estimating by asset type', function () {
+        $holdings = collect([new Holding(['current_value' => 1000, 'ocf_percent' => 1.5, 'asset_type' => 'index_fund'])]);
+        $calculator = new class
+        {
+            use \App\Traits\CalculatesOCF;
+
+            public function weighted($holdings, float $total): float
+            {
+                return $this->calculateWeightedOCF($holdings, $total);
+            }
+        };
+
+        expect($calculator->weighted($holdings, 1000))->toBe(0.015);
+    });
+});

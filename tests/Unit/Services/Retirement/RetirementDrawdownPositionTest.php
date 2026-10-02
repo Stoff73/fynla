@@ -262,3 +262,12 @@ describe('tax review fixes (2026-10-01)', function () {
             ->and((float) $form['answers']['_lead']['forecast_annual'])->toBe(11502.4);
     });
 });
+
+// One wording for "how long the pot lasts" on every surface (CSJ 2026-10-01).
+it('words how long the pot lasts for every surface', function () {
+    $method = new ReflectionMethod(\App\Services\Retirement\RetirementDrawdownPosition::class, 'lastsLabel');
+    $position = app(\App\Services\Retirement\RetirementDrawdownPosition::class);
+
+    expect($method->invoke($position, 76, 100))->toBe('runs out by about age 76')
+        ->and($method->invoke($position, null, 100))->toBe('lasts beyond 100');
+});

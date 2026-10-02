@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "data": {
+    "headline": {
+      "kind": "drawing", "value": 26514, "projected_income": 0, "guaranteed_income": 0,
+      "target_income": null, "target_source": null, "income_gap": null, "progress_percent": null,
+      "target_age": 67, "years_to_retirement": 0, "dc_value_today": 200000,
+      "dc_value_at_retirement": 200000, "required_capital": null
+    },
+    "drawdown_position": {
+      "retired_since": {"date": "2020-01-01", "age": 61},
+      "income": {
+        "lines": [{"key": "drawdown", "label": "Pension drawdown", "amount": 30000}],
+        "state_pension_status": "not_paid",
+        "total": 30000, "income_tax": 3486, "national_insurance": 0, "take_home": 26514
+      },
+      "pot": {
+        "value": 200000, "drawing_per_year": 30000, "risk_level": "medium",
+        "risk_level_label": "Medium", "expected_return": 5, "current_age": 67, "end_age": 100,
+        "lasts_to_age": {"middle": 76, "lower": 75},
+        "lasts_labels": {"middle": "runs out by about age 76", "lower": "runs out by about age 75"},
+        "life_expectancy": {"age": 84, "source": "ons"},
+        "income_to_last_to_life_expectancy": 14300,
+        "year_by_year": []
+      }
+    }
+  }
+}

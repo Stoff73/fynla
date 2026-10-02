@@ -10,6 +10,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
 use App\Models\User;
+use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
@@ -105,6 +106,20 @@ class IHTController extends Controller
             // its own per-liability rows; rebuilding those on the projection is
             // the remaining half of W-0470.
 
+            // The table's columns five years either side of the expected death:
+            // the engine at a shifted horizon, and each asset projected from it
+            // the same way the at-death column is (CSJ 2026-10-01: the table grew
+            // every row at a 4.7% typed into the browser).
+            $offsets = [];
+            foreach (['minus_5' => -5, 'plus_5' => 5] as $key => $years) {
+                $offsets[$key] = $this->ihtCalculationService->calculateAtHorizonOffset($user, $spouse, $dataSharingEnabled, $years);
+                $assetsBreakdown = $this->withOffsetColumn(
+                    $assetsBreakdown,
+                    $this->formattingService->formatAssetsBreakdown($userAssets, $spouseAssets, $dataSharingEnabled, $user, $spouse, $offsets[$key]),
+                    $key,
+                );
+            }
+
             // Format response for frontend compatibility
             $response = [
                 'success' => true,
@@ -125,6 +140,10 @@ class IHTController extends Controller
                     // second-death spouse band and the gift deduction both existed in
                     // the raw calculation and had no way to reach a screen.
                     'nrb_available' => $calculation['nrb_available'],
+                    // The estate above the nil rate band, for the table's row (it
+                    // was worked out in the browser, with a spouse's band assumed
+                    // whenever the server sent none).
+                    'estate_after_nrb' => round(max(0.0, (float) $calculation['total_net_estate'] - (float) $calculation['nrb_available']), 2),
                     'nrb_individual' => $calculation['nrb_individual'],
                     'nrb_spouse_modelled' => $calculation['nrb_spouse_modelled'],
                     'nrb_transferred' => $calculation['nrb_transferred'],
@@ -202,6 +221,7 @@ class IHTController extends Controller
                     // is re-assessed against the projected estate, so the projected
                     // column cannot be reconciled against the current figures.
                     'nrb_available' => $calculation['projected_nrb_available'],
+                    'estate_after_nrb' => round(max(0.0, (float) $calculation['projected_net_estate'] - (float) $calculation['projected_nrb_available']), 2),
                     'nrb_individual' => $calculation['nrb_individual'],
                     'nrb_spouse_modelled' => $calculation['nrb_spouse_modelled'],
                     'nrb_transferred' => $calculation['nrb_transferred'],
@@ -231,6 +251,11 @@ class IHTController extends Controller
                 'is_married' => $calculation['is_married'],
                 'is_widowed' => $calculation['is_widowed'] ?? false,
                 'data_sharing_enabled' => $calculation['data_sharing_enabled'],
+                // The table's columns five years either side of the expected
+                // death, from the same engine at a shifted horizon (the web table
+                // grew assets at a 4.7% typed into the browser).
+                'projected_minus_5' => $this->column($offsets['minus_5']),
+                'projected_plus_5' => $this->column($offsets['plus_5']),
             ];
 
             // Add will information for estate planning status display
@@ -241,6 +266,18 @@ class IHTController extends Controller
                 'last_updated' => $will?->will_last_updated?->toIso8601String(),
                 'executor_name' => $will?->executor_name,
             ];
+
+            // Upcoming life events and their Inheritance Tax effect, from the one
+            // rule the estate plan uses (the IHT screen worked these out itself).
+            $response['life_events_impact'] = rescue(
+                fn () => app(ComprehensiveEstatePlanService::class)->buildLifeEventsImpact(
+                    $user,
+                    (float) $calculation['iht_liability'],
+                    $calculation,
+                ),
+                null,
+                report: true,
+            );
 
             // Add cash projection breakdown for transparency
             $response['cash_projection_breakdown'] = $this->formattingService->generateCashProjectionBreakdown(
@@ -276,6 +313,46 @@ class IHTController extends Controller
      * live/reciprocal spouse gate (W-0278), so it would have disclosed a deleted
      * partner's in-trust cover.
      */
+
+    /** @return array<string, mixed> one projected column of the table */
+    private function column(array $c): array
+    {
+        return [
+            'years_to_death' => $c['years_to_death'],
+            'estimated_age_at_death' => $c['estimated_age_at_death'],
+            'gross_assets' => $c['projected_gross_assets'],
+            'liabilities' => $c['projected_liabilities'],
+            'net_estate' => $c['projected_net_estate'],
+            'total_allowances' => $c['projected_total_allowances'],
+            'estate_after_nrb' => round(max(0.0, (float) $c['projected_net_estate'] - (float) $c['projected_nrb_available']), 2),
+            'taxable_estate' => $c['projected_taxable_estate'],
+            'iht_liability' => $c['projected_iht_liability'],
+        ];
+    }
+
+    /**
+     * Copy one shifted run's projected figures onto the main breakdown as
+     * `projected_value_{key}` (rows), `projected_total_{key}` (owner) and
+     * `group_totals.*.{key}`. The rows come from the same gather in the same
+     * order, so they line up by position.
+     */
+    private function withOffsetColumn(array $breakdown, array $offset, string $key): array
+    {
+        foreach (['user', 'spouse'] as $owner) {
+            if (empty($breakdown[$owner]) || empty($offset[$owner])) {
+                continue;
+            }
+            foreach ($breakdown[$owner]['assets'] as $type => $rows) {
+                foreach ($rows as $i => $row) {
+                    $breakdown[$owner]['assets'][$type][$i]['projected_value_'.$key] = round((float) ($offset[$owner]['assets'][$type][$i]['projected_value'] ?? 0), 2);
+                }
+                $breakdown[$owner]['group_totals'][$type][$key] = round((float) ($offset[$owner]['group_totals'][$type]['projected'] ?? 0), 2);
+            }
+            $breakdown[$owner]['projected_total_'.$key] = round((float) ($offset[$owner]['projected_total'] ?? 0), 2);
+        }
+
+        return $breakdown;
+    }
 
     /**
      * Store or update IHT profile for the authenticated user

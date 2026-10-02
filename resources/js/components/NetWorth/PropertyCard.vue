@@ -149,32 +149,14 @@ export default {
       return (this.property.mortgage_balance > 0) || (this.property.outstanding_mortgage > 0);
     },
 
+    // The viewer's mortgage share and equity, from the server (PropertyController
+    // `mortgage_user_share`, `user_equity`; CSJ 2026-10-01): never worked out here.
     mortgageAmount() {
-      // Prefer the borrower-based liability calculated by the API. Property
-      // ownership and mortgage liability can have different percentages.
-      if (this.property.mortgage_user_share !== undefined) {
-        return parseFloat(this.property.mortgage_user_share) || 0;
-      }
-
-      if (this.property.mortgages && this.property.mortgages.length > 0) {
-        return this.property.mortgages.reduce((sum, mortgage) => {
-          const balance = parseFloat(mortgage.outstanding_balance) || 0;
-
-          if (mortgage.ownership_type === 'joint') {
-            return sum + (balance * ((parseFloat(mortgage.ownership_percentage) || 50) / 100));
-          }
-
-          return sum + balance;
-        }, 0);
-      }
-
-      // Fallback for properties without detailed mortgage records
-      return this.property.mortgage_balance || this.property.outstanding_mortgage || 0;
+      return Number(this.property.mortgage_user_share) || 0;
     },
 
     equity() {
-      // Single-record pattern: Calculate equity from user's share values
-      return this.userShare - this.mortgageAmount;
+      return Number(this.property.user_equity) || 0;
     },
   },
 

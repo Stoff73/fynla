@@ -1222,7 +1222,7 @@ class ComprehensiveEstatePlanService
      * Lists upcoming life events with estate implications, projected IHT impact,
      * and recommendations for estate plan review triggers.
      */
-    private function buildLifeEventsImpact(User $user, float $currentIHTLiability, array $ihtAnalysis): array
+    public function buildLifeEventsImpact(User $user, float $currentIHTLiability, array $ihtAnalysis): array
     {
         $events = $this->lifeEventIntegration->getEventsForModule($user->id, 'estate');
         $impactSummary = $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate');

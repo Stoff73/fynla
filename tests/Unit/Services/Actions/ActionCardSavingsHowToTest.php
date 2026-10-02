@@ -12,6 +12,7 @@ use App\Services\Actions\ActionHowToFacts;
 use App\Services\Mobile\NextActionsService;
 use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\ProtectionActionDefinitionSeeder;
+use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -28,6 +29,7 @@ beforeEach(function () {
     $this->seed(TaxActionDefinitionSeeder::class);
     $this->seed(SavingsActionDefinitionSeeder::class);
     $this->seed(ProtectionActionDefinitionSeeder::class);
+    $this->seed(RetirementActionDefinitionSeeder::class);
     $this->seed(ActionHowToSeeder::class);
 });
 

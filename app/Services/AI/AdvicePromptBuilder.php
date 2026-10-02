@@ -27,6 +27,7 @@ use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Goals\LifeEventService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Shared\DependantsReach;
@@ -506,7 +507,9 @@ PROMPT;
             // Net worth from dedicated service — always rendered (cross-module overview)
             try {
                 $netWorthService = app(NetWorthService::class);
-                $netWorthData = $netWorthService->calculateNetWorth($user);
+                // The cached figure every page and the dashboard read, so Fyn
+                // quotes the number on screen (CSJ 2026-10-01; audit item 46).
+                $netWorthData = $netWorthService->getCachedNetWorth($user);
                 $lines[] = '- Total net worth: £'.number_format($netWorthData['net_worth'], 0);
                 $lines[] = '- Total assets: £'.number_format($netWorthData['total_assets'], 0);
                 $lines[] = '- Total liabilities: £'.number_format($netWorthData['total_liabilities'], 0);
@@ -596,8 +599,10 @@ PROMPT;
                 $lines[] = '';
                 $lines[] = "Goals: {$activeGoals->count()} active ({$onTrack} on track)";
                 foreach ($activeGoals as $goal) {
-                    $remaining = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
-                    $status = $goal->is_on_track ? 'on track' : 'behind';
+                    // The goal's own server figures and words (Goal::amount_remaining,
+                    // status_label), the ones every screen shows.
+                    $remaining = (float) $goal->amount_remaining;
+                    $status = strtolower((string) $goal->status_label);
                     $contribution = $goal->monthly_contribution ? ' — £'.number_format((float) $goal->monthly_contribution, 0).'/month' : '';
                     // S0.10 — goal_name is user-controlled free text.
                     $goalName = UserContentSanitiser::wrap((string) $goal->goal_name);
@@ -611,10 +616,12 @@ PROMPT;
             }
 
             // Life Events
-            $activeEvents = LifeEvent::forUserOrJoint($user->id)
-                ->active()
-                ->orderBy('expected_date')
-                ->get();
+            // Only what is still to come, by the same rule the screens use
+            // (LifeEventService::upcoming; W-0207): status alone kept events that
+            // had already happened as "upcoming … in 0 months".
+            $activeEvents = app(LifeEventService::class)->upcoming(
+                LifeEvent::forUserOrJoint($user->id)->active()->orderBy('expected_date')->get()
+            );
 
             if ($activeEvents->isNotEmpty()) {
                 $lines[] = '';

@@ -45,6 +45,15 @@ function stubLoad({ profile = null, requiredCapital = null } = {}) {
     if (path === '/api/retirement/required-capital') {
       return Promise.resolve({ ok: true, status: 200, data: { data: requiredCapital } });
     }
+    // The target shown is the server's (RetirementHeadline, from the same
+    // RequiredCapitalCalculator), never chosen on the client.
+    if (path === '/api/retirement/projections' && requiredCapital) {
+      return Promise.resolve({ ok: true, status: 200, data: { data: { headline: {
+        kind: 'none', value: 0, projected_income: 0, guaranteed_income: 0,
+        target_income: requiredCapital.required_income, target_source: requiredCapital.income_source,
+        income_gap: requiredCapital.required_income, years_to_retirement: null, dc_value_today: 0,
+      } } } });
+    }
     return Promise.resolve({ ok: false, status: 200, data: {} });
   });
   apiPost.mockResolvedValue({ ok: false, status: 200, data: {} });

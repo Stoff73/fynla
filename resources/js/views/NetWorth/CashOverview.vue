@@ -372,7 +372,7 @@ export default {
   computed: {
     ...mapState('savings', ['accounts', 'loading', 'error', 'expenditureProfile']),
     ...mapState('userProfile', ['incomeOccupation']),
-    ...mapGetters('savings', ['totalSavings']),
+    ...mapGetters('savings', ['totalSavings', 'groupTotals']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
@@ -401,20 +401,22 @@ export default {
       );
     },
 
+    // Group totals at the user's share, from the server (SavingsPosition,
+    // CSJ 2026-10-01): the same figures /m and iOS read.
     currentAccountsTotal() {
-      return this.currentAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return Number(this.groupTotals.current_accounts) || 0;
     },
 
     savingsAccountsTotal() {
-      return this.savingsAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return Number(this.groupTotals.savings_accounts) || 0;
     },
 
     isaAccountsTotal() {
-      return this.isaAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return Number(this.groupTotals.isas) || 0;
     },
 
     nsiAccountsTotal() {
-      return this.nsiAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+      return Number(this.groupTotals.nsi) || 0;
     },
 
     // Monthly income from user profile (full month - assumed payday has occurred)

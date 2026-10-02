@@ -717,6 +717,14 @@ const actions = {
                 streamQueuedAfter = !alreadyStreaming;
                 return;
             }
+            if (reader && reader.consentRequired) {
+                // Refused before the stream opened: the same outcome as the
+                // mid-stream consent_required event below.
+                commit('SET_CONSENT_REQUIRED', true);
+                commit('SET_STREAMING', false);
+                commit('SET_ERROR', 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.');
+                return;
+            }
             if (reader && reader.rejected) {
                 commit('REMOVE_MESSAGE', tempId);
                 commit('SET_ERROR', reader.message || 'You have a few messages already waiting — let Fyn answer those first.');

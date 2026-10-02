@@ -176,7 +176,7 @@ export default {
   },
 
   computed: {
-    ...mapState('estate', ['liabilities', 'loading', 'error']),
+    ...mapState('estate', ['liabilities', 'liabilityTotals', 'loading', 'error']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     filteredLiabilities() {
@@ -192,25 +192,19 @@ export default {
       return filtered;
     },
 
-    // Totals are the VIEWER's share, not the full balances. Summing
-    // `current_balance` charged this user the whole of every shared debt and the
-    // 60% of a tenants-in-common mortgage belonging to an off-platform co-owner
-    // — £365,000 against a real figure of £293,000 (W-0237). The share is
-    // computed on the server by the one reader and arrives as `user_share`;
-    // `current_balance` is still the right figure to show against an individual
-    // row, because that is what is owed on the debt.
+    // Totals at the VIEWER's share (W-0237), worked out on the server for the
+    // whole list and for each debt type (EstateController `liability_totals`,
+    // CSJ 2026-10-01): never added up here.
+    selectedTotals() {
+      return this.liabilityTotals?.[this.filterType] || { balance: 0, monthly_payments: 0 };
+    },
+
     totalBalance() {
-      return this.filteredLiabilities.reduce(
-        (sum, l) => sum + parseFloat(l.user_share ?? l.current_balance ?? 0),
-        0,
-      );
+      return Number(this.selectedTotals.balance) || 0;
     },
 
     totalMonthlyPayments() {
-      return this.filteredLiabilities.reduce(
-        (sum, l) => sum + parseFloat(l.user_monthly_payment_share ?? l.monthly_payment ?? 0),
-        0,
-      );
+      return Number(this.selectedTotals.monthly_payments) || 0;
     },
 
     hasMortgageLiabilities() {

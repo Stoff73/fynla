@@ -4,7 +4,7 @@
       :key="chartKey"
       type="radialBar"
       :options="chartOptions"
-      :series="[runwayPercentage]"
+      :series="[percent]"
       height="300"
     />
   </div>
@@ -16,32 +16,31 @@ import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, TEXT_COLORS, BORDER_COLOR
 export default {
   name: 'EmergencyFundGauge',
 
+  // Every value is the server's (SavingsPosition, CSJ 2026-10-01): the share of
+  // the target covered, its status against the user's own target, and the
+  // runway figure as the label prints it.
   props: {
-    runwayMonths: {
+    percent: {
       type: Number,
-      required: true,
       default: 0,
     },
-    targetMonths: {
-      type: Number,
-      default: 6,
+    status: {
+      type: String,
+      default: 'on_track',
+    },
+    figure: {
+      type: String,
+      default: '',
     },
   },
 
   computed: {
     chartKey() {
-      return `gauge-${Math.round(this.runwayPercentage)}`;
-    },
-
-    runwayPercentage() {
-      return Math.min((this.runwayMonths / this.targetMonths) * 100, 100);
+      return `gauge-${Math.round(this.percent)}`;
     },
 
     runwayColour() {
-      // Use design system semantic colors for threshold-based coloring
-      if (this.runwayMonths >= 6) return SUCCESS_COLORS[500];
-      if (this.runwayMonths >= 3) return WARNING_COLORS[500];
-      return ERROR_COLORS[500];
+      return { on_track: SUCCESS_COLORS[500], part: WARNING_COLORS[500], low: ERROR_COLORS[500] }[this.status] || SUCCESS_COLORS[500];
     },
 
     chartOptions() {
@@ -78,9 +77,7 @@ export default {
                 fontSize: '14px',
               },
               value: {
-                formatter: () => {
-                  return this.runwayMonths.toFixed(1);
-                },
+                formatter: () => this.figure,
                 color: TEXT_COLORS.primary,
                 fontSize: '36px',
                 fontWeight: 700,
@@ -92,7 +89,9 @@ export default {
         },
         fill: {
           type: 'solid',
-          colours: [this.runwayColour],
+          // ApexCharts reads `colors`; this was `colours`, so the gauge was always
+          // the library's default blue whatever the status.
+          colors: [this.runwayColour],
         },
         stroke: {
           lineCap: 'round',

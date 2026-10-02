@@ -19,9 +19,8 @@ final class ProtectionModel {
         if previous == nil { state = .loading }
 
         do {
-            async let analysis = try? client.analyze()
             let index = try await client.loadIndex()
-            let snapshot = await ProtectionSnapshot(index: index, analysis: analysis)
+            let snapshot = ProtectionSnapshot(index: index)
             guard activeGeneration == generation, !Task.isCancelled else { return }
             lastSnapshot = snapshot
             state = .loaded(snapshot)

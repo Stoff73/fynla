@@ -1,9 +1,10 @@
 import investmentService from '@/services/investmentService';
 import { pollMonteCarloJob } from '@/utils/poller';
-import { calculateTotalUserShare } from '@/utils/ownership';
 
 const state = {
     accounts: [],
+    summary: null,
+    isaAllowance: null,
     riskProfile: null,
     analysis: null,
     recommendations: null,  // { recommendation_count, recommendations: [] }
@@ -50,11 +51,10 @@ const getters = {
      * @returns {number} Total portfolio value in GBP
      */
     totalPortfolioValue: (state) => {
-        // Via the ONE ownership helper: it reads the API's user_share, which is
-        // the joint owner's complementary share when the viewer is not the
-        // primary owner. The arithmetic that used to live here gave the FULL
-        // value to both spouses of a joint account (W-0015).
-        return calculateTotalUserShare(state.accounts, { valueField: 'current_value' });
+        // The server's total at the user's share (GET /api/investment `summary`,
+        // CrossModuleAssetAggregator): the figure net worth and the dashboard
+        // read, on web, /m and iOS (CSJ 2026-10-01: one figure, every surface).
+        return Number(state.summary?.total_value) || 0;
     },
 
     /**
@@ -164,49 +164,19 @@ const getters = {
         return state.accounts.filter(account => account.account_type === 'isa');
     },
 
-    // Get total ISA value (user's share only for joint accounts, though ISAs should be individual)
-    totalISAValue: (state, getters) => {
-        return getters.isaAccounts.reduce((sum, account) => {
-            const fullValue = parseFloat(account.current_value || 0);
-            if (account.ownership_type === 'joint') {
-                const percentage = parseFloat(account.ownership_percentage || 50) / 100;
-                return sum + (fullValue * percentage);
-            }
-            return sum + fullValue;
-        }, 0);
-    },
+    // ISA figures from the server: the value from the portfolio summary, the
+    // allowance from the one ISA tracker (ISATracker via GET /api/investment).
+    totalISAValue: (state) => Number(state.summary?.isa_value) || 0,
 
-    // Get ISA percentage of total portfolio
-    isaPercentage: (state, getters) => {
-        const totalValue = getters.totalPortfolioValue;
-        if (totalValue === 0) return 0;
-        return Math.round((getters.totalISAValue / totalValue) * 100);
-    },
+    isaPercentage: (state) => Number(state.summary?.isa_percent) || 0,
 
-    // Get current year ISA contributions (for allowance tracking)
-    // Uses isa_subscription_current_year which tracks ISA-specific contributions
-    totalISAContributions: (state, getters) => {
-        return getters.isaAccounts.reduce((sum, account) => {
-            return sum + parseFloat(account.isa_subscription_current_year || 0);
-        }, 0);
-    },
+    // This tax year's stocks and shares ISA subscriptions.
+    totalISAContributions: (state) => Number(state.isaAllowance?.stocks_shares_isa_used) || 0,
 
-    // Get ISA allowance percentage used (based on contributions, not value)
-    // Uses ISA allowance from savings store (fetched from TaxConfigService API)
-    isaAllowancePercentage: (state, getters, rootState, rootGetters) => {
-        const isaAllowance = rootState.savings?.isaAllowance?.total_allowance
-            || rootGetters['taxConfig/isaAnnualAllowance']
-            || 20000;
-        const contributions = getters.totalISAContributions;
-        return (contributions / isaAllowance) * 100;
-    },
+    // Share of the one ISA allowance used this year, across every ISA.
+    isaAllowancePercentage: (state) => Number(state.isaAllowance?.percentage_used) || 0,
 
-    // Get current year ISA subscription (S&S ISA) from ISA accounts
-    investmentISASubscription: (state, getters) => {
-        return getters.isaAccounts.reduce((sum, account) => {
-            return sum + parseFloat(account.isa_subscription_current_year || 0);
-        }, 0);
-    },
+    investmentISASubscription: (state) => Number(state.isaAllowance?.stocks_shares_isa_used) || 0,
 
     // Get Monte Carlo result by job ID
     getMonteCarloResult: (state) => (jobId) => {
@@ -263,6 +233,8 @@ const actions = {
         try {
             const response = await investmentService.getInvestmentData();
             commit('setAccounts', response.data.accounts);
+            commit('setSummary', response.data.summary || null);
+            commit('setIsaAllowance', response.data.isa_allowance || null);
             commit('setRiskProfile', response.data.risk_profile);
             commit('setLifeEvents', response.data.life_events || []);
             commit('setLifeEventImpact', response.data.life_event_impact || null);
@@ -624,6 +596,14 @@ const actions = {
 const mutations = {
     setAccounts(state, accounts) {
         state.accounts = accounts;
+    },
+
+    setSummary(state, summary) {
+        state.summary = summary;
+    },
+
+    setIsaAllowance(state, isaAllowance) {
+        state.isaAllowance = isaAllowance;
     },
 
     setRiskProfile(state, profile) {

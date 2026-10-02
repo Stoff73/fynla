@@ -35,6 +35,22 @@ struct RetirementTests {
         #expect(projections.planningProjection?.assumptions.sustainableWithdrawalRate.percent == Decimal(string: "4.7"))
     }
 
+    // Someone drawing: the server's drawdown_position, figures and words as
+    // sent (audit item 13, CSJ 2026-10-01).
+    @Test
+    func decodesTheDrawingPositionForSomeoneDrawing() throws {
+        let projections = try decode(RetirementProjections.self, "retirement-projections-drawing")
+        let drawing = try #require(projections.drawdownPosition)
+
+        #expect(projections.headline?.kind == "drawing")
+        #expect(drawing.income.takeHome == Decimal(26514))
+        #expect(drawing.income.lines.first?.label == "Pension drawdown")
+        #expect(drawing.income.statePensionStatus == "not_paid")
+        #expect(drawing.pot?.lastsLabels.middle == "runs out by about age 76")
+        #expect(drawing.pot?.lifeExpectancy.age == 84)
+        #expect(drawing.retiredSince?.age == 61)
+    }
+
     @Test
     func clientUsesAllExistingRetirementEndpoints() async throws {
         let transport = TestHTTPTransport([

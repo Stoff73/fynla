@@ -158,4 +158,22 @@ describe('PortfolioExposureService', function () {
             ->and($result['coverage_percent'])->toBe(80.0)
             ->and($result['drift_available'])->toBeTrue();
     });
+
+    // The holding column's equity types are equities, not "unclassified"
+    // (found walking csjones 2026-10-01: a GIA of UK equity read 53% unclassified).
+    it('classifies the holding column\'s equity types as equities', function () {
+        $result = app(PortfolioExposureService::class)->analyse(collect([
+            exposureHolding(['security_name' => 'FTSE tracker', 'asset_type' => 'uk_equity', 'current_value' => 50000]),
+            exposureHolding(['security_name' => 'S&P tracker', 'asset_type' => 'us_equity', 'current_value' => 30000]),
+            exposureHolding(['security_name' => 'World ex-UK', 'asset_type' => 'international_equity', 'current_value' => 20000]),
+        ]));
+
+        expect($result['unclassified_value'])->toBe(0.0)
+            ->and($result['allocation'])->toContain([
+                'asset_class' => 'equities',
+                'value' => 100000.0,
+                'portfolio_percentage' => 100.0,
+                'classified_percentage' => 100.0,
+            ]);
+    });
 });

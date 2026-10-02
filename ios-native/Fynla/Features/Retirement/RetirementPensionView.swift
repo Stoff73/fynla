@@ -216,7 +216,7 @@ struct RetirementPensionView: View {
     }
 
     private func statePensionContent(_ pension: StatePension, offline: Bool) -> some View {
-        let weekly = pension.annualForecast / 52
+        let weekly = pension.weeklyForecast ?? 0
         return page(
             title: "State Pension",
             subtitle: "State Pension",
@@ -233,9 +233,8 @@ struct RetirementPensionView: View {
             MobileDetailCard(title: "Entitlement", rows: [
                 ("Forecast weekly amount", "\(MoneyFormatter.gbp(weekly)) a week"),
                 ("Annual forecast", MoneyFormatter.gbpWhole(pension.annualForecast)),
-                // ponytail: 35-year fallback is /m-parity (ledger P0-6).
-                ("Qualifying years", "\(pension.niYearsCompleted ?? 0) of \(pension.niYearsRequired ?? 35)"),
-                ("State Pension age", pension.statePensionAge.map(String.init) ?? "—"),
+                ("Qualifying years", "\(pension.niYearsCompleted ?? 0) of \(pension.niYearsForFullPension.map(String.init) ?? "—")"),
+                ("State Pension age", pension.resolvedStatePensionAge.map(String.init) ?? "—"),
             ])
         }
     }

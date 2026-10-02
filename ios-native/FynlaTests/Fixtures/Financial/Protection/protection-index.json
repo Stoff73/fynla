@@ -48,6 +48,10 @@
       "disability": [],
       "sickness_illness": []
     },
+    "cover_position": {
+      "life": {"label": "Life cover", "status_label": "Short by £150,000", "tone": "short", "need_label": "£400,000", "own_cover_label": "£250,000", "employer_cover_label": "£0"},
+      "income_protection": {"label": "Income protection", "status_label": "Covered", "tone": "covered", "need_label": "£2,500 a month", "own_cover_label": "£2,500 a month", "employer_cover_label": "£0 a month"}
+    },
     "coverage_gaps": {
       "contract_version": "protection_gap_v1",
       "totals": {

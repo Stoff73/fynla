@@ -48,11 +48,11 @@
           <template v-if="pot.drawing_per_year > 0">
             <div class="flex justify-between gap-4">
               <dt class="text-neutral-500">Middle outcome (half do better)</dt>
-              <dd class="font-medium text-horizon-500">{{ lastsLabel(pot.lasts_to_age.middle) }}</dd>
+              <dd class="font-medium text-horizon-500">{{ pot.lasts_labels.middle }}</dd>
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-neutral-500">Lower outcome (4 in 5 do better)</dt>
-              <dd class="font-medium text-horizon-500">{{ lastsLabel(pot.lasts_to_age.lower) }}</dd>
+              <dd class="font-medium text-horizon-500">{{ pot.lasts_labels.lower }}</dd>
             </div>
           </template>
           <div class="flex justify-between gap-4">
@@ -98,11 +98,6 @@ export default {
     },
     lifeExpectancySource() {
       return this.pot.life_expectancy.source === 'ons' ? 'Office for National Statistics' : 'your figure';
-    },
-  },
-  methods: {
-    lastsLabel(age) {
-      return age === null ? `lasts beyond ${this.pot.end_age}` : `runs out by about age ${age}`;
     },
   },
 };

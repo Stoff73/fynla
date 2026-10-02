@@ -203,9 +203,9 @@ export default {
   },
 
   computed: {
+    // The server's figure (Goal::progress_percentage); one figure, every surface.
     progressPercent() {
-      if (!this.goal.target_amount) return 0;
-      return Math.round((parseFloat(this.goal.current_amount) / parseFloat(this.goal.target_amount)) * 100);
+      return Math.round(Number(this.goal.progress_percentage) || 0);
     },
 
     isNotStarted() {
@@ -258,14 +258,9 @@ export default {
       return `${years}y ${months}m`;
     },
 
+    // The server's label (Goal::status_label via GoalResource); one figure, every surface.
     statusText() {
-      if (this.goal.status_label) return this.goal.status_label;
-      if (this.goal.status === 'completed') return 'Completed';
-      if (this.goal.status === 'paused') return 'Paused';
-      if (this.progressPercent >= 100) return 'Goal Achieved';
-      if (this.isNotStarted) return 'Not Started';
-      if (this.isOnTrack) return 'On Track';
-      return 'Behind Schedule';
+      return this.goal.status_label;
     },
 
     statusBadgeClass() {

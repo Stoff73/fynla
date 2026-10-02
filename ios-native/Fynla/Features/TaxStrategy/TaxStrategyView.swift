@@ -411,6 +411,11 @@ struct TaxStrategyView: View {
                                 .foregroundStyle(FynlaColor.Token.neutral500.color)
                         }
                     }
+                    if let note = allowance.budgetNote {
+                        Text(note)
+                            .font(.system(size: 12))
+                            .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    }
                 }
                 .padding(.vertical, 12)
                 .overlay(alignment: .bottom) {

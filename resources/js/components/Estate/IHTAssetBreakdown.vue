@@ -10,9 +10,9 @@
         </span>
       </td>
       <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.total) }}</td>
-      <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(getProjectedMinus5(ownerData.total)) }}</td>
+      <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.projected_total_minus_5) }}</td>
       <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.projected_total) }}</td>
-      <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(getProjectedPlus5(ownerData.total)) }}</td>
+      <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.projected_total_plus_5) }}</td>
     </tr>
 
     <template v-if="isExpanded(ownerKey + '-all')">
@@ -26,10 +26,10 @@
               <span class="ml-1 text-xs text-horizon-400">({{ ownerData.assets.property.length }})</span>
             </span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(assetGroupTotal(ownerData.assets.property)) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(assetGroupTotal(ownerData.assets.property))) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(assetGroupProjectedTotal(ownerData.assets.property)) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(assetGroupTotal(ownerData.assets.property))) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(groupFigure('property', 'value')) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('property', 'minus_5')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('property', 'projected')) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('property', 'plus_5')) }}</td>
         </tr>
         <template v-if="isExpanded(ownerKey + '-property')">
           <tr v-for="(asset, index) in ownerData.assets.property" :key="ownerKey + '-property-' + index" class="bg-eggshell-500">
@@ -39,9 +39,9 @@
               <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
             </td>
             <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
             <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
           </tr>
         </template>
       </template>
@@ -53,9 +53,9 @@
             <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
           </td>
           <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
           <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
         </tr>
       </template>
 
@@ -69,10 +69,10 @@
               <span class="ml-1 text-xs text-horizon-400">({{ ownerData.assets.investment.length }})</span>
             </span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(assetGroupTotal(ownerData.assets.investment)) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(assetGroupTotal(ownerData.assets.investment))) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(assetGroupProjectedTotal(ownerData.assets.investment)) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(assetGroupTotal(ownerData.assets.investment))) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(groupFigure('investment', 'value')) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('investment', 'minus_5')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('investment', 'projected')) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('investment', 'plus_5')) }}</td>
         </tr>
         <template v-if="isExpanded(ownerKey + '-investment')">
           <tr v-for="(asset, index) in ownerData.assets.investment" :key="ownerKey + '-investment-' + index" class="bg-eggshell-500">
@@ -82,9 +82,9 @@
               <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
             </td>
             <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
             <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
           </tr>
         </template>
       </template>
@@ -96,9 +96,9 @@
             <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
           </td>
           <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
           <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
         </tr>
       </template>
 
@@ -112,10 +112,10 @@
               <span class="ml-1 text-xs text-horizon-400">({{ ownerData.assets.cash.length }})</span>
             </span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(assetGroupTotal(ownerData.assets.cash)) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(assetGroupTotal(ownerData.assets.cash))) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(assetGroupProjectedTotal(ownerData.assets.cash)) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(assetGroupTotal(ownerData.assets.cash))) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(groupFigure('cash', 'value')) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('cash', 'minus_5')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('cash', 'projected')) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('cash', 'plus_5')) }}</td>
         </tr>
         <template v-if="isExpanded(ownerKey + '-cash')">
           <tr v-for="(asset, index) in ownerData.assets.cash" :key="ownerKey + '-cash-' + index" class="bg-eggshell-500">
@@ -125,9 +125,9 @@
               <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
             </td>
             <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
             <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
           </tr>
         </template>
       </template>
@@ -139,9 +139,9 @@
             <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
           </td>
           <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
           <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
         </tr>
       </template>
 
@@ -155,10 +155,10 @@
               <span class="ml-1 text-xs text-horizon-400">({{ ownerData.assets.business.length }})</span>
             </span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(assetGroupTotal(ownerData.assets.business)) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(assetGroupTotal(ownerData.assets.business))) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(assetGroupProjectedTotal(ownerData.assets.business)) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(assetGroupTotal(ownerData.assets.business))) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(groupFigure('business', 'value')) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('business', 'minus_5')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('business', 'projected')) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('business', 'plus_5')) }}</td>
         </tr>
         <template v-if="isExpanded(ownerKey + '-business')">
           <tr v-for="(asset, index) in ownerData.assets.business" :key="ownerKey + '-business-' + index" class="bg-eggshell-500">
@@ -168,9 +168,9 @@
               <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
             </td>
             <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
             <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
           </tr>
         </template>
       </template>
@@ -182,9 +182,9 @@
             <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
           </td>
           <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
           <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
         </tr>
       </template>
 
@@ -198,10 +198,10 @@
               <span class="ml-1 text-xs text-horizon-400">({{ ownerData.assets.chattel.length }})</span>
             </span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(assetGroupTotal(ownerData.assets.chattel)) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(assetGroupTotal(ownerData.assets.chattel))) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(assetGroupProjectedTotal(ownerData.assets.chattel)) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(assetGroupTotal(ownerData.assets.chattel))) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(groupFigure('chattel', 'value')) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('chattel', 'minus_5')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('chattel', 'projected')) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(groupFigure('chattel', 'plus_5')) }}</td>
         </tr>
         <template v-if="isExpanded(ownerKey + '-chattel')">
           <tr v-for="(asset, index) in ownerData.assets.chattel" :key="ownerKey + '-chattel-' + index" class="bg-eggshell-500">
@@ -211,9 +211,9 @@
               <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
             </td>
             <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
             <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
           </tr>
         </template>
       </template>
@@ -225,9 +225,9 @@
             <span v-else-if="asset.ownership_type === 'tenants_in_common'" class="ml-2 text-xs text-neutral-500 font-medium">(Tenancy in Common{{ asset.ownership_percentage ? ' - ' + asset.ownership_percentage + '%' : '' }})</span>
           </td>
           <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatCurrency(asset.value) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedMinus5(asset.value)) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_minus_5) }}</td>
           <td class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(getProjectedPlus5(asset.value)) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-horizon-500">{{ formatCurrency(asset.projected_value_plus_5) }}</td>
         </tr>
       </template>
 
@@ -235,9 +235,9 @@
       <tr class="bg-white ">
         <td class="px-4 py-2 text-sm font-semibold text-horizon-500 pl-8">{{ subtotalLabel }}</td>
         <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.total) }}</td>
-        <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(getProjectedMinus5(ownerData.total)) }}</td>
+        <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.projected_total_minus_5) }}</td>
         <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.projected_total) }}</td>
-        <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(getProjectedPlus5(ownerData.total)) }}</td>
+        <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatCurrency(ownerData.projected_total_plus_5) }}</td>
       </tr>
     </template>
   </template>
@@ -273,14 +273,6 @@ export default {
       type: Object,
       required: true,
     },
-    getProjectedMinus5: {
-      type: Function,
-      required: true,
-    },
-    getProjectedPlus5: {
-      type: Function,
-      required: true,
-    },
     subtotalLabel: {
       type: String,
       default: 'Subtotal',
@@ -294,13 +286,10 @@ export default {
       return !!this.expandedAssets[key];
     },
 
-    assetGroupTotal(assets) {
-      return (assets || []).reduce((sum, a) => sum + (a.value || 0), 0);
-    },
-
-    assetGroupProjectedTotal(assets) {
-      // Use nullish coalescing to handle 0 as valid (cash may project to 0)
-      return (assets || []).reduce((sum, a) => sum + (a.projected_value ?? a.value ?? 0), 0);
+    // Each group's total for one column, as the server summed it
+    // (IHTFormattingService `group_totals`; CSJ 2026-10-01).
+    groupFigure(type, column) {
+      return Number(this.ownerData.group_totals?.[type]?.[column]) || 0;
     },
   },
 };

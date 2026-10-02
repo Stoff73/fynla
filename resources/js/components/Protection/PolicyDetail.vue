@@ -495,21 +495,10 @@ export default {
       return true; // No end date specified, assume active
     },
 
+    // The server's yearly premium (PremiumAnnualiser; weekly is 52 weeks), as
+    // /m and iOS show it (CSJ 2026-10-01). This multiplied weekly by 12.
     annualCost() {
-      if (!this.policy?.premium_amount) return 0;
-      const frequency = this.policy.premium_frequency || 'monthly';
-      const amount = parseFloat(this.policy.premium_amount);
-
-      switch (frequency) {
-        case 'monthly':
-          return amount * 12;
-        case 'quarterly':
-          return amount * 4;
-        case 'annually':
-          return amount;
-        default:
-          return amount * 12;
-      }
+      return Number(this.policy?.annual_premium) || 0;
     },
 
     coveredConditions() {
