@@ -31,6 +31,7 @@ use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
@@ -151,6 +152,15 @@ class PreviewUserSeeder extends Seeder
         $this->createIncomeProtectionPolicies($user, $spouse, $data['income_protection_policies'] ?? []);
         $this->createDisabilityPolicies($user, $spouse, $data['disability_policies'] ?? []);
         $this->createSicknessIllnessPolicies($user, $spouse, $data['sickness_illness_policies'] ?? []);
+
+        // The protection profile the Protection page creates on first visit
+        // (ProtectionController::index, ProtectionProfile::blankFor). Without it the
+        // protection readiness check blocks, so a freshly seeded persona showed
+        // "£0, Add your cover" on the dashboard beside its policies (fynla.org,
+        // 2026-10-02, after the release reseed).
+        foreach (array_filter([$user, $spouse]) as $member) {
+            ProtectionProfile::firstOrCreate(['user_id' => $member->id], ProtectionProfile::blankFor($member->id));
+        }
 
         // Create liabilities
         $this->createLiabilities($user, $spouse, $data['liabilities'] ?? []);
