@@ -1018,40 +1018,21 @@ it('TaxStrategyMath::estimateAnnualInterest attributes each account at the owner
     expect($math->estimateAnnualInterest($user))->toEqualWithDelta(3050.0, 0.001);
 });
 
-it('TaxStrategyMath::estimateIsaSubscriptionsThisYear only sums current-year ISA balances (Carbon filter parity)', function () {
+// The created-this-year balance proxy this pinned was retired (CSJ 2026-10-01):
+// TaxStrategyMath reads the one ISA-used rule, ISATracker, which counts only
+// subscriptions recorded for this tax year. Covered in
+// tests/Unit/Services/Tax/TaxStrategyMathIsaSubscriptionsTest.php.
+it('TaxStrategyMath::estimateIsaSubscriptionsThisYear is ISATracker\'s figure', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
-
-    $taxYearStart = app(TaxConfigService::class)->getEffectiveFrom();
-    expect($taxYearStart)->not->toBe('');
-
-    // Current-year ISA — created after tax-year start: counted
     SavingsAccount::factory()->create([
-        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 12000,
-        'created_at' => Carbon::parse($taxYearStart)->addDays(10),
-        'ownership_type' => 'individual', 'ownership_percentage' => 100,
-    ]);
-    // Old ISA — created before tax-year start: excluded
-    SavingsAccount::factory()->create([
-        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 25000,
-        'created_at' => Carbon::parse($taxYearStart)->subDays(30),
-        'ownership_type' => 'individual', 'ownership_percentage' => 100,
-    ]);
-    // Non-ISA — always excluded
-    SavingsAccount::factory()->create([
-        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 9000,
+        'user_id' => $user->id, 'is_isa' => true, 'account_type' => 'cash_isa', 'current_balance' => 12000,
+        'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(), 'isa_subscription_amount' => 12000,
         'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
 
-    // Pre-refactor: SQL where created_at >= taxYearStart
-    $preRefactor = (float) SavingsAccount::query()
-        ->where('user_id', $user->id)->where('is_isa', true)
-        ->where('created_at', '>=', $taxYearStart)->sum('current_balance');
-
-    $math = app(TaxStrategyMath::class);
-    $post = $math->estimateIsaSubscriptionsThisYear($user);
-
-    expect($post)->toBe($preRefactor);
-    expect($post)->toBe(12000.0);
+    expect(app(TaxStrategyMath::class)->estimateIsaSubscriptionsThisYear($user))
+        ->toBe((float) app(\App\Services\Savings\ISATracker::class)->usedThisTaxYear($user)['total_used'])
+        ->toBe(12000.0);
 });
 
 it('TaxActionDefinitionService:110,291 cash-ISA subscribed read identical after store migration', function () {
@@ -1276,12 +1257,12 @@ it('HouseholdPlanningService::calculateISAUsage single-owner ISA subscription su
 
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
-        'isa_subscription_amount' => 6000, 'current_balance' => 6000,
+        'isa_subscription_amount' => 6000, 'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(), 'current_balance' => 6000,
         'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
-        'isa_subscription_amount' => 2500, 'current_balance' => 2500,
+        'isa_subscription_amount' => 2500, 'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(), 'current_balance' => 2500,
         'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
     // Non-ISA — must be excluded by the is_isa filter.

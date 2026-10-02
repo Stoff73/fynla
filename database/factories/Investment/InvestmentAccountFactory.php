@@ -6,6 +6,7 @@ namespace Database\Factories\Investment;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -40,7 +41,9 @@ class InvestmentAccountFactory extends Factory
             'contributions_ytd' => fake()->randomFloat(2, 0, 20000),
             'monthly_contribution_amount' => fake()->optional(0.6)->randomFloat(2, 100, 1000),
             'contribution_frequency' => fake()->randomElement(['monthly', 'quarterly', 'annually']),
-            'tax_year' => fake()->randomElement(['2024/25', '2025/26']),
+            // The configured tax year, as SavingsAccountFactory does: a random past
+            // year made `isa_subscription_current_year` last year's figure.
+            'tax_year' => app(TaxConfigService::class)->getTaxYear(),
             'platform_fee_percent' => fake()->randomFloat(4, 0.10, 0.45),
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipType === 'joint' ? 50.00 : 100.00,
