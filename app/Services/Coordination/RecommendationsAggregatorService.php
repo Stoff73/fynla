@@ -219,6 +219,7 @@ class RecommendationsAggregatorService
                     'claim_tier' => $item['claim_tier'],
                     'sequence_position' => $item['sequence_position'],
                     'conflict_note' => $item['conflict_note'],
+                    'alternatives_note' => StrategyPlanComposer::alternativesNoteOf($item),
                     'requires_advice' => (bool) ($item['requires_advice'] ?? false),
                 ], $this->taxPlan->forUser($user)['items']);
             });
@@ -277,6 +278,7 @@ class RecommendationsAggregatorService
             'claim_tier' => $rec['claim_tier'] ?? null,
             'sequence_position' => $rec['sequence_position'] ?? null,
             'conflict_note' => $rec['conflict_note'] ?? null,
+            'alternatives_note' => $rec['alternatives_note'] ?? null,
             'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
             'definition_key' => $rec['definition_key'] ?? null,
             'figures' => $rec['figures'] ?? null,
@@ -328,6 +330,7 @@ class RecommendationsAggregatorService
                 'claim_tier' => $item['claim_tier'] ?? null,
                 'sequence_position' => $item['sequence_position'] ?? null,
                 'conflict_note' => $item['conflict_note'] ?? null,
+                'alternatives_note' => StrategyPlanComposer::alternativesNoteOf($item),
                 'requires_advice' => (bool) ($item['requires_advice'] ?? false),
                 'definition_key' => $item['definition_key'] ?? null,
                 'figures' => $item['figures'] ?? null,

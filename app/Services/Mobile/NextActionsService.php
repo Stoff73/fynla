@@ -432,6 +432,9 @@ class NextActionsService
                     'timeline' => $rec['timeline'] ?? null,
                     'personalised_context' => array_values(array_filter((array) ($rec['personalised_context'] ?? []), 'is_string')),
                     'conflict_note' => $rec['conflict_note'] ?? null,
+                    // The composer's sentence naming the other choices (L3-3),
+                    // so Fyn voices it from the list it reads (audit item 50).
+                    'alternatives_note' => $rec['alternatives_note'] ?? null,
                     'potential_benefit' => $benefit,
                     'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
                     'definition_key' => $rec['definition_key'] ?? null,

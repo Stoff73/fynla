@@ -70,6 +70,7 @@ use App\Services\Estate\WillDocumentService;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Income\EmploymentIncomeService;
+use App\Services\Mobile\NextActionsService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
 use App\Services\Onboarding\CaptureForms;
@@ -234,7 +235,7 @@ class CoordinatingAgent extends BaseAgent
         $level = AdviceFyn::engineCallLevelFor(is_string($primary) ? $primary : null);
 
         if ($level === 'holistic') {
-            return $this->orchestrateAnalysis($userId);
+            return $this->withActionsList($this->orchestrateAnalysis($userId), $userId);
         }
 
         if ($level === 'factual') {
@@ -287,13 +288,60 @@ class CoordinatingAgent extends BaseAgent
         // The builder reads one shape on every engine level (Rule 20): the mapped
         // module blocks and a ranked list, so a module-scoped turn's
         // <financial_context> carries the recommendations its <relevant_triggers>
-        // block tells Fyn to look for.
-        $ranked = $this->priorityRanker->rankRecommendations(
-            $this->extractRecommendations($moduleAnalysis),
-            [],
-        );
+        // block tells Fyn to look for. The list is the user's actions list, for
+        // the modules asked about (audit item 50).
+        $askedAbout = array_map(static fn (string $m): string => $m === 'tax' ? 'tax_optimisation' : $m, $modules);
+        $ranked = array_values(array_filter(
+            $this->rankedActionsFor($userId),
+            static fn (array $rec): bool => in_array($rec['module'] === 'tax' ? 'tax_optimisation' : $rec['module'], $askedAbout, true),
+        ));
 
         return ['module_analysis' => $moduleAnalysis, 'ranked_recommendations' => $ranked];
+    }
+
+    /**
+     * Fyn's ranked recommendations ARE the user's open actions list
+     * (NextActionsService::buildAll): the items, order and ids the dashboard,
+     * /m and the action cards show, without what the user has marked done
+     * (CSJ 2026-10-01, one figure; audit item 50). They came from each agent's
+     * own list (extractRecommendations), which is not the list the user sees.
+     * Every Fyn path reads this one method: the prompt (both engine levels),
+     * analyze_module 'holistic' and get_recommendations.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function rankedActionsFor(int $userId): array
+    {
+        // Every field of every item reaches the model unsummarised (INV-2.6.2);
+        // only the clients' tap routing (`action`) is left out, and the card's
+        // fields are lifted beside the names the prompt builder reads.
+        return array_map(static function (array $item): array {
+            $card = is_array($item['card'] ?? null) ? $item['card'] : [];
+            unset($item['card'], $item['action']);
+
+            return array_merge($item, $card, [
+                'recommendation_id' => $item['id'] ?? null,
+                'module' => (string) ($item['module'] ?? 'general'),
+                'title' => (string) ($item['title'] ?? ''),
+                'description' => $item['detail'] ?? null,
+                'estimated_saving' => $card['potential_benefit'] ?? null,
+            ]);
+        }, app(NextActionsService::class)->buildAll($userId));
+    }
+
+    /**
+     * An orchestrated analysis with Fyn's ranked list swapped for the actions
+     * list. The orchestration's own ranking still drives its conflicts, demands
+     * and action plan; only the list Fyn reads changes (audit item 50).
+     *
+     * @param  array<string, mixed>  $analysis
+     * @return array<string, mixed>
+     */
+    private function withActionsList(array $analysis, int $userId): array
+    {
+        $analysis['ranked_recommendations'] = $this->rankedActionsFor($userId);
+
+        return $analysis;
     }
 
     /**
@@ -2524,7 +2572,7 @@ class CoordinatingAgent extends BaseAgent
             'retirement' => $this->retirementAgent->analyze($user->id),
             'estate' => $this->estateAgent->analyze($user->id),
             'goals' => $this->goalsAgent->analyze($user->id),
-            'holistic' => $this->orchestrateAnalysis($user->id),
+            'holistic' => $this->withActionsList($this->orchestrateAnalysis($user->id), $user->id),
             default => ['error' => "Unknown module: {$module}"],
         };
         $analyzeDuration = (int) round((microtime(true) - $analyzeStart) * 1000);
@@ -2827,9 +2875,11 @@ class CoordinatingAgent extends BaseAgent
             'locked_strategy_ids' => implode(',', $ids['locked']),
         ]);
 
+        $actions = $this->rankedActionsFor($user->id);
+
         return [
-            'recommendations' => $analysis['ranked_recommendations'] ?? [],
-            'total' => count($analysis['ranked_recommendations'] ?? []),
+            'recommendations' => $actions,
+            'total' => count($actions),
             'surplus' => $analysis['available_surplus'] ?? 0,
             // Ordered, conflict-resolved tax plan with claim tiers + locked strategies —
             // the presentation contract lives in the tool description.
