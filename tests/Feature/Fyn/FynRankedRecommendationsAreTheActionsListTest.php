@@ -7,6 +7,8 @@ use App\Constants\QuerySchemas;
 use App\Models\RecommendationTracking;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\AI\Pointers\FetchContext;
+use App\Services\AI\Pointers\Handlers\RecommendationHandler;
 use App\Services\Mobile\NextActionsService;
 use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -67,9 +69,11 @@ it('never gives Fyn an action the user has marked done', function (): void {
 
     $after = collect($agent->analyzeRelevantModules($this->user->id, savingsTurn())['ranked_recommendations'])->pluck('recommendation_id');
     $tool = collect($agent->executeTool('get_recommendations', [], $this->user->fresh())['recommendations'])->pluck('recommendation_id');
+    $pointer = collect(json_decode(app(RecommendationHandler::class)->fetch(new FetchContext($this->user->fresh(), 'what should i do'))->value, true)['recommendations'])->pluck('recommendation_id');
 
     expect($after)->not->toContain($first['recommendation_id'])
-        ->and($tool)->not->toContain($first['recommendation_id']);
+        ->and($tool)->not->toContain($first['recommendation_id'])
+        ->and($pointer)->not->toContain($first['recommendation_id']);
 });
 
 it('gives the get_recommendations tool the whole actions list, in its order', function (): void {
@@ -78,4 +82,15 @@ it('gives the get_recommendations tool the whole actions list, in its order', fu
     $tool = app(CoordinatingAgent::class)->executeTool('get_recommendations', [], $this->user);
 
     expect(collect($tool['recommendations'])->pluck('recommendation_id')->all())->toBe($actions);
+});
+
+it('gives the fetch_recommendations pointer the same actions list as get_recommendations', function (): void {
+    // csjones 2026-10-02, walk account 405: the pointer returned only the tax
+    // plan, all of it locked, and Fyn said the list was empty beside ten actions.
+    $tool = app(CoordinatingAgent::class)->executeTool('get_recommendations', [], $this->user);
+    $pointer = json_decode(app(RecommendationHandler::class)->fetch(new FetchContext($this->user, 'what should i do'))->value, true);
+
+    expect($pointer['recommendations'])->not->toBeEmpty()
+        ->and($pointer['recommendations'])->toEqual($tool['recommendations'])
+        ->and($pointer['composed_tax_plan'])->toEqual($tool['composed_tax_plan']);
 });

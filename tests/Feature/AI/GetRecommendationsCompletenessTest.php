@@ -32,7 +32,8 @@ afterEach(function () {
 /** @param list<array<string, mixed>> $items */
 function stubActionsList(array $items): void
 {
-    $actions = Mockery::mock(NextActionsService::class);
+    // Partial: the real forModel() runs over the stubbed list.
+    $actions = Mockery::mock(NextActionsService::class)->makePartial();
     $actions->shouldReceive('buildAll')->andReturn($items);
     app()->instance(NextActionsService::class, $actions);
 }

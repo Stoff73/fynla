@@ -300,33 +300,16 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
-     * Fyn's ranked recommendations ARE the user's open actions list
-     * (NextActionsService::buildAll): the items, order and ids the dashboard,
-     * /m and the action cards show, without what the user has marked done
-     * (CSJ 2026-10-01, one figure; audit item 50). They came from each agent's
-     * own list (extractRecommendations), which is not the list the user sees.
-     * Every Fyn path reads this one method: the prompt (both engine levels),
-     * analyze_module 'holistic' and get_recommendations.
+     * Fyn's ranked recommendations ARE the user's open actions list, as the
+     * model reads it (NextActionsService::forModel; audit item 50). Every Fyn
+     * path reads this: the prompt (both engine levels), analyze_module
+     * 'holistic', get_recommendations and the fetch_recommendations pointer.
      *
      * @return list<array<string, mixed>>
      */
     public function rankedActionsFor(int $userId): array
     {
-        // Every field of every item reaches the model unsummarised (INV-2.6.2);
-        // only the clients' tap routing (`action`) is left out, and the card's
-        // fields are lifted beside the names the prompt builder reads.
-        return array_map(static function (array $item): array {
-            $card = is_array($item['card'] ?? null) ? $item['card'] : [];
-            unset($item['card'], $item['action']);
-
-            return array_merge($item, $card, [
-                'recommendation_id' => $item['id'] ?? null,
-                'module' => (string) ($item['module'] ?? 'general'),
-                'title' => (string) ($item['title'] ?? ''),
-                'description' => $item['detail'] ?? null,
-                'estimated_saving' => $card['potential_benefit'] ?? null,
-            ]);
-        }, app(NextActionsService::class)->buildAll($userId));
+        return app(NextActionsService::class)->forModel($userId);
     }
 
     /**
