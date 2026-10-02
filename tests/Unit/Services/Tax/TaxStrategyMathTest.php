@@ -88,84 +88,8 @@ describe('bandRateFromIncome', function () {
     });
 });
 
-describe('estimateIsaSubscriptionsThisYear', function () {
-    it('counts ISAs opened in the current tax year', function () {
-        $user = User::factory()->create();
-        SavingsAccount::factory()->for($user)->create([
-            'is_isa' => true,
-            'current_balance' => 5000,
-            'created_at' => now(), // current tax year
-        ]);
-
-        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(5000.0);
-    });
-
-    it('excludes ISAs opened before the current tax year', function () {
-        $user = User::factory()->create();
-        SavingsAccount::factory()->for($user)->create([
-            'is_isa' => true,
-            'current_balance' => 25000,
-            'created_at' => now()->subYears(2), // legacy ISA
-        ]);
-
-        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(0.0);
-    });
-
-    it('counts only the current-year subset when the user has a mix', function () {
-        $user = User::factory()->create();
-        SavingsAccount::factory()->for($user)->create([
-            'is_isa' => true,
-            'current_balance' => 25000,
-            'created_at' => now()->subYears(2), // legacy
-        ]);
-        SavingsAccount::factory()->for($user)->create([
-            'is_isa' => true,
-            'current_balance' => 8000,
-            'created_at' => now(), // current
-        ]);
-        // Non-ISA must never be counted regardless of created_at
-        SavingsAccount::factory()->for($user)->create([
-            'is_isa' => false,
-            'current_balance' => 50000,
-            'created_at' => now(),
-        ]);
-
-        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);
-    });
-
-    // Regression: Stocks & Shares / investment ISAs subscribe against the SAME
-    // £20k allowance but live on investment_accounts (account_type 'isa') under
-    // isa_subscription_current_year. Pre-fix the helper read only savings_accounts,
-    // so an S&S-ISA subscriber's allowance was over-stated and ISA top-up
-    // strategies recommended wrapping more cash than they could still subscribe.
-    it('counts a stocks & shares (investment) ISA subscription against the same allowance', function () {
-        $user = User::factory()->create();
-        InvestmentAccount::factory()->for($user)->create([
-            'account_type' => 'isa',
-            'isa_type' => 'stocks_and_shares',
-            'isa_subscription_current_year' => 5000,
-        ]);
-
-        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(5000.0);
-    });
-
-    it('sums cash ISA and investment ISA subscriptions toward the one allowance', function () {
-        $user = User::factory()->create();
-        SavingsAccount::factory()->for($user)->create([
-            'is_isa' => true,
-            'isa_subscription_amount' => 3000,
-            'isa_subscription_year' => app(TaxConfigService::class)->getTaxYear(),
-            'current_balance' => 3000,
-            'created_at' => now(),
-        ]);
-        InvestmentAccount::factory()->for($user)->create([
-            'account_type' => 'isa',
-            'isa_subscription_current_year' => 5000,
-        ]);
-
-        expect($this->math->estimateIsaSubscriptionsThisYear($user))->toBe(8000.0);
-    });
-});
+// estimateIsaSubscriptionsThisYear reads the one ISA-used rule (ISATracker);
+// its cases live in TaxStrategyMathIsaSubscriptionsTest (CSJ 2026-10-01).
 
 /**
  * Issue log 2026-07-23 #21 — joint-account interest was attributed in FULL to

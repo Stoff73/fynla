@@ -2,17 +2,25 @@
 
 declare(strict_types=1);
 
+use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Traits\ResolvesIncome;
+use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 /**
- * Consolidation guard (jul6 audit, Fix 2): HouseholdPlanningService,
- * LifeStageService and PrerequisiteGateService each reimplemented the same
- * seven-column gross-income sum. They now all delegate to
- * ResolvesIncome::resolveGrossAnnualIncome. These tests pin that the shared
- * trait totals the identical seven columns with identical null handling, so the
- * switch changes no total.
+ * The one income figure (CSJ 2026-10-02: "why are we not using the income
+ * figure provided?"). resolveGrossAnnualIncome is the Income page's total
+ * (IncomeDefinitionsService `total_income`), not a sum of the users income
+ * columns: those left out a pension being paid, so a retiree on £9,000 of
+ * pension was told "gross annual income is required" by the module checks.
  */
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 /** Anonymous harness exposing the protected trait method for assertion. */
 function grossIncomeHarness(): object
@@ -28,29 +36,52 @@ function grossIncomeHarness(): object
     };
 }
 
-it('sums all seven annual income columns', function () {
-    $user = new User;
-    $user->annual_employment_income = 50000;
-    $user->annual_self_employment_income = 10000;
-    $user->annual_rental_income = 8000;
-    $user->annual_dividend_income = 3000;
-    $user->annual_interest_income = 1500;
-    $user->annual_other_income = 2000;
-    $user->annual_trust_income = 500;
+it('is the Income page total for an earner', function () {
+    $user = User::factory()->create([
+        'annual_employment_income' => 50000,
+        'annual_self_employment_income' => 10000,
+        'annual_dividend_income' => 3000,
+        'annual_interest_income' => 1500,
+        'annual_other_income' => 2000,
+        'annual_trust_income' => 500,
+    ]);
 
-    $expected = (float) (50000 + 10000 + 8000 + 3000 + 1500 + 2000 + 500);
+    $total = app(IncomeDefinitionsService::class)->calculate($user->id)['total_income'];
 
-    expect(grossIncomeHarness()->total($user))->toBe($expected);
+    expect(grossIncomeHarness()->total($user))->toBe((float) $total)
+        ->and((float) $total)->toBe(67000.0);
 });
 
-it('treats null income columns as zero', function () {
-    $user = new User;
-    $user->annual_employment_income = 40000;
-    // The other six columns are left null.
+it('counts a State Pension being paid, as the Income page does', function () {
+    $user = User::factory()->create([
+        'date_of_birth' => now()->subYears(70),
+        'annual_employment_income' => 0,
+        'annual_self_employment_income' => 0,
+        'annual_rental_income' => 0,
+        'annual_dividend_income' => 0,
+        'annual_interest_income' => 0,
+        'annual_other_income' => 0,
+        'annual_trust_income' => 0,
+    ]);
+    StatePension::factory()->create([
+        'user_id' => $user->id,
+        'already_receiving' => true,
+        'state_pension_forecast_annual' => 9000,
+    ]);
 
-    expect(grossIncomeHarness()->total($user))->toBe(40000.0);
+    expect(grossIncomeHarness()->total($user->fresh()))->toBe(9000.0);
 });
 
 it('returns zero when the user has no income at all', function () {
-    expect(grossIncomeHarness()->total(new User))->toBe(0.0);
+    $user = User::factory()->create([
+        'annual_employment_income' => 0,
+        'annual_self_employment_income' => 0,
+        'annual_rental_income' => 0,
+        'annual_dividend_income' => 0,
+        'annual_interest_income' => 0,
+        'annual_other_income' => 0,
+        'annual_trust_income' => 0,
+    ]);
+
+    expect(grossIncomeHarness()->total($user))->toBe(0.0);
 });

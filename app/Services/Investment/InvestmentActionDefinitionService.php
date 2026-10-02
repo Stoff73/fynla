@@ -656,7 +656,7 @@ class InvestmentActionDefinitionService
             ?? $this->taxConfig->getISAAllowances()['annual_allowance']
             ?? TaxDefaults::ISA_ALLOWANCE;
         $vars = [
-            'isa_allowance' => number_format($isaAllowance),
+            'isa_allowance' => $this->formatCurrency((float) $isaAllowance),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -712,8 +712,8 @@ class InvestmentActionDefinitionService
         }
 
         $vars = [
-            'isa_remaining' => number_format($isaRemaining),
-            'gia_value' => number_format($giaValue),
+            'isa_remaining' => $this->formatCurrency((float) $isaRemaining),
+            'gia_value' => $this->formatCurrency((float) $giaValue),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -768,7 +768,7 @@ class InvestmentActionDefinitionService
         }
 
         $vars = [
-            'gia_value' => number_format($giaValue),
+            'gia_value' => $this->formatCurrency((float) $giaValue),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -790,7 +790,12 @@ class InvestmentActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
+        // No savings analysis (InvestmentAgent's own path) means the runway is
+        // unknown, not 0 months; the Savings figure is the one that speaks.
+        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? null;
+        if ($runway === null) {
+            return [];
+        }
         $threshold = (float) ($config['threshold'] ?? 3);
         $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;
         $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
@@ -833,7 +838,10 @@ class InvestmentActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
+        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? null;
+        if ($runway === null) {
+            return [];
+        }
         $low = (float) ($config['low'] ?? 3);
         $high = (float) ($config['high'] ?? 6);
         $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;

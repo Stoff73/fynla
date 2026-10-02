@@ -8,6 +8,7 @@ use App\Events\Eval\GateChecked;
 use App\Models\ExpenditureProfile;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
+use App\Traits\ResolvesIncome;
 
 /**
  * Retirement Data Readiness Service
@@ -18,6 +19,8 @@ use App\Models\User;
  */
 class RetirementDataReadinessService
 {
+    use ResolvesIncome;
+
     /**
      * Assess the user's data readiness for retirement analysis.
      *
@@ -130,13 +133,9 @@ class RetirementDataReadinessService
      */
     private function checkIncome(User $user): array
     {
-        $grossIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        // The Income page's total (ResolvesIncome, CSJ 2026-10-02): a pension being
+        // paid, rental profit and share vests count, as on every screen.
+        $grossIncome = $this->resolveGrossAnnualIncome($user);
 
         $passed = $grossIncome > 0;
 

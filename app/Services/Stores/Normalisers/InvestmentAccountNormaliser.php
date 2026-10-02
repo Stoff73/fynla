@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Stores\Normalisers;
 
 use App\Models\User;
+use App\Services\TaxConfigService;
 use App\Support\SharedOwnership;
 
 /**
@@ -163,6 +164,14 @@ final class InvestmentAccountNormaliser
 
         // ownership_percentage — one rule, one home (App\Support\SharedOwnership).
         $data = SharedOwnership::applyTo($data, $ownership);
+
+        // An ISA subscription belongs to the tax year it was written in, and the
+        // one ISA-used rule (ISATracker) counts it only in that year (CSJTODO:
+        // "one rule, with the year kept right on each payment"). Nothing stamped
+        // it, so a figure entered without a year read as no year at all.
+        if (($data['isa_subscription_current_year'] ?? null) !== null && ($data['tax_year'] ?? null) === null) {
+            $data['tax_year'] = app(TaxConfigService::class)->getTaxYear();
+        }
 
         // Drop nulls that a NOT NULL column cannot take, so its default applies.
         // Must run BEFORE the casts below — (float) null is 0.0, which would

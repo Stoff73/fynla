@@ -17,6 +17,7 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Savings\ISATracker;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -690,16 +691,8 @@ class HouseholdPlanningService
      */
     private function calculateISAUsage(User $user): float
     {
-        $savingsISA = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('is_isa', true)
-            ->sum('isa_subscription_amount');
-
-        $investmentISA = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-
-        return (float) $savingsISA + (float) $investmentISA;
+        // The one ISA-used rule (ISATracker::usedThisTaxYear, CSJ 2026-10-01).
+        return (float) app(ISATracker::class)->usedThisTaxYear($user)['total_used'];
     }
 
     /**

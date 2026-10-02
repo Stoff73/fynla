@@ -103,12 +103,11 @@ class GiftingStrategyOptimizer
         }
 
         // 2. Gifting from Income Strategy (if user has income and expenditure data)
-        if ($user->annual_employment_income || $user->annual_self_employment_income) {
-            $totalIncome = ($user->annual_employment_income ?? 0) +
-                          ($user->annual_self_employment_income ?? 0) +
-                          ($user->annual_rental_income ?? 0) +
-                          ($user->annual_dividend_income ?? 0) +
-                          ($user->annual_other_income ?? 0);
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02): a pension
+        // being paid is income that can fund normal gifts out of income (IHTA
+        // 1984 s21), so this no longer requires earnings.
+        $totalIncome = $this->resolveGrossAnnualIncome($user);
+        if ($totalIncome > 0) {
 
             if ($totalIncome > 0 && $annualExpenditure > 0) {
                 $giftingFromIncomeStrategy = $this->calculateGiftingFromIncomeStrategy(

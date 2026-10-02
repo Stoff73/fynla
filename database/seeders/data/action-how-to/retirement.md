@@ -177,7 +177,7 @@ learn:
 1. How your retirement projection works | /help#retirement
 
 ## pension_consolidation_opportunity
-status: draft
+status: approved
 source: https://www.gov.uk/transferring-your-pension/transferring-to-a-uk-pension-scheme (check the scheme allows a transfer and the new one accepts it; transfer fees; you might lose the right to take your pension at a specific age, fixed or enhanced protection, or a tax-free lump sum above the usual amount; contact both providers); Pension Schemes Act 2015 s48, advice before transferring safeguarded benefits (https://www.legislation.gov.uk/ukpga/2015/8/section/48); the card's own figures
 figures: pension_count
 why:
@@ -226,7 +226,7 @@ outcome:
 1. Your pension payments go in without taking your pay below the legal minimum.
 
 ## enhanced_annuity_eligible
-status: draft
+status: approved
 source: https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension (an annuity's payments depend on "your age and gender", "the size of your pension pot", "interest rates" and "your health (sometimes)")
 figures:
 why:

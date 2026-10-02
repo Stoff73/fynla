@@ -17,6 +17,9 @@ beforeEach(function () {
 
     $this->taxConfig->shouldReceive('getIncomeTax')->andReturn([
         'personal_allowance' => 12570,
+        // As the seeded config has them (TaxConfigurationSeeder).
+        'personal_allowance_taper_threshold' => 100000,
+        'personal_allowance_taper_rate' => 0.5,
         'basic_rate_limit' => 37700,
         'higher_rate_threshold' => 50270,
         'additional_rate_threshold' => 125140,

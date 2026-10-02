@@ -14,9 +14,12 @@ use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Traits\ResolvesIncome;
 
 class ProfileCompletenessChecker
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly PropertyStore $propertyStore,
         // W-0275 — the one home for reaching a household's family (Rule 20).
@@ -178,11 +181,8 @@ class ProfileCompletenessChecker
      */
     private function hasIncome(User $user): bool
     {
-        return ($user->annual_employment_income ?? 0) > 0
-            || ($user->annual_self_employment_income ?? 0) > 0
-            || ($user->annual_rental_income ?? 0) > 0
-            || ($user->annual_dividend_income ?? 0) > 0
-            || ($user->annual_other_income ?? 0) > 0;
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        return $this->resolveGrossAnnualIncome($user) > 0;
     }
 
     /**

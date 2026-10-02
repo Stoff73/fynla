@@ -115,6 +115,7 @@ describe('Cross-Module Integration', function () {
             SavingsAccount::factory()->create([
                 'user_id' => $user->id,
                 'account_type' => 'cash_isa',
+                'is_isa' => true,
                 'current_balance' => 8000,
                 'isa_subscription_year' => $taxYear,
                 'isa_subscription_amount' => 8000,
@@ -155,6 +156,7 @@ describe('Cross-Module Integration', function () {
             SavingsAccount::factory()->create([
                 'user_id' => $user->id,
                 'account_type' => 'cash_isa',
+                'is_isa' => true,
                 'current_balance' => 12000,
                 'isa_subscription_year' => $taxYear,
                 'isa_subscription_amount' => 12000,

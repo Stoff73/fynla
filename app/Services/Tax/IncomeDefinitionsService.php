@@ -22,7 +22,17 @@ class IncomeDefinitionsService
 
     public function calculate(int $userId): array
     {
-        $user = User::with(['dcPensions', 'dbPensions', 'statePension'])->findOrFail($userId);
+        return $this->calculateFor(User::with(['dcPensions', 'dbPensions', 'statePension'])->findOrFail($userId));
+    }
+
+    /**
+     * The same definitions from a user model already in hand, so a caller
+     * holding one (ResolvesIncome, the one home for "this user's income") need
+     * not reload it, and an unsaved model works.
+     */
+    public function calculateFor(User $user): array
+    {
+        $user->loadMissing(['dcPensions', 'dbPensions', 'statePension']);
         $pensionContributions = $this->getPensionContributions($user);
 
         // 1. Total Income — from all sources including computed rental and pension income
@@ -210,7 +220,7 @@ class IncomeDefinitionsService
             // income under ITEPA 2003, so it reaches every definition below. Assumed NOT
             // already inside `annual_employment_income`, which the form captures as
             // salary. ponytail: no per-account include flag; add one on a double-count report.
-            'vesting' => $this->vests->annualVestIncome($user),
+            'vesting' => $user->exists ? $this->vests->annualVestIncome($user) : 0.0,
         ];
     }
 
@@ -230,6 +240,11 @@ class IncomeDefinitionsService
      */
     private function calculateRentalIncome(User $user): float
     {
+        // An unsaved model owns no property records.
+        if (! $user->exists) {
+            return 0.0;
+        }
+
         return (float) $this->propertyService->annualRentalTaxPosition($user)['total'];
     }
 
@@ -352,48 +367,29 @@ class IncomeDefinitionsService
         return round((float) $user->annual_charitable_donations * 1.25, 2);
     }
 
+    /**
+     * The Personal Allowance and the Annual Allowance after their tapers, from
+     * the one home for each rule (IncomeTaxBands::taperedPersonalAllowance,
+     * ITA 2007 s35; AnnualAllowanceTaper, FA 2004 s228ZA). This worked both out
+     * itself, with every threshold typed in as a fallback.
+     */
     private function calculateAdjustedAllowances(float $adjustedNetIncome, float $thresholdIncome, float $adjustedIncome): array
     {
         $incomeTax = $this->taxConfig->getIncomeTax();
         $pensionConfig = $this->taxConfig->getPensionAllowances();
 
-        $fullPA = (float) ($incomeTax['personal_allowance'] ?? 12570);
-        $paTaperThreshold = (float) ($incomeTax['personal_allowance_taper_threshold'] ?? 100000);
-
-        $fullAA = (float) ($pensionConfig['annual_allowance'] ?? 60000);
-        $taper = $pensionConfig['tapered_annual_allowance'] ?? [];
-        $aaThresholdIncome = (float) ($taper['threshold_income'] ?? 200000);
-        $aaAdjustedIncome = (float) ($taper['adjusted_income_threshold'] ?? $taper['adjusted_income'] ?? 260000);
-        $aaMinimum = (float) ($taper['minimum_allowance'] ?? 10000);
-        $aaTaperRate = (float) ($taper['taper_rate'] ?? 0.5);
-
-        // Personal Allowance taper
-        $adjustedPA = $fullPA;
-        $paTapered = false;
-        if ($adjustedNetIncome > $paTaperThreshold) {
-            $excess = $adjustedNetIncome - $paTaperThreshold;
-            $reduction = floor($excess / 2);
-            $adjustedPA = max(0.0, $fullPA - $reduction);
-            $paTapered = $adjustedPA < $fullPA;
-        }
-
-        // Pension AA taper — both conditions must be met
-        $adjustedAA = $fullAA;
-        $aaTapered = false;
-        if ($thresholdIncome > $aaThresholdIncome && $adjustedIncome > $aaAdjustedIncome) {
-            $excess = $adjustedIncome - $aaAdjustedIncome;
-            $reduction = floor($excess * $aaTaperRate);
-            $adjustedAA = max($aaMinimum, $fullAA - $reduction);
-            $aaTapered = $adjustedAA < $fullAA;
-        }
+        $fullPA = (float) $incomeTax['personal_allowance'];
+        $adjustedPA = IncomeTaxBands::taperedPersonalAllowance($incomeTax, $adjustedNetIncome);
+        $fullAA = (float) $pensionConfig['annual_allowance'];
+        $adjustedAA = AnnualAllowanceTaper::allowance($pensionConfig, $thresholdIncome, $adjustedIncome);
 
         return [
             'personal_allowance' => round($adjustedPA, 2),
             'personal_allowance_full' => round($fullPA, 2),
-            'personal_allowance_tapered' => $paTapered,
+            'personal_allowance_tapered' => $adjustedPA < $fullPA,
             'pension_annual_allowance' => round($adjustedAA, 2),
             'pension_annual_allowance_full' => round($fullAA, 2),
-            'pension_aa_tapered' => $aaTapered,
+            'pension_aa_tapered' => $adjustedAA < $fullAA,
         ];
     }
 }

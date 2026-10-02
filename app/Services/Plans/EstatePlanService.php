@@ -14,9 +14,12 @@ use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesIncome;
 
 class EstatePlanService extends BasePlanService
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly EstateAgent $estateAgent,
         private readonly IHTCalculationService $ihtCalculator,
@@ -714,14 +717,8 @@ class EstatePlanService extends BasePlanService
             ->map(fn ($child) => $child->name)
             ->toArray();
 
-        // Income
-        $grossIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        // Income: The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        $grossIncome = $this->resolveGrossAnnualIncome($user);
 
         $incomeData = $this->disposableIncome->getForUser($user);
 

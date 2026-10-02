@@ -1,4 +1,4 @@
-# What's new in Fynla — 1 October 2026
+# What's new in Fynla — 1 and 2 October 2026
 
 Your pension suggestions now start from what you can actually afford. A suggestion to pay into your own pension, or to top up your partner's, is sized to the money left after your spending and goals, and when there is not enough for both, the two are shown as alternatives rather than added together. The Save Tax setup asks for your monthly spending again so this works from the start, and a pension allowance you cannot afford to use no longer says "Fully used".
 
@@ -122,6 +122,49 @@ Both were walked on the test site first, on the desktop web app (full-size windo
   - the form showing "£241.30/week (£12,548/year)";
   - after ticking "being paid": State Pension £12,548, Income Tax £5,996, take-home £36,552 on both apps.
 - **A tax-compliance review** confirmed the law and figures. Its findings were fixed before release, apart from three listed under "Still to do".
+
+## Retirement suggestions, and the same figure on every screen (2 October, about 15:55, release #1047)
+
+- **Retirement suggestions come from their own rules,** as savings and protection already did, so each one has its own steps.
+  - **One card for where your retirement income stands.** It replaces three cards that each offered a different fix: pay in more, retire later, or start paying in. The amount it suggests closes the gap the Retirement page shows, limited to what you can afford and to the tax relief limit ([Finance Act 2004 s189-190](https://www.legislation.gov.uk/ukpga/2004/12/section/190)). Before, one household was offered £4,375 a month, the whole remaining allowance.
+  - **No saver cards for someone retired and drawing a pension.** Someone still working while drawing sees the Money Purchase Annual Allowance limit instead ([s227ZA](https://www.legislation.gov.uk/ukpga/2004/12/section/227ZA)).
+  - **No duplicates of the Tax plan.** Pension tax relief and salary sacrifice are suggested once, by the Tax plan, with its affordability check. The warning that the Annual Allowance is already exceeded stays on Retirement, because no Tax plan card gives it.
+  - **One charges card per pension.**
+  - **Card text without unsourced figures or provider names.** The auto-enrolment minimum now comes from the tax settings.
+- **Steps for the retirement cards** (approved by CSJ, 1 and 2 October), each with its sources, including "Plan how you will take your pension". That card covers the tax-free part, flexi-access drawdown, uncrystallised funds pension lump sums (UFPLS), annuities, mixing them, and the Money Purchase Annual Allowance ([GOV.UK, how you can take your pension](https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension); [GOV.UK, tax-free part](https://www.gov.uk/tax-on-pension/tax-free); [s227G](https://www.legislation.gov.uk/ukpga/2004/12/section/227G)). No step sends you to a named service.
+- **The care costs card is gone** (CSJ: "take it out").
+- **The dashboard card for someone drawing a pension** shows this year's income and "runs out by about age X", the Retirement page's own figures.
+- **Every screen now shows the figure the server works out,** on the desktop and mobile web apps. Before, each screen did some of its own arithmetic, so the same household could see two different numbers. This covers:
+  - the retirement projection (card, Retirement page, Fyn);
+  - net worth, debts, equity, shares and property;
+  - savings, the one emergency fund target, interest and maturity;
+  - investment value, charges, returns and monthly contributions;
+  - protection premiums and cover;
+  - the estate value and the Inheritance Tax table;
+  - the tax allowance tiles;
+  - goals.
+- **Removed:** the desktop Emergency Fund "Adjust Target" slider, which worked out a second target in the browser. The desktop Tax Strategy page now counts the allowances with headroom instead of adding together allowances of different kinds.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps:**
+  - a saver and a retiree drawing a pension: the card and the Retirement page show the same figures;
+  - the Mitchell demo household: dashboard £1,464,500 net worth, the same as the Net Worth page; savings £74,750; investments £172,500;
+  - "Plan how you will take your pension" for a household at its retirement age with £160,000 not yet drawn: seven steps, about £40,000 tax-free, the £268,275 cap and the £10,000 Money Purchase Annual Allowance.
+- **Live on fynla.org, as the Mitchell demo household:** desktop and mobile both show net worth £1,464,500, protection £700,000, savings £74,750 (14 of 6 months), retirement £500,000 (85% of target) and investments £172,500. On the Retirement page, projected income of £63,595 against the £75,000 target is the card's 85%.
+- **Not walked on fynla.org:** "Plan how you will take your pension". No live account qualifies; the approved text is on the server, checked file by file.
+
+**Found on fynla.org, fixed, not yet released (#1048):**
+- An investment card told the Mitchells their emergency fund was "critically low at 0 months", beside the 14 months on the same dashboard. The investment rules never received the savings figures and read the gap as 0.
+- The ISA card wrote "10,000" with no pound sign.
+
+Both fixes are on the test site with the one rule for ISA allowance used and the Personal Allowance and Annual Allowance tapers.
+
+**Still to do:**
+- The steps for "Think about combining your pensions" and "Ask for enhanced annuity quotes" went back to draft when their MoneyHelper and Pension Wise steps came out. They need approval again.
+- The salary sacrifice warning still uses £10,000, not the National Minimum Wage for your age and hours.
+- Investment, Protection and Savings still ask a retiree for "gross annual income".
+
+**Not tested: the iPhone app.** Its changes ship with the next build and CI checks them.
 
 ## Pension suggestions sized to what you can afford
 

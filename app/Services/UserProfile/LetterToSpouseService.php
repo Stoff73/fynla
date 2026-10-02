@@ -13,12 +13,14 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class LetterToSpouseService
 {
     use CalculatesOwnershipShare;
+    use ResolvesIncome;
 
     /**
      * Sections Fynla fills in from the user's records. Everything else on the
@@ -806,9 +808,12 @@ class LetterToSpouseService
     {
         $info = "Financial Guidance:\n\n";
 
-        if ($user->annual_employment_income > 0 || $user->annual_self_employment_income > 0) {
-            $totalIncome = ($user->annual_employment_income ?? 0) + ($user->annual_self_employment_income ?? 0);
-            $info .= 'Current Household Income: £'.number_format((float) $totalIncome, 2)." per year\n\n";
+        // The writer's own total on the Income page (ResolvesIncome; CSJ
+        // 2026-10-02, one income figure). It was earnings alone, labelled
+        // "Household" though it never included the partner's.
+        $totalIncome = $this->resolveGrossAnnualIncome($user);
+        if ($totalIncome > 0) {
+            $info .= 'Current annual income: £'.number_format($totalIncome, 2)." per year\n\n";
         }
 
         $info .= "Please contact our financial advisor for guidance on:\n";

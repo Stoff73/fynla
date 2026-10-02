@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Savings\ISATracker;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -145,6 +145,21 @@ final class TaxStrategyMath
     }
 
     /**
+     * The user's Income Tax band as the Tax plan prices it: 'none' when net
+     * income is within the Personal Allowance after its taper (ITA 2007 s35)
+     * and any Blind Person's Allowance (s38), otherwise the band from
+     * bandFromIncomeFor() on taxable income. Fyn names this band (audit item
+     * 44), so it never works out a second one.
+     */
+    public function incomeTaxBandFor(User $user): string
+    {
+        $taxable = $this->taxableIncomeFor($user);
+        $allowances = $this->personalAllowanceFor($user) + $this->taxConfig->blindPersonsAllowanceFor($user);
+
+        return $taxable <= $allowances ? 'none' : $this->bandFromIncomeFor($user, $taxable);
+    }
+
+    /**
      * Marginal income-tax rate for the user, derived from their HMRC band on
      * TOTAL taxable income (employment + dividends + savings interest), not
      * employment alone. This is the right basis for the marginal rate on
@@ -216,16 +231,18 @@ final class TaxStrategyMath
      */
     public function taxableIncomeFor(User $user): float
     {
-        $key = (int) $user->id;
-        if (! isset($this->taxableIncomeCache[$key])) {
+        $compute = function () use ($user): float {
             $definitions = $this->incomeDefinitionsFor($user);
-            $this->taxableIncomeCache[$key] = max(
-                0.0,
-                (float) ($definitions['net_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
-            );
+
+            return max(0.0, (float) ($definitions['net_income'] ?? 0) + $this->interestAdjustment($user, $definitions));
+        };
+
+        // Only a saved user is cached: every unsaved model has id null.
+        if (! $user->exists) {
+            return $compute();
         }
 
-        return $this->taxableIncomeCache[$key];
+        return $this->taxableIncomeCache[(int) $user->id] ??= $compute();
     }
 
     public function adjustedNetIncomeFor(User $user): float
@@ -258,18 +275,8 @@ final class TaxStrategyMath
 
     public function personalAllowanceForIncome(float $adjustedNetIncome): float
     {
-        $income = $this->taxConfig->getIncomeTax();
-        $full = (float) $income['personal_allowance'];
-        $threshold = (float) $income['personal_allowance_taper_threshold'];
-
-        if ($adjustedNetIncome <= $threshold) {
-            return $full;
-        }
-
-        // £1 of allowance for every £(1 / taper rate) over, from config (Rule 2).
-        $taperRate = (float) $income['personal_allowance_taper_rate'];
-
-        return max(0.0, $full - floor(($adjustedNetIncome - $threshold) * $taperRate));
+        // The one home for the ITA 2007 s35 taper (CSJ 2026-10-01; audit item 43).
+        return IncomeTaxBands::taperedPersonalAllowance($this->taxConfig->getIncomeTax(), $adjustedNetIncome);
     }
 
     public function moneyPurchaseAnnualAllowanceApplies(User $user): bool
@@ -284,20 +291,8 @@ final class TaxStrategyMath
     public function effectiveAnnualAllowanceFor(User $user): float
     {
         $pension = $this->taxConfig->getPensionAllowances();
-        $allowance = (float) $pension['annual_allowance'];
-        $taper = $pension['tapered_annual_allowance'] ?? [];
-        $thresholdLimit = (float) $taper['threshold_income'];
-        $adjustedLimit = (float) $taper['adjusted_income_threshold'];
-        $minimum = (float) $taper['minimum_allowance'];
-        $rate = (float) $taper['taper_rate'];
-        $thresholdIncome = $this->thresholdIncomeFor($user);
-        $adjustedIncome = $this->adjustedIncomeFor($user);
-        if ($thresholdIncome > $thresholdLimit && $adjustedIncome > $adjustedLimit) {
-            $allowance = max(
-                $minimum,
-                $allowance - floor(($adjustedIncome - $adjustedLimit) * $rate),
-            );
-        }
+        // The one home for the FA 2004 s228ZA taper (CSJ 2026-10-01; audit item 42).
+        $allowance = AnnualAllowanceTaper::allowance($pension, $this->thresholdIncomeFor($user), $this->adjustedIncomeFor($user));
 
         if ($this->moneyPurchaseAnnualAllowanceApplies($user)) {
             $allowance = min(
@@ -385,63 +380,12 @@ final class TaxStrategyMath
 
     public function estimateIsaSubscriptionsThisYear(User $user): float
     {
-        // P0.6 / Task 4 — Prefer explicit per-account subscription amounts captured
-        // during onboarding ("how much have you put in this tax year?"). The
-        // isa_subscription_year field stores the tax-year label in 'YYYY/YY' format
-        // (e.g. '2026/27'), matching TaxConfigService::getTaxYear().
-        //
-        // If ANY account has a captured amount for the current tax year, sum those
-        // amounts and return early — they are direct user input and strictly more
-        // accurate than the proxy.
-        //
-        // Fallback (no captured amounts): P0.6 proxy — sum balances of ISAs OPENED
-        // in the current tax year. This is conservative (under-estimates top-ups to
-        // older accounts) but better than over-estimating against the £20k cap.
-        // The strategy layer caps suggestions at the allowance regardless.
-        $currentTaxYear = $this->taxConfig->getTaxYear(); // e.g. '2026/27'
-
-        // forUser() is joint-aware; the Collection-level where('user_id')
-        // post-filter preserves the original single-owner sum.
-        $allIsas = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('is_isa', true);
-
-        // Prefer captured per-account subscription amounts for the current tax year.
-        $capturedCash = $allIsas
-            ->where('isa_subscription_year', $currentTaxYear)
-            ->filter(fn ($a) => $a->isa_subscription_amount !== null)
-            ->sum('isa_subscription_amount');
-
-        // Stocks & shares / investment ISAs subscribe against the SAME £20k
-        // allowance but live on investment_accounts (account_type 'isa') under
-        // isa_subscription_current_year — NOT savings_accounts. Without this the
-        // allowance is over-stated for anyone with an S&S ISA, so ISA top-up
-        // strategies recommend wrapping more than the user can still subscribe.
-        // Mirrors the household allowance accounting in HouseholdPlanningService.
-        // (ISAs are never jointly owned, so primary-owner scope is exhaustive.)
-        $capturedInvestment = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_current_year');
-
-        $captured = (float) $capturedCash + (float) $capturedInvestment;
-
-        if ($captured > 0) {
-            return $captured;
-        }
-
-        // Fallback: created-this-tax-year proxy (P0.6 original logic, unchanged).
-        $taxYearStart = $this->taxConfig->getEffectiveFrom();
-
-        $accounts = $allIsas;
-
-        if ($taxYearStart !== '') {
-            // created_at is a Carbon cast; Collection::where string comparison
-            // is unreliable, so filter explicitly against a parsed boundary.
-            $boundary = Carbon::parse($taxYearStart);
-            $accounts = $accounts->filter(fn ($a) => $a->created_at >= $boundary);
-        }
-
-        return (float) $accounts->sum('current_balance');
+        // The one ISA-used rule, the same the Savings page, the ISA tracker and
+        // every other engine read (ISATracker::usedThisTaxYear; CSJ 2026-10-01).
+        // This used to count `isa_subscription_current_year` whatever its year,
+        // and otherwise guess from the balances of ISAs opened this tax year,
+        // which also counted transfers in, and transfers do not use the allowance.
+        return (float) app(ISATracker::class)->usedThisTaxYear($user)['total_used'];
     }
 
     public function estimatePensionContributionThisYear(User $user, ?TaxStrategyOverridesDTO $overrides): float
@@ -1242,11 +1186,22 @@ final class TaxStrategyMath
     }
 
     /** @return array<string, mixed> */
-    private function incomeDefinitionsFor(User $user): array
+    /**
+     * The user's income definitions (IncomeDefinitionsService), cached per user:
+     * the Income page's figures, and the one home for "this user's income" that
+     * Fyn reads too (audit item 44).
+     */
+    public function incomeDefinitionsFor(User $user): array
     {
+        // From the model in hand (calculateFor), so an unsaved model works too;
+        // only a saved user is cached, by id.
+        if (! $user->exists) {
+            return $this->incomeDefinitions->calculateFor($user);
+        }
+
         $key = (int) $user->id;
         if (! isset($this->incomeDefinitionsCache[$key])) {
-            $this->incomeDefinitionsCache[$key] = $this->incomeDefinitions->calculate($key);
+            $this->incomeDefinitionsCache[$key] = $this->incomeDefinitions->calculateFor($user);
         }
 
         return $this->incomeDefinitionsCache[$key];
@@ -1266,6 +1221,11 @@ final class TaxStrategyMath
         $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
         $captured = (float) ($components['interest'] ?? 0);
 
-        return $captured > 0 ? $captured : $this->estimateAnnualInterest($user);
+        // An unsaved model holds no savings accounts to estimate interest from.
+        if ($captured > 0 || ! $user->exists) {
+            return $captured;
+        }
+
+        return $this->estimateAnnualInterest($user);
     }
 }

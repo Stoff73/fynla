@@ -17,9 +17,12 @@ use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UserProfile\ProfileCompletenessChecker;
+use App\Traits\ResolvesIncome;
 
 class ProtectionAgent extends BaseAgent
 {
+    use ResolvesIncome;
+
     /**
      * Create a new Protection Agent instance.
      */
@@ -143,11 +146,8 @@ class ProtectionAgent extends BaseAgent
 
                 // Calculate total annual income from user's actual income fields (all sources for reference)
                 // Note: Human capital calculation excludes rental/dividend income as these continue after death
-                $totalAnnualIncome = ($user->annual_employment_income ?? 0)
-                                   + ($user->annual_self_employment_income ?? 0)
-                                   + ($user->annual_rental_income ?? 0)
-                                   + ($user->annual_dividend_income ?? 0)
-                                   + ($user->annual_other_income ?? 0);
+                // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+                $totalAnnualIncome = $this->resolveGrossAnnualIncome($user);
 
                 // Calculate current age
                 $currentAge = $user->date_of_birth ?

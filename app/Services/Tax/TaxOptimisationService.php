@@ -9,6 +9,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Savings\ISATracker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Support\HouseholdPooling;
@@ -105,23 +106,11 @@ class TaxOptimisationService
 
     private function analyzeISAUsage(User $user): array
     {
-        $isaConfig = $this->taxConfig->getISAAllowances();
-        $isaAllowance = (float) ($isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
-
-        // Investment ISAs
-        $investmentISAs = InvestmentAccount::where('user_id', $user->id)
-            ->whereIn('account_type', ['isa', 'stocks_shares_isa'])
-            ->get();
-        $investmentISASubscribed = (float) $investmentISAs->sum('isa_subscription_current_year');
-
-        // Cash ISAs from savings
-        $cashISAs = app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('account_type', 'isa');
-        $cashISASubscribed = (float) $cashISAs->sum('isa_subscription_amount');
-
-        $totalUsed = $investmentISASubscribed + $cashISASubscribed;
-        $remaining = max(0, $isaAllowance - $totalUsed);
+        // The one ISA-used rule (ISATracker::usedThisTaxYear, CSJ 2026-10-01).
+        $isaUse = app(ISATracker::class)->usedThisTaxYear($user);
+        $isaAllowance = $isaUse['total_allowance'];
+        $totalUsed = $isaUse['total_used'];
+        $remaining = $isaUse['remaining'];
 
         // Check if user has non-ISA accounts that could benefit
         // W-0280, measured. A jointly-held general investment account was counted at
@@ -436,19 +425,8 @@ class TaxOptimisationService
         }
 
         // Check ISA usage for both partners
-        $spouseISAUsed = InvestmentAccount::where('user_id', $spouse->id)
-            ->whereIn('account_type', ['isa', 'stocks_shares_isa'])
-            ->sum('isa_subscription_current_year');
-        // $spouse is a User::find() result, null-guarded above; forUser() is
-        // joint-aware so the Collection where('user_id') keeps single-owner parity.
-        $spouseISAUsed += app(SavingsStore::class)->forUser($spouse)
-            ->where('user_id', $spouse->id)
-            ->where('account_type', 'isa')
-            ->sum('isa_subscription_amount');
-
-        $isaConfig = $this->taxConfig->getISAAllowances();
-        $isaAllowance = (float) ($isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
-        $spouseISARemaining = max(0, $isaAllowance - (float) $spouseISAUsed);
+        // The one ISA-used rule, for the spouse (ISATracker::usedThisTaxYear).
+        $spouseISARemaining = app(ISATracker::class)->usedThisTaxYear($spouse)['remaining'];
 
         if ($spouseISARemaining > 0) {
             $actions[] = sprintf(

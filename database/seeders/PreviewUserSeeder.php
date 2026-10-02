@@ -48,6 +48,7 @@ use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\TaxConfigService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -980,7 +981,9 @@ class PreviewUserSeeder extends Seeder
                     'planned_lump_sum_amount' => $account['planned_lump_sum_amount'] ?? null,
                     'planned_lump_sum_date' => isset($account['planned_lump_sum_date']) ? $account['planned_lump_sum_date'] : null,
                     'isa_subscription_current_year' => $isaSubscription,
-                    'tax_year' => '2025/26',
+                    // The current tax year from configuration (Rule 2): a typed-in
+                    // '2025/26' made every preview subscription last year's.
+                    'tax_year' => app(TaxConfigService::class)->getTaxYear(),
                     'ownership_type' => $account['ownership_type'] ?? 'individual',
                     'ownership_percentage' => $isJoint ? 50 : 100,
                     'joint_owner_id' => $jointOwnerId,

@@ -21,6 +21,8 @@ beforeEach(function () {
                 'threshold_income' => 200000,
                 'adjusted_income_threshold' => 260000,
                 'minimum_allowance' => 10000,
+                // As the seeded config has it (TaxConfigurationSeeder).
+                'taper_rate' => 0.5,
             ],
         ]);
 

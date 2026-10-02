@@ -15,6 +15,7 @@ use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 
 /**
  * The required_data availability vocabulary for the five non-tax modules —
@@ -28,6 +29,7 @@ use App\Traits\ResolvesExpenditure;
 final class ModuleAvailabilityProvider
 {
     use ResolvesExpenditure;
+    use ResolvesIncome;
 
     public function __construct(
         private readonly SavingsStore $savingsStore,
@@ -98,8 +100,9 @@ final class ModuleAvailabilityProvider
 
     private function hasAnnualIncome(User $user): bool
     {
-        return ((float) ($user->annual_employment_income ?? 0)) > 0
-            || ((float) ($user->annual_self_employment_income ?? 0)) > 0;
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income
+        // figure): a pension being paid is income too.
+        return $this->resolveGrossAnnualIncome($user) > 0;
     }
 
     private function expenditureKnown(User $user): bool

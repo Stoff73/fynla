@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Investment;
 
 use App\Constants\InvestmentDefaults;
-use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 
@@ -535,28 +535,11 @@ class PortfolioStrategyService
      */
     private function calculateTaxBand(User $user): string
     {
-        // Sum all income sources
-        $totalIncome = ($user->annual_employment_income ?? 0)
-            + ($user->annual_self_employment_income ?? 0)
-            + ($user->annual_rental_income ?? 0)
-            + ($user->annual_dividend_income ?? 0)
-            + ($user->annual_interest_income ?? 0)
-            + ($user->annual_other_income ?? 0)
-            + ($user->annual_trust_income ?? 0);
+        // The band the Tax plan and Fyn use (TaxStrategyMath::incomeTaxBandFor;
+        // CSJ 2026-10-02, one income figure). Within the Personal Allowance is
+        // below the higher rate, so it reads as basic here.
+        $band = app(TaxStrategyMath::class)->incomeTaxBandFor($user);
 
-        // Get tax bands from config
-        $incomeTax = $this->taxConfig->getIncomeTax();
-        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
-        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
-
-        if ($totalIncome >= $additionalRateThreshold) {
-            return 'additional';
-        }
-
-        if ($totalIncome >= $higherRateThreshold) {
-            return 'higher';
-        }
-
-        return 'basic';
+        return $band === 'none' ? 'basic' : $band;
     }
 }

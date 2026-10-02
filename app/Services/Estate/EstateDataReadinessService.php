@@ -11,6 +11,7 @@ use App\Models\Estate\Will;
 use App\Models\LetterToSpouse;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
+use App\Traits\ResolvesIncome;
 
 /**
  * Data readiness gate for the Estate Planning module.
@@ -21,6 +22,8 @@ use App\Services\Stores\MortgageStore;
  */
 class EstateDataReadinessService
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly MortgageStore $mortgageStore,
     ) {}
@@ -286,13 +289,9 @@ class EstateDataReadinessService
      */
     private function checkIncomeData(User $user): array
     {
-        $hasIncome = ($user->annual_employment_income ?? 0) > 0
-            || ($user->annual_self_employment_income ?? 0) > 0
-            || ($user->annual_rental_income ?? 0) > 0
-            || ($user->annual_dividend_income ?? 0) > 0
-            || ($user->annual_interest_income ?? 0) > 0
-            || ($user->annual_other_income ?? 0) > 0
-            || ($user->annual_trust_income ?? 0) > 0;
+        // The Income page's total (ResolvesIncome, CSJ 2026-10-02): a pension being
+        // paid, rental profit and share vests count, as on every screen.
+        $hasIncome = $this->resolveGrossAnnualIncome($user) > 0;
 
         return [
             'key' => 'income_data',
