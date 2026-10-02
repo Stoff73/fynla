@@ -6,6 +6,7 @@ namespace App\Services\Chattel;
 
 use App\Models\Chattel;
 use App\Models\User;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 
 /**
@@ -167,31 +168,22 @@ class ChattelCGTService
     }
 
     /**
-     * Determine CGT rate based on user's income
-     *
-     * Uses non-residential rates:
-     * - Basic rate taxpayer: 10%
-     * - Higher/additional rate taxpayer: 20%
+     * Determine CGT rate based on user's income: the basic or higher rate for
+     * gains other than residential property, both from tax config (Rule 2).
      */
     private function determineCGTRate(User $user, array $cgtConfig): float
     {
-        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        // The user's band as the Tax plan and Fyn find it (TaxStrategyMath::
+        // incomeTaxBandFor, on the Income page's income; CSJ 2026-10-02): the
+        // higher CGT rate once income is above the basic rate band.
+        $band = app(TaxStrategyMath::class)->incomeTaxBandFor($user);
 
-        $totalIncome = (float) ($user->annual_employment_income ?? 0) +
-            (float) ($user->annual_self_employment_income ?? 0) +
-            (float) ($user->annual_rental_income ?? 0) +
-            (float) ($user->annual_dividend_income ?? 0) +
-            (float) ($user->annual_other_income ?? 0);
+        // Non-residential CGT rates (not property rates), from tax config: the
+        // typed-in 10% / 20% fallbacks were the rates before 30 October 2024.
+        $basicRate = (float) $cgtConfig['basic_rate'];
+        $higherRate = (float) $cgtConfig['higher_rate'];
 
-        $personalAllowance = $incomeTaxConfig['personal_allowance'];
-        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
-        $basicRateThreshold = $personalAllowance + $basicRateBand;
-
-        // Use non-residential CGT rates (not property rates)
-        $basicRate = $cgtConfig['basic_rate'] ?? 0.10;
-        $higherRate = $cgtConfig['higher_rate'] ?? 0.20;
-
-        return $totalIncome > $basicRateThreshold ? $higherRate : $basicRate;
+        return in_array($band, ['higher', 'additional'], true) ? $higherRate : $basicRate;
     }
 
     /**

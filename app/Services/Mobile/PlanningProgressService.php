@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserMilestone;
 use App\Services\PrerequisiteGateService;
 use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Cache;
 class PlanningProgressService
 {
     use ResolvesExpenditure;
+    use ResolvesIncome;
 
     private const DISTRIBUTION_TTL = 3600; // 1 hour — slow-moving
 
@@ -105,12 +107,7 @@ class PlanningProgressService
 
     private function totalIncome(User $user): float
     {
-        return (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        return $this->resolveGrossAnnualIncome($user);
     }
 }

@@ -7,6 +7,7 @@ namespace App\Services\Protection;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
@@ -380,7 +381,9 @@ class CoverageGapAnalyzer
         $userNetIncome = $userTaxCalculation['net_income'];
 
         // Calculate USER'S continuing income (rental + dividend) - these CONTINUE after death
-        $userContinuingIncome = (float) ($user->annual_rental_income ?? 0)
+        // Rent as the rental profit the Income page shows (IncomeDefinitionsService;
+        // CSJ 2026-10-02, one income figure), not the stored users column.
+        $userContinuingIncome = (float) app(IncomeDefinitionsService::class)->calculateFor($user)['components']['rental']
                               + (float) ($user->annual_dividend_income ?? 0);
 
         // Track spouse income separately
@@ -400,7 +403,7 @@ class CoverageGapAnalyzer
                     // Get spouse income from spouse's user record
                     $spouseEmploymentIncome = (float) ($spouse->annual_employment_income ?? 0);
                     $spouseSelfEmploymentIncome = (float) ($spouse->annual_self_employment_income ?? 0);
-                    $spouseRentalIncome = (float) ($spouse->annual_rental_income ?? 0);
+                    $spouseRentalIncome = (float) app(IncomeDefinitionsService::class)->calculateFor($spouse)['components']['rental'];
                     $spouseDividendIncome = (float) ($spouse->annual_dividend_income ?? 0);
                     $spouseOtherIncome = (float) ($spouse->annual_other_income ?? 0);
 

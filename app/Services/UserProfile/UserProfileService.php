@@ -221,13 +221,8 @@ class UserProfileService
      */
     public function totalGrossAnnualIncome(User $user): float
     {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        return $this->resolveGrossAnnualIncome($user);
     }
 
     /**
@@ -605,6 +600,16 @@ class UserProfileService
     }
 
     /**
+     * The Income tab's income and tax figures for one user, without building the
+     * rest of the profile: the one home for take-home pay (`net_income`), read
+     * by ResolvesIncome::resolveNetAnnualIncome (CSJ 2026-10-02, one income figure).
+     */
+    public function incomeAndTaxFor(User $user): array
+    {
+        return $this->buildIncomeOccupation($user);
+    }
+
+    /**
      * Build income and occupation section with detailed tax breakdown
      */
     private function buildIncomeOccupation(User $user): array
@@ -625,8 +630,9 @@ class UserProfileService
         // Get primary trust type if user has trusts (for correct tax treatment)
         $trustType = $this->getPrimaryTrustType($user);
 
-        $totalAnnualIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome
-            + $dividendIncome + $interestIncome + $trustIncome + $pensionIncome + $otherIncome;
+        // The Income page's total (IncomeDefinitionsService; CSJ 2026-10-02, one
+        // income figure): the same parts as below, plus share-scheme vests.
+        $totalAnnualIncome = $this->resolveGrossAnnualIncome($user);
 
         // Get detailed tax breakdown (new method with per-income breakdowns)
         $detailedTax = $this->taxCalculator->calculateDetailedNetIncome(

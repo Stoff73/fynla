@@ -476,12 +476,4 @@ class UserContextBuilder
             'employment_status' => $spouse->employment_status ?? null,
         ];
     }
-
-    /**
-     * Provide the UKTaxCalculator for the ResolvesIncome trait.
-     */
-    protected function getIncomeTaxCalculator(): UKTaxCalculator
-    {
-        return $this->taxCalculator;
-    }
 }

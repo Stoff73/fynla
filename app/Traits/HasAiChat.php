@@ -18,8 +18,8 @@ use Anthropic\Messages\ToolUseBlock;
 use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
-// Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use App\Models\AiAbortEvent;
+// Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use App\Models\AiAdviceLog;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
@@ -49,6 +49,7 @@ use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\PrerequisiteGateService;
+use App\Services\Tax\TaxStrategyMath;
 use App\Support\XaiFunctionCallLeakStripper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -1541,7 +1542,8 @@ trait HasAiChat
                     ], array_slice($toolCallsSummary, 0, 5)),
                     'tools_called' => array_map(fn ($tc) => $tc['tool'] ?? null, $toolCallsSummary),
                     'user_data_snapshot' => [
-                        'income' => (float) $user->annual_employment_income + (float) $user->annual_self_employment_income,
+                        // The Income page's total (CSJ 2026-10-02, one income figure).
+                        'income' => (float) app(TaxStrategyMath::class)->incomeDefinitionsFor($user)['total_income'],
                         'expenditure' => (float) ($user->monthly_expenditure ?? 0),
                         'employment_status' => $user->employment_status,
                         'marital_status' => $user->marital_status,

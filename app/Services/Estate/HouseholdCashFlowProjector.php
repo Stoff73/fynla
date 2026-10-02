@@ -12,6 +12,7 @@ use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 /**
@@ -72,6 +73,8 @@ use Carbon\Carbon;
  */
 class HouseholdCashFlowProjector
 {
+    use ResolvesIncome;
+
     /** Assumed current age when a member has no recorded date of birth. */
     private const ASSUMED_AGE_WITHOUT_DOB = 50;
 
@@ -621,13 +624,8 @@ class HouseholdCashFlowProjector
      */
     private function grossAnnualIncome(User $member): float
     {
-        return (float) ($member->annual_employment_income ?? 0)
-            + (float) ($member->annual_self_employment_income ?? 0)
-            + (float) ($member->annual_rental_income ?? 0)
-            + (float) ($member->annual_dividend_income ?? 0)
-            + (float) ($member->annual_interest_income ?? 0)
-            + (float) ($member->annual_other_income ?? 0)
-            + (float) ($member->annual_trust_income ?? 0);
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        return $this->resolveGrossAnnualIncome($member);
     }
 
     /**

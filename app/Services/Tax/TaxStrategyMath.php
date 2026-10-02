@@ -231,16 +231,18 @@ final class TaxStrategyMath
      */
     public function taxableIncomeFor(User $user): float
     {
-        $key = (int) $user->id;
-        if (! isset($this->taxableIncomeCache[$key])) {
+        $compute = function () use ($user): float {
             $definitions = $this->incomeDefinitionsFor($user);
-            $this->taxableIncomeCache[$key] = max(
-                0.0,
-                (float) ($definitions['net_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
-            );
+
+            return max(0.0, (float) ($definitions['net_income'] ?? 0) + $this->interestAdjustment($user, $definitions));
+        };
+
+        // Only a saved user is cached: every unsaved model has id null.
+        if (! $user->exists) {
+            return $compute();
         }
 
-        return $this->taxableIncomeCache[$key];
+        return $this->taxableIncomeCache[(int) $user->id] ??= $compute();
     }
 
     public function adjustedNetIncomeFor(User $user): float
@@ -1191,9 +1193,15 @@ final class TaxStrategyMath
      */
     public function incomeDefinitionsFor(User $user): array
     {
+        // From the model in hand (calculateFor), so an unsaved model works too;
+        // only a saved user is cached, by id.
+        if (! $user->exists) {
+            return $this->incomeDefinitions->calculateFor($user);
+        }
+
         $key = (int) $user->id;
         if (! isset($this->incomeDefinitionsCache[$key])) {
-            $this->incomeDefinitionsCache[$key] = $this->incomeDefinitions->calculate($key);
+            $this->incomeDefinitionsCache[$key] = $this->incomeDefinitions->calculateFor($user);
         }
 
         return $this->incomeDefinitionsCache[$key];
@@ -1213,6 +1221,11 @@ final class TaxStrategyMath
         $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
         $captured = (float) ($components['interest'] ?? 0);
 
-        return $captured > 0 ? $captured : $this->estimateAnnualInterest($user);
+        // An unsaved model holds no savings accounts to estimate interest from.
+        if ($captured > 0 || ! $user->exists) {
+            return $captured;
+        }
+
+        return $this->estimateAnnualInterest($user);
     }
 }

@@ -6,6 +6,7 @@ namespace App\Services\Coordination;
 
 use App\Constants\TaxDefaults;
 use App\Models\User;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 
@@ -375,8 +376,9 @@ class RecommendationPersonaliser
     {
         $context = [];
 
-        $spouseIncome = ($spouse->annual_employment_income ?? 0)
-                      + ($spouse->annual_self_employment_income ?? 0);
+        // Earnings that continue: pay and self-employment profit, from the one
+        // earnings figure (TaxStrategyMath::relevantEarningsFor; CSJ 2026-10-02).
+        $spouseIncome = app(TaxStrategyMath::class)->relevantEarningsFor($spouse);
 
         if ($spouseIncome > 0) {
             $context[] = sprintf(

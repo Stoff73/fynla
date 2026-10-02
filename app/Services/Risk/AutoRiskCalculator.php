@@ -12,6 +12,7 @@ use App\Services\Savings\EmergencyFundCalculator;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Shared\DependantsReach;
 use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 /**
@@ -50,6 +51,7 @@ use Carbon\Carbon;
 class AutoRiskCalculator
 {
     use ResolvesExpenditure;
+    use ResolvesIncome;
 
     public function __construct(
         private readonly NetWorthService $netWorthService,
@@ -526,13 +528,8 @@ class AutoRiskCalculator
     private function calculateSurplusCashFactor(User $user): array
     {
         // Calculate monthly income
-        $annualIncome = ($user->annual_employment_income ?? 0)
-            + ($user->annual_self_employment_income ?? 0)
-            + ($user->annual_rental_income ?? 0)
-            + ($user->annual_dividend_income ?? 0)
-            + ($user->annual_interest_income ?? 0)
-            + ($user->annual_other_income ?? 0)
-            + ($user->annual_trust_income ?? 0);
+        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        $annualIncome = $this->resolveGrossAnnualIncome($user);
 
         $monthlyIncome = $annualIncome / 12;
         $monthlyExpenditure = $user->monthly_expenditure ?? 0;

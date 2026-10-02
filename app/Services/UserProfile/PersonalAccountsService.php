@@ -12,6 +12,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
@@ -55,49 +56,23 @@ class PersonalAccountsService
             ? (float) ($user->annual_charitable_donations ?? 0) * 1.25
             : 0.0;
 
-        // Calculate income line items
+        // Income lines from the Income page's parts (IncomeDefinitionsService;
+        // CSJ 2026-10-02, one income figure), so the total is the Income page's
+        // total: rent is the rental profit, and share-scheme vests are listed.
+        $parts = app(IncomeDefinitionsService::class)->calculateFor($user)['components'];
         $income = [
-            [
-                'line_item' => 'Employment Income',
-                'category' => 'income',
-                'amount' => $user->annual_employment_income ?? 0,
-            ],
-            [
-                'line_item' => 'Self-Employment Income',
-                'category' => 'income',
-                'amount' => $user->annual_self_employment_income ?? 0,
-            ],
-            [
-                'line_item' => 'Rental Income',
-                'category' => 'income',
-                'amount' => $user->annual_rental_income ?? 0,
-            ],
-            [
-                'line_item' => 'Dividend Income',
-                'category' => 'income',
-                'amount' => $user->annual_dividend_income ?? 0,
-            ],
-            [
-                'line_item' => 'Interest Income',
-                'category' => 'income',
-                'amount' => $user->annual_interest_income ?? 0,
-            ],
-            [
-                'line_item' => 'Pension Income',
-                'category' => 'income',
-                'amount' => $pensionIncome,
-            ],
-            [
-                'line_item' => 'Trust Income',
-                'category' => 'income',
-                'amount' => $user->annual_trust_income ?? 0,
-            ],
-            [
-                'line_item' => 'Other Income',
-                'category' => 'income',
-                'amount' => $user->annual_other_income ?? 0,
-            ],
+            ['line_item' => 'Employment Income', 'category' => 'income', 'amount' => (float) $parts['employment']],
+            ['line_item' => 'Self-Employment Income', 'category' => 'income', 'amount' => (float) $parts['self_employment']],
+            ['line_item' => 'Rental Income', 'category' => 'income', 'amount' => (float) $parts['rental']],
+            ['line_item' => 'Dividend Income', 'category' => 'income', 'amount' => (float) $parts['dividend']],
+            ['line_item' => 'Interest Income', 'category' => 'income', 'amount' => (float) $parts['interest']],
+            ['line_item' => 'Pension Income', 'category' => 'income', 'amount' => (float) $parts['pension_income']],
+            ['line_item' => 'Trust Income', 'category' => 'income', 'amount' => (float) $parts['trust']],
+            ['line_item' => 'Other Income', 'category' => 'income', 'amount' => (float) $parts['other']],
         ];
+        if ((float) ($parts['vesting'] ?? 0) > 0) {
+            $income[] = ['line_item' => 'Share Scheme Vests', 'category' => 'income', 'amount' => (float) $parts['vesting']];
+        }
 
         $totalIncome = collect($income)->sum('amount');
 
@@ -143,7 +118,7 @@ class PersonalAccountsService
         $taxBreakdown = $this->taxCalculator->calculateNetIncome(
             (float) ($user->annual_employment_income ?? 0),
             (float) ($user->annual_self_employment_income ?? 0),
-            (float) ($user->annual_rental_income ?? 0),
+            (float) $parts['rental'],
             (float) ($user->annual_dividend_income ?? 0),
             (float) ($user->annual_interest_income ?? 0),
             (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0) + $pensionIncome,

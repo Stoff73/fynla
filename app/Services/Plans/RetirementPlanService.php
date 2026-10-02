@@ -14,10 +14,13 @@ use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Stores\PensionStore;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Traits\ResolvesIncome;
 use Illuminate\Support\Collection;
 
 class RetirementPlanService extends BasePlanService
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly RetirementAgent $retirementAgent,
         private readonly PensionProjector $projector,
@@ -280,14 +283,8 @@ class RetirementPlanService extends BasePlanService
             ->map(fn ($child) => $child->name)
             ->toArray();
 
-        // Income
-        $grossIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        // Income: The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
+        $grossIncome = $this->resolveGrossAnnualIncome($user);
 
         $incomeData = $this->incomeAccessor->getForUser($user);
 

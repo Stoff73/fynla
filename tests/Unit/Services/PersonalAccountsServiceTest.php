@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\TaxConfiguration;
 use App\Models\User;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\UserProfile\PersonalAccountsService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -102,14 +103,14 @@ describe('calculateProfitAndLoss', function () {
 
         $result = $this->service->calculateProfitAndLoss($this->user, $startDate, $endDate);
 
-        $expectedIncome =
-            75000.00 + // employment
-            10000.00 + // self-employment
-            12000.00 + // rental
-            3000.00 +  // dividend
-            2000.00;   // other
+        // The Income page's total (IncomeDefinitionsService; CSJ 2026-10-02, one
+        // income figure). Rent is the rental profit from the property records,
+        // not the stored users column: this property records no rent, so the
+        // 12,000 typed into annual_rental_income is not income here.
+        $definitions = app(IncomeDefinitionsService::class)->calculate($this->user->id);
 
-        expect($result['total_income'])->toBe($expectedIncome);
+        expect($result['total_income'])->toEqual((float) $definitions['total_income'])
+            ->and((float) $definitions['total_income'])->toBe(90000.0);
     });
 
     it('includes all income line items', function () {

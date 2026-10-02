@@ -1216,15 +1216,14 @@ class RetirementStrategyService
      */
     private function getMarginalTaxRate(User $user): float
     {
-        // The rate of the band the user's income reaches, from tax config via
-        // the one band lookup (Rule 2) — not typed-in percentages.
-        $grossIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0);
-        if ($grossIncome <= (float) $this->taxConfig->getIncomeTax()['personal_allowance']) {
-            return 0.0;
-        }
+        // The rate of the band the Tax plan and Fyn find for the user, on the
+        // Income page's income (TaxStrategyMath::incomeTaxBandFor; CSJ
+        // 2026-10-02, one income figure), rates from tax config (Rule 2). This
+        // banded earnings alone, so a pension being paid never moved the rate.
+        $taxMath = app(TaxStrategyMath::class);
+        $band = $taxMath->incomeTaxBandFor($user);
 
-        return app(TaxStrategyMath::class)->bandRateFromIncome($grossIncome);
+        return $band === 'none' ? 0.0 : $taxMath->bandRateForBand($band);
     }
 
     /**

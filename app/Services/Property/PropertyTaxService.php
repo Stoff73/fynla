@@ -6,6 +6,7 @@ namespace App\Services\Property;
 
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 
 class PropertyTaxService
@@ -115,7 +116,6 @@ class PropertyTaxService
     {
         // Get CGT configuration from service
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
-        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
 
         $purchasePrice = $property->purchase_price ?? 0;
         $sdltPaid = $property->sdlt_paid ?? 0;
@@ -130,22 +130,14 @@ class PropertyTaxService
         $annualExemptAmount = $cgtConfig['annual_exempt_amount'];
         $taxableGain = (float) max(0, $gain - $annualExemptAmount);
 
-        // Determine CGT rate based on user's income
-        $totalIncome = $user->annual_employment_income +
-            $user->annual_self_employment_income +
-            $user->annual_rental_income +
-            $user->annual_dividend_income +
-            $user->annual_other_income;
-
-        // Get basic rate threshold from income tax config
-        $incomeTaxBands = $incomeTaxConfig['bands'];
-        $personalAllowance = $incomeTaxConfig['personal_allowance'];
-        $basicRateThreshold = $personalAllowance + $incomeTaxBands[0]['max'];
-
-        // Get CGT rates for residential property (stored as decimals, e.g., 0.18 for 18%)
-        $basicCgtRate = $cgtConfig['residential_property_basic_rate'] ?? $cgtConfig['basic_rate'] ?? 0.18;
-        $higherCgtRate = $cgtConfig['residential_property_higher_rate'] ?? $cgtConfig['higher_rate'] ?? 0.24;
-        $cgtRate = $totalIncome > $basicRateThreshold ? $higherCgtRate : $basicCgtRate;
+        // CGT rate from the user's band as the Tax plan and Fyn find it
+        // (TaxStrategyMath::incomeTaxBandFor, on the Income page's income;
+        // CSJ 2026-10-02, one income figure). Residential property rates from
+        // tax config (Rule 2).
+        $band = app(TaxStrategyMath::class)->incomeTaxBandFor($user);
+        $basicCgtRate = (float) $cgtConfig['residential_property_basic_rate'];
+        $higherCgtRate = (float) $cgtConfig['residential_property_higher_rate'];
+        $cgtRate = in_array($band, ['higher', 'additional'], true) ? $higherCgtRate : $basicCgtRate;
         $cgtLiability = $taxableGain * $cgtRate;
 
         $effectiveRate = $gain > 0 ? ($cgtLiability / $gain) * 100 : 0;
@@ -202,33 +194,12 @@ class PropertyTaxService
         // Calculate taxable profit (cannot deduct mortgage interest directly)
         $taxableProfit = max(0, $actualIncome - $allowableExpenses);
 
-        // Determine user's marginal tax rate
-        $totalIncome = $user->annual_employment_income +
-            $user->annual_self_employment_income +
-            $user->annual_rental_income +
-            $user->annual_dividend_income +
-            $user->annual_other_income;
-
-        // Get tax bands and thresholds from config
-        $personalAllowance = $incomeTaxConfig['personal_allowance'];
-        $bands = $incomeTaxConfig['bands'];
-
-        // Absolute thresholds — prefer top-level aliases (derived from bands[i].upper_limit).
-        // The legacy `PA + bands[1].max` was wrong because bands[1].max stores the absolute
-        // £125,140 additional-rate threshold rather than a band width. Audit finding #5.
-        $basicRateThreshold = (float) ($incomeTaxConfig['higher_rate_threshold']
-            ?? ($personalAllowance + $bands[0]['max']));
-        $higherRateThreshold = (float) ($incomeTaxConfig['additional_rate_threshold']
-            ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max'])));
-
-        $marginalTaxRate = 0;
-        if ($totalIncome > $higherRateThreshold) {
-            $marginalTaxRate = $bands[2]['rate'] * 100; // Additional rate
-        } elseif ($totalIncome > $basicRateThreshold) {
-            $marginalTaxRate = $bands[1]['rate'] * 100; // Higher rate
-        } elseif ($totalIncome > $personalAllowance) {
-            $marginalTaxRate = $bands[0]['rate'] * 100; // Basic rate
-        }
+        // The user's marginal rate: the band the Tax plan and Fyn use
+        // (TaxStrategyMath::incomeTaxBandFor, on the Income page's income;
+        // CSJ 2026-10-02, one income figure), its rate from tax config.
+        $taxMath = app(TaxStrategyMath::class);
+        $band = $taxMath->incomeTaxBandFor($user);
+        $marginalTaxRate = $band === 'none' ? 0 : $taxMath->bandRateForBand($band) * 100;
 
         // Tax liability before mortgage interest credit
         $taxBeforeCredit = $taxableProfit * ($marginalTaxRate / 100);
