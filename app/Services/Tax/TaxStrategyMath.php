@@ -258,18 +258,8 @@ final class TaxStrategyMath
 
     public function personalAllowanceForIncome(float $adjustedNetIncome): float
     {
-        $income = $this->taxConfig->getIncomeTax();
-        $full = (float) $income['personal_allowance'];
-        $threshold = (float) $income['personal_allowance_taper_threshold'];
-
-        if ($adjustedNetIncome <= $threshold) {
-            return $full;
-        }
-
-        // £1 of allowance for every £(1 / taper rate) over, from config (Rule 2).
-        $taperRate = (float) $income['personal_allowance_taper_rate'];
-
-        return max(0.0, $full - floor(($adjustedNetIncome - $threshold) * $taperRate));
+        // The one home for the ITA 2007 s35 taper (CSJ 2026-10-01; audit item 43).
+        return IncomeTaxBands::taperedPersonalAllowance($this->taxConfig->getIncomeTax(), $adjustedNetIncome);
     }
 
     public function moneyPurchaseAnnualAllowanceApplies(User $user): bool
@@ -284,20 +274,8 @@ final class TaxStrategyMath
     public function effectiveAnnualAllowanceFor(User $user): float
     {
         $pension = $this->taxConfig->getPensionAllowances();
-        $allowance = (float) $pension['annual_allowance'];
-        $taper = $pension['tapered_annual_allowance'] ?? [];
-        $thresholdLimit = (float) $taper['threshold_income'];
-        $adjustedLimit = (float) $taper['adjusted_income_threshold'];
-        $minimum = (float) $taper['minimum_allowance'];
-        $rate = (float) $taper['taper_rate'];
-        $thresholdIncome = $this->thresholdIncomeFor($user);
-        $adjustedIncome = $this->adjustedIncomeFor($user);
-        if ($thresholdIncome > $thresholdLimit && $adjustedIncome > $adjustedLimit) {
-            $allowance = max(
-                $minimum,
-                $allowance - floor(($adjustedIncome - $adjustedLimit) * $rate),
-            );
-        }
+        // The one home for the FA 2004 s228ZA taper (CSJ 2026-10-01; audit item 42).
+        $allowance = AnnualAllowanceTaper::allowance($pension, $this->thresholdIncomeFor($user), $this->adjustedIncomeFor($user));
 
         if ($this->moneyPurchaseAnnualAllowanceApplies($user)) {
             $allowance = min(
