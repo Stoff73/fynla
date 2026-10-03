@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\KycGateChecker;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\UserProfile\UserProfileService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -87,4 +88,29 @@ it('names the band the Tax plan uses, with the rate from tax config', function (
     $profile = app(AdvicePromptBuilder::class)->buildUserProfile($user->fresh());
 
     expect($profile)->toContain('- Estimated income tax band: Higher rate (40%)');
+});
+
+// Walked 2026-10-03: asked "how much tax do I pay?", Fyn added the parts up to
+// a total of its own (no salary sacrifice line) and priced the tax at 20% and
+// 40% by hand. The context now carries the deduction and the Income page's own
+// Income Tax, National Insurance and take-home.
+it('gives Fyn the salary sacrifice and the Income page\'s tax, National Insurance and take-home', function () {
+    $user = User::factory()->create([
+        'date_of_birth' => now()->subYears(40),
+        'annual_employment_income' => 50000,
+        'annual_self_employment_income' => 0,
+        'annual_rental_income' => 0,
+        'annual_dividend_income' => 2000,
+        'annual_interest_income' => 0,
+        'annual_other_income' => 0,
+        'annual_trust_income' => 0,
+    ]);
+    $tab = app(UserProfileService::class)->incomeAndTaxFor($user->fresh());
+
+    $profile = app(AdvicePromptBuilder::class)->buildUserProfile($user->fresh());
+
+    expect($profile)->toContain('- Income Tax this year (the Income page\'s figure; quote it, never work it out again): £'.number_format((float) $tab['income_tax'], 2))
+        ->and($profile)->toContain('- National Insurance this year (the Income page\'s figure): £'.number_format((float) $tab['national_insurance'], 2))
+        ->and($profile)->toContain('- Take-home after Income Tax and National Insurance (the Income page\'s figure): £'.number_format((float) $tab['net_income'], 2))
+        ->and((float) $tab['income_tax'])->toBeGreaterThan(0.0);
 });
