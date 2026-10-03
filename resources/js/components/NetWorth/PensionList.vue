@@ -144,9 +144,9 @@
                         <span>Annual Pension</span>
                         <span class="font-semibold">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}</span>
                       </div>
-                      <div v-if="statePension.state_pension_age" class="guaranteed-detail-row">
+                      <div v-if="statePension.resolved_state_pension_age_label" class="guaranteed-detail-row">
                         <span>State Pension Age</span>
-                        <span class="font-semibold">{{ statePension.state_pension_age }}</span>
+                        <span class="font-semibold">{{ statePension.resolved_state_pension_age_label }}</span>
                       </div>
                       <div v-if="statePension.ni_years" class="guaranteed-detail-row">
                         <span>National Insurance Years</span>

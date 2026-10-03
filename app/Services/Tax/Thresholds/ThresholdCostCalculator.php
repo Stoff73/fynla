@@ -111,28 +111,20 @@ final class ThresholdCostCalculator
      * Salary as the definitions actually count it. Share vests are published beside
      * this figure rather than inside it, so the strip can name each.
      *
-     * `components.employment` is the recorded figure, untouched. Where the user records
-     * pay BEFORE salary sacrifice, `IncomeDefinitionsService` takes the sacrificed
-     * amount off total income on the way to every definition, but leaves the component
-     * as recorded — so running the calculator over the raw component puts its internal
-     * adjusted net income above `$context->adjustedNetIncome()` by the sacrificed
-     * amount, and prices the excess against a personal allowance the user does not have.
-     * Sacrificed pay is never the employee's income (W-0204), so it comes off here too.
-     *
-     * `post_sacrifice` means the recorded figure already excludes it, and `null` means
-     * the question does not arise because nothing is sacrificed. Only `gross` and the
-     * stated-assumption `assumed_gross` need the correction.
+     * `components.employment` is the pay before salary sacrifice, whichever way the
+     * user recorded it (IncomeDefinitionsService adds the sacrifice back to pay
+     * recorded after it). Sacrificed pay is never the employee's income (W-0204),
+     * so it comes off here, once, as it does on the way to every definition.
      *
      * @param  array<string, float>  $components
      */
     private function employment(ThresholdContext $context, array $components): float
     {
-        $employment = (float) ($components['employment'] ?? 0);
-
-        $basis = $context->definitions['employment_income_basis'] ?? null;
-        if ($basis === 'gross' || $basis === 'assumed_gross') {
-            $employment -= (float) ($context->definitions['deductions']['salary_sacrificed'] ?? 0);
-        }
+        // The employment part is always the pay before the sacrifice
+        // (IncomeDefinitionsService, CSJ 2026-10-03: one gross figure), so the
+        // sacrifice comes off whichever way the pay was recorded.
+        $employment = (float) ($components['employment'] ?? 0)
+            - (float) ($context->definitions['deductions']['salary_sacrificed'] ?? 0);
 
         return max(0.0, $employment);
     }

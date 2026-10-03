@@ -302,9 +302,8 @@ class RetirementProjectionService
             $dcDrawdown = $remainingFund > 0 ? $remainingFund * $sustainableWithdrawalRate : 0;
 
             // State pension may start at a different age
-            $statePensionThisYear = $age >= $this->statePensionAge->forUser($user)
-                ? $statePensionIncome
-                : 0;
+            // From the month it is reached: part of the year it is reached in.
+            $statePensionThisYear = $statePensionIncome * $this->statePensionAge->fractionPaidAtAge($user, $age);
 
             // Total income for this year
             $totalIncome = $dcDrawdown + $dbAnnualIncome + $statePensionThisYear;
@@ -672,9 +671,8 @@ class RetirementProjectionService
             }
 
             // State pension may start at a different age
-            $statePensionThisYear = $age >= $this->statePensionAge->forUser($user)
-                ? $statePensionIncome
-                : 0;
+            // From the month it is reached: part of the year it is reached in.
+            $statePensionThisYear = $statePensionIncome * $this->statePensionAge->fractionPaidAtAge($user, $age);
 
             // Calculate how much DC drawdown is needed to reach target
             $incomeFromGuaranteed = $dbAnnualIncome + $statePensionThisYear;

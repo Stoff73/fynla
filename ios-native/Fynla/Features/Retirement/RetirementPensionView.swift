@@ -145,7 +145,7 @@ struct RetirementPensionView: View {
                 projectionRow("Monthly contribution", money(product.monthlyContribution), divider: true)
                 projectionRow("Planning value at retirement", money(product.projectedValue), divider: true)
                 projectionRow(
-                    "Projected income from age \(product.commencementAge)",
+                    "Projected income from age \(product.commencementAgeLabel ?? String(product.commencementAge))",
                     "\(MoneyFormatter.gbpWhole(product.annualIncome)) a year",
                     divider: false
                 )
@@ -234,7 +234,7 @@ struct RetirementPensionView: View {
                 ("Forecast weekly amount", "\(MoneyFormatter.gbp(weekly)) a week"),
                 ("Annual forecast", MoneyFormatter.gbpWhole(pension.annualForecast)),
                 ("Qualifying years", "\(pension.niYearsCompleted ?? 0) of \(pension.niYearsForFullPension.map(String.init) ?? "—")"),
-                ("State Pension age", pension.resolvedStatePensionAge.map(String.init) ?? "—"),
+                ("State Pension age", pension.resolvedStatePensionAgeLabel ?? pension.resolvedStatePensionAge.map(String.init) ?? "—"),
             ])
         }
     }

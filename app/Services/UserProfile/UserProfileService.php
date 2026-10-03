@@ -22,6 +22,7 @@ use App\Services\Gamification\PointsService;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Property\PropertyService;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
@@ -33,6 +34,7 @@ use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 
 class UserProfileService
 {
@@ -338,9 +340,81 @@ class UserProfileService
      * changed is that the code now performs it — see ResolvesIncome, which is the
      * one implementation the three copies of this function collapsed into (W-0036).
      */
-    private function calculateAnnualPensionIncome(User $user): float
+    /**
+     * How much National Insurance still applies this tax year, from the day
+     * State Pension age is reached (to the month, Pensions Act 1995 Sch 4):
+     * - Class 1, the share of the year's pay received before that day: none is
+     *   due on pay received on or after it (SSCBA 1992 s6(3),
+     *   https://www.legislation.gov.uk/ukpga/1992/4/section/6). Counted in the
+     *   user's paydays when recorded, otherwise in days;
+     * - Class 4, all of it unless that day fell before the tax year began
+     *   (https://www.gov.uk/national-insurance/what-national-insurance-is).
+     * With no date of birth, both apply in full.
+     *
+     * The third item is the sentence the tax card prints under Class 1 when
+     * only part of the year is liable, so every surface says the same.
+     *
+     * @return array{0: float, 1: bool, 2: ?string}
+     */
+    private function nationalInsuranceApplies(User $user): array
     {
-        return $this->resolvePensionIncomeInPayment($user);
+        $resolver = app(StatePensionAgeResolver::class);
+        $reached = $resolver->dateForUser($user);
+        $from = $this->taxConfig->getEffectiveFrom();
+        if ($reached === null || $from === '') {
+            return [1.0, true, null];
+        }
+
+        $start = CarbonImmutable::parse($from)->startOfDay();
+        $to = $this->taxConfig->getEffectiveTo();
+        $end = $to !== '' ? CarbonImmutable::parse($to)->startOfDay() : $start->addYear()->subDay();
+
+        [$share, $basis] = $this->class1Share($reached, $start, $end, $user->payday_day_of_month);
+        $note = $share > 0 && $share < 1
+            ? 'Only pay received before your State Pension age ('.$resolver->labelForUser($user).', on '
+                .$reached->format('j F Y').') is charged: '.$basis.'.'
+            : null;
+
+        return [$share, ! $reached->lt($start), $note];
+    }
+
+    /**
+     * The share of the tax year's pay received before $reached, and how it
+     * was counted ("8 of this tax year's 12 paydays").
+     *
+     * @return array{0: float, 1: string}
+     */
+    private function class1Share(CarbonImmutable $reached, CarbonImmutable $start, CarbonImmutable $end, mixed $payday): array
+    {
+        if ($reached->lte($start)) {
+            return [0.0, ''];
+        }
+        if ($reached->gt($end)) {
+            return [1.0, ''];
+        }
+
+        $day = (int) $payday;
+        if ($day >= 1 && $day <= 31) {
+            $paydays = 0;
+            $liable = 0;
+            for ($month = $start->startOfMonth(); $month->lte($end); $month = $month->addMonthNoOverflow()) {
+                $date = $month->setDay(min($day, $month->daysInMonth));
+                if ($date->lt($start) || $date->gt($end)) {
+                    continue;
+                }
+                $paydays++;
+                $liable += $date->lt($reached) ? 1 : 0;
+            }
+
+            return $paydays > 0
+                ? [$liable / $paydays, $liable.' of this tax year\'s '.$paydays.' paydays']
+                : [1.0, ''];
+        }
+
+        $days = (int) $start->diffInDays($reached);
+        $yearDays = (int) $start->diffInDays($end->addDay());
+
+        return [$days / $yearDays, $days.' of the '.$yearDays.' days of this tax year'];
     }
 
     /**
@@ -360,30 +434,6 @@ class UserProfileService
             ->first();
 
         return $primaryTrust?->trust_type;
-    }
-
-    /**
-     * Calculate annual employee pension contributions from occupational pensions.
-     * These are contributions from salary (workplace pensions) that are deducted before tax.
-     */
-    private function calculateAnnualPensionContributions(User $user): float
-    {
-        $totalContributions = 0.0;
-        // The onboarding form captures a percentage without a scheme salary, so
-        // the user's employment income stands in (as in IncomeDefinitionsService).
-        $salary = (float) ($user->annual_employment_income ?? 0);
-
-        foreach ($user->dcPensions as $pension) {
-            // Only workplace (net pay) contributions come out of pay before tax
-            // (FA 2004 s193(2)); a personal pension is relief at source (s192).
-            if (! PensionContributionRule::isWorkplace($pension)) {
-                continue;
-            }
-
-            $totalContributions += PensionContributionRule::monthlyEmployee($pension, $salary) * 12;
-        }
-
-        return $totalContributions;
     }
 
     /**
@@ -418,7 +468,7 @@ class UserProfileService
         $sources['employer'] = $person->employer ?: null;
         $sources['occupation'] = $person->occupation ?: null;
         $sources['sources'] = collect($sourceDefinitions)
-            ->map(function (array $labels, string $key) use ($components, $ownership, $person): array {
+            ->map(function (array $labels, string $key) use ($components, $ownership, $person, $definition): array {
                 $detail = null;
                 if ($key === 'employment' || $key === 'self_employment') {
                     // Every job, not just the most recent: the amount beside
@@ -431,6 +481,10 @@ class UserProfileService
                             ->implode(' · '))
                         ->filter()
                         ->implode(', ') ?: null;
+                }
+                // Interest nobody recorded is what the accounts pay: say so.
+                if ($key === 'interest' && $definition['interest_basis'] === 'estimated') {
+                    $detail = 'worked out from the savings accounts';
                 }
 
                 return [
@@ -447,6 +501,21 @@ class UserProfileService
             ->filter(fn (array $source): bool => $source['amount'] > 0)
             ->values()
             ->all();
+        // Pay given up under salary sacrifice comes off the gross pay above before
+        // tax and National Insurance, so the rows add up to the total.
+        $sacrificed = (float) $definition['deductions']['salary_sacrificed'];
+        if ($sacrificed > 0) {
+            $sources['sources'][] = [
+                'key' => 'salary_sacrifice',
+                'label' => 'Salary sacrifice',
+                'amount' => -$sacrificed,
+                'frequency' => 'annual',
+                'ownership' => $ownership,
+                'ownership_label' => $ownership === 'spouse' ? 'Your spouse' : 'You',
+                'detail' => 'paid into the pension before tax and National Insurance',
+                'tax_position' => 'Not taxable income',
+            ];
+        }
         $allowances = $definition['adjusted_allowances'];
         $sources['tax_position'] = [
             'total_income' => (float) $definition['total_income'],
@@ -619,66 +688,65 @@ class UserProfileService
     private function buildIncomeOccupation(User $user): array
     {
         $rentalBreakdown = $this->calculateAnnualRentalIncome($user);
-        $rentalIncome = $rentalBreakdown['total'];
         $section24Credit = $rentalBreakdown['section_24_credit'];
-        $pensionIncome = $this->calculateAnnualPensionIncome($user);
-        $pensionContributions = $this->calculateAnnualPensionContributions($user);
 
-        $employmentIncome = (float) ($user->annual_employment_income ?? 0);
-        $selfEmploymentIncome = (float) ($user->annual_self_employment_income ?? 0);
-        $dividendIncome = (float) ($user->annual_dividend_income ?? 0);
-        $interestIncome = (float) ($user->annual_interest_income ?? 0);
-        $trustIncome = (float) ($user->annual_trust_income ?? 0);
-        $otherIncome = (float) ($user->annual_other_income ?? 0);
+        // Every part from the Income page (IncomeDefinitionsService; CSJ
+        // 2026-10-02, one income figure), so the tax below is worked out on the
+        // income the page lists: interest worked out from the savings accounts
+        // when none is recorded, other income and share-scheme vests included.
+        $definitions = $this->incomeDefinitions->calculateFor($user);
+        $parts = $definitions['components'];
+        // Workplace net-pay contributions (off pay before tax, FA 2004 s193(2))
+        // and pay given up under salary sacrifice (off before tax and National
+        // Insurance), from the same service, so each is deducted once.
+        $pensionContributions = (float) $definitions['deductions']['employee_pension_contributions'];
+        $salarySacrificed = (float) $definitions['deductions']['salary_sacrificed'];
+        $rentalIncome = (float) $parts['rental'];
+        $pensionIncome = (float) $parts['pension_income'];
 
         // Get primary trust type if user has trusts (for correct tax treatment)
         $trustType = $this->getPrimaryTrustType($user);
 
-        // The Income page's total (IncomeDefinitionsService; CSJ 2026-10-02, one
-        // income figure): the same parts as below, plus share-scheme vests.
-        $totalAnnualIncome = $this->resolveGrossAnnualIncome($user);
+        $totalAnnualIncome = (float) $definitions['total_income'];
+        [$class1Share, $class4Applies, $class1Note] = $this->nationalInsuranceApplies($user);
 
-        // Get detailed tax breakdown (new method with per-income breakdowns)
         $detailedTax = $this->taxCalculator->calculateDetailedNetIncome(
-            $employmentIncome,
-            $selfEmploymentIncome,
-            $rentalIncome,
-            $pensionIncome,
-            $trustIncome,
-            $interestIncome,
-            $dividendIncome,
-            $trustType,
-            $pensionContributions,
-            $section24Credit,
+            employmentIncome: (float) $parts['employment'],
+            selfEmploymentIncome: (float) $parts['self_employment'],
+            rentalIncome: $rentalIncome,
+            pensionIncome: $pensionIncome,
+            trustIncome: (float) $parts['trust'],
+            interestIncome: (float) $parts['interest'],
+            dividendIncome: (float) $parts['dividend'],
+            trustType: $trustType,
+            pensionContributions: $pensionContributions,
+            section24Credit: $section24Credit,
             // W-0511 — given at s23 Step 3, so it belongs to the tax calculation and
             // to nothing upstream of it.
-            $this->taxConfig->blindPersonsAllowanceFor($user)
+            blindPersonsAllowance: $this->taxConfig->blindPersonsAllowanceFor($user),
+            otherIncome: (float) $parts['other'],
+            shareVestIncome: (float) $parts['vesting'],
+            class1Share: $class1Share,
+            class4Applies: $class4Applies,
+            // Gift Aid and relief-at-source pension payments, gross: they extend
+            // the bands rather than coming off income (ITA 2007 s414, FA 2004
+            // s192(4)), as TaxStrategyMath::incomeTaxLiability prices them.
+            bandExtension: (float) $definitions['deductions']['gift_aid_gross']
+                + (float) $definitions['deductions']['relief_at_source_gross'],
+            salarySacrifice: $salarySacrificed,
         );
-
-        // Get simple calculation for backwards compatibility. Pension contributions
-        // reduce taxable earned income and ANI for PA taper; grossed-up Gift Aid
-        // reduces ANI only.
-        $giftAidGross = $user->is_gift_aid
-            ? (float) ($user->annual_charitable_donations ?? 0) * 1.25
-            : 0.0;
-        $simpleTax = $this->taxCalculator->calculateNetIncome(
-            $employmentIncome,
-            $selfEmploymentIncome,
-            $rentalIncome,
-            $dividendIncome,
-            $interestIncome,
-            $trustIncome + $pensionIncome + $otherIncome,
-            $pensionContributions,
-            $giftAidGross,
-            // W-0511 — the simple path must reach the same figure as the detailed one.
-            $this->taxConfig->blindPersonsAllowanceFor($user)
-        );
+        $taxSummary = $detailedTax['summary'];
+        foreach ($detailedTax['income_breakdowns'] as $i => $card) {
+            if ($class1Note !== null && isset($card['ni_breakdown']['class_1'])) {
+                $detailedTax['income_breakdowns'][$i]['ni_breakdown']['class_1']['state_pension_age_note'] = $class1Note;
+            }
+        }
 
         // Calculate expenditure once (includes financial commitments to match Expenditure tab)
         $expenditureBreakdown = $this->getExpenditureBreakdown($user);
         $annualExpenditure = $expenditureBreakdown['annual'];
         $monthlyExpenditure = $expenditureBreakdown['monthly'];
-        $netIncome = $detailedTax['summary']['net_income'];
+        $netIncome = $taxSummary['net_income'];
 
         // Calculate Child Benefit and HICBC
         $childBenefitPosition = $this->childBenefitService->calculateChildBenefitPosition($user, $totalAnnualIncome);
@@ -696,24 +764,34 @@ class UserProfileService
             'annual_rental_income' => $rentalIncome,
             'annual_dividend_income' => $user->annual_dividend_income,
             'annual_interest_income' => $user->annual_interest_income,
+            // Whether the interest taxed below (income_parts.interest) is the
+            // figure recorded or worked out from the savings accounts.
+            'interest_basis' => $definitions['interest_basis'],
+            // Each part the tax below is worked out on (the Income page's
+            // components), so a reader lists these rather than its own sums.
+            'income_parts' => $parts,
             'annual_trust_income' => $user->annual_trust_income,
             'annual_other_income' => $user->annual_other_income,
             'annual_pension_income' => $pensionIncome,
+            // The user's answer to "is that pay before or after salary sacrifice?":
+            // the web form starts from this, so leaving it out made every save
+            // write null over the answer.
+            'employment_income_basis' => $user->employment_income_basis,
             'annual_pension_contributions' => $pensionContributions,
+            'annual_salary_sacrificed' => $salarySacrificed,
             'total_annual_income' => $totalAnnualIncome,
-            // Backwards compatible fields from simple calculation
-            'gross_income' => $simpleTax['gross_income'],
-            'income_tax' => $simpleTax['income_tax'],
-            'national_insurance' => $simpleTax['national_insurance'],
-            'total_deductions' => $simpleTax['total_deductions'],
+            // The same calculation as `net_income`: one engine for this section.
+            'gross_income' => $taxSummary['total_gross_income'],
+            'income_tax' => $taxSummary['total_income_tax'],
+            'national_insurance' => $taxSummary['total_national_insurance'],
+            'total_deductions' => $taxSummary['total_deductions'],
             // Total income less income tax and National Insurance, plus any
             // Section 24 credit. Employee pension contributions are NOT deducted
             // here — they reduce the tax, not this figure — and the comment that
             // used to sit on this line said they were (W-0422). The label on the
             // Income tab now states the same three deductions this makes.
             'net_income' => $netIncome,
-            'effective_tax_rate' => $simpleTax['effective_tax_rate'],
-            'breakdown' => $simpleTax['breakdown'],
+            'effective_tax_rate' => $taxSummary['effective_tax_rate'],
             // Expenditure and disposable income (includes financial commitments to match Expenditure tab)
             'expenditure_breakdown' => $expenditureBreakdown,
             'annual_expenditure' => $annualExpenditure,
@@ -1046,6 +1124,13 @@ class UserProfileService
             // month", so a percentage-only record is no longer invisible to the
             // spending side. `monthly_contribution_amount > 0` was the whole gate.
             $monthlyContribution = PensionContributionRule::monthlyEmployee($pension);
+
+            // Salary sacrifice is pay never received: it comes off before tax and
+            // National Insurance, so take-home already excludes it, and counting it
+            // here as well took it off twice (CSJ 2026-10-03, one gross figure).
+            if ($pension->salary_sacrifice && PensionContributionRule::isWorkplace($pension)) {
+                continue;
+            }
 
             if ($monthlyContribution > 0) {
                 // Apply ownership filter - DC pensions are always individual

@@ -147,13 +147,12 @@ class RetirementAgent extends BaseAgent
                 }
 
                 $targetIncome = (float) $profile->target_retirement_income;
-                $statePensionAge = $this->statePensionAge->forUser($user);
                 $retirementAge = $profile->target_retirement_age;
 
                 // Income at retirement: only include state pension if retiring at or after SPA
                 $incomeAtRetirement = ($incomeProjection['dc_annual_income'] ?? 0)
                     + ($incomeProjection['db_annual_income'] ?? 0);
-                $retiresBeforeSPA = $retirementAge < $statePensionAge;
+                $retiresBeforeSPA = $this->statePensionAge->isBeforeStatePensionAge($user, (int) $retirementAge);
                 $statePensionIncome = $incomeProjection['state_pension_income'] ?? 0;
 
                 if (! $retiresBeforeSPA) {
@@ -182,7 +181,9 @@ class RetirementAgent extends BaseAgent
                     'target_retirement_income' => $targetIncome,
                     'income_gap' => $incomeGap,
                     'retires_before_spa' => $retiresBeforeSPA,
-                    'state_pension_age' => $statePensionAge,
+                    'state_pension_age' => $this->statePensionAge->forUser($user),
+                    // To the month, for every surface's words (Pensions Act 1995 Sch 4).
+                    'state_pension_age_label' => $this->statePensionAge->labelForUser($user),
                     'state_pension_income' => $statePensionIncome,
                     'income_after_spa' => $retiresBeforeSPA ? $incomeAfterSPA : null,
                     'income_gap_after_spa' => $retiresBeforeSPA ? $incomeGapAfterSPA : null,
@@ -426,6 +427,7 @@ class RetirementAgent extends BaseAgent
             // the cohort schedule, so they still cannot drift and neither hardcodes an
             // age that changes with the user's year of birth.
             'state_pension_age' => $this->statePensionAge->forUser($user),
+            'state_pension_age_label' => $this->statePensionAge->labelForUser($user),
             'state_pension_income' => $incomeProjection['state_pension_income'] ?? 0,
             'current_dc_value' => (float) $dcPensions->sum('current_fund_value'),
             'total_dc_value' => $incomeProjection['dc_total_value'] ?? 0,

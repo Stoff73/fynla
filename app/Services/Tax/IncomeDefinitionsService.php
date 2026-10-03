@@ -7,11 +7,15 @@ namespace App\Services\Tax;
 use App\Models\User;
 use App\Services\Property\PropertyService;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Support\SavingsInterestRate;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
 
 class IncomeDefinitionsService
 {
+    use CalculatesOwnershipShare;
     use ResolvesIncome;
 
     public function __construct(
@@ -71,8 +75,15 @@ class IncomeDefinitionsService
             ? ($user->employment_income_basis ?? 'gross')
             : null;
 
-        if ($basis === 'gross') {
-            $totalIncome = max(0.0, $totalIncome - $sacrificed);
+        // One gross pay figure everywhere (CSJ 2026-10-03): the employment part is
+        // the pay BEFORE the sacrifice whichever way it was recorded, and the
+        // sacrifice comes off it once, here, as its own deduction. Pay recorded
+        // after the sacrifice ('post_sacrifice') has it added back for the gross.
+        if ($basis === 'post_sacrifice') {
+            $components['employment'] = round($components['employment'] + $sacrificed, 2);
+        }
+        if ($sacrificed > 0) {
+            $totalIncome = max(0.0, array_sum($components) - $sacrificed);
         }
 
         $netIncome = $totalIncome - $pensionRelief;
@@ -161,6 +172,10 @@ class IncomeDefinitionsService
             'threshold_income' => round($thresholdIncome, 2),
             'adjusted_income' => round($adjustedIncome, 2),
             'components' => $components,
+            // Whether `components.interest` is the figure the user recorded
+            // ('recorded'), worked out from their savings accounts ('estimated'),
+            // or there is none (null), so every surface can say which.
+            'interest_basis' => $this->interestBasis($user, (float) $components['interest']),
             // Pension input amount (FA 2004 s233(1)): everything paid in by or for
             // the member this year — net-pay employee contributions, relief-at-source
             // payments gross of the basic-rate relief the provider claims (s192), and
@@ -212,7 +227,7 @@ class IncomeDefinitionsService
             'self_employment' => round((float) ($user->annual_self_employment_income ?? 0), 2),
             'rental' => round($this->calculateRentalIncome($user), 2),
             'dividend' => round((float) ($user->annual_dividend_income ?? 0), 2),
-            'interest' => round((float) ($user->annual_interest_income ?? 0), 2),
+            'interest' => round($this->interestIncome($user), 2),
             'other' => round((float) ($user->annual_other_income ?? 0), 2),
             'trust' => round((float) ($user->annual_trust_income ?? 0), 2),
             'pension_income' => round($this->calculatePensionIncome($user), 2),
@@ -222,6 +237,54 @@ class IncomeDefinitionsService
             // salary. ponytail: no per-account include flag; add one on a double-count report.
             'vesting' => $user->exists ? $this->vests->annualVestIncome($user) : 0.0,
         ];
+    }
+
+    /**
+     * The year's savings interest: the figure the user recorded, or, when none
+     * is recorded, what their accounts pay (estimatedAnnualInterest). Interest
+     * is taxable as it arises (ITTOIA 2005 s369,
+     * https://www.legislation.gov.uk/ukpga/2005/5/section/369), and Fyn's
+     * setup records accounts and their rates without ever asking for a yearly
+     * interest figure, so a missing figure means "not asked", not "none". The
+     * Tax plan already worked it out this way while the Income page counted
+     * £0 (CSJ 2026-10-02, one income figure): this is now the one home.
+     */
+    private function interestIncome(User $user): float
+    {
+        $recorded = (float) ($user->annual_interest_income ?? 0);
+
+        return $recorded > 0 ? $recorded : $this->estimatedAnnualInterest($user);
+    }
+
+    private function interestBasis(User $user, float $interest): ?string
+    {
+        if ($interest <= 0) {
+            return null;
+        }
+
+        return (float) ($user->annual_interest_income ?? 0) > 0 ? 'recorded' : 'estimated';
+    }
+
+    /**
+     * What the user's non-ISA savings accounts pay in a year: each balance at
+     * the user's share times its recorded rate. ISA interest is exempt (ITTOIA
+     * 2005 s694, https://www.legislation.gov.uk/ukpga/2005/5/section/694);
+     * interest on a joint account between spouses is split by beneficial share,
+     * equal unless declared otherwise (ITA 2007 s836,
+     * https://www.legislation.gov.uk/ukpga/2007/3/section/836), so a joint
+     * account counts the user's share, never the whole balance.
+     */
+    public function estimatedAnnualInterest(User $user): float
+    {
+        // An unsaved model holds no savings accounts.
+        if (! $user->exists) {
+            return 0.0;
+        }
+
+        return (float) app(SavingsStore::class)->forUser($user)
+            ->where('is_isa', false)
+            ->sum(fn ($account): float => $this->calculateUserShare($account, (int) $user->id)
+                * SavingsInterestRate::fraction($account->interest_rate));
     }
 
     /**

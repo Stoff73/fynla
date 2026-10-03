@@ -13,6 +13,7 @@ use App\Services\Retirement\RetirementDrawdownPosition;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Shared\MonteCarloEngine;
 use App\Services\Tax\TaxStrategyMath;
+use App\Services\UserProfile\UserProfileService;
 use Database\Seeders\ActuarialLifeTablesSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -237,6 +238,20 @@ describe('tax review fixes (2026-10-01)', function () {
             ->and($income['total'])->toEqualWithDelta($parts['non_savings'] + $parts['interest'] + $parts['dividends'] + $parts['trust'], 0.01);
     });
 
+    it('shows the Income tab\'s income, tax, National Insurance and take-home, never its own', function (): void {
+        // CSJ 2026-10-02: "retirement income is just one line in the possible incomes".
+        $pat = drawer(['employment_status' => 'employed', 'retirement_date' => null, 'annual_employment_income' => 12000, 'annual_other_income' => 2500, 'annual_dividend_income' => 1500], ['annual_drawdown_income' => 20000]);
+        $tab = app(UserProfileService::class)->incomeAndTaxFor($pat);
+        $income = app(RetirementDrawdownPosition::class)->for($pat)['income'];
+
+        expect($income['total'])->toBe(round((float) $tab['gross_income'], 2))
+            ->and($income['income_tax'])->toBe(round((float) $tab['income_tax'], 2))
+            ->and($income['national_insurance'])->toBe(round((float) $tab['national_insurance'], 2))
+            ->and($income['take_home'])->toBe(round((float) $tab['net_income'], 2))
+            ->and(collect($income['lines'])->sum('amount'))->toEqualWithDelta($income['total'], 0.01)
+            ->and(collect($income['lines'])->firstWhere('key', 'other')['amount'])->toBe(2500.0);
+    });
+
     it('extends the band for Gift Aid rather than taking it off income (ITA 2007 s414)', function (): void {
         // £30,000 drawn, £1,000 given with Gift Aid (£1,250 gross): still £3,486 tax,
         // since the charity claims the basic rate and the bands only move up.
@@ -265,8 +280,8 @@ describe('tax review fixes (2026-10-01)', function () {
 
 // One wording for "how long the pot lasts" on every surface (CSJ 2026-10-01).
 it('words how long the pot lasts for every surface', function () {
-    $method = new ReflectionMethod(\App\Services\Retirement\RetirementDrawdownPosition::class, 'lastsLabel');
-    $position = app(\App\Services\Retirement\RetirementDrawdownPosition::class);
+    $method = new ReflectionMethod(RetirementDrawdownPosition::class, 'lastsLabel');
+    $position = app(RetirementDrawdownPosition::class);
 
     expect($method->invoke($position, 76, 100))->toBe('runs out by about age 76')
         ->and($method->invoke($position, null, 100))->toBe('lasts beyond 100');

@@ -337,6 +337,7 @@ class RetirementIncomeService
                 'annual_income' => round($annualIncome, 2),
                 // W-0516 — the cohort schedule, not a literal, where the record is silent.
                 'payment_start_age' => $this->statePensionAge->forUser($pension->user),
+                'payment_start_age_label' => $this->statePensionAge->labelForUser($pension->user),
                 'already_receiving' => (bool) $pension->already_receiving,
                 'tax_treatment' => 'taxable',
                 'source_type' => 'state_pension',
@@ -583,9 +584,10 @@ class RetirementIncomeService
         // W-0197. Was `current_spa` — one number for every cohort. The resolver reads
         // the statutory schedule, so a 26-year-old and a 46-year-old no longer share
         // a State Pension age.
-        $defaultSPA = $this->statePensionAge->forDateOfBirth(
-            User::find($userIds[0] ?? null)?->date_of_birth
-        );
+        $primary = User::find($userIds[0] ?? null);
+        $defaultSPA = $this->statePensionAge->forDateOfBirth($primary?->date_of_birth, $primary?->gender);
+        // The words carry the months (Pensions Act 1995 Sch 4).
+        $defaultLabel = $this->statePensionAge->labelForDateOfBirth($primary?->date_of_birth, $primary?->gender);
 
         // No state pension data entered
         if ($statePensions->isEmpty()) {
@@ -593,6 +595,7 @@ class RetirementIncomeService
                 'has_data' => false,
                 'annual_amount' => 0,
                 'state_pension_age' => $defaultSPA,
+                'state_pension_age_label' => $defaultLabel,
                 'already_receiving' => false,
                 'starts_at_retirement' => false,
                 'years_until_state_pension' => max(0, $defaultSPA - $retirementAge),
@@ -605,12 +608,14 @@ class RetirementIncomeService
         // Calculate totals from state pension records
         $totalAnnualAmount = 0;
         $statePensionAge = $defaultSPA;
+        $statePensionAgeLabel = $defaultLabel;
         $alreadyReceiving = false;
 
         foreach ($statePensions as $pension) {
             $totalAnnualAmount += (float) ($pension->state_pension_forecast_annual ?? 0);
-            if ($pension->state_pension_age) {
-                $statePensionAge = max($statePensionAge, $pension->state_pension_age);
+            if ($pension->state_pension_age && (int) $pension->state_pension_age > $statePensionAge) {
+                $statePensionAge = (int) $pension->state_pension_age;
+                $statePensionAgeLabel = (string) $statePensionAge;
             }
             if ($pension->already_receiving) {
                 $alreadyReceiving = true;
@@ -624,6 +629,7 @@ class RetirementIncomeService
             'has_data' => true,
             'annual_amount' => round($totalAnnualAmount, 2),
             'state_pension_age' => $statePensionAge,
+            'state_pension_age_label' => $statePensionAgeLabel,
             'already_receiving' => $alreadyReceiving,
             'starts_at_retirement' => $startsAtRetirement,
             'years_until_state_pension' => $yearsUntilStatePension,

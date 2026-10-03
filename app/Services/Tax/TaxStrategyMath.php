@@ -224,17 +224,16 @@ final class TaxStrategyMath
      * Net income (ITA 2007 s23 Step 2): every captured source, less net-pay
      * pension contributions taken from pay (FA 2004 s193(2)). This is the
      * income the tax bands are applied to; relief-at-source contributions do
-     * not reduce it and instead extend the bands (bandThresholdsFor). When the
-     * user has no explicit annual-interest figure, use the interest implied by
-     * captured savings balances and rates rather than silently treating it as
-     * zero.
+     * not reduce it and instead extend the bands (bandThresholdsFor). Interest
+     * is the Income page's: recorded, or worked out from the savings accounts
+     * when none is recorded (IncomeDefinitionsService::interestIncome).
      */
     public function taxableIncomeFor(User $user): float
     {
         $compute = function () use ($user): float {
             $definitions = $this->incomeDefinitionsFor($user);
 
-            return max(0.0, (float) ($definitions['net_income'] ?? 0) + $this->interestAdjustment($user, $definitions));
+            return max(0.0, (float) ($definitions['net_income'] ?? 0));
         };
 
         // Only a saved user is cached: every unsaved model has id null.
@@ -249,10 +248,7 @@ final class TaxStrategyMath
     {
         $definitions = $this->incomeDefinitionsFor($user);
 
-        return max(
-            0.0,
-            (float) ($definitions['adjusted_net_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
-        );
+        return max(0.0, (float) ($definitions['adjusted_net_income'] ?? 0));
     }
 
     public function nonSavingsIncomeFor(User $user): float
@@ -263,7 +259,7 @@ final class TaxStrategyMath
         return max(
             0.0,
             $this->taxableIncomeFor($user)
-                - $this->resolvedInterest($user, $definitions)
+                - (float) ($components['interest'] ?? 0)
                 - (float) ($components['dividend'] ?? 0),
         );
     }
@@ -344,14 +340,9 @@ final class TaxStrategyMath
 
     public function estimateAnnualInterest(User $user): float
     {
-        // forUser() is joint-aware (primary or joint owner). HMRC splits
-        // joint-account interest by beneficial share (50/50 default between
-        // spouses), so each account contributes the user's ownership share —
-        // never the full balance. Issue log 2026-07-23 #21; mirrors the rule
-        // net worth already applies via CalculatesOwnershipShare.
-        return (float) app(SavingsStore::class)->forUser($user)
-            ->where('is_isa', false)
-            ->sum(fn ($acc) => $this->calculateUserShare($acc, $user->id) * $this->normalisedInterestRate($acc));
+        // What the accounts pay, from the one home (IncomeDefinitionsService),
+        // whether or not the user recorded a yearly figure.
+        return $this->incomeDefinitions->estimatedAnnualInterest($user);
     }
 
     /**
@@ -410,10 +401,7 @@ final class TaxStrategyMath
     {
         $definitions = $this->incomeDefinitionsFor($user);
 
-        return max(
-            0.0,
-            (float) ($definitions['threshold_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
-        );
+        return max(0.0, (float) ($definitions['threshold_income'] ?? 0));
     }
 
     /**
@@ -425,10 +413,7 @@ final class TaxStrategyMath
     {
         $definitions = $this->incomeDefinitionsFor($user);
 
-        return max(
-            0.0,
-            (float) ($definitions['adjusted_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
-        );
+        return max(0.0, (float) ($definitions['adjusted_income'] ?? 0));
     }
 
     /**
@@ -779,7 +764,7 @@ final class TaxStrategyMath
 
         return [
             'non_savings' => max(0.0, (float) ($definitions['total_income'] ?? 0) - $interest - $dividends - $trust),
-            'interest' => $this->resolvedInterest($user, $definitions),
+            'interest' => $interest,
             'dividends' => $dividends,
             'trust' => $trust,
             'net_pay' => $netPay,
@@ -1205,27 +1190,5 @@ final class TaxStrategyMath
         }
 
         return $this->incomeDefinitionsCache[$key];
-    }
-
-    /** @param array<string, mixed> $definitions */
-    private function interestAdjustment(User $user, array $definitions): float
-    {
-        $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
-
-        return $this->resolvedInterest($user, $definitions) - (float) ($components['interest'] ?? 0);
-    }
-
-    /** @param array<string, mixed> $definitions */
-    private function resolvedInterest(User $user, array $definitions): float
-    {
-        $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
-        $captured = (float) ($components['interest'] ?? 0);
-
-        // An unsaved model holds no savings accounts to estimate interest from.
-        if ($captured > 0 || ! $user->exists) {
-            return $captured;
-        }
-
-        return $this->estimateAnnualInterest($user);
     }
 }

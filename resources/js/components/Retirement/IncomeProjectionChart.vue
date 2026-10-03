@@ -91,7 +91,8 @@ export default {
     },
 
     statePensionData() {
-      const statePensionAge = this.statePension?.state_pension_age || 67;
+      // The resolved age (recorded, else the statutory schedule); no typed-in fallback.
+      const statePensionAge = this.statePension?.resolved_state_pension_age ?? Infinity;
       const annualAmount = parseFloat(this.statePension?.state_pension_forecast_annual || 0);
 
       // State pension only starts at state pension age

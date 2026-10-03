@@ -1492,7 +1492,7 @@ export const planPrintMixin = {
         ['National Insurance Years', String(sp.ni_years ?? 'N/A')],
       ];
       if (sp.state_pension_age) {
-        rows.push(['State Pension Age', String(sp.state_pension_age)]);
+        rows.push(['State Pension Age', String(sp.state_pension_age_label)]);
       }
 
       return `

@@ -36,10 +36,17 @@ class TaxBandTracker
      *                                         Passed separately so the config keeps its
      *                                         full allowance — the basic-rate band width
      *                                         is derived from it (W-0174).
+     * @param  float  $blindPersonsAllowance  Given on top of the allowance after the taper
+     *                                        (ITA 2007 s38, s23 Step 3); it carries both
+     *                                        limits with it, as in calculateIncomeTax.
+     * @param  float  $bandExtension  Gift Aid and relief-at-source contributions, gross:
+     *                                both limits rise by it (ITA 2007 s414, FA 2004 s192(4)).
      */
-    public function __construct(array $taxConfig, ?float $personalAllowance = null)
+    public function __construct(array $taxConfig, ?float $personalAllowance = null, float $blindPersonsAllowance = 0, float $bandExtension = 0)
     {
-        $bands = IncomeTaxBands::forPersonalAllowance($taxConfig, $personalAllowance);
+        $bands = IncomeTaxBands::forPersonalAllowance($taxConfig, $personalAllowance)
+            ->withBlindPersonsAllowance($blindPersonsAllowance)
+            ->extendedBy($bandExtension);
 
         $this->personalAllowance = $bands->personalAllowance;
         $this->basicRateLimit = $bands->basicRateLimit;
