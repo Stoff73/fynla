@@ -141,8 +141,15 @@ final class WriteIntentClassifier
             'my daughter', 'my son', 'my child', 'my children',
             'daughter', 'son', 'children',
         ],
+        // The work and income record: jobs and the income on the profile. The
+        // capture side opens its forms (RecordEditForms 'income' section: each
+        // job, and dividend, interest, trust and other income). Listed after
+        // protection_policy so "income protection" stays a policy.
         'work_details' => [
             'my salary', 'my employer', 'my occupation', 'my job title',
+            'self-employment income', 'self-employed income', 'self employed income',
+            'dividend income', 'interest income', 'trust income', 'other income',
+            'income details', 'my income', 'my dividends',
             'salary', 'employer', 'occupation',
         ],
         'personal_details' => [
