@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\Employment;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
@@ -75,4 +76,40 @@ it('saves trust income and a typed interest figure through the form, and the Inc
 
     $reply = AiConversation::findOrFail($id)->messages()->where('role', 'assistant')->latest('id')->first()->content;
     expect($reply)->toContain('£2,000 a year in trust income');
+});
+
+function incomeOverviewContext(): array
+{
+    return [
+        'action' => 'edit',
+        'resource_type' => 'income',
+        'current_destination' => ['screen' => 'income', 'params' => [], 'fallback' => 'dashboard'],
+        'origin' => ['kind' => 'surface_action', 'recommendation_id' => null],
+    ];
+}
+
+it('opens the Income overview straight on the form when there is one thing to change', function (): void {
+    $id = $this->postJson('/api/ai-chat/contextual-conversations', incomeOverviewContext())
+        ->assertCreated()->json('data.conversation.id');
+
+    expect(AiConversation::findOrFail($id)->messages()->first()->metadata['capture_form']['name'])->toBe('other_income');
+});
+
+it('offers the job and the other income from the Income overview, and a tap opens that form', function (): void {
+    $job = Employment::create(['user_id' => $this->user->id, 'income_type' => 'employment', 'employer' => 'Acme Ltd', 'annual_income' => 40000, 'is_estimate' => false]);
+
+    $id = $this->postJson('/api/ai-chat/contextual-conversations', incomeOverviewContext())
+        ->assertCreated()->json('data.conversation.id');
+    $opening = AiConversation::findOrFail($id)->messages()->first();
+
+    expect($opening->content)->toBe('Which one needs changing?')
+        ->and($opening->metadata['action_bubbles'])->toBeTrue()
+        ->and(array_column($opening->metadata['bubbles'], 'id'))->toBe(['edit:employment:'.$job->id, 'edit:other_income:'.$this->user->id]);
+
+    $this->withHeader('X-Fynla-Forms', '1')
+        ->postJson("/api/ai-chat/conversations/{$id}/action", ['action' => 'edit:other_income:'.$this->user->id])
+        ->assertOk()->streamedContent();
+
+    $form = AiConversation::findOrFail($id)->messages()->where('role', 'assistant')->latest('id')->first();
+    expect($form->metadata['capture_form']['name'])->toBe('other_income');
 });

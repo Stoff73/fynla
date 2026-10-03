@@ -98,6 +98,13 @@ final class RecordEditForms
             return null;
         }
         $source = (string) ($params['income_source'] ?? '');
+        if ($source === '') {
+            // The Income overview: straight to the form when there is one
+            // thing to change; otherwise chooserForResource offers them.
+            $candidates = $this->candidates($user, 'income');
+
+            return count($candidates) === 1 ? $this->formFor($user, $candidates[0]['type'], (int) $candidates[0]['id']) : null;
+        }
         if (in_array($source, self::OTHER_INCOME_SOURCES, true)) {
             return $this->formFor($user, 'other_income', (int) $user->id);
         }
@@ -108,6 +115,41 @@ final class RecordEditForms
         }
 
         return null;
+    }
+
+    /**
+     * The choice a contextual resource opens on when it holds several records
+     * and no one form: the Income overview's jobs and other income. The same
+     * bubbles as the edit chooser, so a tap opens that record's form.
+     *
+     * @param  array<string, mixed>  $destinationParams
+     * @return array{prompt: string, bubbles: list<array{id: string, label: string}>}|null
+     */
+    public function chooserForResource(User $user, string $resourceType, array $destinationParams = []): ?array
+    {
+        if ($resourceType !== 'income' || ($destinationParams['income_source'] ?? '') !== '') {
+            return null;
+        }
+        $candidates = $this->candidates($user, 'income');
+        if (count($candidates) < 2) {
+            return null;
+        }
+
+        return ['prompt' => self::CHOOSER_PROMPT, 'bubbles' => self::chooserBubbles($candidates)];
+    }
+
+    public const CHOOSER_PROMPT = 'Which one needs changing?';
+
+    /**
+     * One bubble per record: "edit:<type>:<id>", which the director opens on
+     * the record's form (OnboardingChatDirector::handleAction).
+     *
+     * @param  list<array{type: string, id: int, label: string}>  $candidates
+     * @return list<array{id: string, label: string}>
+     */
+    public static function chooserBubbles(array $candidates): array
+    {
+        return array_map(static fn (array $candidate): array => ['id' => 'edit:'.$candidate['type'].':'.$candidate['id'], 'label' => $candidate['label']], $candidates);
     }
 
     /** Every section a user can be offered to change, in walk order. */

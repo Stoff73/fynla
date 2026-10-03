@@ -74,3 +74,9 @@ it('opens /m\'s "Edit details" on the form that edits that income source', funct
         ->and($edit->formForResource($user, 'income', ['income_owner' => 'spouse', 'income_source' => 'dividend']))->toBeNull()
         ->and($edit->formForResource($user, 'income', ['income_owner' => 'user', 'income_source' => 'rental']))->toBeNull();
 });
+
+it('reads back 0 interest as the savings accounts\' figure, never as none', function () {
+    $form = ['name' => CaptureForms::OTHER_INCOME, 'answers' => [CaptureForms::LEAD => ['annual_dividend_income' => '900', 'annual_interest_income' => '0']]];
+
+    expect(CaptureForms::summarise($form))->toBe('I receive £900 a year in dividends, interest worked out from my savings accounts.');
+});

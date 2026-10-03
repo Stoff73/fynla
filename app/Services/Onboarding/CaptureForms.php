@@ -1638,9 +1638,14 @@ final class CaptureForms
         ];
         $parts = [];
         foreach ($names as $field => $name) {
-            if (isset($input[$field])) {
-                $parts[] = self::pounds((float) $input[$field]).' a year in '.$name;
+            if (! isset($input[$field])) {
+                continue;
             }
+            // 0 interest is not "none": the Income page then uses what the
+            // savings accounts pay (IncomeDefinitionsService::interestIncome).
+            $parts[] = $field === 'annual_interest_income' && (float) $input[$field] <= 0
+                ? 'interest worked out from my savings accounts'
+                : self::pounds((float) $input[$field]).' a year in '.$name;
         }
 
         return $parts === [] ? '' : 'I receive '.implode(', ', $parts).'.';
