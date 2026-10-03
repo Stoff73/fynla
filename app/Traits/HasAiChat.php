@@ -528,6 +528,9 @@ trait HasAiChat
 
         // API call loop — handles tool calls and text responses
         $fullResponse = '';
+        // Everything streamed this turn: the separator follows what the user saw,
+        // which outlives the cap pass's reset of the stored reply.
+        $streamed = '';
         $toolCallCount = 0;
         $executedCalls = [];
         $capPassForced = false;
@@ -628,13 +631,17 @@ trait HasAiChat
                                 $text = $certaintyFilter->push($text);
                                 if ($text !== '') {
                                     // A new round after an earlier one's text: keep them apart.
-                                    $separator = self::roundSeparator($fullResponse, $iterationText, $text);
+                                    $separator = self::roundSeparator($streamed, $iterationText, $text);
                                     if ($separator !== '') {
-                                        $fullResponse .= $separator;
+                                        if ($fullResponse !== '') {
+                                            $fullResponse .= $separator;
+                                        }
+                                        $streamed .= $separator;
                                         yield ['type' => 'content', 'text' => $separator];
                                     }
                                     $iterationText .= $text;
                                     $fullResponse .= $text;
+                                    $streamed .= $text;
                                     yield ['type' => 'content', 'text' => $text];
                                 }
                             }
@@ -690,13 +697,17 @@ trait HasAiChat
                     $tail = $certaintyFilter->flush();
                     if ($tail !== '') {
                         // A new round after an earlier one's text: keep them apart.
-                        $separator = self::roundSeparator($fullResponse, $iterationText, $tail);
+                        $separator = self::roundSeparator($streamed, $iterationText, $tail);
                         if ($separator !== '') {
-                            $fullResponse .= $separator;
+                            if ($fullResponse !== '') {
+                                $fullResponse .= $separator;
+                            }
+                            $streamed .= $separator;
                             yield ['type' => 'content', 'text' => $separator];
                         }
                         $iterationText .= $tail;
                         $fullResponse .= $tail;
+                        $streamed .= $tail;
                         yield ['type' => 'content', 'text' => $tail];
                     }
 
@@ -788,13 +799,17 @@ trait HasAiChat
                                     $text = $certaintyFilter->push($text);
                                     if ($text !== '') {
                                         // A new round after an earlier one's text: keep them apart.
-                                        $separator = self::roundSeparator($fullResponse, $iterationText, $text);
+                                        $separator = self::roundSeparator($streamed, $iterationText, $text);
                                         if ($separator !== '') {
-                                            $fullResponse .= $separator;
+                                            if ($fullResponse !== '') {
+                                                $fullResponse .= $separator;
+                                            }
+                                            $streamed .= $separator;
                                             yield ['type' => 'content', 'text' => $separator];
                                         }
                                         $iterationText .= $text;
                                         $fullResponse .= $text;
+                                        $streamed .= $text;
                                         yield ['type' => 'content', 'text' => $text];
                                     }
                                 }
@@ -824,13 +839,17 @@ trait HasAiChat
                     $tail = $certaintyFilter->flush();
                     if ($tail !== '') {
                         // A new round after an earlier one's text: keep them apart.
-                        $separator = self::roundSeparator($fullResponse, $iterationText, $tail);
+                        $separator = self::roundSeparator($streamed, $iterationText, $tail);
                         if ($separator !== '') {
-                            $fullResponse .= $separator;
+                            if ($fullResponse !== '') {
+                                $fullResponse .= $separator;
+                            }
+                            $streamed .= $separator;
                             yield ['type' => 'content', 'text' => $separator];
                         }
                         $iterationText .= $tail;
                         $fullResponse .= $tail;
+                        $streamed .= $tail;
                         yield ['type' => 'content', 'text' => $tail];
                     }
                 }
@@ -1365,9 +1384,7 @@ trait HasAiChat
                 $capPassForced = true;
                 $xaiTools = [];
                 $tools = [];
-                // The earlier rounds' text has already streamed to the user, so
-                // it stays in the stored reply: the reloaded transcript must be
-                // what was shown (walked 2026-10-03, conversation 297).
+                $fullResponse = '';
                 $iterationText = '';
 
                 continue;
@@ -1850,13 +1867,13 @@ trait HasAiChat
      * so "…recorded properly." and "I'll pass this…" do not run together on
      * screen or in the stored reply. Only at the first text of a later round.
      */
-    private static function roundSeparator(string $fullResponse, string $iterationText, string $text): string
+    private static function roundSeparator(string $streamed, string $iterationText, string $text): string
     {
-        if ($iterationText !== '' || $fullResponse === '') {
+        if ($iterationText !== '' || $streamed === '') {
             return '';
         }
 
-        return preg_match('/\s$/u', $fullResponse) === 1 || preg_match('/^\s/u', $text) === 1 ? '' : ' ';
+        return preg_match('/\s$/u', $streamed) === 1 || preg_match('/^\s/u', $text) === 1 ? '' : ' ';
     }
 
     private function saveMessage(

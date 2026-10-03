@@ -11,11 +11,10 @@ use Laravel\Sanctum\Sanctum;
 use Tests\Support\Fyn\FynStreamHarness;
 
 /*
- * Walked 2026-10-03 (conversation 297): a turn that reached the tool-call cap
- * showed every round's sentence run together ("…recorded properly.I'll pass
- * this…") while the stored reply kept only the last round, because the forced
- * final pass cleared the text that had already streamed. The stored reply is
- * now what was shown, with rounds kept apart.
+ * Walked 2026-10-03 (conversation 297): one round's text ran straight into the
+ * next on screen ("…recorded properly.I'll pass this…"). Rounds are now kept
+ * apart on the stream. Past the tool-call cap the stored reply is the final
+ * pass only, by design (7731abcb1, the repetition guard).
  */
 beforeEach(function (): void {
     $this->seed(TaxConfigurationSeeder::class);
@@ -24,7 +23,7 @@ beforeEach(function (): void {
     Sanctum::actingAs($this->user);
 });
 
-it('stores every round that streamed, past the tool-call cap, with the rounds apart', function (): void {
+it('keeps rounds apart on the stream, and stores the final pass past the tool-call cap', function (): void {
     FynStreamHarness::fake()
         // The CoALA Planner's own call takes the first turn (Loop/Planner.php).
         ->textTurn('')
@@ -45,6 +44,6 @@ it('stores every round that streamed, past the tool-call cap, with the rounds ap
         ->implode('');
     $stored = $conversation->messages()->where('role', 'assistant')->latest('id')->first()->content;
 
-    expect($stored)->toBe('First. Second. Third. Done.')
-        ->and($streamed)->toBe($stored);
+    expect($streamed)->toBe('First. Second. Third. Done.')
+        ->and($stored)->toBe('Done.');
 });
