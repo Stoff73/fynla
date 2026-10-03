@@ -50,7 +50,11 @@ final class ContextualConversationService
 
         // A resource that is one record opens on that record's form (web and
         // /m draw it from the message metadata, as they do an edit form).
-        $form = app(RecordEditForms::class)->formForResource($user, $resource->resourceType);
+        $form = app(RecordEditForms::class)->formForResource(
+            $user,
+            $resource->resourceType,
+            (array) ($validated['current_destination']['params'] ?? []),
+        );
 
         return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form): array {
             $timestamp = now();

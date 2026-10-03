@@ -66,14 +66,48 @@ final class RecordEditForms
         'state_pension' => 'state_pension',
     ];
 
+    /** The income source rows (/m Income detail) that the other-income form edits. */
+    public const OTHER_INCOME_SOURCES = ['dividend', 'interest', 'trust', 'other'];
+
+    public const OTHER_INCOME_LABEL = 'Dividend, interest, trust and other income';
+
     public function __construct(private readonly CoordinatingAgent $agent) {}
 
-    /** The form a contextual resource opens on, or null (see CONTEXTUAL_FORMS). */
-    public function formForResource(User $user, string $resourceType): ?array
+    /**
+     * The form a contextual resource opens on, or null (see CONTEXTUAL_FORMS).
+     * An income source opens the form that edits it: the user's own
+     * dividends, interest, trust or other income open the other-income form,
+     * and earnings open the job's form when there is one job.
+     *
+     * @param  array<string, mixed>  $destinationParams  current_destination.params
+     */
+    public function formForResource(User $user, string $resourceType, array $destinationParams = []): ?array
     {
+        if ($resourceType === 'income') {
+            return $this->formForIncomeSource($user, $destinationParams);
+        }
         $type = self::CONTEXTUAL_FORMS[$resourceType] ?? null;
 
         return $type === null ? null : $this->formFor($user, $type, (int) $user->id);
+    }
+
+    /** @param  array<string, mixed>  $params */
+    private function formForIncomeSource(User $user, array $params): ?array
+    {
+        if (($params['income_owner'] ?? 'user') !== 'user') {
+            return null;
+        }
+        $source = (string) ($params['income_source'] ?? '');
+        if (in_array($source, self::OTHER_INCOME_SOURCES, true)) {
+            return $this->formFor($user, 'other_income', (int) $user->id);
+        }
+        if (in_array($source, ['employment', 'self_employment'], true)) {
+            $jobs = $user->employments()->where('income_type', $source)->get(['id']);
+
+            return $jobs->count() === 1 ? $this->formFor($user, 'employment', (int) $jobs->first()->id) : null;
+        }
+
+        return null;
     }
 
     /** Every section a user can be offered to change, in walk order. */
@@ -156,6 +190,9 @@ final class RecordEditForms
                 foreach ($user->employments()->orderBy('id')->get() as $job) {
                     $rows[] = ['type' => 'employment', 'id' => (int) $job->id, 'label' => trim(($job->employer ?: 'Your job').($job->occupation ? ', '.$job->occupation : ''))];
                 }
+                // Always offered: the write sets figures on the profile, and
+                // "none" is an answer.
+                $rows[] = ['type' => 'other_income', 'id' => (int) $user->id, 'label' => self::OTHER_INCOME_LABEL];
                 break;
             case 'spouse':
                 // A married user can give their spouse's details before any
@@ -219,6 +256,14 @@ final class RecordEditForms
                 'forecast_annual' => $model->state_pension_forecast_annual !== null ? (float) $model->state_pension_forecast_annual : null,
                 'ni_years_completed' => $model->ni_years_completed,
             ], static fn ($v): bool => $v !== null), 'Your State Pension'],
+            'other_income' => [CaptureForms::OTHER_INCOME, CaptureForms::LEAD, array_filter([
+                'annual_dividend_income' => self::floatOrNull($model->annual_dividend_income),
+                // A figure only when one is recorded: 0 means the Income page
+                // uses what the accounts pay (IncomeDefinitionsService::interestIncome).
+                'annual_interest_income' => (float) ($model->annual_interest_income ?? 0) > 0 ? (float) $model->annual_interest_income : null,
+                'annual_trust_income' => self::floatOrNull($model->annual_trust_income),
+                'annual_other_income' => self::floatOrNull($model->annual_other_income),
+            ], static fn ($v): bool => $v !== null), 'Your dividend, interest, trust and other income'],
             default => [null, null, [], ''],
         };
         if ($formName === null) {
@@ -296,6 +341,7 @@ final class RecordEditForms
             'personal' => $this->runTool('capture_personal_details', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'employer_benefits' => $this->runTool('capture_employer_benefits', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'state_pension' => $this->runTool('capture_state_pension', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
+            'other_income' => $this->runTool('update_profile', ['section' => 'income_occupation', 'fields' => CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? []], $user, $conversationId),
             default => ['error' => true, 'message' => 'That record cannot be changed here.'],
         };
 
@@ -643,7 +689,7 @@ final class RecordEditForms
             'income_protection' => IncomeProtectionPolicy::where('id', $id)->where('user_id', $user->id)->first(),
             'employment' => $user->employments()->where('id', $id)->first(),
             'spouse_household' => TaxStrategyHouseholdInput::firstOrNew(['user_id' => $user->id]),
-            'expenditure', 'personal' => $user,
+            'expenditure', 'personal', 'other_income' => $user,
             'employer_benefits' => ProtectionProfile::firstOrNew(['user_id' => $user->id], ProtectionProfile::blankFor($user->id)),
             // One per user, so the user is the key (formForResource passes the user id).
             'state_pension' => $user->statePension()->first(),
@@ -663,6 +709,7 @@ final class RecordEditForms
             'income_protection' => trim(($model->provider ?? '').' income protection'),
             'employer_benefits' => 'your employer benefits',
             'state_pension' => 'your State Pension',
+            'other_income' => 'your dividend, interest, trust and other income',
             default => 'that record',
         };
     }
