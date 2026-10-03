@@ -216,15 +216,24 @@ class UserProfileService
     }
 
     /**
-     * Sum of all annual gross income sources on a user.
+     * The income the user has recorded, for the first-income award: the Income
+     * page's total less any interest worked out from the savings accounts,
+     * which the user never entered (IncomeDefinitionsService::interestIncome).
+     * Counting that estimate made a user with only a savings account "have
+     * income", so the backfill paid the award for it and the live award never
+     * fired when they then entered their pay.
      *
      * Public so the gamification backfill can detect "income is set" with the
      * exact same logic the live first-capture award uses (dedup-key parity).
      */
     public function totalGrossAnnualIncome(User $user): float
     {
-        // The Income page's total (ResolvesIncome; CSJ 2026-10-02, one income figure).
-        return $this->resolveGrossAnnualIncome($user);
+        $definitions = $this->incomeDefinitions->calculateFor($user);
+        $estimatedInterest = ($definitions['interest_basis'] ?? null) === 'estimated'
+            ? (float) ($definitions['components']['interest'] ?? 0)
+            : 0.0;
+
+        return max(0.0, (float) $definitions['total_income'] - $estimatedInterest);
     }
 
     /**

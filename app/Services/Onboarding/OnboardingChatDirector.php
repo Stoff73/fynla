@@ -7446,11 +7446,8 @@ PROMPT;
             return true;
         }
 
-        $bubbles = [];
-        foreach ($candidates as $candidate) {
-            $bubbles[] = ['id' => 'edit:'.$candidate['type'].':'.$candidate['id'], 'label' => $candidate['label']];
-        }
-        $prompt = 'Which one needs changing?';
+        $bubbles = RecordEditForms::chooserBubbles($candidates);
+        $prompt = RecordEditForms::CHOOSER_PROMPT;
         $metadata = array_filter([
             'onboarding_step' => $stateId,
             'turn_intent' => FynTurnIntent::VerifyPrompt->value,

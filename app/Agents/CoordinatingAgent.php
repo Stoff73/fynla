@@ -3471,19 +3471,8 @@ class CoordinatingAgent extends BaseAgent
             return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} investment accounts. To add more, upgrade your plan.");
         }
 
-        // Taxable dividend income feeds the user-level figure the tax-strategy
-        // engine reads (Dividend Allowance usage, composed taxable income).
-        // ISA dividends are tax-free, so they never touch it. Accumulates
-        // across accounts; the duplicate check above prevents double-counting
-        // a re-captured account.
-        if ($dbAccountType !== 'isa'
-            && isset($input['annual_dividend_income']) && is_numeric($input['annual_dividend_income'])
-            && (float) $input['annual_dividend_income'] > 0) {
-            $user->update([
-                'annual_dividend_income' => (float) ($user->annual_dividend_income ?? 0)
-                    + (float) $input['annual_dividend_income'],
-            ]);
-        }
+        // The account's taxable dividends join the user's total inside
+        // InvestmentAccountStore::create (the one place every path goes through).
 
         $this->invalidateUserCache($user->id);
 
@@ -6633,13 +6622,8 @@ class CoordinatingAgent extends BaseAgent
         }
 
         if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability'], true)) {
-            // The dividends an account pays also count in the user's taxable
-            // dividend total, as create_investment_account adds them (ISA
-            // dividends are tax-free, so never). An edit moves the total by the
-            // change, so re-saving the same figure changes nothing.
-            $dividendsBefore = $entityType === 'investment_account' && array_key_exists('annual_dividend_income', $fields)
-                ? InvestmentAccount::where('id', $entityId)->where('user_id', $user->id)->first(['id', 'account_type', 'isa_type', 'annual_dividend_income'])
-                : null;
+            // An investment account's dividends move the user's taxable dividend
+            // total inside InvestmentAccountStore::update.
             try {
                 $record = match ($entityType) {
                     'savings_account' => app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
@@ -6655,13 +6639,6 @@ class CoordinatingAgent extends BaseAgent
                     'errors' => $e->errors,
                     'message' => 'Validation failed for account update.',
                 ];
-            }
-
-            if ($dividendsBefore !== null && $dividendsBefore->account_type !== 'isa' && $dividendsBefore->isa_type === null) {
-                $change = (float) ($record->annual_dividend_income ?? 0) - (float) ($dividendsBefore->annual_dividend_income ?? 0);
-                if ($change != 0.0) {
-                    $user->update(['annual_dividend_income' => max(0.0, (float) ($user->annual_dividend_income ?? 0) + $change)]);
-                }
             }
 
             return array_filter([
@@ -7032,7 +7009,7 @@ class CoordinatingAgent extends BaseAgent
         $allowedFields = match ($section) {
             // NI number excluded — sensitive PII should not be AI-writable
             'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode'],
-            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
+            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_interest_income', 'annual_trust_income', 'annual_other_income', 'target_retirement_age'],
             'expenditure' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
             'domicile' => ['country_of_birth', 'uk_arrival_date', 'domicile_status'],
             default => [],
@@ -7059,7 +7036,7 @@ class CoordinatingAgent extends BaseAgent
                 'industry' => ['sometimes', 'nullable', 'string', 'max:255'],
                 'target_retirement_age' => ['sometimes', 'nullable', 'integer', 'min:'.ValidationLimits::MIN_RETIREMENT_AGE, 'max:'.ValidationLimits::MAX_RETIREMENT_AGE],
             ];
-            foreach (['annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income'] as $field) {
+            foreach (['annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_interest_income', 'annual_trust_income', 'annual_other_income'] as $field) {
                 $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
             }
             $validator = Validator::make($safeFields, $rules);

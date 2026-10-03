@@ -851,7 +851,7 @@ class RetirementAgent extends BaseAgent
 
         return [
             'ni_years_completed' => $statePension->ni_years_completed,
-            'ni_years_required' => $statePension->ni_years_required,
+            'ni_years_required' => $statePension->ni_years_for_full_pension,
             'forecast_annual' => $incomeProjection['state_pension_income'],
             'state_pension_age' => $statePension->state_pension_age,
         ];

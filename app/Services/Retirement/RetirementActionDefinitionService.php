@@ -1343,7 +1343,7 @@ class RetirementActionDefinitionService
 
         // Step 3: NI record assessment
         $niCompleted = (int) $statePension->ni_years_completed;
-        $niRequired = (int) $statePension->ni_years_required;
+        $niRequired = $statePension->ni_years_for_full_pension;
         $isShort = $niCompleted < $niRequired;
 
         $trace[] = [
@@ -2229,14 +2229,14 @@ class RetirementActionDefinitionService
         $forecastAmount = $statePension ? (float) ($statePension->state_pension_forecast_annual ?? 0) : 0;
         $spa = $this->statePensionAge->labelForUser(User::findOrFail($userId));
         $niCompleted = $statePension ? (int) ($statePension->ni_years_completed ?? 0) : 0;
-        $niRequired = $statePension ? (int) ($statePension->ni_years_required ?? 35) : 35;
+        $niRequired = $statePension?->ni_years_for_full_pension;
         $alreadyReceiving = $statePension ? (bool) ($statePension->already_receiving ?? false) : false;
 
         $trace[] = [
             'question' => 'What State Pension data has been recorded?',
             'data_field' => 'State Pension record',
             'data_value' => $statePension
-                ? 'State Pension age: '.$this->statePensionAge->labelForUser(User::findOrFail($userId)).', NI years: '.$niCompleted.'/'.$niRequired.($alreadyReceiving ? ', already receiving' : '')
+                ? 'State Pension age: '.$spa.', NI years: '.$niCompleted.'/'.$niRequired.($alreadyReceiving ? ', already receiving' : '')
                 : 'No State Pension record found',
             'threshold' => 'State Pension record exists',
             'passed' => true,

@@ -50,9 +50,21 @@ final class ContextualConversationService
 
         // A resource that is one record opens on that record's form (web and
         // /m draw it from the message metadata, as they do an edit form).
-        $form = app(RecordEditForms::class)->formForResource($user, $resource->resourceType);
+        $editForms = app(RecordEditForms::class);
+        $destinationParams = (array) ($validated['current_destination']['params'] ?? []);
+        // A recommendation on the Income overview ("Provide your income
+        // details") keeps its own opening: the income forms answer "Edit
+        // details", not a missing income, which starts with the job.
+        $form = $resource->resourceType === 'income' && $recommendation !== null
+            ? null
+            : $editForms->formForResource($user, $resource->resourceType, $destinationParams);
+        // Several records and no one form (the Income overview): the edit
+        // chooser's bubbles, each opening its record's form.
+        $chooser = $form === null && $recommendation === null && $validated['action'] === 'edit'
+            ? $editForms->chooserForResource($user, $resource->resourceType, $destinationParams)
+            : null;
 
-        return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form): array {
+        return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form, $chooser): array {
             $timestamp = now();
             $conversation = AiConversation::create([
                 'user_id' => $user->id,
@@ -83,6 +95,7 @@ final class ContextualConversationService
                 'status' => AiMessageStatus::Answered,
                 'content' => match (true) {
                     $form !== null => $this->formOpening($form),
+                    $chooser !== null => $chooser['prompt'],
                     $recommendation !== null => $this->recommendationOpening($recommendation),
                     default => $this->openingFor($validated['action'], $resource),
                 },
@@ -91,6 +104,8 @@ final class ContextualConversationService
                     'capture_form' => $form['schema'] ?? null,
                     'capture_form_values' => $form['answers'] ?? null,
                     'capture_form_record' => $form['record'] ?? null,
+                    'bubbles' => $chooser['bubbles'] ?? null,
+                    'action_bubbles' => $chooser !== null ? true : null,
                 ], static fn ($v) => $v !== null),
             ]);
 

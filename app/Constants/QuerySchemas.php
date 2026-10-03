@@ -568,7 +568,8 @@ final class QuerySchemas
         self::RETIREMENT_CONTRIBUTION => [
             'employer_match',
             'contribution_increase',
-            'tax_relief',
+            // tax_relief is disabled (CSJ 2026-10-01, D1): the Tax plan's
+            // strategy_* rows below carry pension tax relief.
             'annual_allowance_exceeded',
             'strategy_pa_taper_rescue',
             'strategy_pension_tax_relief',

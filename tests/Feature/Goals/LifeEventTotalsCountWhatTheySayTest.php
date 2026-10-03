@@ -8,6 +8,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Goals\GoalsProjectionService;
 use App\Services\Goals\LifeEventIntegrationService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -37,6 +38,10 @@ use Illuminate\Support\Facades\Cache;
  */
 beforeEach(function () {
     Cache::flush();
+    // A real tax year: the 2019/20 safety-net row stores band rates as whole
+    // percentages, so once the savings interest counts as income (TODO 7a) the
+    // projection priced it at 20 times over and the household ran out of money.
+    $this->seed(TaxConfigurationSeeder::class);
 
     $this->user = User::factory()->create(['date_of_birth' => '1976-11-08']);
     $this->projection = app(GoalsProjectionService::class);

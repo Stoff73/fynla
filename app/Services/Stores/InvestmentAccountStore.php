@@ -129,6 +129,7 @@ class InvestmentAccountStore
                 return $account;
             })
         );
+        $this->moveDividendTotal($user, $this->taxableDividends($account));
 
         event(new InvestmentAccountCreated($account, $user, $source));
 
@@ -142,6 +143,7 @@ class InvestmentAccountStore
     {
         $account = InvestmentAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
         $this->validateCanonical($canonical, partial: true);
+        $dividendsBefore = $this->taxableDividends($account);
 
         $result = AuditLog::withContext(
             ['ingest_source' => $source->value],
@@ -162,6 +164,8 @@ class InvestmentAccountStore
                 return ['fresh' => $account->fresh(), 'changes' => $changes];
             })
         );
+
+        $this->moveDividendTotal($user, $this->taxableDividends($result['fresh']) - $dividendsBefore);
 
         event(new InvestmentAccountUpdated($result['fresh'], $result['changes'], $user, $source));
 
@@ -226,6 +230,7 @@ class InvestmentAccountStore
                 $force ? $account->forceDelete() : $account->delete();
             })
         );
+        $this->moveDividendTotal($user, -$this->taxableDividends($account));
 
         event(new InvestmentAccountDeleted($account, $user, $source, $force));
     }
@@ -245,12 +250,44 @@ class InvestmentAccountStore
         );
 
         $fresh = $account->fresh();
+        $this->moveDividendTotal($user, $this->taxableDividends($fresh));
         event(new InvestmentAccountRestored($fresh, $user, $source));
 
         return $fresh;
     }
 
     // ─── INTERNAL ──────────────────────────────────────────────────────────
+
+    /**
+     * The dividends this account pays that count as taxable income: none from an
+     * ISA (ITTOIA 2005 s694, ISA income is exempt).
+     */
+    private function taxableDividends(InvestmentAccount $account): float
+    {
+        if ($account->account_type === 'isa' || $account->isa_type !== null) {
+            return 0.0;
+        }
+
+        return (float) ($account->annual_dividend_income ?? 0);
+    }
+
+    /**
+     * `users.annual_dividend_income` is the taxable dividend figure the Income page
+     * and the tax plan read (IncomeDefinitionsService). An account's dividends are
+     * part of it, so every create, update, delete and restore moves it here, the
+     * one place, for web, /m and Fyn alike (before, only Fyn's create and edit
+     * did, and a deleted account's dividends stayed in the total).
+     */
+    private function moveDividendTotal(User $user, float $change): void
+    {
+        if (abs($change) < 0.005) {
+            return;
+        }
+
+        $user->update([
+            'annual_dividend_income' => max(0.0, round((float) ($user->annual_dividend_income ?? 0) + $change, 2)),
+        ]);
+    }
 
     /**
      * Refuse an exotic holding to a tier that was never sold one (W-0499).

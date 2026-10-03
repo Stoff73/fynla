@@ -161,9 +161,9 @@ class PensionProjector
 
         // Calculate based on NI years using active tax year state pension amount
         $pensionConfig = $this->taxConfig->getPensionAllowances();
-        $fullStatePension = (float) ($pensionConfig['state_pension']['full_new_state_pension'] ?? 11973.00);
-        $requiredYears = $statePension->ni_years_required
-            ?? ($pensionConfig['state_pension']['qualifying_years'] ?? 35);
+        // The active year's full new State Pension, from tax config only (Rule 2).
+        $fullStatePension = (float) $pensionConfig['state_pension']['full_new_state_pension'];
+        $requiredYears = $statePension->ni_years_for_full_pension;
         $completedYears = min($statePension->ni_years_completed, $requiredYears);
 
         if ($requiredYears > 0) {

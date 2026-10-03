@@ -78,6 +78,9 @@ final class CaptureForms
     /** The State Pension: the forecast, qualifying years and whether it is paid now, ONE write through capture_state_pension (TODO item 6). */
     public const STATE_PENSION = 'state_pension';
 
+    /** Dividends, interest, trust and other income: the figures the web Income form edits that belong to no job or account, ONE write through update_profile (TODO item 7a). Edit only. */
+    public const OTHER_INCOME = 'other_income';
+
     /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
     public const EXPENDITURE_DETAILED = 'expenditure_detailed';
 
@@ -97,7 +100,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS, self::STATE_PENSION];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS, self::STATE_PENSION, self::OTHER_INCOME];
     }
 
     /** @return array<string, mixed>|null */
@@ -124,6 +127,7 @@ final class CaptureForms
             self::PROTECTION => self::protection(),
             self::EMPLOYER_BENEFITS => self::employerBenefits(),
             self::STATE_PENSION => self::statePension(),
+            self::OTHER_INCOME => self::otherIncome(),
             default => null,
         };
     }
@@ -294,6 +298,7 @@ final class CaptureForms
                 self::WORK => self::workSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::EMPLOYER_BENEFITS => self::employerBenefitsSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::STATE_PENSION => self::statePensionSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::OTHER_INCOME => self::otherIncomeSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
             };
         }
@@ -1587,6 +1592,63 @@ final class CaptureForms
                 'ni_years_completed' => ['type' => 'percent', 'label' => 'National Insurance qualifying years', 'required' => false, 'min' => 0, 'max' => 60, 'step' => 1],
             ],
         ];
+    }
+
+    /**
+     * The income the web Income form edits that has no record of its own
+     * (TODO item 7a; CSJ 2026-10-01: all Fyn capture through forms). Jobs and
+     * self-employment have their own form (WORK); rent, pensions and share
+     * vests come from their records. ONE write through update_profile's
+     * income_occupation section. Interest typed here is the figure recorded,
+     * which the Income page uses in place of the accounts' estimate
+     * (IncomeDefinitionsService::interestIncome). Edit only: no step offers it.
+     *
+     * @return array<string, mixed>
+     */
+    private static function otherIncome(): array
+    {
+        return [
+            'name' => self::OTHER_INCOME,
+            'submit_label' => 'Save',
+            'tool' => 'update_profile',
+            'entity_type' => 'income_occupation',
+            'lead_fields' => ['annual_dividend_income', 'annual_interest_income', 'annual_trust_income', 'annual_other_income'],
+            'kinds' => [],
+            'fields' => [
+                'annual_dividend_income' => ['type' => 'money', 'label' => 'Dividend income a year', 'required' => false,
+                    'hint' => 'Taxable dividends only: ISA dividends are tax-free. Enter 0 if none'],
+                'annual_interest_income' => ['type' => 'money', 'label' => 'Interest income a year', 'required' => false,
+                    'hint' => 'From accounts that are not ISAs. Enter 0 to use what your savings accounts pay'],
+                'annual_trust_income' => ['type' => 'money', 'label' => 'Trust income a year', 'required' => false,
+                    'hint' => 'Income received from trusts (taxable). Enter 0 if none'],
+                'annual_other_income' => ['type' => 'money', 'label' => 'Other income a year', 'required' => false,
+                    'hint' => 'Any other taxable income not listed above. Enter 0 if none'],
+            ],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function otherIncomeSentence(array $input): string
+    {
+        $names = [
+            'annual_dividend_income' => 'dividends',
+            'annual_interest_income' => 'interest',
+            'annual_trust_income' => 'trust income',
+            'annual_other_income' => 'other income',
+        ];
+        $parts = [];
+        foreach ($names as $field => $name) {
+            if (! isset($input[$field])) {
+                continue;
+            }
+            // 0 interest is not "none": the Income page then uses what the
+            // savings accounts pay (IncomeDefinitionsService::interestIncome).
+            $parts[] = $field === 'annual_interest_income' && (float) $input[$field] <= 0
+                ? 'interest worked out from my savings accounts'
+                : self::pounds((float) $input[$field]).' a year in '.$name;
+        }
+
+        return $parts === [] ? '' : 'I receive '.implode(', ', $parts).'.';
     }
 
     /** @param  array<string, mixed>  $input */

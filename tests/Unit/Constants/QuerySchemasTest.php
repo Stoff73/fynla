@@ -11,7 +11,10 @@ describe('QuerySchemas', function () {
             $triggers = QuerySchemas::RELEVANT_TRIGGERS[QuerySchemas::RETIREMENT_CONTRIBUTION];
             expect($triggers)->toContain('employer_match');
             expect($triggers)->toContain('contribution_increase');
-            expect($triggers)->toContain('tax_relief');
+            // Pension tax relief is carried by the Tax plan (CSJ 2026-10-01, D1);
+            // the retirement tax_relief card is disabled.
+            expect($triggers)->toContain('strategy_pension_tax_relief');
+            expect($triggers)->not->toContain('tax_relief');
         });
 
         it('protection_cover includes life_insurance_gap and income_protection_gap', function () {

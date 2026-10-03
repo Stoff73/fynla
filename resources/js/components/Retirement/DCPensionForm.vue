@@ -1422,7 +1422,6 @@ export default {
       // already understands.
       const apiData = {
         ni_years_completed: this.formData.state_qualifying_years,
-        ni_years_required: 35,
         state_pension_forecast_annual: this.formData.state_forecast_weekly_amount * 52,
         ni_gaps: this.formData.state_has_ni_gaps && this.formData.state_gaps_years
           ? Array(this.formData.state_gaps_years).fill({ year: 'Unknown', cost: 0 })

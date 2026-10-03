@@ -277,7 +277,7 @@ export default {
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return null;
       }
     },
@@ -299,7 +299,6 @@ export default {
       // Transform form data to match backend schema
       const dataToSend = {
         ni_years_completed: this.formData.qualifying_years,
-        ni_years_required: 35, // New State Pension requires 35 qualifying years
         state_pension_forecast_annual: this.formData.forecast_weekly_amount ? this.formData.forecast_weekly_amount * 52 : null,
         ni_gaps: this.formData.has_ni_gaps && this.formData.gaps_years ?
           Array(this.formData.gaps_years).fill({ year: 'Unknown', cost: 0 }) : null,
