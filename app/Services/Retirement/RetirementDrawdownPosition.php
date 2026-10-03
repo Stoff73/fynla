@@ -107,6 +107,11 @@ class RetirementDrawdownPosition
         };
 
         $add('employment', 'Pay from work', (float) $parts['employment']);
+        // Pay given up under salary sacrifice: the gross above less this is the
+        // pay taxed, as on the Income tab.
+        if ((float) $incomeTab['annual_salary_sacrificed'] > 0) {
+            $lines[] = ['key' => 'salary_sacrifice', 'label' => 'Salary sacrifice', 'amount' => round(-(float) $incomeTab['annual_salary_sacrificed'], 2)];
+        }
         $add('self_employment', 'Self-employment profit', (float) $parts['self_employment']);
         // The pension part (ResolvesIncome::resolvePensionIncomeInPayment),
         // one line per pension in payment; these add up to it.
@@ -149,7 +154,8 @@ class RetirementDrawdownPosition
 
     private function statePensionStatus(User $user, ?int $age): ?string
     {
-        if ($age === null || $age < $this->statePensionAge->forUser($user)) {
+        $reached = $this->statePensionAge->dateForUser($user);
+        if ($age === null || $reached === null || $reached->gt(Carbon::today())) {
             return null;
         }
         $statePension = $user->statePension;

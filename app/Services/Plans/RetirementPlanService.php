@@ -348,7 +348,9 @@ class RetirementPlanService extends BasePlanService
                 'weekly_amount' => $this->roundToPenny(round((float) ($statePension->state_pension_forecast_annual ?? 0) / 52, 2)),
                 'annual_amount' => $this->roundToPenny((float) ($statePension->state_pension_forecast_annual ?? 0)),
                 'ni_years' => $statePension->ni_years_completed ?? 0,
-                'state_pension_age' => $statePension->state_pension_age ?? null,
+                // Recorded or from the statutory schedule, to the month.
+                'state_pension_age' => $statePension->resolved_state_pension_age,
+                'state_pension_age_label' => $statePension->resolved_state_pension_age_label,
             ] : null,
             'income_projection' => $incomeProjection,
             'annual_allowance' => $allowance,

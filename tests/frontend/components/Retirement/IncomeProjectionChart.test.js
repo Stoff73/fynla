@@ -55,6 +55,7 @@ describe('IncomeProjectionChart', () => {
   const defaultStatePension = {
     state_pension_forecast_annual: 11500,
     state_pension_age: 67,
+    resolved_state_pension_age: 67,
   };
 
   const defaultProfile = {

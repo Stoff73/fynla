@@ -341,7 +341,7 @@ struct RetirementView: View {
                 projectionSubheading("Income sources")
                 ForEach(planning.products) { product in
                     detailRow(
-                        "\(product.name) from age \(product.commencementAge)",
+                        "\(product.name) from age \(product.commencementAgeLabel ?? String(product.commencementAge))",
                         "\(MoneyFormatter.gbpWhole(product.annualIncome)) a year"
                     )
                     .accessibilityIdentifier("retirement.projection-product.\(product.id)")

@@ -63,7 +63,7 @@ class StatePension extends Model
      * figure, every surface). Web, /m and iOS each divided by 52, typed in 35
      * qualifying years and 67 for the age, or read fields that do not exist.
      */
-    protected $appends = ['weekly_forecast', 'ni_years_for_full_pension', 'ni_years_needed', 'resolved_state_pension_age'];
+    protected $appends = ['weekly_forecast', 'ni_years_for_full_pension', 'ni_years_needed', 'resolved_state_pension_age', 'resolved_state_pension_age_label'];
 
     /** The forecast a week (the State Pension is set as a weekly rate). */
     public function getWeeklyForecastAttribute(): ?float
@@ -102,9 +102,28 @@ class StatePension extends Model
             return null;
         }
 
-        $dateOfBirth = User::whereKey($this->user_id)->value('date_of_birth');
+        $owner = User::whereKey($this->user_id)->first(['date_of_birth', 'gender']);
 
-        return app(StatePensionAgeResolver::class)->forDateOfBirth($dateOfBirth);
+        return app(StatePensionAgeResolver::class)->forDateOfBirth($owner?->date_of_birth, $owner?->gender);
+    }
+
+    /**
+     * The same age in words, to the month ("66 years and 5 months"; Pensions
+     * Act 1995 Sch 4), without loading `user` (see above).
+     */
+    public function getResolvedStatePensionAgeLabelAttribute(): ?string
+    {
+        if ($this->state_pension_age) {
+            return (string) (int) $this->state_pension_age;
+        }
+
+        if ($this->user_id === null) {
+            return null;
+        }
+
+        $owner = User::whereKey($this->user_id)->first(['date_of_birth', 'gender']);
+
+        return app(StatePensionAgeResolver::class)->labelForDateOfBirth($owner?->date_of_birth, $owner?->gender);
     }
 
     /**

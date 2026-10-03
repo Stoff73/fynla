@@ -75,8 +75,15 @@ class IncomeDefinitionsService
             ? ($user->employment_income_basis ?? 'gross')
             : null;
 
-        if ($basis === 'gross') {
-            $totalIncome = max(0.0, $totalIncome - $sacrificed);
+        // One gross pay figure everywhere (CSJ 2026-10-03): the employment part is
+        // the pay BEFORE the sacrifice whichever way it was recorded, and the
+        // sacrifice comes off it once, here, as its own deduction. Pay recorded
+        // after the sacrifice ('post_sacrifice') has it added back for the gross.
+        if ($basis === 'post_sacrifice') {
+            $components['employment'] = round($components['employment'] + $sacrificed, 2);
+        }
+        if ($sacrificed > 0) {
+            $totalIncome = max(0.0, array_sum($components) - $sacrificed);
         }
 
         $netIncome = $totalIncome - $pensionRelief;

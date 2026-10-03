@@ -715,8 +715,9 @@ class DashboardAggregator
                     'severity' => 'important',
                     'title' => 'Early Retirement Bridging Required',
                     'message' => sprintf(
-                        'You plan to retire before your State Pension age of %d. You will need to bridge the income gap until your State Pension begins.',
-                        $summary['state_pension_age'] ?? 67
+                        'You plan to retire before your State Pension age of %s. You will need to bridge the income gap until your State Pension begins.',
+                        // The resolver's words, to the month; never a typed-in age.
+                        $summary['state_pension_age_label'] ?? $summary['state_pension_age']
                     ),
                     'action_link' => '/retirement',
                     'action_text' => 'Plan Bridging Strategy',

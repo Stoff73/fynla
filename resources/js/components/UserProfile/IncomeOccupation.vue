@@ -118,7 +118,7 @@
                        the same rows /m shows: no sums made here. -->
                   <div v-for="row in userIncomeRows" :key="row.key" class="flex justify-between">
                     <span class="text-body-sm text-neutral-500">{{ row.label }}:<span v-if="row.detail" class="ml-2 text-neutral-400">{{ row.detail }}</span></span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(row.amount) }}</span>
+                    <span class="text-body-sm text-horizon-500 text-right whitespace-nowrap">{{ formatCurrency(row.amount) }}</span>
                   </div>
                   <!-- Child Benefit -->
                   <div v-if="childBenefitAmount > 0" class="flex justify-between">
@@ -355,6 +355,29 @@
               <p class="text-body-xs text-neutral-500">Income received from trusts (taxable)</p>
             </div>
 
+            <!-- Annual Other Income: saved with the form and taxed on the Income tab,
+                 so it has to be enterable here too. -->
+            <div>
+              <label for="annual_other_income" class="block text-body-sm font-medium text-neutral-500 mb-1">
+                Other Income
+              </label>
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-neutral-500 sm:text-sm">£</span>
+                </div>
+                <input
+                  id="annual_other_income"
+                  v-model.number="form.annual_other_income"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="input-field pl-7"
+                  placeholder="0.00"
+                />
+              </div>
+              <p class="text-body-xs text-neutral-500">Any other taxable income not listed above</p>
+            </div>
+
             <!-- Registered Blind -->
             <div class="col-span-full border-t pt-4">
               <div class="flex items-center gap-3">
@@ -506,7 +529,7 @@ export default {
     const spouseSummary = computed(() => store.getters['userProfile/profile']?.income_summary?.spouse || null);
     const spouseIncomeRows = computed(() => {
       const income = spouseSummary.value || {};
-      if (Array.isArray(income.sources)) return income.sources.filter((r) => Number(r.amount) > 0);
+      if (Array.isArray(income.sources)) return income.sources.filter((r) => Number(r.amount) !== 0);
       return [];
     });
     const spouseCapturedRows = computed(() => {
@@ -561,11 +584,14 @@ export default {
     const userIncomeSummary = computed(() => store.getters['userProfile/profile']?.income_summary?.user || null);
     const userIncomeRows = computed(() => {
       const sources = userIncomeSummary.value?.sources;
-      return Array.isArray(sources) ? sources.filter((r) => Number(r.amount) > 0) : [];
+      // A deduction (salary sacrifice) is a negative row, so rows add up to the total.
+      return Array.isArray(sources) ? sources.filter((r) => Number(r.amount) !== 0) : [];
     });
 
     // Income chart data for donut chart
-    const incomeChartData = computed(() => userIncomeRows.value.map((r) => ({ label: r.label, value: Number(r.amount) })));
+    const incomeChartData = computed(() => userIncomeRows.value
+      .filter((r) => Number(r.amount) > 0)
+      .map((r) => ({ label: r.label, value: Number(r.amount) })));
 
     const lightenColor = (hex, amount) => {
       const r = parseInt(hex.slice(1, 3), 16);

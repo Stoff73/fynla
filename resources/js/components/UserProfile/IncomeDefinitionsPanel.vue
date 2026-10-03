@@ -12,6 +12,11 @@
         {{ componentLabel(key) }} {{ formatCurrency(value) }}
         <span v-if="!isLastActive(key)"> &middot; </span>
       </span>
+      <!-- Employment is the pay before salary sacrifice; the pay given up is not
+           income, so it comes off to reach Total Income. -->
+      <span v-if="definitions.deductions?.salary_sacrificed > 0">
+        &middot; less salary sacrifice {{ formatCurrency(definitions.deductions.salary_sacrificed) }}
+      </span>
     </p>
 
     <!-- Deductions to Net Income -->
@@ -204,20 +209,30 @@ export default {
       const employee = this.definitions.deductions.employee_pension_contributions;
       // FA 2004 s228ZA(5)(c): relief-at-source contributions come off gross too.
       const reliefAtSource = this.definitions.deductions.relief_at_source_gross;
+      // FA 2004 s228ZA(3): pay given up under salary sacrifice is added back.
+      const sacrificed = this.definitions.deductions.salary_sacrificed;
 
-      if (!(employee > 0) && !(reliefAtSource > 0)) {
+      if (!(employee > 0) && !(reliefAtSource > 0) && !(sacrificed > 0)) {
         return `The same as your Total Income of ${total} — you have no employee pension contributions to deduct.`;
       }
 
-      if (!(reliefAtSource > 0)) {
-        return `Your Total Income of ${total}, less the ${this.formatCurrency(employee)} you paid into your pension.`;
+      const less = [];
+      if (employee > 0) {
+        less.push(`the ${this.formatCurrency(employee)} you paid into your pension${reliefAtSource > 0 ? ' from your pay' : ''}`);
+      }
+      if (reliefAtSource > 0) {
+        less.push(`the ${this.formatCurrency(reliefAtSource)} paid into your personal pension (grossed up)`);
       }
 
-      const personal = `the ${this.formatCurrency(reliefAtSource)} paid into your personal pension (grossed up)`;
+      let sentence = `Your Total Income of ${total}`;
+      if (less.length) {
+        sentence += `, less ${less.join(' and ')}`;
+      }
+      if (sacrificed > 0) {
+        sentence += `, plus the ${this.formatCurrency(sacrificed)} of pay you give up under salary sacrifice, which is added back`;
+      }
 
-      return employee > 0
-        ? `Your Total Income of ${total}, less the ${this.formatCurrency(employee)} you paid into your pension from your pay and ${personal}.`
-        : `Your Total Income of ${total}, less ${personal}.`;
+      return `${sentence}.`;
     },
 
     /**

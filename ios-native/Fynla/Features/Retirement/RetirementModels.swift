@@ -160,6 +160,8 @@ struct StatePension: Decodable, Sendable, Equatable {
     let niYearsForFullPension: Int?
     let niYearsNeeded: Int?
     let resolvedStatePensionAge: Int?
+    /// The same age to the month ("66 years and 5 months"), from the server.
+    let resolvedStatePensionAgeLabel: String?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -171,6 +173,7 @@ struct StatePension: Decodable, Sendable, Equatable {
         case niYearsForFullPension = "ni_years_for_full_pension"
         case niYearsNeeded = "ni_years_needed"
         case resolvedStatePensionAge = "resolved_state_pension_age"
+        case resolvedStatePensionAgeLabel = "resolved_state_pension_age_label"
     }
 }
 
@@ -365,6 +368,8 @@ struct RetirementProjectionProduct: Decodable, Sendable, Equatable, Identifiable
     let resourceID: Int
     let name: String
     let commencementAge: Int
+    /// The age in words from the server (State Pension to the month).
+    let commencementAgeLabel: String?
     let currentValue: Decimal?
     let monthlyContribution: Decimal?
     let projectedValue: Decimal?
@@ -378,6 +383,7 @@ struct RetirementProjectionProduct: Decodable, Sendable, Equatable, Identifiable
         case resourceID = "resource_id"
         case name
         case commencementAge = "commencement_age"
+        case commencementAgeLabel = "commencement_age_label"
         case currentValue = "current_value"
         case monthlyContribution = "monthly_contribution"
         case projectedValue = "projected_value"

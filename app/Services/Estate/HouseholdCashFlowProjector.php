@@ -187,9 +187,8 @@ class HouseholdCashFlowProjector
                     : $profile['pre_retirement_income'];
                 $expenses += $retired ? $profile['retirement_expenses'] : $profile['pre_retirement_expenses'];
 
-                if ($age >= $profile['state_pension_age']) {
-                    $income += $profile['state_pension_income'];
-                }
+                // From the month State Pension age is reached (Pensions Act 1995 Sch 4).
+                $income += $profile['state_pension_income'] * ($profile['state_pension_share_by_age'][$age] ?? 1.0);
             }
 
             $income *= $inflationMultiplier;
@@ -345,6 +344,13 @@ class HouseholdCashFlowProjector
             'current_age' => $currentAge,
             'retirement_age' => $retirementAge,
             'state_pension_age' => $statePensionAge,
+            // The share of each year of age State Pension is paid for: 0 before
+            // the day it is reached, part of the year it is reached in, 1 after.
+            'state_pension_share_by_age' => collect(range($currentAge, $currentAge + $yearsToProject + 1))
+                ->mapWithKeys(fn (int $age): array => [$age => $member->date_of_birth
+                    ? $this->statePensionAge->fractionPaidAtAge($member, $age)
+                    : ($age >= $statePensionAge ? 1.0 : 0.0)])
+                ->all(),
             'pre_retirement_income' => $preRetirementIncome,
             'pre_retirement_expenses' => $preRetirementExpenses,
             // The private pension income at the START of retirement, which is what the

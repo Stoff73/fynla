@@ -33,8 +33,14 @@ class UKTaxCalculator
      * @param  float  $shareVestIncome  Share-scheme vests this year: employment income for
      *                                  Income Tax (ITEPA 2003); National Insurance on
      *                                  them is not charged here until its source is settled
-     * @param  bool  $class1Applies  False once State Pension age is reached (SSCBA 1992 s6(3))
+     * @param  float  $class1Share  The share of the year's pay still liable to Class 1: none is
+     *                              due on pay received on or after State Pension age
+     *                              (SSCBA 1992 s6(3)), so 1 before it, 0 after, part in between
      * @param  bool  $class4Applies  False from the 6 April after State Pension age
+     * @param  float  $salarySacrifice  Pay given up for a pension under salary sacrifice:
+     *                                  $employmentIncome is the pay before it, and it comes
+     *                                  off before Income Tax and Class 1 National Insurance
+     *                                  (it is an employer contribution, FA 2004 s228ZA(3))
      * @param  float  $bandExtension  Gift Aid and relief-at-source pension payments, gross:
      *                                they reduce adjusted net income (ITA 2007 s58) and
      *                                extend the basic and higher rate limits (s414,
@@ -55,17 +61,21 @@ class UKTaxCalculator
         float $blindPersonsAllowance = 0,
         float $otherIncome = 0,
         float $shareVestIncome = 0,
-        bool $class1Applies = true,
+        float $class1Share = 1.0,
         bool $class4Applies = true,
-        float $bandExtension = 0
+        float $bandExtension = 0,
+        float $salarySacrifice = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        $salarySacrifice = min(max(0.0, $salarySacrifice), $employmentIncome);
+        // The pay actually received: the gross less the sacrifice.
+        $payAfterSacrifice = $employmentIncome - $salarySacrifice;
 
         // Personal Allowance taper base, adjusted net income (ITA 2007 s58): total
         // income less net-pay pension relief, Gift Aid and relief-at-source payments.
         $totalIncomePreRelief = $employmentIncome + $selfEmploymentIncome + $rentalIncome
             + $pensionIncome + $trustIncome + $interestIncome + $dividendIncome
-            + $otherIncome + $shareVestIncome;
+            + $otherIncome + $shareVestIncome - $salarySacrifice;
         $taxableIncomePreRelief = $totalIncomePreRelief - $pensionContributions - max(0.0, $bandExtension);
 
         // The tapered allowance is handed to the tracker separately rather than
@@ -98,7 +108,7 @@ class UKTaxCalculator
 
         if ($hasEarnedIncome) {
             // Calculate taxable employment income (after pension contributions)
-            $taxableEmploymentIncome = max(0, $employmentIncome - $pensionContributions);
+            $taxableEmploymentIncome = max(0, $payAfterSacrifice - $pensionContributions);
 
             // Total taxable earned income for tax calculation
             $totalTaxableEarnedIncome = $taxableEmploymentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome
@@ -112,7 +122,8 @@ class UKTaxCalculator
             // (SSCBA 1992 s6(3), https://www.legislation.gov.uk/ukpga/1992/4/section/6),
             // Class 4 from the 6 April after it
             // (https://www.gov.uk/national-insurance/what-national-insurance-is).
-            $class1NI = $employmentIncome > 0 && $class1Applies ? $this->calculateClass1NIDetailed($employmentIncome) : null;
+            $class1Share = min(1.0, max(0.0, $class1Share));
+            $class1NI = $payAfterSacrifice > 0 && $class1Share > 0 ? $this->calculateClass1NIDetailed($payAfterSacrifice, $class1Share) : null;
             $class4NI = $selfEmploymentIncome > 0 && $class4Applies ? $this->calculateClass4NIDetailed($selfEmploymentIncome) : null;
 
             $totalNIAmount = ($class1NI['total_ni'] ?? 0) + ($class4NI['total_ni'] ?? 0);
@@ -128,6 +139,15 @@ class UKTaxCalculator
                     'label' => 'Employment Income',
                     'amount' => round($employmentIncome, 2),
                 ];
+
+                if ($salarySacrifice > 0) {
+                    $incomeComponents[] = [
+                        'key' => 'salary_sacrifice',
+                        'label' => 'Salary Sacrifice',
+                        'amount' => round(-$salarySacrifice, 2),
+                        'is_deduction' => true,
+                    ];
+                }
 
                 if ($pensionContributions > 0) {
                     $incomeComponents[] = [
@@ -193,8 +213,8 @@ class UKTaxCalculator
                 ];
             }
 
-            // Gross earned income (before pension deduction for display)
-            $grossEarnedIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome
+            // Total income from these sources: sacrificed pay was never income.
+            $grossEarnedIncome = $payAfterSacrifice + $selfEmploymentIncome + $rentalIncome + $pensionIncome
                 + $otherIncome + $shareVestIncome;
 
             $incomeBreakdowns[] = [
@@ -354,7 +374,7 @@ class UKTaxCalculator
     /**
      * Calculate Class 1 NI with detailed breakdown
      */
-    private function calculateClass1NIDetailed(float $employmentIncome): array
+    private function calculateClass1NIDetailed(float $employmentIncome, float $share = 1.0): array
     {
         $niConfig = $this->taxConfig->getNationalInsurance();
         $class1Employee = $niConfig['class_1']['employee'];
@@ -394,6 +414,13 @@ class UKTaxCalculator
             $additionalRateEarnings = $employmentIncome - $upperEarningsLimit;
             $breakdown['additional_rate']['earnings'] = round($additionalRateEarnings, 2);
             $breakdown['additional_rate']['contribution'] = round($additionalRateEarnings * $additionalRate, 2);
+        }
+
+        // Only the pay received before State Pension age is liable (SSCBA 1992 s6(3)).
+        if ($share < 1.0) {
+            $breakdown['main_rate']['contribution'] = round($breakdown['main_rate']['contribution'] * $share, 2);
+            $breakdown['additional_rate']['contribution'] = round($breakdown['additional_rate']['contribution'] * $share, 2);
+            $breakdown['share_of_year_before_state_pension_age'] = round($share, 4);
         }
 
         $breakdown['total_ni'] = $breakdown['main_rate']['contribution'] + $breakdown['additional_rate']['contribution'];

@@ -38,7 +38,10 @@ final class StatePensionAgeResolver
     ) {}
 
     /**
-     * The State Pension age that applies to a user.
+     * The State Pension age that applies to a user, in whole years reached (the
+     * age on the day it is reached, so 66 for "66 years and 5 months"). For a
+     * comparison or an amount, use dateForUser / fractionPaidAtAge, which hold
+     * the months; for words, labelForUser.
      *
      * A person's own recorded `state_pensions.state_pension_age` wins over anything
      * derived — they may hold a forecast we cannot reproduce, and overriding it with
@@ -52,41 +55,119 @@ final class StatePensionAgeResolver
             return (int) $recorded;
         }
 
-        return $this->forDateOfBirth($user->date_of_birth);
+        return $this->forDateOfBirth($user->date_of_birth, $user->gender);
     }
 
     /**
-     * The State Pension age for a birth cohort.
+     * The State Pension age for a birth cohort, in whole years reached.
      *
-     * A null date of birth resolves to the age of the OLDEST band — the one already in
-     * force. It is the only band that is certain for someone whose age we do not know,
-     * and it errs towards the earlier, lower figure rather than assuming a person is
-     * young enough to be caught by a rise that may never reach them.
+     * A null date of birth resolves to the first whole-year age that applies to
+     * both genders (66, para 1(6)): the age already in force, erring early
+     * rather than assuming a person is young enough to be caught by a rise.
      */
-    public function forDateOfBirth(mixed $dateOfBirth): int
+    public function forDateOfBirth(mixed $dateOfBirth, ?string $gender = null): int
     {
-        $schedule = $this->schedule();
-
         if ($dateOfBirth === null) {
-            return (int) $schedule[0]['age'];
+            return $this->unknownBirthAge();
         }
 
         $born = CarbonImmutable::parse($dateOfBirth)->startOfDay();
 
-        foreach ($schedule as $band) {
-            $from = $band['from'] ?? null;
-            $to = $band['to'] ?? null;
+        return (int) $born->diffInYears($this->dateForDateOfBirth($born, $gender));
+    }
 
-            $afterStart = $from === null || $born->gte(CarbonImmutable::parse($from)->startOfDay());
-            $beforeEnd = $to === null || $born->lte(CarbonImmutable::parse($to)->startOfDay());
-
-            if ($afterStart && $beforeEnd) {
-                return (int) $band['age'];
-            }
+    /**
+     * The day a user reaches State Pension age: their recorded age from their
+     * date of birth, else the statutory schedule. Null without a date of birth.
+     */
+    public function dateForUser(User $user): ?CarbonImmutable
+    {
+        if ($user->date_of_birth === null) {
+            return null;
         }
 
-        // Unreachable while the schedule's last band is open-ended, which it must be.
-        return (int) end($schedule)['age'];
+        $recorded = $user->statePension?->state_pension_age;
+        if ($recorded) {
+            return CarbonImmutable::parse($user->date_of_birth)->startOfDay()->addYears((int) $recorded);
+        }
+
+        return $this->dateForDateOfBirth($user->date_of_birth, $user->gender);
+    }
+
+    /**
+     * The day someone born on $dateOfBirth reaches State Pension age (Pensions
+     * Act 1995 Sch 4 para 1). Before 6 December 1953 the age differs by gender;
+     * with none recorded, the later (men's 65) is taken.
+     */
+    public function dateForDateOfBirth(mixed $dateOfBirth, ?string $gender = null): CarbonImmutable
+    {
+        $born = CarbonImmutable::parse($dateOfBirth)->startOfDay();
+        $band = $this->bandFor($born, $gender);
+
+        if (isset($band['date'])) {
+            return CarbonImmutable::parse($band['date'])->startOfDay();
+        }
+
+        return $born->addYears((int) $band['age'])->addMonthsNoOverflow((int) ($band['months'] ?? 0));
+    }
+
+    /** "66 years and 5 months", or "67" for a whole number of years. */
+    public function labelForUser(User $user): string
+    {
+        $date = $this->dateForUser($user);
+
+        return $date === null
+            ? (string) $this->unknownBirthAge()
+            : self::label(CarbonImmutable::parse($user->date_of_birth)->startOfDay(), $date);
+    }
+
+    public function labelForDateOfBirth(mixed $dateOfBirth, ?string $gender = null): string
+    {
+        if ($dateOfBirth === null) {
+            return (string) $this->unknownBirthAge();
+        }
+        $born = CarbonImmutable::parse($dateOfBirth)->startOfDay();
+
+        return self::label($born, $this->dateForDateOfBirth($born, $gender));
+    }
+
+    /**
+     * The share of the year from the user's birthday at $age to the next that
+     * falls on or after the day they reach State Pension age: 1 once reached,
+     * 0 before, and the part-year in the year it is reached (66 and 5 months:
+     * 7/12 of the year at 66). For yearly projections, so State Pension starts
+     * in the month it is paid from rather than at a rounded age.
+     */
+    public function fractionPaidAtAge(User $user, int $age): float
+    {
+        $date = $this->dateForUser($user);
+        if ($date === null) {
+            return $age >= $this->unknownBirthAge() ? 1.0 : 0.0;
+        }
+
+        $born = CarbonImmutable::parse($user->date_of_birth)->startOfDay();
+        $start = $born->addYears($age);
+        $end = $born->addYears($age + 1);
+
+        if ($date->lte($start)) {
+            return 1.0;
+        }
+        if ($date->gte($end)) {
+            return 0.0;
+        }
+
+        return round($date->diffInDays($end) / $start->diffInDays($end), 4);
+    }
+
+    /** Whether someone stopping at $age (a birthday) does so before State Pension age. */
+    public function isBeforeStatePensionAge(User $user, int $age): bool
+    {
+        $date = $this->dateForUser($user);
+        if ($date === null) {
+            return $age < $this->unknownBirthAge();
+        }
+
+        return CarbonImmutable::parse($user->date_of_birth)->startOfDay()->addYears($age)->lt($date);
     }
 
     /**
@@ -102,8 +183,58 @@ final class StatePensionAgeResolver
         return $this->forDateOfBirth(CarbonImmutable::now()->subYears($age));
     }
 
+    private static function label(CarbonImmutable $born, CarbonImmutable $date): string
+    {
+        $months = (int) $born->diffInMonths($date);
+        $years = intdiv($months, 12);
+        $rest = $months % 12;
+
+        return $rest === 0
+            ? (string) $years
+            : $years.' years and '.$rest.' '.($rest === 1 ? 'month' : 'months');
+    }
+
+    private function unknownBirthAge(): int
+    {
+        foreach ($this->schedule() as $band) {
+            if (isset($band['age']) && ! isset($band['gender']) && ! isset($band['months'])) {
+                return (int) $band['age'];
+            }
+        }
+
+        $schedule = $this->schedule();
+
+        return (int) (end($schedule)['age'] ?? 0);
+    }
+
+    /** @return array<string, mixed> */
+    private function bandFor(CarbonImmutable $born, ?string $gender): array
+    {
+        $gender = in_array($gender, ['male', 'female'], true) ? $gender : 'male';
+
+        foreach ($this->schedule() as $band) {
+            if (isset($band['gender']) && $band['gender'] !== $gender) {
+                continue;
+            }
+            $from = $band['from'] ?? null;
+            $to = $band['to'] ?? null;
+
+            $afterStart = $from === null || $born->gte(CarbonImmutable::parse($from)->startOfDay());
+            $beforeEnd = $to === null || $born->lte(CarbonImmutable::parse($to)->startOfDay());
+
+            if ($afterStart && $beforeEnd) {
+                return $band;
+            }
+        }
+
+        // Unreachable while the schedule's last band is open-ended, which it must be.
+        $schedule = $this->schedule();
+
+        return end($schedule);
+    }
+
     /**
-     * @return list<array{from: ?string, to: ?string, age: int}>
+     * @return list<array{from: ?string, to: ?string, age?: int, months?: int, date?: string, gender?: string}>
      */
     private function schedule(): array
     {

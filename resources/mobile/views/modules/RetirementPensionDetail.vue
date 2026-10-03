@@ -101,7 +101,7 @@
         </div>
         <div class="m-detail-row">
           <span class="m-detail-key">State Pension age</span>
-          <span class="m-detail-value">{{ pension.resolved_state_pension_age || '—' }}</span>
+          <span class="m-detail-value">{{ pension.resolved_state_pension_age_label || '—' }}</span>
         </div>
       </div>
 
@@ -127,7 +127,7 @@
             <span class="m-detail-value">{{ fmt(planningProduct.projected_value) }}</span>
           </div>
           <div class="m-detail-row">
-            <span class="m-detail-key">Projected income from age {{ planningProduct.commencement_age }}</span>
+            <span class="m-detail-key">Projected income from age {{ planningProduct.commencement_age_label }}</span>
             <span class="m-detail-value">{{ fmt(planningProduct.annual_income) }} a year</span>
           </div>
           <p class="rpd-proj-note">

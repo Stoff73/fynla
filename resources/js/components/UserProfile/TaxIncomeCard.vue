@@ -179,6 +179,16 @@
         <span class="text-raspberry-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.additional_rate.tax) }}</span>
       </div>
 
+      <!-- Nothing taxed at any band (all inside the allowances): say £0 rather
+           than leave the heading with nothing under it. -->
+      <div
+        v-if="!(breakdown.tax_breakdown.basic_rate?.taxable > 0) && !(breakdown.tax_breakdown.higher_rate?.taxable > 0) && !(breakdown.tax_breakdown.additional_rate?.taxable > 0)"
+        class="flex justify-between items-center text-sm"
+      >
+        <span class="text-neutral-500">Income Tax</span>
+        <span class="text-horizon-400 font-medium">£0</span>
+      </div>
+
       <!-- Tax Payable Subtotal -->
       <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-light-gray pt-2 mt-2">
         <span class="text-neutral-500 font-medium">Tax Payable</span>
@@ -223,6 +233,10 @@
           </span>
           <span class="text-raspberry-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.contribution) }}</span>
         </div>
+        <!-- Part of the year only: the server's sentence (SSCBA 1992 s6(3)). -->
+        <p v-if="breakdown.ni_breakdown.class_1.state_pension_age_note" class="text-xs text-neutral-500">
+          {{ breakdown.ni_breakdown.class_1.state_pension_age_note }}
+        </p>
       </template>
 
       <!-- Class 4 NI (Self-Employment) -->
