@@ -268,10 +268,12 @@ export default {
         // computation on this page uses, not gross rent (W-0175).
         rental: 'Rental profit',
         dividend: 'Dividends',
-        interest: 'Interest',
+        // Interest nobody recorded is what the savings accounts pay (interest_basis).
+        interest: this.definitions?.interest_basis === 'estimated' ? 'Interest (worked out from your savings accounts)' : 'Interest',
         other: 'Other',
         trust: 'Trust',
         pension_income: 'Pension',
+        vesting: 'Share scheme vests',
       };
       return labels[key] || key;
     },

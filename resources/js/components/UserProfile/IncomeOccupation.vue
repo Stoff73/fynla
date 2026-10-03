@@ -114,33 +114,11 @@
               <!-- Right: Income Breakdown Data -->
               <div>
                 <div class="space-y-3">
-                  <div v-if="form.annual_employment_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Employment Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_employment_income) }}</span>
-                  </div>
-                  <div v-if="form.annual_self_employment_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Self-Employment Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_self_employment_income) }}</span>
-                  </div>
-                  <div v-if="form.annual_rental_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Rental Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_rental_income) }}</span>
-                  </div>
-                  <div v-if="form.annual_dividend_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Dividend Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_dividend_income) }}</span>
-                  </div>
-                  <div v-if="form.annual_interest_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Interest Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_interest_income) }}</span>
-                  </div>
-                  <div v-if="form.annual_pension_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Pension Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_pension_income) }}</span>
-                  </div>
-                  <div v-if="form.annual_trust_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Trust Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
+                  <!-- The Income page's parts as the server sends them (income_summary),
+                       the same rows /m shows: no sums made here. -->
+                  <div v-for="row in userIncomeRows" :key="row.key" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">{{ row.label }}:<span v-if="row.detail" class="ml-2 text-neutral-400">{{ row.detail }}</span></span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(row.amount) }}</span>
                   </div>
                   <!-- Child Benefit -->
                   <div v-if="childBenefitAmount > 0" class="flex justify-between">
@@ -352,7 +330,7 @@
                 Pension Income
               </label>
               <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(form.annual_pension_income) }}</p>
-              <p class="text-body-xs text-neutral-500">Calculated from Defined Benefit pensions and state pension in payment</p>
+              <p class="text-body-xs text-neutral-500">Calculated from your pensions in payment: drawdown, final salary pensions and the State Pension</p>
             </div>
 
             <!-- Annual Trust Income -->
@@ -395,13 +373,9 @@
               </p>
             </div>
 
-            <!-- Total Annual Income -->
-            <div class="pt-4 border-t border-light-gray">
-              <div class="flex justify-between items-center">
-                <span class="text-body-sm font-semibold text-horizon-500">Total Annual Income:</span>
-                <span class="text-h4 font-semibold text-horizon-500">{{ formatCurrency(totalIncomeValue) }}</span>
-              </div>
-            </div>
+            <!-- No total while editing: the total is the server's (income_summary),
+                 worked out from what is saved, so it shows once Save is pressed
+                 rather than as a sum made here (CSJ 2026-10-01, one figure). -->
 
             <!-- Action Buttons -->
             <div class="flex justify-end space-x-4 pt-4 border-t border-light-gray">
@@ -582,19 +556,16 @@ export default {
       is_registered_blind: false,
     });
 
-    // Income chart data for donut chart
-    const incomeChartData = computed(() => {
-      const sources = [
-        { label: 'Employment', value: form.value.annual_employment_income || 0 },
-        { label: 'Self-Employment', value: form.value.annual_self_employment_income || 0 },
-        { label: 'Rental', value: form.value.annual_rental_income || 0 },
-        { label: 'Dividend', value: form.value.annual_dividend_income || 0 },
-        { label: 'Interest', value: form.value.annual_interest_income || 0 },
-        { label: 'Pension', value: form.value.annual_pension_income || 0 },
-        { label: 'Trust', value: form.value.annual_trust_income || 0 },
-      ];
-      return sources.filter(s => s.value > 0);
+    // The user's income rows and total from the server (income_summary.user),
+    // so this tab and /m show the same parts and the same total.
+    const userIncomeSummary = computed(() => store.getters['userProfile/profile']?.income_summary?.user || null);
+    const userIncomeRows = computed(() => {
+      const sources = userIncomeSummary.value?.sources;
+      return Array.isArray(sources) ? sources.filter((r) => Number(r.amount) > 0) : [];
     });
+
+    // Income chart data for donut chart
+    const incomeChartData = computed(() => userIncomeRows.value.map((r) => ({ label: r.label, value: Number(r.amount) })));
 
     const lightenColor = (hex, amount) => {
       const r = parseInt(hex.slice(1, 3), 16);
@@ -627,15 +598,7 @@ export default {
       });
     });
 
-    const totalIncomeValue = computed(() => {
-      return (form.value.annual_employment_income || 0) +
-        (form.value.annual_self_employment_income || 0) +
-        (form.value.annual_rental_income || 0) +
-        (form.value.annual_dividend_income || 0) +
-        (form.value.annual_interest_income || 0) +
-        (form.value.annual_pension_income || 0) +
-        (form.value.annual_trust_income || 0);
-    });
+    const totalIncomeValue = computed(() => Number(userIncomeSummary.value?.total) || 0);
 
     // Use saved expenditure directly (Expenditure form saves total including commitments)
     const totalMonthlyExpenditure = computed(() => {
@@ -647,11 +610,7 @@ export default {
              totalMonthlyExpenditure.value * 12;
     });
 
-    const disposableIncome = computed(() => {
-      if (!incomeOccupation.value) return 0;
-      const netIncome = incomeOccupation.value.net_income || 0;
-      return netIncome - totalAnnualExpenditure.value;
-    });
+    const disposableIncome = computed(() => Number(incomeOccupation.value?.disposable_income) || 0);
 
     /**
      * The label states the deductions this figure MAKES.
@@ -816,6 +775,7 @@ export default {
 
     return {
       spouseSummary,
+      userIncomeRows,
       spouseIncomeRows,
       spouseCapturedRows,
       form,

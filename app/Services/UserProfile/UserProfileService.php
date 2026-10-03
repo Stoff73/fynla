@@ -22,6 +22,7 @@ use App\Services\Gamification\PointsService;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Property\PropertyService;
 use App\Services\Retirement\PensionContributionRule;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
@@ -338,9 +339,29 @@ class UserProfileService
      * changed is that the code now performs it — see ResolvesIncome, which is the
      * one implementation the three copies of this function collapsed into (W-0036).
      */
-    private function calculateAnnualPensionIncome(User $user): float
+    /**
+     * Whether Class 1 and Class 4 National Insurance still apply this tax year.
+     * Class 1 stops once State Pension age is reached (SSCBA 1992 s6(3),
+     * https://www.legislation.gov.uk/ukpga/1992/4/section/6); Class 4 from the
+     * 6 April after it (https://www.gov.uk/national-insurance/what-national-insurance-is).
+     * With no date of birth, both apply.
+     *
+     * @return array{0: bool, 1: bool}
+     */
+    private function nationalInsuranceApplies(User $user): array
     {
-        return $this->resolvePensionIncomeInPayment($user);
+        if (! $user->date_of_birth) {
+            return [true, true];
+        }
+
+        $statePensionDate = Carbon::parse($user->date_of_birth)
+            ->addYears(app(StatePensionAgeResolver::class)->forUser($user));
+        $taxYearStart = $this->taxConfig->getEffectiveFrom();
+
+        return [
+            $statePensionDate->gt(Carbon::today()),
+            $taxYearStart === '' || ! $statePensionDate->lt(Carbon::parse($taxYearStart)),
+        ];
     }
 
     /**
@@ -418,7 +439,7 @@ class UserProfileService
         $sources['employer'] = $person->employer ?: null;
         $sources['occupation'] = $person->occupation ?: null;
         $sources['sources'] = collect($sourceDefinitions)
-            ->map(function (array $labels, string $key) use ($components, $ownership, $person): array {
+            ->map(function (array $labels, string $key) use ($components, $ownership, $person, $definition): array {
                 $detail = null;
                 if ($key === 'employment' || $key === 'self_employment') {
                     // Every job, not just the most recent: the amount beside
@@ -431,6 +452,10 @@ class UserProfileService
                             ->implode(' · '))
                         ->filter()
                         ->implode(', ') ?: null;
+                }
+                // Interest nobody recorded is what the accounts pay: say so.
+                if ($key === 'interest' && $definition['interest_basis'] === 'estimated') {
+                    $detail = 'worked out from the savings accounts';
                 }
 
                 return [
@@ -619,66 +644,55 @@ class UserProfileService
     private function buildIncomeOccupation(User $user): array
     {
         $rentalBreakdown = $this->calculateAnnualRentalIncome($user);
-        $rentalIncome = $rentalBreakdown['total'];
         $section24Credit = $rentalBreakdown['section_24_credit'];
-        $pensionIncome = $this->calculateAnnualPensionIncome($user);
         $pensionContributions = $this->calculateAnnualPensionContributions($user);
 
-        $employmentIncome = (float) ($user->annual_employment_income ?? 0);
-        $selfEmploymentIncome = (float) ($user->annual_self_employment_income ?? 0);
-        $dividendIncome = (float) ($user->annual_dividend_income ?? 0);
-        $interestIncome = (float) ($user->annual_interest_income ?? 0);
-        $trustIncome = (float) ($user->annual_trust_income ?? 0);
-        $otherIncome = (float) ($user->annual_other_income ?? 0);
+        // Every part from the Income page (IncomeDefinitionsService; CSJ
+        // 2026-10-02, one income figure), so the tax below is worked out on the
+        // income the page lists: interest worked out from the savings accounts
+        // when none is recorded, other income and share-scheme vests included.
+        $definitions = $this->incomeDefinitions->calculateFor($user);
+        $parts = $definitions['components'];
+        $rentalIncome = (float) $parts['rental'];
+        $pensionIncome = (float) $parts['pension_income'];
 
         // Get primary trust type if user has trusts (for correct tax treatment)
         $trustType = $this->getPrimaryTrustType($user);
 
-        // The Income page's total (IncomeDefinitionsService; CSJ 2026-10-02, one
-        // income figure): the same parts as below, plus share-scheme vests.
-        $totalAnnualIncome = $this->resolveGrossAnnualIncome($user);
+        $totalAnnualIncome = (float) $definitions['total_income'];
+        [$class1Applies, $class4Applies] = $this->nationalInsuranceApplies($user);
 
-        // Get detailed tax breakdown (new method with per-income breakdowns)
         $detailedTax = $this->taxCalculator->calculateDetailedNetIncome(
-            $employmentIncome,
-            $selfEmploymentIncome,
-            $rentalIncome,
-            $pensionIncome,
-            $trustIncome,
-            $interestIncome,
-            $dividendIncome,
-            $trustType,
-            $pensionContributions,
-            $section24Credit,
+            employmentIncome: (float) $parts['employment'],
+            selfEmploymentIncome: (float) $parts['self_employment'],
+            rentalIncome: $rentalIncome,
+            pensionIncome: $pensionIncome,
+            trustIncome: (float) $parts['trust'],
+            interestIncome: (float) $parts['interest'],
+            dividendIncome: (float) $parts['dividend'],
+            trustType: $trustType,
+            pensionContributions: $pensionContributions,
+            section24Credit: $section24Credit,
             // W-0511 — given at s23 Step 3, so it belongs to the tax calculation and
             // to nothing upstream of it.
-            $this->taxConfig->blindPersonsAllowanceFor($user)
+            blindPersonsAllowance: $this->taxConfig->blindPersonsAllowanceFor($user),
+            otherIncome: (float) $parts['other'],
+            shareVestIncome: (float) $parts['vesting'],
+            class1Applies: $class1Applies,
+            class4Applies: $class4Applies,
+            // Gift Aid and relief-at-source pension payments, gross: they extend
+            // the bands rather than coming off income (ITA 2007 s414, FA 2004
+            // s192(4)), as TaxStrategyMath::incomeTaxLiability prices them.
+            bandExtension: (float) $definitions['deductions']['gift_aid_gross']
+                + (float) $definitions['deductions']['relief_at_source_gross'],
         );
-
-        // Get simple calculation for backwards compatibility. Pension contributions
-        // reduce taxable earned income and ANI for PA taper; grossed-up Gift Aid
-        // reduces ANI only.
-        $giftAidGross = $user->is_gift_aid
-            ? (float) ($user->annual_charitable_donations ?? 0) * 1.25
-            : 0.0;
-        $simpleTax = $this->taxCalculator->calculateNetIncome(
-            $employmentIncome,
-            $selfEmploymentIncome,
-            $rentalIncome,
-            $dividendIncome,
-            $interestIncome,
-            $trustIncome + $pensionIncome + $otherIncome,
-            $pensionContributions,
-            $giftAidGross,
-            // W-0511 — the simple path must reach the same figure as the detailed one.
-            $this->taxConfig->blindPersonsAllowanceFor($user)
-        );
+        $taxSummary = $detailedTax['summary'];
 
         // Calculate expenditure once (includes financial commitments to match Expenditure tab)
         $expenditureBreakdown = $this->getExpenditureBreakdown($user);
         $annualExpenditure = $expenditureBreakdown['annual'];
         $monthlyExpenditure = $expenditureBreakdown['monthly'];
-        $netIncome = $detailedTax['summary']['net_income'];
+        $netIncome = $taxSummary['net_income'];
 
         // Calculate Child Benefit and HICBC
         $childBenefitPosition = $this->childBenefitService->calculateChildBenefitPosition($user, $totalAnnualIncome);
@@ -696,24 +710,29 @@ class UserProfileService
             'annual_rental_income' => $rentalIncome,
             'annual_dividend_income' => $user->annual_dividend_income,
             'annual_interest_income' => $user->annual_interest_income,
+            // Whether the interest taxed below (income_parts.interest) is the
+            // figure recorded or worked out from the savings accounts.
+            'interest_basis' => $definitions['interest_basis'],
+            // Each part the tax below is worked out on (the Income page's
+            // components), so a reader lists these rather than its own sums.
+            'income_parts' => $parts,
             'annual_trust_income' => $user->annual_trust_income,
             'annual_other_income' => $user->annual_other_income,
             'annual_pension_income' => $pensionIncome,
             'annual_pension_contributions' => $pensionContributions,
             'total_annual_income' => $totalAnnualIncome,
-            // Backwards compatible fields from simple calculation
-            'gross_income' => $simpleTax['gross_income'],
-            'income_tax' => $simpleTax['income_tax'],
-            'national_insurance' => $simpleTax['national_insurance'],
-            'total_deductions' => $simpleTax['total_deductions'],
+            // The same calculation as `net_income`: one engine for this section.
+            'gross_income' => $taxSummary['total_gross_income'],
+            'income_tax' => $taxSummary['total_income_tax'],
+            'national_insurance' => $taxSummary['total_national_insurance'],
+            'total_deductions' => $taxSummary['total_deductions'],
             // Total income less income tax and National Insurance, plus any
             // Section 24 credit. Employee pension contributions are NOT deducted
             // here — they reduce the tax, not this figure — and the comment that
             // used to sit on this line said they were (W-0422). The label on the
             // Income tab now states the same three deductions this makes.
             'net_income' => $netIncome,
-            'effective_tax_rate' => $simpleTax['effective_tax_rate'],
-            'breakdown' => $simpleTax['breakdown'],
+            'effective_tax_rate' => $taxSummary['effective_tax_rate'],
             // Expenditure and disposable income (includes financial commitments to match Expenditure tab)
             'expenditure_breakdown' => $expenditureBreakdown,
             'annual_expenditure' => $annualExpenditure,

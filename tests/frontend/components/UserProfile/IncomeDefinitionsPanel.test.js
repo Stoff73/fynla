@@ -330,3 +330,23 @@ describe('IncomeDefinitionsPanel — relief-at-source pension contributions (FA 
     expect(base - employee - personal).toBe(rowFigure(wrapper, 'Threshold Income'));
   });
 });
+
+describe('IncomeDefinitionsPanel — interest nobody recorded (CSJ 2026-10-02, one income figure)', () => {
+  it('says the interest was worked out from the savings accounts, and names share vests', () => {
+    const wrapper = mountPanel({
+      ...DAVID,
+      components: { employment: 145000, interest: 2000, vesting: 5000 },
+      interest_basis: 'estimated',
+    });
+
+    expect(wrapper.text()).toContain('Interest (worked out from your savings accounts) £2,000');
+    expect(wrapper.text()).toContain('Share scheme vests £5,000');
+  });
+
+  it('calls a recorded figure plain Interest', () => {
+    const wrapper = mountPanel({ ...DAVID, components: { employment: 145000, interest: 300 }, interest_basis: 'recorded' });
+
+    expect(wrapper.text()).toContain('Interest £300');
+    expect(wrapper.text()).not.toContain('worked out from your savings accounts');
+  });
+});

@@ -29,6 +29,16 @@ class UKTaxCalculator
      * @param  float  $dividendIncome  Dividend income
      * @param  string|null  $trustType  Type of trust: 'discretionary', 'interest_in_possession', 'bare', etc.
      * @param  float  $pensionContributions  Employee pension contributions (deducted before tax)
+     * @param  float  $otherIncome  Other taxable non-savings income (no National Insurance)
+     * @param  float  $shareVestIncome  Share-scheme vests this year: employment income for
+     *                                  Income Tax (ITEPA 2003); National Insurance on
+     *                                  them is not charged here until its source is settled
+     * @param  bool  $class1Applies  False once State Pension age is reached (SSCBA 1992 s6(3))
+     * @param  bool  $class4Applies  False from the 6 April after State Pension age
+     * @param  float  $bandExtension  Gift Aid and relief-at-source pension payments, gross:
+     *                                they reduce adjusted net income (ITA 2007 s58) and
+     *                                extend the basic and higher rate limits (s414,
+     *                                FA 2004 s192(4)) rather than coming off income
      * @return array Detailed breakdown per income type with tax bands and NI
      */
     public function calculateDetailedNetIncome(
@@ -42,14 +52,21 @@ class UKTaxCalculator
         ?string $trustType = null,
         float $pensionContributions = 0,
         float $section24Credit = 0,
-        float $blindPersonsAllowance = 0
+        float $blindPersonsAllowance = 0,
+        float $otherIncome = 0,
+        float $shareVestIncome = 0,
+        bool $class1Applies = true,
+        bool $class4Applies = true,
+        float $bandExtension = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
 
-        // Personal Allowance taper base — total income less net-pay pension relief.
+        // Personal Allowance taper base, adjusted net income (ITA 2007 s58): total
+        // income less net-pay pension relief, Gift Aid and relief-at-source payments.
         $totalIncomePreRelief = $employmentIncome + $selfEmploymentIncome + $rentalIncome
-            + $pensionIncome + $trustIncome + $interestIncome + $dividendIncome;
-        $taxableIncomePreRelief = $totalIncomePreRelief - $pensionContributions;
+            + $pensionIncome + $trustIncome + $interestIncome + $dividendIncome
+            + $otherIncome + $shareVestIncome;
+        $taxableIncomePreRelief = $totalIncomePreRelief - $pensionContributions - max(0.0, $bandExtension);
 
         // The tapered allowance is handed to the tracker separately rather than
         // written back over the config: the basic-rate band width is derived from
@@ -59,11 +76,10 @@ class UKTaxCalculator
 
         // W-0511 — the Blind Person's Allowance is added AFTER the taper and never
         // before it. ITA 2007 s38 gives it and s23 Step 3 deducts it; s58 does not
-        // (W-0485), so the taper base above must not see it. The tracker takes the
-        // total to deduct, and its band width is derived from the config's full
-        // allowance, so handing it the sum shifts the bands up rather than widening
-        // them — which is exactly what a larger allowance does.
-        $tracker = new TaxBandTracker($incomeTaxConfig, $personalAllowance + max(0.0, $blindPersonsAllowance));
+        // (W-0485), so the taper base above must not see it. Like the Personal
+        // Allowance it lifts both limits, as calculateIncomeTax does, and Gift Aid
+        // and relief-at-source payments extend them.
+        $tracker = new TaxBandTracker($incomeTaxConfig, $personalAllowance, max(0.0, $blindPersonsAllowance), max(0.0, $bandExtension));
 
         $incomeBreakdowns = [];
         $totalGross = 0;
@@ -75,21 +91,29 @@ class UKTaxCalculator
         // NOT four earned incomes, which is what calling it the "Earned Income"
         // card led the header to assert (W-0423) — `combinedIncomeLabel` names
         // whichever of them is present.
-        $hasEarnedIncome = $employmentIncome > 0 || $selfEmploymentIncome > 0 || $rentalIncome > 0 || $pensionIncome > 0;
+        // Other income and share vests are non-savings income too (ITA 2007
+        // s16), so they share the card and its bands.
+        $hasEarnedIncome = $employmentIncome > 0 || $selfEmploymentIncome > 0 || $rentalIncome > 0 || $pensionIncome > 0
+            || $otherIncome > 0 || $shareVestIncome > 0;
 
         if ($hasEarnedIncome) {
             // Calculate taxable employment income (after pension contributions)
             $taxableEmploymentIncome = max(0, $employmentIncome - $pensionContributions);
 
             // Total taxable earned income for tax calculation
-            $totalTaxableEarnedIncome = $taxableEmploymentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome;
+            $totalTaxableEarnedIncome = $taxableEmploymentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome
+                + $otherIncome + $shareVestIncome;
 
             // Calculate tax on combined earned income
             $taxAllocation = $tracker->allocateIncome($totalTaxableEarnedIncome);
 
-            // Calculate NI separately for employment and self-employment
-            $class1NI = $employmentIncome > 0 ? $this->calculateClass1NIDetailed($employmentIncome) : null;
-            $class4NI = $selfEmploymentIncome > 0 ? $this->calculateClass4NIDetailed($selfEmploymentIncome) : null;
+            // Calculate NI separately for employment and self-employment, and
+            // none past State Pension age: Class 1 stops once it is reached
+            // (SSCBA 1992 s6(3), https://www.legislation.gov.uk/ukpga/1992/4/section/6),
+            // Class 4 from the 6 April after it
+            // (https://www.gov.uk/national-insurance/what-national-insurance-is).
+            $class1NI = $employmentIncome > 0 && $class1Applies ? $this->calculateClass1NIDetailed($employmentIncome) : null;
+            $class4NI = $selfEmploymentIncome > 0 && $class4Applies ? $this->calculateClass4NIDetailed($selfEmploymentIncome) : null;
 
             $totalNIAmount = ($class1NI['total_ni'] ?? 0) + ($class4NI['total_ni'] ?? 0);
 
@@ -143,6 +167,22 @@ class UKTaxCalculator
                 ];
             }
 
+            if ($shareVestIncome > 0) {
+                $incomeComponents[] = [
+                    'key' => 'vesting',
+                    'label' => 'Share Scheme Vests',
+                    'amount' => round($shareVestIncome, 2),
+                ];
+            }
+
+            if ($otherIncome > 0) {
+                $incomeComponents[] = [
+                    'key' => 'other',
+                    'label' => 'Other Income',
+                    'amount' => round($otherIncome, 2),
+                ];
+            }
+
             // Build NI breakdown combining both classes
             $niBreakdown = null;
             if ($class1NI || $class4NI) {
@@ -154,11 +194,12 @@ class UKTaxCalculator
             }
 
             // Gross earned income (before pension deduction for display)
-            $grossEarnedIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome;
+            $grossEarnedIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome
+                + $otherIncome + $shareVestIncome;
 
             $incomeBreakdowns[] = [
                 'income_type' => 'earned',
-                'income_type_label' => $this->combinedIncomeLabel($employmentIncome, $selfEmploymentIncome, $rentalIncome, $pensionIncome),
+                'income_type_label' => $this->combinedIncomeLabel($employmentIncome + $shareVestIncome, $selfEmploymentIncome, $rentalIncome, $pensionIncome, $otherIncome),
                 'gross_amount' => round($grossEarnedIncome, 2),
                 'income_components' => $incomeComponents,
                 'taxable_income' => round($totalTaxableEarnedIncome, 2),
@@ -279,7 +320,8 @@ class UKTaxCalculator
         float $employmentIncome,
         float $selfEmploymentIncome,
         float $rentalIncome,
-        float $pensionIncome
+        float $pensionIncome,
+        float $otherIncome = 0
     ): string {
         $kinds = [];
 
@@ -291,6 +333,9 @@ class UKTaxCalculator
         }
         if ($pensionIncome > 0) {
             $kinds[] = 'Pension';
+        }
+        if ($otherIncome > 0) {
+            $kinds[] = 'Other';
         }
 
         if ($kinds === []) {

@@ -36,6 +36,8 @@ beforeEach(function () {
     // Create a property
     $this->property = Property::factory()->create([
         'user_id' => $this->user->id,
+        // Pinned: the factory picks a type at random, and a buy-to-let records rent.
+        'property_type' => 'main_residence',
         'current_value' => 500000.00,
         'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
@@ -66,6 +68,7 @@ beforeEach(function () {
     $this->cashAccount = SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_balance' => 25000.00,
+        'interest_rate' => 4.00,
         'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
     ]);
@@ -106,11 +109,12 @@ describe('calculateProfitAndLoss', function () {
         // The Income page's total (IncomeDefinitionsService; CSJ 2026-10-02, one
         // income figure). Rent is the rental profit from the property records,
         // not the stored users column: this property records no rent, so the
-        // 12,000 typed into annual_rental_income is not income here.
+        // 12,000 typed into annual_rental_income is not income here. No interest
+        // is recorded, so it is what the account pays: £25,000 at 4% = £1,000.
         $definitions = app(IncomeDefinitionsService::class)->calculate($this->user->id);
 
         expect($result['total_income'])->toEqual((float) $definitions['total_income'])
-            ->and((float) $definitions['total_income'])->toBe(90000.0);
+            ->and((float) $definitions['total_income'])->toBe(91000.0);
     });
 
     it('includes all income line items', function () {
