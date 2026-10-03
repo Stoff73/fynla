@@ -128,5 +128,5 @@ it('marks employment as before salary sacrifice and lists the sacrifice, so the 
 
     expect($profile)->toContain('- Total annual income: £57,000.00')
         ->and($profile)->toContain('Employment (PAYE), before salary sacrifice [relevant UK earnings]: £60,000.00')
-        ->and($profile)->toContain('which only add up to the total with it taken off): £3,000.00');
+        ->and($profile)->toContain('the parts only add up to the total with it taken off): -£3,000.00');
 });

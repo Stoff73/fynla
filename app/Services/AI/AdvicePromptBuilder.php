@@ -410,7 +410,9 @@ PROMPT;
                     $lines[] = "  - {$label}{$tag}: £".number_format((float) $amount, 2);
                 }
                 if ($sacrificed > 0) {
-                    $lines[] = '  - Less salary sacrifice (paid into the pension before tax and National Insurance; list it with the parts, which only add up to the total with it taken off): £'.number_format($sacrificed, 2);
+                    // A minus amount, as the Income page shows it: listed as a
+                    // plain "£1,800" the parts read as adding up to more than the total.
+                    $lines[] = '  - Salary sacrifice, taken off (paid into the pension before tax and National Insurance; show it as a minus, the parts only add up to the total with it taken off): -£'.number_format($sacrificed, 2);
                 }
             }
 
