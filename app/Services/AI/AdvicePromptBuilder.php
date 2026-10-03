@@ -399,6 +399,9 @@ PROMPT;
                 $lines[] = '- Income breakdown:';
                 foreach ($nonZero as $key => $amount) {
                     [$label, $relevant] = $incomeTypes[$key];
+                    if ($key === 'employment' && $sacrificed > 0) {
+                        $label .= ', before salary sacrifice';
+                    }
                     $tag = match ($relevant) {
                         true => ' [relevant UK earnings]',
                         false => ' [not relevant UK earnings]',
@@ -407,7 +410,7 @@ PROMPT;
                     $lines[] = "  - {$label}{$tag}: £".number_format((float) $amount, 2);
                 }
                 if ($sacrificed > 0) {
-                    $lines[] = '  - Less salary sacrifice (paid into the pension before tax and National Insurance): £'.number_format($sacrificed, 2);
+                    $lines[] = '  - Less salary sacrifice (paid into the pension before tax and National Insurance; list it with the parts, which only add up to the total with it taken off): £'.number_format($sacrificed, 2);
                 }
             }
 

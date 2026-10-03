@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Constants\QuerySchemas;
+use App\Models\DCPension;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
@@ -113,4 +114,19 @@ it('gives Fyn the salary sacrifice and the Income page\'s tax, National Insuranc
         ->and($profile)->toContain('- National Insurance this year (the Income page\'s figure): £'.number_format((float) $tab['national_insurance'], 2))
         ->and($profile)->toContain('- Take-home after Income Tax and National Insurance (the Income page\'s figure): £'.number_format((float) $tab['net_income'], 2))
         ->and((float) $tab['income_tax'])->toBeGreaterThan(0.0);
+});
+
+it('marks employment as before salary sacrifice and lists the sacrifice, so the parts add up to the total', function () {
+    $user = User::factory()->create(['date_of_birth' => now()->subYears(40), 'annual_employment_income' => 60000, 'employment_income_basis' => 'gross', 'annual_dividend_income' => 0, 'annual_trust_income' => 0, 'annual_self_employment_income' => 0, 'annual_rental_income' => 0, 'annual_interest_income' => 0, 'annual_other_income' => 0]);
+    DCPension::factory()->create([
+        'user_id' => $user->id, 'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'salary_sacrifice' => true, 'monthly_contribution_amount' => 250,
+        'employee_contribution_percent' => 0, 'employer_contribution_percent' => 0,
+    ]);
+
+    $profile = app(AdvicePromptBuilder::class)->buildUserProfile($user->fresh());
+
+    expect($profile)->toContain('- Total annual income: £57,000.00')
+        ->and($profile)->toContain('Employment (PAYE), before salary sacrifice [relevant UK earnings]: £60,000.00')
+        ->and($profile)->toContain('which only add up to the total with it taken off): £3,000.00');
 });
