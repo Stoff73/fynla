@@ -22,18 +22,19 @@ use Carbon\Carbon;
  * Stateless math/lookup helpers shared across every TaxStrategy class.
  *
  * Every public method is deterministic given (User, ?Overrides, TaxConfig).
- * Methods that hit the database (estimateAnnualInterest,
- * estimateIsaSubscriptionsThisYear, estimatePensionContributionThisYear)
- * issue a single query each — keep an eye on N+1 if a strategy class calls
- * them inside a loop.
+ * Methods that hit the database (incomeDefinitionsFor, through
+ * IncomeDefinitionsService; estimateIsaSubscriptionsThisYear;
+ * estimatePensionContributionThisYear) issue queries on each call — keep an
+ * eye on N+1 if a strategy class calls them inside a loop.
  */
 final class TaxStrategyMath
 {
     use CalculatesOwnershipShare;
 
     /**
-     * Per-instance memo keyed by user id for taxableIncomeFor(), which fires
-     * a SavingsAccount query via estimateAnnualInterest. Strategies that call
+     * Per-instance memo keyed by user id for taxableIncomeFor(), which builds
+     * the Income page's definitions (IncomeDefinitionsService, including the
+     * savings accounts read by interestIncome). Strategies that call
      * the helper repeatedly (or via composed paths after M11) would otherwise
      * issue one query each — benchmarked to flake the 50ms calculator budget.
      *

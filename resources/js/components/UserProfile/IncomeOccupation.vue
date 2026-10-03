@@ -273,12 +273,12 @@
               </div>
             </div>
 
-            <!-- Annual Rental Income (Auto-calculated from Properties) -->
-            <div v-if="form.annual_rental_income > 0">
+            <!-- Rental income: the server's part (read-only, from the properties) -->
+            <div v-if="incomeParts.rental > 0">
               <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Rental Income
               </label>
-              <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(form.annual_rental_income) }}</p>
+              <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(incomeParts.rental) }}</p>
               <p class="text-body-xs text-neutral-500">Automatically calculated from your properties</p>
             </div>
 
@@ -324,12 +324,12 @@
               </div>
             </div>
 
-            <!-- Annual Pension Income (Auto-calculated from Retirement module) -->
-            <div v-if="form.annual_pension_income > 0">
+            <!-- Pension income: the server's part (read-only, from the pensions in payment) -->
+            <div v-if="incomeParts.pension_income > 0">
               <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Pension Income
               </label>
-              <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(form.annual_pension_income) }}</p>
+              <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(incomeParts.pension_income) }}</p>
               <p class="text-body-xs text-neutral-500">Calculated from your pensions in payment: drawdown, final salary pensions and the State Pension</p>
             </div>
 
@@ -526,6 +526,8 @@ export default {
     let messageTimeout = null;
 
     const incomeOccupation = computed(() => store.getters['userProfile/incomeOccupation']);
+    // The parts the server taxes (UserProfileService income_parts); read-only rows show these.
+    const incomeParts = computed(() => incomeOccupation.value?.income_parts || {});
     const spouseSummary = computed(() => store.getters['userProfile/profile']?.income_summary?.spouse || null);
     const spouseIncomeRows = computed(() => {
       const income = spouseSummary.value || {};
@@ -570,10 +572,8 @@ export default {
     const form = ref({
       annual_employment_income: 0,
       annual_self_employment_income: 0,
-      annual_rental_income: 0,
       annual_dividend_income: 0,
       annual_interest_income: 0,
-      annual_pension_income: 0,
       annual_trust_income: 0,
       annual_other_income: 0,
       is_registered_blind: false,
@@ -686,10 +686,8 @@ export default {
         form.value = {
           annual_employment_income: Number(incomeOccupation.value.annual_employment_income) || 0,
           annual_self_employment_income: Number(incomeOccupation.value.annual_self_employment_income) || 0,
-          annual_rental_income: Number(incomeOccupation.value.annual_rental_income) || 0,
           annual_dividend_income: Number(incomeOccupation.value.annual_dividend_income) || 0,
           annual_interest_income: Number(incomeOccupation.value.annual_interest_income) || 0,
-          annual_pension_income: Number(incomeOccupation.value.annual_pension_income) || 0,
           annual_trust_income: Number(incomeOccupation.value.annual_trust_income) || 0,
           annual_other_income: Number(incomeOccupation.value.annual_other_income) || 0,
           is_registered_blind: incomeOccupation.value.is_registered_blind || false,
@@ -813,6 +811,7 @@ export default {
       incomeChartData,
       incomeDonutSegments,
       incomeOccupation,
+      incomeParts,
       detailedTaxBreakdown,
       rentalBreakdown,
       totalMonthlyExpenditure,

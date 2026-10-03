@@ -124,10 +124,10 @@ class PensionDerivedColumnCalculator
             : null;
 
         $completion = null;
-        if ($state->ni_years_required !== null
-            && (int) $state->ni_years_required > 0
-            && $state->ni_years_completed !== null) {
-            $completion = round((float) $state->ni_years_completed / (float) $state->ni_years_required * 100, 2);
+        // Qualifying years for the full amount: the record's own, else tax config.
+        $required = $state->ni_years_for_full_pension;
+        if ($required > 0 && $state->ni_years_completed !== null) {
+            $completion = round((float) $state->ni_years_completed / (float) $required * 100, 2);
         }
 
         $years = null;
