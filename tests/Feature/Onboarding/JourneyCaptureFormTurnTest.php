@@ -71,7 +71,7 @@ it('emits the personal form with its lead-in to a forms client and the typed que
     if ($forms) {
         expect($formEvent['prompt_text'])->toBe('Let me grab a few basics first, Chris.')
             ->and($formEvent['form']['name'])->toBe('personal')
-            ->and($formEvent['form']['lead_fields'])->toBe(['date_of_birth', 'marital_status']);
+            ->and($formEvent['form']['lead_fields'])->toBe(['date_of_birth', 'gender', 'marital_status']);
     } else {
         expect($formEvent)->toBeNull()
             ->and(collect($emitted)->where('type', 'content')->pluck('text')->implode(' '))->toContain('date of birth');
@@ -82,13 +82,14 @@ it('saves date of birth and marital status from the personal form, repeats them 
     $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_PERSONAL);
     $conversation = journeyConversation($user);
 
-    $events = submitJourneyForm($user, $conversation, ['name' => 'personal', 'answers' => ['_lead' => ['date_of_birth' => '1985-01-12', 'marital_status' => 'married']]]);
+    $events = submitJourneyForm($user, $conversation, ['name' => 'personal', 'answers' => ['_lead' => ['date_of_birth' => '1985-01-12', 'gender' => 'female', 'marital_status' => 'married']]]);
 
     $user->refresh();
     expect($user->date_of_birth->format('Y-m-d'))->toBe('1985-01-12')
+        ->and($user->gender)->toBe('female')
         ->and($user->marital_status)->toBe('married')
         ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
-        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain("I've noted you're born on 12 January 1985 and married.")
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain("I've noted you're born on 12 January 1985, female and married.")
         ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE);
 });
 

@@ -28,6 +28,35 @@ describe('desktop Fyn stream event parity', () => {
     vi.clearAllMocks();
   });
 
+  // CSJ 2026-10-04: the screen shows the reply as stored, never a second version.
+  it('shows the stored reply from done in place of what streamed', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue(streamReader([
+      { type: 'content', text: 'First. ' },
+      { type: 'content', text: 'Second. Done.' },
+      { type: 'done', message_id: 43, content: 'Done.' },
+    ]));
+
+    const localState = {
+      ...aiChat.state,
+      currentConversation: { id: 10, title: 'Fyn' },
+      messages: [],
+      conversations: [],
+      streamingText: '',
+      error: null,
+    };
+    const commit = (name, payload) => aiChat.mutations[name](localState, payload);
+
+    await aiChat.actions.sendMessage({
+      commit,
+      dispatch: vi.fn().mockResolvedValue(undefined),
+      state: localState,
+      rootState: { route: { path: '/dashboard' } },
+    }, 'Break down my income');
+
+    const reply = localState.messages.filter((message) => message.role === 'assistant').at(-1);
+    expect(reply.content).toBe('Done.');
+  });
+
   it('never queues a celebration from a level_up frame — the climb belongs to the dashboard', async () => {
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
       { type: 'content', text: 'Your savings account is recorded.' },

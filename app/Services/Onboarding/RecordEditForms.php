@@ -288,6 +288,7 @@ final class RecordEditForms
             'expenditure' => [CaptureForms::EXPENDITURE, CaptureForms::LEAD, ['monthly_total' => (float) $model->monthly_expenditure], 'Your monthly spending'],
             'personal' => [CaptureForms::PERSONAL, CaptureForms::LEAD, array_filter([
                 'date_of_birth' => $model->date_of_birth?->format('Y-m-d'),
+                'gender' => $model->gender,
                 'marital_status' => $model->marital_status,
             ]), 'Your details'],
             'employer_benefits' => [CaptureForms::EMPLOYER_BENEFITS, CaptureForms::LEAD, $this->employerBenefitsAnswers($model), 'Your employer benefits'],

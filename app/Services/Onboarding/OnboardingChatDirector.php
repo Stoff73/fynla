@@ -6584,6 +6584,9 @@ PROMPT;
         if ($user->date_of_birth) {
             $parts[] = 'born on '.$user->date_of_birth->format('j F Y');
         }
+        if ($user->gender) {
+            $parts[] = (string) $user->gender;
+        }
         if ($user->marital_status) {
             $parts[] = CaptureForms::maritalWords((string) $user->marital_status);
         }

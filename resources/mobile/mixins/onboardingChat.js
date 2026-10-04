@@ -444,6 +444,12 @@ export default {
     // advance, otherwise the ack and the next question merge into one message.
     handleFynEvent(cursor, ev) {
       if (!ev || !ev.type) return;
+      // The stored reply replaces what streamed, so the screen shows what a
+      // reload will show (CSJ 2026-10-04: never two versions of one message).
+      if (ev.type === 'done' && typeof ev.content === 'string' && ev.content.trim() !== '' && cursor?.reply) {
+        cursor.reply.text = ev.content;
+        return;
+      }
       if ((ev.type === 'conversation_created' || ev.type === 'resume') && ev.conversation_id) {
         this.conversationId = ev.conversation_id;
         // 'resume' means the user is mid-onboarding from a prior session.
