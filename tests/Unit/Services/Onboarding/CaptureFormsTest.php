@@ -403,12 +403,13 @@ it('the work form writes employer, role and income once through capture_work_det
         ->and($state['form_prompt_text'])->toBe(OnboardingStateMachine::class.'::buildWorkFormPrompt');
 });
 
-it('the campaign date-of-birth step is a one-field form through capture_personal_details', function (): void {
+it('the campaign date-of-birth step asks date of birth and gender through capture_personal_details', function (): void {
     $schema = CaptureForms::schema('dob');
     expect($schema['tool'])->toBe('capture_personal_details')
-        ->and($schema['lead_fields'])->toBe(['date_of_birth'])
-        ->and(CaptureForms::toolInputs(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]))->toBe(['_lead' => ['date_of_birth' => '1981-03-14']])
-        ->and(CaptureForms::summarise(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14']]]))->toBe('I was born on 14 March 1981.')
+        ->and($schema['lead_fields'])->toBe(['date_of_birth', 'gender'])
+        ->and($schema['fields']['gender']['required'])->toBeTrue()
+        ->and(CaptureForms::toolInputs(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14', 'gender' => 'male']]]))->toBe(['_lead' => ['date_of_birth' => '1981-03-14', 'gender' => 'male']])
+        ->and(CaptureForms::summarise(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1981-03-14', 'gender' => 'male']]]))->toBe("I was born on 14 March 1981 and I'm male.")
         ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_DOB)['form'])->toBe('dob');
 });
 

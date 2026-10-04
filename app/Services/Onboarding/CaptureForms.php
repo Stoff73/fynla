@@ -1244,10 +1244,14 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_personal_details',
             'entity_type' => 'personal',
-            'lead_fields' => ['date_of_birth'],
+            'lead_fields' => ['date_of_birth', 'gender'],
             'kinds' => [],
             'fields' => [
                 'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
+                // The Save Tax walk's only personal step: gender is asked here as
+                // well as on the personal form (CSJ 2026-10-04), so every new user
+                // has the ONS life table for their sex.
+                'gender' => self::personal()['fields']['gender'],
             ],
         ];
     }
