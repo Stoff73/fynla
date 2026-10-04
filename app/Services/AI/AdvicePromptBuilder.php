@@ -399,8 +399,12 @@ PROMPT;
                 $lines[] = '- Income breakdown:';
                 foreach ($nonZero as $key => $amount) {
                     [$label, $relevant] = $incomeTypes[$key];
+                    // Pay after salary sacrifice, so the parts listed add up to the
+                    // total without Fyn having to subtract (walked 2026-10-04: told
+                    // to list a minus line, it still gave the gross beside the total).
                     if ($key === 'employment' && $sacrificed > 0) {
-                        $label .= ', before salary sacrifice';
+                        $label .= ' after salary sacrifice (£'.number_format((float) $amount, 2).' before; £'.number_format($sacrificed, 2).' is paid into the pension before tax and National Insurance)';
+                        $amount = (float) $amount - $sacrificed;
                     }
                     $tag = match ($relevant) {
                         true => ' [relevant UK earnings]',
@@ -408,11 +412,6 @@ PROMPT;
                         null => '',
                     };
                     $lines[] = "  - {$label}{$tag}: £".number_format((float) $amount, 2);
-                }
-                if ($sacrificed > 0) {
-                    // A minus amount, as the Income page shows it: listed as a
-                    // plain "£1,800" the parts read as adding up to more than the total.
-                    $lines[] = '  - Salary sacrifice, taken off (paid into the pension before tax and National Insurance; show it as a minus, the parts only add up to the total with it taken off): -£'.number_format($sacrificed, 2);
                 }
             }
 

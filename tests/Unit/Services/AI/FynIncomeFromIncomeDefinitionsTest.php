@@ -116,7 +116,7 @@ it('gives Fyn the salary sacrifice and the Income page\'s tax, National Insuranc
         ->and((float) $tab['income_tax'])->toBeGreaterThan(0.0);
 });
 
-it('marks employment as before salary sacrifice and lists the sacrifice, so the parts add up to the total', function () {
+it('lists employment after salary sacrifice, so the parts add up to the total', function () {
     $user = User::factory()->create(['date_of_birth' => now()->subYears(40), 'annual_employment_income' => 60000, 'employment_income_basis' => 'gross', 'annual_dividend_income' => 0, 'annual_trust_income' => 0, 'annual_self_employment_income' => 0, 'annual_rental_income' => 0, 'annual_interest_income' => 0, 'annual_other_income' => 0]);
     DCPension::factory()->create([
         'user_id' => $user->id, 'scheme_type' => 'workplace', 'pension_type' => 'occupational',
@@ -127,6 +127,6 @@ it('marks employment as before salary sacrifice and lists the sacrifice, so the 
     $profile = app(AdvicePromptBuilder::class)->buildUserProfile($user->fresh());
 
     expect($profile)->toContain('- Total annual income: £57,000.00')
-        ->and($profile)->toContain('Employment (PAYE), before salary sacrifice [relevant UK earnings]: £60,000.00')
-        ->and($profile)->toContain('the parts only add up to the total with it taken off): -£3,000.00');
+        ->and($profile)->toContain('Employment (PAYE) after salary sacrifice (£60,000.00 before; £3,000.00 is paid into the pension before tax and National Insurance) [relevant UK earnings]: £57,000.00')
+        ->and($profile)->not->toContain('-£3,000.00');
 });
