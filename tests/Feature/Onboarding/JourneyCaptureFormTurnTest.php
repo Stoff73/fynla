@@ -89,7 +89,7 @@ it('saves date of birth and marital status from the personal form, repeats them 
         ->and($user->gender)->toBe('female')
         ->and($user->marital_status)->toBe('married')
         ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
-        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain("I've noted you're born on 12 January 1985 and married.")
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain("I've noted you're born on 12 January 1985, female and married.")
         ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE);
 });
 
