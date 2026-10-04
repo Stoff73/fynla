@@ -1033,11 +1033,14 @@ final class CaptureForms
         if (isset($input['date_of_birth'])) {
             $parts[] = 'I was born on '.Carbon::parse($input['date_of_birth'])->format('j F Y');
         }
+        if (isset($input['gender'])) {
+            $parts[] = "I'm ".$input['gender'];
+        }
         if (isset($input['marital_status'])) {
             $parts[] = "I'm ".self::maritalWords($input['marital_status']);
         }
 
-        return $parts === [] ? '' : ucfirst(implode(' and ', $parts)).'.';
+        return $parts === [] ? '' : ucfirst(implode(', ', array_slice($parts, 0, -1)).(count($parts) > 1 ? ' and ' : '').end($parts)).'.';
     }
 
     public static function maritalWords(string $status): string
@@ -1062,10 +1065,18 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_personal_details',
             'entity_type' => 'personal',
-            'lead_fields' => ['date_of_birth', 'marital_status'],
+            'lead_fields' => ['date_of_birth', 'gender', 'marital_status'],
             'kinds' => [],
             'fields' => [
                 'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
+                // Life expectancy comes from the ONS tables for the person's sex
+                // (FutureValueCalculator), so it is asked with the date of birth
+                // (CSJ 2026-10-04). The web Profile's own options.
+                'gender' => ['type' => 'choice', 'label' => 'Gender', 'required' => true, 'options' => [
+                    ['value' => 'male', 'label' => 'Male'],
+                    ['value' => 'female', 'label' => 'Female'],
+                    ['value' => 'other', 'label' => 'Other'],
+                ]],
                 'marital_status' => ['type' => 'choice', 'label' => 'Marital status', 'required' => true, 'options' => [
                     ['value' => 'single', 'label' => 'Single'],
                     ['value' => 'married', 'label' => 'Married'],

@@ -113,6 +113,16 @@ function waitForTurn() {
     return new Promise((resolve) => { setTimeout(resolve, TURN_SETTLE_MS); });
 }
 
+
+/**
+ * The reply as stored, which the server sends on `done`, in place of what
+ * streamed: the screen then shows what a reload will show (CSJ 2026-10-04:
+ * never two versions of one message). Falls back to the streamed text.
+ */
+function finalReplyText(event, streamed) {
+    return typeof event?.content === 'string' && event.content.trim() !== '' ? event.content : streamed;
+}
+
 const state = {
     isOpen: false,
     conversations: [],
@@ -1027,7 +1037,7 @@ const actions = {
                             commit('ADD_MESSAGE', {
                                 id: event.message_id || 'msg_' + Date.now(),
                                 role: 'assistant',
-                                content: state.streamingText,
+                                content: finalReplyText(event, state.streamingText),
                                 created_at: new Date().toISOString(),
                             });
                             commit('SET_STREAMING_TEXT', '');
@@ -1248,7 +1258,7 @@ const actions = {
                             commit('ADD_MESSAGE', {
                                 id: event.message_id || 'msg_' + Date.now(),
                                 role: 'assistant',
-                                content: state.streamingText,
+                                content: finalReplyText(event, state.streamingText),
                                 created_at: new Date().toISOString(),
                             });
                             commit('SET_STREAMING_TEXT', '');
@@ -1510,7 +1520,7 @@ const actions = {
                             commit('ADD_MESSAGE', {
                                 id: event.message_id || 'msg_' + Date.now(),
                                 role: 'assistant',
-                                content: state.streamingText,
+                                content: finalReplyText(event, state.streamingText),
                                 created_at: new Date().toISOString(),
                             });
                             commit('SET_STREAMING_TEXT', '');
@@ -1785,7 +1795,7 @@ const actions = {
                             commit('ADD_MESSAGE', {
                                 id: event.message_id || 'msg_' + Date.now(),
                                 role: 'assistant',
-                                content: state.streamingText,
+                                content: finalReplyText(event, state.streamingText),
                                 created_at: new Date().toISOString(),
                             });
                             commit('SET_STREAMING_TEXT', '');

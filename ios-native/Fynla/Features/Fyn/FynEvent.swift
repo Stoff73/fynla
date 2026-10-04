@@ -44,7 +44,8 @@ enum FynEvent: Sendable, Equatable {
     case quickReplies(prompt: String?, replies: [FynReply], actionReplies: Bool, multiSelect: Bool = false)
     case skipLink(FynReply)
     case subscriptionOptions
-    case done(messageID: String?)
+    /// `content` is the reply as stored; shown in place of what streamed.
+    case done(messageID: String?, content: String? = nil)
     case unknown(String)
 }
 
@@ -149,7 +150,7 @@ struct FynEventDecoder: Sendable {
         case "action" where frame.action == "subscription_options":
             return .subscriptionOptions
         case "done":
-            return .done(messageID: frame.messageID?.value)
+            return .done(messageID: frame.messageID?.value, content: frame.content)
         default:
             return .unknown(frame.type)
         }
@@ -159,6 +160,7 @@ struct FynEventDecoder: Sendable {
 private struct FynEventFrame: Decodable {
     let type: String
     let text: String?
+    let content: String?
     let message: String?
     let conversationID: FynServerID?
     let messageID: FynServerID?
@@ -181,7 +183,7 @@ private struct FynEventFrame: Decodable {
     let label: String?
 
     private enum CodingKeys: String, CodingKey {
-        case type, text, message, section, level, name, summary, bubbles, action, route, label
+        case type, text, content, message, section, level, name, summary, bubbles, action, route, label
         case entityType = "entity_type"
         case entityID = "entity_id"
         case conversationID = "conversation_id"

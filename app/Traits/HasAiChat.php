@@ -1604,6 +1604,12 @@ trait HasAiChat
         yield [
             'type' => 'done',
             'message_id' => $assistantMessage->id,
+            // The reply as stored. Every client shows this once the turn ends, so
+            // what is on screen is what a reload shows (CSJ 2026-10-04: never two
+            // versions of one message). It differs from what streamed when the
+            // tool-call cap pass drops earlier rounds (7731abcb1) or a filter
+            // removed a sentence.
+            'content' => $assistantMessage->content,
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
         ];

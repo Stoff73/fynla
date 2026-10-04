@@ -134,8 +134,12 @@ struct FynEventReducer: Sendable {
                     isAction: true
                 ),
             ]
-        case let .done(messageID):
+        case let .done(messageID, content):
             guard let index = currentAssistantIndex(in: state) else { return }
+            // The stored reply, so the screen shows what a reload will show.
+            if let content, !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                state.messages[index].text = content
+            }
             let completed = messageID.map { state.messages[index].replacingID($0) }
                 ?? state.messages[index]
             state.messages[index] = completed

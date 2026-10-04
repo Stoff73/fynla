@@ -43,7 +43,13 @@ it('keeps rounds apart on the stream, and stores the final pass past the tool-ca
         ->pluck('text')
         ->implode('');
     $stored = $conversation->messages()->where('role', 'assistant')->latest('id')->first()->content;
+    $done = collect(preg_split('/\n\n/', $stream))
+        ->map(fn (string $frame): ?array => str_starts_with(trim($frame), 'data:') ? json_decode(trim(substr(trim($frame), 5)), true) : null)
+        ->first(fn (?array $event): bool => ($event['type'] ?? null) === 'done');
 
+    // The screen replaces the streamed text with `done.content`, the stored
+    // reply, so it shows what a reload shows (CSJ 2026-10-04).
     expect($streamed)->toBe('First. Second. Third. Done.')
-        ->and($stored)->toBe('Done.');
+        ->and($stored)->toBe('Done.')
+        ->and($done['content'] ?? null)->toBe($stored);
 });

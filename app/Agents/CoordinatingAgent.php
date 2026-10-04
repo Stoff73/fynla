@@ -1742,6 +1742,15 @@ class CoordinatingAgent extends BaseAgent
     {
         $dob = trim((string) ($input['date_of_birth'] ?? ''));
         $marital = trim((string) ($input['marital_status'] ?? ''));
+        $gender = trim((string) ($input['gender'] ?? ''));
+        // The web Profile's values (UpdatePersonalInfoRequest); life expectancy
+        // reads the ONS table for the person's sex.
+        if ($gender !== '' && ! in_array($gender, ['male', 'female', 'other'], true)) {
+            return ['error' => true, 'message' => 'Invalid gender'];
+        }
+        if ($gender !== '') {
+            $user->gender = $gender;
+        }
 
         Log::info('[CoordinatingAgent] handleCapturePersonalDetails called', [
             'user_id' => $user->id,
@@ -1754,7 +1763,7 @@ class CoordinatingAgent extends BaseAgent
         // retry. Any one field is enough: the state machine will stay on
         // base_personal and the next prompt (via buildPersonalPrompt) will
         // pre-confirm the field we have and ask for the missing one.
-        if ($dob === '' && $marital === '') {
+        if ($dob === '' && $marital === '' && $gender === '') {
             Log::warning('[CoordinatingAgent] handleCapturePersonalDetails rejected: both fields empty', [
                 'user_id' => $user->id,
             ]);
@@ -1839,6 +1848,7 @@ class CoordinatingAgent extends BaseAgent
             'captured_this_turn' => [
                 'date_of_birth' => $dob !== '',
                 'marital_status' => $marital !== '',
+                'gender' => $gender !== '',
             ],
         ]);
 
