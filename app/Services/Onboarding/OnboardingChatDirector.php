@@ -6429,11 +6429,10 @@ PROMPT;
             $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
         }
 
-        $flowName = match ((string) ($user->onboarding_fyn_selection ?? '')) {
-            'savetax' => 'your Save Tax onboarding',
-            'pensioncheck' => 'your Pension Check onboarding',
-            default => 'your onboarding',
-        };
+        $selection = (string) ($user->onboarding_fyn_selection ?? '');
+        $flowName = in_array($selection, ['savetax', 'pensioncheck'], true)
+            ? 'your '.OnboardingStateMachine::selectionLabel($selection).' onboarding'
+            : 'your onboarding';
 
         $topics = array_map(
             static fn (array $entry): string => "'".(string) ($entry['topic'] ?? mb_substr((string) ($entry['question'] ?? ''), 0, 60))."'",
@@ -8219,7 +8218,7 @@ PROMPT;
         yield [
             'type' => 'navigation',
             'route_path' => $nextRoute,
-            'description' => 'Your '.($selection !== '' ? $selection : 'module').' dashboard',
+            'description' => 'Your '.($selection !== '' ? OnboardingStateMachine::selectionLabel($selection) : 'module').' dashboard',
         ];
 
         yield [
