@@ -74,13 +74,8 @@ final class HouseholdExpenditureWriter
         // doubling a household's spending in one write. Flagged by quality-lead
         // 2026-08-24 as "one line away from firing".
         $mode = $household['expenditure_sharing_mode'] ?? $user->expenditure_sharing_mode;
-        // W-0350 — RECIPROCAL, not merely live. This writes the other half of the
-        // household into the SPOUSE'S ROW, so it is a cross-account write and needs the
-        // link both parties made rather than the one this account claimed. A one-sided
-        // link now falls to the unshared branch below, which is the same treatment an
-        // unlinked user gets: the whole share stays on the account that submitted it.
         $spouse = $user->reciprocalLiveSpouse();
-        $isShared = $spouse !== null && SharedExpenditure::isShared($mode);
+        $isShared = $this->dividesFor($user, $mode);
 
         $share = SharedExpenditure::shareOf($household, $isShared);
 
@@ -111,6 +106,25 @@ final class HouseholdExpenditureWriter
         $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouse?->id);
 
         return $share;
+    }
+
+    /**
+     * Does this account's stored spending hold a half of the household's?
+     *
+     * The one test for it: the writer divides on it, and every reader that
+     * puts stored halves back into household terms (Fyn's category edit, the
+     * spending edit form) asks it rather than carrying its own copy.
+     *
+     * W-0350 — RECIPROCAL, not merely live. The write puts the other half of
+     * the household into the SPOUSE'S ROW, so it is a cross-account write and
+     * needs the link both parties made rather than the one this account
+     * claimed. A one-sided link gets the unlinked treatment: the whole figure
+     * stays on the account that submitted it.
+     */
+    public function dividesFor(User $user, ?string $mode = null): bool
+    {
+        return $user->reciprocalLiveSpouse() !== null
+            && SharedExpenditure::isShared($mode ?? $user->expenditure_sharing_mode);
     }
 
     /**
@@ -212,7 +226,14 @@ final class HouseholdExpenditureWriter
 
     private function syncProfileTotal(User $user, array $share): void
     {
-        if (! ($share['monthly_expenditure'] ?? null)) {
+        if (! array_key_exists('monthly_expenditure', $share) || $share['monthly_expenditure'] === null) {
+            return;
+        }
+        // Spending of nothing is an answer: the profile row says so too, or its
+        // old figure would still be read first.
+        if ((float) $share['monthly_expenditure'] <= 0) {
+            ExpenditureProfile::where('user_id', $user->id)->update(['total_monthly_expenditure' => 0]);
+
             return;
         }
 

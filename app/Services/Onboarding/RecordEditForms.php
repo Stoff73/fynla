@@ -13,12 +13,15 @@ use App\Models\Mortgage;
 use App\Models\ProtectionProfile;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tiers\TeaserGate;
+use App\Support\SharedExpenditure;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -64,6 +67,8 @@ final class RecordEditForms
         'employer_benefits' => 'employer_benefits',
         // TODO item 6: "is it being paid?" has to be answerable from /m.
         'state_pension' => 'state_pension',
+        // /m Expenditure's "Edit details": the spending form, as it was entered.
+        'expenditure' => 'expenditure',
     ];
 
     /** The income source rows (/m Income detail) that the other-income form edits. */
@@ -71,7 +76,11 @@ final class RecordEditForms
 
     public const OTHER_INCOME_LABEL = 'Dividend, interest, trust and other income';
 
-    public function __construct(private readonly CoordinatingAgent $agent) {}
+    public function __construct(
+        private readonly CoordinatingAgent $agent,
+        private readonly TeaserGate $teaserGate,
+        private readonly HouseholdExpenditureWriter $expenditureWriter,
+    ) {}
 
     /**
      * The form a contextual resource opens on, or null (see CONTEXTUAL_FORMS).
@@ -285,7 +294,7 @@ final class RecordEditForms
                 'annual_income' => $model->annual_income !== null ? (float) $model->annual_income : null,
             ], static fn ($v): bool => $v !== null && $v !== ''), trim(($model->employer ?: 'Your job').($model->occupation ? ', '.$model->occupation : ''))],
             'spouse_household' => [CaptureForms::SPOUSE_HOUSEHOLD, null, $this->spouseAnswers($model), "Your spouse's details"],
-            'expenditure' => [CaptureForms::EXPENDITURE, CaptureForms::LEAD, ['monthly_total' => (float) $model->monthly_expenditure], 'Your monthly spending'],
+            'expenditure' => $this->expenditureAnswers($model),
             'personal' => [CaptureForms::PERSONAL, CaptureForms::LEAD, array_filter([
                 'date_of_birth' => $model->date_of_birth?->format('Y-m-d'),
                 'gender' => $model->gender,
@@ -380,7 +389,9 @@ final class RecordEditForms
             'property' => $this->updateProperty($user, $model, $form, $conversationId),
             'employment' => $this->updateEmployment($user, $model, $form),
             'spouse_household' => $this->runTool('capture_spouse_household_data', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
-            'expenditure' => $this->runTool('capture_monthly_expenditure', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
+            'expenditure' => $this->runTool(
+                (CaptureForms::schema((string) ($form['name'] ?? '')) ?? [])['tool'] === 'set_expenditure' ? 'set_expenditure' : 'capture_monthly_expenditure',
+                CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'personal' => $this->runTool('capture_personal_details', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'employer_benefits' => $this->runTool('capture_employer_benefits', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'state_pension' => $this->runTool('capture_state_pension', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
@@ -418,6 +429,53 @@ final class RecordEditForms
     }
 
     // ─── record → answers ────────────────────────────────────────────────
+
+    /**
+     * Spending opens on the form it was entered with: a breakdown on the
+     * category form (Premium), anything else on the one box, so an edit never
+     * writes the one box over a breakdown. Figures are the household's, as
+     * both forms ask them: stored halves are doubled back first.
+     *
+     * @return array{0: string, 1: ?string, 2: array<string, mixed>, 3: string}
+     */
+    private function expenditureAnswers(User $user): array
+    {
+        $fields = [];
+        foreach ([...SharedExpenditure::SHARED_FIELDS, 'rent', 'utilities', 'charitable_donations'] as $field) {
+            if (is_numeric($user->getAttribute($field)) && (float) $user->getAttribute($field) > 0) {
+                $fields[$field] = (float) $user->getAttribute($field);
+            }
+        }
+        if ($this->expenditureWriter->dividesFor($user)) {
+            $fields = SharedExpenditure::householdOf($fields);
+        }
+
+        if ($user->expenditure_entry_mode === 'category' && $this->teaserGate->allows($user, 'expenditure_detailed')) {
+            $name = CaptureForms::expenditureDetailedNameFor($user);
+            $answers = [];
+            foreach (CaptureForms::schema($name)['kinds'] as $kind) {
+                $given = [];
+                foreach ($kind['fields'] as $field) {
+                    if (isset($fields[$field])) {
+                        $given[$field] = $fields[$field];
+                    }
+                }
+                if ($given !== []) {
+                    $answers[$kind['key']] = $given;
+                }
+            }
+
+            return [$name, null, $answers, 'Your monthly spending'];
+        }
+
+        return [CaptureForms::EXPENDITURE, CaptureForms::LEAD, array_filter([
+            'monthly_total' => $fields['monthly_expenditure'] ?? null,
+            'childcare' => $fields['childcare'] ?? null,
+            'charitable_donations' => $fields['charitable_donations'] ?? null,
+            // NOT NULL DEFAULT false: only a "yes" is known.
+            'is_gift_aid' => $user->is_gift_aid ? 'yes' : null,
+        ], static fn ($v): bool => $v !== null), 'Your monthly spending'];
+    }
 
     /** @return array{0: string, 1: string, 2: array<string, mixed>, 3: string} */
     private function savingsAnswers(Model $account): array
