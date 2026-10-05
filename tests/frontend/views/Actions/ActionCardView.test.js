@@ -39,7 +39,7 @@ const card = (over = {}) => ({
   ...over,
 });
 
-const mountCard = (payload) => {
+const mountCard = (payload, { preview = false } = {}) => {
   api.get.mockResolvedValue({ data: { success: true, data: payload } });
   api.post.mockResolvedValue({ data: { success: true } });
   api.put.mockResolvedValue({ data: { success: true } });
@@ -47,7 +47,7 @@ const mountCard = (payload) => {
   const wrapper = mount(ActionCardView, {
     global: {
       stubs: { AppLayout: { template: '<div><slot /></div>' }, 'router-link': true },
-      mocks: { $route: { params: { actionId: payload.id } }, $router: { push: vi.fn() }, $store: { dispatch } },
+      mocks: { $route: { params: { actionId: payload.id } }, $router: { push: vi.fn() }, $store: { dispatch, getters: { 'preview/isPreviewMode': preview } } },
     },
   });
   return { wrapper, dispatch };
@@ -152,5 +152,12 @@ describe('ActionCardView', () => {
 
     expect(wrapper.find('[data-testid="go-to"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="mark-done"]').exists()).toBe(true);
+  });
+
+  it('offers no Ask Fyn in a demo session, where Fyn is not shown', async () => {
+    const { wrapper } = mountCard(card(), { preview: true });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="ask-fyn"]').exists()).toBe(false);
   });
 });

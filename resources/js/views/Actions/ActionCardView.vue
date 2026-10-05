@@ -88,7 +88,7 @@
         <p v-if="card.disclaimer" class="mt-6 text-xs text-neutral-500">{{ card.disclaimer }}</p>
 
         <div class="mt-8 flex flex-wrap gap-3">
-          <button type="button" class="btn-secondary" data-testid="ask-fyn" @click="askFyn">Ask Fyn about this</button>
+          <button v-if="fynAvailable" type="button" class="btn-secondary" data-testid="ask-fyn" @click="askFyn">Ask Fyn about this</button>
           <button
             v-if="!card.done && card.go_to"
             type="button"
@@ -141,6 +141,10 @@ export default {
   },
 
   computed: {
+    // A demo session shows no Fyn (AppLayout, AppNavbar), so nothing offers it.
+    fynAvailable() {
+      return !this.$store.getters['preview/isPreviewMode'];
+    },
     actionId() {
       return String(this.$route.params.actionId || '');
     },

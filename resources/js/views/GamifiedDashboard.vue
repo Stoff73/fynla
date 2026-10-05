@@ -17,7 +17,7 @@
         <div class="gd-empty__cta">
           <h2 class="gd-empty__title">Let's build your plan</h2>
           <p class="gd-empty__sub">Fyn will ask a few quick questions and set up your personalised recommendations.</p>
-          <button type="button" class="gd-empty__btn" @click="openFyn">Get your personalised recommendations</button>
+          <button v-if="fynAvailable" type="button" class="gd-empty__btn" @click="openFyn">Get your personalised recommendations</button>
         </div>
       </div>
 
@@ -104,7 +104,7 @@
                   <button type="button" class="md-rec__skip" aria-label="Skip this recommendation" @click="skipRec(rec)">Skip</button>
                 </li>
               </ul>
-              <a href="#" class="md-recs__view-all" @click.prevent="openFyn">Get more recommendations</a>
+              <a v-if="fynAvailable" href="#" class="md-recs__view-all" @click.prevent="openFyn">Get more recommendations</a>
             </section>
           </div>
         </div>
@@ -187,7 +187,7 @@
                 <button type="button" class="md-rec__skip" aria-label="Skip this recommendation" @click="skipRec(rec)">Skip</button>
               </li>
             </ul>
-            <a href="#" class="md-recs__view-all" @click.prevent="openFyn">Get more recommendations</a>
+            <a v-if="fynAvailable" href="#" class="md-recs__view-all" @click.prevent="openFyn">Get more recommendations</a>
           </div>
         </section>
 
@@ -317,6 +317,10 @@ export default {
     };
   },
   computed: {
+    // A demo session shows no Fyn (AppLayout, AppNavbar), so nothing offers it.
+    fynAvailable() {
+      return !this.$store.getters['preview/isPreviewMode'];
+    },
     // `/api/estate/trusts` sits behind `estate.full` -> TeaserGate::isFull(),
     // which has no admin or preview bypass. `hasCapability` mirrors allows(),
     // which does — so gating on it showed the card to an admin whose tier lacks
