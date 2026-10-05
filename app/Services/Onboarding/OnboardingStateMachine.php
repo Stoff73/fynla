@@ -333,6 +333,20 @@ final class OnboardingStateMachine
      *
      * @return list<string>
      */
+    /**
+     * The name a user sees for what they set up ("Your Save Tax module is
+     * ready"); the stored selection is a slug ("savetax"), which the closing
+     * lines used to print. A module focus keeps its own word.
+     */
+    public static function selectionLabel(string $selection): string
+    {
+        return match ($selection) {
+            'savetax' => 'Save Tax',
+            'pensioncheck' => 'Pension Check',
+            default => $selection,
+        };
+    }
+
     public static function sectionOrderFor(string $selection): array
     {
         return self::CAMPAIGN_SECTION_ORDERS[$selection] ?? self::CAMPAIGN_SECTION_ORDERS['savetax'];
@@ -2452,6 +2466,10 @@ final class OnboardingStateMachine
     /** True if the user's funnel answers list at least one of the given assets. */
     private static function funnelHasAnyAsset(User $user, array $assets): bool
     {
+        // Declined at "is that okay?": the walk asks about none of them.
+        if (($user->onboarding_fyn_context['declined_asset_questions'] ?? false) === true) {
+            return false;
+        }
         $held = (array) (($user->funnel_answers['assets'] ?? []));
 
         return (bool) array_intersect($assets, $held);
@@ -2552,10 +2570,18 @@ final class OnboardingStateMachine
     public static function nextFromCampaignIntro(string $answer, User $user): string
     {
         $matched = self::matchBubble(self::STATE_CAMPAIGN_INTRO, $answer);
+        if ($matched !== 'okay') {
+            // "No thanks" declines the accounts and pensions the question
+            // named, not the setup (CSJ 2026-10-05, "choice a is good"): date
+            // of birth, gender, the spouse and spending are still asked. It
+            // used to end the setup, so none of them ever were.
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['declined_asset_questions'] = true;
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+        }
 
-        return $matched === 'okay'
-            ? self::nextCampaignSection('income', $user)
-            : self::STATE_DONE;
+        return self::nextCampaignSection('income', $user);
     }
 
     /**
@@ -3318,7 +3344,7 @@ final class OnboardingStateMachine
 
         return strtr($template, [
             '{first_name}' => $firstName,
-            '{selection}' => (string) ($user->onboarding_fyn_selection ?? ''),
+            '{selection}' => self::selectionLabel((string) ($user->onboarding_fyn_selection ?? '')),
             '{path}' => (string) ($user->onboarding_fyn_path ?? ''),
         ]);
     }

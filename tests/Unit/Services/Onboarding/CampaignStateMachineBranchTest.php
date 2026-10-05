@@ -154,14 +154,22 @@ describe('STATE_CAMPAIGN_INTRO routing', function () {
             ->toBe(OnboardingStateMachine::nextCampaignSection('income', $user));
     });
 
-    it('routes "No thanks" answers to STATE_DONE so onboarding completes', function () {
+    // CSJ 2026-10-05, "choice a is good": "No thanks" declines the accounts
+    // and pensions the question named, not the setup. It used to end the
+    // setup, so date of birth, gender and spending were never asked.
+    it('routes "No thanks" past the accounts and pensions to the date of birth, then spending', function () {
         $user = User::factory()->create([
             'onboarding_fyn_path' => 'campaign',
             'onboarding_fyn_selection' => 'savetax',
+            'marital_status' => 'single',
+            'date_of_birth' => null,
+            'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank', 'savings', 'pension', 'property']],
         ]);
 
-        expect(OnboardingStateMachine::nextFromCampaignIntro('No thanks', $user))
-            ->toBe(OnboardingStateMachine::STATE_DONE);
+        expect(OnboardingStateMachine::nextFromCampaignIntro('No thanks', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_DOB)
+            ->and($user->fresh()->onboarding_fyn_context['declined_asset_questions'])->toBeTrue()
+            ->and(OnboardingStateMachine::nextFromCampaignDob('', $user->fresh()))->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE)
+            ->and(OnboardingStateMachine::buildCampaignDobFormPrompt('', $user->fresh()))->toBe('Next, your date of birth and your gender.');
     });
 
     it('is entered from the income advice state for SaveTax and skipped for PensionCheck', function () {
@@ -175,13 +183,20 @@ describe('STATE_CAMPAIGN_INTRO routing', function () {
             ->and($next('', $pensioncheck))->toBe(OnboardingStateMachine::nextCampaignSection('income', $pensioncheck));
     });
 
-    it('falls back to STATE_DONE for unrecognised answers', function () {
+    it('treats any answer but "okay" as declining the accounts, never as ending the setup', function () {
         $user = User::factory()->create([
             'onboarding_fyn_path' => 'campaign',
         ]);
 
         expect(OnboardingStateMachine::nextFromCampaignIntro('not a bubble', $user))
-            ->toBe(OnboardingStateMachine::STATE_DONE);
+            ->not->toBe(OnboardingStateMachine::STATE_DONE);
+    });
+
+    it('names the flow, never its slug, when the setup finishes', function () {
+        $user = User::factory()->create(['first_name' => 'Casey', 'onboarding_fyn_selection' => 'savetax']);
+        $done = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_DONE);
+
+        expect(OnboardingStateMachine::resolvePromptText($done, $user))->toBe('All set, Casey. Your Save Tax module is ready to explore.');
     });
 });
 
