@@ -20,6 +20,7 @@ use App\Models\SicknessIllnessPolicy;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Mobile\NextActionsService;
+use App\Services\Onboarding\CaptureForms;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -603,3 +604,22 @@ it('resolves owned entity types using server records', function (
         ['provider' => 'Example Mutual', 'benefit_amount' => 1800],
     ],
 ]);
+
+it('opens the blank form for an Add button, so the record is added through a form', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/ai-chat/contextual-conversations', [
+        'action' => 'add',
+        'resource_type' => 'savings',
+        'resource_id' => null,
+        'current_destination' => ['screen' => 'savings', 'params' => [], 'fallback' => 'dashboard'],
+        'origin' => ['kind' => 'surface_action', 'recommendation_id' => null],
+    ])->assertCreated();
+
+    $opening = AiMessage::findOrFail($response->json('data.opening_message.id'));
+
+    expect($opening->content)->toBe(CaptureForms::ADD_PROMPT)
+        ->and($opening->metadata['capture_form']['name'])->toBe(CaptureForms::SAVINGS)
+        ->and($opening->metadata)->not->toHaveKey('capture_form_record');
+});

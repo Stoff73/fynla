@@ -514,6 +514,14 @@ final class AdviceFyn
             $intent = $this->proposalAcceptanceIntent($conversation, $message);
         }
 
+        // A change stated in plain words ("my Nationwide balance is £9,200
+        // now") opens the record's form with the change filled in, before the
+        // model sees it (CSJ 2026-10-05, option A): the model refused such
+        // statements as prompt injection or asked typed questions instead.
+        if ($intent === null && (yield from $this->onboardingChatDirector->offerTypedChangeAnywhere($user, $conversation, $message, $persistUserMessage))) {
+            return;
+        }
+
         // Full-duplicate short-circuit: when the user reasserts records
         // that all already exist (RecordDuplicateChecker matches every
         // extracted entity to a recent DB row), we do NOT involve the

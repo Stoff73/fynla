@@ -490,10 +490,14 @@ trait HasAiChat
                 // record what the turn just asked for. Widen the pool to the
                 // extraction catalogue before filtering; the allowlist still
                 // decides what survives, so nothing new leaks into a turn
-                // that did not ask for it.
+                // that did not ask for it. The handoff tools are kept out of
+                // getTools() too, so the advice turn's delegate_to_capture was
+                // filtered out the same way and advice had no way to hand a
+                // change to capture (walked 2026-10-05, conversations 325-326).
                 $pool = array_merge(
                     $tools,
                     $this->toolDefinitions->onboardingExtractionTools($isXai ? 'xai' : 'anthropic'),
+                    $toolDefinitions->handoffTools(),
                 );
 
                 $seen = [];

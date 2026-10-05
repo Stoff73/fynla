@@ -283,9 +283,11 @@ class AiChatController extends Controller
         //   ConversationModeResolver keeps typed conversation modes immutable
         //   and is shared by streamQueuedMessage and action.
         $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user)
-            // A form naming the record it edits is the director's edit pathway
-            // whether or not the user is onboarding (Batch 4, CSJ 2026-09-19).
-            || ($form !== null && is_array($form['record'] ?? null));
+            // Every capture form is saved by the director, the one write state,
+            // whether or not the user is onboarding: an edit names its record
+            // (Batch 4, CSJ 2026-09-19); a form Fyn offered to add a record
+            // names none (7a, CSJ 2026-10-01: all capture through forms).
+            || $form !== null;
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form) {
             try {
@@ -388,10 +390,9 @@ class AiChatController extends Controller
         $message = $queued->content;
         $queuedMetadata = is_array($queued->metadata) ? $queued->metadata : [];
         $form = is_array($queuedMetadata['form'] ?? null) ? $queuedMetadata['form'] : null;
-        $formEditsRecord = $form !== null && is_array($form['record'] ?? null);
         $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
         $currentRoute = $request->input('current_route');
-        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user) || $formEditsRecord;
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user) || $form !== null;
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form) {
             try {

@@ -1224,12 +1224,15 @@ class CoordinatingAgent extends BaseAgent
                     'handoff_type' => 'capture_complete',
                     'payload' => $input,
                 ],
-                'capture_personal_details' => $this->handleCapturePersonalDetails($input, $user),
-                'capture_spouse_details' => $this->handleCaptureSpouseDetails($input, $user),
-                'capture_dependants' => $this->handleCaptureDependants($input, $user),
-                'capture_work_details' => $this->handleCaptureWorkDetails($input, $user),
-                'capture_monthly_expenditure' => $this->handleCaptureMonthlyExpenditure($input, $user),
-                'capture_employer_benefits' => $this->handleCaptureEmployerBenefits($input, $user),
+                // A demo persona's /m chat opens the same forms, whose save
+                // runs these: refused like every other write, or "Save
+                // changes" overwrote the persona every visitor sees (7a).
+                'capture_personal_details' => $isPreviewUser ? $this->previewBlocked('profile') : $this->handleCapturePersonalDetails($input, $user),
+                'capture_spouse_details' => $isPreviewUser ? $this->previewBlocked('spouse') : $this->handleCaptureSpouseDetails($input, $user),
+                'capture_dependants' => $isPreviewUser ? $this->previewBlocked('dependant') : $this->handleCaptureDependants($input, $user),
+                'capture_work_details' => $isPreviewUser ? $this->previewBlocked('job') : $this->handleCaptureWorkDetails($input, $user),
+                'capture_monthly_expenditure' => $isPreviewUser ? $this->previewBlocked('expenditure') : $this->handleCaptureMonthlyExpenditure($input, $user),
+                'capture_employer_benefits' => $isPreviewUser ? $this->previewBlocked('employer benefits record') : $this->handleCaptureEmployerBenefits($input, $user),
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),

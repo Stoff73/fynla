@@ -90,6 +90,9 @@ final class CaptureForms
     /** The category form asking first whether the figures are the household's (a spouse is on file). */
     public const EXPENDITURE_DETAILED_HOUSEHOLD = 'expenditure_detailed_household';
 
+    /** The line above a blank form offered outside the setup walk to add a record. */
+    public const ADD_PROMPT = "Fill this in and save, and I'll add it to your records.";
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
@@ -128,6 +131,30 @@ final class CaptureForms
             self::EMPLOYER_BENEFITS => self::employerBenefits(),
             self::STATE_PENSION => self::statePension(),
             self::OTHER_INCOME => self::otherIncome(),
+            default => null,
+        };
+    }
+
+    /**
+     * The form that adds a record of this type, as Fyn's capture hand-off
+     * and the write-intent classifier name it, or null when Fyn has no form
+     * for it (a defined benefit pension, a goal, a gift). Personal details
+     * and the spouse are always on the user and change through their edit
+     * forms (RecordEditForms); spending is added here until it is recorded.
+     */
+    public static function createFormFor(string $entityType): ?string
+    {
+        return match ($entityType) {
+            'savings_account', 'savings', 'bank_account', 'current_account' => self::SAVINGS,
+            'isa', 'cash_isa', 'stocks_and_shares_isa' => self::ISA,
+            'investment_account', 'investment', 'gia' => self::INVESTMENT,
+            'dc_pension', 'pension', 'retirement' => self::PENSION,
+            'protection_policy', 'protection', 'life_insurance', 'critical_illness', 'income_protection',
+            'life_insurance_policy', 'critical_illness_policy', 'income_protection_policy' => self::PROTECTION,
+            'property' => self::PROPERTY,
+            'employment', 'work', 'work_details', 'income' => self::WORK,
+            'dependant', 'dependants', 'family_member' => self::DEPENDANTS,
+            'expenditure', 'spending' => self::EXPENDITURE,
             default => null,
         };
     }
