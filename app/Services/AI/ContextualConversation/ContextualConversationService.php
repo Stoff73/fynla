@@ -68,7 +68,7 @@ final class ContextualConversationService
         // 2026-10-01: all capture through forms); the save comes back to the
         // director (OnboardingChatDirector::handleCreateFormTurn).
         $createForm = $form === null && $chooser === null && $recommendation === null && $validated['action'] === 'add'
-            ? CaptureForms::schema((string) CaptureForms::createFormFor($resource->resourceType))
+            ? CaptureForms::schema(RecordEditForms::createFormsFor($resource->resourceType)[0] ?? '')
             : null;
 
         return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form, $chooser, $createForm): array {

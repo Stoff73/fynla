@@ -54,6 +54,7 @@ final class RecordEditForms
         'expenditure' => 'spending',
         'personal' => 'personal details',
         'family' => 'personal details',
+        'dependants' => 'children and dependants',
     ];
 
     /**
@@ -168,6 +169,43 @@ final class RecordEditForms
         return array_map(static fn (array $candidate): array => ['id' => 'edit:'.$candidate['type'].':'.$candidate['id'], 'label' => $candidate['label']], $candidates);
     }
 
+    /**
+     * The blank forms a new record of a section goes on (Fyn's "add", an Add
+     * button). Sections held on the user (personal details, the spouse) are
+     * only ever changed, never added.
+     */
+    private const CREATE_FORMS = [
+        'savings' => [CaptureForms::SAVINGS, CaptureForms::ISA],
+        'investments' => [CaptureForms::INVESTMENT, CaptureForms::ISA],
+        'pensions' => [CaptureForms::PENSION],
+        'protection' => [CaptureForms::PROTECTION],
+        'property' => [CaptureForms::PROPERTY],
+        'estate' => [CaptureForms::PROPERTY],
+        'income' => [CaptureForms::WORK],
+        'expenditure' => [CaptureForms::EXPENDITURE],
+        'dependants' => [CaptureForms::DEPENDANTS],
+    ];
+
+    /** Sections that hold one record on the user: once saved, an "add" opens it. */
+    public const SINGLE_RECORD_SECTIONS = ['personal', 'family', 'spouse', 'expenditure'];
+
+    /**
+     * The blank forms for a record type as Fyn's hand-off or an Add button
+     * names it (sectionForEntityType); an ISA's own form first when it names
+     * an ISA.
+     *
+     * @return list<string>
+     */
+    public static function createFormsFor(string $entityType): array
+    {
+        $forms = self::CREATE_FORMS[self::sectionForEntityType($entityType) ?? ''] ?? [];
+        if (str_contains($entityType, 'isa') && in_array(CaptureForms::ISA, $forms, true)) {
+            $forms = [CaptureForms::ISA, ...array_diff($forms, [CaptureForms::ISA])];
+        }
+
+        return array_values($forms);
+    }
+
     /** Every section a user can be offered to change, in walk order. */
     public static function sections(): array
     {
@@ -185,13 +223,15 @@ final class RecordEditForms
         return match ($type) {
             'savings_account', 'isa', 'savings', 'bank_account', 'cash_isa' => 'savings',
             'investment_account', 'investment', 'stocks_and_shares_isa', 'gia' => 'investments',
-            'dc_pension', 'db_pension', 'pension' => 'pensions',
-            'life_insurance', 'critical_illness', 'income_protection', 'protection_policy', 'protection', 'employer_benefits' => 'protection',
+            'dc_pension', 'db_pension', 'pension', 'retirement' => 'pensions',
+            'life_insurance', 'critical_illness', 'income_protection', 'protection_policy', 'protection', 'employer_benefits',
+            'life_insurance_policy', 'critical_illness_policy', 'income_protection_policy' => 'protection',
             'property', 'mortgage' => 'property',
             'employment', 'work', 'work_details', 'income' => 'income',
             'spouse', 'spouse_household' => 'spouse',
             'expenditure', 'spending' => 'expenditure',
             'personal', 'personal_details' => 'personal',
+            'dependant', 'dependants', 'family_member' => 'dependants',
             default => null,
         };
     }
