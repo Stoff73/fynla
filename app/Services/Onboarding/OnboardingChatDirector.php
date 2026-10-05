@@ -4223,7 +4223,7 @@ PROMPT;
             }
 
             $errors[$kind] = [
-                'message' => (string) ($result['message'] ?? 'The write failed.'),
+                'message' => (string) ($result['message'] ?? $result['reason'] ?? 'The write failed.'),
                 'error_type' => (string) ($result['error_type'] ?? ''),
                 'fields' => is_array($result['errors'] ?? null)
                     ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])

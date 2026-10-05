@@ -13,6 +13,7 @@ use App\Models\Mortgage;
 use App\Models\ProtectionProfile;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Eval\EvalBypassGate;
 use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Retirement\PensionContributionRule;
@@ -151,6 +152,9 @@ final class RecordEditForms
     }
 
     public const CHOOSER_PROMPT = 'Which one needs changing?';
+
+    /** A demo persona's form is never saved (isDemo). */
+    public const DEMO_MESSAGE = 'This is a demo account, so changes are not saved. Create your own account to save your details.';
 
     /**
      * One bubble per record: "edit:<type>:<id>", which the director opens on
@@ -380,6 +384,9 @@ final class RecordEditForms
      */
     public function update(User $user, array $form, int $conversationId): array
     {
+        if (self::isDemo($user)) {
+            return ['success' => false, 'message' => self::DEMO_MESSAGE];
+        }
         $type = (string) ($form['record']['type'] ?? '');
         $id = (int) ($form['record']['id'] ?? 0);
         $model = $this->find($user, $type, $id);
@@ -414,6 +421,9 @@ final class RecordEditForms
     /** @return array{success: bool, message: string} */
     public function delete(User $user, string $type, int $id, int $conversationId): array
     {
+        if (self::isDemo($user)) {
+            return ['success' => false, 'message' => self::DEMO_MESSAGE];
+        }
         $model = $this->find($user, $type, $id);
         if ($model === null) {
             return ['success' => false, 'message' => "I couldn't find that record any more."];
@@ -763,6 +773,17 @@ final class RecordEditForms
         );
 
         return ['success' => true, 'updated' => true];
+    }
+
+    /**
+     * A demo persona is shared by every visitor, so its forms never save; some
+     * of these writes (a job) go straight to the record, not through a tool
+     * that refuses a demo (7a, 2026-10-05). The eval bypass writes as a tool
+     * call does (EvalBypassGate).
+     */
+    private static function isDemo(User $user): bool
+    {
+        return (bool) $user->is_preview_user && ! EvalBypassGate::isActive($user);
     }
 
     /** @return array<string, mixed> */
