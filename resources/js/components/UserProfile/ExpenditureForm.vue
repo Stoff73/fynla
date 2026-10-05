@@ -220,7 +220,7 @@
           <!-- Manual Expenditure Total -->
           <div class="col-span-full border-t-2 border-horizon-300 mt-4"></div>
           <div class="col-label text-body font-semibold text-horizon-500 py-3">Manual Expenditure Total</div>
-          <div class="col-value text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(totalMonthlyExpenditure) }}</div>
+          <div class="col-value text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(displayManualMonthly) }}</div>
           <div v-if="isMarried" class="col-value-mid text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(spouseTotalMonthlyExpenditure) }}</div>
           <div v-if="isMarried" class="col-total text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(householdTotalMonthlyExpenditure) }}</div>
         </div>
@@ -1615,6 +1615,12 @@ export default {
         ? serverFigure('active_monthly_total')
         : totalMonthlyWithCommitments.value
     ));
+    // The entered spending, the same way: the server's figure while viewing.
+    const displayManualMonthly = computed(() => (
+      !isEditing.value && serverFigure('manual_monthly_total') !== null
+        ? serverFigure('manual_monthly_total')
+        : totalMonthlyExpenditure.value
+    ));
     const displayAnnualWithCommitments = computed(() => (
       !isEditing.value && serverFigure('active_annual_total') !== null
         ? serverFigure('active_annual_total')
@@ -2409,9 +2415,10 @@ export default {
     onMounted(() => {
       initializeFromProps();
       fetchCommitments();
+      // PropertyController::index answers { data: { properties: [...] } }.
       api.get('/properties').then(res => {
-        const data = res.data?.data || res.data;
-        properties.value = Array.isArray(data) ? data : [];
+        const list = res.data?.data?.properties;
+        properties.value = Array.isArray(list) ? list : [];
       }).catch(() => {});
       mountTimeout.value = setTimeout(() => {
         initializeRetiredBudget();
@@ -2507,6 +2514,7 @@ export default {
       spouseTotalMonthlyExpenditure,
       householdTotalMonthlyExpenditure,
       totalMonthlyWithCommitments,
+      displayManualMonthly,
       totalAnnualWithCommitments,
       displayMonthlyWithCommitments,
       displayAnnualWithCommitments,
