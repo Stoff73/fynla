@@ -217,9 +217,22 @@ final class RecommendationRouting
         return self::FYN[$recommendationId] ?? null;
     }
 
-    public static function unlockPrompt(string $module): string
+    /**
+     * The prompt for one missing item of a module's gate, where Fyn has a
+     * form for it, so the card's tap asks for what the card says is missing
+     * (walked 2026-10-05: "Date of birth is required" sent "Help me add my
+     * pension details"). Keys are the readiness checks' own.
+     */
+    private const MISSING_ITEM_PROMPTS = [
+        'date_of_birth' => 'Help me add my date of birth',
+        'marital_status' => 'Help me add my marital status',
+        'income' => 'Help me add my income details',
+        'expenditure' => 'Help me add my monthly spending',
+    ];
+
+    public static function unlockPrompt(string $module, ?string $missingKey = null): string
     {
-        return self::UNLOCK_PROMPTS[$module] ?? 'Help me add my financial details';
+        return self::MISSING_ITEM_PROMPTS[$missingKey ?? ''] ?? self::UNLOCK_PROMPTS[$module] ?? 'Help me add my financial details';
     }
 
     /**

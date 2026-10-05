@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\AiConversation;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\ValueObjects\CaptureContext;
@@ -113,16 +114,56 @@ it('asks which record when the change fits several, then fills in the one chosen
         ->and($form['prompt_text'])->toContain('with your change filled in');
 });
 
-it('leaves a new record to the capture turn', function (): void {
+it('opens the blank form for a new record, filled in, and creates it only on Save', function (): void {
     $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true]);
     SavingsAccount::factory()->create(['user_id' => $user->id, 'institution' => 'Halifax', 'account_type' => 'easy_access', 'current_balance' => 4000, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $conversation = directorConversation($user);
+    // Form 0 is the Halifax account's; form 1 the blank bank accounts form.
+    formFillReturns(['1' => ['easy_access' => ['provider' => 'Chase', 'current_value' => 2000]]]);
+
+    $events = iterator_to_array(formsDirector()->handleInlineCapture(
+        $user, $conversation, 'I opened a Chase easy access account with £2,000',
+        CaptureContext::fromArray(['reason' => 'new account', 'entity_types' => ['savings_account'], 'fields_needed' => []]),
+    ), false);
+    $form = collect($events)->firstWhere('type', 'capture_form');
+
+    expect($form)->not->toHaveKey('record')
+        ->and($form['form']['name'])->toBe(CaptureForms::SAVINGS)
+        ->and($form['values'])->toBe(['easy_access' => ['provider' => 'Chase', 'current_value' => 2000.0]])
+        ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
+
+    $posted = ['name' => CaptureForms::SAVINGS, 'answers' => ['easy_access' => ['provider' => 'Chase', 'current_value' => 2000, 'interest_rate' => 3.5, 'ownership_type' => 'individual']]];
+    $events = iterator_to_array(formsDirector()->handleUserMessage($user->fresh(), $conversation, CaptureForms::summarise($posted), null, true, $posted), false);
+
+    expect(SavingsAccount::where('user_id', $user->id)->where('institution', 'Chase')->value('current_balance'))->toEqual('2000.00')
+        ->and(collect($events)->where('type', 'content')->pluck('text')->last())->toStartWith('Saved — Chase');
+});
+
+it('opens a blank form for an add request that gives no details', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true]);
     $conversation = directorConversation($user);
     formFillReturns([]);
 
     $events = iterator_to_array(formsDirector()->handleInlineCapture(
-        $user, $conversation, 'I opened a Chase account with £2,000',
-        CaptureContext::fromArray(['reason' => 'new account', 'entity_types' => ['savings_account'], 'fields_needed' => []]),
+        $user, $conversation, 'Help me add my pension details',
+        CaptureContext::fromArray(['reason' => 'add a pension', 'entity_types' => ['dc_pension'], 'fields_needed' => []]),
+    ), false);
+    $form = collect($events)->firstWhere('type', 'capture_form');
+
+    expect($form['form']['name'])->toBe(CaptureForms::PENSION)
+        ->and($form['prompt_text'])->toBe(CaptureForms::ADD_PROMPT)
+        ->and($form)->not->toHaveKey('values');
+});
+
+it('opens the personal form for a missing date of birth', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true, 'date_of_birth' => null]);
+    $conversation = directorConversation($user);
+    formFillReturns([]);
+
+    $events = iterator_to_array(formsDirector()->handleInlineCapture(
+        $user, $conversation, 'Help me add my date of birth',
+        CaptureContext::fromArray(['reason' => 'date of birth', 'entity_types' => ['personal_details'], 'fields_needed' => []]),
     ), false);
 
-    expect(collect($events)->firstWhere('type', 'capture_form'))->toBeNull();
+    expect(collect($events)->firstWhere('type', 'capture_form')['record'])->toEqual(['type' => 'personal', 'id' => $user->id]);
 });

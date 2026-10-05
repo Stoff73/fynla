@@ -6,6 +6,7 @@ use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Mobile\NextActionsService;
+use App\Services\Mobile\RecommendationRouting;
 
 it('caps the unified list at four items', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
@@ -190,8 +191,16 @@ it('serves the capture prompt on unlock cards so no client carries its own copy'
         expect($unlock['action']['kind'])->toBe('fyn_capture')
             ->and($unlock['action']['prompt'])->toBeString()->not->toBe('');
     }
-    expect($unlocks->firstWhere('module', 'savings')['action']['prompt'] ?? 'Help me add my savings details')
-        ->toBe('Help me add my savings details');
+    // The card asks for what it says is missing (walked 2026-10-05: "Date of
+    // birth is required" sent "Help me add my pension details").
+    $retirement = $unlocks->firstWhere('module', 'retirement');
+    expect($retirement['meta'])->toStartWith('Date of birth is required')
+        ->and($retirement['action']['prompt'])->toBe('Help me add my date of birth');
+});
+
+it('falls back to the module prompt when the missing item has no form', function () {
+    expect(RecommendationRouting::unlockPrompt('savings', 'risk_profile'))->toBe('Help me add my savings details')
+        ->and(RecommendationRouting::unlockPrompt('savings'))->toBe('Help me add my savings details');
 });
 
 it('deep-links a tax recommendation to the tax strategy screen', function () {

@@ -172,6 +172,7 @@ A user typed a message where Fyn can show them a form. The forms are listed. A f
 Rules:
 - Only fields the message gives a value for. If it gives none (a question, a greeting), return {"forms": {}}.
 - Fill a form holding a record only when the message is about that record. Never put a different or new record (another provider, a new account) on it.
+- A new record the message describes goes on the blank form, under the section for its kind.
 - Put a value under a kind's section only when the message describes that kind of record. If it is not clear which kind, leave that value out.
 - choice: one of the listed options, exactly. date: YYYY-MM-DD. money and percent: a plain number, no symbols. text: the words given.
 - Never guess or carry a value over from the current one.
