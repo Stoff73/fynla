@@ -5,22 +5,23 @@ declare(strict_types=1);
 use App\Services\Coordination\CompositePlanService;
 
 /**
- * The affordability ranker is the pure heart of the cross-module composite plan:
- * rank by impact, walk a finite monthly surplus, annotate each item
+ * The affordability walk is the pure heart of the cross-module composite plan:
+ * walk a finite monthly surplus in the order given (the actions list's,
+ * CompositePlanService::inActionsListOrder), annotate each item
  * fits / partially_fits / beyond_current_surplus with the running surplus
  * consumed — and NEVER drop an item (mirrors the tax "locked, never silently
  * skipped" principle).
  */
-it('ranks by impact, walks the surplus, and annotates without dropping anything', function (): void {
+it('walks the surplus in the order given and annotates without dropping anything', function (): void {
     $items = [
-        ['type' => 'c_low', 'estimated_annual_tax_saved' => 600.0, 'priority' => 'medium', 'required_monthly_cost' => 400.0],
         ['type' => 'a_high', 'estimated_annual_tax_saved' => 1000.0, 'priority' => 'high', 'required_monthly_cost' => 200.0],
         ['type' => 'b_mid', 'estimated_annual_tax_saved' => 800.0, 'priority' => 'high', 'required_monthly_cost' => 300.0],
+        ['type' => 'c_low', 'estimated_annual_tax_saved' => 600.0, 'priority' => 'medium', 'required_monthly_cost' => 400.0],
     ];
 
     $ranked = app(CompositePlanService::class)->annotateAffordability($items, 400.0);
 
-    // Ranked by saving desc: a_high, b_mid, c_low. Nothing dropped.
+    // In the order given: a_high, b_mid, c_low. Nothing dropped.
     expect($ranked)->toHaveCount(3)
         ->and(array_column($ranked, 'type'))->toBe(['a_high', 'b_mid', 'c_low']);
 
