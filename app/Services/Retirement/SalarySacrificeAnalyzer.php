@@ -45,23 +45,19 @@ class SalarySacrificeAnalyzer
     /** Employer Class 1 National Insurance saved on £sacrifice: a flat rate above one threshold. */
     public function employerNiSaving(float $sacrifice): float
     {
-        return $sacrifice * (float) $this->taxConfig->get('national_insurance.class_1.employer.rate', 0.138);
+        // The configured rate only (Rule 2): the typed-in 0.138 fallback was the
+        // rate before April 2025, now 15%.
+        return $sacrifice * (float) $this->taxConfig->get('national_insurance.class_1.employer.rate', 0);
     }
 
     /**
-     * Pay before any salary sacrifice. The recorded employment income is the
-     * pre-sacrifice figure unless the user said they recorded it net of
-     * sacrifice (employment_income_basis = post_sacrifice), in which case the
-     * sacrificed pay goes back on. IncomeDefinitionsService owns that reading.
+     * Pay before any salary sacrifice: the Income page's employment part, which
+     * IncomeDefinitionsService makes the pre-sacrifice figure whichever way the
+     * pay was recorded (the one gross pay figure).
      */
     public function payBeforeSacrifice(User $user): float
     {
-        $definitions = $this->definitions->calculate((int) $user->id);
-        $income = (float) ($user->annual_employment_income ?? 0);
-
-        return ($definitions['employment_income_basis'] ?? null) === 'post_sacrifice'
-            ? $income + (float) ($definitions['deductions']['salary_sacrificed'] ?? 0)
-            : $income;
+        return (float) ($this->definitions->calculate((int) $user->id)['components']['employment'] ?? 0);
     }
 
     /** Pay after the sacrifice already in place: what National Insurance is charged on today. */

@@ -63,7 +63,7 @@
           </div>
           <div v-if="situation.state_pension.state_pension_age" class="bg-savannah-100 rounded-lg p-3">
             <p class="text-xs text-neutral-500">State Pension Age</p>
-            <p class="text-sm font-bold text-horizon-500">{{ situation.state_pension.state_pension_age }}</p>
+            <p class="text-sm font-bold text-horizon-500">{{ situation.state_pension.state_pension_age_label }}</p>
           </div>
         </div>
       </div>
@@ -80,7 +80,7 @@
             {{ formatCurrency(Math.max(0, situation.summary?.income_gap || 0)) }}/year
           </p>
           <p v-if="retiresBeforeSPA && incomeGapAfterSPA !== null" class="text-xs text-neutral-500 mt-1">
-            {{ formatCurrency(incomeGapAfterSPA) }}/year from age {{ situation.summary?.state_pension_age }}
+            {{ formatCurrency(incomeGapAfterSPA) }}/year from age {{ situation.summary?.state_pension_age_label }}
           </p>
         </div>
         <div class="bg-white rounded-lg border border-light-gray p-4 text-center">

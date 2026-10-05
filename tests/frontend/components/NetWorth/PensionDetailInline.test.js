@@ -251,6 +251,7 @@ describe('PensionDetailInline — the State Pension figures it shows', () => {
         ni_years_completed: 20,
         ni_years_needed: 15,
         resolved_state_pension_age: 68,
+        resolved_state_pension_age_label: '68',
       },
     },
     global: {

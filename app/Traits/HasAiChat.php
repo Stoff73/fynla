@@ -528,6 +528,9 @@ trait HasAiChat
 
         // API call loop — handles tool calls and text responses
         $fullResponse = '';
+        // Everything streamed this turn: the separator follows what the user saw,
+        // which outlives the cap pass's reset of the stored reply.
+        $streamed = '';
         $toolCallCount = 0;
         $executedCalls = [];
         $capPassForced = false;
@@ -627,8 +630,18 @@ trait HasAiChat
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
                                 $text = $certaintyFilter->push($text);
                                 if ($text !== '') {
+                                    // A new round after an earlier one's text: keep them apart.
+                                    $separator = self::roundSeparator($streamed, $iterationText, $text);
+                                    if ($separator !== '') {
+                                        if ($fullResponse !== '') {
+                                            $fullResponse .= $separator;
+                                        }
+                                        $streamed .= $separator;
+                                        yield ['type' => 'content', 'text' => $separator];
+                                    }
                                     $iterationText .= $text;
                                     $fullResponse .= $text;
+                                    $streamed .= $text;
                                     yield ['type' => 'content', 'text' => $text];
                                 }
                             }
@@ -683,8 +696,18 @@ trait HasAiChat
 
                     $tail = $certaintyFilter->flush();
                     if ($tail !== '') {
+                        // A new round after an earlier one's text: keep them apart.
+                        $separator = self::roundSeparator($streamed, $iterationText, $tail);
+                        if ($separator !== '') {
+                            if ($fullResponse !== '') {
+                                $fullResponse .= $separator;
+                            }
+                            $streamed .= $separator;
+                            yield ['type' => 'content', 'text' => $separator];
+                        }
                         $iterationText .= $tail;
                         $fullResponse .= $tail;
+                        $streamed .= $tail;
                         yield ['type' => 'content', 'text' => $tail];
                     }
 
@@ -775,8 +798,18 @@ trait HasAiChat
                                     $currentTextBlock .= $text;
                                     $text = $certaintyFilter->push($text);
                                     if ($text !== '') {
+                                        // A new round after an earlier one's text: keep them apart.
+                                        $separator = self::roundSeparator($streamed, $iterationText, $text);
+                                        if ($separator !== '') {
+                                            if ($fullResponse !== '') {
+                                                $fullResponse .= $separator;
+                                            }
+                                            $streamed .= $separator;
+                                            yield ['type' => 'content', 'text' => $separator];
+                                        }
                                         $iterationText .= $text;
                                         $fullResponse .= $text;
+                                        $streamed .= $text;
                                         yield ['type' => 'content', 'text' => $text];
                                     }
                                 }
@@ -805,8 +838,18 @@ trait HasAiChat
 
                     $tail = $certaintyFilter->flush();
                     if ($tail !== '') {
+                        // A new round after an earlier one's text: keep them apart.
+                        $separator = self::roundSeparator($streamed, $iterationText, $tail);
+                        if ($separator !== '') {
+                            if ($fullResponse !== '') {
+                                $fullResponse .= $separator;
+                            }
+                            $streamed .= $separator;
+                            yield ['type' => 'content', 'text' => $separator];
+                        }
                         $iterationText .= $tail;
                         $fullResponse .= $tail;
+                        $streamed .= $tail;
                         yield ['type' => 'content', 'text' => $tail];
                     }
                 }
@@ -1561,6 +1604,12 @@ trait HasAiChat
         yield [
             'type' => 'done',
             'message_id' => $assistantMessage->id,
+            // The reply as stored. Every client shows this once the turn ends, so
+            // what is on screen is what a reload shows (CSJ 2026-10-04: never two
+            // versions of one message). It differs from what streamed when the
+            // tool-call cap pass drops earlier rounds (7731abcb1) or a filter
+            // removed a sentence.
+            'content' => $assistantMessage->content,
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
         ];
@@ -1819,6 +1868,20 @@ trait HasAiChat
     /**
      * Save a message to the database.
      */
+    /**
+     * A space between one round's text and the next (tool calls end a round),
+     * so "…recorded properly." and "I'll pass this…" do not run together on
+     * screen or in the stored reply. Only at the first text of a later round.
+     */
+    private static function roundSeparator(string $streamed, string $iterationText, string $text): string
+    {
+        if ($iterationText !== '' || $streamed === '') {
+            return '';
+        }
+
+        return preg_match('/\s$/u', $streamed) === 1 || preg_match('/^\s/u', $text) === 1 ? '' : ' ';
+    }
+
     private function saveMessage(
         AiConversation $conversation,
         string $role,

@@ -189,3 +189,31 @@ describe('WriteIntentClassifier::proposalAcceptanceIntent — accepting Fyn\'s o
         expect($this->classifier->proposalAcceptanceIntent($long, $offer))->toBeNull();
     });
 });
+
+// TODO item 7a (walked 2026-10-03): "I want to change my income details" matched
+// the verb but no entity, so the turn fell to the model, which wrote "I'll hand
+// this over" three times and never did. Income is the work-and-income record:
+// the capture side opens its forms (RecordEditForms::sectionForEntityType).
+describe('WriteIntentClassifier::classify — income edits reach the income forms', function () {
+    it('routes each income phrasing to the work and income record', function (string $message) {
+        $result = $this->classifier->classify($message);
+
+        expect($result['entity_type'] ?? null)->toBe('work_details');
+    })->with([
+        'I want to change my income details',
+        'Update my dividend income',
+        'Change my dividends to 900 a year',
+        'I have trust income of 2000 a year',
+        'Correct my interest income',
+        'Update my other income',
+        'Change my self-employment income',
+    ]);
+
+    it('still routes income protection to the protection record', function () {
+        expect($this->classifier->classify('Add an income protection policy')['entity_type'] ?? null)->toBe('protection_policy');
+    });
+
+    it('still treats a question about income as advice', function () {
+        expect($this->classifier->classify('How much income tax will I pay on my dividends?'))->toBeNull();
+    });
+});

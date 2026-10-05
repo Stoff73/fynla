@@ -9,10 +9,8 @@ use App\Services\Estate\FutureValueCalculator;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Shared\MonteCarloEngine;
-use App\Services\Tax\IncomeDefinitionsService;
-use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
-use App\Services\UKTaxCalculator;
+use App\Services\UserProfile\UserProfileService;
 use Carbon\Carbon;
 
 /**
@@ -28,9 +26,7 @@ class RetirementDrawdownPosition
     private const INCOME_ROUNDING = 100;
 
     public function __construct(
-        private readonly IncomeDefinitionsService $incomeDefinitions,
-        private readonly TaxStrategyMath $math,
-        private readonly UKTaxCalculator $taxCalculator,
+        private readonly UserProfileService $userProfile,
         private readonly StatePensionAgeResolver $statePensionAge,
         private readonly FutureValueCalculator $lifeExpectancy,
         private readonly RetirementProjectionService $projection,
@@ -90,14 +86,17 @@ class RetirementDrawdownPosition
     }
 
     /**
-     * This year's income, from the same components the tax figures use
-     * (IncomeDefinitionsService; ResolvesIncome::resolvePensionIncomeInPayment
-     * for what is in payment), Income Tax from the tax engine and National
-     * Insurance on earnings only.
+     * This year's income: the Income page's parts (IncomeDefinitionsService),
+     * with what is in payment named pension by pension, and the Income tab's
+     * Income Tax, National Insurance and take-home
+     * (UserProfileService::incomeAndTaxFor; CSJ 2026-10-02: "retirement
+     * income is just one line in the possible incomes"). Nothing is added up
+     * or taxed here, so this box and the Income tab cannot disagree.
      */
     private function income(User $user): array
     {
-        $components = $this->incomeDefinitions->calculate($user->id)['components'] ?? [];
+        $incomeTab = $this->userProfile->incomeAndTaxFor($user);
+        $parts = $incomeTab['income_parts'];
         $age = $user->date_of_birth ? (int) Carbon::parse($user->date_of_birth)->age : null;
 
         $lines = [];
@@ -107,8 +106,15 @@ class RetirementDrawdownPosition
             }
         };
 
-        $add('employment', 'Pay from work', (float) ($components['employment'] ?? 0));
-        $add('self_employment', 'Self-employment profit', (float) ($components['self_employment'] ?? 0));
+        $add('employment', 'Pay from work', (float) $parts['employment']);
+        // Pay given up under salary sacrifice: the gross above less this is the
+        // pay taxed, as on the Income tab.
+        if ((float) $incomeTab['annual_salary_sacrificed'] > 0) {
+            $lines[] = ['key' => 'salary_sacrifice', 'label' => 'Salary sacrifice', 'amount' => round(-(float) $incomeTab['annual_salary_sacrificed'], 2)];
+        }
+        $add('self_employment', 'Self-employment profit', (float) $parts['self_employment']);
+        // The pension part (ResolvesIncome::resolvePensionIncomeInPayment),
+        // one line per pension in payment; these add up to it.
         foreach ($user->dcPensions as $pension) {
             $add('drawdown_'.$pension->id, 'Drawdown from '.($pension->scheme_name ?: 'your pension'), (float) ($pension->annual_drawdown_income ?? 0));
         }
@@ -120,17 +126,12 @@ class RetirementDrawdownPosition
                 $add('db_'.$pension->id, $pension->scheme_name ?: 'Final salary pension', (float) ($pension->accrued_annual_pension ?? 0));
             }
         }
-        $add('rental', 'Rental profit', (float) ($components['rental'] ?? 0));
-        $add('vesting', 'Shares vesting this year', (float) ($components['vesting'] ?? 0));
-        // The interest the tax is worked out on (estimated from the accounts
-        // when none is captured), so the lines add up to the income taxed.
-        $add('interest', 'Savings interest', (float) $this->math->incomePartsFor($user)['interest']);
-        $add('dividend', 'Dividends', (float) ($components['dividend'] ?? 0));
-        $add('other', 'Other income', (float) ($components['other'] ?? 0) + (float) ($components['trust'] ?? 0));
-
-        $total = array_sum(array_column($lines, 'amount'));
-        $incomeTax = $this->math->incomeTaxLiability($user);
-        $ni = $this->nationalInsurance($user, $components);
+        $add('rental', 'Rental profit', (float) $parts['rental']);
+        $add('vesting', 'Shares vesting this year', (float) $parts['vesting']);
+        $add('interest', 'Savings interest', (float) $parts['interest']);
+        $add('dividend', 'Dividends', (float) $parts['dividend']);
+        $add('trust', 'Trust income', (float) $parts['trust']);
+        $add('other', 'Other income', (float) $parts['other']);
 
         return [
             'lines' => $lines,
@@ -143,51 +144,18 @@ class RetirementDrawdownPosition
             // It can be deferred, so it is never assumed from age
             // (https://www.gov.uk/deferring-state-pension). Null before then.
             'state_pension_status' => $this->statePensionStatus($user, $age),
-            'total' => round($total, 2),
-            'income_tax' => $incomeTax,
-            'national_insurance' => $ni,
-            'take_home' => round($total - $incomeTax - $ni, 2),
+            'interest_basis' => $incomeTab['interest_basis'],
+            'total' => round((float) $incomeTab['gross_income'], 2),
+            'income_tax' => round((float) $incomeTab['income_tax'], 2),
+            'national_insurance' => round((float) $incomeTab['national_insurance'], 2),
+            'take_home' => round((float) $incomeTab['net_income'], 2),
         ];
-    }
-
-    /**
-     * National Insurance on earnings only, and none past State Pension age:
-     * Class 1 stops once it is reached (SSCBA 1992 s6(3),
-     * https://www.legislation.gov.uk/ukpga/1992/4/section/6), Class 4 from the
-     * 6 April after it (https://www.gov.uk/national-insurance/what-national-insurance-is).
-     *
-     * @param  array<string, mixed>  $components
-     */
-    private function nationalInsurance(User $user, array $components): float
-    {
-        $employment = (float) ($components['employment'] ?? 0);
-        $selfEmployment = (float) ($components['self_employment'] ?? 0);
-        if ($employment + $selfEmployment <= 0) {
-            return 0.0;
-        }
-        if ($user->date_of_birth) {
-            $statePensionDate = Carbon::parse($user->date_of_birth)->addYears($this->statePensionAge->forUser($user));
-            if ($statePensionDate->lte(Carbon::today())) {
-                $employment = 0.0;
-            }
-            $taxYearStart = $this->taxConfig->getEffectiveFrom();
-            if ($taxYearStart !== '' && $statePensionDate->lt(Carbon::parse($taxYearStart))) {
-                $selfEmployment = 0.0;
-            }
-        }
-        if ($employment + $selfEmployment <= 0) {
-            return 0.0;
-        }
-
-        return round((float) $this->taxCalculator->calculateDetailedNetIncome(
-            employmentIncome: $employment,
-            selfEmploymentIncome: $selfEmployment,
-        )['summary']['total_national_insurance'], 2);
     }
 
     private function statePensionStatus(User $user, ?int $age): ?string
     {
-        if ($age === null || $age < $this->statePensionAge->forUser($user)) {
+        $reached = $this->statePensionAge->dateForUser($user);
+        if ($age === null || $reached === null || $reached->gt(Carbon::today())) {
             return null;
         }
         $statePension = $user->statePension;

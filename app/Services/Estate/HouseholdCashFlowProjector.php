@@ -187,9 +187,8 @@ class HouseholdCashFlowProjector
                     : $profile['pre_retirement_income'];
                 $expenses += $retired ? $profile['retirement_expenses'] : $profile['pre_retirement_expenses'];
 
-                if ($age >= $profile['state_pension_age']) {
-                    $income += $profile['state_pension_income'];
-                }
+                // From the month State Pension age is reached (Pensions Act 1995 Sch 4).
+                $income += $profile['state_pension_income'] * ($profile['state_pension_share_by_age'][$age] ?? 1.0);
             }
 
             $income *= $inflationMultiplier;
@@ -345,6 +344,13 @@ class HouseholdCashFlowProjector
             'current_age' => $currentAge,
             'retirement_age' => $retirementAge,
             'state_pension_age' => $statePensionAge,
+            // The share of each year of age State Pension is paid for: 0 before
+            // the day it is reached, part of the year it is reached in, 1 after.
+            'state_pension_share_by_age' => collect(range($currentAge, $currentAge + $yearsToProject + 1))
+                ->mapWithKeys(fn (int $age): array => [$age => $member->date_of_birth
+                    ? $this->statePensionAge->fractionPaidAtAge($member, $age)
+                    : ($age >= $statePensionAge ? 1.0 : 0.0)])
+                ->all(),
             'pre_retirement_income' => $preRetirementIncome,
             'pre_retirement_expenses' => $preRetirementExpenses,
             // The private pension income at the START of retirement, which is what the
@@ -595,28 +601,13 @@ class HouseholdCashFlowProjector
     }
 
     /**
-     * The age at which this person starts receiving the State Pension.
-     *
-     * Their own recorded State Pension age first — the real
-     * `state_pensions.state_pension_age` column, which the estate service never read
-     * because it looked for a `state_pension_age` on `users` that has never existed.
-     * Otherwise the configured State Pension age, matching what
-     * `RetirementIncomeService::getStatePensionStatus()` reads, so the estate and the
-     * retirement module answer this the same way.
+     * The age at which this person starts receiving the State Pension: their own
+     * recorded age first, else the statutory schedule for their date of birth and
+     * gender (StatePensionAgeResolver::forUser, the one rule every module reads).
      */
     private function statePensionAgeFor(User $member): int
     {
-        $recorded = $member->statePension?->state_pension_age;
-
-        if ($recorded) {
-            return (int) $recorded;
-        }
-
-        // W-0197. Was `current_spa`, one scalar for every member of the household.
-        // The projection runs to a second death decades out, so two people of
-        // different ages need different State Pension ages — which is what the
-        // resolver reads from the statutory schedule.
-        return $this->statePensionAge->forDateOfBirth($member->date_of_birth);
+        return $this->statePensionAge->forUser($member);
     }
 
     /**

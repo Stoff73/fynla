@@ -1321,6 +1321,9 @@ class RetirementActionDefinitionService
 
         // Step 2: State Pension details
         $spa = $user ? $this->statePensionAge->forUser($user) : $this->statePensionAge->forDateOfBirth(null);
+        // The words carry the months (Pensions Act 1995 Sch 4): "66 years and 5 months".
+        $spaLabel = $user ? $this->statePensionAge->labelForUser($user) : (string) $spa;
+        $spaDate = $user ? $this->statePensionAge->dateForUser($user) : null;
         $forecastAnnual = (float) ($statePension->state_pension_forecast_annual ?? 0);
         $alreadyReceiving = (bool) ($statePension->already_receiving ?? false);
         $gapFillCost = (float) ($statePension->gap_fill_cost ?? 0);
@@ -1332,15 +1335,15 @@ class RetirementActionDefinitionService
         $trace[] = [
             'question' => 'What is the State Pension position?',
             'data_field' => 'State Pension record',
-            'data_value' => 'State Pension age: '.$spa.', forecast: £'.number_format($forecastAnnual, 0).'/year (full amount: £'.number_format($fullStatePension, 0).'/year)'.($alreadyReceiving ? ', already receiving' : ''),
+            'data_value' => 'State Pension age: '.$spaLabel.', forecast: £'.number_format($forecastAnnual, 0).'/year (full amount: £'.number_format($fullStatePension, 0).'/year)'.($alreadyReceiving ? ', already receiving' : ''),
             'threshold' => 'State Pension data for NI gap assessment',
             'passed' => true,
-            'explanation' => $userName.'\'s State Pension age is '.$spa.'. '.($forecastAnnual > 0 ? 'Forecast annual State Pension is £'.number_format($forecastAnnual, 0).'.' : 'No State Pension forecast has been entered.'),
+            'explanation' => $userName.'\'s State Pension age is '.$spaLabel.'. '.($forecastAnnual > 0 ? 'Forecast annual State Pension is £'.number_format($forecastAnnual, 0).'.' : 'No State Pension forecast has been entered.'),
         ];
 
         // Step 3: NI record assessment
         $niCompleted = (int) $statePension->ni_years_completed;
-        $niRequired = (int) $statePension->ni_years_required;
+        $niRequired = $statePension->ni_years_for_full_pension;
         $isShort = $niCompleted < $niRequired;
 
         $trace[] = [
@@ -1361,18 +1364,21 @@ class RetirementActionDefinitionService
         // Step 4: Time until State Pension age
         $yearsShort = $niRequired - $niCompleted;
         $currentAge = $profile->current_age ?? ($age ?? 0);
-        $yearsUntilSPA = max(0, $spa - $currentAge);
+        // Whole years left before the day it is reached, not a rounded age.
+        $yearsUntilSPA = $spaDate !== null
+            ? max(0, (int) Carbon::today()->diffInYears($spaDate, false))
+            : max(0, $spa - $currentAge);
         $willReachNaturally = ($niCompleted + $yearsUntilSPA) >= $niRequired;
 
         $trace[] = [
             'question' => 'Will the NI shortfall be filled naturally through continued employment before State Pension age?',
             'data_field' => 'Years until State Pension age',
-            'data_value' => $yearsUntilSPA.' years until State Pension age '.$spa.', currently age '.$currentAge.', '.$yearsShort.' years short',
+            'data_value' => $yearsUntilSPA.' years until State Pension age '.$spaLabel.', currently age '.$currentAge.', '.$yearsShort.' years short',
             'threshold' => $yearsShort.' additional NI years needed within '.$yearsUntilSPA.' remaining years',
             'passed' => ! $willReachNaturally,
             'explanation' => $willReachNaturally
-                ? 'With '.$yearsUntilSPA.' working years remaining before State Pension age '.$spa.', '.$userName.' can accumulate the '.$yearsShort.' missing years naturally through continued employment.'
-                : 'With only '.$yearsUntilSPA.' years until State Pension age '.$spa.', '.$userName.' cannot fill the '.$yearsShort.'-year gap naturally — voluntary National Insurance contributions may be needed.',
+                ? 'With '.$yearsUntilSPA.' working years remaining before State Pension age '.$spaLabel.', '.$userName.' can accumulate the '.$yearsShort.' missing years naturally through continued employment.'
+                : 'With only '.$yearsUntilSPA.' years until State Pension age '.$spaLabel.', '.$userName.' cannot fill the '.$yearsShort.'-year gap naturally — voluntary National Insurance contributions may be needed.',
         ];
 
         if ($willReachNaturally) {
@@ -2221,9 +2227,9 @@ class RetirementActionDefinitionService
         // Step 2: State Pension record
         $statePension = app(PensionStore::class)->statePension(User::findOrFail($userId));
         $forecastAmount = $statePension ? (float) ($statePension->state_pension_forecast_annual ?? 0) : 0;
-        $spa = $this->statePensionAge->forUser(User::findOrFail($userId));
+        $spa = $this->statePensionAge->labelForUser(User::findOrFail($userId));
         $niCompleted = $statePension ? (int) ($statePension->ni_years_completed ?? 0) : 0;
-        $niRequired = $statePension ? (int) ($statePension->ni_years_required ?? 35) : 35;
+        $niRequired = $statePension?->ni_years_for_full_pension;
         $alreadyReceiving = $statePension ? (bool) ($statePension->already_receiving ?? false) : false;
 
         $trace[] = [

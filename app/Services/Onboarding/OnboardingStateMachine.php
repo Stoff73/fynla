@@ -2413,17 +2413,17 @@ final class OnboardingStateMachine
     public static function buildCampaignDobFormPrompt(string $answer, User $user): string
     {
         return self::funnelHasAnyAsset($user, ['pension'])
-            ? "Now let's look at pensions and retirement — for that I need your date of birth."
-            : 'Next, your date of birth.';
+            ? "Now let's look at pensions and retirement — for that I need your date of birth and your gender."
+            : 'Next, your date of birth and your gender.';
     }
 
     public static function buildCampaignDobPrompt(string $answer, User $user): string
     {
         if (self::funnelHasAnyAsset($user, ['pension'])) {
-            return "Now let's look at pensions and retirement — for that **I need your date of birth.** Something like 12 January 1985 or 12/01/85.";
+            return "Now let's look at pensions and retirement — for that **I need your date of birth and your gender.** A date like 12 January 1985 or 12/01/85.";
         }
 
-        return "Next, **what's your date of birth?** Something like 12 January 1985 or 12/01/85.";
+        return "Next, **what's your date of birth, and your gender?** A date like 12 January 1985 or 12/01/85.";
     }
 
     /**

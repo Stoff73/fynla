@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Income" :subtitle="incomeSubtitle" :loading="loading" loading-label="your income">
+  <MobileChrome title="Income" :subtitle="incomeSubtitle" :loading="loading" loading-label="your income" :contextual-request="contextualRequest">
     <div v-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>
@@ -48,6 +48,7 @@ import { formatCurrency } from '../utils/currency.js';
 import { apiGet } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../fyn/contextualConversation.js';
 
 const LEGACY_SOURCES = [
   { key: 'employment', label: 'Employment' },
@@ -67,6 +68,17 @@ export default {
     isSpouseView() { return this.$route.query.section === 'spouse'; },
     incomeSubtitle() {
       return this.isSpouseView ? "Your spouse's income" : 'Your income';
+    },
+    // "Edit details" opens Fyn on the income forms (the job's, or dividend,
+    // interest, trust and other income), as each income row's own Edit does.
+    contextualRequest() {
+      if (this.isSpouseView) return null;
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType: 'income',
+        currentDestination: { screen: 'income', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
     },
     userIncome() { return this.summary?.user || {}; },
     spouseIncome() { return this.summary?.spouse || null; },

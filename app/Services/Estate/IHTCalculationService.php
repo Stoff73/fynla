@@ -1232,6 +1232,12 @@ class IHTCalculationService
      */
     private function assessTaxPosition(float $netEstate, float $residenceNetValue, array $ctx): array
     {
+        // Every figure in pence as it is worked out, so each published figure is
+        // the one the next is calculated from and they reconcile to the penny
+        // (W-0134). A projected estate grown by a rate carries fractions of a
+        // penny, and rounding only at publication left the taxable estate and
+        // the tax a penny off their own published inputs.
+        $netEstate = round($netEstate, 2);
         // F2 — the taper is measured on the estate BEFORE reliefs (IHTM46023), the
         // Schedule 1A baseline on the estate AFTER them (IHTM45031). Passed as its
         // own value rather than derived here, because only the caller knows what was
@@ -1239,7 +1245,7 @@ class IHTCalculationService
         // which is correct for any estate holding no relievable property — i.e. all
         // of them until a business interest exists.
         $rnrbData = $this->calculateRNRB(
-            $ctx['estate_for_taper'] ?? $netEstate,
+            round((float) ($ctx['estate_for_taper'] ?? $netEstate), 2),
             $residenceNetValue,
             $ctx['user'],
             $ctx['spouse'],
@@ -1262,9 +1268,10 @@ class IHTCalculationService
         // taxable estate entirely, deducted alongside the NRB and RNRB before the
         // rate is applied. The 36% reduced rate is a separate effect that stacks on
         // top of the exemption.
-        $charitableDeduction = (float) ($rateData['charitable_amount'] ?? 0);
-        $totalAllowances = (float) $ctx['nrb_available'] + (float) $rnrbData['rnrb_available'];
-        $taxableEstate = max(0, $netEstate - $totalAllowances - $charitableDeduction);
+        $rnrbData['rnrb_available'] = round((float) $rnrbData['rnrb_available'], 2);
+        $charitableDeduction = round((float) ($rateData['charitable_amount'] ?? 0), 2);
+        $totalAllowances = round((float) $ctx['nrb_available'], 2) + $rnrbData['rnrb_available'];
+        $taxableEstate = round(max(0, $netEstate - $totalAllowances - $charitableDeduction), 2);
 
         // W-0451 — THE ONE DEFINITION OF WHAT THE REDUCED CHARITABLE RATE SAVES.
         //

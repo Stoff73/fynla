@@ -121,6 +121,19 @@ struct FynEventReducerTests {
         #expect(state.messages.last?.text == "Saved to your records")
     }
 
+    // CSJ 2026-10-04: the screen shows the reply as stored, never a second version.
+    @Test
+    func doneReplacesStreamedTextWithTheStoredReply() {
+        var state = FynReductionState()
+        var reducer = FynEventReducer()
+
+        reducer.reduce(.text("First. Second."), into: &state)
+        reducer.reduce(.done(messageID: "45", content: "Done."), into: &state)
+
+        #expect(state.messages.map(\.text) == ["Done."])
+        #expect(state.messages.last?.delivery == .persisted)
+    }
+
     @Test
     func advanceSplitsAssistantTurnsAndDoneStillAllowsTrailingEvents() {
         var state = FynReductionState()

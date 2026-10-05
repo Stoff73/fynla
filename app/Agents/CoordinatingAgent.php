@@ -107,6 +107,7 @@ use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Services\UserProfile\UserProfileService;
 use App\Services\WhatIf\WhatIfScenarioService;
 use App\Support\HoldingValuation;
 use App\Support\SharedExpenditure;
@@ -1742,6 +1743,15 @@ class CoordinatingAgent extends BaseAgent
     {
         $dob = trim((string) ($input['date_of_birth'] ?? ''));
         $marital = trim((string) ($input['marital_status'] ?? ''));
+        $gender = trim((string) ($input['gender'] ?? ''));
+        // The web Profile's values (UpdatePersonalInfoRequest); life expectancy
+        // reads the ONS table for the person's sex.
+        if ($gender !== '' && ! in_array($gender, ['male', 'female', 'other'], true)) {
+            return ['error' => true, 'message' => 'Invalid gender'];
+        }
+        if ($gender !== '') {
+            $user->gender = $gender;
+        }
 
         Log::info('[CoordinatingAgent] handleCapturePersonalDetails called', [
             'user_id' => $user->id,
@@ -1754,7 +1764,7 @@ class CoordinatingAgent extends BaseAgent
         // retry. Any one field is enough: the state machine will stay on
         // base_personal and the next prompt (via buildPersonalPrompt) will
         // pre-confirm the field we have and ask for the missing one.
-        if ($dob === '' && $marital === '') {
+        if ($dob === '' && $marital === '' && $gender === '') {
             Log::warning('[CoordinatingAgent] handleCapturePersonalDetails rejected: both fields empty', [
                 'user_id' => $user->id,
             ]);
@@ -1839,6 +1849,7 @@ class CoordinatingAgent extends BaseAgent
             'captured_this_turn' => [
                 'date_of_birth' => $dob !== '',
                 'marital_status' => $marital !== '',
+                'gender' => $gender !== '',
             ],
         ]);
 
@@ -2168,9 +2179,9 @@ class CoordinatingAgent extends BaseAgent
 
     /**
      * capture_monthly_expenditure — the single monthly total (simple entry):
-     * users.monthly_expenditure, the entry mode, and the profile mirror, in
-     * one transaction. The typed onboarding step and the one-box form both
-     * write through here (one write path, CSJ 2026-09-16).
+     * users.monthly_expenditure, the entry mode, and the profile mirror, through
+     * HouseholdExpenditureWriter. The typed onboarding step and the one-box form
+     * both write through here (one write path, CSJ 2026-09-16).
      */
     public function handleCaptureMonthlyExpenditure(array $input, User $user): array
     {
@@ -2202,24 +2213,27 @@ class CoordinatingAgent extends BaseAgent
             $extras['is_gift_aid'] = filter_var($input['is_gift_aid'], FILTER_VALIDATE_BOOLEAN);
         }
 
-        DB::transaction(function () use ($user, $monthlyTotal, $extras): void {
-            if ($monthlyTotal !== null) {
-                $user->monthly_expenditure = $monthlyTotal;
-                $user->expenditure_entry_mode = 'simple';
-            }
-            foreach ($extras as $field => $value) {
-                $user->{$field} = $value;
-            }
+        // Gift Aid is a fact about the donor, written on this account only.
+        if (array_key_exists('is_gift_aid', $extras)) {
+            $user->is_gift_aid = $extras['is_gift_aid'];
             $user->save();
-            if ($monthlyTotal === null) {
-                return;
-            }
-            if ($monthlyTotal > 0) {
-                ExpenditureProfile::updateOrCreate(['user_id' => $user->id], ['total_monthly_expenditure' => $monthlyTotal]);
-            } else {
-                ExpenditureProfile::where('user_id', $user->id)->update(['total_monthly_expenditure' => 0]);
-            }
-        });
+            unset($extras['is_gift_aid']);
+        }
+
+        // The form asks what the HOUSEHOLD spends. The web Expenditure form's
+        // writer stores it, so a linked couple's figure is halved onto both
+        // rows whichever surface entered it (Rule 20).
+        $household = $extras;
+        if ($monthlyTotal !== null) {
+            $household += [
+                'monthly_expenditure' => $monthlyTotal,
+                'annual_expenditure' => $monthlyTotal * 12,
+                'expenditure_entry_mode' => 'simple',
+            ];
+        }
+        if ($household !== []) {
+            $this->expenditureWriter->write($user, $household);
+        }
 
         return [
             'onboarding_capture' => true,
@@ -3471,19 +3485,8 @@ class CoordinatingAgent extends BaseAgent
             return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} investment accounts. To add more, upgrade your plan.");
         }
 
-        // Taxable dividend income feeds the user-level figure the tax-strategy
-        // engine reads (Dividend Allowance usage, composed taxable income).
-        // ISA dividends are tax-free, so they never touch it. Accumulates
-        // across accounts; the duplicate check above prevents double-counting
-        // a re-captured account.
-        if ($dbAccountType !== 'isa'
-            && isset($input['annual_dividend_income']) && is_numeric($input['annual_dividend_income'])
-            && (float) $input['annual_dividend_income'] > 0) {
-            $user->update([
-                'annual_dividend_income' => (float) ($user->annual_dividend_income ?? 0)
-                    + (float) $input['annual_dividend_income'],
-            ]);
-        }
+        // The account's taxable dividends join the user's total inside
+        // InvestmentAccountStore::create (the one place every path goes through).
 
         $this->invalidateUserCache($user->id);
 
@@ -5579,10 +5582,6 @@ class CoordinatingAgent extends BaseAgent
         // A Fyn turn may update only one category. Recalculate from that edit
         // plus every stored category so omitted values are preserved, while an
         // explicit zero clears the named category.
-        $total = array_sum($resolvedAmounts);
-        $updateData['monthly_expenditure'] = $total;
-        $updateData['annual_expenditure'] = $total * 12;
-        $updateData['expenditure_entry_mode'] = 'category';
 
         // W-0202 criterion 2 — ROUTED THROUGH the one writer, now that criterion 1
         // is closed above.
@@ -5609,33 +5608,23 @@ class CoordinatingAgent extends BaseAgent
         // `$householdData` without making both sides resolve it the same way, or the
         // reconstitution below doubles on one mode while the writer divides on
         // another. See the matching note in the writer.
-        $isShared = SharedExpenditure::isShared($user->expenditure_sharing_mode)
-            && $user->liveSpouse() !== null;
+        $isShared = $this->expenditureWriter->dividesFor($user);
 
         $householdData = $updateData;
 
-        if ($isShared) {
-            $householdTotal = 0.0;
-            foreach ($resolvedAmounts as $field => $amount) {
-                $householdTotal += in_array($field, SharedExpenditure::SHARED_FIELDS, true)
-                    ? $amount / SharedExpenditure::JOINT_SHARE
-                    : $amount;
-            }
-
-            // The categories the caller named are already household figures — the
-            // user said what the household spends. Only the untouched ones, read
-            // back from storage as halves, needed restoring.
-            foreach ($updateData as $field => $value) {
-                if (array_key_exists($field, $resolvedAmounts)) {
-                    $householdTotal -= in_array($field, SharedExpenditure::SHARED_FIELDS, true)
-                        ? $resolvedAmounts[$field] / SharedExpenditure::JOINT_SHARE
-                        : $resolvedAmounts[$field];
-                    $householdTotal += $value;
-                }
-            }
-
-            $total = $householdTotal;
+        // The categories the caller named are already household figures: the
+        // user said what the household spends. The untouched ones, read back
+        // from storage as halves, are doubled back to household terms.
+        $householdAmounts = [];
+        foreach ($resolvedAmounts as $field => $amount) {
+            $householdAmounts[$field] = ! array_key_exists($field, $updateData) && $isShared && in_array($field, SharedExpenditure::SHARED_FIELDS, true)
+                ? $amount / SharedExpenditure::JOINT_SHARE
+                : $amount;
         }
+
+        // The one category sum (UserProfileService::categorySpendingTotal), so the
+        // figure saved is the figure every surface reads back.
+        $total = app(UserProfileService::class)->categorySpendingTotal($user, $householdAmounts);
 
         $householdData['monthly_expenditure'] = $total;
         $householdData['annual_expenditure'] = $total * 12;
@@ -6633,13 +6622,8 @@ class CoordinatingAgent extends BaseAgent
         }
 
         if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability'], true)) {
-            // The dividends an account pays also count in the user's taxable
-            // dividend total, as create_investment_account adds them (ISA
-            // dividends are tax-free, so never). An edit moves the total by the
-            // change, so re-saving the same figure changes nothing.
-            $dividendsBefore = $entityType === 'investment_account' && array_key_exists('annual_dividend_income', $fields)
-                ? InvestmentAccount::where('id', $entityId)->where('user_id', $user->id)->first(['id', 'account_type', 'isa_type', 'annual_dividend_income'])
-                : null;
+            // An investment account's dividends move the user's taxable dividend
+            // total inside InvestmentAccountStore::update.
             try {
                 $record = match ($entityType) {
                     'savings_account' => app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
@@ -6655,13 +6639,6 @@ class CoordinatingAgent extends BaseAgent
                     'errors' => $e->errors,
                     'message' => 'Validation failed for account update.',
                 ];
-            }
-
-            if ($dividendsBefore !== null && $dividendsBefore->account_type !== 'isa' && $dividendsBefore->isa_type === null) {
-                $change = (float) ($record->annual_dividend_income ?? 0) - (float) ($dividendsBefore->annual_dividend_income ?? 0);
-                if ($change != 0.0) {
-                    $user->update(['annual_dividend_income' => max(0.0, (float) ($user->annual_dividend_income ?? 0) + $change)]);
-                }
             }
 
             return array_filter([
@@ -7032,7 +7009,7 @@ class CoordinatingAgent extends BaseAgent
         $allowedFields = match ($section) {
             // NI number excluded — sensitive PII should not be AI-writable
             'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode'],
-            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
+            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_interest_income', 'annual_trust_income', 'annual_other_income', 'target_retirement_age'],
             'expenditure' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
             'domicile' => ['country_of_birth', 'uk_arrival_date', 'domicile_status'],
             default => [],
@@ -7059,7 +7036,7 @@ class CoordinatingAgent extends BaseAgent
                 'industry' => ['sometimes', 'nullable', 'string', 'max:255'],
                 'target_retirement_age' => ['sometimes', 'nullable', 'integer', 'min:'.ValidationLimits::MIN_RETIREMENT_AGE, 'max:'.ValidationLimits::MAX_RETIREMENT_AGE],
             ];
-            foreach (['annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_other_income'] as $field) {
+            foreach (['annual_employment_income', 'annual_self_employment_income', 'annual_dividend_income', 'annual_interest_income', 'annual_trust_income', 'annual_other_income'] as $field) {
                 $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
             }
             $validator = Validator::make($safeFields, $rules);

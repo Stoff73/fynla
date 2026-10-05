@@ -125,6 +125,10 @@ describe('Income and expenditure canonical presentation', () => {
         annual_expenditure: 119988,
         categories: { food_groceries: 600, transport_fuel: 200, other_expenditure: 100 },
         presentation: {
+          category_rows: [
+            { key: 'rent', label: 'Rent', amount: 1100 },
+            { key: 'food_groceries', label: 'Food and groceries', amount: 600 },
+          ],
           entry_mode: 'category',
           entry_mode_label: 'Category detail',
           active_monthly_total: 900,
@@ -142,6 +146,9 @@ describe('Income and expenditure canonical presentation', () => {
     expect(wrapper.text()).toContain('£900');
     expect(wrapper.text()).not.toContain('£9,999');
     expect(wrapper.text()).toContain('Category detail');
-    expect(wrapper.text()).toContain('Food & groceries');
+    // The rows are the server's, labels and all.
+    expect(wrapper.text()).toContain('Rent');
+    expect(wrapper.text()).toContain('Food and groceries');
+    expect(wrapper.text()).not.toContain('Transport');
   });
 });

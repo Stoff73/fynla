@@ -230,7 +230,7 @@
             :key="`${product.resource_type}-${product.resource_id}`"
             class="m-detail-row"
           >
-            <span class="m-detail-key">{{ product.name }} from age {{ product.commencement_age }}</span>
+            <span class="m-detail-key">{{ product.name }} from age {{ product.commencement_age_label }}</span>
             <span class="m-detail-value">{{ fmt(product.annual_income) }} a year</span>
           </div>
 

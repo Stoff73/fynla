@@ -134,8 +134,7 @@ class PensionContributionOptimizer
         // Only subtract state pension if user retires at or after state pension age
         $userId = $profile->user_id;
         $statePension = app(PensionStore::class)->statePension(User::findOrFail($userId));
-        $statePensionAge = $this->statePensionAge->forUser(User::findOrFail($userId));
-        $retiresBeforeSPA = $profile->target_retirement_age < $statePensionAge;
+        $retiresBeforeSPA = $this->statePensionAge->isBeforeStatePensionAge(User::findOrFail($userId), (int) $profile->target_retirement_age);
 
         $statePensionIncome = 0;
         if (! $retiresBeforeSPA && $statePension) {

@@ -35,6 +35,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Services\UserProfile\UserProfileService;
 use App\Traits\ResolvesExpenditure;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -390,10 +391,21 @@ PROMPT;
                 array_intersect_key($components, $incomeTypes),
                 static fn ($amount): bool => (float) $amount > 0,
             );
-            if (count($nonZero) > 1 || (count($nonZero) === 1 && ! isset($nonZero['employment']))) {
+            // Pay given up under salary sacrifice comes off the gross pay before
+            // tax and National Insurance, so the parts add up to the total above
+            // (walked 2026-10-03: without it Fyn summed the parts to a total of its own).
+            $sacrificed = (float) ($definitions['deductions']['salary_sacrificed'] ?? 0);
+            if (count($nonZero) > 1 || (count($nonZero) === 1 && ! isset($nonZero['employment'])) || $sacrificed > 0) {
                 $lines[] = '- Income breakdown:';
                 foreach ($nonZero as $key => $amount) {
                     [$label, $relevant] = $incomeTypes[$key];
+                    // Pay after salary sacrifice, so the parts listed add up to the
+                    // total without Fyn having to subtract (walked 2026-10-04: told
+                    // to list a minus line, it still gave the gross beside the total).
+                    if ($key === 'employment' && $sacrificed > 0) {
+                        $label .= ' after salary sacrifice (£'.number_format((float) $amount, 2).' before; £'.number_format($sacrificed, 2).' is paid into the pension before tax and National Insurance)';
+                        $amount = (float) $amount - $sacrificed;
+                    }
                     $tag = match ($relevant) {
                         true => ' [relevant UK earnings]',
                         false => ' [not relevant UK earnings]',
@@ -402,6 +414,16 @@ PROMPT;
                     $lines[] = "  - {$label}{$tag}: £".number_format((float) $amount, 2);
                 }
             }
+
+            // The Income page's own Income Tax, National Insurance and take-home
+            // (UserProfileService::incomeAndTaxFor, the one home; CSJ 2026-10-01,
+            // one figure on every surface). Fyn quotes these: worked out by hand
+            // they miss the dividend rates, the savings allowances and tax a trust
+            // has already paid (walked 2026-10-03: £9,552 against the page's £7,743.50).
+            $tab = app(UserProfileService::class)->incomeAndTaxFor($user);
+            $lines[] = '- Income Tax this year (the Income page\'s figure; quote it, never work it out again): £'.number_format((float) $tab['income_tax'], 2);
+            $lines[] = '- National Insurance this year (the Income page\'s figure): £'.number_format((float) $tab['national_insurance'], 2);
+            $lines[] = '- Take-home after Income Tax and National Insurance (the Income page\'s figure): £'.number_format((float) $tab['net_income'], 2);
         }
 
         $totalExpenditure = $this->calculateTotalExpenditure($user);

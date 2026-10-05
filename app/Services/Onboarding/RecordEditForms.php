@@ -13,12 +13,15 @@ use App\Models\Mortgage;
 use App\Models\ProtectionProfile;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tiers\TeaserGate;
+use App\Support\SharedExpenditure;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -64,16 +67,98 @@ final class RecordEditForms
         'employer_benefits' => 'employer_benefits',
         // TODO item 6: "is it being paid?" has to be answerable from /m.
         'state_pension' => 'state_pension',
+        // /m Expenditure's "Edit details": the spending form, as it was entered.
+        'expenditure' => 'expenditure',
     ];
 
-    public function __construct(private readonly CoordinatingAgent $agent) {}
+    /** The income source rows (/m Income detail) that the other-income form edits. */
+    public const OTHER_INCOME_SOURCES = ['dividend', 'interest', 'trust', 'other'];
 
-    /** The form a contextual resource opens on, or null (see CONTEXTUAL_FORMS). */
-    public function formForResource(User $user, string $resourceType): ?array
+    public const OTHER_INCOME_LABEL = 'Dividend, interest, trust and other income';
+
+    public function __construct(
+        private readonly CoordinatingAgent $agent,
+        private readonly TeaserGate $teaserGate,
+        private readonly HouseholdExpenditureWriter $expenditureWriter,
+    ) {}
+
+    /**
+     * The form a contextual resource opens on, or null (see CONTEXTUAL_FORMS).
+     * An income source opens the form that edits it: the user's own
+     * dividends, interest, trust or other income open the other-income form,
+     * and earnings open the job's form when there is one job.
+     *
+     * @param  array<string, mixed>  $destinationParams  current_destination.params
+     */
+    public function formForResource(User $user, string $resourceType, array $destinationParams = []): ?array
     {
+        if ($resourceType === 'income') {
+            return $this->formForIncomeSource($user, $destinationParams);
+        }
         $type = self::CONTEXTUAL_FORMS[$resourceType] ?? null;
 
         return $type === null ? null : $this->formFor($user, $type, (int) $user->id);
+    }
+
+    /** @param  array<string, mixed>  $params */
+    private function formForIncomeSource(User $user, array $params): ?array
+    {
+        if (($params['income_owner'] ?? 'user') !== 'user') {
+            return null;
+        }
+        $source = (string) ($params['income_source'] ?? '');
+        if ($source === '') {
+            // The Income overview: straight to the form when there is one
+            // thing to change; otherwise chooserForResource offers them.
+            $candidates = $this->candidates($user, 'income');
+
+            return count($candidates) === 1 ? $this->formFor($user, $candidates[0]['type'], (int) $candidates[0]['id']) : null;
+        }
+        if (in_array($source, self::OTHER_INCOME_SOURCES, true)) {
+            return $this->formFor($user, 'other_income', (int) $user->id);
+        }
+        if (in_array($source, ['employment', 'self_employment'], true)) {
+            $jobs = $user->employments()->where('income_type', $source)->get(['id']);
+
+            return $jobs->count() === 1 ? $this->formFor($user, 'employment', (int) $jobs->first()->id) : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * The choice a contextual resource opens on when it holds several records
+     * and no one form: the Income overview's jobs and other income. The same
+     * bubbles as the edit chooser, so a tap opens that record's form.
+     *
+     * @param  array<string, mixed>  $destinationParams
+     * @return array{prompt: string, bubbles: list<array{id: string, label: string}>}|null
+     */
+    public function chooserForResource(User $user, string $resourceType, array $destinationParams = []): ?array
+    {
+        if ($resourceType !== 'income' || ($destinationParams['income_source'] ?? '') !== '') {
+            return null;
+        }
+        $candidates = $this->candidates($user, 'income');
+        if (count($candidates) < 2) {
+            return null;
+        }
+
+        return ['prompt' => self::CHOOSER_PROMPT, 'bubbles' => self::chooserBubbles($candidates)];
+    }
+
+    public const CHOOSER_PROMPT = 'Which one needs changing?';
+
+    /**
+     * One bubble per record: "edit:<type>:<id>", which the director opens on
+     * the record's form (OnboardingChatDirector::handleAction).
+     *
+     * @param  list<array{type: string, id: int, label: string}>  $candidates
+     * @return list<array{id: string, label: string}>
+     */
+    public static function chooserBubbles(array $candidates): array
+    {
+        return array_map(static fn (array $candidate): array => ['id' => 'edit:'.$candidate['type'].':'.$candidate['id'], 'label' => $candidate['label']], $candidates);
     }
 
     /** Every section a user can be offered to change, in walk order. */
@@ -156,6 +241,9 @@ final class RecordEditForms
                 foreach ($user->employments()->orderBy('id')->get() as $job) {
                     $rows[] = ['type' => 'employment', 'id' => (int) $job->id, 'label' => trim(($job->employer ?: 'Your job').($job->occupation ? ', '.$job->occupation : ''))];
                 }
+                // Always offered: the write sets figures on the profile, and
+                // "none" is an answer.
+                $rows[] = ['type' => 'other_income', 'id' => (int) $user->id, 'label' => self::OTHER_INCOME_LABEL];
                 break;
             case 'spouse':
                 // A married user can give their spouse's details before any
@@ -206,9 +294,10 @@ final class RecordEditForms
                 'annual_income' => $model->annual_income !== null ? (float) $model->annual_income : null,
             ], static fn ($v): bool => $v !== null && $v !== ''), trim(($model->employer ?: 'Your job').($model->occupation ? ', '.$model->occupation : ''))],
             'spouse_household' => [CaptureForms::SPOUSE_HOUSEHOLD, null, $this->spouseAnswers($model), "Your spouse's details"],
-            'expenditure' => [CaptureForms::EXPENDITURE, CaptureForms::LEAD, ['monthly_total' => (float) $model->monthly_expenditure], 'Your monthly spending'],
+            'expenditure' => $this->expenditureAnswers($model),
             'personal' => [CaptureForms::PERSONAL, CaptureForms::LEAD, array_filter([
                 'date_of_birth' => $model->date_of_birth?->format('Y-m-d'),
+                'gender' => $model->gender,
                 'marital_status' => $model->marital_status,
             ]), 'Your details'],
             'employer_benefits' => [CaptureForms::EMPLOYER_BENEFITS, CaptureForms::LEAD, $this->employerBenefitsAnswers($model), 'Your employer benefits'],
@@ -219,6 +308,14 @@ final class RecordEditForms
                 'forecast_annual' => $model->state_pension_forecast_annual !== null ? (float) $model->state_pension_forecast_annual : null,
                 'ni_years_completed' => $model->ni_years_completed,
             ], static fn ($v): bool => $v !== null), 'Your State Pension'],
+            'other_income' => [CaptureForms::OTHER_INCOME, CaptureForms::LEAD, array_filter([
+                'annual_dividend_income' => self::floatOrNull($model->annual_dividend_income),
+                // A figure only when one is recorded: 0 means the Income page
+                // uses what the accounts pay (IncomeDefinitionsService::interestIncome).
+                'annual_interest_income' => (float) ($model->annual_interest_income ?? 0) > 0 ? (float) $model->annual_interest_income : null,
+                'annual_trust_income' => self::floatOrNull($model->annual_trust_income),
+                'annual_other_income' => self::floatOrNull($model->annual_other_income),
+            ], static fn ($v): bool => $v !== null), 'Your dividend, interest, trust and other income'],
             default => [null, null, [], ''],
         };
         if ($formName === null) {
@@ -292,10 +389,13 @@ final class RecordEditForms
             'property' => $this->updateProperty($user, $model, $form, $conversationId),
             'employment' => $this->updateEmployment($user, $model, $form),
             'spouse_household' => $this->runTool('capture_spouse_household_data', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
-            'expenditure' => $this->runTool('capture_monthly_expenditure', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
+            'expenditure' => $this->runTool(
+                (CaptureForms::schema((string) ($form['name'] ?? '')) ?? [])['tool'] === 'set_expenditure' ? 'set_expenditure' : 'capture_monthly_expenditure',
+                CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'personal' => $this->runTool('capture_personal_details', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'employer_benefits' => $this->runTool('capture_employer_benefits', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
             'state_pension' => $this->runTool('capture_state_pension', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
+            'other_income' => $this->runTool('update_profile', ['section' => 'income_occupation', 'fields' => CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? []], $user, $conversationId),
             default => ['error' => true, 'message' => 'That record cannot be changed here.'],
         };
 
@@ -329,6 +429,53 @@ final class RecordEditForms
     }
 
     // ─── record → answers ────────────────────────────────────────────────
+
+    /**
+     * Spending opens on the form it was entered with: a breakdown on the
+     * category form (Premium), anything else on the one box, so an edit never
+     * writes the one box over a breakdown. Figures are the household's, as
+     * both forms ask them: stored halves are doubled back first.
+     *
+     * @return array{0: string, 1: ?string, 2: array<string, mixed>, 3: string}
+     */
+    private function expenditureAnswers(User $user): array
+    {
+        $fields = [];
+        foreach ([...SharedExpenditure::SHARED_FIELDS, 'rent', 'utilities', 'charitable_donations'] as $field) {
+            if (is_numeric($user->getAttribute($field)) && (float) $user->getAttribute($field) > 0) {
+                $fields[$field] = (float) $user->getAttribute($field);
+            }
+        }
+        if ($this->expenditureWriter->dividesFor($user)) {
+            $fields = SharedExpenditure::householdOf($fields);
+        }
+
+        if ($user->expenditure_entry_mode === 'category' && $this->teaserGate->allows($user, 'expenditure_detailed')) {
+            $name = CaptureForms::expenditureDetailedNameFor($user);
+            $answers = [];
+            foreach (CaptureForms::schema($name)['kinds'] as $kind) {
+                $given = [];
+                foreach ($kind['fields'] as $field) {
+                    if (isset($fields[$field])) {
+                        $given[$field] = $fields[$field];
+                    }
+                }
+                if ($given !== []) {
+                    $answers[$kind['key']] = $given;
+                }
+            }
+
+            return [$name, null, $answers, 'Your monthly spending'];
+        }
+
+        return [CaptureForms::EXPENDITURE, CaptureForms::LEAD, array_filter([
+            'monthly_total' => $fields['monthly_expenditure'] ?? null,
+            'childcare' => $fields['childcare'] ?? null,
+            'charitable_donations' => $fields['charitable_donations'] ?? null,
+            // NOT NULL DEFAULT false: only a "yes" is known.
+            'is_gift_aid' => $user->is_gift_aid ? 'yes' : null,
+        ], static fn ($v): bool => $v !== null), 'Your monthly spending'];
+    }
 
     /** @return array{0: string, 1: string, 2: array<string, mixed>, 3: string} */
     private function savingsAnswers(Model $account): array
@@ -643,7 +790,7 @@ final class RecordEditForms
             'income_protection' => IncomeProtectionPolicy::where('id', $id)->where('user_id', $user->id)->first(),
             'employment' => $user->employments()->where('id', $id)->first(),
             'spouse_household' => TaxStrategyHouseholdInput::firstOrNew(['user_id' => $user->id]),
-            'expenditure', 'personal' => $user,
+            'expenditure', 'personal', 'other_income' => $user,
             'employer_benefits' => ProtectionProfile::firstOrNew(['user_id' => $user->id], ProtectionProfile::blankFor($user->id)),
             // One per user, so the user is the key (formForResource passes the user id).
             'state_pension' => $user->statePension()->first(),
@@ -663,6 +810,7 @@ final class RecordEditForms
             'income_protection' => trim(($model->provider ?? '').' income protection'),
             'employer_benefits' => 'your employer benefits',
             'state_pension' => 'your State Pension',
+            'other_income' => 'your dividend, interest, trust and other income',
             default => 'that record',
         };
     }

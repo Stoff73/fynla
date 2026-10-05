@@ -271,8 +271,9 @@ final class ActionHowToFacts
         if (! isset($ae['min_age'], $ae['earnings_trigger']) || $age === null || ! $facts['employed']) {
             return;
         }
-        $spa = app(StatePensionAgeResolver::class)->forDateOfBirth($user->date_of_birth);
-        $facts['auto_enrolled'] = $age >= (int) $ae['min_age'] && $age < $spa && $pay >= (float) $ae['earnings_trigger'];
+        // Under State Pension age today, to the month (Pensions Act 2008 s3).
+        $belowStatePensionAge = Carbon::today()->lt(app(StatePensionAgeResolver::class)->dateForDateOfBirth($user->date_of_birth, $user->gender));
+        $facts['auto_enrolled'] = $age >= (int) $ae['min_age'] && $belowStatePensionAge && $pay >= (float) $ae['earnings_trigger'];
         $text['age'] = (string) $age;
         $text['employment_pay'] = self::pounds($pay);
         $text['ae_earnings_trigger'] = self::pounds((float) $ae['earnings_trigger']);

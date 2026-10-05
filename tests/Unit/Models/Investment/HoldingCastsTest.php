@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,6 +18,8 @@ uses(TestCase::class, RefreshDatabase::class);
  * which returns full-precision strings.
  */
 beforeEach(function () {
+    // InvestmentAccountFactory stamps the active tax year (TaxConfigService).
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create();
     $this->account = InvestmentAccount::factory()->create(['user_id' => $this->user->id]);
 });

@@ -123,6 +123,32 @@ Both were walked on the test site first, on the desktop web app (full-size windo
   - after ticking "being paid": State Pension £12,548, Income Tax £5,996, take-home £36,552 on both apps.
 - **A tax-compliance review** confirmed the law and figures. Its findings were fixed before release, apart from three listed under "Still to do".
 
+## One income figure everywhere, and Fyn reads what the screens show (2 October, about 20:54 and 21:02, releases #1053 and #1055)
+
+- **Your income is the same figure everywhere.** You give the parts (salary, self-employment, rent, dividends, interest, other income, trust income) and your pensions, and the Income page adds them up: rental profit rather than gross rent, any pension being paid, and share-scheme vests. Every part of the app now uses that figure. Before, many places added up their own version, and most left out a pension being paid.
+  - **Someone living on a pension is no longer told "Gross annual income is required".** That message blocked Investment, Protection and Savings advice for a retiree with £9,000 of pension. Protection advice now opens; Savings and Investment ask only for monthly spending.
+  - **Take-home pay is the Income page's figure everywhere,** including the goals and cash-flow plans, which ignored a pension being paid.
+  - **One tax band rule.** Capital Gains Tax on possessions and property, the investment bond suggestion and the retirement plan's tax rate now use the band the Tax plan uses, with rates from the tax settings. Typed-in rates were removed, including 10% and 20% for Capital Gains Tax, the rates before 30 October 2024 ([GOV.UK, Capital Gains Tax rates](https://www.gov.uk/capital-gains-tax/rates)).
+  - **Gifts out of income** can now be suggested to someone whose income is a pension ([Inheritance Tax Act 1984 s21](https://www.legislation.gov.uk/ukpga/1984/51/section/21)).
+  - **The letter to your spouse** said "Current Household Income" beside your earnings alone; it now shows your annual income.
+- **Fyn's income and tax band are the Income page's and the Tax plan's.** Fyn summed the raw income fields, so it had no income at all for a retiree on a pension.
+- **Fyn's recommendations are your actions list:** the same items in the same order as your Actions page and dashboard, without anything you have marked done. Before, Fyn read each module's own list and could say "your list is empty" beside ten open actions.
+- **"ISA allowance used this year" is one rule** (it differed between the Tax plan and the ISA tracker), and the Annual Allowance and Personal Allowance tapers each have one home ([Finance Act 2004 s228ZA](https://www.legislation.gov.uk/ukpga/2004/12/section/228ZA); [Income Tax Act 2007 s35](https://www.legislation.gov.uk/ukpga/2007/3/section/35)).
+- **An investment card no longer says your emergency fund is "critically low at 0 months"** when the savings figures were simply not passed to it. The Mitchell demo showed it beside 14 months of cover.
+- **Investment card amounts show the pound sign** ("£10,000", not "10,000").
+- **Steps approved (CSJ, 2 October):** "Think about combining your pensions" and "Ask for enhanced annuity quotes".
+- **Fixed after release (#1055):** rebuilding the demo households left them without a protection profile, so the Mitchell demo showed "£0, Add your cover" for about nine minutes. The demo setup now creates it.
+
+**What we checked.**
+- **On the test site, desktop and mobile web apps:** a retiree with £9,000 of pension: Income page and Income tab both £9,000, take-home £9,000; Protection unlocked; Fyn: "£9,000, all from pension income … below the £12,570 Personal Allowance". A walk account that marked an action done: Fyn listed the remaining actions in the page's order. Every demo household: the Income tab total equals the Income page total.
+- **Live on fynla.org:** the Mitchell demo on desktop and mobile: net worth £1,464,500, protection £700,000, savings £74,750, retirement £500,000, investments £172,500; Investment shows 3 actions, without the "0 months" card; ISA card "£10,000 … (£47,500)". The Bennett demo: Income tab £30,000 for Patricia, £26,514 take-home, the same as the Income definitions panel.
+- **Not walked on fynla.org:** Fyn. The demo households cannot open Fyn, and its "Ask Fyn about this" button does nothing there (found, not changed).
+
+**Still to do:**
+- "Ask for enhanced annuity quotes" needs a smoker or health status that nothing in the app records yet.
+- The Income tab does not yet tax share-scheme vests, though its total includes them.
+- Someone retired who has not started drawing sees "the same £0 each year" on the Retirement page.
+
 ## Retirement suggestions, and the same figure on every screen (2 October, about 15:55, release #1047)
 
 - **Retirement suggestions come from their own rules,** as savings and protection already did, so each one has its own steps.

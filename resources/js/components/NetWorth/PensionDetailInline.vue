@@ -295,7 +295,7 @@
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">State Pension Age:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.resolved_state_pension_age || '—' }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.resolved_state_pension_age_label || '—' }}</dd>
                     </div>
                   </dl>
                 </div>

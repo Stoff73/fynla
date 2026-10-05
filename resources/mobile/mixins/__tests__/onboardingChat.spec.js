@@ -278,6 +278,25 @@ describe('onboardingChat mixin — View link navigation', () => {
   });
 });
 
+describe('the stored reply on done', () => {
+  // CSJ 2026-10-04: the screen shows the reply as stored, never a second version.
+  it('replaces the streamed text with done.content', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: 'First. Second. Done.', bubbles: [] }, got: true };
+    w.vm.messages = [cursor.reply];
+    w.vm.handleFynEvent(cursor, { type: 'done', message_id: 9, content: 'Done.' });
+    expect(cursor.reply.text).toBe('Done.');
+  });
+
+  it('keeps the streamed text when done carries none', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: 'Saved.', bubbles: [] }, got: true };
+    w.vm.messages = [cursor.reply];
+    w.vm.handleFynEvent(cursor, { type: 'done', message_id: 9 });
+    expect(cursor.reply.text).toBe('Saved.');
+  });
+});
+
 describe('capture forms', () => {
   const schema = { name: 'property', submit_label: 'Save', kinds: [{ key: 'main_residence', label: 'Home', fields: ['current_value'] }], fields: { current_value: { type: 'money', label: 'Value', required: true } } };
 

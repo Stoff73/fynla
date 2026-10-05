@@ -29,6 +29,22 @@ class UKTaxCalculator
      * @param  float  $dividendIncome  Dividend income
      * @param  string|null  $trustType  Type of trust: 'discretionary', 'interest_in_possession', 'bare', etc.
      * @param  float  $pensionContributions  Employee pension contributions (deducted before tax)
+     * @param  float  $otherIncome  Other taxable non-savings income (no National Insurance)
+     * @param  float  $shareVestIncome  Share-scheme vests this year: employment income for
+     *                                  Income Tax (ITEPA 2003); National Insurance on
+     *                                  them is not charged here until its source is settled
+     * @param  float  $class1Share  The share of the year's pay still liable to Class 1: none is
+     *                              due on pay received on or after State Pension age
+     *                              (SSCBA 1992 s6(3)), so 1 before it, 0 after, part in between
+     * @param  bool  $class4Applies  False from the 6 April after State Pension age
+     * @param  float  $salarySacrifice  Pay given up for a pension under salary sacrifice:
+     *                                  $employmentIncome is the pay before it, and it comes
+     *                                  off before Income Tax and Class 1 National Insurance
+     *                                  (it is an employer contribution, FA 2004 s228ZA(3))
+     * @param  float  $bandExtension  Gift Aid and relief-at-source pension payments, gross:
+     *                                they reduce adjusted net income (ITA 2007 s58) and
+     *                                extend the basic and higher rate limits (s414,
+     *                                FA 2004 s192(4)) rather than coming off income
      * @return array Detailed breakdown per income type with tax bands and NI
      */
     public function calculateDetailedNetIncome(
@@ -42,14 +58,25 @@ class UKTaxCalculator
         ?string $trustType = null,
         float $pensionContributions = 0,
         float $section24Credit = 0,
-        float $blindPersonsAllowance = 0
+        float $blindPersonsAllowance = 0,
+        float $otherIncome = 0,
+        float $shareVestIncome = 0,
+        float $class1Share = 1.0,
+        bool $class4Applies = true,
+        float $bandExtension = 0,
+        float $salarySacrifice = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        $salarySacrifice = min(max(0.0, $salarySacrifice), $employmentIncome);
+        // The pay actually received: the gross less the sacrifice.
+        $payAfterSacrifice = $employmentIncome - $salarySacrifice;
 
-        // Personal Allowance taper base — total income less net-pay pension relief.
+        // Personal Allowance taper base, adjusted net income (ITA 2007 s58): total
+        // income less net-pay pension relief, Gift Aid and relief-at-source payments.
         $totalIncomePreRelief = $employmentIncome + $selfEmploymentIncome + $rentalIncome
-            + $pensionIncome + $trustIncome + $interestIncome + $dividendIncome;
-        $taxableIncomePreRelief = $totalIncomePreRelief - $pensionContributions;
+            + $pensionIncome + $trustIncome + $interestIncome + $dividendIncome
+            + $otherIncome + $shareVestIncome - $salarySacrifice;
+        $taxableIncomePreRelief = $totalIncomePreRelief - $pensionContributions - max(0.0, $bandExtension);
 
         // The tapered allowance is handed to the tracker separately rather than
         // written back over the config: the basic-rate band width is derived from
@@ -59,11 +86,10 @@ class UKTaxCalculator
 
         // W-0511 — the Blind Person's Allowance is added AFTER the taper and never
         // before it. ITA 2007 s38 gives it and s23 Step 3 deducts it; s58 does not
-        // (W-0485), so the taper base above must not see it. The tracker takes the
-        // total to deduct, and its band width is derived from the config's full
-        // allowance, so handing it the sum shifts the bands up rather than widening
-        // them — which is exactly what a larger allowance does.
-        $tracker = new TaxBandTracker($incomeTaxConfig, $personalAllowance + max(0.0, $blindPersonsAllowance));
+        // (W-0485), so the taper base above must not see it. Like the Personal
+        // Allowance it lifts both limits, as calculateIncomeTax does, and Gift Aid
+        // and relief-at-source payments extend them.
+        $tracker = new TaxBandTracker($incomeTaxConfig, $personalAllowance, max(0.0, $blindPersonsAllowance), max(0.0, $bandExtension));
 
         $incomeBreakdowns = [];
         $totalGross = 0;
@@ -75,21 +101,30 @@ class UKTaxCalculator
         // NOT four earned incomes, which is what calling it the "Earned Income"
         // card led the header to assert (W-0423) — `combinedIncomeLabel` names
         // whichever of them is present.
-        $hasEarnedIncome = $employmentIncome > 0 || $selfEmploymentIncome > 0 || $rentalIncome > 0 || $pensionIncome > 0;
+        // Other income and share vests are non-savings income too (ITA 2007
+        // s16), so they share the card and its bands.
+        $hasEarnedIncome = $employmentIncome > 0 || $selfEmploymentIncome > 0 || $rentalIncome > 0 || $pensionIncome > 0
+            || $otherIncome > 0 || $shareVestIncome > 0;
 
         if ($hasEarnedIncome) {
             // Calculate taxable employment income (after pension contributions)
-            $taxableEmploymentIncome = max(0, $employmentIncome - $pensionContributions);
+            $taxableEmploymentIncome = max(0, $payAfterSacrifice - $pensionContributions);
 
             // Total taxable earned income for tax calculation
-            $totalTaxableEarnedIncome = $taxableEmploymentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome;
+            $totalTaxableEarnedIncome = $taxableEmploymentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome
+                + $otherIncome + $shareVestIncome;
 
             // Calculate tax on combined earned income
             $taxAllocation = $tracker->allocateIncome($totalTaxableEarnedIncome);
 
-            // Calculate NI separately for employment and self-employment
-            $class1NI = $employmentIncome > 0 ? $this->calculateClass1NIDetailed($employmentIncome) : null;
-            $class4NI = $selfEmploymentIncome > 0 ? $this->calculateClass4NIDetailed($selfEmploymentIncome) : null;
+            // Calculate NI separately for employment and self-employment, and
+            // none past State Pension age: Class 1 stops once it is reached
+            // (SSCBA 1992 s6(3), https://www.legislation.gov.uk/ukpga/1992/4/section/6),
+            // Class 4 from the 6 April after it
+            // (https://www.gov.uk/national-insurance/what-national-insurance-is).
+            $class1Share = min(1.0, max(0.0, $class1Share));
+            $class1NI = $payAfterSacrifice > 0 && $class1Share > 0 ? $this->calculateClass1NIDetailed($payAfterSacrifice, $class1Share) : null;
+            $class4NI = $selfEmploymentIncome > 0 && $class4Applies ? $this->calculateClass4NIDetailed($selfEmploymentIncome) : null;
 
             $totalNIAmount = ($class1NI['total_ni'] ?? 0) + ($class4NI['total_ni'] ?? 0);
 
@@ -104,6 +139,15 @@ class UKTaxCalculator
                     'label' => 'Employment Income',
                     'amount' => round($employmentIncome, 2),
                 ];
+
+                if ($salarySacrifice > 0) {
+                    $incomeComponents[] = [
+                        'key' => 'salary_sacrifice',
+                        'label' => 'Salary Sacrifice',
+                        'amount' => round(-$salarySacrifice, 2),
+                        'is_deduction' => true,
+                    ];
+                }
 
                 if ($pensionContributions > 0) {
                     $incomeComponents[] = [
@@ -143,6 +187,22 @@ class UKTaxCalculator
                 ];
             }
 
+            if ($shareVestIncome > 0) {
+                $incomeComponents[] = [
+                    'key' => 'vesting',
+                    'label' => 'Share Scheme Vests',
+                    'amount' => round($shareVestIncome, 2),
+                ];
+            }
+
+            if ($otherIncome > 0) {
+                $incomeComponents[] = [
+                    'key' => 'other',
+                    'label' => 'Other Income',
+                    'amount' => round($otherIncome, 2),
+                ];
+            }
+
             // Build NI breakdown combining both classes
             $niBreakdown = null;
             if ($class1NI || $class4NI) {
@@ -153,12 +213,13 @@ class UKTaxCalculator
                 ];
             }
 
-            // Gross earned income (before pension deduction for display)
-            $grossEarnedIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $pensionIncome;
+            // Total income from these sources: sacrificed pay was never income.
+            $grossEarnedIncome = $payAfterSacrifice + $selfEmploymentIncome + $rentalIncome + $pensionIncome
+                + $otherIncome + $shareVestIncome;
 
             $incomeBreakdowns[] = [
                 'income_type' => 'earned',
-                'income_type_label' => $this->combinedIncomeLabel($employmentIncome, $selfEmploymentIncome, $rentalIncome, $pensionIncome),
+                'income_type_label' => $this->combinedIncomeLabel($employmentIncome + $shareVestIncome, $selfEmploymentIncome, $rentalIncome, $pensionIncome, $otherIncome),
                 'gross_amount' => round($grossEarnedIncome, 2),
                 'income_components' => $incomeComponents,
                 'taxable_income' => round($totalTaxableEarnedIncome, 2),
@@ -171,6 +232,29 @@ class UKTaxCalculator
             $totalGross += $grossEarnedIncome;
             $totalTax += $taxAllocation['total_income_tax'];
             $totalNI += $totalNIAmount;
+        }
+
+        // Trust income: the beneficiary's own non-savings income, taxed at
+        // their rates inside their bands with the trust's tax as a credit
+        // (calculateTrustIncomeTax). Non-savings income comes before interest
+        // and dividends (ITA 2007 s16), so it is placed here.
+        if ($trustIncome > 0) {
+            $trustTaxBreakdown = $this->calculateTrustIncomeTax($trustIncome, $trustType, $tracker);
+
+            $incomeBreakdowns[] = [
+                'income_type' => 'trust',
+                'income_type_label' => 'Trust Income',
+                'gross_amount' => round($trustIncome, 2),
+                'tax_breakdown' => $trustTaxBreakdown,
+                'ni_breakdown' => null,
+                'total_deductions' => round($trustTaxBreakdown['total_income_tax'], 2),
+                // What the income is worth once the tax on it is settled: the
+                // payment received plus any reclaim, or less any more to pay.
+                'net_income' => round($trustIncome - $trustTaxBreakdown['total_income_tax'], 2),
+            ];
+
+            $totalGross += $trustIncome;
+            $totalTax += $trustTaxBreakdown['total_income_tax'];
         }
 
         // Interest income (uses same bands but has PSA - keep separate for clarity)
@@ -207,24 +291,6 @@ class UKTaxCalculator
 
             $totalGross += $dividendIncome;
             $totalTax += $dividendBreakdown['total_income_tax'];
-        }
-
-        // Trust income (special taxation based on trust type)
-        if ($trustIncome > 0) {
-            $trustTaxBreakdown = $this->calculateTrustIncomeTax($trustIncome, $trustType, $tracker);
-
-            $incomeBreakdowns[] = [
-                'income_type' => 'trust',
-                'income_type_label' => 'Trust Income',
-                'gross_amount' => round($trustIncome, 2),
-                'tax_breakdown' => $trustTaxBreakdown,
-                'ni_breakdown' => null,
-                'total_deductions' => round($trustTaxBreakdown['total_income_tax'], 2),
-                'net_income' => round($trustIncome - $trustTaxBreakdown['total_income_tax'], 2),
-            ];
-
-            $totalGross += $trustIncome;
-            $totalTax += $trustTaxBreakdown['total_income_tax'];
         }
 
         // Apply Section 24 tax credit (reduces tax bill, not income)
@@ -279,7 +345,8 @@ class UKTaxCalculator
         float $employmentIncome,
         float $selfEmploymentIncome,
         float $rentalIncome,
-        float $pensionIncome
+        float $pensionIncome,
+        float $otherIncome = 0
     ): string {
         $kinds = [];
 
@@ -291,6 +358,9 @@ class UKTaxCalculator
         }
         if ($pensionIncome > 0) {
             $kinds[] = 'Pension';
+        }
+        if ($otherIncome > 0) {
+            $kinds[] = 'Other';
         }
 
         if ($kinds === []) {
@@ -309,7 +379,7 @@ class UKTaxCalculator
     /**
      * Calculate Class 1 NI with detailed breakdown
      */
-    private function calculateClass1NIDetailed(float $employmentIncome): array
+    private function calculateClass1NIDetailed(float $employmentIncome, float $share = 1.0): array
     {
         $niConfig = $this->taxConfig->getNationalInsurance();
         $class1Employee = $niConfig['class_1']['employee'];
@@ -349,6 +419,13 @@ class UKTaxCalculator
             $additionalRateEarnings = $employmentIncome - $upperEarningsLimit;
             $breakdown['additional_rate']['earnings'] = round($additionalRateEarnings, 2);
             $breakdown['additional_rate']['contribution'] = round($additionalRateEarnings * $additionalRate, 2);
+        }
+
+        // Only the pay received before State Pension age is liable (SSCBA 1992 s6(3)).
+        if ($share < 1.0) {
+            $breakdown['main_rate']['contribution'] = round($breakdown['main_rate']['contribution'] * $share, 2);
+            $breakdown['additional_rate']['contribution'] = round($breakdown['additional_rate']['contribution'] * $share, 2);
+            $breakdown['share_of_year_before_state_pension_age'] = round($share, 4);
         }
 
         $breakdown['total_ni'] = $breakdown['main_rate']['contribution'] + $breakdown['additional_rate']['contribution'];
@@ -516,149 +593,88 @@ class UKTaxCalculator
     }
 
     /**
-     * Calculate trust income tax based on trust type.
+     * Income tax on trust income received by a beneficiary.
      *
-     * Trust taxation rules:
-     * - Discretionary/Accumulation trusts: Trust pays 45% at source (39.35% for dividends)
-     * - Interest in Possession trusts: Trust pays 20% at source (8.75% for dividends)
-     * - Bare trusts: Beneficiary pays at their marginal rate (not handled here)
+     * The beneficiary is taxed on the gross income at their own rates, inside
+     * their own bands, and what the trust paid is a credit against that
+     * (gov.uk/trusts-taxes/beneficiaries-paying-and-reclaiming-tax-on-trusts):
+     * - Discretionary and accumulation trusts: income is "treated as though it
+     *   has already been taxed at 45%" (ITA 2007 s494); a beneficiary taxed at
+     *   less can reclaim the difference by form R40 or Self Assessment.
+     * - Interest in possession: the trust pays at the trust's standard rate;
+     *   "basic rate taxpayers receive a tax credit; higher rate taxpayers pay
+     *   additional tax". One trust income figure is recorded, so it is taxed as
+     *   non-savings income with the non-dividend rate as its credit.
+     * - Bare trusts: the income is the beneficiary's own; nothing is paid by
+     *   the trust.
+     * - Settlor-interested trusts are taxed on the settlor (ITTOIA 2005 s619),
+     *   and life insurance, loan and discounted gift trusts pay no regular
+     *   income, so none of those is taxed here.
      *
-     * For most trusts, the TRUST pays tax at source and the beneficiary receives
-     * income net of this tax. The beneficiary may be able to reclaim tax if their
-     * marginal rate is lower than the trust rate.
+     * `total_income_tax` is the tax the beneficiary bears on this income; the
+     * trust's credit and any reclaim or further tax are shown beside it.
      */
     private function calculateTrustIncomeTax(float $trustIncome, ?string $trustType, TaxBandTracker $tracker): array
     {
-        $trustsConfig = $this->taxConfig->getTrusts();
+        $rates = $this->taxConfig->getTrusts()['income_tax'];
+        $discretionaryRate = (float) $rates['discretionary']['standard_rate'];
 
-        // Default to discretionary rate from config; fall back to additional income rate band
-        $incomeTaxBands = $this->taxConfig->getIncomeTax();
-        $additionalRateFallback = (float) ($incomeTaxBands['bands'][2]['rate'] ?? 0.45);
-        $taxRate = (float) ($trustsConfig['income_tax']['discretionary']['standard_rate'] ?? $additionalRateFallback);
-        $trustTypeLabel = 'Discretionary Trust';
-        $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
+        [$creditRate, $trustTypeLabel, $taxedOnBeneficiary] = match ($trustType) {
+            'accumulation_maintenance' => [$discretionaryRate, 'Accumulation & Maintenance Trust', true],
+            'interest_in_possession' => [(float) $rates['interest_in_possession']['standard_rate'], 'Interest in Possession Trust', true],
+            'bare' => [0.0, 'Bare Trust', true],
+            'settlor_interested' => [0.0, 'Settlor-Interested Trust', false],
+            'life_insurance', 'loan', 'discounted_gift' => [0.0, ucwords(str_replace('_', ' ', $trustType)), false],
+            // A recorded trust income with no trust on file, or a discretionary
+            // trust: the discretionary rate, as the trust pays it.
+            default => [$discretionaryRate, 'Discretionary Trust', true],
+        };
 
-        $basicRateFallback = (float) ($incomeTaxBands['bands'][0]['rate'] ?? 0.20);
-
-        switch ($trustType) {
-            case 'discretionary':
-            case 'accumulation_maintenance':
-                $taxRate = (float) ($trustsConfig['income_tax']['discretionary']['standard_rate'] ?? $additionalRateFallback);
-                $trustTypeLabel = $trustType === 'discretionary' ? 'Discretionary Trust' : 'Accumulation & Maintenance Trust';
-                $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
-                break;
-
-            case 'interest_in_possession':
-                $taxRate = (float) ($trustsConfig['income_tax']['interest_in_possession']['standard_rate'] ?? $basicRateFallback);
-                $trustTypeLabel = 'Interest in Possession Trust';
-                $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
-                break;
-
-            case 'bare':
-                // Bare trusts - beneficiary pays at their marginal rate
-                $taxRate = 0;
-                $trustTypeLabel = 'Bare Trust';
-                $taxDescription = 'Taxed as beneficiary\'s income';
-                break;
-
-            case 'settlor_interested':
-                // Settlor-interested trusts - settlor pays at their marginal rate
-                $taxRate = 0;
-                $trustTypeLabel = 'Settlor-Interested Trust';
-                $taxDescription = 'Taxed as settlor\'s income';
-                break;
-
-            case 'life_insurance':
-            case 'loan':
-            case 'discounted_gift':
-                // These don't typically generate regular income
-                $taxRate = 0;
-                $trustTypeLabel = ucwords(str_replace('_', ' ', $trustType ?? 'Trust'));
-                $taxDescription = 'No regular income tax applies';
-                break;
-
-            default:
-                // Default to discretionary rates for unknown types
-                $taxRate = (float) ($trustsConfig['income_tax']['discretionary']['standard_rate'] ?? $additionalRateFallback);
-                $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
+        if (! $taxedOnBeneficiary) {
+            return [
+                'trust_type' => $trustType,
+                'trust_type_label' => $trustTypeLabel,
+                'tax_rate' => 0.0,
+                'tax_description' => $trustType === 'settlor_interested' ? 'Taxed as the settlor\'s income' : 'No regular income tax applies',
+                'tax_paid_by_trust' => 0.0,
+                'total_income_tax' => 0.0,
+                'net_to_beneficiary' => round($trustIncome, 2),
+                'reclaim_info' => null,
+            ];
         }
 
-        $taxPaidByTrust = round($trustIncome * $taxRate, 2);
-
-        // Calculate personalized reclaim based on beneficiary's marginal rate
-        $beneficiaryMarginalRate = $this->getBeneficiaryMarginalRate($tracker);
-        $beneficiaryMarginalRateLabel = $this->getMarginalRateLabel($beneficiaryMarginalRate);
-        $taxAtMarginalRate = round($trustIncome * $beneficiaryMarginalRate, 2);
+        $allocation = $tracker->allocateIncome($trustIncome);
+        $liability = round((float) $allocation['total_income_tax'], 2);
+        $taxPaidByTrust = round($trustIncome * $creditRate, 2);
 
         $reclaimInfo = null;
-        if ($taxRate > 0) {
-            $difference = $taxPaidByTrust - $taxAtMarginalRate;
-            if ($difference > 0) {
-                // Can reclaim
-                $reclaimInfo = [
-                    'type' => 'reclaim',
-                    'amount' => round($difference, 2),
-                    'message' => 'You can reclaim £'.number_format($difference, 0)." as you are a {$beneficiaryMarginalRateLabel} taxpayer (".round($beneficiaryMarginalRate * 100).'%) but the trust paid '.round($taxRate * 100).'% tax.',
-                ];
-            } elseif ($difference < 0) {
-                // Owes additional tax
-                $reclaimInfo = [
-                    'type' => 'owe',
-                    'amount' => round(abs($difference), 2),
-                    'message' => 'You owe an additional £'.number_format(abs($difference), 0)." as you are a {$beneficiaryMarginalRateLabel} taxpayer (".round($beneficiaryMarginalRate * 100).'%) but the trust only paid '.round($taxRate * 100).'% tax.',
-                ];
-            } else {
-                // No difference
-                $reclaimInfo = [
-                    'type' => 'none',
-                    'amount' => 0,
-                    'message' => "No additional tax due - trust rate matches your {$beneficiaryMarginalRateLabel} rate.",
-                ];
-            }
+        if ($taxPaidByTrust > 0) {
+            $difference = round($taxPaidByTrust - $liability, 2);
+            $paid = 'The trust paid '.$this->pounds($taxPaidByTrust).' ('.round($creditRate * 100, 2).'%). Your own Income Tax on this income is '.$this->pounds($liability);
+            $reclaimInfo = match (true) {
+                $difference > 0 => ['type' => 'reclaim', 'amount' => $difference, 'message' => $paid.', so you can reclaim '.$this->pounds($difference).'.'],
+                $difference < 0 => ['type' => 'owe', 'amount' => abs($difference), 'message' => $paid.', so you owe a further '.$this->pounds(abs($difference)).'.'],
+                default => ['type' => 'none', 'amount' => 0.0, 'message' => $paid.', so there is nothing more to pay or reclaim.'],
+            };
         }
 
-        return [
+        return array_merge($allocation, [
             'trust_type' => $trustType,
             'trust_type_label' => $trustTypeLabel,
-            'tax_rate' => $taxRate,
-            'tax_description' => $taxDescription,
+            'tax_rate' => $creditRate,
+            'tax_description' => $taxPaidByTrust > 0
+                ? 'Tax paid by trust at '.round($creditRate * 100, 2).'%'
+                : 'Taxed as your own income',
             'tax_paid_by_trust' => $taxPaidByTrust,
-            'total_income_tax' => $taxPaidByTrust,
+            'total_income_tax' => $liability,
             'net_to_beneficiary' => round($trustIncome - $taxPaidByTrust, 2),
-            'beneficiary_marginal_rate' => $beneficiaryMarginalRate,
-            'beneficiary_marginal_rate_label' => $beneficiaryMarginalRateLabel,
-            'tax_at_marginal_rate' => $taxAtMarginalRate,
             'reclaim_info' => $reclaimInfo,
-        ];
+        ]);
     }
 
-    /**
-     * Get the beneficiary's marginal tax rate based on current band position
-     */
-    private function getBeneficiaryMarginalRate(TaxBandTracker $tracker): float
+    private function pounds(float $amount): string
     {
-        $bandPosition = $tracker->getCurrentBandPosition();
-
-        return match ($bandPosition) {
-            'personal_allowance' => 0.0,
-            'basic' => 0.20,
-            'higher' => 0.40,
-            'additional' => 0.45,
-            default => 0.20,
-        };
-    }
-
-    /**
-     * Get a human-readable label for the marginal rate
-     */
-    private function getMarginalRateLabel(float $rate): string
-    {
-        return match (true) {
-            $rate === 0.0 => 'non',
-            $rate <= 0.20 => 'basic rate',
-            $rate <= 0.40 => 'higher rate',
-            default => 'additional rate',
-        };
+        return '£'.(fmod(round($amount, 2), 1.0) === 0.0 ? number_format($amount) : number_format($amount, 2));
     }
 
     /**

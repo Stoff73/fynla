@@ -337,25 +337,102 @@ class TaxConfigurationSeeder extends Seeder
                     // for the same person by two different modules.
                     //
                     // The schedule below is read by StatePensionAgeResolver, which takes
-                    // a date of birth and returns the age that applies to THAT cohort.
-                    // Each band is `from` (inclusive) to `to` (inclusive, null = open
-                    // ended), by date of birth, with the age that cohort reaches.
+                    // a date of birth (and, before 6 December 1953, gender) and returns
+                    // the day THAT person reaches State Pension age. Each band is `from`
+                    // to `to` by date of birth (inclusive; null = open ended) with
+                    // either `age` (+ `months`) reached, or the `date` it is reached.
                     //
-                    // Sources: Pensions Act 1995 Sch 4, Pensions Act 2007, Pensions Act
-                    // 2011 and Pensions Act 2014 s26. The 2044-2046 rise to 68 is
-                    // legislated (Pensions Act 2007 as amended); the review that could
-                    // bring it forward has not changed the statute, so the statute is
-                    // what is modelled.
+                    // Source, row for row: Pensions Act 1995 Sch 4 para 1 as amended
+                    // (https://www.legislation.gov.uk/ukpga/1995/26/schedule/4):
+                    // para 1(1)-(2) men 65, women 60; table 1 (women born 6 Apr 1950
+                    // to 5 Dec 1953); table 2 (born 6 Dec 1953 to 5 Oct 1954); para
+                    // 1(6) 66; table 3 (born 6 Apr 1960 to 5 Mar 1961: 66 and 1 to 11
+                    // months); 67 to 5 Apr 1977; table 4 (born 6 Apr 1977 to 5 Apr
+                    // 1978, 2044-2046); 68 after. CSJ 2026-10-03: State Pension age is
+                    // to the month, never rounded to whole years.
                     'age_schedule' => [
-                        ['from' => null,         'to' => '1954-10-05', 'age' => 66],
+                        ['from' => null, 'to' => '1953-12-05', 'gender' => 'male', 'age' => 65],
+                        ['from' => null, 'to' => '1950-04-05', 'gender' => 'female', 'age' => 60],
+                        ['from' => '1950-04-06', 'to' => '1950-05-05', 'gender' => 'female', 'date' => '2010-05-06'],
+                        ['from' => '1950-05-06', 'to' => '1950-06-05', 'gender' => 'female', 'date' => '2010-07-06'],
+                        ['from' => '1950-06-06', 'to' => '1950-07-05', 'gender' => 'female', 'date' => '2010-09-06'],
+                        ['from' => '1950-07-06', 'to' => '1950-08-05', 'gender' => 'female', 'date' => '2010-11-06'],
+                        ['from' => '1950-08-06', 'to' => '1950-09-05', 'gender' => 'female', 'date' => '2011-01-06'],
+                        ['from' => '1950-09-06', 'to' => '1950-10-05', 'gender' => 'female', 'date' => '2011-03-06'],
+                        ['from' => '1950-10-06', 'to' => '1950-11-05', 'gender' => 'female', 'date' => '2011-05-06'],
+                        ['from' => '1950-11-06', 'to' => '1950-12-05', 'gender' => 'female', 'date' => '2011-07-06'],
+                        ['from' => '1950-12-06', 'to' => '1951-01-05', 'gender' => 'female', 'date' => '2011-09-06'],
+                        ['from' => '1951-01-06', 'to' => '1951-02-05', 'gender' => 'female', 'date' => '2011-11-06'],
+                        ['from' => '1951-02-06', 'to' => '1951-03-05', 'gender' => 'female', 'date' => '2012-01-06'],
+                        ['from' => '1951-03-06', 'to' => '1951-04-05', 'gender' => 'female', 'date' => '2012-03-06'],
+                        ['from' => '1951-04-06', 'to' => '1951-05-05', 'gender' => 'female', 'date' => '2012-05-06'],
+                        ['from' => '1951-05-06', 'to' => '1951-06-05', 'gender' => 'female', 'date' => '2012-07-06'],
+                        ['from' => '1951-06-06', 'to' => '1951-07-05', 'gender' => 'female', 'date' => '2012-09-06'],
+                        ['from' => '1951-07-06', 'to' => '1951-08-05', 'gender' => 'female', 'date' => '2012-11-06'],
+                        ['from' => '1951-08-06', 'to' => '1951-09-05', 'gender' => 'female', 'date' => '2013-01-06'],
+                        ['from' => '1951-09-06', 'to' => '1951-10-05', 'gender' => 'female', 'date' => '2013-03-06'],
+                        ['from' => '1951-10-06', 'to' => '1951-11-05', 'gender' => 'female', 'date' => '2013-05-06'],
+                        ['from' => '1951-11-06', 'to' => '1951-12-05', 'gender' => 'female', 'date' => '2013-07-06'],
+                        ['from' => '1951-12-06', 'to' => '1952-01-05', 'gender' => 'female', 'date' => '2013-09-06'],
+                        ['from' => '1952-01-06', 'to' => '1952-02-05', 'gender' => 'female', 'date' => '2013-11-06'],
+                        ['from' => '1952-02-06', 'to' => '1952-03-05', 'gender' => 'female', 'date' => '2014-01-06'],
+                        ['from' => '1952-03-06', 'to' => '1952-04-05', 'gender' => 'female', 'date' => '2014-03-06'],
+                        ['from' => '1952-04-06', 'to' => '1952-05-05', 'gender' => 'female', 'date' => '2014-05-06'],
+                        ['from' => '1952-05-06', 'to' => '1952-06-05', 'gender' => 'female', 'date' => '2014-07-06'],
+                        ['from' => '1952-06-06', 'to' => '1952-07-05', 'gender' => 'female', 'date' => '2014-09-06'],
+                        ['from' => '1952-07-06', 'to' => '1952-08-05', 'gender' => 'female', 'date' => '2014-11-06'],
+                        ['from' => '1952-08-06', 'to' => '1952-09-05', 'gender' => 'female', 'date' => '2015-01-06'],
+                        ['from' => '1952-09-06', 'to' => '1952-10-05', 'gender' => 'female', 'date' => '2015-03-06'],
+                        ['from' => '1952-10-06', 'to' => '1952-11-05', 'gender' => 'female', 'date' => '2015-05-06'],
+                        ['from' => '1952-11-06', 'to' => '1952-12-05', 'gender' => 'female', 'date' => '2015-07-06'],
+                        ['from' => '1952-12-06', 'to' => '1953-01-05', 'gender' => 'female', 'date' => '2015-09-06'],
+                        ['from' => '1953-01-06', 'to' => '1953-02-05', 'gender' => 'female', 'date' => '2015-11-06'],
+                        ['from' => '1953-02-06', 'to' => '1953-03-05', 'gender' => 'female', 'date' => '2016-01-06'],
+                        ['from' => '1953-03-06', 'to' => '1953-04-05', 'gender' => 'female', 'date' => '2016-03-06'],
+                        ['from' => '1953-04-06', 'to' => '1953-05-05', 'gender' => 'female', 'date' => '2016-07-06'],
+                        ['from' => '1953-05-06', 'to' => '1953-06-05', 'gender' => 'female', 'date' => '2016-11-06'],
+                        ['from' => '1953-06-06', 'to' => '1953-07-05', 'gender' => 'female', 'date' => '2017-03-06'],
+                        ['from' => '1953-07-06', 'to' => '1953-08-05', 'gender' => 'female', 'date' => '2017-07-06'],
+                        ['from' => '1953-08-06', 'to' => '1953-09-05', 'gender' => 'female', 'date' => '2017-11-06'],
+                        ['from' => '1953-09-06', 'to' => '1953-10-05', 'gender' => 'female', 'date' => '2018-03-06'],
+                        ['from' => '1953-10-06', 'to' => '1953-11-05', 'gender' => 'female', 'date' => '2018-07-06'],
+                        ['from' => '1953-11-06', 'to' => '1953-12-05', 'gender' => 'female', 'date' => '2018-11-06'],
+                        ['from' => '1953-12-06', 'to' => '1954-01-05', 'date' => '2019-03-06'],
+                        ['from' => '1954-01-06', 'to' => '1954-02-05', 'date' => '2019-05-06'],
+                        ['from' => '1954-02-06', 'to' => '1954-03-05', 'date' => '2019-07-06'],
+                        ['from' => '1954-03-06', 'to' => '1954-04-05', 'date' => '2019-09-06'],
+                        ['from' => '1954-04-06', 'to' => '1954-05-05', 'date' => '2019-11-06'],
+                        ['from' => '1954-05-06', 'to' => '1954-06-05', 'date' => '2020-01-06'],
+                        ['from' => '1954-06-06', 'to' => '1954-07-05', 'date' => '2020-03-06'],
+                        ['from' => '1954-07-06', 'to' => '1954-08-05', 'date' => '2020-05-06'],
+                        ['from' => '1954-08-06', 'to' => '1954-09-05', 'date' => '2020-07-06'],
+                        ['from' => '1954-09-06', 'to' => '1954-10-05', 'date' => '2020-09-06'],
                         ['from' => '1954-10-06', 'to' => '1960-04-05', 'age' => 66],
-                        // Pensions Act 2014 s26 — the rise to 67 phases in for those
-                        // born 6 Apr 1960 to 5 Apr 1977, reaching a flat 67 thereafter.
-                        ['from' => '1960-04-06', 'to' => '1977-04-05', 'age' => 67],
-                        ['from' => '1977-04-06', 'to' => '1978-04-05', 'age' => 67],
-                        // Pensions Act 2007 — rise to 68 between 2044 and 2046.
-                        ['from' => '1978-04-06', 'to' => '1979-04-05', 'age' => 68],
-                        ['from' => '1979-04-06', 'to' => null,         'age' => 68],
+                        ['from' => '1960-04-06', 'to' => '1960-05-05', 'age' => 66, 'months' => 1],
+                        ['from' => '1960-05-06', 'to' => '1960-06-05', 'age' => 66, 'months' => 2],
+                        ['from' => '1960-06-06', 'to' => '1960-07-05', 'age' => 66, 'months' => 3],
+                        ['from' => '1960-07-06', 'to' => '1960-08-05', 'age' => 66, 'months' => 4],
+                        ['from' => '1960-08-06', 'to' => '1960-09-05', 'age' => 66, 'months' => 5],
+                        ['from' => '1960-09-06', 'to' => '1960-10-05', 'age' => 66, 'months' => 6],
+                        ['from' => '1960-10-06', 'to' => '1960-11-05', 'age' => 66, 'months' => 7],
+                        ['from' => '1960-11-06', 'to' => '1960-12-05', 'age' => 66, 'months' => 8],
+                        ['from' => '1960-12-06', 'to' => '1961-01-05', 'age' => 66, 'months' => 9],
+                        ['from' => '1961-01-06', 'to' => '1961-02-05', 'age' => 66, 'months' => 10],
+                        ['from' => '1961-02-06', 'to' => '1961-03-05', 'age' => 66, 'months' => 11],
+                        ['from' => '1961-03-06', 'to' => '1977-04-05', 'age' => 67],
+                        ['from' => '1977-04-06', 'to' => '1977-05-05', 'date' => '2044-05-06'],
+                        ['from' => '1977-05-06', 'to' => '1977-06-05', 'date' => '2044-07-06'],
+                        ['from' => '1977-06-06', 'to' => '1977-07-05', 'date' => '2044-09-06'],
+                        ['from' => '1977-07-06', 'to' => '1977-08-05', 'date' => '2044-11-06'],
+                        ['from' => '1977-08-06', 'to' => '1977-09-05', 'date' => '2045-01-06'],
+                        ['from' => '1977-09-06', 'to' => '1977-10-05', 'date' => '2045-03-06'],
+                        ['from' => '1977-10-06', 'to' => '1977-11-05', 'date' => '2045-05-06'],
+                        ['from' => '1977-11-06', 'to' => '1977-12-05', 'date' => '2045-07-06'],
+                        ['from' => '1977-12-06', 'to' => '1978-01-05', 'date' => '2045-09-06'],
+                        ['from' => '1978-01-06', 'to' => '1978-02-05', 'date' => '2045-11-06'],
+                        ['from' => '1978-02-06', 'to' => '1978-03-05', 'date' => '2046-01-06'],
+                        ['from' => '1978-03-06', 'to' => '1978-04-05', 'date' => '2046-03-06'],
+                        ['from' => '1978-04-06', 'to' => null, 'age' => 68],
                     ],
                 ],
 

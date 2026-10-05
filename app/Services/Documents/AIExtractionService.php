@@ -500,7 +500,7 @@ For DB Pensions (final salary, career average, public sector):
 
 For State Pension (DWP forecast):
 - ni_years_completed: Qualifying years on record
-- ni_years_required: Years needed for full pension (typically 35)
+- ni_years_required: Years needed for the full pension, only if the statement shows it (otherwise null)
 - state_pension_forecast_annual: Annual forecast amount
 - state_pension_age: Age when eligible
 
