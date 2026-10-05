@@ -25,15 +25,17 @@ if [ -f "$TODO" ]; then
     /^## To do/ { in_todo = 1; next }
     in_todo && /^## / { in_todo = 0 }
     !in_todo { next }
-    /^[0-9]+\. \[ \]/ { n++; keep = 1; print "@@ITEM@@"; print; next }
-    /^[0-9]+\. \[x\]/ { keep = 0; next }
+    /^[0-9]+[a-z]?\. \[ \]/ { n++; keep = 1; print "@@ITEM@@"; print; next }
+    /^[0-9]+[a-z]?\. \[x\]/ { keep = 0; next }
     keep && /^[[:space:]]+- / { print; next }
     /^[^[:space:]]/ { keep = 0 }
   ' "$TODO")"
 
-  current="$(printf '%s\n' "$open_items" | awk '/^@@ITEM@@/{c++; next} c==1')"
-  next3="$(printf '%s\n' "$open_items" | awk '/^@@ITEM@@/{c++; next} c>=2 && c<=4 && /^[0-9]+\./' | cut -c1-240)"
-  decisions="$(printf '%s\n' "$open_items" | grep 'DECISION (CSJ)' | sed 's/^[[:space:]]*//' | cut -c1-240)"
+  # Lettered items (7a, 8a) count too; the current item shows its title and
+  # first lines only, where its NEXT steps sit.
+  current="$(printf '%s\n' "$open_items" | awk '/^@@ITEM@@/{c++; next} c==1' | head -14 | cut -c1-400)"
+  next3="$(printf '%s\n' "$open_items" | awk '/^@@ITEM@@/{c++; next} c>=2 && c<=4 && /^[0-9]+[a-z]?\./' | cut -c1-240)"
+  decisions="$(printf '%s\n' "$open_items" | grep 'DECISION (CSJ)' | grep -v -- '- ~~\|~~DECISION\|Answered (CSJ' | sed 's/^[[:space:]]*//' | cut -c1-240)"
 
   list="CURRENT LIST: todoCurrent/TODO.md
 
