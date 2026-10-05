@@ -109,6 +109,36 @@ function pushCaptureFormTurn(commit, state, event) {
 }
 
 /** A turn the server is still finishing: give it a moment before reloading. */
+/**
+ * Phase 13 — data-capture Fyn emits capture_complete: the streamed reply is
+ * flushed as its own message, then the record card follows. The card does not
+ * repeat a sentence the reply already says, since a reload shows it once (CSJ
+ * 2026-10-04, never two versions of one message). One helper for every stream
+ * path, as pushCaptureFormTurn is.
+ */
+function pushCaptureComplete(commit, state, event) {
+    const summary = event.summary || '';
+    const repeatsReply = summary.trim() !== '' && (state.streamingText || '').trim() === summary.trim();
+    if (state.streamingText) {
+        commit('ADD_MESSAGE', {
+            id: 'capture_text_' + Date.now(),
+            role: 'assistant',
+            content: state.streamingText,
+            created_at: new Date().toISOString(),
+        });
+        commit('SET_STREAMING_TEXT', '');
+    }
+    commit('ADD_MESSAGE', {
+        id: 'capture_' + Date.now(),
+        role: 'capture_complete',
+        content: repeatsReply ? '' : summary,
+        metadata: {
+            records_created: event.records_created || [],
+        },
+        created_at: new Date().toISOString(),
+    });
+}
+
 function waitForTurn() {
     return new Promise((resolve) => { setTimeout(resolve, TURN_SETTLE_MS); });
 }
@@ -902,27 +932,7 @@ const actions = {
                         break;
 
                     case 'capture_complete':
-                        // Phase 13 — orchestrator fires this after data-capture
-                        // Fyn emits capture_complete. Records are added to the
-                        // message stream as a record-card bubble for the UI.
-                        if (state.streamingText) {
-                            commit('ADD_MESSAGE', {
-                                id: 'capture_text_' + Date.now(),
-                                role: 'assistant',
-                                content: state.streamingText,
-                                created_at: new Date().toISOString(),
-                            });
-                            commit('SET_STREAMING_TEXT', '');
-                        }
-                        commit('ADD_MESSAGE', {
-                            id: 'capture_' + Date.now(),
-                            role: 'capture_complete',
-                            content: event.summary || '',
-                            metadata: {
-                                records_created: event.records_created || [],
-                            },
-                            created_at: new Date().toISOString(),
-                        });
+                        pushCaptureComplete(commit, state, event);
                         break;
 
                     case 'handoff':
@@ -1204,24 +1214,7 @@ const actions = {
                         commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
                         break;
                     case 'capture_complete':
-                        if (state.streamingText) {
-                            commit('ADD_MESSAGE', {
-                                id: 'capture_text_' + Date.now(),
-                                role: 'assistant',
-                                content: state.streamingText,
-                                created_at: new Date().toISOString(),
-                            });
-                            commit('SET_STREAMING_TEXT', '');
-                        }
-                        commit('ADD_MESSAGE', {
-                            id: 'capture_' + Date.now(),
-                            role: 'capture_complete',
-                            content: event.summary || '',
-                            metadata: {
-                                records_created: event.records_created || [],
-                            },
-                            created_at: new Date().toISOString(),
-                        });
+                        pushCaptureComplete(commit, state, event);
                         break;
                     case 'handoff_error':
                         commit('ADD_MESSAGE', {
