@@ -447,7 +447,21 @@ export default {
       // The stored reply replaces what streamed, so the screen shows what a
       // reload will show (CSJ 2026-10-04: never two versions of one message).
       if (ev.type === 'done' && typeof ev.content === 'string' && ev.content.trim() !== '' && cursor?.reply) {
-        cursor.reply.text = ev.content;
+        // It goes in the bubble the reply streamed into. A capture confirmation
+        // opened after it is the same message on a reload, so it folds in:
+        // its link moves across and the bubble goes.
+        const target = cursor.prose && this.messages.includes(cursor.prose) ? cursor.prose : cursor.reply;
+        target.text = ev.content;
+        const confirmation = cursor.captureReply;
+        if (confirmation && confirmation !== target) {
+          if (!(target.bubbles && target.bubbles.length)) target.bubbles = confirmation.bubbles || [];
+          const index = this.messages.indexOf(confirmation);
+          if (index !== -1) this.messages.splice(index, 1);
+          target.capturePending = false;
+          target.captureFinalized = true;
+          cursor.captureReply = target;
+        }
+        cursor.reply = target;
         return;
       }
       if ((ev.type === 'conversation_created' || ev.type === 'resume') && ev.conversation_id) {
@@ -910,6 +924,8 @@ export default {
 
       cursor.got = true;
       cursor.reply.text += piece;
+      // The bubble the reply streamed into, for the stored reply on done.
+      cursor.prose = cursor.reply;
       this.$nextTick(this.scrollFyn);
     },
 

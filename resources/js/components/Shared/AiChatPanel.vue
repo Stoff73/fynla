@@ -206,7 +206,7 @@
             class="flex justify-start"
           >
             <div class="max-w-[85%] w-full rounded-lg bg-savannah-100 border border-light-gray px-3 py-2 space-y-2 text-sm">
-              <p class="font-semibold text-horizon-500">{{ msg.content }}</p>
+              <p v-if="msg.content" class="font-semibold text-horizon-500">{{ msg.content }}</p>
               <div
                 v-if="Array.isArray(msg.metadata?.records_created) && msg.metadata.records_created.length"
                 class="space-y-1"

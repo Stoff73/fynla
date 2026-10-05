@@ -136,6 +136,35 @@ describe('desktop Fyn stream event parity', () => {
     );
   });
 
+  it('does not repeat the reply as the record card heading (one version of a message)', async () => {
+    const line = 'Recorded — date of birth 14 March 1981.';
+    aiChatService.streamQueuedMessage.mockResolvedValue(streamReader([
+      { type: 'content', text: line },
+      { type: 'capture_complete', summary: line, records_created: [{ id: 3, type: 'personal' }] },
+      { type: 'done', message_id: 45, content: line },
+    ]));
+    const localState = {
+      ...aiChat.state,
+      currentConversation: { id: 10, title: 'Fyn' },
+      messages: [{ id: 43, role: 'user', content: '14/03/1981', status: 'queued' }],
+      streaming: false,
+      isOnboardingActive: false,
+      streamingText: '',
+      error: null,
+    };
+    const commit = (name, payload) => aiChat.mutations[name](localState, payload);
+
+    await aiChat.actions.streamNextQueued({
+      commit,
+      dispatch: vi.fn().mockResolvedValue(undefined),
+      state: localState,
+      rootState: { route: { path: '/dashboard' } },
+    });
+
+    expect(localState.messages.filter((m) => m.content === line)).toHaveLength(1);
+    expect(localState.messages.find((m) => m.role === 'capture_complete').metadata.records_created).toHaveLength(1);
+  });
+
   it('carries the server-resolved page onto every entity write message', async () => {
     // SPEC-crud-handler-contract 5.4 — the route comes from the server so the
     // panel stops keeping its own table (it had one until 2026-08-17, the
