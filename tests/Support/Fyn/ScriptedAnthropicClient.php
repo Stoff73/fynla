@@ -37,6 +37,9 @@ final class ScriptedAnthropicMessages
     /** @var list<list<object>> */
     private array $turns;
 
+    /** @var list<array<string, mixed>> The named args of every createStream() call, in order. */
+    public array $calls = [];
+
     /**
      * @param  list<list<object>>  $turns
      */
@@ -47,11 +50,12 @@ final class ScriptedAnthropicMessages
 
     /**
      * Mirrors Anthropic\Messages::createStream — accepts the same named args
-     * (maxTokens, messages, model, system, tools, toolChoice) and ignores them;
-     * the response is the next scripted turn, replayed as a generator.
+     * (maxTokens, messages, model, system, tools, toolChoice) and records them
+     * in $calls; the response is the next scripted turn, replayed as a generator.
      */
     public function createStream(mixed ...$args): Generator
     {
+        $this->calls[] = $args;
         $turn = array_shift($this->turns) ?? [];
 
         yield from $turn;

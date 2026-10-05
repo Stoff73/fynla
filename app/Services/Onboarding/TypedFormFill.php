@@ -14,83 +14,128 @@ use Illuminate\Support\Facades\Validator;
  * 2026-10-01: all capture through forms).
  *
  * Reads, from the typed message, a new value for any of the form's own fields,
- * checks each against that field's own rule (CaptureForms::fieldRules), and
- * returns the form with those values in place of the recorded ones. Null when
- * the message changes nothing on the form (a question, say), so the turn is
- * answered as before.
+ * section by section, checks each against that field's own rule
+ * (CaptureForms::fieldRules), and returns the form with those values in place
+ * of the recorded ones. On a blank form with several kinds (the setup steps'
+ * accounts and pensions) the message's kind is the section filled, which opens
+ * that kind on every surface. Several record forms are read in one call
+ * (fillAny), and a record's form is filled only when the message is about that
+ * record, never a different or new one. Nothing is returned when the message
+ * gives nothing for the form (a question, say), so the turn is answered as
+ * before.
  */
 final class TypedFormFill
 {
     private const ENDPOINT = 'https://api.x.ai/v1/chat/completions';
 
     /**
-     * @param  array{name: string, schema: array<string, mixed>, answers: array<string, array<string, mixed>>, record: array<string, mixed>, label: string}  $form  RecordEditForms::formFor
-     * @return array{name: string, schema: array<string, mixed>, answers: array<string, array<string, mixed>>, record: array<string, mixed>, label: string, filled: list<string>}|null
+     * @param  array{schema: array<string, mixed>, answers: array<string, array<string, mixed>>, record?: array<string, mixed>|null, label?: string}  $form  RecordEditForms::formFor, or a walk step's form
+     * @return array<string, mixed>|null the form with `answers` filled in and `filled` naming the fields
      */
     public function fill(array $form, string $message): ?array
     {
-        $fields = self::fields($form['schema']);
-        if ($fields === [] || trim($message) === '') {
-            return null;
+        return $this->fillAny([$form], $message)[0] ?? null;
+    }
+
+    /**
+     * Every form the message fills, keyed as given.
+     *
+     * @param  array<int, array{schema: array<string, mixed>, answers: array<string, array<string, mixed>>, record?: array<string, mixed>|null, label?: string}>  $forms
+     * @return array<int, array<string, mixed>>
+     */
+    public function fillAny(array $forms, string $message): array
+    {
+        $sectionsByForm = [];
+        foreach ($forms as $index => $form) {
+            $sectionsByForm[$index] = self::sections($form['schema']);
+        }
+        if (trim($message) === '' || array_filter($sectionsByForm) === []) {
+            return [];
         }
 
-        $extracted = $this->extract($fields, $form['answers'], $message);
+        $extracted = $this->extract($forms, $sectionsByForm, $message);
+        $result = [];
+        foreach ($forms as $index => $form) {
+            $filled = self::apply($form, $sectionsByForm[$index], (array) ($extracted[(string) $index] ?? []));
+            if ($filled !== null) {
+                $result[$index] = $filled;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * The values read for one form, each checked against its field's own rule.
+     *
+     * @param  array<string, mixed>  $form
+     * @param  array<string, array{label: string|null, fields: list<string>}>  $sections
+     * @param  array<string, mixed>  $extracted  section key => field key => value
+     * @return array<string, mixed>|null
+     */
+    private static function apply(array $form, array $sections, array $extracted): ?array
+    {
         $answers = $form['answers'];
         $filled = [];
-        foreach ($extracted as $key => $value) {
-            if (! isset($fields[$key])) {
+        foreach ($extracted as $sectionKey => $values) {
+            if (! isset($sections[$sectionKey]) || ! is_array($values)) {
                 continue;
             }
-            $field = $fields[$key];
-            $value = is_string($value) ? trim($value) : $value;
-            // The field's own rule, less its presence part: a value is given.
-            $rules = array_values(array_filter(
-                CaptureForms::fieldRules($field['section'], $key, $field['definition']),
-                static fn (string $rule): bool => ! str_starts_with($rule, 'required_with') && $rule !== 'present',
-            ));
-            if ($value === null || $value === '' || Validator::make(['v' => $value], ['v' => $rules])->fails()) {
-                continue;
+            foreach ($values as $key => $value) {
+                if (! in_array($key, $sections[$sectionKey]['fields'], true)) {
+                    continue;
+                }
+                $definition = $form['schema']['fields'][$key];
+                $value = is_string($value) ? trim($value) : $value;
+                // The field's own rule, less its presence part: a value is given.
+                $rules = array_values(array_filter(
+                    CaptureForms::fieldRules($sectionKey, $key, $definition),
+                    static fn (string $rule): bool => ! str_starts_with($rule, 'required_with') && $rule !== 'present',
+                ));
+                if ($value === null || $value === '' || Validator::make(['v' => $value], ['v' => $rules])->fails()) {
+                    continue;
+                }
+                if (in_array($definition['type'], ['money', 'money_or_none', 'percent'], true)) {
+                    $value = (float) $value;
+                }
+                if (($answers[$sectionKey][$key] ?? null) == $value) {
+                    continue;
+                }
+                // A kind with any answer is the kind chosen: both form
+                // renderers open a kind whose values arrive.
+                $answers[$sectionKey] = array_replace((array) ($answers[$sectionKey] ?? []), [$key => $value]);
+                $filled[] = $key;
             }
-            if (in_array($field['definition']['type'], ['money', 'money_or_none', 'percent'], true)) {
-                $value = (float) $value;
-            }
-            if (($answers[$field['section']][$key] ?? null) == $value) {
-                continue;
-            }
-            $answers[$field['section']][$key] = $value;
-            $filled[] = $key;
         }
 
         return $filled === [] ? null : array_replace($form, ['answers' => $answers, 'filled' => $filled]);
     }
 
     /**
-     * The form's fields, each with the section its answer sits under.
+     * The form's sections — its lead fields, then each kind — with their fields.
      *
      * @param  array<string, mixed>  $schema
-     * @return array<string, array{section: string, definition: array<string, mixed>}>
+     * @return array<string, array{label: string|null, fields: list<string>}>
      */
-    private static function fields(array $schema): array
+    private static function sections(array $schema): array
     {
-        $fields = [];
-        foreach ($schema['lead_fields'] ?? [] as $key) {
-            $fields[$key] = ['section' => CaptureForms::LEAD, 'definition' => $schema['fields'][$key]];
+        $sections = [];
+        if (($schema['lead_fields'] ?? []) !== []) {
+            $sections[CaptureForms::LEAD] = ['label' => null, 'fields' => array_values($schema['lead_fields'])];
         }
         foreach ($schema['kinds'] ?? [] as $kind) {
-            foreach ($kind['fields'] as $key) {
-                $fields[$key] = ['section' => $kind['key'], 'definition' => $schema['fields'][$key]];
-            }
+            $sections[$kind['key']] = ['label' => $kind['label'] ?? $kind['key'], 'fields' => array_values($kind['fields'])];
         }
 
-        return $fields;
+        return $sections;
     }
 
     /**
-     * @param  array<string, array{section: string, definition: array<string, mixed>}>  $fields
-     * @param  array<string, array<string, mixed>>  $answers
-     * @return array<string, mixed>
+     * @param  array<int, array<string, mixed>>  $forms
+     * @param  array<int, array<string, array{label: string|null, fields: list<string>}>>  $sectionsByForm
+     * @return array<string, mixed> form index => section key => field key => value
      */
-    private function extract(array $fields, array $answers, string $message): array
+    private function extract(array $forms, array $sectionsByForm, string $message): array
     {
         $apiKey = config('services.xai.api_key');
         if (empty($apiKey)) {
@@ -98,21 +143,36 @@ final class TypedFormFill
         }
 
         $catalogue = [];
-        foreach ($fields as $key => $field) {
-            $definition = $field['definition'];
+        foreach ($forms as $index => $form) {
+            $sections = [];
+            foreach ($sectionsByForm[$index] as $sectionKey => $section) {
+                $fields = [];
+                foreach ($section['fields'] as $key) {
+                    $definition = $form['schema']['fields'][$key];
+                    $fields[] = array_filter([
+                        'key' => $key,
+                        'label' => $definition['label'] ?? $key,
+                        'type' => $definition['type'],
+                        'options' => isset($definition['options']) ? array_column($definition['options'], 'value') : null,
+                        'current' => $form['answers'][$sectionKey][$key] ?? null,
+                    ], static fn ($v): bool => $v !== null);
+                }
+                $sections[] = array_filter(['key' => $sectionKey, 'kind' => $section['label'], 'fields' => $fields], static fn ($v): bool => $v !== null);
+            }
             $catalogue[] = array_filter([
-                'key' => $key,
-                'label' => $definition['label'] ?? $key,
-                'type' => $definition['type'],
-                'options' => isset($definition['options']) ? array_column($definition['options'], 'value') : null,
-                'current' => $answers[$field['section']][$key] ?? null,
+                'form' => (string) $index,
+                // A form holding a saved record names it.
+                'record' => ($form['record'] ?? null) !== null ? (string) ($form['label'] ?? 'saved record') : null,
+                'sections' => $sections,
             ], static fn ($v): bool => $v !== null);
         }
 
         $system = <<<'PROMPT'
-A user is changing one of their records and typed a message. The record's form fields are listed with their current values. Return the NEW value the message states for each field it changes, and nothing else. Output strict JSON: {"fields": {"<key>": <value>}}.
+A user typed a message where Fyn can show them a form. The forms are listed. A form with a "record" holds that saved record; a form without one is blank. Each form has sections; a section with a "kind" is one kind of record (an easy access account, a workplace pension), and each field is listed with any current value. Return the NEW value the message states for each field it gives, under its form and section, and nothing else. Output strict JSON: {"forms": {"<form>": {"<section key>": {"<field key>": <value>}}}}.
 Rules:
-- Only fields the message gives a new value for. If it changes none (a question, a greeting), return {"fields": {}}.
+- Only fields the message gives a value for. If it gives none (a question, a greeting), return {"forms": {}}.
+- Fill a form holding a record only when the message is about that record. Never put a different or new record (another provider, a new account) on it.
+- Put a value under a kind's section only when the message describes that kind of record. If it is not clear which kind, leave that value out.
 - choice: one of the listed options, exactly. date: YYYY-MM-DD. money and percent: a plain number, no symbols. text: the words given.
 - Never guess or carry a value over from the current one.
 - JSON only, no prose, no markdown fences.
@@ -123,13 +183,13 @@ PROMPT;
                 ->timeout(30)
                 ->post(self::ENDPOINT, [
                     'model' => config('services.xai.vision_model', 'grok-4.3'),
-                    'max_completion_tokens' => 400,
+                    'max_completion_tokens' => 600,
                     'temperature' => 0,
                     'reasoning_effort' => 'none',
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         ['role' => 'system', 'content' => $system],
-                        ['role' => 'user', 'content' => json_encode(['fields' => $catalogue, 'message' => $message], JSON_UNESCAPED_UNICODE)],
+                        ['role' => 'user', 'content' => json_encode(['forms' => $catalogue, 'message' => $message], JSON_UNESCAPED_UNICODE)],
                     ],
                 ]);
 
@@ -139,7 +199,7 @@ PROMPT;
 
             $decoded = json_decode((string) ($response->json()['choices'][0]['message']['content'] ?? ''), true);
 
-            return is_array($decoded['fields'] ?? null) ? $decoded['fields'] : [];
+            return is_array($decoded['forms'] ?? null) ? $decoded['forms'] : [];
         } catch (\Throwable $e) {
             Log::warning('[TypedFormFill] extraction failed', ['error' => $e->getMessage()]);
 

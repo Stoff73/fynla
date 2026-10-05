@@ -459,6 +459,16 @@ final class OnboardingChatDirector
             return;
         }
 
+        // A typed answer at a step with a form fills the form in (CSJ
+        // 2026-10-05, option A). "None" and a bare "yes" keep their own
+        // handling (handleAssetCaptureTurn's emitNothingToAdd).
+        if (isset($state['form']) && ! self::isCompletionDeclaration($message) && ! self::isBareAffirmative($message)) {
+            $offered = yield from $this->offerTypedAnswerForm($user, $conversation, $message, $currentStateId, $state);
+            if ($offered) {
+                return;
+            }
+        }
+
         // Asset capture is the delegated turn. Both the journey/focus
         // STATE_ASSET_CAPTURE and the SaveTax campaign STATE_CAMPAIGN_*
         // delegated states share the same handler — it advances via
@@ -721,7 +731,7 @@ final class OnboardingChatDirector
         // ("edit_section:<section>") opens that section's chooser.
         if (str_starts_with($action, 'edit:')) {
             [, $type, $id] = array_pad(explode(':', $action, 3), 3, '');
-            $emitted = yield from $this->emitEditForm($user, $conversation, $type, (int) $id, $currentStateId);
+            $emitted = yield from $this->emitEditForm($user, $conversation, $type, (int) $id, $currentStateId, $this->chooserTypedChange($conversation));
             if (! $emitted) {
                 $line = "I couldn't open that record. Tell me what should change and I'll do it.";
                 yield ['type' => 'content', 'text' => $line];
@@ -1090,7 +1100,8 @@ final class OnboardingChatDirector
         string $stateId,
         array $state,
         bool $includeTransitionHeader = true,
-        int $adviceDepth = 0
+        int $adviceDepth = 0,
+        ?array $typedFill = null
     ): \Generator {
         $turnType = $state['turn_type'] ?? 'free_text';
 
@@ -1159,16 +1170,8 @@ final class OnboardingChatDirector
         };
 
         if (($turnType === 'form' || isset($state['form'])) && $this->clientSupportsForms) {
-            $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
-            if ($schema !== null && $schema['name'] === CaptureForms::EXPENDITURE) {
-                // CSJ 2026-09-16: one box for everyone; category entry for
-                // Premium, asking the household question first when a spouse
-                // is on file and has not been answered.
-                $schema = CaptureForms::expenditureVariantFor($user, app(TeaserGate::class)->allows($user, 'expenditure_detailed'));
-            }
-            if ($schema !== null && $schema['name'] === CaptureForms::SPOUSE_HOUSEHOLD) {
-                $schema = CaptureForms::spouseHouseholdFor($user, $schema);
-            }
+            $walkForm = $typedFill ?? $this->walkForm($user, $conversation, $state);
+            $schema = $walkForm['schema'] ?? null;
             if ($schema !== null) {
                 // A form-capable client sees the short form-shaped lead-in
                 // (the form's own boxes and Save button carry the
@@ -1212,13 +1215,12 @@ final class OnboardingChatDirector
                     $user->save();
                 }
 
-                // What the user already has on file opens filled in — the
-                // same `values` / `record` an edit form carries, which every
-                // client renders and posts back (WalkFormPrefill).
-                $prefill = app(WalkFormPrefill::class)->for($user, $conversation, (string) $schema['name']);
-                // A record opened for editing brings its narrowed form (one
-                // kind, the walk's own name) — an edit saves one kind only.
-                $schema = $prefill['schema'] ?? $schema;
+                $prefill = ['values' => $walkForm['answers'] ?: null, 'record' => $walkForm['record']];
+                // An answer typed at the form is filled in, never saved: the
+                // user checks it and presses Save (CSJ 2026-10-05, option A).
+                if ($typedFill !== null) {
+                    $formPromptText = "I've filled in what you told me — check it, add anything missing and save.";
+                }
 
                 yield array_filter([
                     'type' => 'capture_form',
@@ -7426,9 +7428,9 @@ PROMPT;
      *
      * @return \Generator<array<string, mixed>, mixed, mixed, bool>
      */
-    private function emitEditChooser(User $user, AiConversation $conversation, string $section, ?string $stateId, ?string $typedMessage = null): \Generator
+    private function emitEditChooser(User $user, AiConversation $conversation, string $section, ?string $stateId, ?string $typedMessage = null, ?array $candidates = null): \Generator
     {
-        $candidates = app(RecordEditForms::class)->candidates($user, $section);
+        $candidates ??= app(RecordEditForms::class)->candidates($user, $section);
         if ($candidates === []) {
             return false;
         }
@@ -7456,12 +7458,89 @@ PROMPT;
             'turn_intent' => FynTurnIntent::VerifyPrompt->value,
             'bubbles' => $bubbles,
             'action_bubbles' => true,
+            // The record chosen opens with this change filled in (handleAction).
+            'typed_change' => $typedMessage,
         ]);
         $saved = $this->saveMessage($conversation, 'assistant', $prompt, ['metadata' => $metadata]);
         yield ['type' => 'quick_replies', 'prompt_text' => $prompt, 'bubbles' => $bubbles, 'action_bubbles' => true];
         yield ['type' => 'done', 'message_id' => $saved->id];
 
         return true;
+    }
+
+    /**
+     * The change typed before "Which one needs changing?", when that question
+     * is the latest thing Fyn said: the record chosen opens with it filled in.
+     */
+    private function chooserTypedChange(AiConversation $conversation): ?string
+    {
+        $last = $conversation->messages()->where('role', 'assistant')->latest('id')->first(['metadata']);
+        $typed = is_array($last?->metadata) ? ($last->metadata['typed_change'] ?? null) : null;
+
+        return is_string($typed) && $typed !== '' ? $typed : null;
+    }
+
+    /**
+     * A change typed in chat with no record named by the app (Advice Fyn's
+     * plain statement, "my Nationwide balance is £9,200 now"), read against
+     * every saved record (CSJ 2026-10-05, option A). The advice model refused
+     * such statements as prompt injection or answered them in typed questions
+     * (walked 2026-10-05, conversations 325-326), so this runs before it.
+     * False, with nothing written, for a question, a client without forms, or
+     * a message that changes no saved record: the turn goes on to Fyn.
+     *
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    public function offerTypedChangeAnywhere(User $user, AiConversation $conversation, string $message, bool $persistUserMessage): \Generator
+    {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
+            return false;
+        }
+
+        return yield from $this->offerTypedChangeIn($user, $conversation, RecordEditForms::sections(), $message, $persistUserMessage);
+    }
+
+    /**
+     * A change typed in chat, read against every record in the sections in
+     * one call: one record it is about opens with the change filled in;
+     * several are offered as a choice, the change filled in on the one
+     * chosen. False, with nothing written, when the client draws no forms or
+     * the message is about none of them (a new record).
+     *
+     * @param  list<string>  $sections
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function offerTypedChangeIn(User $user, AiConversation $conversation, array $sections, string $message, bool $persistUserMessage = false): \Generator
+    {
+        if (! $this->formsSupported()) {
+            return false;
+        }
+        $editForms = app(RecordEditForms::class);
+        $candidates = [];
+        $forms = [];
+        foreach ($sections as $section) {
+            foreach ($editForms->candidates($user, $section) as $candidate) {
+                $form = $editForms->formFor($user, $candidate['type'], (int) $candidate['id']);
+                if ($form !== null) {
+                    $candidates[] = $candidate;
+                    $forms[] = $form;
+                }
+            }
+        }
+        $filled = $forms === [] ? [] : app(TypedFormFill::class)->fillAny($forms, $message);
+        if ($filled === []) {
+            return false;
+        }
+        if ($persistUserMessage) {
+            $this->saveMessage($conversation, 'user', $message);
+        }
+        if (count($filled) === 1) {
+            yield from $this->emitFormMessage($conversation, reset($filled), true, null);
+
+            return true;
+        }
+
+        return yield from $this->emitEditChooser($user, $conversation, $sections[0], null, $message, array_values(array_intersect_key($candidates, $filled)));
     }
 
     /**
@@ -7484,6 +7563,67 @@ PROMPT;
         $filled = $typedMessage !== null ? app(TypedFormFill::class)->fill($form, $typedMessage) : null;
 
         yield from $this->emitFormMessage($conversation, $filled ?? $form, $filled !== null, $stateId);
+
+        return true;
+    }
+
+    /**
+     * A walk step's form as the user will see it: the variant for this user
+     * (spending, the spouse's household) and what they already have on file
+     * (WalkFormPrefill: a record opened for editing brings its narrowed form,
+     * one kind under the walk's own name, since an edit saves one kind only).
+     * Null when the step has no form.
+     *
+     * @param  array<string, mixed>  $state
+     * @return array{schema: array<string, mixed>, answers: array<string, array<string, mixed>>, record: array{type: string, id: int}|null}|null
+     */
+    private function walkForm(User $user, AiConversation $conversation, array $state): ?array
+    {
+        $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
+        if ($schema !== null && $schema['name'] === CaptureForms::EXPENDITURE) {
+            // CSJ 2026-09-16: one box for everyone; category entry for
+            // Premium, asking the household question first when a spouse
+            // is on file and has not been answered.
+            $schema = CaptureForms::expenditureVariantFor($user, app(TeaserGate::class)->allows($user, 'expenditure_detailed'));
+        }
+        if ($schema !== null && $schema['name'] === CaptureForms::SPOUSE_HOUSEHOLD) {
+            $schema = CaptureForms::spouseHouseholdFor($user, $schema);
+        }
+        if ($schema === null) {
+            return null;
+        }
+
+        $prefill = app(WalkFormPrefill::class)->for($user, $conversation, (string) $schema['name']);
+
+        return [
+            'schema' => $prefill['schema'] ?? $schema,
+            'answers' => $prefill['values'] ?? [],
+            'record' => $prefill['record'] ?? null,
+        ];
+    }
+
+    /**
+     * An answer typed where a setup step's form is waiting fills that form in
+     * and shows it again; nothing is saved until the user presses Save (CSJ
+     * 2026-10-05, option A; 2026-10-01, all capture through forms). False,
+     * with nothing written, when the client draws no forms, the message is a
+     * question, or it gives nothing the form asks: the turn goes on as before.
+     *
+     * @param  array<string, mixed>  $state
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function offerTypedAnswerForm(User $user, AiConversation $conversation, string $message, string $stateId, array $state): \Generator
+    {
+        if (! isset($state['form']) || ! $this->clientSupportsForms || $this->writeIntentClassifier->isQuestion($message)) {
+            return false;
+        }
+        $form = $this->walkForm($user, $conversation, $state);
+        $filled = $form !== null ? app(TypedFormFill::class)->fill($form, $message) : null;
+        if ($filled === null) {
+            return false;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $stateId, $state, includeTransitionHeader: false, typedFill: $filled);
 
         return true;
     }
@@ -8266,6 +8406,15 @@ PROMPT;
             }
 
             return;
+        }
+        // A change typed without "change my …" ("my salary is £70,000 now")
+        // opens the record it is about, the change filled in (CSJ 2026-10-05,
+        // option A). A new record falls through to the capture turn below.
+        if ($editSection !== null && ! $context->isContinuation) {
+            $handled = yield from $this->offerTypedChangeIn($user, $conversation, [$editSection], $message);
+            if ($handled) {
+                return;
+            }
         }
 
         // Unified prompt seam: handleInlineCapture IS an asset-capture turn
