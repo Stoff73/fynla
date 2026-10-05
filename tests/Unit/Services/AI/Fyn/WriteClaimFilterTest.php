@@ -23,6 +23,13 @@ it('names the sentences that claim a save', function (string $sentence, bool $cl
     ['Updated — your monthly spending is £2,600.', true],
     ['Your date of birth has been updated to 2 August 1960.', true],
     ["I've added the pension to your records.", true],
+    // csjones walk of the fix: the same claim in other words.
+    ['Thank you for the correction. Your date of birth is now recorded as 3 May 1990.', true],
+    ['Your spending is now saved as £2,600 a month.', true],
+    ["I've made that change for you.", true],
+    ['The change has been made.', true],
+    ['Your date of birth is recorded as 1 May 1990.', false],
+    ['Your pension is now worth £45,000.', false],
     ['Once you have added your pension, I can work out your income.', false],
     ['You have recorded £20,000 of ISA contributions this year.', false],
     ['Your State Pension is recorded as being paid.', false],

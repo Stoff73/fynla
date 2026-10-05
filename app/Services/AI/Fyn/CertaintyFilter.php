@@ -38,6 +38,12 @@ final class CertaintyFilter
         '/^\s*\**(Recorded|Updated|Saved|Added|Deleted|Removed)\**\s*[\x{2014}\x{2013}:-]/iu',
         // "Your date of birth has been updated"
         '/\b(has|have)\s+been\s+(updated|saved|changed|amended|deleted|removed)\b/iu',
+        // "is now recorded as 3 May 1990" (a record described as it stands, "is
+        // recorded as", passes: only "now" makes it a change)
+        '/\b(is|are)\s+now\s+(recorded|saved|updated|set|stored|amended|changed|listed)\b/iu',
+        // "I've made that change", "the change has been made"
+        '/\b(I|we)\s*(\x{2019}|\')?\s*(ve|have)\s+made\s+(that|the|this|your)\s+(change|update|correction)s?\b/iu',
+        '/\b(the|that|this|your)\s+(change|update|correction)s?\s+(has|have|is|are)\s+(been\s+)?(made|saved|applied|done)\b/iu',
     ];
 
     private bool $claimReplaced = false;
