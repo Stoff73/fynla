@@ -28,6 +28,9 @@ it('names the sentences that claim a save', function (string $sentence, bool $cl
     ['Your spending is now saved as £2,600 a month.', true],
     ["I've made that change for you.", true],
     ['The change has been made.', true],
+    // A promise is not filtered: in advice it can come just before a real
+    // capture hand-off (delegate_to_capture), which does save.
+    ["I'll update that for you now.", false],
     ['Your date of birth is recorded as 1 May 1990.', false],
     ['Your pension is now worth £45,000.', false],
     ['Once you have added your pension, I can work out your income.', false],
@@ -35,6 +38,7 @@ it('names the sentences that claim a save', function (string $sentence, bool $cl
     ['Your State Pension is recorded as being paid.', false],
     ['Would you like me to update it?', false],
     ['I can update your date of birth for you.', false],
+    ['Tell me the date and I will help you change it.', false],
     ['Tell me what has changed and I will save it.', false],
 ]);
 
