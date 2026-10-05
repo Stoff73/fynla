@@ -25,6 +25,7 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\AI\Actions\ActionDispatcher;
+use App\Services\AI\Actions\SurfaceAllowlist;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\AuditChainService;
@@ -586,7 +587,9 @@ trait HasAiChat
             $iterationText = '';
             // Rule 12 (CSJ 2026-09-29): the model's text reaches every surface, and
             // the stored reply, without any sentence stating certainty.
-            $certaintyFilter = new CertaintyFilter;
+            // The read-only advice state saves nothing, so any sentence there
+            // saying something was saved is false (TODO item 7a).
+            $certaintyFilter = new CertaintyFilter(writeClaimsAreFalse: $this->personaOverride === SurfaceAllowlist::READ_ONLY_MODE);
 
             try {
                 if ($isXai) {
