@@ -69,6 +69,9 @@ final class RecordEditForms
         'state_pension' => 'state_pension',
         // /m Expenditure's "Edit details": the spending form, as it was entered.
         'expenditure' => 'expenditure',
+        // /m Personal Information's "Edit details": date of birth, gender and
+        // marital status (Fyn capture is forms only, CSJ 2026-10-01).
+        'personal_information' => 'personal',
     ];
 
     /** The income source rows (/m Income detail) that the other-income form edits. */

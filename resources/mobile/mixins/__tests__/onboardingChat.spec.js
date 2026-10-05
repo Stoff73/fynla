@@ -288,6 +288,27 @@ describe('the stored reply on done', () => {
     expect(cursor.reply.text).toBe('Done.');
   });
 
+  // Walking release #1071 on fynla.org (/m Personal Information, typed date of
+  // birth): the reply streamed, then capture_complete opened a confirmation
+  // bubble with the same sentence, and done filled that one too. Two bubbles,
+  // where a reload shows one message.
+  it('keeps one bubble when a capture confirmation repeats the streamed reply', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.messages = [cursor.reply];
+    const line = 'Recorded — date of birth 14 March 1981.';
+    w.vm.appendFynText(cursor, line);
+    w.vm.handleFynEvent(cursor, { type: 'entity_updated', name: 'Personal Details', label: 'Personal Details', mobile_route: '/personal-information' });
+    w.vm.handleFynEvent(cursor, { type: 'capture_complete', summary: line });
+    w.vm.handleFynEvent(cursor, { type: 'done', message_id: 9, content: line });
+    w.vm.finalizeCaptureReply(cursor);
+
+    const fyn = w.vm.messages.filter((m) => m.role === 'fyn');
+    expect(fyn).toHaveLength(1);
+    expect(fyn[0].text).toBe(line);
+    expect(fyn[0].bubbles.map((b) => b.id)).toEqual(['view_record']);
+  });
+
   it('keeps the streamed text when done carries none', () => {
     const w = mount(Host);
     const cursor = { reply: { role: 'fyn', text: 'Saved.', bubbles: [] }, got: true };
