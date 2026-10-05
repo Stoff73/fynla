@@ -7426,7 +7426,7 @@ PROMPT;
      *
      * @return \Generator<array<string, mixed>, mixed, mixed, bool>
      */
-    private function emitEditChooser(User $user, AiConversation $conversation, string $section, ?string $stateId): \Generator
+    private function emitEditChooser(User $user, AiConversation $conversation, string $section, ?string $stateId, ?string $typedMessage = null): \Generator
     {
         $candidates = app(RecordEditForms::class)->candidates($user, $section);
         if ($candidates === []) {
@@ -7435,7 +7435,7 @@ PROMPT;
 
         if (count($candidates) === 1) {
             $one = $candidates[0];
-            $emitted = yield from $this->emitEditForm($user, $conversation, $one['type'], (int) $one['id'], $stateId);
+            $emitted = yield from $this->emitEditForm($user, $conversation, $one['type'], (int) $one['id'], $stateId, $typedMessage);
             if ($emitted) {
                 return true;
             }
@@ -7470,7 +7470,7 @@ PROMPT;
      *
      * @return \Generator<array<string, mixed>, mixed, mixed, bool>
      */
-    private function emitEditForm(User $user, AiConversation $conversation, string $type, int $id, ?string $stateId): \Generator
+    private function emitEditForm(User $user, AiConversation $conversation, string $type, int $id, ?string $stateId, ?string $typedMessage = null): \Generator
     {
         if (! $this->formsSupported()) {
             return false;
@@ -7479,10 +7479,26 @@ PROMPT;
         if ($form === null) {
             return false;
         }
+        // A change the user typed is filled in, never saved: they press Save
+        // (CSJ 2026-10-05, option A).
+        $filled = $typedMessage !== null ? app(TypedFormFill::class)->fill($form, $typedMessage) : null;
 
+        yield from $this->emitFormMessage($conversation, $filled ?? $form, $filled !== null, $stateId);
+
+        return true;
+    }
+
+    /**
+     * @param  array{schema: array<string, mixed>, answers: array<string, mixed>, record: array<string, mixed>, label: string}  $form
+     * @return \Generator<array<string, mixed>>
+     */
+    private function emitFormMessage(AiConversation $conversation, array $form, bool $changeFilledIn, ?string $stateId): \Generator
+    {
         // Some labels already start "Your" ("Your spouse's details").
         $label = preg_replace('/^your\s+/i', '', (string) $form['label']);
-        $prompt = "Here's your {$label} — change what needs changing and save.";
+        $prompt = $changeFilledIn
+            ? "Here's your {$label} with your change filled in — check it and save."
+            : "Here's your {$label} — change what needs changing and save.";
         $metadata = array_filter([
             'onboarding_step' => $stateId,
             'turn_intent' => FynTurnIntent::VerifyPrompt->value,
@@ -7499,6 +7515,31 @@ PROMPT;
             'record' => $form['record'],
         ];
         yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
+    /**
+     * A change typed in an "Edit details" conversation opens the record's form
+     * with the change filled in; nothing is saved until the user presses Save
+     * (CSJ 2026-10-05, option A; 2026-10-01, all capture through forms). False,
+     * with nothing written, when the message changes nothing on the form (a
+     * question) or the client draws no forms: the turn is answered as before.
+     *
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    public function offerTypedChangeForm(User $user, AiConversation $conversation, string $message, string $type, int $id, bool $persistUserMessage): \Generator
+    {
+        if (! $this->formsSupported()) {
+            return false;
+        }
+        $form = app(RecordEditForms::class)->formFor($user, $type, $id);
+        $filled = $form !== null ? app(TypedFormFill::class)->fill($form, $message) : null;
+        if ($filled === null) {
+            return false;
+        }
+        if ($persistUserMessage) {
+            $this->saveMessage($conversation, 'user', $message);
+        }
+        yield from $this->emitFormMessage($conversation, $filled, true, null);
 
         return true;
     }
@@ -8216,7 +8257,7 @@ PROMPT;
         // says so and offers to add it.
         $editSection = RecordEditForms::sectionForEntityType((string) ($context->entityTypes[0] ?? ''));
         if ($editSection !== null && ! $context->isContinuation && self::isEditRequest($message)) {
-            $handled = yield from $this->emitEditChooser($user, $conversation, $editSection, null);
+            $handled = yield from $this->emitEditChooser($user, $conversation, $editSection, null, $message);
             if (! $handled) {
                 $line = "You don't have any ".RecordEditForms::sectionLabel($editSection).' saved yet — tell me about it and I\'ll add it.';
                 yield ['type' => 'content', 'text' => $line];

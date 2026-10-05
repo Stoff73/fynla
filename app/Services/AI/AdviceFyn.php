@@ -15,6 +15,7 @@ use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\RecommendationCompletionService;
 use App\Services\Onboarding\OnboardingChatDirector;
+use App\Services\Onboarding\RecordEditForms;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -349,6 +350,13 @@ final class AdviceFyn
         ?string $currentRoute = null,
         bool $persistUserMessage = true,
     ): \Generator {
+        // A change typed in an "Edit details" conversation fills in the
+        // record's form; nothing is saved until the user presses Save (CSJ
+        // 2026-10-05, option A). A question there is answered as before.
+        if (yield from $this->offerTypedChangeForm($user, $conversation, $message, $persistUserMessage)) {
+            return;
+        }
+
         // Deferred-question resolution (CSJ raise shape, 2026-07-23). The
         // completion raise's Yes/No bubbles land HERE as plain text on the
         // now-completed user; unhandled, a bare "Yes" reached the planner
@@ -612,6 +620,37 @@ final class AdviceFyn
             $this->buildToolList($user),
             $persistUserMessage,
             classification: $classification,
+        );
+    }
+
+    /**
+     * The record's form, with a typed change filled in, when this conversation
+     * was opened on that record's form ("Edit details").
+     *
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function offerTypedChangeForm(User $user, AiConversation $conversation, string $message, bool $persistUserMessage): \Generator
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if (($metadata['source'] ?? null) !== 'surface_action' || ($metadata['action'] ?? null) !== 'edit') {
+            return false;
+        }
+        $form = app(RecordEditForms::class)->formForResource(
+            $user,
+            (string) ($metadata['resource_type'] ?? ''),
+            (array) ($metadata['current_destination']['params'] ?? []),
+        );
+        if ($form === null) {
+            return false;
+        }
+
+        return yield from $this->onboardingChatDirector->offerTypedChangeForm(
+            $user,
+            $conversation,
+            $message,
+            (string) $form['record']['type'],
+            (int) $form['record']['id'],
+            $persistUserMessage,
         );
     }
 
