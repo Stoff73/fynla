@@ -88,7 +88,7 @@ class TaxConfigurationFactory extends Factory
                         'upper_limit' => 50270,
                         'min' => 0,
                         'max' => 37700,
-                        'rate' => 20,
+                        'rate' => 0.20,
                     ],
                     [
                         'name' => 'Higher Rate',
@@ -96,7 +96,7 @@ class TaxConfigurationFactory extends Factory
                         'upper_limit' => 125140,
                         'min' => 37700,
                         'max' => 125140,
-                        'rate' => 40,
+                        'rate' => 0.40,
                     ],
                     [
                         'name' => 'Additional Rate',
@@ -104,7 +104,7 @@ class TaxConfigurationFactory extends Factory
                         'upper_limit' => null,
                         'min' => 125140,
                         'max' => null,
-                        'rate' => 45,
+                        'rate' => 0.45,
                     ],
                 ],
                 'scotland' => [
@@ -140,13 +140,13 @@ class TaxConfigurationFactory extends Factory
             'capital_gains_tax' => [
                 // Individual rates
                 'annual_exempt_amount' => 3000,
-                'basic_rate' => 18,
-                'higher_rate' => 24,
-                'residential_property_basic_rate' => 18,
-                'residential_property_higher_rate' => 24,
+                'basic_rate' => 0.18,
+                'higher_rate' => 0.24,
+                'residential_property_basic_rate' => 0.18,
+                'residential_property_higher_rate' => 0.24,
 
                 // Trust rates
-                'trust_rate' => 24,
+                'trust_rate' => 0.24,
                 'trust_annual_exempt_amount' => 1500,
                 'trust_vulnerable_beneficiary_exempt_amount' => 3000,
             ],
@@ -154,16 +154,16 @@ class TaxConfigurationFactory extends Factory
             'dividend_tax' => [
                 // Individual rates
                 'allowance' => 500,
-                'basic_rate' => 8.75,
-                'higher_rate' => 33.75,
-                'additional_rate' => 39.35,
+                'basic_rate' => 0.0875,
+                'higher_rate' => 0.3375,
+                'additional_rate' => 0.3935,
 
                 // Trust rates
-                'trust_dividend_rate' => 39.35,
-                'trust_other_income_rate' => 45,
+                'trust_dividend_rate' => 0.3935,
+                'trust_other_income_rate' => 0.45,
                 'trust_de_minimis_allowance' => 500,
-                'trust_management_expenses_dividend_rate' => 8.75,
-                'trust_management_expenses_other_rate' => 20,
+                'trust_management_expenses_dividend_rate' => 0.0875,
+                'trust_management_expenses_other_rate' => 0.20,
             ],
 
             'isa' => [
