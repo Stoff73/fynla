@@ -443,6 +443,23 @@
             />
           </div>
 
+          <!-- Marriage Allowance made: received comes off the tax above; given
+               away came off the Personal Allowance (ITA 2007 s55B). -->
+          <div
+            v-if="detailedTaxBreakdown.summary.marriage_allowance_reduction > 0"
+            class="mt-4 flex justify-between items-center text-sm"
+          >
+            <span class="text-neutral-500">Marriage Allowance from your partner, off your Income Tax</span>
+            <span class="text-spring-600 font-medium">+{{ formatCurrency(detailedTaxBreakdown.summary.marriage_allowance_reduction) }}</span>
+          </div>
+          <p
+            v-if="detailedTaxBreakdown.summary.marriage_allowance_transferred > 0"
+            class="mt-4 text-body-sm text-neutral-500"
+          >
+            Your Personal Allowance is {{ formatCurrency(detailedTaxBreakdown.summary.personal_allowance) }}: you gave
+            {{ formatCurrency(detailedTaxBreakdown.summary.marriage_allowance_transferred) }} of it to your partner as Marriage Allowance.
+          </p>
+
           <!-- Info Note -->
           <div class="mt-4 p-3 bg-light-blue-100 rounded-lg">
             <p class="text-body-xs text-horizon-600">

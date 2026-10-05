@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
+use App\Models\RecommendationTracking;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Retirement\PensionContributionRule;
@@ -451,6 +452,21 @@ final class TaxStrategyMath
     }
 
     /**
+     * The Marriage Allowance saving still to be made: the position below,
+     * or null once the couple has made the claim (marriageAllowanceClaimFor),
+     * when the Income tab already applies it. Read by everything that offers
+     * it: the plan, Fyn's analysis and the household optimisations.
+     *
+     * @return array{saving: float, direction: 'to_user'|'to_spouse', user_income: float, spouse_income: float, transferor_extra_tax: float}|null
+     */
+    public function marriageAllowance(User $user, string $mode, ?TaxStrategyHouseholdInput $household): ?array
+    {
+        return $this->marriageAllowanceClaimFor($user) === null
+            ? $this->marriageAllowancePosition($user, $mode, $household)
+            : null;
+    }
+
+    /**
      * The Marriage Allowance position for a couple, in either direction, from
      * ITA 2007 Part 3 Chapter 3A
      * (https://www.legislation.gov.uk/ukpga/2007/3/part/3/chapter/3A):
@@ -487,7 +503,7 @@ final class TaxStrategyMath
      *
      * @return array{saving: float, direction: 'to_user'|'to_spouse', user_income: float, spouse_income: float, transferor_extra_tax: float}|null
      */
-    public function marriageAllowance(User $user, string $mode, ?TaxStrategyHouseholdInput $household): ?array
+    public function marriageAllowancePosition(User $user, string $mode, ?TaxStrategyHouseholdInput $household): ?array
     {
         if (! $this->isMarriedOrCivilPartner($user)) {
             return null;
@@ -568,6 +584,48 @@ final class TaxStrategyMath
         return ($parts['non_savings'] + $parts['interest'] + $parts['dividends'] + $parts['trust']) > 0 ? $linked : null;
     }
 
+    /** The Claim Marriage Allowance action's id ('tax_' + strategy type). */
+    public const MARRIAGE_ALLOWANCE_ACTION_ID = 'tax_marriage_allowance_transfer';
+
+    /**
+     * A Marriage Allowance the couple has made: the Claim Marriage Allowance
+     * action marked done by either partner, read the way round marriageAllowance
+     * finds it. For this user, `transferred` is the allowance they gave away
+     * (their Personal Allowance falls by it, ITA 2007 s55B(6)) and
+     * `reduction` the tax reduction they receive, the basic rate × the
+     * transferable amount (s55B(1),(3)), taken off their tax at Step 6 (s23)
+     * so never beyond it. Null when nothing is claimed or the couple no longer
+     * qualifies (s55B(2), s55C(1)).
+     *
+     * @return array{transferred: float, reduction: float}|null
+     */
+    public function marriageAllowanceClaimFor(User $user): ?array
+    {
+        $partnerIds = array_filter([$user->id, $user->liveSpouse()?->id]);
+        $claimed = RecommendationTracking::whereIn('user_id', $partnerIds)
+            ->where('recommendation_id', self::MARRIAGE_ALLOWANCE_ACTION_ID)
+            ->completed()
+            ->exists();
+        if (! $claimed) {
+            return null;
+        }
+
+        $position = $this->marriageAllowancePosition(
+            $user,
+            (string) ($user->household_calculation_mode ?? 'single'),
+            $user->taxStrategyHouseholdInput,
+        );
+        if ($position === null) {
+            return null;
+        }
+
+        $amount = $this->marriageAllowanceAmount();
+
+        return $position['direction'] === 'to_user'
+            ? ['transferred' => 0.0, 'reduction' => round($amount * $this->bandRateForBand('basic'), 2)]
+            : ['transferred' => $amount, 'reduction' => 0.0];
+    }
+
     /**
      * The transferable amount when the user RECEIVES a Marriage Allowance that
      * saves tax, else 0. The spouse's Personal Allowance is then reduced by it
@@ -575,7 +633,7 @@ final class TaxStrategyMath
      */
     public function marriageAllowanceTransfer(User $user, string $mode, ?TaxStrategyHouseholdInput $household): float
     {
-        return ($this->marriageAllowance($user, $mode, $household)['direction'] ?? null) === 'to_user'
+        return ($this->marriageAllowancePosition($user, $mode, $household)['direction'] ?? null) === 'to_user'
             ? $this->marriageAllowanceAmount()
             : 0.0;
     }

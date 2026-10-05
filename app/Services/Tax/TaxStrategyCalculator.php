@@ -340,11 +340,12 @@ final class TaxStrategyCalculator
         // at all — surface "not available" rather than the misleading
         // "fully used" / "headroom" framings.
         $marriageAllowanceAvailable = $this->marriageAllowanceAvailableFor($user, $mode, $household);
-        // Eligibility is not a completed claim. Only an explicit in-memory
-        // claimed override consumes the allowance in this grid.
+        // Eligibility is not a completed claim. A claim the couple has made
+        // (the action marked done, as the Income tab reads it) or an explicit
+        // in-memory claimed override consumes the allowance in this grid.
         $marriageAllowanceUsed = $overrides?->marriageAllowanceClaimed === true
             ? $marriageAllowanceAmount
-            : 0.0;
+            : $this->marriageAllowanceClaimedAmount($user);
 
         $isaAmount = $this->configAmount($isa, 'annual_allowance', 'isa.annual_allowance');
         $isaUsedThisYear = $this->math->estimateIsaSubscriptionsThisYear($user)
@@ -439,7 +440,7 @@ final class TaxStrategyCalculator
      */
     private function marriageAllowanceAvailableFor(User $user, string $mode, ?TaxStrategyHouseholdInput $household): bool
     {
-        return $this->math->marriageAllowance($user, $mode, $household) !== null;
+        return $this->math->marriageAllowancePosition($user, $mode, $household) !== null;
     }
 
     /**
@@ -460,7 +461,7 @@ final class TaxStrategyCalculator
             'marriage_allowance',
             'Marriage Allowance',
             $this->math->marriageAllowanceAmount(),
-            0.0,
+            $this->marriageAllowanceClaimedAmount($spouse),
             'spouse',
             $marriageAllowanceAvailable,
         );
@@ -514,12 +515,18 @@ final class TaxStrategyCalculator
             $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, min($spouseTotalIncome + $spouseJointInterest, $personalAllowance), 'spouse', $personalAllowance > 0),
             $this->position('savings_allowance', 'Savings Allowance', $psa, $spousePsaUsed, 'spouse', true, $spouseSavingsKnown),
             $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAvailable, $spouseStartingRateUsed, 'spouse', $startingRateAvailable > 0, $spouseSavingsKnown),
-            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse', $marriageAllowanceAvailable),
+            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, $this->marriageAllowanceClaimedAmount($user), 'spouse', $marriageAllowanceAvailable),
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, 0.0, 'spouse', true, $spouseIsaUseKnown),
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, 0.0, 'spouse', true, false),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, min($divAmount, $divUsed), 'spouse', true, $dividendUseKnown),
             $this->spousePensionPosition($household, $aaAmount, (float) $pension['relevant_earnings_minimum']),
         ];
+    }
+
+    /** The transferable amount once the couple has claimed it (TaxStrategyMath::marriageAllowanceClaimFor), else 0. */
+    private function marriageAllowanceClaimedAmount(User $partner): float
+    {
+        return $this->math->marriageAllowanceClaimFor($partner) !== null ? $this->math->marriageAllowanceAmount() : 0.0;
     }
 
     /**
@@ -610,7 +617,7 @@ final class TaxStrategyCalculator
             $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAmount, $spouseStartingRateUsed, 'spouse', true, $savingsUseKnown),
             // Marriage Allowance on the spouse's grid = their PA slice available
             // to transfer TO the working spouse — gated on the recipient's band.
-            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse', $marriageAllowanceAvailable),
+            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, $this->marriageAllowanceClaimedAmount($user), 'spouse', $marriageAllowanceAvailable),
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, 0.0, 'spouse', true, $spouseIsaUseKnown),
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, 0.0, 'spouse', true, $noInvestmentsKnown),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, 0.0, 'spouse', true, $noInvestmentsKnown),

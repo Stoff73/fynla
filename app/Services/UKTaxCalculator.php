@@ -45,6 +45,10 @@ class UKTaxCalculator
      *                                they reduce adjusted net income (ITA 2007 s58) and
      *                                extend the basic and higher rate limits (s414,
      *                                FA 2004 s192(4)) rather than coming off income
+     * @param  float  $marriageAllowanceTransferred  Marriage Allowance this person has given
+     *                                               away: off their Personal Allowance (ITA 2007 s55B(6))
+     * @param  float  $marriageAllowanceReduction  Marriage Allowance this person receives: a tax
+     *                                             reduction at Step 6, never below nil (s23, s55B(3))
      * @return array Detailed breakdown per income type with tax bands and NI
      */
     public function calculateDetailedNetIncome(
@@ -64,7 +68,9 @@ class UKTaxCalculator
         float $class1Share = 1.0,
         bool $class4Applies = true,
         float $bandExtension = 0,
-        float $salarySacrifice = 0
+        float $salarySacrifice = 0,
+        float $marriageAllowanceTransferred = 0,
+        float $marriageAllowanceReduction = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
         $salarySacrifice = min(max(0.0, $salarySacrifice), $employmentIncome);
@@ -83,6 +89,9 @@ class UKTaxCalculator
         // the FULL allowance, so overwriting it destroyed the only record of it
         // and left the 20% band at £50,270 wide (W-0174).
         $personalAllowance = IncomeTaxBands::taperedPersonalAllowance($incomeTaxConfig, $taxableIncomePreRelief);
+        // A Marriage Allowance given away comes off the allowance (ITA 2007
+        // s55B(6)).
+        $personalAllowance = max(0.0, $personalAllowance - max(0.0, $marriageAllowanceTransferred));
 
         // W-0511 — the Blind Person's Allowance is added AFTER the taper and never
         // before it. ITA 2007 s38 gives it and s23 Step 3 deducts it; s58 does not
@@ -297,6 +306,11 @@ class UKTaxCalculator
         $appliedSection24Credit = min($section24Credit, $totalTax);
         $totalTaxAfterCredit = $totalTax - $appliedSection24Credit;
 
+        // A Marriage Allowance received is a tax reduction at Step 6 (ITA 2007
+        // s23, s55B): it comes off the tax and never below nil.
+        $appliedMarriageAllowance = min(max(0.0, $marriageAllowanceReduction), $totalTaxAfterCredit);
+        $totalTaxAfterCredit -= $appliedMarriageAllowance;
+
         $totalDeductions = $totalTaxAfterCredit + $totalNI;
         $netIncome = $totalGross - $totalDeductions;
 
@@ -310,6 +324,8 @@ class UKTaxCalculator
                 'total_gross_income' => round($totalGross, 2),
                 'total_income_tax_before_credits' => round($totalTax, 2),
                 'section_24_credit' => round($appliedSection24Credit, 2),
+                'marriage_allowance_reduction' => round($appliedMarriageAllowance, 2),
+                'marriage_allowance_transferred' => round(max(0.0, $marriageAllowanceTransferred), 2),
                 'total_income_tax' => round($totalTaxAfterCredit, 2),
                 'total_national_insurance' => round($totalNI, 2),
                 'total_deductions' => round($totalDeductions, 2),

@@ -30,6 +30,7 @@ use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\LongTermResidence;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Support\SharedExpenditure;
@@ -581,13 +582,18 @@ class UserProfileService
             ];
         }
         $allowances = $definition['adjusted_allowances'];
+        // The allowance the Income tab taxes with: less any Marriage Allowance
+        // given away (ITA 2007 s55B(6), UKTaxCalculator).
+        $marriageAllowanceGiven = (float) (app(TaxStrategyMath::class)->marriageAllowanceClaimFor($person)['transferred'] ?? 0.0);
         $sources['tax_position'] = [
             'total_income' => (float) $definition['total_income'],
             'adjusted_net_income' => (float) $definition['adjusted_net_income'],
-            'personal_allowance' => (float) $allowances['personal_allowance'],
-            'personal_allowance_label' => $allowances['personal_allowance_tapered']
-                ? 'Tapered personal allowance'
-                : 'Standard personal allowance',
+            'personal_allowance' => max(0.0, (float) $allowances['personal_allowance'] - $marriageAllowanceGiven),
+            'personal_allowance_label' => match (true) {
+                $marriageAllowanceGiven > 0 => 'Personal allowance after Marriage Allowance',
+                $allowances['personal_allowance_tapered'] => 'Tapered personal allowance',
+                default => 'Standard personal allowance',
+            },
             'pension_annual_allowance' => (float) $allowances['pension_annual_allowance'],
             'pension_annual_allowance_label' => $allowances['pension_aa_tapered']
                 ? 'Tapered pension annual allowance'
@@ -774,6 +780,7 @@ class UserProfileService
 
         $totalAnnualIncome = (float) $definitions['total_income'];
         [$class1Share, $class4Applies, $class1Note] = $this->nationalInsuranceApplies($user);
+        $marriageAllowance = app(TaxStrategyMath::class)->marriageAllowanceClaimFor($user);
 
         $detailedTax = $this->taxCalculator->calculateDetailedNetIncome(
             employmentIncome: (float) $parts['employment'],
@@ -799,6 +806,9 @@ class UserProfileService
             bandExtension: (float) $definitions['deductions']['gift_aid_gross']
                 + (float) $definitions['deductions']['relief_at_source_gross'],
             salarySacrifice: $salarySacrificed,
+            // A Marriage Allowance the couple has made (the action marked done).
+            marriageAllowanceTransferred: $marriageAllowance['transferred'] ?? 0.0,
+            marriageAllowanceReduction: $marriageAllowance['reduction'] ?? 0.0,
         );
         $taxSummary = $detailedTax['summary'];
         foreach ($detailedTax['income_breakdowns'] as $i => $card) {
