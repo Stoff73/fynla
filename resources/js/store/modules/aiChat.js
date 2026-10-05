@@ -1359,8 +1359,10 @@ const actions = {
             return;
         }
 
-        const validActions = ['resume', 'continue', 'restart', 'skip', 'something_else'];
-        if (!validActions.includes(action)) {
+        // The server's own pattern (AiChatController::action): the director's
+        // actions, and a record or section chosen to change ("Which one needs
+        // changing?"), which this list once left out, so the tap did nothing.
+        if (!/^(?:resume|continue|restart|skip|something_else|edit:[a-z_]+:\d+|edit_section:[a-z_]+)$/.test(action)) {
             logger.warn('[chat] invalid action', action);
             return;
         }
