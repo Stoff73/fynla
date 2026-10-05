@@ -16,9 +16,34 @@ namespace App\Services\AI\Fyn;
  * holds streamed text back to the end of each sentence or line and drops any
  * sentence that grades certainty or confidence, or gives a score out of 10 or
  * 100. Figures and what they rest on pass through untouched.
+ *
+ * It also keeps Fyn from saying it saved something it did not (TODO item 7a,
+ * walking release #1071: "I have updated your date of birth" with no write;
+ * the prompt's "never fabricate a confirmation" did not stop it). In the
+ * read-only advice state, where nothing can be saved, a sentence claiming a
+ * save is dropped, the first replaced by NOT_SAVED.
  */
 final class CertaintyFilter
 {
+    /** What Fyn says in place of a save it did not make. */
+    public const NOT_SAVED = 'That has not been saved yet.';
+
+    /** A sentence matching any of these says something was saved. */
+    private const WRITE_CLAIM_PATTERNS = [
+        // "I have updated", "I've saved", "we've recorded", "I have now added"
+        '/\b(I|we)\s*(\x{2019}|\')?\s*(ve|have)\s+(now\s+|just\s+|also\s+|successfully\s+)?(updated|saved|recorded|added|changed|amended|noted|stored|entered|logged|deleted|removed)\b/iu',
+        // "I updated your date of birth"
+        '/\b(I|we)\s+(updated|saved|recorded|added|changed|amended|stored|entered|logged|deleted|removed)\s+(your|the|it|that|this|them)\b/iu',
+        // Fyn's own acknowledgement line: "Recorded — …", "Updated: …"
+        '/^\s*\**(Recorded|Updated|Saved|Added|Deleted|Removed)\**\s*[\x{2014}\x{2013}:-]/iu',
+        // "Your date of birth has been updated"
+        '/\b(has|have)\s+been\s+(updated|saved|changed|amended|deleted|removed)\b/iu',
+    ];
+
+    private bool $claimReplaced = false;
+
+    public function __construct(private readonly bool $writeClaimsAreFalse = false) {}
+
     /** A sentence matching any of these states certainty and is dropped. */
     private const PATTERNS = [
         // "Certainty: high", "**Confidence level** — very high", "certainty rating"
@@ -50,7 +75,7 @@ final class CertaintyFilter
         $ready = substr($this->buffer, 0, $cut);
         $this->buffer = substr($this->buffer, $cut);
 
-        return self::clean($ready);
+        return $this->filter($ready);
     }
 
     /** Whatever is still held, at the end of a stream. */
@@ -59,7 +84,44 @@ final class CertaintyFilter
         $rest = $this->buffer;
         $this->buffer = '';
 
-        return self::clean($rest);
+        return $this->filter($rest);
+    }
+
+    private function filter(string $text): string
+    {
+        $text = self::clean($text);
+        if (! $this->writeClaimsAreFalse) {
+            return $text;
+        }
+
+        $out = '';
+        foreach (self::segments($text) as $segment) {
+            if (! self::claimsWrite($segment)) {
+                $out .= $segment;
+
+                continue;
+            }
+            if (! $this->claimReplaced) {
+                $this->claimReplaced = true;
+                $out .= self::NOT_SAVED.(preg_match('/(\s+)$/u', $segment, $m) === 1 ? $m[1] : '');
+
+                continue;
+            }
+            $out .= str_repeat("\n", min(2, substr_count($segment, "\n")));
+        }
+
+        return $out;
+    }
+
+    public static function claimsWrite(string $sentence): bool
+    {
+        foreach (self::WRITE_CLAIM_PATTERNS as $pattern) {
+            if (preg_match($pattern, $sentence) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** A whole text with every certainty sentence removed. */
