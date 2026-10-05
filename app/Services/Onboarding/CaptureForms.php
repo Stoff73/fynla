@@ -1292,9 +1292,20 @@ final class CaptureForms
         if (! $detailedAllowed) {
             return self::expenditure();
         }
-        $askHousehold = $user->liveSpouse() !== null && $user->expenditure_sharing_mode_declared_at === null;
 
-        return $askHousehold ? self::expenditureDetailed(true) : self::expenditureDetailed(false);
+        return self::expenditureDetailed(self::expenditureDetailedNameFor($user) === self::EXPENDITURE_DETAILED_HOUSEHOLD);
+    }
+
+    /**
+     * The category form for this user: with the household question while a
+     * spouse is on file and the household has not said how it shares spending
+     * (set_expenditure asks it otherwise).
+     */
+    public static function expenditureDetailedNameFor(User $user): string
+    {
+        return $user->liveSpouse() !== null && $user->expenditure_sharing_mode_declared_at === null
+            ? self::EXPENDITURE_DETAILED_HOUSEHOLD
+            : self::EXPENDITURE_DETAILED;
     }
 
     /**

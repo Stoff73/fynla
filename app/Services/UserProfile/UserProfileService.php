@@ -20,6 +20,7 @@ use App\Services\Benefits\ChildBenefitService;
 use App\Services\Estate\WillAnalysisService;
 use App\Services\Gamification\PointsService;
 use App\Services\Income\EmploymentIncomeService;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Property\PropertyService;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Retirement\StatePensionAgeResolver;
@@ -31,6 +32,7 @@ use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\LongTermResidence;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
+use App\Support\SharedExpenditure;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
@@ -291,6 +293,79 @@ class UserProfileService
         return $breakdown['annual'];
     }
 
+    /** The monthly spending categories, as the web Expenditure form and Fyn's category form enter them. */
+    public const CATEGORY_FIELDS = [
+        'rent', 'utilities', 'food_groceries', 'transport_fuel', 'healthcare_medical', 'insurance',
+        'mobile_phones', 'internet_tv', 'subscriptions',
+        'clothing_personal_care', 'entertainment_dining', 'holidays_travel', 'pets',
+        'childcare', 'school_fees', 'school_lunches', 'school_extras', 'university_fees', 'children_activities',
+        'gifts_charity', 'charitable_donations', 'regular_savings', 'other_expenditure',
+    ];
+
+    /**
+     * What the categories add up to each month: the one sum, read by the
+     * breakdown below and written by Fyn's category form, so the figure saved
+     * is the figure every surface shows (TODO item 7a).
+     *
+     * Every category counts, charitable donations included. Rent and
+     * utilities count only without a main residence: a homeowner enters
+     * housing costs against the property, and the web form hides both
+     * (ExpenditureForm.vue essentialFields; W-0413).
+     *
+     * @param  array<string, mixed>  $amounts  category => monthly amount
+     */
+    public function categorySpendingTotal(User $user, array $amounts): float
+    {
+        $total = 0.0;
+        foreach ($this->countedCategoryFields($user) as $field) {
+            $total += is_numeric($amounts[$field] ?? null) ? max(0.0, (float) $amounts[$field]) : 0.0;
+        }
+
+        return $total;
+    }
+
+    /**
+     * The spending rows a screen lists as sent (/m Expenditure), each with
+     * what is recorded.
+     *
+     * @return list<array{key: string, label: string, amount: float}>
+     */
+    public function categorySpendingRows(User $user): array
+    {
+        // The labels the category form shows (CaptureForms::expenditureDetailed).
+        $labels = array_map(
+            static fn (array $field): string => $field['label'],
+            CaptureForms::schema(CaptureForms::EXPENDITURE_DETAILED)['fields']
+        ) + ['regular_savings' => 'Regular savings'];
+
+        // A monthly total lists only what its form asks inside it ("of that,
+        // childcare", "of that, charitable donations"); a breakdown lists every
+        // category that adds up to its total.
+        $fields = $user->expenditure_entry_mode === 'category'
+            ? $this->countedCategoryFields($user)
+            : SharedExpenditure::FREE_CATEGORIES;
+
+        $rows = [];
+        foreach ($fields as $field) {
+            $amount = is_numeric($user->{$field}) ? (float) $user->{$field} : 0.0;
+            if ($amount > 0) {
+                $rows[] = ['key' => $field, 'label' => $labels[$field], 'amount' => round($amount, 2)];
+            }
+        }
+
+        return $rows;
+    }
+
+    /** @return list<string> */
+    private function countedCategoryFields(User $user): array
+    {
+        if ($this->propertyStore->forUserByType($user, 'main_residence')->isEmpty()) {
+            return self::CATEGORY_FIELDS;
+        }
+
+        return array_values(array_diff(self::CATEGORY_FIELDS, ['rent', 'utilities']));
+    }
+
     /**
      * Get expenditure breakdown including financial commitments.
      * Uses categories sum when entry_mode is 'category', otherwise uses monthly_expenditure.
@@ -303,27 +378,7 @@ class UserProfileService
     {
         // Calculate manual expenditure based on entry mode
         if ($user->expenditure_entry_mode === 'category') {
-            // Sum all category fields (same as Expenditure tab's totalMonthlyExpenditure)
-            $monthlyManual = (float) ($user->food_groceries ?? 0)
-                + (float) ($user->transport_fuel ?? 0)
-                + (float) ($user->healthcare_medical ?? 0)
-                + (float) ($user->insurance ?? 0)
-                + (float) ($user->mobile_phones ?? 0)
-                + (float) ($user->internet_tv ?? 0)
-                + (float) ($user->subscriptions ?? 0)
-                + (float) ($user->clothing_personal_care ?? 0)
-                + (float) ($user->entertainment_dining ?? 0)
-                + (float) ($user->holidays_travel ?? 0)
-                + (float) ($user->pets ?? 0)
-                + (float) ($user->childcare ?? 0)
-                + (float) ($user->school_fees ?? 0)
-                + (float) ($user->school_lunches ?? 0)
-                + (float) ($user->school_extras ?? 0)
-                + (float) ($user->university_fees ?? 0)
-                + (float) ($user->children_activities ?? 0)
-                + (float) ($user->gifts_charity ?? 0)
-                + (float) ($user->regular_savings ?? 0)
-                + (float) ($user->other_expenditure ?? 0);
+            $monthlyManual = $this->categorySpendingTotal($user, $user->only(self::CATEGORY_FIELDS));
         } else {
             // Simple mode - use the monthly_expenditure field
             $monthlyManual = (float) ($user->monthly_expenditure ?? 0);
@@ -662,6 +717,7 @@ class UserProfileService
             'manual_annual_total' => round($breakdown['monthly_manual'] * 12, 2),
             'commitments_annual_total' => round($breakdown['monthly_commitments'] * 12, 2),
             'has_recorded_expenditure' => $hasRecordedExpenditure,
+            'category_rows' => $this->categorySpendingRows($user),
             'total_basis' => match (true) {
                 ! $hasRecordedExpenditure => 'Financial commitments only — no expenditure recorded',
                 $isCategory => 'Category entries plus financial commitments',

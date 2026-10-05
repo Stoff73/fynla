@@ -49,16 +49,6 @@ import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../fyn/contextualConversation.js';
 
-const CATEGORIES = [
-  { key: 'food_groceries', label: 'Food & groceries' },
-  { key: 'transport_fuel', label: 'Transport & fuel' },
-  { key: 'clothing_personal_care', label: 'Clothing & personal care' },
-  { key: 'entertainment_dining', label: 'Entertainment & dining' },
-  { key: 'childcare', label: 'Childcare' },
-  { key: 'charitable_donations', label: 'Charitable donations' },
-  { key: 'other_expenditure', label: 'Other' },
-];
-
 export default {
   name: 'MobileExpenditure',
   components: { MobileChrome },
@@ -75,10 +65,9 @@ export default {
         origin: { kind: 'surface_action' },
       });
     },
-    categoryRows() {
-      const cats = this.expenditure?.categories || {};
-      return CATEGORIES.map(c => ({ ...c, amount: Number(cats[c.key]) || 0 })).filter(r => r.amount > 0);
-    },
+    // The server's rows, as sent: the categories that make up the total
+    // (UserProfileService::categorySpendingRows), so list and total agree.
+    categoryRows() { return this.presentation.category_rows || []; },
   },
   async created() {
     await this.load();

@@ -107,6 +107,7 @@ use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Services\UserProfile\UserProfileService;
 use App\Services\WhatIf\WhatIfScenarioService;
 use App\Support\HoldingValuation;
 use App\Support\SharedExpenditure;
@@ -2178,9 +2179,9 @@ class CoordinatingAgent extends BaseAgent
 
     /**
      * capture_monthly_expenditure — the single monthly total (simple entry):
-     * users.monthly_expenditure, the entry mode, and the profile mirror, in
-     * one transaction. The typed onboarding step and the one-box form both
-     * write through here (one write path, CSJ 2026-09-16).
+     * users.monthly_expenditure, the entry mode, and the profile mirror, through
+     * HouseholdExpenditureWriter. The typed onboarding step and the one-box form
+     * both write through here (one write path, CSJ 2026-09-16).
      */
     public function handleCaptureMonthlyExpenditure(array $input, User $user): array
     {
@@ -2212,24 +2213,27 @@ class CoordinatingAgent extends BaseAgent
             $extras['is_gift_aid'] = filter_var($input['is_gift_aid'], FILTER_VALIDATE_BOOLEAN);
         }
 
-        DB::transaction(function () use ($user, $monthlyTotal, $extras): void {
-            if ($monthlyTotal !== null) {
-                $user->monthly_expenditure = $monthlyTotal;
-                $user->expenditure_entry_mode = 'simple';
-            }
-            foreach ($extras as $field => $value) {
-                $user->{$field} = $value;
-            }
+        // Gift Aid is a fact about the donor, written on this account only.
+        if (array_key_exists('is_gift_aid', $extras)) {
+            $user->is_gift_aid = $extras['is_gift_aid'];
             $user->save();
-            if ($monthlyTotal === null) {
-                return;
-            }
-            if ($monthlyTotal > 0) {
-                ExpenditureProfile::updateOrCreate(['user_id' => $user->id], ['total_monthly_expenditure' => $monthlyTotal]);
-            } else {
-                ExpenditureProfile::where('user_id', $user->id)->update(['total_monthly_expenditure' => 0]);
-            }
-        });
+            unset($extras['is_gift_aid']);
+        }
+
+        // The form asks what the HOUSEHOLD spends. The web Expenditure form's
+        // writer stores it, so a linked couple's figure is halved onto both
+        // rows whichever surface entered it (Rule 20).
+        $household = $extras;
+        if ($monthlyTotal !== null) {
+            $household += [
+                'monthly_expenditure' => $monthlyTotal,
+                'annual_expenditure' => $monthlyTotal * 12,
+                'expenditure_entry_mode' => 'simple',
+            ];
+        }
+        if ($household !== []) {
+            $this->expenditureWriter->write($user, $household);
+        }
 
         return [
             'onboarding_capture' => true,
@@ -5578,10 +5582,6 @@ class CoordinatingAgent extends BaseAgent
         // A Fyn turn may update only one category. Recalculate from that edit
         // plus every stored category so omitted values are preserved, while an
         // explicit zero clears the named category.
-        $total = array_sum($resolvedAmounts);
-        $updateData['monthly_expenditure'] = $total;
-        $updateData['annual_expenditure'] = $total * 12;
-        $updateData['expenditure_entry_mode'] = 'category';
 
         // W-0202 criterion 2 — ROUTED THROUGH the one writer, now that criterion 1
         // is closed above.
@@ -5608,33 +5608,23 @@ class CoordinatingAgent extends BaseAgent
         // `$householdData` without making both sides resolve it the same way, or the
         // reconstitution below doubles on one mode while the writer divides on
         // another. See the matching note in the writer.
-        $isShared = SharedExpenditure::isShared($user->expenditure_sharing_mode)
-            && $user->liveSpouse() !== null;
+        $isShared = $this->expenditureWriter->dividesFor($user);
 
         $householdData = $updateData;
 
-        if ($isShared) {
-            $householdTotal = 0.0;
-            foreach ($resolvedAmounts as $field => $amount) {
-                $householdTotal += in_array($field, SharedExpenditure::SHARED_FIELDS, true)
-                    ? $amount / SharedExpenditure::JOINT_SHARE
-                    : $amount;
-            }
-
-            // The categories the caller named are already household figures — the
-            // user said what the household spends. Only the untouched ones, read
-            // back from storage as halves, needed restoring.
-            foreach ($updateData as $field => $value) {
-                if (array_key_exists($field, $resolvedAmounts)) {
-                    $householdTotal -= in_array($field, SharedExpenditure::SHARED_FIELDS, true)
-                        ? $resolvedAmounts[$field] / SharedExpenditure::JOINT_SHARE
-                        : $resolvedAmounts[$field];
-                    $householdTotal += $value;
-                }
-            }
-
-            $total = $householdTotal;
+        // The categories the caller named are already household figures: the
+        // user said what the household spends. The untouched ones, read back
+        // from storage as halves, are doubled back to household terms.
+        $householdAmounts = [];
+        foreach ($resolvedAmounts as $field => $amount) {
+            $householdAmounts[$field] = ! array_key_exists($field, $updateData) && $isShared && in_array($field, SharedExpenditure::SHARED_FIELDS, true)
+                ? $amount / SharedExpenditure::JOINT_SHARE
+                : $amount;
         }
+
+        // The one category sum (UserProfileService::categorySpendingTotal), so the
+        // figure saved is the figure every surface reads back.
+        $total = app(UserProfileService::class)->categorySpendingTotal($user, $householdAmounts);
 
         $householdData['monthly_expenditure'] = $total;
         $householdData['annual_expenditure'] = $total * 12;
