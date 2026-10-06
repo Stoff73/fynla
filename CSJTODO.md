@@ -78,7 +78,7 @@ Released 2026-09-29 and walked live on fynla.org: #966 (#960 Ask Fyn grounding +
 - [ ] **Old wizard invents a mortgage** (`OnboardingService.php:598-613`: "Mortgage Provider", 3.5%, 5 years in, 20 left) for any property balance; only reachable by typing `/onboarding/full`.
 - [ ] **Web setup never asks whether the partner is retired:** the inviter's "Now your spouse" form has no status field, so the link cannot split the income; #1016 restates it once the partner answers. Status is only known up front from the Save Tax funnel's 60%-band question.
 - [ ] **Open, not fixed:** the Apple bridge (`services/apple_store_bridge` + `.venv`) is not installed on fynla.org (`route:list` fails `invalid_configuration`); prod `vendor/` carries dev packages.
-- [ ] **Retirement how-to batch (26) — NEXT**, then investment (17), estate (12). One module at a time: draft, CSJ approves, walk, release. Follow `database/seeders/data/action-how-to/protection.md` + `savings.md` headers (user's own money, never "Fynla", sourced, household branches). First check the module's cards really come from its definitions and carry `definition_key` + `figures` (protection did not — #972); add to `ActionHowToSeeder::SOURCES`.
+- [ ] **Module how-to batches:** retirement and investment are done and live (items 7 and 8, `todoCurrent/TODO.md`); estate (12) next as item 9. Two investment bond how-tos are draft, waiting on CSJ.
 - [ ] **Protection still has two engines:** `RecommendationEngine` still feeds `ProtectionAgent::analyze()['recommendations']` (the plan page's own recommendations section and the composed-flag-off rollback path); the cards no longer use it.
 - [ ] **Savings market rates fall back to an invented 4.00%** (`RateComparator::getMarketBenchmarks`, `getBenchmarkForAccount`) when no stored rate exists; the card can fire from it (Rule 23).
 - [ ] **Tax plan items carry no working, so Fyn invents it (Rule 23).** "Talk me through my tax plan" → "£60,000 − £50,270 = £9,730 taxed at 40%"; the plan's £3,700 is adjusted net income £54,000 − £50,270. The composed item (`pension_tax_relief`) has no figures behind `suggested_contribution`.
@@ -253,7 +253,7 @@ Three small decisions, all optional:
 
 ## Deploy state
 
-- **2026-10-05: prod (fynla.org) = main `fd2f7525b` (#1079).** Five releases the same morning, each run by CSJ via `! bash` (auto mode blocks prod scripts): j #1071 (7a income work #1060/#1063/#1065 plus #1069, #1070; migration `2026_10_04_000001`, `TaxConfigurationSeeder`, corpus, both bundles), k #1073 (web bundle), l #1075 (app + bundles), m #1077 and n #1079 (app). Backups `~/release-backups/2026-10-05-{j,k,l,m,n}-release/` (j holds `tax_configurations` and `state_pensions` dumps). Walked on web and `/m`; walk account 795 purged. csjones on `dev`. Prod `route:list` crashes on the Apple bridge (`invalid_configuration`): harmless until IAP; never a deploy check.
+- **2026-10-06: prod (fynla.org) = main `f8c0c6567` (#1105).** Releases o #1094 (7a), p #1102 (item 8 cards + how-tos), q #1105 (item 8 found lines, bond cards, record edit forms), each run by CSJ via `! bash`; scripts in session 85369bda scratchpad.
 
 ## Tech debt deferred
 
