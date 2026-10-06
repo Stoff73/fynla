@@ -191,6 +191,24 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
 
+## Investment bonds, clearer investment pages, and edits through forms (6 October, about 12:20, release #1105)
+
+**This is live on fynla.org** through release #1105 (#1104), UK time.
+
+- **Investment bonds.** An onshore or offshore bond now shows the gain building up inside it and how much of the 5% a year you can still take without tax at the time ([ITTOIA 2005 s491, s507](https://www.legislation.gov.uk/ukpga/2005/5/section/507)). If what you paid in is not recorded, a card asks for it. Add a bond's "What you paid in", start date and 5% withdrawals on the desktop form or through Fyn (desktop and mobile). The guides for these two cards are waiting for your approval.
+- **"Edit details" on an account, pension, property or policy opens its form**, and a change you type there is filled into that form. Before, Fyn answered in words and saved nothing.
+- **The diversification panel only states gaps your holdings prove**, for example "Alternatives are at least 21% of this account against a 5% target". Funds whose mix is not recorded are no longer counted as missing shares, and three global funds are no longer called "high concentration".
+- **No drift score on screen.** The rebalancing panel shows the largest gap from the target in percentage points.
+- **A joint account's projection shows the value it projects:** "Your share today £47,500", growing to a middle outcome of £73,406, beside the account's full £95,000.
+- **Capital Gains Tax is split between the rates:** the lower rate only within the basic rate band your income leaves unused ([TCGA 1992 s1H](https://www.legislation.gov.uk/ukpga/1992/12/section/1H)), in Bed & ISA and the losses figures. With no gains recorded, nothing suggests selling at a loss.
+- **"Add" forms no longer say "save with none chosen"**, which only applies during setup.
+
+**What we checked.**
+- **On the test site, mobile:** an offshore bond added through the form (£30,000 gain building up, £15,000 of the 5% left), its "Edit details" form filled in, a typed change filled into it, and the save stored.
+- **Live on fynla.org, desktop, as the Mitchell demo:** the joint account's diversification lines, "Outside its rebalancing threshold", "Your share today £47,500" and £73,406, and the charges, position and losses cards with their own short descriptions.
+
+**Behind the scenes.** App code, the investment definitions and how-to seeders, and the desktop web bundle. No database change.
+
 ## Investment actions you can follow, with figures that match the page (6 October, about 11:10, release #1102)
 
 **This is live on fynla.org** through release #1102 (#1098 to #1101), UK time.
