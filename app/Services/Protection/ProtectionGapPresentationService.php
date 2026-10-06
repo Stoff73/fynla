@@ -207,6 +207,13 @@ class ProtectionGapPresentationService
         if ($replacement['term_years'] <= 0) {
             return 'You have reached State Pension age, so no earnings would be lost; this need covers your debts and final expenses.';
         }
+        if ($replacement['income_gap'] <= 0) {
+            return sprintf(
+                'The income that continues, £%s a year, covers your household\'s living costs of £%s a year, so no income replacement is needed; this need covers your debts and final expenses.',
+                number_format($replacement['income_that_continues']),
+                number_format($replacement['household_living_costs']),
+            );
+        }
 
         return sprintf(
             'Your household\'s living costs of £%s a year, less £%s a year of income that continues, leave a gap of £%s a year. Paying that until your State Pension age%s, %s years, needs £%s today, at the Personal Injury Discount Rate of %s%% (the rate the law uses to turn a future income into a lump sum).',

@@ -571,7 +571,7 @@ class CoverageGapAnalyzer
             'critical_illness_basis' => sprintf(
                 'A rule of thumb, not a set amount: %s times your gross earned income of £%s. Critical illness cover is usually set by what you can afford.',
                 rtrim(rtrim(number_format((float) $needsConfig['critical_illness']['income_multiple'], 2), '0'), '.'),
-                number_format((float) $userGrossIncome, 2)
+                number_format((float) $userGrossIncome)
             ),
             'total_need' => $totalNeed,
             'gross_income' => $userGrossIncome,
