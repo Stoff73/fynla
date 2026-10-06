@@ -1,4 +1,4 @@
-# What's new in Fynla — 1 to 5 October 2026
+# What's new in Fynla — 1 to 6 October 2026
 
 Your pension suggestions now start from what you can actually afford. A suggestion to pay into your own pension, or to top up your partner's, is sized to the money left after your spending and goals, and when there is not enough for both, the two are shown as alternatives rather than added together. The Save Tax setup asks for your monthly spending again so this works from the start, and a pension allowance you cannot afford to use no longer says "Fully used".
 
@@ -190,6 +190,34 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **On Save Tax,** answering "No thanks" to the question about bank and savings accounts ends the whole setup, so date of birth, pension and spending are not asked (CSJ to decide).
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
+
+## Fyn's changes always go through a form; demo "Mark as done" is kept; the Holistic Plan follows your actions (6 October, about 09:09, release #1094)
+
+**This is live on fynla.org** through release #1094 (#1082, #1084, #1085, #1087, #1090), UK time.
+
+- **Every change you type to Fyn opens its form, filled in.** This covers changes said in any words, and answers typed on the setup steps. Nothing is saved until you press Save. When more than one record could be meant, Fyn asks "Which one needs changing?" and opens the one you tap.
+- **Adding something through Fyn opens the blank form for it,** filled in from what you said. The "Add" buttons open the same form.
+- **The "Date of birth is required" prompt asks for your date of birth.** Before, it asked Fyn for your pension details.
+- **On Save Tax, "No thanks" to the question about your bank and savings accounts skips only those questions** (CSJ, 5 October). Fyn still asks your date of birth, your gender and your spending, so the plan is sized to what you can afford. The closing lines say "Save Tax".
+- **In a demo, "Mark as done" is kept for your visit,** on both apps and after a reload. Another visitor to the same demo household does not see it.
+- **The Holistic Plan lists the same actions as your actions list, in the same order,** and an action marked done leaves it. Before, it ranked by pounds saved, so smaller tax items sat above higher-priority actions.
+- **On the desktop app, tapping a record under "Which one needs changing?" opens it.** Before, it did nothing.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps,** before each change was merged: a typed change and an "Add" through their forms; "No thanks" then date of birth, gender and spending; the Mitchell demo marking actions done from the list and from an action's page, kept after reload, not seen by a second visitor; the Holistic Plan's 31 items in the actions list's order on both apps.
+- **Live on fynla.org, as the Mitchell demo:**
+  - Desktop: "Bed & ISA" marked done, kept after reload (34 open, 1 done).
+  - The Holistic Plan's 29 items matched the actions list's order, with "Bed & ISA" gone.
+  - Mobile: the same visit showed "Bed & ISA" done; "Consider a joint life policy" marked on mobile was kept after reload (33 open, 2 done).
+  - Both completions belong to that visit only, and the demo household itself gained no points.
+
+**Still to do:**
+- **Demo households other than the Bennetts open the desktop dashboard blurred,** because they are set up as not having finished setup, and the blur stays until the chat is touched.
+- **A blank investment form opened by "Add" says "If you have no investments, save with none chosen",** which is setup wording; outside setup an empty save is refused.
+- **Switching from one demo household to another signs out every other visitor to the one you left.**
+- **The Holistic Plan's "Plans Included" section** still lists module suggestions that the actions list does not have.
+
+**Behind the scenes.** App code, one database change (a demo completion records the visit it belongs to) and the desktop web bundle. No mobile bundle or seeder change.
 
 ## Retirement suggestions, and the same figure on every screen (2 October, about 15:55, release #1047)
 
