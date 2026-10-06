@@ -86,3 +86,14 @@ it('omits account_id and account_name from extra when not present', function ():
     expect(array_key_exists('account_id', $dto->extra))->toBeFalse()
         ->and(array_key_exists('account_name', $dto->extra))->toBeFalse();
 });
+
+it('carries the card\'s figures in extra for its how-to (item 8)', function () {
+    $dto = (new InvestmentRecommendationAdapter)->toStrategyRecommendation([
+        'definition_key' => 'account_charges',
+        'category' => 'Fees',
+        'title' => 'Review the charges on Test ISA',
+        'figures' => ['account_name' => 'Test ISA', 'annual_fees' => '£750'],
+    ]);
+
+    expect($dto->extra['figures'])->toBe(['account_name' => 'Test ISA', 'annual_fees' => '£750']);
+});

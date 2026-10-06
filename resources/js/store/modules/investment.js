@@ -190,7 +190,8 @@ const getters = {
 
     // Check if needs rebalancing
     needsRebalancing: (state) => {
-        return state.analysis?.allocation_deviation?.needs_rebalancing || false;
+        // The server's one answer: any account outside its own threshold (item 8).
+        return state.analysis?.needs_rebalancing || false;
     },
 
     // Portfolio projections getters

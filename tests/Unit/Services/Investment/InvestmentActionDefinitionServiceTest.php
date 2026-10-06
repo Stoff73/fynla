@@ -92,10 +92,10 @@ describe('evaluateAgentActions — investment triggers', function () {
         expect($rec)->toBeNull();
     });
 
-    it('fires low_diversification when score is below threshold', function () {
+    it('fires neither rule it folded into allocation_position (item 8 D3)', function () {
         $investmentAnalysis = [
             'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
-            'allocation_deviation' => ['needs_rebalancing' => false],
+            'allocation_deviation' => ['needs_rebalancing' => true],
             'diversification_score' => 40,
         ];
 
@@ -103,8 +103,9 @@ describe('evaluateAgentActions — investment triggers', function () {
             $investmentAnalysis, [], collect(), collect(), $this->user->id, []
         );
 
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'low_diversification');
-        expect($rec)->not->toBeNull();
+        $keys = collect($result['recommendations'])->pluck('definition_key');
+        expect($keys)->not->toContain('low_diversification')
+            ->and($keys)->not->toContain('rebalance_portfolio');
     });
 
     it('does NOT fire low_diversification when score meets threshold', function () {
@@ -122,17 +123,18 @@ describe('evaluateAgentActions — investment triggers', function () {
         expect($rec)->toBeNull();
     });
 
-    it('fires high_total_fees per-account when fee exceeds threshold', function () {
-        $feeAnalyses = [
-            1 => [
-                'account_id' => 1,
-                'account_name' => 'Test ISA',
-                'total_fee_percent' => 1.5,
-                'total_annual_fees' => 750,
-                'weighted_ocf' => 0.3,
-                'platform_fee' => 0.4,
-            ],
-        ];
+    it('fires one account_charges card per account, with every charge in pounds (item 8 D4)', function () {
+        // Total (1.5%) and platform (£500 on £50,000 = 1.0%) both cross: one card.
+        $feeAnalyses = [[
+            'account_id' => 1,
+            'account_name' => 'Test ISA',
+            'account_value' => 50000,
+            'total_fee_percent' => 1.5,
+            'total_annual_fees' => 750,
+            'weighted_ocf' => 0.3,
+            'holdings_count' => 3,
+            'fees' => ['platform_fee' => 500, 'fund_ocf' => 150, 'transaction_costs' => 0, 'advisory_fee' => 100],
+        ]];
 
         $investmentAnalysis = [
             'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
@@ -143,22 +145,27 @@ describe('evaluateAgentActions — investment triggers', function () {
             $investmentAnalysis, [], collect(), collect(), $this->user->id, $feeAnalyses
         );
 
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'high_total_fees');
-        expect($rec)->not->toBeNull()
-            ->and($rec['scope'])->toBe('account');
+        $recs = collect($result['recommendations'])->where('definition_key', 'account_charges')->values();
+        expect($recs)->toHaveCount(1)
+            ->and($recs[0]['scope'])->toBe('account')
+            ->and($recs[0]['account_id'])->toBe(1)
+            ->and($recs[0]['title'])->toBe('Review the charges on Test ISA')
+            ->and($recs[0]['description'])->toBe('Test ISA costs £750 a year in charges, 1.50% of its value: adviser £100, platform £500, fund charges £150.')
+            ->and($recs[0]['figures']['annual_fees'])->toBe('£750')
+            ->and(collect($result['recommendations'])->pluck('definition_key'))->not->toContain('high_total_fees');
     });
 
-    it('does NOT fire high_total_fees when fee is below threshold', function () {
-        $feeAnalyses = [
-            1 => [
-                'account_id' => 1,
-                'account_name' => 'Low Fee ISA',
-                'total_fee_percent' => 0.5,
-                'total_annual_fees' => 250,
-                'weighted_ocf' => 0.2,
-                'platform_fee' => 0.3,
-            ],
-        ];
+    it('does NOT fire account_charges when every charge is below its threshold', function () {
+        $feeAnalyses = [[
+            'account_id' => 1,
+            'account_name' => 'Low Fee ISA',
+            'account_value' => 50000,
+            'total_fee_percent' => 0.5,
+            'total_annual_fees' => 250,
+            'weighted_ocf' => 0.2,
+            'holdings_count' => 3,
+            'fees' => ['platform_fee' => 150, 'fund_ocf' => 100, 'transaction_costs' => 0, 'advisory_fee' => 0],
+        ]];
 
         $investmentAnalysis = [
             'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
@@ -169,22 +176,70 @@ describe('evaluateAgentActions — investment triggers', function () {
             $investmentAnalysis, [], collect(), collect(), $this->user->id, $feeAnalyses
         );
 
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'high_total_fees');
+        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'account_charges');
         expect($rec)->toBeNull();
     });
 
-    it('fires rebalance_portfolio when needs_rebalancing is true', function () {
+    it('fires one allocation_position card per account outside its threshold (item 8 D3)', function () {
         $investmentAnalysis = [
             'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
-            'allocation_deviation' => ['needs_rebalancing' => true],
+            'account_drift' => [[
+                'account_id' => 7,
+                'account_name' => 'Test GIA',
+                'risk_label' => 'Upper-Medium',
+                'needs_rebalancing' => true,
+                'unrecorded_percent' => 0.0,
+                'drifts_by_asset' => [
+                    'equities' => ['current' => 60.0, 'target' => 75.0, 'drift' => -15.0],
+                    'bonds' => ['current' => 35.0, 'target' => 20.0, 'drift' => 15.0],
+                    'alternatives' => ['current' => 5.0, 'target' => 5.0, 'drift' => 0.0],
+                    'cash' => ['current' => 0.0, 'target' => 0.0, 'drift' => 0.0],
+                ],
+            ], [
+                'account_id' => 8,
+                'account_name' => 'Balanced ISA',
+                'risk_label' => 'Medium',
+                'needs_rebalancing' => false,
+                'unrecorded_percent' => 0.0,
+                'drifts_by_asset' => [],
+            ]],
         ];
 
         $result = $this->service->evaluateAgentActions(
             $investmentAnalysis, [], collect(), collect(), $this->user->id, []
         );
 
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'rebalance_portfolio');
-        expect($rec)->not->toBeNull();
+        $recs = collect($result['recommendations'])->where('definition_key', 'allocation_position')->values();
+        expect($recs)->toHaveCount(1)
+            ->and($recs[0]['account_id'])->toBe(7)
+            ->and($recs[0]['title'])->toBe('Test GIA holds 35% in bonds against 20% for its risk level')
+            ->and($recs[0]['description'])->toBe('Test GIA is outside its rebalancing threshold for the upper-medium risk level: shares 60% against 75%, bonds 35% against 20%, alternatives 5% against 5%.');
+    });
+
+    it('says at least and at most where part of the account has no recorded mix', function () {
+        $investmentAnalysis = [
+            'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
+            'account_drift' => [[
+                'account_id' => 7,
+                'account_name' => 'Test GIA',
+                'risk_label' => 'Medium',
+                'needs_rebalancing' => true,
+                'unrecorded_percent' => 40.0,
+                'drifts_by_asset' => [
+                    'equities' => ['current' => 50.0, 'target' => 60.0, 'drift' => -10.0],
+                    'alternatives' => ['current' => 21.0, 'target' => 5.0, 'drift' => 16.0],
+                ],
+            ]],
+        ];
+
+        $result = $this->service->evaluateAgentActions(
+            $investmentAnalysis, [], collect(), collect(), $this->user->id, []
+        );
+
+        $rec = collect($result['recommendations'])->firstWhere('definition_key', 'allocation_position');
+        expect($rec['title'])->toBe('Test GIA holds at least 21% in alternatives against 5% for its risk level')
+            ->and($rec['description'])->toContain('shares at most 50% against 60%')
+            ->and($rec['description'])->toContain('40% is in funds whose mix is not recorded');
     });
 
     it('fires tax_loss_harvesting when opportunities exist', function () {
@@ -194,7 +249,8 @@ describe('evaluateAgentActions — investment triggers', function () {
             'tax_efficiency' => [
                 'harvesting_opportunities' => [
                     'opportunities_count' => 2,
-                    'potential_tax_saving' => 500,
+                    'total_harvestable_losses' => 1200,
+                    'potential_tax_saving' => 0,
                 ],
             ],
         ];
@@ -203,8 +259,13 @@ describe('evaluateAgentActions — investment triggers', function () {
             $investmentAnalysis, [], collect(), collect(), $this->user->id, []
         );
 
+        // The losses, at the user's share, and no saving: no gains are recorded
+        // (item 8; it said "Potential tax saving: £0" on every card before).
         $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'tax_loss_harvesting');
-        expect($rec)->not->toBeNull();
+        expect($rec)->not->toBeNull()
+            ->and($rec['description'])->toStartWith('2 holdings in your General Investment Account are worth £1,200 less than you paid.')
+            ->and($rec['description'])->toContain('before the £3,000 tax-free allowance')
+            ->and($rec['description'])->not->toContain('saving');
     });
 });
 
@@ -284,24 +345,32 @@ describe('evaluateAgentActions — tax efficiency triggers', function () {
 // =========================================================================
 
 describe('evaluateAgentActions — savings triggers', function () {
-    it('fires emergency_fund_critical when runway is below 3 months', function () {
-        $savingsAnalysis = [
-            'emergency_fund' => ['runway_months' => 1.5],
-            'summary' => ['total_savings' => 3000, 'monthly_expenditure' => 2000],
-        ];
-
+    it('fires none of the savings and surplus rules: Savings carries them (item 8 D1)', function () {
         $investmentAnalysis = [
-            'portfolio_summary' => ['accounts_count' => 0, 'holdings_count' => 0],
+            'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
             'allocation_deviation' => ['needs_rebalancing' => false],
         ];
 
-        $result = $this->service->evaluateAgentActions(
-            $investmentAnalysis, $savingsAnalysis, collect(), collect(), $this->user->id, []
-        );
+        foreach ([1.5, 4, 12] as $runway) {
+            $savingsAnalysis = [
+                'emergency_fund' => ['runway_months' => $runway],
+                'summary' => ['total_savings' => 2000 * $runway, 'monthly_expenditure' => 2000],
+                'isa_allowance' => ['remaining' => 15000],
+            ];
 
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'emergency_fund_critical');
-        expect($rec)->not->toBeNull()
-            ->and($rec['category'])->toBe('Emergency Fund');
+            $result = $this->service->evaluateAgentActions(
+                $investmentAnalysis, $savingsAnalysis, collect(), collect(), $this->user->id, []
+            );
+
+            expect(collect($result['recommendations'])->pluck('definition_key')->all())
+                ->not->toContain('emergency_fund_critical')
+                ->not->toContain('emergency_fund_grow')
+                ->not->toContain('switch_savings_rate')
+                ->not->toContain('isa_allowance_remaining')
+                ->not->toContain('surplus_to_isa')
+                ->not->toContain('surplus_to_pension')
+                ->not->toContain('surplus_to_bond');
+        }
     });
 
     it('says nothing about the emergency fund when no savings analysis is given', function () {
@@ -323,46 +392,6 @@ describe('evaluateAgentActions — savings triggers', function () {
             ->and($keys)->not->toContain('emergency_fund_grow');
     });
 
-    it('fires emergency_fund_grow when runway is between 3 and 6 months', function () {
-        $savingsAnalysis = [
-            'emergency_fund' => ['runway_months' => 4],
-            'summary' => ['total_savings' => 8000, 'monthly_expenditure' => 2000],
-        ];
-
-        $investmentAnalysis = [
-            'portfolio_summary' => ['accounts_count' => 0, 'holdings_count' => 0],
-            'allocation_deviation' => ['needs_rebalancing' => false],
-        ];
-
-        $result = $this->service->evaluateAgentActions(
-            $investmentAnalysis, $savingsAnalysis, collect(), collect(), $this->user->id, []
-        );
-
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'emergency_fund_grow');
-        expect($rec)->not->toBeNull();
-    });
-
-    it('resolves conflict: keeps only critical when both emergency fund actions would fire', function () {
-        $savingsAnalysis = [
-            'emergency_fund' => ['runway_months' => 2],
-            'summary' => ['total_savings' => 4000, 'monthly_expenditure' => 2000],
-        ];
-
-        $investmentAnalysis = [
-            'portfolio_summary' => ['accounts_count' => 0, 'holdings_count' => 0],
-            'allocation_deviation' => ['needs_rebalancing' => false],
-        ];
-
-        $result = $this->service->evaluateAgentActions(
-            $investmentAnalysis, $savingsAnalysis, collect(), collect(), $this->user->id, []
-        );
-
-        $critical = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'emergency_fund_critical');
-        $grow = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'emergency_fund_grow');
-
-        expect($critical)->not->toBeNull();
-        expect($grow)->toBeNull();
-    });
 });
 
 // =========================================================================
@@ -370,31 +399,6 @@ describe('evaluateAgentActions — savings triggers', function () {
 // =========================================================================
 
 describe('evaluateAgentActions — surplus waterfall triggers', function () {
-    it('fires surplus_to_isa when surplus exists and ISA remaining', function () {
-        $savingsAnalysis = [
-            'emergency_fund' => ['runway_months' => 12],
-            'summary' => [
-                'total_savings' => 30000,
-                'monthly_expenditure' => 2000,
-            ],
-            'isa_allowance' => [
-                'remaining' => 15000,
-            ],
-        ];
-
-        $investmentAnalysis = [
-            'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
-            'allocation_deviation' => ['needs_rebalancing' => false],
-        ];
-
-        $result = $this->service->evaluateAgentActions(
-            $investmentAnalysis, $savingsAnalysis, collect(), collect(), $this->user->id, []
-        );
-
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'surplus_to_isa');
-        expect($rec)->not->toBeNull();
-    });
-
     it('does NOT fire surplus actions when runway is below target months', function () {
         $savingsAnalysis = [
             'emergency_fund' => ['runway_months' => 4],
@@ -448,24 +452,30 @@ describe('disabled definitions', function () {
 
 describe('custom threshold overrides', function () {
     it('uses custom threshold when set in trigger_config', function () {
-        InvestmentActionDefinition::where('key', 'low_diversification')
+        InvestmentActionDefinition::where('key', 'account_charges')
             ->update(['trigger_config' => json_encode([
-                'condition' => 'diversification_score_below',
-                'threshold' => 90,
+                'condition' => 'account_charges_above',
+                'total_threshold' => 0.4,
+                'fund_threshold' => 0.5,
+                'platform_threshold' => 0.8,
             ])]);
 
-        $investmentAnalysis = [
-            'portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3],
-            'allocation_deviation' => ['needs_rebalancing' => false],
-            'diversification_score' => 80, // Below custom 90 threshold
-        ];
+        $feeAnalyses = [[
+            'account_id' => 1,
+            'account_name' => 'Low Fee ISA',
+            'account_value' => 50000,
+            'total_fee_percent' => 0.5, // above the custom 0.4
+            'total_annual_fees' => 250,
+            'weighted_ocf' => 0.2,
+            'holdings_count' => 3,
+            'fees' => ['platform_fee' => 150, 'fund_ocf' => 100],
+        ]];
 
         $result = $this->service->evaluateAgentActions(
-            $investmentAnalysis, [], collect(), collect(), $this->user->id, []
+            ['portfolio_summary' => ['accounts_count' => 1, 'holdings_count' => 3]], [], collect(), collect(), $this->user->id, $feeAnalyses
         );
 
-        $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'low_diversification');
-        expect($rec)->not->toBeNull();
+        expect(collect($result['recommendations'])->pluck('definition_key'))->toContain('account_charges');
     });
 });
 

@@ -359,11 +359,11 @@ describe('Cross-Module Integration', function () {
             $enabledKeys = [
                 'risk_profile_missing',
                 'no_holdings',
-                'low_diversification',
-                'high_total_fees',
-                'high_fund_fees',
-                'high_platform_fees',
-                'rebalance_portfolio',
+                // Item 8 (CSJ 2026-10-06): one charges card and one position card
+                // per account, in place of the three fee rules and the two
+                // allocation rules.
+                'account_charges',
+                'allocation_position',
                 'tax_loss_harvesting',
                 'open_isa',
                 'use_isa_allowance',

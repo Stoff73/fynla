@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\InvestmentActionDefinition;
 use App\Models\ProtectionActionDefinition;
 use App\Models\RetirementActionDefinition;
 use App\Models\SavingsActionDefinition;
@@ -25,6 +26,7 @@ class ActionHowToSeeder extends Seeder
         'savings' => [SavingsActionDefinition::class, 'key'],
         'protection' => [ProtectionActionDefinition::class, 'key'],
         'retirement' => [RetirementActionDefinition::class, 'key'],
+        'investment' => [InvestmentActionDefinition::class, 'key'],
     ];
 
     public function run(): void

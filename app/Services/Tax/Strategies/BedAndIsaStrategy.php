@@ -7,12 +7,10 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
-use App\Models\Investment\Holding;
-use App\Models\Investment\InvestmentAccount;
+use App\Services\Tax\ChargeableGains;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
-use App\Traits\CalculatesOwnershipShare;
 
 /**
  * Strategy #6 — Bed & ISA Capital Gains Harvest within the Annual Exempt Amount.
@@ -24,11 +22,10 @@ use App\Traits\CalculatesOwnershipShare;
  */
 final class BedAndIsaStrategy implements TaxStrategy
 {
-    use CalculatesOwnershipShare;
-
     public function __construct(
         private readonly TaxStrategyMath $math,
         private readonly TaxConfigService $taxConfig,
+        private readonly ChargeableGains $chargeableGains,
     ) {}
 
     public function generate(TaxStrategyContext $context): array
@@ -59,53 +56,12 @@ final class BedAndIsaStrategy implements TaxStrategy
             default => (float) $cgt['higher_rate'],
         };
 
-        // Joint accounts count at the user's share only (Rule 6): the other
-        // owner's half of a gain is theirs to realise, not this user's.
-        $shareById = InvestmentAccount::query()
-            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
-            ->where(function ($q) {
-                $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
-            })
-            ->get()
-            ->mapWithKeys(fn (InvestmentAccount $account) => [$account->id => $this->userShareFraction($account, $user->id)])
-            ->all();
-        $nonIsaAccountIds = array_keys($shareById);
-
-        if (empty($nonIsaAccountIds)) {
-            return [];
-        }
-
-        $holdings = Holding::query()
-            ->where('holdable_type', InvestmentAccount::class)
-            ->whereIn('holdable_id', $nonIsaAccountIds)
-            ->get(['holdable_id', 'quantity', 'purchase_price', 'current_price', 'current_value', 'cost_basis']);
-
-        if ($holdings->isEmpty()) {
-            return [];
-        }
-
-        $totalUnrealisedGain = 0.0;
-        $totalCurrentValueWithGain = 0.0;
-        foreach ($holdings as $h) {
-            $current = (float) ($h->current_value ?? 0);
-            if ($current <= 0 && $h->quantity && $h->current_price) {
-                $current = (float) $h->quantity * (float) $h->current_price;
-            }
-            $costBasis = (float) ($h->cost_basis ?? 0);
-            if ($costBasis <= 0 && $h->quantity && $h->purchase_price) {
-                $costBasis = (float) $h->quantity * (float) $h->purchase_price;
-            }
-            if ($current <= 0 || $costBasis <= 0) {
-                continue;
-            }
-            $share = (float) ($shareById[$h->holdable_id] ?? 0);
-            $gain = ($current - $costBasis) * $share;
-            $current *= $share;
-            if ($gain > 0) {
-                $totalUnrealisedGain += $gain;
-                $totalCurrentValueWithGain += $current;
-            }
-        }
+        // The one home for chargeable gains (item 8): chargeable accounts only,
+        // each at the user's share (Rule 6). Shared with the investment ISA cards,
+        // which step aside whenever this card can fire.
+        $gains = $this->chargeableGains->unrealisedGainsFor($user);
+        $totalUnrealisedGain = $gains['gain'];
+        $totalCurrentValueWithGain = $gains['value_with_gain'];
 
         if ($totalUnrealisedGain <= 0) {
             return [];

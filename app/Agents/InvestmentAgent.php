@@ -16,11 +16,13 @@ use App\Services\Investment\InvestmentActionDefinitionService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
+use App\Services\Investment\Rebalancing\AccountDriftService;
 use App\Services\Investment\Recommendation\DataReadinessService;
 use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\TaxEfficiencyCalculator;
 use App\Services\Savings\ISATracker;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Tax\ChargeableGains;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -41,7 +43,9 @@ class InvestmentAgent extends BaseAgent
         private readonly TaxConfigService $taxConfig,
         private readonly InvestmentActionDefinitionService $actionDefinitionService,
         private readonly DataReadinessService $readinessService,
-        private readonly CrossModuleAssetAggregator $assetAggregator
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly AccountDriftService $accountDrift,
+        private readonly ChargeableGains $chargeableGains,
     ) {}
 
     /**
@@ -145,6 +149,7 @@ class InvestmentAgent extends BaseAgent
                 $holdings = $this->holdingsAtUserShare($ownedAccounts, $userId);
                 $riskProfile = RiskProfile::where('user_id', $userId)->first();
                 $goals = InvestmentGoal::where('user_id', $userId)->get();
+                $analysisUser = User::find($userId);
 
                 if ($accounts->isEmpty()) {
                     return [
@@ -200,7 +205,33 @@ class InvestmentAgent extends BaseAgent
                     'gia_value' => round($accounts->where('account_type', 'gia')->sum('current_value'), 2),
                     'has_onshore_bond' => $accounts->where('account_type', 'onshore_bond')->isNotEmpty(),
                     'has_offshore_bond' => $accounts->where('account_type', 'offshore_bond')->isNotEmpty(),
+                    // Bed & ISA's gains figure (ChargeableGains): the investment ISA
+                    // cards step aside when it is above zero (item 8, D2).
+                    'chargeable_unrealised_gain' => $analysisUser
+                        ? round($this->chargeableGains->unrealisedGainsFor($analysisUser)['gain'], 2)
+                        : 0.0,
                 ];
+
+                // Per account, the rule each account's rebalancing panel shows
+                // (AccountDriftService, item 8 D3) and its charges (D4).
+                $accountDrift = [];
+                $accountFeeAnalyses = [];
+                foreach ($ownedAccounts as $owned) {
+                    if ($analysisUser && $owned->holdings->isNotEmpty()) {
+                        $drift = $this->accountDrift->forAccount($owned, $analysisUser);
+                        $accountDrift[] = [
+                            'account_id' => $owned->id,
+                            'account_name' => $owned->account_name,
+                            'account_type' => $owned->account_type,
+                            'risk_label' => $drift['risk_profile']['effective_risk_label'],
+                            'needs_rebalancing' => $drift['needs_rebalancing'],
+                            'unrecorded_percent' => $drift['unrecorded_percent'],
+                            'drifts_by_asset' => $drift['drifts_by_asset'],
+                        ];
+                    }
+                    // The charges the account page shows (FeeAnalyzer::recordedCharges).
+                    $accountFeeAnalyses[] = $this->feeAnalyzer->recordedChargesForCard($owned);
+                }
 
                 // S1.6.b — structured gap list for the LLM to ask about.
                 $missingForQualityAdvice = $this->findMissingForQualityAdvice(
@@ -225,6 +256,11 @@ class InvestmentAgent extends BaseAgent
                     ],
                     'tax_wrappers' => $taxWrappers,
                     'allocation_deviation' => $allocationDeviation,
+                    'account_drift' => $accountDrift,
+                    // The one answer to "does this portfolio need rebalancing":
+                    // any account outside its own threshold (AccountDriftService).
+                    'needs_rebalancing' => collect($accountDrift)->contains('needs_rebalancing', true),
+                    'account_fee_analyses' => $accountFeeAnalyses,
                     'goals' => $goals->map(function ($goal) use ($totalValue) {
                         $progress = $totalValue > 0 ? ($totalValue / $goal->target_amount) * 100 : 0;
 
@@ -308,8 +344,8 @@ class InvestmentAgent extends BaseAgent
      * Delegates to InvestmentActionDefinitionService for DB-driven evaluation.
      * This agent-level path provides a simplified subset of recommendations:
      * - Investment-only triggers fire (risk, diversification, rebalancing, tax wrappers)
-     * - Savings/surplus triggers do NOT fire (empty savings data)
-     * - Fee triggers do NOT fire (no account fee analyses at agent level)
+     * - Savings/surplus triggers do NOT fire (they are disabled: Savings carries them)
+     * - The charges card fires from analyze()'s per-account fee analyses
      *
      * The full evaluation (all triggers including savings, surplus waterfall, and fees)
      * happens in InvestmentPlanService::getRecommendations() which calls the service directly.
@@ -326,11 +362,11 @@ class InvestmentAgent extends BaseAgent
         $start = microtime(true);
         $result = $this->actionDefinitionService->evaluateAgentActions(
             $analysis,
-            [],                 // No savings analysis (handled by InvestmentPlanService)
+            [],                 // No savings analysis (savings rules are Savings', item 8 D1)
             collect(),          // No investment accounts collection at agent level
             collect(),          // No savings accounts collection at agent level
             0,                  // No userId needed for investment-only triggers
-            []                  // No fee analyses at agent level
+            $analysis['account_fee_analyses'] ?? []   // The charges card reaches the list (item 8 D4)
         );
 
         $output = [

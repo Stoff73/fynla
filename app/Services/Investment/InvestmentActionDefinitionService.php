@@ -141,6 +141,8 @@ class InvestmentActionDefinitionService
             'weighted_ocf_above' => $this->evaluateHighFundFees($definition, $accountFeeAnalyses, $config, $priority),
             'platform_fee_percent_above' => $this->evaluateHighPlatformFees($definition, $accountFeeAnalyses, $config, $priority),
             'allocation_needs_rebalancing' => $this->evaluateRebalancePortfolio($definition, $investmentAnalysis, $priority),
+            'account_outside_drift_threshold' => $this->evaluateAllocationPosition($definition, $investmentAnalysis, $priority),
+            'account_charges_above' => $this->evaluateAccountCharges($definition, $accountFeeAnalyses, $config, $priority),
             'has_harvesting_opportunities' => $this->evaluateTaxLossHarvesting($definition, $investmentAnalysis, $priority),
 
             // Tax efficiency triggers
@@ -502,6 +504,179 @@ class InvestmentActionDefinitionService
         return $results;
     }
 
+    /** How each asset class reads on a card. */
+    private const ASSET_CLASS_LABELS = [
+        'equities' => 'shares',
+        'bonds' => 'bonds',
+        'cash' => 'cash',
+        'alternatives' => 'alternatives',
+    ];
+
+    /**
+     * D3 (CSJ 2026-10-06, per account as the page): one card per account outside
+     * its rebalancing threshold, read from AccountDriftService (the rule the
+     * account's rebalancing panel shows). The title names the class furthest
+     * over its target, a figure the recorded holdings fix whatever the funds
+     * with no recorded mix hold; with none over, the class furthest under, as
+     * "at most" where unrecorded money could be in it.
+     */
+    private function evaluateAllocationPosition(
+        InvestmentActionDefinition $definition,
+        array $investmentAnalysis,
+        int $priority
+    ): array {
+        $results = [];
+
+        foreach ($investmentAnalysis['account_drift'] ?? [] as $account) {
+            if (! ($account['needs_rebalancing'] ?? false)) {
+                continue;
+            }
+
+            $drifts = array_intersect_key($account['drifts_by_asset'] ?? [], self::ASSET_CLASS_LABELS);
+            if ($drifts === []) {
+                continue;
+            }
+
+            $over = array_filter($drifts, static fn (array $d) => ($d['drift'] ?? 0) > 0);
+            $pool = $over !== [] ? $over : $drifts;
+            uasort($pool, static fn (array $a, array $b) => abs($b['drift'] ?? 0) <=> abs($a['drift'] ?? 0));
+            $class = (string) array_key_first($pool);
+            $headline = $pool[$class];
+
+            // Money in funds with no recorded mix sits where it closes the gaps
+            // first (DriftAnalyzer), so with any of it, a class over its target is
+            // at least that far over and one under it at most that high.
+            $unrecorded = (float) ($account['unrecorded_percent'] ?? 0);
+            $figure = static function (array $d) use ($unrecorded): string {
+                $percent = round((float) $d['current']).'%';
+                if ($unrecorded <= 0 || (float) $d['drift'] == 0.0) {
+                    return $percent;
+                }
+
+                return ((float) $d['drift'] > 0 ? 'at least ' : 'at most ').$percent;
+            };
+            $currentText = $figure($headline);
+
+            uasort($drifts, static fn (array $a, array $b) => abs($b['drift'] ?? 0) <=> abs($a['drift'] ?? 0));
+            $parts = [];
+            foreach ($drifts as $assetClass => $d) {
+                if ((float) $d['current'] == 0.0 && (float) $d['target'] == 0.0) {
+                    continue;
+                }
+                $parts[] = self::ASSET_CLASS_LABELS[$assetClass].' '.$figure($d).' against '.round((float) $d['target']).'%';
+            }
+
+            $vars = [
+                'account_name' => (string) ($account['account_name'] ?? 'This account'),
+                'current_text' => $currentText,
+                'asset_label' => self::ASSET_CLASS_LABELS[$class],
+                'target_percent' => (string) round((float) $headline['target']),
+                'risk_label' => strtolower((string) ($account['risk_label'] ?? 'medium')),
+                'allocation_summary' => implode(', ', $parts),
+                'unrecorded_percent' => (string) round($unrecorded),
+                // How-to conditions (ActionHowToFacts reads booleans as facts).
+                'has_unrecorded' => $unrecorded > 0,
+                'is_isa' => ($account['account_type'] ?? null) === 'isa',
+                'unrecorded_note' => $unrecorded > 0
+                    ? ' '.round($unrecorded).'% is in funds whose mix is not recorded, so these figures assume it sits where it closes the gaps first.'
+                    : '',
+            ];
+
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['scope'] = 'account';
+            $rec['account_id'] = $account['account_id'] ?? null;
+            $rec['account_name'] = $vars['account_name'];
+            $rec['decision_trace'] = [[
+                'question' => 'Is this account outside its rebalancing threshold for its risk level?',
+                'data_field' => 'AccountDriftService::forAccount',
+                'data_value' => $vars['allocation_summary'].($unrecorded > 0 ? '; '.round($unrecorded).'% in funds with no recorded mix, counted where it closes the gaps first' : ''),
+                'threshold' => 'The account\'s rebalancing threshold',
+                'passed' => true,
+                'explanation' => $vars['account_name'].' is measured against the '.$vars['risk_label'].' risk level: '.$vars['allocation_summary'].'.',
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * D4 (CSJ 2026-10-06): one card per account whose charges cross any of the
+     * thresholds (total, fund, platform; product settings in trigger_config),
+     * stating every charge on the account in pounds a year.
+     */
+    private function evaluateAccountCharges(
+        InvestmentActionDefinition $definition,
+        array $accountFeeAnalyses,
+        array $config,
+        int $priority
+    ): array {
+        $results = [];
+
+        foreach ($accountFeeAnalyses as $acctFees) {
+            $value = (float) ($acctFees['account_value'] ?? 0);
+            $totalPercent = (float) ($acctFees['total_fee_percent'] ?? 0);
+            $fundPercent = (float) ($acctFees['weighted_ocf'] ?? 0);
+            $platformCost = (float) ($acctFees['fees']['platform_fee'] ?? 0);
+            $platformPercent = $value > 0 ? ($platformCost / $value) * 100 : 0.0;
+
+            $crossed = [];
+            if ($totalPercent > (float) $config['total_threshold']) {
+                $crossed[] = 'total';
+            }
+            if (($acctFees['holdings_count'] ?? 0) > 0 && $fundPercent > (float) $config['fund_threshold']) {
+                $crossed[] = 'fund';
+            }
+            if ($platformPercent > (float) $config['platform_threshold']) {
+                $crossed[] = 'platform';
+            }
+            if ($crossed === []) {
+                continue;
+            }
+
+            $charges = [];
+            foreach ([
+                'advisory_fee' => 'adviser',
+                'platform_fee' => 'platform',
+                'fund_ocf' => 'fund charges',
+                'transaction_costs' => 'dealing costs',
+            ] as $key => $label) {
+                $amount = (float) ($acctFees['fees'][$key] ?? 0);
+                if ($amount > 0) {
+                    $charges[] = $label.' '.$this->formatCurrency($amount);
+                }
+            }
+
+            $accountName = (string) ($acctFees['account_name'] ?? 'This account');
+            $vars = [
+                'account_name' => $accountName,
+                'annual_fees' => $this->formatCurrency((float) ($acctFees['total_annual_fees'] ?? 0)),
+                'total_fee_percent' => number_format($totalPercent, 2),
+                'charges_list' => implode(', ', $charges),
+                'platform_fee_percent' => number_format($platformPercent, 2),
+                'weighted_ocf' => number_format($fundPercent, 2),
+                'has_adviser_fee' => (float) ($acctFees['fees']['advisory_fee'] ?? 0) > 0,
+                'is_isa' => ($acctFees['account_type'] ?? null) === 'isa',
+            ];
+
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['scope'] = 'account';
+            $rec['account_id'] = $acctFees['account_id'] ?? null;
+            $rec['account_name'] = $accountName;
+            $rec['decision_trace'] = [[
+                'question' => 'Do this account\'s charges cross a threshold?',
+                'data_field' => 'FeeAnalyzer::analyzeAccountFees',
+                'data_value' => $vars['annual_fees'].' a year ('.$vars['total_fee_percent'].'%): '.$vars['charges_list'],
+                'threshold' => 'Total '.$config['total_threshold'].'%, funds '.$config['fund_threshold'].'%, platform '.$config['platform_threshold'].'%',
+                'passed' => true,
+                'explanation' => $accountName.' crosses: '.implode(', ', $crossed).'.',
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
     /**
      * Rebalance portfolio: triggers when allocation deviation indicates rebalancing is needed.
      * Only fires when holdings exist.
@@ -575,21 +750,26 @@ class InvestmentActionDefinitionService
         int $priority
     ): array {
         $opportunities = $investmentAnalysis['tax_efficiency']['harvesting_opportunities'] ?? [];
-        $count = $opportunities['opportunities_count'] ?? 0;
-        $saving = $opportunities['potential_tax_saving'] ?? 0;
-        $totalLosses = $opportunities['total_losses'] ?? 0;
+        $count = (int) ($opportunities['opportunities_count'] ?? 0);
+        $totalLosses = (float) ($opportunities['total_harvestable_losses'] ?? 0);
 
+        // Losses in General Investment Accounts at the user's share
+        // (ChargeableGains). No gains this year are recorded anywhere, so no
+        // saving is stated. A loss is set against the same year's gains first,
+        // before the annual exempt amount, and carries forward only if reported
+        // within four years (HMRC CG21500; https://www.gov.uk/capital-gains-tax/losses;
+        // TCGA 1992 s16(2A); Taxes Management Act 1970 s43).
         $trace = [];
 
         $trace[] = [
-            'question' => 'Are there losses in the portfolio that could be set against gains?',
+            'question' => 'Are there losses in chargeable accounts that could be set against gains?',
             'data_field' => 'investmentAnalysis.tax_efficiency.harvesting_opportunities',
-            'data_value' => $count.' opportunity(s), potential saving £'.number_format($saving, 0),
-            'threshold' => 'At least 1 opportunity',
+            'data_value' => $count.' holding(s), £'.number_format($totalLosses, 0).' below what was paid',
+            'threshold' => 'At least 1 holding',
             'passed' => $count > 0,
             'explanation' => $count > 0
-                ? $count.' holding(s) with £'.number_format($totalLosses, 0).' in unrealised losses. Crystallising these losses could save £'.number_format($saving, 0).' in Capital Gains Tax by offsetting gains elsewhere in the portfolio.'
-                : 'No losses to use against gains — all holdings are in profit or losses are too small to be material.',
+                ? $count.' holding(s) outside an ISA are worth £'.number_format($totalLosses, 0).' less than was paid for them (the user\'s share). Selling realises the loss, which is set against gains of the same tax year or carried forward once claimed.'
+                : 'No holding outside an ISA is worth less than was paid for it.',
         ];
 
         if ($count <= 0) {
@@ -597,8 +777,11 @@ class InvestmentActionDefinitionService
         }
 
         $vars = [
-            'opportunities_count' => (string) $count,
-            'potential_saving' => $this->formatCurrency($saving),
+            'holdings_count' => (string) $count,
+            'holdings_word' => $count === 1 ? 'holding' : 'holdings',
+            'holdings_verb' => $count === 1 ? 'is' : 'are',
+            'total_losses' => $this->formatCurrency($totalLosses),
+            'annual_exempt_amount' => $this->formatCurrency((float) $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount']),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -652,9 +835,14 @@ class InvestmentActionDefinitionService
             return [];
         }
 
+        // D2 (CSJ 2026-10-06): the Tax plan's Bed & ISA carries the move when the
+        // account holds gains; this card speaks only where there are none.
+        if ((float) ($taxWrappers['chargeable_unrealised_gain'] ?? 0) > 0) {
+            return [];
+        }
+
         $isaAllowance = $taxWrappers['isa_allowance']
-            ?? $this->taxConfig->getISAAllowances()['annual_allowance']
-            ?? TaxDefaults::ISA_ALLOWANCE;
+            ?? $this->taxConfig->getISAAllowances()['annual_allowance'];
         $vars = [
             'isa_allowance' => $this->formatCurrency((float) $isaAllowance),
         ];
@@ -679,7 +867,7 @@ class InvestmentActionDefinitionService
         $isaRemaining = $taxWrappers['isa_remaining'] ?? 0;
         $giaValue = $taxWrappers['gia_value'] ?? 0;
         $isaUsed = $taxWrappers['isa_used_this_year'] ?? 0;
-        $isaAllowance = $taxWrappers['isa_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
+        $isaAllowance = $taxWrappers['isa_allowance'] ?? $this->taxConfig->getISAAllowances()['annual_allowance'];
 
         $transferAmount = min($giaValue, $isaRemaining);
 
@@ -708,6 +896,12 @@ class InvestmentActionDefinitionService
         ];
 
         if (! $hasIsa || ! $hasGia || $isaRemaining <= 0) {
+            return [];
+        }
+
+        // D2 (CSJ 2026-10-06): the Tax plan's Bed & ISA carries the move when the
+        // account holds gains; this card speaks only where there are none.
+        if ((float) ($taxWrappers['chargeable_unrealised_gain'] ?? 0) > 0) {
             return [];
         }
 
@@ -1489,6 +1683,8 @@ class InvestmentActionDefinitionService
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
             'definition_key' => $definition->key,
+            // The card's own numbers, for its how-to (as retirement and protection).
+            'figures' => array_filter($vars, static fn ($v) => is_scalar($v)),
         ];
     }
 }

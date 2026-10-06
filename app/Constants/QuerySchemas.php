@@ -619,13 +619,13 @@ final class QuerySchemas
         ],
         self::INVESTMENT_PORTFOLIO => [
             'risk_profile_missing',
-            'rebalance_portfolio',
-            'low_diversification',
+            // One card per account outside its threshold (item 8 D3), in place of
+            // rebalance_portfolio and low_diversification.
+            'allocation_position',
         ],
         self::INVESTMENT_FEES => [
-            'high_total_fees',
-            'high_fund_fees',
-            'high_platform_fees',
+            // One charges card per account (item 8 D4), in place of the three fee rules.
+            'account_charges',
         ],
         self::INVESTMENT_TAX => [
             'open_isa',

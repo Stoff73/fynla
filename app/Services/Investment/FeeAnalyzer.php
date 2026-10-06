@@ -380,6 +380,37 @@ class FeeAnalyzer
     }
 
     /**
+     * One account's recorded charges in pounds a year, for the charges card
+     * (item 8 D4): the same figures the account page shows (recordedCharges),
+     * so card and page cannot disagree.
+     *
+     * @return array{account_id: int, account_name: string, account_value: float, holdings_count: int,
+     *     total_fee_percent: float, total_annual_fees: float, weighted_ocf: float,
+     *     fees: array{platform_fee: float, fund_ocf: float, advisory_fee: float}}
+     */
+    public function recordedChargesForCard(InvestmentAccount $account): array
+    {
+        $charges = $this->recordedCharges($account);
+        $value = (float) ($account->current_value ?? 0);
+
+        return [
+            'account_id' => $account->id,
+            'account_name' => (string) ($account->account_name ?? $account->provider ?? 'This account'),
+            'account_type' => $account->account_type,
+            'account_value' => $value,
+            'holdings_count' => $account->holdings->count(),
+            'total_fee_percent' => $charges['total_fee_percent'],
+            'total_annual_fees' => $charges['total_annual_cost'],
+            'weighted_ocf' => $charges['weighted_ocf_percent'],
+            'fees' => [
+                'platform_fee' => round($value * $charges['platform_fee_percent'] / 100, 2),
+                'fund_ocf' => round($value * $charges['weighted_ocf_percent'] / 100, 2),
+                'advisory_fee' => round($value * $charges['advisor_fee_percent'] / 100, 2),
+            ],
+        ];
+    }
+
+    /**
      * Growth assumed for the fees page's ten-year view, stated on the page
      * ("assuming 5% annual portfolio growth"). Moved here from the browser so
      * every screen uses the same figure.

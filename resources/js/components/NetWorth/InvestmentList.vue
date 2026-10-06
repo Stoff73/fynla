@@ -656,6 +656,15 @@ export default {
       }
     }
 
+    // An action card's "Go to it" names the account (?account=<id>), the web
+    // counterpart of the investment_account_detail screen (semanticDestinations).
+    const linkedId = Number(this.$route.query.account);
+    if (linkedId) {
+      const linked = this.accounts.find(a => a.id === linkedId);
+      if (linked) {
+        this.selectAccount(linked);
+      }
+    }
   },
 };
 </script>

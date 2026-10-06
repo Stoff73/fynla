@@ -62,6 +62,8 @@ final class InvestmentRecommendationAdapter
             'account_name' => $rec['account_name'] ?? null,
             'source_category' => $category !== '' ? $category : null,
             'decision_trace' => $rec['decision_trace'] ?? null,
+            // The card's own numbers, for its how-to (item 8, as retirement).
+            'figures' => ! empty($rec['figures']) ? $rec['figures'] : null,
         ], static fn ($v) => $v !== null);
 
         // Investment actions are typically lump-led; use estimated_impact as the

@@ -10,7 +10,8 @@ use Illuminate\Database\Seeder;
 /**
  * Seed the investment_action_definitions table with all action types.
  *
- * Seeds 18 agent-sourced, 3 goal-sourced, and 3 strategy catalogue definitions.
+ * Seeds 20 agent-sourced (8 disabled for Savings, 5 folded into two, item 8,
+ * CSJ 2026-10-06), 3 goal-sourced, and 3 strategy catalogue definitions.
  * Uses updateOrCreate on `key` for idempotency.
  *
  * Run: php artisan db:seed --class=InvestmentActionDefinitionSeeder --force
@@ -90,7 +91,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
             [
                 'key' => 'risk_profile_missing',
                 'source' => 'agent',
-                'title_template' => 'Provide Your Investment Preferences',
+                'title_template' => 'Set your investment risk level',
                 'description_template' => 'To personalise your investment plan, we need three key pieces of information: your investment time horizon, your capacity for loss, and your risk tolerance. This allows us to recommend an appropriate asset allocation.',
                 'action_template' => 'Complete the risk questionnaire in the Risk Profile section to provide this information.',
                 'category' => 'Risk Profile',
@@ -108,9 +109,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
             [
                 'key' => 'no_holdings',
                 'source' => 'agent',
-                'title_template' => 'Add Your Fund Holdings',
-                'description_template' => 'Without your fund holdings, this plan uses risk-based fee-optimised allocations as a benchmark. Adding your actual holdings will give you a more accurate analysis of your fees, diversification, and tax efficiency.',
-                'action_template' => 'Click on your investment account and add your fund holdings for a personalised analysis.',
+                'title_template' => 'Add the funds you hold',
+                'description_template' => 'Your investment accounts have no holdings recorded, so their charges, their mix and the tax on them cannot be checked.',
+                'action_template' => 'Open each account and add the funds or shares it holds.',
                 'category' => 'Portfolio Setup',
                 'priority' => 'medium',
                 'scope' => 'portfolio',
@@ -137,9 +138,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                     'condition' => 'diversification_score_below',
                     'threshold' => 70,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 30,
-                'notes' => 'Triggers when diversification score is below threshold. Only fires when holdings exist.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D3, CSJ): folded into allocation_position.',
             ],
 
             [
@@ -156,9 +157,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                     'condition' => 'total_fee_percent_above',
                     'threshold' => 1.0,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 40,
-                'notes' => 'Triggers per-account when total fee percentage exceeds threshold.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D4, CSJ): folded into account_charges.',
             ],
 
             [
@@ -175,9 +176,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                     'condition' => 'weighted_ocf_above',
                     'threshold' => 0.5,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 50,
-                'notes' => 'Triggers per-account when weighted ongoing charge figure exceeds threshold.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D4, CSJ): folded into account_charges.',
             ],
 
             [
@@ -194,9 +195,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                     'condition' => 'platform_fee_percent_above',
                     'threshold' => 0.8,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 60,
-                'notes' => 'Triggers per-account when platform fee percentage exceeds threshold.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D4, CSJ): folded into account_charges.',
             ],
 
             [
@@ -212,17 +213,17 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'trigger_config' => [
                     'condition' => 'allocation_needs_rebalancing',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 70,
-                'notes' => 'Triggers when allocation deviation indicates rebalancing is needed. Only fires when holdings exist.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D3, CSJ): folded into allocation_position.',
             ],
 
             [
                 'key' => 'tax_loss_harvesting',
                 'source' => 'agent',
                 'title_template' => 'Losses you could use against gains',
-                'description_template' => '{opportunities_count} holdings have unrealised losses. Potential tax saving: {potential_saving}.',
-                'action_template' => 'Consider selling losing positions to offset capital gains.',
+                'description_template' => '{holdings_count} {holdings_word} in your General Investment Account {holdings_verb} worth {total_losses} less than you paid. Selling realises the loss. It is set against your gains in the same tax year first, before the {annual_exempt_amount} tax-free allowance, and any left over carries forward if you report it to HM Revenue and Customs (HMRC) within four years.',
+                'action_template' => 'Check your gains this tax year before selling: if they are already under the tax-free allowance, the loss saves nothing this year. Do not buy the same holding back within 30 days.',
                 'category' => 'Tax Planning',
                 'priority' => 'medium',
                 'scope' => 'portfolio',
@@ -233,6 +234,45 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'is_enabled' => true,
                 'sort_order' => 80,
                 'notes' => 'Triggers when holdings with unrealised losses could be set against gains.',
+            ],
+
+            [
+                'key' => 'allocation_position',
+                'source' => 'agent',
+                'title_template' => '{account_name} holds {current_text} in {asset_label} against {target_percent}% for its risk level',
+                'description_template' => '{account_name} is outside its rebalancing threshold for the {risk_label} risk level: {allocation_summary}.{unrecorded_note}',
+                'action_template' => 'Open the account and look at its rebalancing panel.',
+                'category' => 'Asset Allocation',
+                'priority' => 'medium',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'account_outside_drift_threshold',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 65,
+                'notes' => 'Item 8 D3 (CSJ 2026-10-06, per account as the page): one card per account outside its rebalancing threshold (AccountDriftService). Replaces rebalance_portfolio and low_diversification.',
+            ],
+
+            [
+                'key' => 'account_charges',
+                'source' => 'agent',
+                'title_template' => 'Review the charges on {account_name}',
+                'description_template' => '{account_name} costs {annual_fees} a year in charges, {total_fee_percent}% of its value: {charges_list}.',
+                'action_template' => 'Compare these charges with what other providers and funds would cost for the same holdings.',
+                'category' => 'Fees',
+                'priority' => 'high',
+                'scope' => 'account',
+                'what_if_impact_type' => 'fee_reduction',
+                'trigger_config' => [
+                    'condition' => 'account_charges_above',
+                    'total_threshold' => 1.0,
+                    'fund_threshold' => 0.5,
+                    'platform_threshold' => 0.8,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 45,
+                'notes' => 'Item 8 D4 (CSJ 2026-10-06): one card per account whose total, fund or platform charges cross a threshold. Replaces high_total_fees, high_fund_fees and high_platform_fees.',
             ],
 
             // ── Agent-sourced: Tax efficiency actions (3) ──────────────
@@ -258,7 +298,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
             [
                 'key' => 'use_isa_allowance',
                 'source' => 'agent',
-                'title_template' => 'Use Your ISA Allowance',
+                'title_template' => 'Use your ISA allowance: {isa_remaining} left this tax year',
                 'description_template' => 'You have {isa_remaining} ISA allowance remaining this tax year. Consider moving General Investment Account holdings ({gia_value}) into your ISA before 5 April.',
                 'action_template' => 'Transfer or contribute General Investment Account funds into your ISA to shelter from tax.',
                 'category' => 'Tax Efficiency',
@@ -276,9 +316,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
             [
                 'key' => 'consider_bonds',
                 'source' => 'agent',
-                'title_template' => 'Consider Tax-Efficient Bonds',
-                'description_template' => 'With {gia_value} in your General Investment Account, consider onshore bonds (tax-deferred growth, 5% annual tax-free withdrawal) or offshore bonds (gross roll-up, no annual UK tax on gains) for additional tax efficiency.',
-                'action_template' => 'Speak to your adviser about investment bonds for tax-deferred growth.',
+                'title_template' => 'Consider an investment bond for some of your {gia_value}',
+                'description_template' => 'With {gia_value} in your General Investment Account, an investment bond is another way to hold it. Gains in a bond are taxed as income when it ends or you cash it in, with top-slicing relief. Each year you can take back up to 5% of what you paid in, building up if unused, with the tax deferred, not removed.',
+                'action_template' => 'Speak to a financial adviser before buying a bond: charges and the tax when it ends depend on your circumstances.',
                 'category' => 'Tax Efficiency',
                 'priority' => 'low',
                 'scope' => 'portfolio',
@@ -308,9 +348,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                     'condition' => 'emergency_runway_below',
                     'threshold' => 3,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 120,
-                'notes' => 'Triggers when emergency fund runway is below threshold months.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D1, CSJ): carried by Savings: emergency_fund_critical. It only ever showed on the Investment plan page.',
             ],
 
             [
@@ -328,9 +368,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                     'low' => 3,
                     'high' => 6,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 130,
-                'notes' => 'Triggers when emergency fund runway is between low and high thresholds.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D1, CSJ): carried by Savings: emergency_fund_low / emergency_fund_building. It only ever showed on the Investment plan page.',
             ],
 
             [
@@ -346,9 +386,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'trigger_config' => [
                     'condition' => 'has_poor_rate_accounts',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 140,
-                'notes' => 'Triggers when poor-rated savings accounts exist with meaningful potential gain.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D1, CSJ): carried by Savings: rate_below_market / rate_poor. It only ever showed on the Investment plan page.',
             ],
 
             [
@@ -365,9 +405,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                     'condition' => 'isa_remaining_and_runway_above',
                     'threshold' => 6,
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 150,
-                'notes' => 'Triggers when ISA allowance remaining and emergency fund runway exceeds threshold.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D1, CSJ): carried by Savings: isa_allowance_remaining. It only ever showed on the Investment plan page.',
             ],
 
             // ── Agent-sourced: Surplus waterfall actions (3) ────────────
@@ -385,9 +425,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'trigger_config' => [
                     'condition' => 'surplus_exists_and_isa_remaining',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 160,
-                'notes' => 'Triggers when surplus exists and ISA allowance remaining.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D1, CSJ): carried by Savings: excess_cash_isa_available. It only ever showed on the Investment plan page.',
             ],
 
             [
@@ -403,9 +443,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'trigger_config' => [
                     'condition' => 'surplus_exceeds_isa',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 170,
-                'notes' => 'Triggers when surplus exceeds ISA capacity.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D1, CSJ): carried by Savings: excess_cash_pension. It only ever showed on the Investment plan page.',
             ],
 
             [
@@ -421,9 +461,9 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'trigger_config' => [
                     'condition' => 'surplus_exceeds_pension',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 180,
-                'notes' => 'Triggers when surplus exceeds pension capacity.',
+                'notes' => 'DISABLED 2026-10-06 (item 8 D1, CSJ): carried by Savings: excess_cash_bond. It only ever showed on the Investment plan page.',
             ],
 
             // ── Goal-sourced actions (3) ────────────────────────────────

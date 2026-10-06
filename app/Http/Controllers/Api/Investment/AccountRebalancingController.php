@@ -8,12 +8,9 @@ use App\Constants\InvestmentDefaults;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Investment\RiskProfile;
-use App\Models\User;
-use App\Services\Investment\Rebalancing\DriftAnalyzer;
+use App\Services\Investment\Rebalancing\AccountDriftService;
 use App\Services\Investment\Rebalancing\RebalancingCalculator;
 use App\Services\Investment\Rebalancing\TaxAwareRebalancer;
-use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,8 +34,7 @@ class AccountRebalancingController extends Controller
     public function __construct(
         private readonly RebalancingCalculator $rebalancingCalculator,
         private readonly TaxAwareRebalancer $taxAwareRebalancer,
-        private readonly DriftAnalyzer $driftAnalyzer,
-        private readonly RiskPreferenceService $riskPreferenceService
+        private readonly AccountDriftService $accountDrift,
     ) {}
 
     /**
@@ -51,8 +47,9 @@ class AccountRebalancingController extends Controller
         $user = $request->user();
 
         try {
-            $account = InvestmentAccount::where('id', $accountId)
-                ->where('user_id', $user->id)
+            // Either owner of a joint account sees its panel, as the card shows it to both.
+            $account = InvestmentAccount::forUserOrJoint($user->id)
+                ->where('id', $accountId)
                 ->with('holdings')
                 ->first();
 
@@ -68,52 +65,26 @@ class AccountRebalancingController extends Controller
             $accountType = strtolower($account->account_type ?? '');
             $isTaxFree = in_array($accountType, ['isa', 'sipp', 'pension', 'lisa']);
 
-            $riskProfileInfo = $this->resolveAccountRiskProfile($account, $user);
-            $targetAllocation = $this->getTargetAllocationForRiskLevel($riskProfileInfo['effective_risk_level']);
-            $thresholdPercent = (float) ($account->rebalance_threshold_percent ?? 10.0);
-
-            if ($holdings->isEmpty()) {
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'account_id' => $account->id,
-                        'account_type' => $accountType,
-                        'is_tax_free' => $isTaxFree,
-                        'risk_profile' => $riskProfileInfo,
-                        'threshold_percent' => $thresholdPercent,
-                        'current_allocation' => ['equities' => 0, 'bonds' => 0, 'cash' => 0, 'alternatives' => 0],
-                        'target_allocation' => $targetAllocation,
-                        'drift_analysis' => [
-                            'drift_score' => 0,
-                            'max_drift' => 0,
-                            'needs_rebalancing' => false,
-                        ],
-                        'rebalancing_actions' => [],
-                        'cgt_analysis' => null,
-                    ],
-                ]);
-            }
-
-            $driftResult = $this->driftAnalyzer->analyzeDrift($holdings, $targetAllocation);
-
-            $driftScore = $driftResult['drift_score'] ?? 0;
-            $maxDrift = $driftResult['drift_metrics']['max_drift'] ?? 0;
-            $needsRebalancing = $driftScore >= $thresholdPercent;
+            // The one rule for "is this account outside its threshold" (item 8).
+            $drift = $this->accountDrift->forAccount($account, $user);
+            $targetAllocation = $drift['target_allocation'];
+            $needsRebalancing = $drift['needs_rebalancing'];
 
             $response = [
                 'account_id' => $account->id,
                 'account_type' => $accountType,
                 'is_tax_free' => $isTaxFree,
-                'risk_profile' => $riskProfileInfo,
-                'threshold_percent' => $thresholdPercent,
-                'current_allocation' => $driftResult['current_allocation'] ?? [],
+                'risk_profile' => $drift['risk_profile'],
+                'threshold_percent' => $drift['threshold_percent'],
+                'current_allocation' => $drift['current_allocation'],
+                'unrecorded_percent' => $drift['unrecorded_percent'],
                 'target_allocation' => $targetAllocation,
                 'drift_analysis' => [
-                    'drift_score' => round($driftScore, 2),
-                    'max_drift' => round($maxDrift, 2),
+                    'drift_score' => $drift['drift_score'],
+                    'max_drift' => $drift['max_drift'],
                     'needs_rebalancing' => $needsRebalancing,
-                    'urgency' => $driftResult['urgency'] ?? 'low',
-                    'recommendation' => $driftResult['recommendation'] ?? '',
+                    'urgency' => $drift['urgency'],
+                    'recommendation' => $drift['recommendation'],
                 ],
                 'rebalancing_actions' => [],
                 'cgt_analysis' => null,
@@ -200,90 +171,6 @@ class AccountRebalancingController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Rebalancing threshold update');
         }
-    }
-
-    /**
-     * Resolve the effective risk profile for a single investment account.
-     *
-     * Combines the user's main risk profile (from risk_profiles) with the
-     * account's optional custom override (`risk_preference`).
-     * Extracted from getAccountRebalancing during the controller split
-     * (tech-debt audit Warning #1, 2026-05-13 session 3).
-     */
-    private function resolveAccountRiskProfile(InvestmentAccount $account, User $user): array
-    {
-        $userRiskProfile = RiskProfile::where('user_id', $user->id)->first();
-
-        $userRiskLevel = $userRiskProfile
-            ? $this->mapRiskStringToLevel($userRiskProfile->risk_level)
-            : 3;
-        $userRiskLabel = $this->getRiskLabel($userRiskLevel);
-
-        // The override is the preference itself, not the `has_custom_risk` flag beside
-        // it — nothing writes that flag on an investment account, so gating on it
-        // rebalanced every account to the user's main profile regardless of the level
-        // they had chosen for it.
-        $accountRiskPreference = $this->riskPreferenceService->getProductRiskOverride($account);
-        $hasCustomRisk = $accountRiskPreference !== null;
-
-        if ($hasCustomRisk) {
-            $effectiveRiskLevel = $this->mapRiskStringToLevel($accountRiskPreference);
-            $effectiveRiskLabel = $this->getRiskLabel($effectiveRiskLevel);
-        } else {
-            $effectiveRiskLevel = $userRiskLevel;
-            $effectiveRiskLabel = $userRiskLabel;
-        }
-
-        return [
-            'user_risk_level' => $userRiskLevel,
-            'user_risk_label' => $userRiskLabel,
-            'has_custom_risk' => $hasCustomRisk,
-            'account_risk_preference' => $accountRiskPreference,
-            'effective_risk_level' => $effectiveRiskLevel,
-            'effective_risk_label' => $effectiveRiskLabel,
-        ];
-    }
-
-    /**
-     * Get target asset allocation for a risk level
-     */
-    private function getTargetAllocationForRiskLevel(int $riskLevel): array
-    {
-        return InvestmentDefaults::getTargetAllocation($riskLevel);
-    }
-
-    /**
-     * Get risk label for a risk level
-     */
-    private function getRiskLabel(int $riskLevel): string
-    {
-        return match ($riskLevel) {
-            1 => 'Low',
-            2 => 'Lower-Medium',
-            3 => 'Medium',
-            4 => 'Upper-Medium',
-            5 => 'High',
-            default => 'Medium',
-        };
-    }
-
-    /**
-     * Map risk string (from database) to numeric level (1-5)
-     */
-    private function mapRiskStringToLevel(?string $riskString): int
-    {
-        if (! $riskString) {
-            return 3;
-        }
-
-        return match (strtolower($riskString)) {
-            'low', 'cautious', 'very_conservative' => 1,
-            'lower_medium', 'conservative' => 2,
-            'medium', 'balanced', 'moderate' => 3,
-            'upper_medium', 'growth' => 4,
-            'high', 'adventurous', 'aggressive' => 5,
-            default => 3,
-        };
     }
 
     /**
