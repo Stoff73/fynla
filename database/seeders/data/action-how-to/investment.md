@@ -132,7 +132,7 @@ outcome:
 1. You know how an onshore or an offshore bond would be taxed, compared with your General Investment Account.
 
 ## bond_position
-status: draft
+status: approved
 source: `BondPositionService` (the gain: value plus what has been taken, less what was paid in, ITTOIA 2005 s491; the 5%: for each policy year begun 5% of what was paid in, building up, to no more than the full amount, s507; https://www.legislation.gov.uk/ukpga/2005/5/section/507); ITTOIA 2005 s484 (chargeable events), s530 (a UK policy's gain is treated as having had basic-rate tax paid; https://www.legislation.gov.uk/ukpga/2005/5/section/530); Income Tax Act 2007 s535 (top-slicing relief; https://www.legislation.gov.uk/ukpga/2007/3/section/535); CSJ 2026-10-06 (onshore and offshore bonds, top-slicing relief, the cumulative 5%); the card's own figures
 figures: account_name, bond_kind, is_offshore, value, paid_in, withdrawn, has_withdrawn, gain, has_allowance, allowance_left, policy_years
 why:
@@ -155,7 +155,7 @@ outcome:
 1. You know the gain building up in {account_name} and what you can take from it without tax at the time.
 
 ## bond_paid_in_missing
-status: draft
+status: approved
 source: `BondPositionService` (the gain and the 5% are worked out from what was paid in and when the bond started; ITTOIA 2005 s491, s507); the bond form (`StandardInvestmentFields` bond section; Fyn's investment form, `CaptureForms` onshore and offshore bond kinds)
 figures: account_name, bond_kind, value
 why:

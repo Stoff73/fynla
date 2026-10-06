@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Constants\ProfileEnums;
 use App\Models\User;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Tax\TaxStrategyMath;
@@ -1094,6 +1095,23 @@ final class CaptureForms
         if (isset($input['marital_status'])) {
             $parts[] = "I'm ".self::maritalWords($input['marital_status']);
         }
+        if (isset($input['smoking_status'])) {
+            $parts[] = match ($input['smoking_status']) {
+                'never' => "I've never smoked",
+                'quit_recent' => 'I gave up smoking in the last 12 months',
+                'quit_long_ago' => 'I gave up smoking more than 12 months ago',
+                default => 'I smoke',
+            };
+        }
+        if (isset($input['health_status'])) {
+            $parts[] = match ($input['health_status']) {
+                'yes' => "I'm in good health",
+                'yes_previous' => "I'm in good health, with previous health conditions",
+                'no_previous' => "I'm not in good health, with previous health conditions",
+                'no_existing' => 'I have existing health conditions',
+                default => 'I have previous and existing health conditions',
+            };
+        }
 
         return $parts === [] ? '' : ucfirst(implode(', ', array_slice($parts, 0, -1)).(count($parts) > 1 ? ' and ' : '').end($parts)).'.';
     }
@@ -1120,7 +1138,7 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_personal_details',
             'entity_type' => 'personal',
-            'lead_fields' => ['date_of_birth', 'gender', 'marital_status'],
+            'lead_fields' => ['date_of_birth', 'gender', 'marital_status', 'smoking_status', 'health_status'],
             'kinds' => [],
             'fields' => [
                 'date_of_birth' => ['type' => 'date', 'label' => 'Your date of birth', 'required' => true],
@@ -1139,8 +1157,22 @@ final class CaptureForms
                     ['value' => 'divorced', 'label' => 'Divorced'],
                     ['value' => 'widowed', 'label' => 'Widowed'],
                 ]],
+                // Item 8a (CSJ 2026-10-06): the web and /m Health forms' questions
+                // and answers, saved to the same columns (ProfileEnums is the one
+                // list). Protection pricing and enhanced annuity quotes read them.
+                'smoking_status' => ['type' => 'choice', 'label' => 'Do you smoke?', 'required' => true, 'options' => self::choiceOptions(ProfileEnums::SMOKING_STATUS_LABELS)],
+                'health_status' => ['type' => 'choice', 'label' => 'Are you in good health?', 'required' => true, 'options' => self::choiceOptions(ProfileEnums::HEALTH_STATUS_LABELS)],
             ],
         ];
+    }
+
+    /**
+     * @param  array<string, string>  $labels
+     * @return list<array{value: string, label: string}>
+     */
+    private static function choiceOptions(array $labels): array
+    {
+        return array_map(static fn (string $value, string $label): array => ['value' => $value, 'label' => $label], array_keys($labels), $labels);
     }
 
     /**

@@ -261,23 +261,21 @@ class ProtectionActionDefinitionService
         // Use the first matching recommendation's data
         $rec = $matched[0];
         $coverageAmount = $rec['coverage_amount'] ?? $rec['monthly_benefit'] ?? 0;
-        $monthlyCost = $rec['estimated_monthly_cost'] ?? 0;
 
         // Step 3: Recommended coverage details
         $trace[] = [
-            'question' => 'What coverage amount and cost does the strategy recommend for '.$firstName.'?',
+            'question' => 'What coverage amount does the strategy recommend for '.$firstName.'?',
             'data_field' => 'Recommended coverage',
-            'data_value' => '£'.number_format((float) $coverageAmount, 0).' cover, £'.number_format((float) $monthlyCost, 2).' per month estimated cost',
+            'data_value' => '£'.number_format((float) $coverageAmount, 0).' cover (no premium is estimated: only an insurer\'s quote gives one)',
             'threshold' => 'N/A — strategy-driven recommendation',
             'passed' => false,
-            'explanation' => 'The strategy recommends '.$firstName.' obtains £'.number_format((float) $coverageAmount, 0).' of coverage at an estimated cost of £'.number_format((float) $monthlyCost, 2).' per month. Action: '.($rec['action'] ?? 'Review coverage').'. Details: '.($rec['details'] ?? 'None specified').'.',
+            'explanation' => 'The strategy recommends '.$firstName.' obtains £'.number_format((float) $coverageAmount, 0).' of coverage. Action: '.($rec['action'] ?? 'Review coverage').'. Details: '.($rec['details'] ?? 'None specified').'.',
         ];
 
         $vars = [
             'action_text' => $rec['action'] ?? 'Review coverage',
             'details_text' => $rec['details'] ?? '',
             'coverage_amount' => $this->formatCurrency($coverageAmount),
-            'monthly_cost' => $this->formatCurrency($monthlyCost),
         ];
 
         $result = [
@@ -286,7 +284,6 @@ class ProtectionActionDefinitionService
             'action' => $definition->renderTitle($vars),
             'rationale' => $definition->renderDescription($vars),
             'impact' => $rec['importance'] ?? 'Medium',
-            'estimated_cost' => round((float) $monthlyCost, 2),
             'impact_parameters' => ['coverage_amount' => $coverageAmount],
             'timeframe' => $rec['timeframe'] ?? 'Within 3 months',
             'decision_trace' => $trace,

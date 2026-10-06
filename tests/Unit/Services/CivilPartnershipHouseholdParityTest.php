@@ -57,30 +57,6 @@ function w0480Household(string $status, int $userIncome = 80000, int $spouseInco
 }
 
 describe('LifeCoverCalculator', function () {
-    it('quotes a civil partnership the same joint life second death policy as a marriage', function () {
-        $calculator = app(LifeCoverCalculator::class);
-
-        $quote = function (string $status) use ($calculator) {
-            [$user, $spouse] = w0480Household($status);
-
-            return $calculator->calculateLifeCoverRecommendations(200000, 150000, 20, $user, $spouse);
-        };
-
-        $married = $quote('married');
-        $civil = $quote('civil_partnership');
-        $single = $quote('single');
-
-        // The premium moves, not just a label: a joint life policy carries a 25%
-        // discount and is priced on the average of two ages.
-        expect($civil['is_joint_policy'])->toBeTrue()
-            ->and($civil['is_joint_policy'])->toBe($married['is_joint_policy'])
-            ->and($civil['scenarios']['full_cover']['annual_premium'])
-            ->toBe($married['scenarios']['full_cover']['annual_premium'])
-            ->and($single['is_joint_policy'])->toBeFalse()
-            ->and($civil['scenarios']['full_cover']['annual_premium'])
-            ->toBeLessThan($single['scenarios']['full_cover']['annual_premium']);
-    });
-
     it('warns a civil partnership about a single life policy, as it warns a marriage', function () {
         $calculator = app(LifeCoverCalculator::class);
 

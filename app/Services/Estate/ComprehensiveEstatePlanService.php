@@ -234,7 +234,8 @@ class ComprehensiveEstatePlanService
         return [
             'recommended_approach' => 'Whole of Life Policy',
             'sum_assured_required' => $ihtLiability,
-            'estimated_monthly_premium' => $this->estimateLifePremium($user, $ihtLiability),
+            // No premium figure: nothing sources what an insurer would charge
+            // this person (Rule 23; CSJ 2026-10-06). Only a quote gives one.
             'policy_type' => 'Whole of Life',
             'written_in_trust' => true,
             'benefits' => [
@@ -244,17 +245,6 @@ class ComprehensiveEstatePlanService
                 'Peace of mind for beneficiaries',
             ],
         ];
-    }
-
-    /**
-     * Estimate monthly life insurance premium (simplified)
-     */
-    private function estimateLifePremium(User $user, float $sumAssured): float
-    {
-        $age = $user->age ?? 55;
-        $monthlyRatePer1000 = 0.50 + ($age - 40) * 0.05; // Simplified
-
-        return ($sumAssured / 1000) * $monthlyRatePer1000;
     }
 
     /**
@@ -933,7 +923,6 @@ class ComprehensiveEstatePlanService
     ): array {
         $recommendations = [];
         $totalIHTSaving = 0;
-        $totalCosts = 0;
 
         // Priority 1: Immediate actions (Annual exemption + Trust within NRB).
         // ONLY when the estate actually has an IHT liability. A sub-NRB estate
@@ -1006,14 +995,12 @@ class ComprehensiveEstatePlanService
                     'actions' => [
                         [
                             'action' => 'Establish Whole of Life policy in trust',
-                            'details' => 'Sum assured: £'.number_format($remainingLiability, 0).' | Premium: £'.number_format($lifePolicyPlan['estimated_monthly_premium'], 2).'/month',
+                            'details' => 'Sum assured: £'.number_format($remainingLiability, 0).'. Ask several insurers for quotes.',
                             'iht_saving' => 0, // Doesn't reduce IHT, but covers the cost
-                            'cost' => $lifePolicyPlan['estimated_monthly_premium'] * 12,
                             'timeframe' => 'Ongoing',
                         ],
                     ],
                 ];
-                $totalCosts += $lifePolicyPlan['estimated_monthly_premium'] * 12;
             }
         }
 
@@ -1042,8 +1029,6 @@ class ComprehensiveEstatePlanService
                 'current_iht_liability' => $currentIHTLiability,
                 'total_iht_saving' => $totalIHTSaving,
                 'remaining_liability' => max(0, $currentIHTLiability - $totalIHTSaving),
-                'annual_costs' => $totalCosts,
-                'net_benefit' => $totalIHTSaving - $totalCosts,
                 'effectiveness_percentage' => $currentIHTLiability > 0 ? ($totalIHTSaving / $currentIHTLiability) * 100 : 0,
             ],
         ];
@@ -1144,7 +1129,6 @@ class ComprehensiveEstatePlanService
             ],
             'recommended_strategy' => $optimizedStrategy['strategy_name'],
             'potential_saving' => $potentialSaving,
-            'annual_cost' => $optimizedStrategy['summary']['annual_costs'],
             'key_actions' => $keyActions, // Array of action strings, not count
         ];
     }

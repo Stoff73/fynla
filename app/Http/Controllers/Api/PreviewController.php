@@ -433,7 +433,7 @@ class PreviewController extends Controller
             'annual_salary' => $userData['annual_salary'] ?? null,
             'other_income' => $userData['other_income'] ?? null,
             'health_status' => $userData['health_status'] ?? null,
-            'smoker_status' => $userData['smoker_status'] ?? null,
+            'smoking_status' => $userData['smoking_status'] ?? null,
             'monthly_expenditure' => $userData['monthly_expenditure'] ?? null,
             'registration_source' => 'preview',
         ], fn ($value) => $value !== null);
@@ -682,7 +682,7 @@ class PreviewController extends Controller
             'employer_name' => $spouseData['employer_name'] ?? null,
             'annual_salary' => $spouseData['annual_salary'] ?? null,
             'health_status' => $spouseData['health_status'] ?? null,
-            'smoker_status' => $spouseData['smoker_status'] ?? null,
+            'smoking_status' => $spouseData['smoking_status'] ?? null,
             'registration_source' => 'preview_spouse',
             'preview_persona_kept' => $primaryUser->preview_persona_kept,
         ]);

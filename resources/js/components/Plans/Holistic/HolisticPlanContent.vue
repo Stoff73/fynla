@@ -266,7 +266,6 @@ export default {
       let lifeReduction = 0;
       let ciReduction = 0;
       let ipReduction = 0;
-      let additionalPremium = 0;
 
       const actions = this.protectionPlan?.actions || [];
       actions.forEach((action) => {
@@ -274,17 +273,13 @@ export default {
 
         const category = (action.category || '').toLowerCase();
         const coverageAmount = action.impact_parameters?.coverage_amount || 0;
-        const premium = action.impact_parameters?.premium || 0;
 
         if (category.includes('life')) {
           lifeReduction += coverageAmount || lifeGap;
-          additionalPremium += premium;
         } else if (category.includes('critical')) {
           ciReduction += coverageAmount || ciGap;
-          additionalPremium += premium;
         } else if (category.includes('income')) {
           ipReduction += coverageAmount || ipGap;
-          additionalPremium += premium;
         }
       });
 
@@ -304,7 +299,6 @@ export default {
         life_insurance_need: current.life_insurance_need || 0,
         critical_illness_need: current.critical_illness_need || 0,
         income_protection_need: current.income_protection_need || 0,
-        estimated_additional_premium: additionalPremium || null,
       };
     },
 
@@ -382,17 +376,6 @@ export default {
       // Try cascade_params first (retirement/investment contributions)
       if (action.cascade_params?.additional_monthly) {
         return action.cascade_params.additional_monthly;
-      }
-      // Protection premiums
-      if (action.impact_parameters?.monthly_premium_estimate) {
-        return action.impact_parameters.monthly_premium_estimate;
-      }
-      if (action.impact_parameters?.premium) {
-        return action.impact_parameters.premium;
-      }
-      // Estate affordability
-      if (action.affordability?.monthly_premium_estimate) {
-        return action.affordability.monthly_premium_estimate;
       }
       // Fallback: annual / 12
       if (action.estimated_impact) {

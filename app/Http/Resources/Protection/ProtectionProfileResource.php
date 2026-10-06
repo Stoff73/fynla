@@ -22,8 +22,6 @@ class ProtectionProfileResource extends JsonResource
             'dependents_ages' => $this->dependents_ages,
             'retirement_age' => $this->retirement_age,
             'occupation' => $this->occupation,
-            'smoker_status' => (bool) $this->smoker_status,
-            'health_status' => $this->health_status,
             'has_no_policies' => (bool) $this->has_no_policies,
             // Employer benefits: null means not provided; employer_benefits_recorded_at
             // null means the user has never answered.

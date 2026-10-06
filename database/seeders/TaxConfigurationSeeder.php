@@ -1046,21 +1046,6 @@ class TaxConfigurationSeeder extends Seeder
                     'savings' => 25000,                          // Default savings estimate
                     'business' => 100000,                        // Default business estimate
                 ],
-                'insurance_premium_estimates' => [
-                    // Per £1,000 cover per month — by age band and gender
-                    'per_thousand_monthly' => [
-                        '30_male' => 0.30,
-                        '30_female' => 0.25,
-                        '40_male' => 0.50,
-                        '40_female' => 0.40,
-                        '50_male' => 1.00,
-                        '50_female' => 0.80,
-                        '60_male' => 2.50,
-                        '60_female' => 2.00,
-                        '70_male' => 6.00,
-                        '70_female' => 5.00,
-                    ],
-                ],
             ],
 
             // Investment engine constants
@@ -1153,20 +1138,6 @@ class TaxConfigurationSeeder extends Seeder
                 // Cost estimates
                 'education_cost_per_year' => 9000,               // £9,000 university tuition per year
                 'final_expenses' => 7500,                        // £7,500 funeral + admin costs
-
-                // Affordability thresholds
-                'affordability' => [
-                    'max_premium_percent_of_income' => 0.10,     // Max 10% of gross income on premiums
-                    'comfortable_premium_percent' => 0.05,       // 5% is comfortable
-                ],
-
-                // Premium estimation factors
-                'premium_factors' => [
-                    'base_rate' => 0.50,                         // Base rate per £1,000 cover per month
-                    'smoker_loading' => 1.5,                     // 50% loading for smokers
-                    'ci_ratio' => 2.5,                           // CI costs 2.5x life cover
-                    'ip_rate' => 0.02,                           // IP rate as % of benefit per month
-                ],
 
                 // Withdrawal rates for capital calculations
                 'withdrawal_rates' => [

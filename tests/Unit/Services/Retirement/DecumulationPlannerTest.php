@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use App\Services\Retirement\DecumulationPlanner;
 use App\Services\TaxConfigService;
 
@@ -210,4 +211,37 @@ it('adjusts withdrawal rate for inflation', function () {
     // With higher inflation, real returns are lower
     expect($result['scenarios'])->toHaveCount(3)
         ->and($result['recommended_rate'])->toBeNumeric();
+});
+
+/*
+ * Item 8a (CSJ 2026-10-06): enhanced annuity eligibility reads the user's own
+ * smoking and health answers, and estimates no uplift (Rule 23: the old 20% / 15%
+ * factors had no source; what a provider adds is its own underwriting).
+ */
+it('finds enhanced annuity quotes worth asking for from the user\'s own smoking or health answer', function (?string $smoking, ?string $health, bool $eligible) {
+    $user = User::factory()->create(['smoking_status' => $smoking, 'health_status' => $health]);
+
+    $result = $this->planner->assessEnhancedAnnuityEligibility($user);
+
+    expect($result['is_eligible'])->toBe($eligible)
+        ->and($result)->not->toHaveKey('enhancement_factor');
+})->with([
+    'smokes' => ['yes', 'yes', true],
+    'gave up within 12 months' => ['quit_recent', 'yes', true],
+    'gave up long ago, good health' => ['quit_long_ago', 'yes', false],
+    'never smoked, existing conditions' => ['never', 'no_existing', true],
+    'never smoked, past conditions only' => ['never', 'yes_previous', true],
+    'never smoked, good health' => ['never', 'yes', false],
+    'not answered' => [null, null, false],
+]);
+
+it('shows the standard annuity income for a smoker, with no invented uplift', function () {
+    $smoker = User::factory()->create(['smoking_status' => 'yes', 'health_status' => 'no_existing']);
+
+    $result = $this->planner->compareAnnuityVsDrawdown(100000, 65, false, $smoker);
+
+    expect($result['annuity']['annual_income'])->toBe(6000.0)
+        ->and($result['annuity']['enhanced_annuity_eligible'])->toBeTrue()
+        ->and($result['annuity'])->not->toHaveKey('enhancement_factor')
+        ->and($result['annuity'])->not->toHaveKey('effective_annuity_rate');
 });

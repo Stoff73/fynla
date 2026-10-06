@@ -14,6 +14,7 @@ use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Retirement\RetirementDrawdownPosition;
 
 /**
  * Builds the single ranked next-actions list (max 4) shown on the /m dashboard
@@ -27,6 +28,24 @@ class NextActionsService
 
     /** Modules that can produce an unlock prompt, in surfacing priority order. */
     private const UNLOCK_MODULES = ['retirement', 'protection', 'savings', 'investment', 'estate', 'goals'];
+
+    /**
+     * The line under each focus area's name, sent with its card so every
+     * surface shows the same words (Rule 20). Retirement has two: someone
+     * drawing their pension is not closing an income gap, so they get the line
+     * for the drawing view the area opens (RetirementDrawdownPosition::isDrawing,
+     * the rule that picks that view; CSJ 2026-10-06 "FIX IT").
+     */
+    private const AREA_INFO = [
+        'retirement' => 'Close your projected income gap — small increases now compound.',
+        'protection' => 'Make sure your family is covered if the unexpected happens.',
+        'savings' => 'Build your emergency fund and earn more on your cash.',
+        'investment' => 'Put your money to work and keep your portfolio on track.',
+        'estate' => 'Plan how your wealth passes on and reduce Inheritance Tax.',
+        'goals' => 'Set financial goals and track your progress towards them.',
+    ];
+
+    private const RETIREMENT_DRAWING_INFO = 'See your income this year and how long your pension lasts.';
 
     /**
      * Max strategy-level unlock cards on the capped surfaces (the 4-slot
@@ -206,7 +225,7 @@ class NextActionsService
             'locked' => false,
             'stat' => self::actionCount(count($top)),
             'actions' => $top,
-        ]], $this->moduleCards($recItems, $unlocks));
+        ]], $this->moduleCards($recItems, $unlocks, $user));
     }
 
     /**
@@ -239,8 +258,10 @@ class NextActionsService
      * @param  array<int,array<string,mixed>>  $unlocks
      * @return array<int,array<string,mixed>>
      */
-    private function moduleCards(array $recItems, array $unlocks): array
+    private function moduleCards(array $recItems, array $unlocks, User $user): array
     {
+        $drawing = app(RetirementDrawdownPosition::class)->isDrawing($user);
+
         $byModule = [];
         foreach ($recItems as $item) {
             $byModule[$item['module']][] = $item;
@@ -265,6 +286,7 @@ class NextActionsService
                 $cards[] = [
                     'key' => $module,
                     'label' => $label,
+                    'info' => $this->areaInfo($module, $drawing),
                     'locked' => true,
                     'stat' => (string) $unlock['meta'],
                     'actions' => [$unlock],
@@ -283,6 +305,7 @@ class NextActionsService
                 $cards[] = [
                     'key' => $module,
                     'label' => $label,
+                    'info' => $this->areaInfo($module, $drawing),
                     'locked' => false,
                     'stat' => 'Nothing to action right now',
                     'actions' => [$needed],
@@ -294,6 +317,7 @@ class NextActionsService
             $cards[] = [
                 'key' => $module,
                 'label' => $label,
+                'info' => $this->areaInfo($module, $drawing),
                 'locked' => false,
                 'stat' => self::cardStat($items),
                 'actions' => $items,
@@ -301,6 +325,15 @@ class NextActionsService
         }
 
         return $cards;
+    }
+
+    private function areaInfo(string $module, bool $drawing): string
+    {
+        if ($module === 'retirement' && $drawing) {
+            return self::RETIREMENT_DRAWING_INFO;
+        }
+
+        return self::AREA_INFO[$module] ?? '';
     }
 
     /**

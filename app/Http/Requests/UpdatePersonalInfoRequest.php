@@ -39,8 +39,7 @@ class UpdatePersonalInfoRequest extends FormRequest
         // The Health & Lifestyle selects submit '' for "Select...", which the
         // global ConvertEmptyStringsToNull middleware turns into null before we
         // see it. Drop the key rather than validating it: an unanswered select
-        // means "leave it alone", and null cannot be written to smoking_status,
-        // which is NOT NULL.
+        // means "leave it alone", not "clear the answer I gave".
         $input = $this->all();
         foreach (ProfileEnums::OPTIONAL_SELECT_FIELDS as $field) {
             if (array_key_exists($field, $input) && ($input[$field] === null || $input[$field] === '')) {
@@ -79,7 +78,6 @@ class UpdatePersonalInfoRequest extends FormRequest
             // naming columns that do not exist (W-0006) and once allowing three
             // education levels the column cannot hold, which 500d (W-0031).
             'health_status' => ['sometimes', 'nullable', Rule::in(ProfileEnums::HEALTH_STATUSES)],
-            // Not nullable: `users.smoking_status` is NOT NULL DEFAULT 'never'.
             'smoking_status' => ['sometimes', Rule::in(ProfileEnums::SMOKING_STATUSES)],
             'education_level' => ['sometimes', 'nullable', Rule::in(ProfileEnums::EDUCATION_LEVELS)],
             // W-0221: `charitable_bequest` was accepted here and written to a column

@@ -36,7 +36,7 @@ class LifePolicyController extends Controller
             if (! $user->date_of_birth || ! $user->gender) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Date of birth and gender are required to calculate life expectancy and premiums',
+                    'message' => 'Date of birth and gender are required to calculate life expectancy',
                     'requires_profile_update' => true,
                 ], 422);
             }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Constants\GateRoutes;
+use App\Constants\ProfileEnums;
 use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Constants\UpdateRecordAllowlist;
@@ -1738,9 +1739,9 @@ class CoordinatingAgent extends BaseAgent
     // ─── Onboarding grouped-extraction handlers ──────────────────────
 
     /**
-     * capture_personal_details — writes date_of_birth + marital_status
-     * to users. Validates the DOB and enforces the age bounds used by
-     * OnboardingValueInterpreter.
+     * capture_personal_details — writes date_of_birth, gender, marital_status,
+     * smoking_status and health_status to users. Validates the DOB and enforces
+     * the age bounds used by OnboardingValueInterpreter.
      */
     private function handleCapturePersonalDetails(array $input, User $user): array
     {
@@ -1755,6 +1756,22 @@ class CoordinatingAgent extends BaseAgent
         if ($gender !== '') {
             $user->gender = $gender;
         }
+        // Smoking and health (item 8a): the web and /m Health forms' values,
+        // the one list in ProfileEnums.
+        $smoking = trim((string) ($input['smoking_status'] ?? ''));
+        $health = trim((string) ($input['health_status'] ?? ''));
+        if ($smoking !== '' && ! in_array($smoking, ProfileEnums::SMOKING_STATUSES, true)) {
+            return ['error' => true, 'message' => 'Invalid smoking_status'];
+        }
+        if ($health !== '' && ! in_array($health, ProfileEnums::HEALTH_STATUSES, true)) {
+            return ['error' => true, 'message' => 'Invalid health_status'];
+        }
+        if ($smoking !== '') {
+            $user->smoking_status = $smoking;
+        }
+        if ($health !== '') {
+            $user->health_status = $health;
+        }
 
         Log::info('[CoordinatingAgent] handleCapturePersonalDetails called', [
             'user_id' => $user->id,
@@ -1767,7 +1784,7 @@ class CoordinatingAgent extends BaseAgent
         // retry. Any one field is enough: the state machine will stay on
         // base_personal and the next prompt (via buildPersonalPrompt) will
         // pre-confirm the field we have and ask for the missing one.
-        if ($dob === '' && $marital === '' && $gender === '') {
+        if ($dob === '' && $marital === '' && $gender === '' && $smoking === '' && $health === '') {
             Log::warning('[CoordinatingAgent] handleCapturePersonalDetails rejected: both fields empty', [
                 'user_id' => $user->id,
             ]);
@@ -1853,6 +1870,8 @@ class CoordinatingAgent extends BaseAgent
                 'date_of_birth' => $dob !== '',
                 'marital_status' => $marital !== '',
                 'gender' => $gender !== '',
+                'smoking_status' => $smoking !== '',
+                'health_status' => $health !== '',
             ],
         ]);
 

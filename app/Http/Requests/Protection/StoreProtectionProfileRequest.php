@@ -34,8 +34,6 @@ class StoreProtectionProfileRequest extends FormRequest
             'dependents_ages.*' => ['integer', 'min:0', 'max:100'],
             'retirement_age' => ['nullable', 'integer', 'min:50', 'max:85'],
             'occupation' => ['nullable', 'string', 'max:255'],
-            'smoker_status' => ['nullable', 'boolean'],
-            'health_status' => ['nullable', 'string', 'in:excellent,good,fair,poor'],
             'has_no_policies' => ['nullable', 'boolean'],
         ];
     }

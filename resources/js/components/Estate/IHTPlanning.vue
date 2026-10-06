@@ -596,14 +596,6 @@
       class="mb-8"
     />
 
-    <!-- Life Cover Recommendations (Married Users with Second Death Data) -->
-    <LifeCoverRecommendations
-      v-if="isMarried && secondDeathData?.life_cover_recommendations"
-      :recommendations="secondDeathData.life_cover_recommendations"
-      :iht-liability="secondDeathData.effective_iht_liability || secondDeathData.second_death_analysis?.iht_calculation?.iht_liability || 0"
-      class="mb-8"
-    />
-
     <!-- Standard Recommendations (Non-Married Users OR Married without full second death data) -->
     <!--
       W-0171. The single largest adjustment to this household's estate was
@@ -698,7 +690,6 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import SpouseExemptionNotice from './SpouseExemptionNotice.vue';
 import MissingDataAlert from './MissingDataAlert.vue';
 import DualGiftingTimeline from './DualGiftingTimeline.vue';
-import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
 import IHTCalculationTable from './IHTCalculationTable.vue';
 import EstateLifeEventsImpact from './EstateLifeEventsImpact.vue';
 import LetterEstateWarnings from './LetterEstateWarnings.vue';
@@ -723,7 +714,6 @@ export default {
     SpouseExemptionNotice,
     MissingDataAlert,
     DualGiftingTimeline,
-    LifeCoverRecommendations,
     IHTCalculationTable,
     EstateLifeEventsImpact,
     LetterEstateWarnings,
