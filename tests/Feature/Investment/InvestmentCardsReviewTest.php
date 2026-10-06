@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Agents\InvestmentAgent;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
@@ -211,4 +212,24 @@ it('offers an Add form without the setup walk\'s "save with none chosen" wording
 
     expect($schema)->not->toHaveKey('allow_empty')
         ->and($schema['kinds_prompt'])->toBe('Choose what you are adding.');
+});
+
+it('saves a bond\'s paid-in figures through an edit (update_record allowlist)', function () {
+    $user = User::factory()->create();
+    $bond = InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'offshore_bond', 'ownership_type' => 'individual',
+        'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 120000, 'bond_withdrawal_taken' => 10000,
+    ]);
+
+    // Walking csjones /m: the edit said "Updated" and the 5% figure was dropped.
+    $result = app(CoordinatingAgent::class)->executeTool('update_record', [
+        'entity_type' => 'investment_account', 'entity_id' => $bond->id,
+        'fields' => ['investment_amount' => 100000, 'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 12000],
+    ], $user);
+
+    $fresh = $bond->fresh();
+    expect($result['error'] ?? false)->toBeFalse()
+        ->and((float) $fresh->bond_withdrawal_taken)->toBe(12000.0)
+        ->and((float) $fresh->investment_amount)->toBe(100000.0)
+        ->and($fresh->bond_purchase_date->toDateString())->toBe('2022-05-01');
 });

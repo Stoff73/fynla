@@ -54,6 +54,9 @@ final class UpdateRecordAllowlist
             // The investment form asks for the dividends an account pays
             // (#931); an edit of that form dropped them (2026-09-30).
             'annual_dividend_income',
+            // An investment bond's form (item 8, 2026-10-06): what was paid
+            // in, when it started and the 5% withdrawals taken so far.
+            'investment_amount', 'bond_purchase_date', 'bond_withdrawal_taken',
         ],
         'dc_pension' => [
             'scheme_name', 'provider', 'current_fund_value',

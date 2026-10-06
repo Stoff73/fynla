@@ -556,6 +556,13 @@ final class CaptureForms
         if (isset($input['annual_dividend_income'])) {
             $parts[] = 'paying '.self::pounds($input['annual_dividend_income']).' a year in dividends';
         }
+        // A bond's own figures (item 8), so the confirmation names what was saved.
+        if (isset($input['investment_amount'])) {
+            $parts[] = self::pounds($input['investment_amount']).' paid in';
+        }
+        if (isset($input['bond_withdrawal_taken'])) {
+            $parts[] = self::pounds($input['bond_withdrawal_taken']).' of 5% withdrawals taken';
+        }
         $parts[] = $input['ownership_type'];
         if (isset($input['ownership_percentage'])) {
             $parts[] = 'my share '.self::percent($input['ownership_percentage']);
