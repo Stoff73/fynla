@@ -70,12 +70,11 @@ it('publishes server-calculated protection gaps with inputs assumptions explanat
         // it, and the raw array rendered as "Ssp Max Weeks: £28" (2026-09-29).
         ->and(array_keys($income['inputs']))->toBe(['gross_income'])
         ->and($income['explanation'])->not->toContain('configured')
-        ->and($income['explanation'])->toContain('% of your gross earned income')
+        ->and($income['explanation'])->toContain('the most an insurer pays on your gross earned income (60% of the first £60,000 and 50% above')
         ->and(collect($presentation['categories'])->whereIn('key', [
             'human_capital',
             'debt_protection',
             'final_expenses',
-            'education_funding',
         ])->sum('need'))->toEqual($presentation['totals']['need']);
 });
 

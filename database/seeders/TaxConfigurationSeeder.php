@@ -1123,27 +1123,8 @@ class TaxConfigurationSeeder extends Seeder
 
             // Protection module constants
             'protection' => [
-                // Income replacement multipliers
-                'income_multipliers' => [
-                    'life_cover' => 10,                          // 10x annual income for life cover
-                    'critical_illness' => 3,                     // 3x annual income for CI
-                    'income_protection_max_benefit' => 0.60,     // 60% of gross income cap
-                ],
-
-                // Death in service above this share of total life cover means the
-                // cover depends on the job (ends on leaving). The value that ran as
-                // a code fallback until 2026-09-29, now configuration (Rule 2).
-                'dis_reliance_percent' => 0.50,
-
-                // Cost estimates
-                'education_cost_per_year' => 9000,               // £9,000 university tuition per year
-                'final_expenses' => 7500,                        // £7,500 funeral + admin costs
-
-                // Withdrawal rates for capital calculations
-                'withdrawal_rates' => [
-                    'human_capital' => 0.047,                    // Sustainable withdrawal rate for lump sum needs
-                    'scenario' => 0.03,                          // Conservative rate for scenario projections
-                ],
+                // Protection needs calculations: see protectionNeedsCalculation().
+                'needs_calculation' => self::protectionNeedsCalculation(),
 
                 // Insurance Premium Tax
                 'ipt' => [
@@ -1737,6 +1718,58 @@ class TaxConfigurationSeeder extends Seeder
                 'uk_assets_only_subject_to_iht' => true,
                 'spouse_exemption_limit' => $config['inheritance_tax']['nil_rate_band'],
                 'deemed_domicile_years' => 15,
+            ],
+        ];
+    }
+
+    /**
+     * Protection needs calculations (item 8b, CSJ 2026-10-06; spec
+     * docs/superpowers/specs/2026-10-06-protection-needs-config-design.md).
+     * The ONE home for every figure that sizes "You need £X" on the
+     * Protection page, its cards, the plan and Fyn, read only through
+     * TaxConfigService::getProtectionNeeds(). Each figure carries its
+     * source, shown beside it in admin (Tax Settings > Module Config).
+     *
+     * Static so TaxConfigurationFactory builds test configurations from the same
+     * figures rather than a second copy.
+     *
+     * @return array<string, mixed>
+     */
+    public static function protectionNeedsCalculation(): array
+    {
+        return [
+            'life_cover' => [
+                // The family's yearly income gap (living costs less income that
+                // continues) turned into the lump sum that pays it until the
+                // user's State Pension age: gap x (1 - (1 + r)^-n) / r.
+                'income_replacement' => [
+                    'discount_rate' => 0.005,
+                    'discount_rate_source' => 'Personal Injury Discount Rate, +0.5%: the rate the law uses to turn future lost income into a lump sum (England and Wales from 11 January 2025, Damages Act 1996 as amended by the Civil Liability Act 2018; Scotland and Northern Ireland from 27 September 2024). https://www.gov.uk/guidance/personal-injury-discount-rate',
+                    'term' => 'state_pension_age',
+                    'term_source' => 'Until the user\'s State Pension age, when their earnings would have stopped (CSJ 2026-10-06, D2).',
+                ],
+                'final_expenses' => [
+                    'amount' => 9797,
+                    'source' => 'SunLife Cost of Dying Report 2025 (2024 data): the cost of dying, £9,797, "the funeral, plus professional fees and send-off costs". https://sunlife.co.uk/siteassets/documents/cost-of-dying/sunlife-cost-of-dying-report-2025.pdf',
+                ],
+            ],
+            'critical_illness' => [
+                'income_multiple' => 3,
+                'source' => 'A rule of thumb, not a set amount: advisers commonly suggest three years of gross income, and the cover people buy is usually set by what they can afford (CSJ 2026-10-06, D3). Shown to the user as a rule of thumb.',
+            ],
+            'income_protection' => [
+                // Highest tier first; up_to null is everything above.
+                'benefit_tiers' => [
+                    ['up_to' => 60000, 'rate' => 0.60],
+                    ['up_to' => null, 'rate' => 0.50],
+                ],
+                'source' => 'Legal & General Income Protection: "60% of your annual income for the first £60,000 and 50% of your annual income over £60,000" (Policy Summary QGI16002 04/25). https://www.legalandgeneral.com/asset/4a18ed/globalassets/adviser/files/protection/policy-summary/qgi16002.pdf/',
+            ],
+            'employer_cover' => [
+                // Death in service above this share of total life cover means the
+                // cover depends on the job (it ends on leaving).
+                'reliance_share' => 0.50,
+                'source' => 'Fynla product rule (2026-09-29): cover mostly from the job is flagged as ending if you leave.',
             ],
         ];
     }

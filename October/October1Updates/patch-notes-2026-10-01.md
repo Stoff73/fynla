@@ -191,6 +191,26 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
 
+## Smoking and health in one place, no made-up premiums, and the right Retirement line for a retiree (6 October, about 15:40, release #1110)
+
+**This is live on fynla.org** through release #1110 (#1108 and #1109), UK time.
+
+- **Your smoking and health answers live in one place**: the Health settings page (desktop), Personal Information (mobile) and Fyn's "Your details" form all save to it, and every part of the app reads it. Before, the enhanced annuity card and the protection pages read a second copy that nothing ever filled in, so they always assumed a non-smoker in good health.
+- **Fyn's "Your details" form asks "Do you smoke?" and "Are you in good health?"**, with the same answers as the Health settings page. "Edit details" on mobile Personal Information opens it filled with what you have already told us.
+- **"Not answered" is now possible.** Everyone who still had the old defaults ("Never smoked", "Yes, good health") without having chosen them is shown as not answered, so the app asks rather than assumes; the people who gave a real answer keep it.
+- **"Ask for enhanced annuity quotes" reaches the people it is for.** It shows for anyone who has smoked in the last 12 months, or has a health condition now or in the past ([Legal & General: smokers](https://www.legalandgeneral.com/insurance/life-insurance/health/life-insurance-for-smokers/); [Legal & General: enhanced annuities](https://www.legalandgeneral.com/retirement/pension-annuity/guides/enhanced-annuities/)), including a retiree who has no retirement target recorded. Its typed-in 20% and 15% uplifts and 5% annuity rate are gone; the annuity or drawdown comparison shows the standard rate.
+- **No made-up premiums anywhere.** Every monthly or annual premium the app estimated came from typed-in rates with no source. They are gone from the protection plan and its suggestions, the Estate life cover page and the Estate plan. The life cover page now shows the cover your Inheritance Tax calls for and "Premium: From insurers' quotes", with the steps to arrange it and no insurer named.
+- **A retiree's Retirement line fits.** Someone drawing their pension reads "See your income this year and how long your pension lasts" under Retirement on the dashboard, instead of "Close your projected income gap". Each area's line now comes from the server.
+- **The two investment bond guides are approved** and live with their cards.
+
+**What we checked.**
+- **On the test site, desktop and mobile**, as a retired walk account with a £200,000 personal pension: the Retirement line, no annuity card while smoking and health were unanswered, the Health settings saved, the card and its guide on both apps, and Fyn's mobile form filled with the desktop answers, changed and saved. As the Mitchell demo: the life cover page (£349,112 of cover, "From insurers' quotes") and the protection plan's "Never smoked" and "Yes, good health".
+- **Live on fynla.org:** the same walk on desktop and mobile with a walk account (removed afterwards), and the Mitchell demo's life cover page and protection plan. On production, 72 people moved to "not answered" and the 6 with real answers kept them. No errors in the log.
+
+**Still to do.** How much cover the Protection page says you need still rests on typed-in figures (4.7% for life cover, three times income for critical illness, £7,500 for final expenses, 70% of net income for income protection). They need a sourced method; that is the next piece of work.
+
+**Behind the scenes.** One database change (the smoking and health columns can be empty, the defaults were reset, and the unused protection copies were removed), the tax configuration, retirement definitions and how-to seeders, app code and the desktop web bundle. No mobile bundle change.
+
 ## Investment bonds, clearer investment pages, and edits through forms (6 October, about 12:20, release #1105)
 
 **This is live on fynla.org** through release #1105 (#1104), UK time.

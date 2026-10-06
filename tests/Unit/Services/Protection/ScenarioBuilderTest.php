@@ -6,15 +6,12 @@ use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Protection\ScenarioBuilder;
 use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
     $mockTaxConfig = Mockery::mock(TaxConfigService::class);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('protection.withdrawal_rates.scenario', Mockery::any())
-        ->andReturn(0.03);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('protection.premium_factors.base_rate', Mockery::any())
-        ->andReturn(0.50);
+    $mockTaxConfig->shouldReceive('getProtectionNeeds')
+        ->andReturn(TaxConfigurationSeeder::protectionNeedsCalculation());
 
     $this->builder = new ScenarioBuilder($mockTaxConfig);
 });

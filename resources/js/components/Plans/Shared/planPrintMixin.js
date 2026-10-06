@@ -681,14 +681,10 @@ export const planPrintMixin = {
           buildBreakdown: () => {
             const rows = [];
             if (needsBreakdown.human_capital > 0) {
-              const desc = incomeAnalysis.net_income_difference > 0
-                ? `Income replacement capital (${this.fmtCurrency(incomeAnalysis.net_income_difference)}/year at 4.7% drawdown)`
-                : 'Income replacement capital (net income at 4.7% drawdown)';
-              rows.push([desc, this.fmtCurrency(needsBreakdown.human_capital)]);
+              rows.push(['Income replacement capital', this.fmtCurrency(needsBreakdown.human_capital)]);
             }
             if (needsBreakdown.debt_protection > 0) rows.push(['Outstanding debts (mortgage + other)', this.fmtCurrency(needsBreakdown.debt_protection)]);
-            if (needsBreakdown.education_funding > 0) rows.push(['Education funding for dependants', this.fmtCurrency(needsBreakdown.education_funding)]);
-            if (needsBreakdown.final_expenses > 0) rows.push(['Final expenses (funeral and administration)', this.fmtCurrency(needsBreakdown.final_expenses)]);
+            if (needsBreakdown.final_expenses > 0) rows.push(['Final expenses (funeral, professional fees and send-off)', this.fmtCurrency(needsBreakdown.final_expenses)]);
             return rows;
           },
         },
@@ -698,7 +694,7 @@ export const planPrintMixin = {
           suffix: '',
           buildBreakdown: () => {
             if (!incomeAnalysis.gross_income) return [];
-            return [[`3 × your gross annual income of ${this.fmtCurrency(incomeAnalysis.gross_income)}`, this.fmtCurrency(analysis.critical_illness?.need || 0)]];
+            return [[`Rule of thumb on your gross income of ${this.fmtCurrency(incomeAnalysis.gross_income)}`, this.fmtCurrency(analysis.critical_illness?.need || 0)]];
           },
         },
         {
@@ -706,8 +702,8 @@ export const planPrintMixin = {
           label: 'Income Protection',
           suffix: '/month',
           buildBreakdown: () => {
-            if (!incomeAnalysis.net_income) return [];
-            return [[`70% of your net monthly income (${this.fmtCurrency(incomeAnalysis.net_income / 12)}/month)`, `${this.fmtCurrency(analysis.income_protection?.need || 0)}/month`]];
+            if (!incomeAnalysis.gross_income) return [];
+            return [[`The most an insurer pays on your gross income of ${this.fmtCurrency(incomeAnalysis.gross_income)} a year`, `${this.fmtCurrency(analysis.income_protection?.need || 0)}/month`]];
           },
         },
       ];
@@ -1602,7 +1598,6 @@ export const planPrintMixin = {
       const rows = [
         ['Income Replacement (Human Capital)', this.fmtCurrency(bd.human_capital || 0)],
         ['Debt Protection', this.fmtCurrency(bd.debt_protection || 0)],
-        ['Education Funding', this.fmtCurrency(bd.education_funding || 0)],
         ['Final Expenses', this.fmtCurrency(bd.final_expenses || 0)],
       ].filter(([, v]) => v !== '£0');
 

@@ -79,20 +79,6 @@ class RecommendationEngine
             );
         }
 
-        // Education funding gap
-        if ($gaps['gaps_by_category']['education_funding_gap'] > 0 && $profile->number_of_dependents > 0) {
-            $recommendations[] = $this->createRecommendation(
-                priority: 3,
-                category: 'Life Insurance',
-                action: 'Consider family income benefit policy',
-                rationale: sprintf(
-                    'A family income benefit policy could provide regular income to cover education costs for your %d dependent(s).',
-                    $profile->number_of_dependents
-                ),
-                impact: 'Medium'
-            );
-        }
-
         // Trust recommendation
         if ($profile->user->lifeInsurancePolicies()->where('in_trust', false)->exists()) {
             $recommendations[] = $this->createRecommendation(

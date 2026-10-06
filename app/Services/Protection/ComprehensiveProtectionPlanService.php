@@ -36,6 +36,7 @@ class ComprehensiveProtectionPlanService
         // W-0275 — the one home for "who depends on this user" (Rule 20).
         private readonly DependantsReach $dependantsReach,
         private readonly ProtectionCoverPosition $coverPosition,
+        private readonly ProtectionGapPresentationService $gapPresentation,
     ) {}
 
     /**
@@ -365,7 +366,6 @@ class ComprehensiveProtectionPlanService
             'breakdown' => [
                 'human_capital' => $needs['human_capital'] ?? 0,
                 'debt_protection' => $needs['debt_protection'] ?? 0,
-                'education_funding' => $needs['education_funding'] ?? 0,
                 'final_expenses' => $needs['final_expenses'] ?? 0,
             ],
             'income_analysis' => [
@@ -374,7 +374,17 @@ class ComprehensiveProtectionPlanService
                 'continuing_income' => $needs['continuing_income'] ?? 0,
                 'income_that_stops' => $needs['income_that_stops'] ?? 0,
                 'income_that_continues' => $needs['income_that_continues'] ?? 0,
-                'net_income_difference' => $needs['net_income_difference'] ?? 0,
+                'income_gap' => $needs['income_gap'] ?? 0,
+            ],
+            // The working, in words, from the analyser and its config (item 8b):
+            // every surface prints these as sent, never its own figures (Rule 20).
+            'working' => [
+                'income_replacement' => $this->gapPresentation->incomeReplacementExplanation(
+                    $needs['income_replacement'],
+                    (float) ($needs['human_capital'] ?? 0)
+                ),
+                'critical_illness' => $needs['critical_illness_basis'] ?? null,
+                'income_protection' => 'The most an insurer pays on your gross earned income: '.$this->gapAnalyzer->benefitTiersInWords().' (Legal & General\'s limit). Rental and dividend income carry on if you cannot work, so they are left out.',
             ],
             'spouse_info' => [
                 'spouse_included' => $needs['spouse_included'] ?? false,
@@ -490,9 +500,9 @@ class ComprehensiveProtectionPlanService
             $totalCoverageIncrease += $totalGap;
         }
 
-        // Priority 2: Critical Illness (if gap exists)
-        $annualIncome = $needs['gross_income'] ?? 0;
-        $ciNeed = $annualIncome * 3;
+        // Priority 2: Critical Illness (if gap exists). The one need, a rule of
+        // thumb (CoverageGapAnalyzer::criticalIllnessNeed; CSJ 2026-10-06, D3).
+        $ciNeed = (float) ($needs['critical_illness_need'] ?? 0);
         $ciCoverage = $coverage['critical_illness_coverage'] ?? 0;
         $ciGap = max(0, $ciNeed - $ciCoverage);
 
@@ -501,7 +511,7 @@ class ComprehensiveProtectionPlanService
                 'priority' => 2,
                 'category' => 'Critical Illness',
                 'action' => 'Add Critical Illness Coverage',
-                'details' => 'Add £'.number_format($ciGap, 0).' critical illness coverage for financial security',
+                'details' => 'Add £'.number_format($ciGap, 0).' of critical illness cover. The amount is a rule of thumb, not a set figure: cover is usually set by what you can afford.',
                 'coverage_amount' => $ciGap,
                 'timeframe' => 'Immediate',
                 'importance' => 'High',
@@ -510,11 +520,9 @@ class ComprehensiveProtectionPlanService
             $totalCoverageIncrease += $ciGap;
         }
 
-        // Priority 3: Income Protection (if gap exists)
-        $monthlyNetIncome = ($needs['net_income'] ?? 0) / 12;
-        $ipMonthlyNeed = $monthlyNetIncome * 0.7;
-        $ipMonthlyCoverage = ($coverage['income_protection_coverage'] ?? 0) / 12;
-        $ipMonthlyGap = max(0, $ipMonthlyNeed - $ipMonthlyCoverage);
+        // Priority 3: Income Protection (if gap exists): the one need and gap
+        // (CoverageGapAnalyzer::incomeProtectionNeed), held yearly.
+        $ipMonthlyGap = (float) ($gapsByCategory['income_protection_gap'] ?? 0) / 12;
 
         if ($ipMonthlyGap > 100) {
             $strategyRecommendations[] = [
