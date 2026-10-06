@@ -15,6 +15,7 @@ use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * The Holistic Plan lists the actions list's open items in the actions list's
@@ -52,6 +53,10 @@ it('lists the plan in the actions list\'s order and drops an action marked done'
     $ids = planIds($user);
     expect(count($ids))->toBeGreaterThan(5)
         ->and($ids)->toBe(openActionIds($user, $ids));
+
+    // A demo completion belongs to the visitor's token (#1087), so mark it as one.
+    $user->withAccessToken($user->createToken('preview-access')->accessToken);
+    Auth::setUser($user);
 
     RecommendationTracking::create([
         'user_id' => $user->id,

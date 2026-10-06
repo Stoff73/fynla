@@ -38,11 +38,17 @@ class DriftAnalyzer
         // Calculate current allocation
         $currentAllocation = $this->calculateCurrentAllocation($holdings);
 
+        // A fund or ETF with no recorded mix cannot be said to be in the wrong
+        // class, so the drift is what remains once that money is placed where it
+        // closes the gaps first (item 8, CSJ 2026-10-06: one rule for page and card).
+        $unrecordedPercent = $this->unrecordedPercent($currentAllocation);
+        $assessedAllocation = $this->placeUnrecorded($currentAllocation, $targetAllocation);
+
         // Calculate drift metrics
-        $driftMetrics = $this->calculateDriftMetrics($currentAllocation, $targetAllocation);
+        $driftMetrics = $this->calculateDriftMetrics($assessedAllocation, $targetAllocation);
 
         // Identify assets needing adjustment
-        $adjustments = $this->calculateAdjustments($currentAllocation, $targetAllocation, $holdings);
+        $adjustments = $this->calculateAdjustments($assessedAllocation, $targetAllocation, $holdings);
 
         // Calculate drift score (0-100, where 0 = perfect alignment)
         $driftScore = $this->calculateDriftScore($driftMetrics);
@@ -53,6 +59,7 @@ class DriftAnalyzer
         return [
             'success' => true,
             'current_allocation' => $currentAllocation,
+            'unrecorded_percent' => round($unrecordedPercent, 2),
             'target_allocation' => $targetAllocation,
             'drift_metrics' => $driftMetrics,
             'drift_score' => $driftScore,
@@ -89,6 +96,53 @@ class DriftAnalyzer
         }
 
         return $allocation;
+    }
+
+    /** Classes that say the holding's mix is not recorded (InvestmentDefaults::resolveAssetClass). */
+    private const UNRECORDED_CLASSES = ['unclassified', 'mixed'];
+
+    private function unrecordedPercent(array $currentAllocation): float
+    {
+        return array_sum(array_intersect_key($currentAllocation, array_flip(self::UNRECORDED_CLASSES)));
+    }
+
+    /**
+     * The allocation with unrecorded money placed where it brings the account
+     * closest to its target: first into each under-weight class, in proportion
+     * to its shortfall, then any rest in the target's own proportions.
+     */
+    private function placeUnrecorded(array $currentAllocation, array $targetAllocation): array
+    {
+        $unrecorded = $this->unrecordedPercent($currentAllocation);
+        $known = array_diff_key($currentAllocation, array_flip(self::UNRECORDED_CLASSES));
+
+        if ($unrecorded <= 0) {
+            return $known;
+        }
+
+        $shortfalls = [];
+        foreach ($targetAllocation as $class => $target) {
+            $gap = (float) $target - (float) ($known[$class] ?? 0.0);
+            if ($gap > 0) {
+                $shortfalls[$class] = $gap;
+            }
+        }
+
+        $totalShortfall = array_sum($shortfalls);
+        $toShortfalls = min($unrecorded, $totalShortfall);
+        foreach ($shortfalls as $class => $gap) {
+            $known[$class] = ($known[$class] ?? 0.0) + $toShortfalls * ($gap / $totalShortfall);
+        }
+
+        $rest = $unrecorded - $toShortfalls;
+        $targetTotal = array_sum($targetAllocation);
+        if ($rest > 0 && $targetTotal > 0) {
+            foreach ($targetAllocation as $class => $target) {
+                $known[$class] = ($known[$class] ?? 0.0) + $rest * ((float) $target / $targetTotal);
+            }
+        }
+
+        return $known;
     }
 
     /**

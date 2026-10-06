@@ -155,9 +155,10 @@ class InvestmentPlanService extends BasePlanService
         $savingsAccounts = ($u = User::find($userId)) ? app(SavingsStore::class)->forUser($u) : collect();
 
         // ── Phase 1: DB-driven trigger recommendations ──
+        // The charges each account page shows, as the actions list's card reads them (item 8 D4).
         $accountFeeAnalyses = $investmentAccounts->map(
-            fn ($acct) => $this->feeAnalyzer->analyzeAccountFees($acct)
-        )->filter(fn ($a) => $a['success'] ?? false)->values()->toArray();
+            fn ($acct) => $this->feeAnalyzer->recordedChargesForCard($acct)
+        )->values()->toArray();
 
         $triggerResult = $this->actionDefinitionService->evaluateAgentActions(
             $investmentAnalysis,

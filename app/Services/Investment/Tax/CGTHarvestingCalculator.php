@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Tax;
 
-use App\Constants\TaxDefaults;
 use App\Models\Investment\Holding;
-use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
+use App\Services\Tax\ChargeableGains;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -25,7 +26,9 @@ use Illuminate\Support\Collection;
 class CGTHarvestingCalculator
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly ChargeableGains $chargeableGains,
+        private readonly TaxStrategyMath $math,
     ) {}
 
     /**
@@ -42,11 +45,12 @@ class CGTHarvestingCalculator
 
         $cgtAllowance = $options['cgt_allowance'] ?? $cgtConfig['annual_exempt_amount'];
         $expectedGains = $options['expected_gains'] ?? 0;
-        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['higher_rate'] ?? TaxDefaults::CGT_HIGHER_RATE);
+        $user = User::find($userId);
+        $taxRate = $options['tax_rate'] ?? $this->rateFor($user, $cgtConfig);
         $lossCarryforward = $options['loss_carryforward'] ?? 0;
 
-        // Get all non-ISA holdings with losses
-        $holdings = $this->getHoldingsWithLosses($userId);
+        // Holdings with losses in chargeable accounts, at the user's share
+        $holdings = $user ? $this->getHoldingsWithLosses($user) : collect();
 
         if ($holdings->isEmpty()) {
             return [
@@ -91,28 +95,26 @@ class CGTHarvestingCalculator
      * @param  int  $userId  User ID
      * @return Collection Holdings with losses
      */
-    private function getHoldingsWithLosses(int $userId): Collection
+    private function getHoldingsWithLosses(User $user): Collection
     {
-        $accounts = InvestmentAccount::where('user_id', $userId)
-            ->whereNotIn('account_type', ['isa', 'stocks_shares_isa']) // Exclude ISAs (no CGT)
-            ->with('holdings')
-            ->get();
+        // The one home for chargeable gains (item 8): not ISAs, Venture Capital
+        // Trusts, pensions or investment bonds, and a joint account at the
+        // user's share (Rule 6).
+        return $this->chargeableGains->holdingsFor($user)
+            ->filter(fn (array $row) => $row['gain'] < 0)
+            ->values();
+    }
 
-        $holdingsWithLosses = collect();
+    /**
+     * The CGT rate for the user's income band (TaxConfigService), as the Tax
+     * plan's Bed & ISA uses: the basic rate for a basic-rate taxpayer, the
+     * higher rate otherwise.
+     */
+    private function rateFor(?User $user, array $cgtConfig): float
+    {
+        $band = $user ? $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user)) : 'higher';
 
-        foreach ($accounts as $account) {
-            foreach ($account->holdings as $holding) {
-                if ($holding->cost_basis && $holding->current_value) {
-                    $gainLoss = $holding->current_value - $holding->cost_basis;
-
-                    if ($gainLoss < 0) {
-                        $holdingsWithLosses->push($holding);
-                    }
-                }
-            }
-        }
-
-        return $holdingsWithLosses;
+        return (float) ($band === 'basic' ? $cgtConfig['basic_rate'] : $cgtConfig['higher_rate']);
     }
 
     /**
@@ -132,9 +134,10 @@ class CGTHarvestingCalculator
     ): array {
         $opportunities = [];
 
-        foreach ($holdings as $holding) {
-            $loss = abs($holding->current_value - $holding->cost_basis);
-            $lossPercent = (($loss / $holding->cost_basis) * 100);
+        foreach ($holdings as $row) {
+            $holding = $row['holding'];
+            $loss = abs($row['gain']);
+            $lossPercent = (($loss / $row['cost']) * 100);
 
             // Calculate holding period
             $holdingPeriod = $this->calculateHoldingPeriod($holding);
@@ -147,12 +150,12 @@ class CGTHarvestingCalculator
 
             $opportunities[] = [
                 'holding_id' => $holding->id,
-                'account_id' => $holding->investment_account_id,
+                'account_id' => $row['account_id'],
                 'security_name' => $holding->security_name ?? $holding->ticker,
                 'ticker' => $holding->ticker,
                 'isin' => $holding->isin,
-                'cost_basis' => (float) $holding->cost_basis,
-                'current_value' => (float) $holding->current_value,
+                'cost_basis' => round($row['cost'], 2),
+                'current_value' => round($row['value'], 2),
                 'loss_amount' => round($loss, 2),
                 'loss_percent' => round($lossPercent, 2),
                 'holding_period_days' => $holdingPeriod,

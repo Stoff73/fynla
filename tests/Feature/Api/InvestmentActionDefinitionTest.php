@@ -47,8 +47,9 @@ describe('Admin Investment Action Definitions API', function () {
                 ],
             ]);
 
-        // 21 agent rows + 3 source='strategy' composer catalogue rows (Phase 2).
-        expect($response->json('data'))->toHaveCount(24);
+        // 20 agent rows (item 8: two new cards, 12 kept disabled) + 3 goal rows
+        // + 3 source='strategy' composer catalogue rows (Phase 2).
+        expect($response->json('data'))->toHaveCount(26);
     });
 
     it('denies access to non-admin users', function () {
@@ -147,7 +148,7 @@ describe('Admin Investment Action Definitions API', function () {
 
     it('toggles enabled state', function () {
         Sanctum::actingAs($this->adminUser);
-        $definition = InvestmentActionDefinition::findByKey('high_total_fees');
+        $definition = InvestmentActionDefinition::findByKey('account_charges');
 
         expect($definition->is_enabled)->toBeTrue();
 
@@ -163,7 +164,7 @@ describe('Admin Investment Action Definitions API', function () {
 
     it('deletes an action definition', function () {
         Sanctum::actingAs($this->adminUser);
-        $definition = InvestmentActionDefinition::findByKey('high_total_fees');
+        $definition = InvestmentActionDefinition::findByKey('account_charges');
 
         $response = $this->deleteJson("/api/admin/investment-actions/{$definition->id}");
 

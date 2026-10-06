@@ -385,6 +385,8 @@ export default {
         { value: 'fund_ocf_above_threshold', label: 'Fund charges above threshold (per account)' },
         { value: 'platform_fee_above_threshold', label: 'Platform fee above threshold (per account)' },
         { value: 'allocation_needs_rebalancing', label: 'Asset allocation needs rebalancing' },
+        { value: 'account_outside_drift_threshold', label: 'Account outside its rebalancing threshold (per account)' },
+        { value: 'account_charges_above', label: 'Account charges above a threshold (per account)' },
         { value: 'tax_loss_harvesting_opportunities', label: 'Tax loss harvesting opportunities' },
         // Tax efficiency triggers
         { value: 'has_gia_no_isa', label: 'Has General Investment Account but no ISA' },
@@ -415,6 +417,8 @@ export default {
         fund_ocf_above_threshold: 'Triggers per account when weighted fund charges exceed the threshold percentage.',
         platform_fee_above_threshold: 'Triggers per account when platform fee exceeds the threshold percentage.',
         allocation_needs_rebalancing: 'Triggers when asset allocation has drifted and needs rebalancing.',
+        account_outside_drift_threshold: 'One card per account outside its own rebalancing threshold, as its rebalancing panel shows.',
+        account_charges_above: 'One card per account whose total, fund or platform charges cross their thresholds.',
         tax_loss_harvesting_opportunities: 'Triggers when tax loss harvesting opportunities are identified.',
         has_gia_no_isa: 'Triggers when the user has a General Investment Account but no ISA.',
         isa_remaining_with_gia: 'Triggers when ISA allowance remains and General Investment Account holdings exist.',

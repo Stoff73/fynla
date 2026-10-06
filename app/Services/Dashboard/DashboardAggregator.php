@@ -341,19 +341,9 @@ class DashboardAggregator
         $holdingsCount = (int) ($data['portfolio_summary']['holdings_count'] ?? 0);
         $ytdReturn = (float) ($data['returns']['ytd_return'] ?? $data['returns']['ytd'] ?? 0);
 
-        // Needs rebalancing: check if any allocation deviation exceeds threshold
-        $needsRebalancing = false;
-        $deviation = $data['allocation_deviation'] ?? null;
-        if (is_array($deviation)) {
-            foreach ($deviation as $entry) {
-                $dev = abs((float) ($entry['deviation'] ?? $entry['deviation_percent'] ?? 0));
-                if ($dev > 5.0) {
-                    $needsRebalancing = true;
-
-                    break;
-                }
-            }
-        }
+        // The one rule (AccountDriftService via the analysis, item 8): any
+        // account outside its own rebalancing threshold.
+        $needsRebalancing = (bool) ($data['needs_rebalancing'] ?? false);
 
         return [
             'portfolio_value' => round($portfolioValue, 2),
