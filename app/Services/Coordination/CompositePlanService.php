@@ -14,19 +14,19 @@ use App\Services\Coordination\PlanSources\SavingsStrategySource;
 use App\Services\Coordination\PlanSources\TaxStrategySource;
 use App\Services\Goals\GoalAffordabilityService;
 use App\Services\Goals\LifeEventService;
+use App\Services\Mobile\NextActionsService;
 
 /**
- * The cross-module composite plan: gathers every module's composed plan, ranks
- * the combined item set against a finite monthly surplus, and annotates each
- * item's affordability (fits / partially_fits / beyond_current_surplus) with the
- * running surplus consumed. Nothing is ever dropped — an item beyond the current
- * surplus is surfaced as such, mirroring the tax "locked, never silently skipped"
+ * The cross-module composite plan: gathers every module's composed plan, lists
+ * the items still open in the actions list's order (inActionsListOrder), walks
+ * them against a finite monthly surplus, and annotates each item's
+ * affordability (fits / partially_fits / beyond_current_surplus) with the
+ * running surplus consumed. An open item beyond the current surplus is
+ * surfaced as such, mirroring the tax "locked, never silently skipped"
  * principle. This is read-side only (composing a plan never writes).
  */
 final class CompositePlanService
 {
-    private const PRIORITY_WEIGHT = ['high' => 0, 'medium' => 1, 'low' => 2];
-
     public function __construct(
         private readonly ComposedModulePlanService $plans,
         private readonly CashFlowCoordinator $cashFlow,
@@ -67,7 +67,7 @@ final class CompositePlanService
         $financials = $this->financials($user);
 
         return array_merge([
-            'items' => $this->annotateAffordability($items, $financials['effective_surplus']),
+            'items' => $this->annotateAffordability($this->inActionsListOrder($user, $items), $financials['effective_surplus']),
             'by_module' => $byModule,
             'locked' => $locked,
         ], $financials);
@@ -111,7 +111,42 @@ final class CompositePlanService
     }
 
     /**
-     * Pure: rank by impact, walk the running surplus, annotate each item's
+     * The plan's items as the actions list holds them (CSJ 2026-10-01, one list
+     * on every surface): each item carries its action id (the aggregator's,
+     * RecommendationsAggregatorService::composeId), only the actions still open
+     * are listed (done and dismissed ones are not), and they come in the
+     * actions list's order (NextActionsService, ranked by PriorityRanker: the
+     * seeded priority wins, CSJ 2026-09-09).
+     *
+     * @param  list<array<string,mixed>>  $items
+     * @return list<array<string,mixed>>
+     */
+    private function inActionsListOrder(User $user, array $items): array
+    {
+        $byModule = [];
+        foreach ($items as $i => $item) {
+            $byModule[$item['module']][$i] = [
+                'recommendation_id' => $item['module'] === 'tax'
+                    ? 'tax_'.($item['type'] ?? '')
+                    : RecommendationsAggregatorService::composeId($item['module'], $item),
+                'recommendation_text' => trim(($item['title'] ?? '').' — '.($item['description'] ?? ''), ' —'),
+            ];
+        }
+        foreach ($byModule as $module => $recs) {
+            foreach ($module === 'tax' ? $recs : RecommendationsAggregatorService::disambiguate($recs) as $i => $rec) {
+                $items[$i]['id'] = $rec['recommendation_id'];
+            }
+        }
+
+        $position = array_flip(array_column(app(NextActionsService::class)->buildAll($user->id), 'id'));
+        $open = array_values(array_filter($items, fn (array $item): bool => isset($position[$item['id']])));
+        usort($open, fn (array $a, array $b): int => $position[$a['id']] <=> $position[$b['id']]);
+
+        return $open;
+    }
+
+    /**
+     * Pure: walk the running surplus in the order given, annotate each item's
      * affordability + cumulative surplus consumed. Never drops an item.
      *
      * @param  list<array<string,mixed>>  $items
@@ -119,17 +154,6 @@ final class CompositePlanService
      */
     public function annotateAffordability(array $items, float $surplus): array
     {
-        usort($items, function (array $a, array $b): int {
-            $savingCmp = ((float) ($b['estimated_annual_tax_saved'] ?? 0))
-                <=> ((float) ($a['estimated_annual_tax_saved'] ?? 0));
-            if ($savingCmp !== 0) {
-                return $savingCmp;
-            }
-
-            return (self::PRIORITY_WEIGHT[$a['priority'] ?? 'medium'] ?? 1)
-                <=> (self::PRIORITY_WEIGHT[$b['priority'] ?? 'medium'] ?? 1);
-        });
-
         $remaining = $surplus;
 
         foreach ($items as $i => $item) {
