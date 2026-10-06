@@ -207,9 +207,9 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **On the test site, desktop and mobile**, as a walk account born 1985 earning £75,000 and spending £2,000 a month: life cover £605,543 (£24,000 a year for 26.6 years to State Pension age at 0.5%, £595,746, plus £9,797), critical illness £225,000 with the rule-of-thumb line, income protection £3,625 a month; the plan page; the administrator's "Protection needs calculations" section.
 - **Live on fynla.org** as the Carter demo, on desktop (full-size window) and mobile: life cover short by £49,308 (£39,511 of income replacement plus £9,797 of final expenses; living costs of £46,824 less £38,080 of continuing income, £8,744 a year for 31.6 years, £255,011), critical illness £225,000 with the rule-of-thumb line, income protection £3,625 a month (60% of £60,000 plus 50% of £15,000); the plan page shows the same working and no 70%, 4.7% or education figure. The server reads every figure from the configuration. No errors in the log. The administrator's section was not opened on fynla.org.
 
-**Still to do.** The protection plan page still shows ratings ("Excellent", "Critical") beside each kind of cover; "Excellent" shows for life cover even when it is short. They are coming off next.
-
 **Behind the scenes.** No database change. The tax configuration, protection definitions and how-to seeders, app code, and both the desktop and mobile web bundles.
+
+**Follow-up the same evening (about 18:10, release #1117, #1116): no ratings on the protection plan.** The plan page showed a rating beside each kind of cover, "Excellent" on life cover even when it was £49,308 short and "Critical" on the others. The ratings are gone from the plan page and its printed version, along with "Excellent:" and "Good coverage:" in the scenario notes and an unsourced "at least 50-60% of income". Each kind of cover still shows what you need, what you have and the gap in pounds. Walked on the test site and on fynla.org as the Carter demo (desktop, the plan page and its printed version). The mobile app has no plan page. No database change; app code and the desktop web bundle.
 
 ## Smoking and health in one place, no made-up premiums, and the right Retirement line for a retiree (6 October, about 15:40, release #1110)
 
