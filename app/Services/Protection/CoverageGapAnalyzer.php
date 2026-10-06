@@ -6,10 +6,13 @@ namespace App\Services\Protection;
 
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tax\PensionAffordability;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
+use App\Services\UserProfile\UserProfileService;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
 use Illuminate\Support\Collection;
@@ -26,22 +29,24 @@ class CoverageGapAnalyzer
     ) {}
 
     /**
-     * Calculate the life cover capital required to replace the family's lost income.
-     *
-     * Uses a sustainable drawdown approach: the lump sum needed so the family
-     * can draw the required annual income indefinitely at a 4.7% withdrawal rate.
-     *
-     * Formula: Annual Income Need / 0.047
+     * The lump sum that pays the family's yearly income gap for $years years:
+     * gap x (1 - (1 + r)^-n) / r, with r the Personal Injury Discount Rate, the
+     * rate the law uses to turn a future lost income into a lump sum
+     * (protection.needs_calculation.life_cover.income_replacement; CSJ
+     * 2026-10-06, D1). It replaced a 4.7% perpetuity with no source.
      */
-    public function calculateHumanCapital(float $annualIncomeNeed): float
+    public function calculateHumanCapital(float $annualIncomeGap, float $years): float
     {
-        if ($annualIncomeNeed <= 0) {
+        if ($annualIncomeGap <= 0 || $years <= 0) {
             return 0.0;
         }
 
-        $withdrawalRate = (float) $this->taxConfig->get('protection.withdrawal_rates.human_capital', 0.047);
+        $rate = (float) $this->taxConfig->getProtectionNeeds()['life_cover']['income_replacement']['discount_rate'];
+        if ($rate == 0.0) {
+            return $annualIncomeGap * $years;
+        }
 
-        return $annualIncomeNeed / $withdrawalRate;
+        return $annualIncomeGap * (1 - (1 + $rate) ** -$years) / $rate;
     }
 
     /**
@@ -128,29 +133,66 @@ class CoverageGapAnalyzer
     }
 
     /**
-     * Calculate education funding need.
-     * Assumes £9,000 per year until age 21 for each child.
-     */
-    public function calculateEducationFunding(int $numChildren, array $ages): float
-    {
-        $annualCostPerChild = (int) $this->taxConfig->get('protection.education_cost_per_year', 9000);
-        $educationEndAge = 21;
-        $totalFunding = 0.0;
-
-        foreach ($ages as $age) {
-            $yearsRemaining = max(0, $educationEndAge - $age);
-            $totalFunding += $annualCostPerChild * $yearsRemaining;
-        }
-
-        return $totalFunding;
-    }
-
-    /**
-     * Calculate final expenses.
+     * Final expenses: SunLife's cost of dying (funeral, professional fees and
+     * send-off), protection.needs_calculation.life_cover.final_expenses (D4).
+     *
+     * There is no separate education figure (D5): children's costs sit in the
+     * household living costs the income gap replaces, and tuition in England is
+     * paid by the student's own loan.
      */
     public function calculateFinalExpenses(): float
     {
-        return (float) $this->taxConfig->get('protection.final_expenses', 7500);
+        return (float) $this->taxConfig->getProtectionNeeds()['life_cover']['final_expenses']['amount'];
+    }
+
+    /**
+     * Critical illness need: the rule-of-thumb multiple of gross earned income
+     * (protection.needs_calculation.critical_illness; CSJ 2026-10-06, D3: a rule
+     * of thumb, shown to the user as one). The one place it is worked out.
+     */
+    public function criticalIllnessNeed(float $grossEarnedIncome): float
+    {
+        return max(0.0, $grossEarnedIncome) * (float) $this->taxConfig->getProtectionNeeds()['critical_illness']['income_multiple'];
+    }
+
+    /**
+     * Income protection need: the insurer limit on gross earned income, tier by
+     * tier (protection.needs_calculation.income_protection.benefit_tiers; D6,
+     * Legal & General 60% of the first £60,000 and 50% above).
+     */
+    public function incomeProtectionNeed(float $grossEarnedIncome): float
+    {
+        $need = 0.0;
+        $floor = 0.0;
+        foreach ($this->taxConfig->getProtectionNeeds()['income_protection']['benefit_tiers'] as $tier) {
+            $ceiling = $tier['up_to'] === null ? INF : (float) $tier['up_to'];
+            $slice = max(0.0, min($grossEarnedIncome, $ceiling) - $floor);
+            $need += $slice * (float) $tier['rate'];
+            if ($grossEarnedIncome <= $ceiling) {
+                break;
+            }
+            $floor = $ceiling;
+        }
+
+        return $need;
+    }
+
+    /**
+     * Monthly living costs that continue after a death: recorded spending plus a
+     * home's running costs, without mortgage, loan, pension, saving, investment
+     * or protection payments, which are cleared by the debt part of the need or
+     * stop (D7). The one spending source (UserProfileService).
+     */
+    public function monthlyLivingCosts(User $user): float
+    {
+        $profileService = app(UserProfileService::class);
+        $manual = (float) $profileService->getExpenditureBreakdown($user)['monthly_manual'];
+        $homeRunningCosts = 0.0;
+        foreach ($profileService->getFinancialCommitments($user)['properties'] ?? [] as $property) {
+            $homeRunningCosts += (float) ($property['monthly_amount'] ?? 0) - (float) ($property['breakdown']['mortgage'] ?? 0);
+        }
+
+        return round($manual + max(0.0, $homeRunningCosts), 2);
     }
 
     /**
@@ -219,7 +261,7 @@ class CoverageGapAnalyzer
             }
 
             // Employer reliance warning: if death in service exceeds configured threshold of total life cover
-            $disRelianceThreshold = (float) $this->taxConfig->get('protection.dis_reliance_percent');
+            $disRelianceThreshold = (float) $this->taxConfig->getProtectionNeeds()['employer_cover']['reliance_share'];
             if ($deathInServiceCoverage > 0 && $lifeCoverage > 0
                 && ($deathInServiceCoverage / $lifeCoverage) > $disRelianceThreshold) {
                 $employerWarnings[] = 'Over half your life cover comes from death in service. This cover is lost if you leave employment.';
@@ -264,7 +306,6 @@ class CoverageGapAnalyzer
     {
         $totalNeed = $needs['human_capital']
                    + $needs['debt_protection']
-                   + $needs['education_funding']
                    + $needs['final_expenses'];
 
         $lifeCoverage = $coverage['life_coverage'];
@@ -285,17 +326,12 @@ class CoverageGapAnalyzer
         $finalExpensesCovered = min($excessAfterHumanCapital, $needs['final_expenses']);
         $finalExpensesGap = max(0, $needs['final_expenses'] - $finalExpensesCovered);
 
-        // STEP 4: Allocate remaining excess to education funding
-        $excessAfterFinalExpenses = max(0, $excessAfterHumanCapital - $finalExpensesCovered);
-        $educationCovered = min($excessAfterFinalExpenses, $needs['education_funding']);
-        $educationGap = max(0, $needs['education_funding'] - $educationCovered);
-
         // STEP 5: Income-based policies (separate track from life cover allocation)
         $totalIncomeCoverage = $coverage['income_protection_coverage']
                              + $coverage['disability_coverage']
                              + $coverage['sickness_illness_coverage'];
 
-        // Income protection need (60% of gross) vs total income coverage
+        // Income protection need (the insurer limit on gross earned income) vs total income coverage
         $incomeProtectionNeed = $needs['income_protection_need'] ?? 0;
         $incomeProtectionGap = max(0, $incomeProtectionNeed - $totalIncomeCoverage);
 
@@ -313,7 +349,7 @@ class CoverageGapAnalyzer
         $totalCoverage = $coverage['total_coverage'] ?? ($lifeCoverage + ($coverage['critical_illness_coverage'] ?? 0));
 
         // Calculate total coverage used (from allocation)
-        $totalCoverageUsed = $debtCovered + $humanCapitalCovered + $finalExpensesCovered + $educationCovered;
+        $totalCoverageUsed = $debtCovered + $humanCapitalCovered + $finalExpensesCovered;
 
         // Total gap is based on total coverage (life + CI), not just allocated amount
         $totalGap = max(0, $totalNeed - $totalCoverage);
@@ -322,7 +358,6 @@ class CoverageGapAnalyzer
             'human_capital_gap' => $humanCapitalGap,
             'debt_protection_gap' => $debtGap,
             'final_expenses_gap' => $finalExpensesGap,
-            'education_funding_gap' => $educationGap,
             'income_protection_gap' => $incomeProtectionGap,
             'disability_coverage_gap' => $disabilityGap,
             'sickness_illness_gap' => $sicknessGap,
@@ -346,7 +381,6 @@ class CoverageGapAnalyzer
                 'debt_covered' => $debtCovered,
                 'human_capital_covered' => $humanCapitalCovered,
                 'final_expenses_covered' => $finalExpensesCovered,
-                'education_covered' => $educationCovered,
                 'excess_unused' => max(0, $lifeCoverage - $totalCoverageUsed),
             ],
             'income_replacement_coverage' => $totalIncomeCoverage,
@@ -438,45 +472,39 @@ class CoverageGapAnalyzer
             $userGrossIncome = $profile->annual_income;
         }
 
-        $age = $user->date_of_birth ?
-               (int) $user->date_of_birth->diffInYears(now()) : 40;
-
-        // Calculate income that STOPS on death: User's earned income
-        $incomeThatStops = $userNetIncome;
-
-        // Calculate income that CONTINUES after death:
-        // 1. User's rental/dividend income
-        // 2. Spouse's total income (earned + continuing)
-        $incomeThatContinues = $userContinuingIncome
-                             + $spouseNetIncome
-                             + $spouseContinuingIncome;
-
-        // Net income difference = What stops - What continues
-        // This is what the family actually LOSES if user dies
-        $netIncomeDifference = $incomeThatStops - $incomeThatContinues;
-
-        // If spouse earns more or equal, no income protection needed
-        // (family income would stay same or increase)
-        $humanCapital = 0;
-        if ($netIncomeDifference > 0) {
-            $humanCapital = $this->calculateHumanCapital($netIncomeDifference);
+        // The family's income gap (D7, CSJ 2026-10-06): the household's living
+        // costs that continue, less the income that continues. Before, this was
+        // the user's net income less the partner's whole income, so a couple who
+        // earned the same "lost nothing". Spending not recorded: the gap is not
+        // guessed; the need says so and the surfaces ask for it (as #1027).
+        $spendingRecorded = app(PensionAffordability::class)->spendingRecorded($user);
+        $householdLivingCosts = $this->monthlyLivingCosts($user) * 12;
+        if ($spouseIncluded && isset($spouse)) {
+            $householdLivingCosts += $this->monthlyLivingCosts($spouse) * 12;
         }
 
+        $incomeThatStops = $userNetIncome;
+        $incomeThatContinues = $userContinuingIncome + $spouseNetIncome + $spouseContinuingIncome;
+        $incomeGap = $spendingRecorded ? max(0.0, $householdLivingCosts - $incomeThatContinues) : 0.0;
+
+        // The term: until the user's State Pension age, when their earnings would
+        // have stopped (D2). Past it, no earnings are lost.
+        $statePensionDate = app(StatePensionAgeResolver::class)->dateForUser($user);
+        $termYears = $statePensionDate !== null && $statePensionDate->isFuture()
+            ? round(now()->diffInDays($statePensionDate) / 365.25, 2)
+            : 0.0;
+
+        $humanCapital = $this->calculateHumanCapital($incomeGap, $termYears);
+
         $debtProtection = $this->calculateDebtProtectionNeed($profile);
-
-        $educationFunding = $this->calculateEducationFunding(
-            $profile->number_of_dependents,
-            $profile->dependents_ages ?? []
-        );
-
         $finalExpenses = $this->calculateFinalExpenses();
 
-        // Total need = Human capital (income difference) + debt + education + final expenses
-        $totalNeed = $humanCapital + $debtProtection + $educationFunding + $finalExpenses;
+        // Total life need = income replacement + debts + final expenses.
+        $totalNeed = $humanCapital + $debtProtection + $finalExpenses;
 
-        // Income protection need = max benefit ratio of gross income (standard IP recommendation)
-        $ipMaxBenefit = (float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit');
-        $incomeProtectionNeed = $userGrossIncome * $ipMaxBenefit;
+        $incomeProtectionNeed = $this->incomeProtectionNeed((float) $userGrossIncome);
+        $criticalIllnessNeed = $this->criticalIllnessNeed((float) $userGrossIncome);
+        $needsConfig = $this->taxConfig->getProtectionNeeds();
 
         // Statutory Sick Pay, from tax config only (Rule 2). Employees only.
         // https://www.gov.uk/statutory-sick-pay/what-youll-get: the weekly rate
@@ -517,16 +545,32 @@ class CoverageGapAnalyzer
         return [
             'human_capital' => $humanCapital,
             'debt_protection' => $debtProtection,
-            'education_funding' => $educationFunding,
             'final_expenses' => $finalExpenses,
             'income_protection_need' => $incomeProtectionNeed,
+            'critical_illness_need' => $criticalIllnessNeed,
+            // How the life need's income part was worked out, for every surface
+            // and Fyn to show as sent (Rule 20).
+            'income_replacement' => [
+                'spending_recorded' => $spendingRecorded,
+                'household_living_costs' => round($householdLivingCosts, 2),
+                'income_that_continues' => round($incomeThatContinues, 2),
+                'income_gap' => round($incomeGap, 2),
+                'term_years' => $termYears,
+                'state_pension_date' => $statePensionDate?->toDateString(),
+                'discount_rate' => (float) $needsConfig['life_cover']['income_replacement']['discount_rate'],
+            ],
             // Plain-words provenance for Fyn. Live 2026-09-23 (fynla.org,
             // conversation 888): the model read the need as "£21,000 of annual
             // income you would lose" and then invented where it came from.
             'income_protection_basis' => sprintf(
-                'Income protection would replace £%s a year: %d%% of £%s gross earned income (employment, self-employment and other earned income). Rental and dividend income continue if the user cannot work, so they are excluded.',
+                'Income protection would replace £%s a year: the most an insurer pays on £%s gross earned income (%s; employment, self-employment and other earned income). Rental and dividend income continue if the user cannot work, so they are excluded.',
                 number_format((float) $incomeProtectionNeed, 2),
-                (int) round($ipMaxBenefit * 100),
+                number_format((float) $userGrossIncome, 2),
+                $this->benefitTiersInWords()
+            ),
+            'critical_illness_basis' => sprintf(
+                'A rule of thumb, not a set amount: %s times your gross earned income of £%s. Critical illness cover is usually set by what you can afford.',
+                rtrim(rtrim(number_format((float) $needsConfig['critical_illness']['income_multiple'], 2), '0'), '.'),
                 number_format((float) $userGrossIncome, 2)
             ),
             'total_need' => $totalNeed,
@@ -535,7 +579,7 @@ class CoverageGapAnalyzer
             'continuing_income' => $userContinuingIncome,
             'income_that_stops' => $incomeThatStops,
             'income_that_continues' => $incomeThatContinues,
-            'net_income_difference' => max(0, $netIncomeDifference),
+            'income_gap' => round($incomeGap, 2),
             'income_tax' => $userTaxCalculation['income_tax'] ?? 0,
             'national_insurance' => $userTaxCalculation['national_insurance'] ?? 0,
             'spouse_included' => $spouseIncluded,
@@ -555,6 +599,22 @@ class CoverageGapAnalyzer
         ];
     }
 
+    /** "60% of the first £60,000 and 50% above", from the configured tiers. */
+    public function benefitTiersInWords(): string
+    {
+        $parts = [];
+        $floor = null;
+        foreach ($this->taxConfig->getProtectionNeeds()['income_protection']['benefit_tiers'] as $tier) {
+            $pct = rtrim(rtrim(number_format((float) $tier['rate'] * 100, 2), '0'), '.').'%';
+            $parts[] = $tier['up_to'] === null
+                ? $pct.($floor === null ? '' : ' above')
+                : $pct.' of the first £'.number_format((float) $tier['up_to']);
+            $floor = $tier['up_to'];
+        }
+
+        return implode(' and ', $parts);
+    }
+
     /**
      * How many DISTINCT protection gaps this household has. W-0479.
      *
@@ -572,7 +632,6 @@ class CoverageGapAnalyzer
             'human_capital_gap',
             'debt_protection_gap',
             'final_expenses_gap',
-            'education_funding_gap',
             'income_protection_gap',
         ];
 

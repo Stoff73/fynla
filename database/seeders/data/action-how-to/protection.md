@@ -361,7 +361,7 @@ learn:
 
 ## critical_illness_position
 status: approved
-source: every source under critical_illness_gap, no_ci_with_mortgage and ci_combined_risk below (approved 2026-09-29); the cover position (need = gross earned income x `protection.income_multipliers.critical_illness`)
+source: every source under critical_illness_gap, no_ci_with_mortgage and ci_combined_risk below (approved 2026-09-29); the cover position (need = gross earned income x `protection.needs_calculation.critical_illness.income_multiple`, a rule of thumb, CSJ 2026-10-06)
 figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, mortgage_amount, provider; reasons: critical_illness_gap, no_ci_with_mortgage, ci_combined_risk
 why when is_short:
 1. You would need {need} if a serious illness stopped you working. Your own policies give {own_cover} and your job {employer_cover}, so your cover is {short_by} short.

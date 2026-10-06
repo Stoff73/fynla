@@ -26,6 +26,7 @@
         <div v-for="row in coverRows" :key="row.key" style="margin-bottom:12px">
           <p class="m-sub" style="margin-bottom:2px"><strong>{{ row.label }}</strong>: {{ row.status }}</p>
           <p class="m-sub" style="margin-bottom:0">You need {{ row.need }}. Your own policies give {{ row.own }}, and your job {{ row.job }} (ends if you leave).</p>
+          <p v-if="row.basis" class="m-sub" style="margin:2px 0 0">{{ row.basis }}</p>
         </div>
       </div>
 
@@ -166,7 +167,7 @@ export default {
       if (!pos) return [];
       return ['life', 'critical_illness', 'income_protection'].filter((k) => pos[k]).map((k) => {
         const p = pos[k];
-        return { key: k, label: p.label, status: p.status_label, need: p.need_label, own: p.own_cover_label, job: p.employer_cover_label };
+        return { key: k, label: p.label, status: p.status_label, need: p.need_label, own: p.own_cover_label, job: p.employer_cover_label, basis: p.basis || null };
       });
     },
 

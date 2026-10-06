@@ -21,7 +21,7 @@ class ProtectionActionDefinitionService
 
     /** CSJ 2026-09-29: these fire as reasons on one card per cover type, never as cards. */
     private const FOLDED = [
-        'life' => ['life_insurance_gap', 'dependants_no_life_cover', 'mortgage_no_decreasing_term', 'education_funding_gap', 'dis_reliance_warning', 'non_earning_spouse_no_cover'],
+        'life' => ['life_insurance_gap', 'dependants_no_life_cover', 'mortgage_no_decreasing_term', 'dis_reliance_warning', 'non_earning_spouse_no_cover'],
         'critical_illness' => ['critical_illness_gap', 'no_ci_with_mortgage', 'ci_combined_risk'],
         'income_protection' => ['income_protection_gap', 'ip_gap_after_state_benefits', 'self_employed_no_ip', 'ip_any_occupation_definition', 'group_ip_any_occupation', 'ip_short_benefit_period', 'ip_long_deferred_period'],
     ];
@@ -115,7 +115,6 @@ class ProtectionActionDefinitionService
 
             // Dependants and spouse
             'dependants_no_life_cover' => $this->evaluateDependantsNoLifeCover($definition, $comprehensivePlan),
-            'education_funding_gap' => $this->evaluateEducationFundingGap($definition, $comprehensivePlan),
             'non_earning_spouse_no_cover' => $this->evaluateNonEarningSpouse($definition, $comprehensivePlan),
 
             // Premium affordability
@@ -646,7 +645,7 @@ class ProtectionActionDefinitionService
         }
 
         $deathInService = $disMultiple * $salary;
-        $disRelianceThreshold = (float) $this->taxConfig->get('protection.dis_reliance_percent');
+        $disRelianceThreshold = (float) $this->taxConfig->getProtectionNeeds()['employer_cover']['reliance_share'];
 
         $trace[] = [
             'question' => 'What is the death in service benefit worth?',
@@ -1821,88 +1820,6 @@ class ProtectionActionDefinitionService
     }
 
     /**
-     * Evaluate education_funding_gap — triggers when education funding gap exists.
-     */
-    private function evaluateEducationFundingGap(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
-    {
-        $trace = [];
-        $user = $this->resolveUser($comprehensivePlan);
-        $firstName = $user->first_name ?? 'The user';
-
-        // Step 1: User context
-        $trace[] = $this->buildUserContextTrace($comprehensivePlan);
-
-        $userProfile = $comprehensivePlan['user_profile'] ?? [];
-        $dependants = (int) ($userProfile['number_of_dependents'] ?? 0);
-        $dependantsAges = $userProfile['dependents_ages'] ?? [];
-        $agesStr = ! empty($dependantsAges) ? ' (ages: '.implode(', ', $dependantsAges).')' : '';
-
-        $protectionNeeds = $comprehensivePlan['protection_needs'] ?? [];
-        $breakdown = $protectionNeeds['breakdown'] ?? [];
-        $educationFunding = (float) ($breakdown['education_funding'] ?? 0);
-
-        // Step 2: Education funding need
-        $trace[] = [
-            'question' => 'Does '.$firstName.' have an education funding need for dependants?',
-            'data_field' => 'Education funding requirement',
-            'data_value' => '£'.number_format($educationFunding, 0).' for '.$dependants.' dependant(s)'.$agesStr,
-            'threshold' => 'Greater than £0',
-            'passed' => $educationFunding <= 0,
-            'explanation' => $educationFunding > 0
-                ? $firstName.' has an education funding requirement of £'.number_format($educationFunding, 0).' for '.$dependants.' dependant(s)'.$agesStr.'.'
-                : 'No education funding need identified for '.$firstName.'.',
-        ];
-
-        if ($educationFunding <= 0) {
-            return null;
-        }
-
-        // Step 3: Life insurance gap check
-        $coverageAnalysis = $comprehensivePlan['coverage_analysis'] ?? [];
-        $lifeGap = (float) ($coverageAnalysis['life_insurance']['gap'] ?? 0);
-        $lifeNeed = (float) ($coverageAnalysis['life_insurance']['need'] ?? 0);
-        $lifeCoverage = (float) ($coverageAnalysis['life_insurance']['coverage'] ?? 0);
-
-        $trace[] = [
-            'question' => 'Is '.$firstName.'\'s life insurance sufficient to cover the education funding need?',
-            'data_field' => 'Life insurance gap',
-            'data_value' => '£'.number_format($lifeNeed, 0).' need - £'.number_format($lifeCoverage, 0).' cover = £'.number_format($lifeGap, 0).' gap',
-            'threshold' => '£0 (no gap)',
-            'passed' => $lifeGap <= 0,
-            'explanation' => $lifeGap > 0
-                ? $firstName.'\'s life insurance has a shortfall of £'.number_format($lifeGap, 0).' (need: £'.number_format($lifeNeed, 0).' vs cover: £'.number_format($lifeCoverage, 0).'), which puts the education funding at risk.'
-                : $firstName.'\'s life insurance fully covers all needs, including education funding.',
-        ];
-
-        if ($lifeGap <= 0) {
-            return null;
-        }
-
-        // Step 4: Education funding at risk
-        $educationGap = min($educationFunding, $lifeGap);
-
-        $trace[] = [
-            'question' => 'How much of the education funding is at risk?',
-            'data_field' => 'Education funding gap',
-            'data_value' => 'min(£'.number_format($educationFunding, 0).' education need, £'.number_format($lifeGap, 0).' life gap) = £'.number_format($educationGap, 0),
-            'threshold' => '£0 (fully covered)',
-            'passed' => false,
-            'explanation' => '£'.number_format($educationGap, 0).' of '.$firstName.'\'s education funding need is at risk due to insufficient life cover. If '.$firstName.' were to pass away, the shortfall could prevent dependants from completing their education.',
-        ];
-
-        $vars = [
-            'gap_amount' => $this->formatCurrency($educationGap),
-            // Its own figure once the position card owns gap_amount.
-            'education_gap' => $this->formatCurrency($educationGap),
-        ];
-
-        $rec = $this->buildRecommendation($definition, $vars, $educationGap);
-        $rec['decision_trace'] = $trace;
-
-        return $rec;
-    }
-
-    /**
      * Evaluate non_earning_spouse_no_cover — triggers when non-earning spouse has no cover
      * and user has dependants.
      */
@@ -2059,6 +1976,9 @@ class ProtectionActionDefinitionService
         $titles = array_values(array_filter(array_map(static fn (array $r): string => (string) ($r['action'] ?? ''), $reasons)));
         if ($titles !== []) {
             $summary .= ' '.implode('. ', $titles).'.';
+        }
+        if (! empty($position['basis'])) {
+            $summary .= ' '.$position['basis'];
         }
 
         $vars = [

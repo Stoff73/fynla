@@ -12,6 +12,7 @@
           <div><dt class="text-neutral-500">Your own policies</dt><dd class="text-horizon-500 font-medium">{{ row.own }}</dd></div>
           <div><dt class="text-neutral-500">Through your job (ends if you leave)</dt><dd class="text-horizon-500 font-medium">{{ row.job }}</dd></div>
         </dl>
+        <p v-if="open === row.key && row.basis" class="mt-2 text-sm text-neutral-500">{{ row.basis }}</p>
       </div>
     </div>
   </section>
@@ -43,6 +44,7 @@ export default {
           need: p.need_label,
           own: p.own_cover_label,
           job: p.employer_cover_label,
+          basis: p.basis || null,
         };
       });
     },

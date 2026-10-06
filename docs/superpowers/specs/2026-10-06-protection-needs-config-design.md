@@ -1,6 +1,6 @@
 # Protection needs: sourced figures, correct maths, one place (item 8b)
 
-**Status:** for CSJ review. Section 5 holds the decisions. No code until approved.
+**Status:** approved (CSJ 2026-10-06): D1, D2, D4, D5, D6, D7 as recommended; D3 keeps 3 x gross earned income, shown to the user as a rule of thumb ("making sure that the user is aware this is an arbituary figure"; critical illness cover is "usually based on affordability").
 
 **Asked (CSJ 2026-10-06):** "these figures need to be placed into the taxconfig file under protection needs calculations, with the appropriate headings, and surfaced in admin, so they can be updated as necessary and fetched from one place. Do the necessary research as well, to ensure that we have all the necessary figures and correct math."
 

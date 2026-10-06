@@ -289,7 +289,6 @@ describe('Protection Workflow Integration', function () {
         expect($analysisData['gaps']['gaps_by_category'])->toHaveKeys([
             'human_capital_gap',
             'debt_protection_gap',
-            'education_funding_gap',
             'income_protection_gap',
         ]);
     });

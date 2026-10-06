@@ -8,6 +8,7 @@ use App\Services\Protection\CoverageGapAnalyzer;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
+use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
     // Mock TaxConfigService
@@ -48,19 +49,9 @@ beforeEach(function () {
             'additional_rate' => 0.3935,
         ]);
 
-    // Protection-specific config values
-    $mockTaxConfig->shouldReceive('get')
-        ->with('protection.withdrawal_rates.human_capital', Mockery::any())
-        ->andReturn(0.047);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('protection.final_expenses', Mockery::any())
-        ->andReturn(7500);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('protection.education_cost_per_year', Mockery::any())
-        ->andReturn(9000);
-    $mockTaxConfig->shouldReceive('get')
-        ->with('protection.income_multipliers.income_protection_max_benefit')
-        ->andReturn(0.60);
+    // Protection needs: the seeder's one home for the figures (item 8b).
+    $mockTaxConfig->shouldReceive('getProtectionNeeds')
+        ->andReturn(TaxConfigurationSeeder::protectionNeedsCalculation());
 
     // State benefit config values for SSP/ESA, as TaxConfigurationSeeder seeds
     // 2026/27. Each key is expected with ONE argument, so a literal fallback
@@ -78,11 +69,6 @@ beforeEach(function () {
             ->with($key)
             ->andReturnUsing(fn () => $this->benefits[$key]);
     }
-
-    // Employer reliance threshold
-    $mockTaxConfig->shouldReceive('get')
-        ->with('protection.dis_reliance_percent', Mockery::any())
-        ->andReturn(0.50);
 
     // W-0511 — the analyzer asks the config service what allowance each person is
     // entitled to. None of these fixtures is registered blind, so the real answer is
@@ -105,43 +91,37 @@ afterEach(function () {
 });
 
 describe('calculateHumanCapital', function () {
-    it('calculates life cover capital using sustainable drawdown at 4.7%', function () {
-        $annualIncomeNeed = 50000;
-
-        $result = $this->analyzer->calculateHumanCapital($annualIncomeNeed);
-
-        // Expected: 50000 / 0.047 = 1,063,829.79 (rounded to 2dp)
-        expect(round($result, 2))->toEqual(1063829.79);
+    // gap x (1 - (1 + r)^-n) / r at the Personal Injury Discount Rate, 0.5% (D1).
+    it('turns a yearly income gap into the lump sum that pays it for the term', function () {
+        expect(round($this->analyzer->calculateHumanCapital(30000, 25), 2))->toEqual(703369.14)
+            ->and(round($this->analyzer->calculateHumanCapital(30000, 10.5), 2))->toEqual(306129.28);
     });
 
-    it('returns zero when income need is zero', function () {
-        $result = $this->analyzer->calculateHumanCapital(0);
-
-        expect($result)->toEqual(0.0);
+    it('is never a perpetuity: a longer term costs more, a shorter one less', function () {
+        expect($this->analyzer->calculateHumanCapital(10000, 1))->toBeLessThan(10000.0)
+            ->and(round($this->analyzer->calculateHumanCapital(10000, 1), 2))->toEqual(9950.25);
     });
 
-    it('returns zero when income need is negative', function () {
-        $result = $this->analyzer->calculateHumanCapital(-5000);
+    it('returns zero with no gap or no years left', function () {
+        expect($this->analyzer->calculateHumanCapital(0, 20))->toEqual(0.0)
+            ->and($this->analyzer->calculateHumanCapital(-5000, 20))->toEqual(0.0)
+            ->and($this->analyzer->calculateHumanCapital(30000, 0))->toEqual(0.0);
+    });
+});
 
-        expect($result)->toEqual(0.0);
+describe('income protection and critical illness needs', function () {
+    // D6: Legal & General, 60% of the first £60,000 and 50% above (QGI16002 04/25).
+    it('applies the insurer limit band by band', function () {
+        expect($this->analyzer->incomeProtectionNeed(50000))->toEqual(30000.0)
+            ->and($this->analyzer->incomeProtectionNeed(60000))->toEqual(36000.0)
+            ->and($this->analyzer->incomeProtectionNeed(100000))->toEqual(56000.0)
+            ->and($this->analyzer->benefitTiersInWords())->toBe('60% of the first £60,000 and 50% above');
     });
 
-    it('calculates correctly for small income need', function () {
-        $annualIncomeNeed = 10000;
-
-        $result = $this->analyzer->calculateHumanCapital($annualIncomeNeed);
-
-        // Expected: 10000 / 0.047 = 212,765.96
-        expect(round($result, 2))->toEqual(212765.96);
-    });
-
-    it('calculates correctly for high income need', function () {
-        $annualIncomeNeed = 100000;
-
-        $result = $this->analyzer->calculateHumanCapital($annualIncomeNeed);
-
-        // Expected: 100000 / 0.047 = 2,127,659.57
-        expect(round($result, 2))->toEqual(2127659.57);
+    // D3: three times gross earned income, a rule of thumb.
+    it('works out critical illness as the rule-of-thumb multiple of gross income', function () {
+        expect($this->analyzer->criticalIllnessNeed(75000))->toEqual(225000.0)
+            ->and($this->analyzer->criticalIllnessNeed(-1))->toEqual(0.0);
     });
 });
 
@@ -186,75 +166,10 @@ describe('calculateDebtProtectionNeed', function () {
     });
 });
 
-describe('calculateEducationFunding', function () {
-    it('calculates education funding for one child', function () {
-        $numChildren = 1;
-        $ages = [5];
-
-        $result = $this->analyzer->calculateEducationFunding($numChildren, $ages);
-
-        // Expected: 9000 * (21 - 5) = 9000 * 16 = 144,000
-        expect($result)->toEqual(144000.0);
-    });
-
-    it('calculates education funding for multiple children', function () {
-        $numChildren = 2;
-        $ages = [5, 10];
-
-        $result = $this->analyzer->calculateEducationFunding($numChildren, $ages);
-
-        // Child 1: 9000 * (21 - 5) = 9000 * 16 = 144,000
-        // Child 2: 9000 * (21 - 10) = 9000 * 11 = 99,000
-        // Total: 243,000
-        expect($result)->toEqual(243000.0);
-    });
-
-    it('returns zero for children over 21', function () {
-        $numChildren = 1;
-        $ages = [25];
-
-        $result = $this->analyzer->calculateEducationFunding($numChildren, $ages);
-
-        expect($result)->toEqual(0.0);
-    });
-
-    it('handles child at age 21', function () {
-        $numChildren = 1;
-        $ages = [21];
-
-        $result = $this->analyzer->calculateEducationFunding($numChildren, $ages);
-
-        expect($result)->toEqual(0.0);
-    });
-
-    it('handles mixed ages including above 21', function () {
-        $numChildren = 3;
-        $ages = [5, 18, 25];
-
-        $result = $this->analyzer->calculateEducationFunding($numChildren, $ages);
-
-        // Child 1: 9000 * 16 = 144,000
-        // Child 2: 9000 * 3 = 27,000
-        // Child 3: 0 (over 21)
-        // Total: 171,000
-        expect($result)->toEqual(171000.0);
-    });
-
-    it('returns zero when no children', function () {
-        $numChildren = 0;
-        $ages = [];
-
-        $result = $this->analyzer->calculateEducationFunding($numChildren, $ages);
-
-        expect($result)->toEqual(0.0);
-    });
-});
-
 describe('calculateFinalExpenses', function () {
-    it('returns fixed amount of £7,500', function () {
-        $result = $this->analyzer->calculateFinalExpenses();
-
-        expect($result)->toEqual(7500.0);
+    // D4: SunLife Cost of Dying Report 2025, the cost of dying.
+    it('is the configured cost of dying', function () {
+        expect($this->analyzer->calculateFinalExpenses())->toEqual(9797.0);
     });
 });
 
@@ -466,7 +381,6 @@ describe('calculateCoverageGap', function () {
         $needs = [
             'human_capital' => 500000,
             'debt_protection' => 200000,
-            'education_funding' => 150000,
             'final_expenses' => 7500,
             'income_protection_need' => 30000,
         ];
@@ -491,19 +405,18 @@ describe('calculateCoverageGap', function () {
             'coverage_percentage',
         ]);
 
-        // Total need: 500000 + 200000 + 150000 + 7500 = 857,500
-        expect($result['total_need'])->toEqual(857500.0);
+        // Total need: 500000 + 200000 + 7500 = 707,500 (no education figure, D5)
+        expect($result['total_need'])->toEqual(707500.0);
         expect($result['total_coverage'])->toEqual(400000.0);
-        expect($result['total_gap'])->toEqual(457500.0);
+        expect($result['total_gap'])->toEqual(307500.0);
 
-        // Coverage percentage: (400000 / 857500) * 100 = 46.65%
-        expect($result['coverage_percentage'])->toBeGreaterThan(46.0);
-        expect($result['coverage_percentage'])->toBeLessThan(47.0);
+        // Coverage percentage: (400000 / 707500) * 100 = 56.54%
+        expect($result['coverage_percentage'])->toBeGreaterThan(56.0);
+        expect($result['coverage_percentage'])->toBeLessThan(57.0);
 
         expect($result['gaps_by_category'])->toHaveKeys([
             'human_capital_gap',
             'debt_protection_gap',
-            'education_funding_gap',
             'income_protection_gap',
             'disability_coverage_gap',
             'sickness_illness_gap',
@@ -514,7 +427,6 @@ describe('calculateCoverageGap', function () {
         $needs = [
             'human_capital' => 300000,
             'debt_protection' => 100000,
-            'education_funding' => 50000,
             'final_expenses' => 7500,
             'income_protection_need' => 20000,
         ];
@@ -539,7 +451,6 @@ describe('calculateCoverageGap', function () {
         $needs = [
             'human_capital' => 500000,
             'debt_protection' => 200000,
-            'education_funding' => 150000,
             'final_expenses' => 7500,
             'income_protection_need' => 30000,
         ];
@@ -556,17 +467,21 @@ describe('calculateCoverageGap', function () {
 
         $result = $this->analyzer->calculateCoverageGap($needs, $coverage);
 
-        expect($result['total_gap'])->toEqual(857500.0);
+        expect($result['total_gap'])->toEqual(707500.0);
         expect($result['coverage_percentage'])->toEqual(0.0);
     });
 });
 
 describe('calculateProtectionNeeds', function () {
-    it('calculates all protection needs correctly', function () {
+    // D7: the family's income gap is household living costs less income that
+    // continues, paid until State Pension age (D2) at 0.5% (D1).
+    it('works the life need out from spending, the term and the configured figures', function () {
         $user = User::factory()->create([
             'date_of_birth' => now()->subYears(35),
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 2500,
+            'annual_employment_income' => 50000,
         ]);
-
         $profile = ProtectionProfile::factory()->create([
             'user_id' => $user->id,
             'annual_income' => 50000,
@@ -574,53 +489,35 @@ describe('calculateProtectionNeeds', function () {
             'other_debts' => 25000,
             'number_of_dependents' => 2,
             'dependents_ages' => [5, 10],
-            'retirement_age' => 67,
         ]);
 
         $result = $this->analyzer->calculateProtectionNeeds($profile);
+        $replacement = $result['income_replacement'];
 
-        expect($result)->toHaveKeys([
-            'human_capital',
-            'debt_protection',
-            'education_funding',
-            'final_expenses',
-            'income_protection_need',
-            'total_need',
-        ]);
-
-        // Human capital: net_income_difference / 0.047 (sustainable drawdown)
-        // Net income ~£39,520 for £50k gross, so human capital ~£39,520 / 0.047 ≈ £840,851
-        expect($result['human_capital'])->toBeGreaterThan(0);
-        $expectedHumanCapital = $result['net_income_difference'] / 0.047;
-        expect(round($result['human_capital'], 2))->toEqual(round($expectedHumanCapital, 2));
-
-        // Debt protection: 250000 + 25000 = 275,000
-        expect($result['debt_protection'])->toEqual(275000.0);
-
-        // Education funding: (9000 * 16) + (9000 * 11) = 243,000
-        expect($result['education_funding'])->toEqual(243000.0);
-
-        // Final expenses: 7,500
-        expect($result['final_expenses'])->toEqual(7500.0);
-
-        // Plain-words provenance for Fyn: the need is 60% of gross earned income.
-        expect($result['income_protection_basis'])
-            ->toContain('60% of £50,000.00 gross earned income')
-            ->toContain('£'.number_format($result['income_protection_need'], 2).' a year');
-
-        // Income protection need: 50000 * 0.6 = 30,000
-        expect($result['income_protection_need'])->toEqual(30000.0);
-
-        // Total need = human_capital + debt + education + final_expenses
-        $expectedTotal = $result['human_capital'] + 275000 + 243000 + 7500;
-        expect(round($result['total_need'], 2))->toEqual(round($expectedTotal, 2));
+        expect($result)->not->toHaveKey('education_funding')
+            ->and($replacement['spending_recorded'])->toBeTrue()
+            ->and($replacement['household_living_costs'])->toEqual(30000.0)
+            ->and($replacement['income_gap'])->toEqual(30000.0)
+            ->and($replacement['term_years'])->toBeGreaterThan(31.0)
+            ->and($replacement['discount_rate'])->toEqual(0.005)
+            ->and(round($result['human_capital'], 2))->toEqual(round($this->analyzer->calculateHumanCapital(30000, $replacement['term_years']), 2))
+            ->and($result['debt_protection'])->toEqual(275000.0)
+            ->and($result['final_expenses'])->toEqual(9797.0)
+            ->and(round($result['total_need'], 2))->toEqual(round($result['human_capital'] + 275000 + 9797, 2))
+            ->and($result['income_protection_need'])->toEqual(30000.0)
+            ->and($result['critical_illness_need'])->toEqual(150000.0)
+            ->and($result['income_protection_basis'])->toContain('60% of the first £60,000 and 50% above')
+            ->and($result['critical_illness_basis'])->toContain('rule of thumb');
     });
 
-    it('handles profile with no dependents', function () {
+    it('leaves the income part out, and says so, when spending is not recorded', function () {
         $user = User::factory()->create([
             'date_of_birth' => now()->subYears(40),
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 0,
+            'annual_expenditure' => 0,
+            'annual_employment_income' => 60000,
         ]);
-
         $profile = ProtectionProfile::factory()->create([
             'user_id' => $user->id,
             'annual_income' => 60000,
@@ -628,36 +525,34 @@ describe('calculateProtectionNeeds', function () {
             'other_debts' => 0,
             'number_of_dependents' => 0,
             'dependents_ages' => [],
-            'retirement_age' => 67,
         ]);
 
         $result = $this->analyzer->calculateProtectionNeeds($profile);
 
-        expect($result['education_funding'])->toEqual(0.0);
-        expect($result['debt_protection'])->toEqual(0.0);
+        expect($result['income_replacement']['spending_recorded'])->toBeFalse()
+            ->and($result['human_capital'])->toEqual(0.0)
+            ->and($result['total_need'])->toEqual(9797.0);
     });
 
-    it('uses default age when date_of_birth is null', function () {
+    it('loses no earnings past State Pension age', function () {
         $user = User::factory()->create([
-            'date_of_birth' => null,
+            'date_of_birth' => now()->subYears(70),
+            'expenditure_entry_mode' => 'simple',
+            'monthly_expenditure' => 2000,
         ]);
-
         $profile = ProtectionProfile::factory()->create([
             'user_id' => $user->id,
-            'annual_income' => 50000,
+            'annual_income' => 0,
             'mortgage_balance' => 0,
             'other_debts' => 0,
             'number_of_dependents' => 0,
-            'dependents_ages' => null,
-            'retirement_age' => 67,
+            'dependents_ages' => [],
         ]);
 
         $result = $this->analyzer->calculateProtectionNeeds($profile);
 
-        // Human capital = net_income_difference / 0.047 (sustainable drawdown)
-        expect($result['human_capital'])->toBeGreaterThan(0);
-        $expectedHumanCapital = $result['net_income_difference'] / 0.047;
-        expect(round($result['human_capital'], 2))->toEqual(round($expectedHumanCapital, 2));
+        expect($result['income_replacement']['term_years'])->toEqual(0.0)
+            ->and($result['human_capital'])->toEqual(0.0);
     });
 });
 

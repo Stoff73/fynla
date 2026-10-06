@@ -43,19 +43,15 @@
               <p class="text-xs font-medium text-neutral-500 uppercase mb-2">How we calculated your need</p>
               <div class="space-y-1">
                 <div v-if="needsBreakdown.human_capital > 0" class="flex justify-between text-xs">
-                  <span class="text-neutral-500">Income replacement capital ({{ incomeAnalysis.net_income_difference > 0 ? formatCurrency(incomeAnalysis.net_income_difference) + '/year' : 'net income' }} at 4.7% drawdown)</span>
+                  <span class="text-neutral-500">Income replacement capital</span>
                   <span class="text-horizon-500 font-medium">{{ formatCurrency(needsBreakdown.human_capital) }}</span>
                 </div>
                 <div v-if="needsBreakdown.debt_protection > 0" class="flex justify-between text-xs">
                   <span class="text-neutral-500">Outstanding debts (mortgage + other)</span>
                   <span class="text-horizon-500 font-medium">{{ formatCurrency(needsBreakdown.debt_protection) }}</span>
                 </div>
-                <div v-if="needsBreakdown.education_funding > 0" class="flex justify-between text-xs">
-                  <span class="text-neutral-500">Education funding for dependants</span>
-                  <span class="text-horizon-500 font-medium">{{ formatCurrency(needsBreakdown.education_funding) }}</span>
-                </div>
                 <div v-if="needsBreakdown.final_expenses > 0" class="flex justify-between text-xs">
-                  <span class="text-neutral-500">Final expenses (funeral and administration)</span>
+                  <span class="text-neutral-500">Final expenses (funeral, professional fees and send-off)</span>
                   <span class="text-horizon-500 font-medium">{{ formatCurrency(needsBreakdown.final_expenses) }}</span>
                 </div>
                 <div class="flex justify-between text-xs pt-1 border-t border-savannah-100 font-medium">
@@ -71,6 +67,7 @@
                   <span class="text-raspberry-700">{{ formatCurrency(coverageAnalysis.life_insurance.gap) }}</span>
                 </div>
               </div>
+              <p v-if="working.income_replacement" class="text-xs text-horizon-400 mt-2">{{ working.income_replacement }}</p>
             </div>
           </div>
 
@@ -110,7 +107,7 @@
               <p class="text-xs font-medium text-neutral-500 uppercase mb-2">How we calculated your need</p>
               <div class="space-y-1">
                 <div class="flex justify-between text-xs">
-                  <span class="text-neutral-500">3 &times; your gross annual income of {{ formatCurrency(incomeAnalysis.gross_income) }}</span>
+                  <span class="text-neutral-500">Rule of thumb on your gross income of {{ formatCurrency(incomeAnalysis.gross_income) }}</span>
                   <span class="text-horizon-500 font-medium">{{ formatCurrency(coverageAnalysis.critical_illness?.need || 0) }}</span>
                 </div>
                 <div class="flex justify-between text-xs pt-1 border-t border-savannah-100 font-medium">
@@ -127,6 +124,7 @@
                 </div>
               </div>
               <p class="text-xs text-horizon-400 mt-2">A lump sum to cover living costs and treatment if diagnosed with a serious illness.</p>
+              <p v-if="working.critical_illness" class="text-xs text-horizon-400 mt-1">{{ working.critical_illness }}</p>
             </div>
           </div>
 
@@ -162,11 +160,11 @@
               ></div>
             </div>
             <!-- How we calculated the need -->
-            <div v-if="incomeAnalysis.net_income > 0" class="mt-3 pt-3 border-t border-light-gray">
+            <div v-if="incomeAnalysis.gross_income > 0" class="mt-3 pt-3 border-t border-light-gray">
               <p class="text-xs font-medium text-neutral-500 uppercase mb-2">How we calculated your need</p>
               <div class="space-y-1">
                 <div class="flex justify-between text-xs">
-                  <span class="text-neutral-500">70% of your net monthly income ({{ formatCurrency(incomeAnalysis.net_income / 12) }}/month)</span>
+                  <span class="text-neutral-500">The most an insurer pays on your gross income of {{ formatCurrency(incomeAnalysis.gross_income) }} a year</span>
                   <span class="text-horizon-500 font-medium">{{ formatCurrency(coverageAnalysis.income_protection?.need || 0) }}/month</span>
                 </div>
                 <div class="flex justify-between text-xs pt-1 border-t border-savannah-100 font-medium">
@@ -183,6 +181,7 @@
                 </div>
               </div>
               <p class="text-xs text-horizon-400 mt-2">Replaces your income if you are unable to work due to illness or injury.</p>
+              <p v-if="working.income_protection" class="text-xs text-horizon-400 mt-1">{{ working.income_protection }}</p>
             </div>
           </div>
         </div>
@@ -268,6 +267,10 @@ export default {
     },
     incomeAnalysis() {
       return this.situation.needs?.income_analysis || {};
+    },
+    // The working in words, from the server (item 8b): never figures of our own.
+    working() {
+      return this.situation.needs?.working || {};
     },
     hasPolicies() {
       const cc = this.currentCoverage;

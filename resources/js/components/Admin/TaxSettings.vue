@@ -2244,44 +2244,89 @@
 
         <!-- Module Config Tab -->
         <div v-if="activeTab === 'module-config'">
-          <!-- Protection Config -->
+          <!-- Protection needs calculations (item 8b, CSJ 2026-10-06): every figure
+               that sizes a protection need, each with its source. The app reads
+               them only through TaxConfigService::getProtectionNeeds(). -->
           <div class="card">
             <div class="px-6 py-4 border-b border-light-gray">
-              <h3 class="text-lg font-semibold text-horizon-500">Protection Module</h3>
+              <h3 class="text-lg font-semibold text-horizon-500">Protection needs calculations</h3>
+              <p class="text-sm text-neutral-500 mt-1">The figures that size "You need" on the Protection page, its cards, the plan and Fyn. Rates are fractions (0.005 = 0.5%).</p>
             </div>
-            <div class="px-6 py-4 space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label class="block text-sm text-neutral-500 mb-1">Life Cover Multiplier</label>
-                  <input v-if="isEditing" v-model.number="editableConfig.protection.income_multipliers.life_cover" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
-                  <p v-else class="font-medium">{{ currentConfig.protection?.income_multipliers?.life_cover }}x income</p>
-                </div>
-                <div>
-                  <label class="block text-sm text-neutral-500 mb-1">Critical Illness Multiplier</label>
-                  <input v-if="isEditing" v-model.number="editableConfig.protection.income_multipliers.critical_illness" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
-                  <p v-else class="font-medium">{{ currentConfig.protection?.income_multipliers?.critical_illness }}x income</p>
-                </div>
-                <div>
-                  <label class="block text-sm text-neutral-500 mb-1">Income Protection Max Benefit</label>
-                  <input v-if="isEditing" v-model.number="editableConfig.protection.income_multipliers.income_protection_max_benefit" type="number" step="0.01" min="0" max="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
-                  <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.protection?.income_multipliers?.income_protection_max_benefit ?? 0) * 100).toFixed(0) }}% of income</p>
-                </div>
-                <div>
-                  <label class="block text-sm text-neutral-500 mb-1">Final Expenses Estimate (£)</label>
-                  <input v-if="isEditing" v-model.number="editableConfig.protection.final_expenses" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
-                  <p v-else class="font-medium">£{{ formatNumber(currentConfig.protection?.final_expenses) }}</p>
-                </div>
-                <div>
-                  <label class="block text-sm text-neutral-500 mb-1">Education Cost per Year (£)</label>
-                  <input v-if="isEditing" v-model.number="editableConfig.protection.education_cost_per_year" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
-                  <p v-else class="font-medium">£{{ formatNumber(currentConfig.protection?.education_cost_per_year) }}</p>
-                </div>
-                <div>
-                  <label class="block text-sm text-neutral-500 mb-1">Insurance Premium Tax (Standard)</label>
-                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.protection?.ipt?.standard_rate ?? 0) * 100).toFixed(0) }}%</p>
+            <div v-if="protectionNeeds(currentConfig)" class="px-6 py-4 space-y-6">
+              <!-- Life cover -->
+              <div>
+                <h4 class="text-md font-semibold text-horizon-500 mb-3">Life cover</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Income replacement: discount rate</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.protection.needs_calculation.life_cover.income_replacement.discount_rate" type="number" step="0.0001" min="0" max="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">{{ formatRatePercent(protectionNeeds(currentConfig).life_cover.income_replacement.discount_rate) }}</p>
+                    <p class="text-xs text-neutral-500 mt-1">{{ protectionNeeds(currentConfig).life_cover.income_replacement.discount_rate_source }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Income replacement: paid until</label>
+                    <p class="font-medium">State Pension age</p>
+                    <p class="text-xs text-neutral-500 mt-1">{{ protectionNeeds(currentConfig).life_cover.income_replacement.term_source }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Final expenses (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.protection.needs_calculation.life_cover.final_expenses.amount" type="number" step="1" min="0" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(protectionNeeds(currentConfig).life_cover.final_expenses.amount) }}</p>
+                    <p class="text-xs text-neutral-500 mt-1">{{ protectionNeeds(currentConfig).life_cover.final_expenses.source }}</p>
+                  </div>
                 </div>
               </div>
+
+              <!-- Critical illness -->
+              <div>
+                <h4 class="text-md font-semibold text-horizon-500 mb-3">Critical illness</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Multiple of gross earned income (rule of thumb)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.protection.needs_calculation.critical_illness.income_multiple" type="number" step="0.5" min="0" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">{{ protectionNeeds(currentConfig).critical_illness.income_multiple }} times income</p>
+                    <p class="text-xs text-neutral-500 mt-1">{{ protectionNeeds(currentConfig).critical_illness.source }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Income protection -->
+              <div>
+                <h4 class="text-md font-semibold text-horizon-500 mb-3">Income protection</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div v-for="(tier, index) in protectionNeeds(isEditing ? editableConfig : currentConfig).income_protection.benefit_tiers" :key="'ip-tier-' + index">
+                    <label class="block text-sm text-neutral-500 mb-1">
+                      {{ tier.up_to === null ? 'Share of income above the last band' : 'Share of income up to £' + formatNumber(tier.up_to) }}
+                    </label>
+                    <div v-if="isEditing" class="grid grid-cols-2 gap-2">
+                      <input v-if="tier.up_to !== null" v-model.number="editableConfig.protection.needs_calculation.income_protection.benefit_tiers[index].up_to" type="number" step="1" min="0" aria-label="Band ceiling (£)" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                      <input v-model.number="editableConfig.protection.needs_calculation.income_protection.benefit_tiers[index].rate" type="number" step="0.01" min="0" max="1" aria-label="Share of income" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    </div>
+                    <p v-else class="font-medium">{{ formatRatePercent(tier.rate) }}</p>
+                  </div>
+                </div>
+                <p class="text-xs text-neutral-500 mt-2">{{ protectionNeeds(currentConfig).income_protection.source }}</p>
+              </div>
+
+              <!-- Employer cover -->
+              <div>
+                <h4 class="text-md font-semibold text-horizon-500 mb-3">Employer cover</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Cover from the job above this share is flagged</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.protection.needs_calculation.employer_cover.reliance_share" type="number" step="0.05" min="0" max="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">{{ formatRatePercent(protectionNeeds(currentConfig).employer_cover.reliance_share) }}</p>
+                    <p class="text-xs text-neutral-500 mt-1">{{ protectionNeeds(currentConfig).employer_cover.source }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm text-neutral-500 mb-1">Insurance Premium Tax (Standard)</label>
+                <p class="font-semibold text-raspberry-600">{{ ((currentConfig.protection?.ipt?.standard_rate ?? 0) * 100).toFixed(0) }}%</p>
+              </div>
             </div>
+            <p v-else class="px-6 py-4 text-sm text-raspberry-700">This tax year has no protection needs calculations. Reseed the tax configuration.</p>
           </div>
 
           <!-- Retirement Config -->
@@ -2731,6 +2776,15 @@ export default {
       this.error = null;
     },
 
+    protectionNeeds(config) {
+      return config?.protection?.needs_calculation || null;
+    },
+
+    formatRatePercent(value) {
+      const pct = Number(value) * 100;
+      return `${Number.isFinite(pct) ? parseFloat(pct.toFixed(2)) : 0}%`;
+    },
+
     validateConfig(config) {
       const errors = [];
 
@@ -2859,6 +2913,23 @@ export default {
             }
           });
         }
+      }
+
+      // Protection needs calculations (item 8b)
+      const needs = config.protection?.needs_calculation;
+      if (needs) {
+        const rate = needs.life_cover?.income_replacement?.discount_rate;
+        if (!(rate >= 0 && rate < 1)) errors.push('Protection: the discount rate must be a fraction between 0 and 1 (0.005 for 0.5%)');
+        if (!(needs.life_cover?.final_expenses?.amount >= 0)) errors.push('Protection: final expenses must be zero or more');
+        if (!(needs.critical_illness?.income_multiple > 0)) errors.push('Protection: the critical illness multiple must be more than 0');
+        const share = needs.employer_cover?.reliance_share;
+        if (!(share > 0 && share <= 1)) errors.push('Protection: the employer cover share must be between 0 and 1');
+        const tiers = needs.income_protection?.benefit_tiers || [];
+        if (!tiers.length || tiers[tiers.length - 1].up_to !== null) errors.push('Protection: the last income protection band must cover all income above the others');
+        tiers.forEach((tier, index) => {
+          if (!(tier.rate >= 0 && tier.rate <= 1)) errors.push(`Protection: income protection band ${index + 1} share must be between 0 and 1`);
+          if (index > 0 && tier.up_to !== null && !(tier.up_to > tiers[index - 1].up_to)) errors.push(`Protection: income protection band ${index + 1} must start above band ${index}`);
+        });
       }
 
       return errors;
