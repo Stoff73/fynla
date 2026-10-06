@@ -72,16 +72,21 @@ final class WriteIntentClassifier
             'income protection', 'income protection policy',
             'whole of life', 'term assurance',
             'mortgage protection',
+            'protection details', 'my protection',
         ],
         'savings_account' => [
             'cash isa', 'help to buy isa', 'lifetime isa', 'lisa',
             'savings account', 'easy access account', 'fixed-rate account',
             'fixed term account', 'notice account',
             'current account', 'instant access',
+            // The section in general words ("change my savings details"; an
+            // explicit goal noun still wins, see classify()).
+            'bank accounts', 'bank account', 'savings details', 'my savings',
         ],
         'investment_account' => [
             'stocks and shares isa', 'investment isa', 'investment account',
             'gia', 'general investment account', 'brokerage account',
+            'investment details', 'my investments',
         ],
         'pension' => [
             'sipp', 'personal pension', 'workplace pension',

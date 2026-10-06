@@ -481,10 +481,12 @@ class PrerequisiteGateService
             // Only include checks that FAILED (some services include passed checks too)
             if (! $check['passed']) {
                 $missing[] = $check['message'];
-                $actions[] = [
+                $actions[] = array_filter([
                     'label' => $check['message'],
                     'route' => $check['form_link'] ?? '/profile',
-                ];
+                    // What is missing, so an unlock card can ask for that item.
+                    'key' => $check['key'] ?? null,
+                ]);
             }
         }
 

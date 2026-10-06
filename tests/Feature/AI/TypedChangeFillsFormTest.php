@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
+use App\Services\Onboarding\RecordEditForms;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
@@ -42,7 +44,7 @@ function personalEditConversation(): int
 }
 
 it('answers a typed change with the form, the change filled in, and saves nothing', function (): void {
-    Http::fake(['api.x.ai/*' => Http::response(['choices' => [['message' => ['content' => json_encode(['fields' => ['date_of_birth' => '1981-03-15']])]]]])]);
+    Http::fake(['api.x.ai/*' => Http::response(['choices' => [['message' => ['content' => json_encode(['forms' => ['0' => ['_lead' => ['date_of_birth' => '1981-03-15']]]])]]]])]);
     $id = personalEditConversation();
 
     $stream = $this->withHeader('X-Fynla-Forms', '1')
@@ -59,7 +61,7 @@ it('answers a typed change with the form, the change filled in, and saves nothin
 });
 
 it('leaves a question to Fyn as before', function (): void {
-    Http::fake(['api.x.ai/*' => Http::response(['choices' => [['message' => ['content' => json_encode(['fields' => []])]]]])]);
+    Http::fake(['api.x.ai/*' => Http::response(['choices' => [['message' => ['content' => json_encode(['forms' => []])]]]])]);
     $id = personalEditConversation();
 
     $stream = $this->withHeader('X-Fynla-Forms', '1')
@@ -67,4 +69,42 @@ it('leaves a question to Fyn as before', function (): void {
         ->assertOk()->streamedContent();
 
     expect($stream)->not->toContain('"type":"capture_form"');
+});
+
+it('opens the record a plain statement changes, before the model, and saves nothing', function (): void {
+    $account = SavingsAccount::factory()->create([
+        'user_id' => $this->user->id, 'joint_owner_id' => null, 'institution' => 'Nationwide',
+        'account_type' => 'easy_access', 'current_balance' => 8500, 'ownership_type' => 'individual',
+    ]);
+    $section = (string) array_key_first(app(RecordEditForms::class)->formFor($this->user, 'savings_account', $account->id)['answers']);
+    Http::fake(['api.x.ai/*' => function ($request) use ($section) {
+        // One form per saved record: the personal details first, then the account.
+        $forms = json_decode($request->data()['messages'][1]['content'], true)['forms'];
+        $index = collect($forms)->search(fn (array $form): bool => ($form['record'] ?? null) !== null && str_contains((string) $form['record'], 'Nationwide'));
+
+        return Http::response(['choices' => [['message' => ['content' => json_encode(['forms' => [(string) $index => [$section => ['current_value' => 9200]]]])]]]]);
+    }]);
+    $id = AiConversation::create(['user_id' => $this->user->id, 'title' => 'Chat', 'status' => 'active', 'model_used' => ''])->id;
+
+    $stream = $this->withHeader('X-Fynla-Forms', '1')
+        ->postJson("/api/ai-chat/conversations/{$id}/messages", ['message' => 'My Nationwide balance is £9,200 now'])
+        ->assertOk()->streamedContent();
+    $last = AiConversation::findOrFail($id)->messages()->latest('id')->first();
+
+    expect($stream)->toContain('"type":"capture_form"')
+        ->and($last->metadata['capture_form_record'])->toEqual(['type' => 'savings_account', 'id' => $account->id])
+        ->and($last->metadata['capture_form_values'][$section]['current_value'])->toBe(9200)
+        ->and((float) $account->fresh()->current_balance)->toBe(8500.0)
+        ->and(AiConversation::findOrFail($id)->messages()->where('role', 'user')->pluck('content')->all())->toBe(['My Nationwide balance is £9,200 now']);
+});
+
+it('leaves a question about a record to the model', function (): void {
+    Http::fake(['api.x.ai/*' => Http::response(['choices' => [['message' => ['content' => json_encode(['forms' => []])]]]])]);
+    $id = AiConversation::create(['user_id' => $this->user->id, 'title' => 'Chat', 'status' => 'active', 'model_used' => ''])->id;
+
+    $this->withHeader('X-Fynla-Forms', '1')
+        ->postJson("/api/ai-chat/conversations/{$id}/messages", ['message' => 'What is my Nationwide balance?'])
+        ->assertOk()->streamedContent();
+
+    Http::assertNothingSent();
 });

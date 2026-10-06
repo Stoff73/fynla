@@ -574,7 +574,7 @@ class NextActionsService
                 'meta' => $action['label'] ?? 'A few quick questions',
                 'value' => $weight,
                 'done' => false,
-                'action' => ['kind' => 'fyn_capture', 'payload' => $module, 'prompt' => RecommendationRouting::unlockPrompt($module)],
+                'action' => ['kind' => 'fyn_capture', 'payload' => $module, 'prompt' => RecommendationRouting::unlockPrompt($module, $action['key'] ?? null)],
             ];
         }
 

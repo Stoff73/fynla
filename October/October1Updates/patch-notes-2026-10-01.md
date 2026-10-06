@@ -1,4 +1,4 @@
-# What's new in Fynla — 1 and 2 October 2026
+# What's new in Fynla — 1 to 5 October 2026
 
 Your pension suggestions now start from what you can actually afford. A suggestion to pay into your own pension, or to top up your partner's, is sized to the money left after your spending and goals, and when there is not enough for both, the two are shown as alternatives rather than added together. The Save Tax setup asks for your monthly spending again so this works from the start, and a pension allowance you cannot afford to use no longer says "Fully used".
 
@@ -148,6 +148,48 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - "Ask for enhanced annuity quotes" needs a smoker or health status that nothing in the app records yet.
 - The Income tab does not yet tax share-scheme vests, though its total includes them.
 - Someone retired who has not started drawing sees "the same £0 each year" on the Retirement page.
+
+## One income, tax and spending figure, and Fyn's changes go through forms (5 October, releases #1071 to #1079)
+
+**This is live on fynla.org** through five releases on the morning of 5 October: #1071 (about 09:33), #1073 (09:54), #1075 (10:34), #1077 (11:00) and #1079 (11:28), UK time.
+
+- **Income Tax, National Insurance and take-home pay are worked out once, on the Income tab,** and the Retirement page's "Your income this year" reads them from there.
+  - **Other income and share-scheme vests are now taxed** there. Gift Aid and pension payments that get relief at source widen your tax bands rather than coming off your income ([Income Tax Act 2007 s414](https://www.legislation.gov.uk/ukpga/2007/3/section/414); [Finance Act 2004 s192(4)](https://www.legislation.gov.uk/ukpga/2004/12/section/192)).
+  - **No National Insurance on pay after State Pension age,** and no Class 4 from the 6 April after it ([Social Security Contributions and Benefits Act 1992 s6(3)](https://www.legislation.gov.uk/ukpga/1992/4/section/6)).
+  - **State Pension age is worked out to the month,** not rounded to whole years ([Pensions Act 1995 Schedule 4](https://www.legislation.gov.uk/ukpga/1995/26/schedule/4)).
+  - **Salary sacrifice is one deduction,** taken off before tax and National Insurance, and no longer counted again as spending.
+- **Fyn can change your dividends, interest, trust and other income through a form.** Trust income is taxed in your own bands, with the tax the trust paid as a credit ([Income Tax Act 2007 s16](https://www.legislation.gov.uk/ukpga/2007/3/section/16), [s494](https://www.legislation.gov.uk/ukpga/2007/3/section/494)).
+- **Gender is asked with your date of birth** when you set up, and on the personal details form. Life expectancy depends on it.
+- **Your monthly spending is one figure on the desktop and mobile web apps.**
+  - **The total adds up every category,** including charitable donations. Rent and utilities count for someone without a home of their own; a homeowner's housing costs come from the property. Before, the mobile app showed £955 where the desktop app showed £2,095 for the same spending.
+  - **The desktop spending table now matches.** It counted a homeowner's utilities twice: the Mitchell demo showed £1,385 against £1,225 on mobile.
+  - **A couple's one-figure total is halved across both accounts** when Fyn records it, as the desktop form already did.
+- **"Edit details" in the mobile app opens a form** for your spending and your personal details (date of birth, gender, marital status). Before, it opened a chat that asked typed questions and never asked gender.
+- **A change you type to Fyn fills in the form for you** (CSJ, 5 October). Say "my date of birth is 15 March 1981", and Fyn opens your details with that date filled in. Nothing is saved until you press Save.
+- **Fyn no longer says it saved something it did not.** Before, after "Actually my date of birth is 2 August 1960", Fyn replied "I have updated your date of birth" and changed nothing.
+- **A Fyn reply shows once.** The mobile app showed some replies twice, and the desktop app repeated them as the heading of the record card.
+- **Demo households no longer show "Ask Fyn about this" or "Get more recommendations".** Fyn is not available in a demo, so those buttons did nothing.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps,** before each change was merged:
+  - Expenditure: the same total on both apps after editing on each (£1,760, then £1,810);
+  - "Edit details" forms for spending and personal details;
+  - a typed date of birth filled into the form, and saved only on Save;
+  - the Mitchell demo with no Fyn buttons.
+- **Live on fynla.org:**
+  - **The Mitchell demo on both apps:** spending £1,225 entered plus £3,966 of commitments, £5,191 a month. Income £156,806, with the tax worked through by hand: bands widened by £3,000 of Gift Aid, no Personal Allowance at £142,206 adjusted net income, £50,016 Income Tax after the £780 mortgage credit, £101,879 net.
+  - **A walk account on the mobile app, deleted afterwards:**
+    - signed up through Save Tax;
+    - spending of £2,600 saved through "Edit details";
+    - the personal details form saved gender, and the reply showed once;
+    - "Actually my date of birth is 15 March 1981" opened the form with 15/03/1981 filled in: the date was unchanged until Save, then saved.
+
+**Still to do:**
+- **A change typed to Fyn without "Edit details" or wording like "change my"** can still be answered in words, not with a form. Fyn now says "That has not been saved yet" instead of claiming a save, but it can still list the new value as if it were recorded.
+- **Typed answers on the setup steps** are still saved straight from the text, not through the form.
+- **On Save Tax,** answering "No thanks" to the question about bank and savings accounts ends the whole setup, so date of birth, pension and spending are not asked (CSJ to decide).
+- **In a demo, "Mark as done"** is accepted but not kept.
+- **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
 
 ## Retirement suggestions, and the same figure on every screen (2 October, about 15:55, release #1047)
 

@@ -9,6 +9,7 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\Mobile\NextActionsService;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\RecordEditForms;
 use Illuminate\Support\Facades\DB;
 
@@ -63,8 +64,14 @@ final class ContextualConversationService
         $chooser = $form === null && $recommendation === null && $validated['action'] === 'edit'
             ? $editForms->chooserForResource($user, $resource->resourceType, $destinationParams)
             : null;
+        // An Add button opens the blank form for that kind of record (CSJ
+        // 2026-10-01: all capture through forms); the save comes back to the
+        // director (OnboardingChatDirector::handleCreateFormTurn).
+        $createForm = $form === null && $chooser === null && $recommendation === null && $validated['action'] === 'add'
+            ? CaptureForms::schema(RecordEditForms::createFormsFor($resource->resourceType)[0] ?? '')
+            : null;
 
-        return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form, $chooser): array {
+        return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form, $chooser, $createForm): array {
             $timestamp = now();
             $conversation = AiConversation::create([
                 'user_id' => $user->id,
@@ -96,12 +103,13 @@ final class ContextualConversationService
                 'content' => match (true) {
                     $form !== null => $this->formOpening($form),
                     $chooser !== null => $chooser['prompt'],
+                    $createForm !== null => CaptureForms::ADD_PROMPT,
                     $recommendation !== null => $this->recommendationOpening($recommendation),
                     default => $this->openingFor($validated['action'], $resource),
                 },
                 'metadata' => array_filter([
                     'source' => 'server_contextual_opening',
-                    'capture_form' => $form['schema'] ?? null,
+                    'capture_form' => $form['schema'] ?? $createForm,
                     'capture_form_values' => $form['answers'] ?? null,
                     'capture_form_record' => $form['record'] ?? null,
                     'bubbles' => $chooser['bubbles'] ?? null,

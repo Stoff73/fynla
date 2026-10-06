@@ -90,6 +90,12 @@ final class CaptureForms
     /** The category form asking first whether the figures are the household's (a spouse is on file). */
     public const EXPENDITURE_DETAILED_HOUSEHOLD = 'expenditure_detailed_household';
 
+    /** The line above a blank form offered outside the setup walk to add a record. */
+    public const ADD_PROMPT = "Fill this in and save, and I'll add it to your records.";
+
+    /** The line above a form Fyn filled in from what the user typed (a setup step, or a new record). */
+    public const FILLED_PROMPT = "I've filled in what you told me — check it, add anything missing and save.";
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 

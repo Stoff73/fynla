@@ -217,3 +217,21 @@ describe('WriteIntentClassifier::classify — income edits reach the income form
         expect($this->classifier->classify('How much income tax will I pay on my dividends?'))->toBeNull();
     });
 });
+
+describe('WriteIntentClassifier::classify — a section named in general words', function () {
+    // Walked on csjones 2026-10-05 (user 480): "I want to change my savings
+    // details" matched no record type, so the model asked in words instead of
+    // the edit door opening the records to choose from.
+    it('routes a change to a section named in general words', function (string $message, string $entity) {
+        expect($this->classifier->classify($message)['entity_type'] ?? null)->toBe($entity);
+    })->with([
+        ['I want to change my savings details', 'savings_account'],
+        ['Update my bank account', 'savings_account'],
+        ['I need to change my investments', 'investment_account'],
+        ['Please update my protection details', 'protection_policy'],
+    ]);
+
+    it('still routes a savings goal to the goal', function () {
+        expect($this->classifier->classify('Change my savings goal to £10,000')['entity_type'] ?? null)->toBe('goal');
+    });
+});

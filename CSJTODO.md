@@ -253,20 +253,7 @@ Three small decisions, all optional:
 
 ## Deploy state
 
-- **2026-10-01: prod (fynla.org) = main `86ac5c5de` (#1039).** Four releases: #1032 (Marriage Allowance to s55C(1)(c); `ActionHowToSeeder`, `fyn:semantic:reindex`), #1034 (bundles: LEVEL UP band commented out), #1037 (savings gift for every couple: migration `2026_10_01_000001`, `TaxActionDefinitionSeeder`, `ActionHowToSeeder`, fyn-memory + `fyn:procedural:validate`), #1039 (PHP only). Backups `~/release-backups/2026-10-01*`. All walked on web and `/m`; prod walk accounts 770-773 purged. csjones on `dev`; its walk accounts 452-455 are on the purge list (TODO housekeeping).
-- **2026-09-27: prod (fynla.org) = main `569957ef8` (#947).** Morning #945 (`a675058bd`: migration `2026_09_27_000001`, `TaxConfigurationSeeder`, `ActionHowToSeeder`, both bundles); evening #947 (PHP only). Backups `~/release-backups/2026-09-27/` and `2026-09-27b/`. Walked live on web and `/m`; accounts 754 and the evening walk account purged. csjones back on `dev` at `a21778c18`; test account 428 `psa-walk-2026-09-27@example.com` left there. Prod `route:list` crashes on the Apple bridge (`invalid_configuration`) — harmless until IAP; never use it as a deploy check.
-
-- **2026-09-24:**
-  - Production `.env` now carries `FYN_LEARNING_ENABLED=false` (it was on 08:35–16:41, and nothing was staged). Backup: `.env.bak-2026-09-24-learning`.
-  - 432 test-output episode files deleted from production `fyn-memory/episodic/episodes/`.
-  - csjones pulled `dev` at `67ca3793f`. It still has `FYN_LEARNING_ENABLED=true` and 206 pending figure-laden rows in `proposed_semantic_facts` (test accounts); plan Task 3 retires that path.
-
-- **csjones is on `dev` at d6650eb93 (2026-09-25 13:07)**, both bundles uploaded (built from the #939 branch, same frontend as dev). Test accounts left there: 422 `savetax-only-2026-09-25@example.com`, users 419–421 `brett-a/c/d-2026-09-22@example.com` and 397 `formwalk-0915@example.com` (all `Password1!`), disposable.
-- **2026-09-25: prod (fynla.org) = main `9bc414107` (#940).** Save Tax-only onboarding (#939) plus #935–#937. No migrations or seeders; corpus rsynced with episodes excluded; learning stays off. Walked live on web and `/m` (account 751, purged). Backup `~/release-backups/2026-09-25/`. Auto mode blocks prod deploys: the deploy ran as a script CSJ executed with `!`.
-- **2026-09-22: prod (fynla.org) = main `df14df1e2`.** Three releases, all walked live on `/m` with fresh registrations, since purged; nothing unreleased. Backups `~/release-backups/2026-09-22{a,b,c}/`.
-  - `904364c31` (#924) — threshold position, RSU value and labels, free-tier childcare and Gift Aid, Gift Aid one-write, green gate (#919–#923).
-  - `f2f880fc7` (#926) — disabled-child flag, taper copy, `serialize_precision` at boot (#925); migration `2026_09_22_150000` ran.
-  - `df14df1e2` (#934) — Brett's phone-walk batch #929–#933 (recap glyph, actions list, job title optional, verify-visit cards hidden, property equity on `/m`, dividends on the investment and non-working spouse forms, non-earner £2,880 yes/no, no Okay tap, Save Tax expenditure asks the tax fields only, fuller acks) and #928 (expenditure one-home, wizard prefill). No migration; three corpus files rsynced.
+- **2026-10-05: prod (fynla.org) = main `fd2f7525b` (#1079).** Five releases the same morning, each run by CSJ via `! bash` (auto mode blocks prod scripts): j #1071 (7a income work #1060/#1063/#1065 plus #1069, #1070; migration `2026_10_04_000001`, `TaxConfigurationSeeder`, corpus, both bundles), k #1073 (web bundle), l #1075 (app + bundles), m #1077 and n #1079 (app). Backups `~/release-backups/2026-10-05-{j,k,l,m,n}-release/` (j holds `tax_configurations` and `state_pensions` dumps). Walked on web and `/m`; walk account 795 purged. csjones on `dev`. Prod `route:list` crashes on the Apple bridge (`invalid_configuration`): harmless until IAP; never a deploy check.
 
 ## Tech debt deferred
 

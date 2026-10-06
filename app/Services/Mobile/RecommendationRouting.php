@@ -217,8 +217,21 @@ final class RecommendationRouting
         return self::FYN[$recommendationId] ?? null;
     }
 
-    public static function unlockPrompt(string $module): string
+    /**
+     * Missing items of a module's gate that Fyn has a form for: the card asks
+     * for the item itself, in the same words as a locked strategy
+     * (strategyUnlockPrompt), so its tap opens that form (walked 2026-10-05:
+     * "Date of birth is required" sent "Help me add my pension details").
+     * Keys are the readiness checks' own.
+     */
+    private const FORM_ITEM_KEYS = ['date_of_birth', 'marital_status', 'income', 'expenditure'];
+
+    public static function unlockPrompt(string $module, ?string $missingKey = null): string
     {
+        if (in_array($missingKey, self::FORM_ITEM_KEYS, true)) {
+            return self::strategyUnlockPrompt($missingKey);
+        }
+
         return self::UNLOCK_PROMPTS[$module] ?? 'Help me add my financial details';
     }
 

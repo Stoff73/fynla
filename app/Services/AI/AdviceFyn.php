@@ -350,13 +350,6 @@ final class AdviceFyn
         ?string $currentRoute = null,
         bool $persistUserMessage = true,
     ): \Generator {
-        // A change typed in an "Edit details" conversation fills in the
-        // record's form; nothing is saved until the user presses Save (CSJ
-        // 2026-10-05, option A). A question there is answered as before.
-        if (yield from $this->offerTypedChangeForm($user, $conversation, $message, $persistUserMessage)) {
-            return;
-        }
-
         // Deferred-question resolution (CSJ raise shape, 2026-07-23). The
         // completion raise's Yes/No bubbles land HERE as plain text on the
         // now-completed user; unhandled, a bare "Yes" reached the planner
@@ -514,6 +507,15 @@ final class AdviceFyn
             $intent = $this->proposalAcceptanceIntent($conversation, $message);
         }
 
+        // A change stated in plain words ("my Nationwide balance is £9,200
+        // now", or a typed change in an "Edit details" conversation) opens the
+        // record's form with the change filled in, before the model sees it
+        // (CSJ 2026-10-05, option A): the model refused such statements as
+        // prompt injection or asked typed questions instead.
+        if ($intent === null && (yield from $this->offerTypedChangeForm($user, $conversation, $message, $persistUserMessage))) {
+            return;
+        }
+
         // Full-duplicate short-circuit: when the user reasserts records
         // that all already exist (RecordDuplicateChecker matches every
         // extracted entity to a recent DB row), we do NOT involve the
@@ -624,34 +626,30 @@ final class AdviceFyn
     }
 
     /**
-     * The record's form, with a typed change filled in, when this conversation
-     * was opened on that record's form ("Edit details").
+     * A typed change, read against the records it may be about: the record an
+     * "Edit details" conversation was opened on, else every saved record.
+     * Questions go to the model.
      *
      * @return \Generator<array<string, mixed>, mixed, mixed, bool>
      */
     private function offerTypedChangeForm(User $user, AiConversation $conversation, string $message, bool $persistUserMessage): \Generator
     {
-        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
-        if (($metadata['source'] ?? null) !== 'surface_action' || ($metadata['action'] ?? null) !== 'edit') {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
             return false;
         }
-        $form = app(RecordEditForms::class)->formForResource(
-            $user,
-            (string) ($metadata['resource_type'] ?? ''),
-            (array) ($metadata['current_destination']['params'] ?? []),
-        );
-        if ($form === null) {
-            return false;
+        $forms = app(RecordEditForms::class);
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if (($metadata['source'] ?? null) === 'surface_action' && ($metadata['action'] ?? null) === 'edit') {
+            $form = $forms->formForResource($user, (string) ($metadata['resource_type'] ?? ''), (array) ($metadata['current_destination']['params'] ?? []));
+            $candidates = $form !== null ? [['type' => (string) $form['record']['type'], 'id' => (int) $form['record']['id'], 'label' => (string) $form['label']]] : [];
+        } else {
+            $candidates = [];
+            foreach (RecordEditForms::sections() as $section) {
+                array_push($candidates, ...$forms->candidates($user, $section));
+            }
         }
 
-        return yield from $this->onboardingChatDirector->offerTypedChangeForm(
-            $user,
-            $conversation,
-            $message,
-            (string) $form['record']['type'],
-            (int) $form['record']['id'],
-            $persistUserMessage,
-        );
+        return yield from $this->onboardingChatDirector->offerTypedForm($user, $conversation, $message, $candidates, persistUserMessage: $persistUserMessage);
     }
 
     /**

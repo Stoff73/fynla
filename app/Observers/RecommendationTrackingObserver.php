@@ -17,7 +17,9 @@ class RecommendationTrackingObserver
 
     public function saved(RecommendationTracking $tracking): void
     {
-        if ($tracking->status !== 'completed') {
+        // A demo visitor's row: points and milestones would land on the
+        // persona every visitor shares.
+        if ($tracking->status !== 'completed' || $tracking->preview_token_id !== null) {
             return;
         }
         $user = $tracking->user;
