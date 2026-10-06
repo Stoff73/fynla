@@ -42,8 +42,6 @@ describe('Protection Workflow Integration', function () {
             'dependents_ages' => [5, 8],
             'retirement_age' => 67,
             'occupation' => 'Software Engineer',
-            'smoker_status' => false,
-            'health_status' => 'good',
         ];
 
         $profileResponse = $this->actingAs($user)->postJson('/api/protection/profile', $profileData);
@@ -326,8 +324,6 @@ describe('Protection Workflow Integration', function () {
             'dependents_ages' => [1, 3],
             'retirement_age' => 67,
             'occupation' => 'Senior Software Engineer',
-            'smoker_status' => false,
-            'health_status' => 'good',
         ]);
         $updateResponse->assertStatus(201);
 

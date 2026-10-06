@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Protection;
 
+use App\Constants\ProfileEnums;
 use App\Models\ProtectionProfile;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
@@ -182,7 +183,7 @@ class RecommendationEngine
         $smokerLoading = (float) $this->taxConfig->get('protection.premium_factors.smoker_loading', 1.5);
         $basePremium = ($sumAssured / 1000) * $baseRate;
 
-        if ($profile->smoker_status) {
+        if (ProfileEnums::isSmoker($profile->user?->smoking_status) === true) {
             $basePremium *= $smokerLoading;
         }
 
@@ -229,7 +230,7 @@ class RecommendationEngine
         $ipRate = (float) $this->taxConfig->get('protection.premium_factors.ip_rate', 0.02);
         $basePremium = $annualBenefit * $ipRate;
 
-        if ($profile->smoker_status) {
+        if (ProfileEnums::isSmoker($profile->user?->smoking_status) === true) {
             $basePremium *= 1.3;
         }
 

@@ -43,8 +43,6 @@ class ProtectionProfileFactory extends Factory
             ]),
             'retirement_age' => fake()->numberBetween(65, 70),
             'occupation' => fake()->jobTitle(),
-            'smoker_status' => fake()->boolean(20), // 20% chance of smoker
-            'health_status' => fake()->randomElement(['excellent', 'good', 'fair', 'poor']),
         ];
     }
 }

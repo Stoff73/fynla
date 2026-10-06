@@ -88,11 +88,11 @@
           </div>
           <div class="flex justify-between">
             <span class="text-body-sm text-neutral-500">Smoker Status:</span>
-            <span class="text-body-sm text-horizon-500 text-right capitalize">{{ info.smoker_status || '—' }}</span>
+            <span class="text-body-sm text-horizon-500 text-right">{{ info.smoker_status || '—' }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-body-sm text-neutral-500">Health Status:</span>
-            <span class="text-body-sm text-horizon-500 text-right capitalize">{{ info.health_status || '—' }}</span>
+            <span class="text-body-sm text-horizon-500 text-right">{{ info.health_status || '—' }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-body-sm text-neutral-500">Planned Retirement Age:</span>

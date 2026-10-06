@@ -174,7 +174,6 @@ describe('generateRecommendations', function () {
         $profile = ProtectionProfile::factory()->create([
             'user_id' => $user->id,
             'annual_income' => 50000,
-            'smoker_status' => false,
         ]);
 
         $gaps = [

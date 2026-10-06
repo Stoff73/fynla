@@ -63,8 +63,6 @@ describe('Protection Profile', function () {
             'dependents_ages' => [5, 10],
             'retirement_age' => 67,
             'occupation' => 'Software Engineer',
-            'smoker_status' => false,
-            'health_status' => 'good',
         ];
 
         $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/profile', $data);

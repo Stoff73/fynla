@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Constants\ProfileEnums;
 use App\Constants\TaxDefaults;
 use App\Models\DCPension;
 use App\Models\RetirementActionDefinition;
@@ -1979,7 +1980,7 @@ class RetirementActionDefinitionService
         $trace = [];
 
         $userId = $analysisData['user_id'];
-        $user = User::with('protectionProfile')->find($userId);
+        $user = User::find($userId);
 
         if (! $user) {
             return [];
@@ -2023,55 +2024,47 @@ class RetirementActionDefinitionService
                 : 'No Defined Contribution pensions found.',
         ];
 
-        // Step 3: Health and lifestyle factors
-        $protectionProfile = $user->protectionProfile;
-        $smokerStatus = $protectionProfile?->smoker_status ?? null;
-        $healthStatus = $protectionProfile?->health_status ?? null;
+        // Step 3: Health and lifestyle factors, the user's own answers (item 8a).
+        $smoking = $user->smoking_status;
+        $health = $user->health_status;
 
         $trace[] = [
             'question' => 'What are the health and lifestyle factors relevant to enhanced annuity eligibility?',
-            'data_field' => 'Protection profile',
-            'data_value' => 'Smoker status: '.($smokerStatus ? 'Yes' : 'No/Not recorded').', Health status: '.($healthStatus ?? 'Not recorded'),
-            'threshold' => 'Smoker or health condition (poor/fair) for enhanced rates',
+            'data_field' => 'Health and lifestyle',
+            'data_value' => 'Smoking: '.(ProfileEnums::SMOKING_STATUS_LABELS[$smoking ?? ''] ?? 'Not answered').', Health: '.(ProfileEnums::HEALTH_STATUS_LABELS[$health ?? ''] ?? 'Not answered'),
+            'threshold' => 'Smoked in the last 12 months, or any health condition now or in the past',
             'passed' => true,
-            'explanation' => $userName.'\'s protection profile records smoker status as '.($smokerStatus ? 'smoker' : 'non-smoker or not recorded').' and health status as '.($healthStatus ?? 'not recorded').'.',
+            'explanation' => $userName.'\'s answers: smoking "'.(ProfileEnums::SMOKING_STATUS_LABELS[$smoking ?? ''] ?? 'not answered').'", health "'.(ProfileEnums::HEALTH_STATUS_LABELS[$health ?? ''] ?? 'not answered').'".',
         ];
 
         // Step 4: Enhanced annuity eligibility assessment
         $eligibility = $this->decumulationPlanner->assessEnhancedAnnuityEligibility($user);
-
         $isEligible = $eligibility['is_eligible'];
-        $enhancementFactor = (float) ($eligibility['enhancement_factor'] ?? 1.0);
-        $enhancementPercent = round(($enhancementFactor - 1.0) * 100, 1);
 
         $trace[] = [
-            'question' => 'Does '.$userName.' qualify for an enhanced annuity due to health or lifestyle factors?',
+            'question' => 'Could '.$userName.'\'s health or smoking get more than standard annuity rates?',
             'data_field' => 'Enhanced annuity eligibility',
-            'data_value' => $isEligible ? 'Eligible — '.($eligibility['reason'] ?? 'qualifying factor identified').', enhancement factor '.number_format($enhancementFactor, 2).' (+'.$enhancementPercent.'%)' : 'Not eligible',
-            'threshold' => 'Smoker or health condition present',
+            'data_value' => $isEligible ? 'Yes: '.$eligibility['reason'] : 'No',
+            'threshold' => 'Smoking or health answer that providers take into account',
             'passed' => $isEligible,
             'explanation' => $isEligible
-                ? $userName.' qualifies for enhanced annuity rates due to: '.($eligibility['reason'] ?? 'qualifying health or lifestyle factors').'. This could provide up to '.$enhancementPercent.'% higher annuity income compared to standard rates.'
-                : 'No qualifying factors for enhanced annuity rates were identified for '.$userName.'.',
+                ? $eligibility['reason']
+                : 'Nothing in '.$userName.'\'s smoking or health answers points to enhanced annuity rates.',
         ];
 
         if (! $isEligible) {
             return [];
         }
 
-        // Step 5: Recommendation with income impact
-        $standardAnnuityRate = 0.05; // approximate
-        $standardAnnualIncome = round($totalFundValue * $standardAnnuityRate, 0);
-        $enhancedAnnualIncome = round($totalFundValue * $standardAnnuityRate * $enhancementFactor, 0);
-        $additionalIncome = $enhancedAnnualIncome - $standardAnnualIncome;
-
+        // Step 5: Recommendation. No uplift figure: what a provider adds is its
+        // own underwriting, so nothing here estimates it (Rule 23).
         $trace[] = [
             'question' => 'What is the recommended action?',
             'data_field' => 'Recommendation',
-            'data_value' => 'Request enhanced annuity quotes — potential £'.number_format($additionalIncome, 0).'/year additional income on £'.number_format($totalFundValue, 0).' fund',
-            'threshold' => 'Enhanced rates available for '.$userName,
+            'data_value' => 'Ask several providers for annuity quotes, giving each one your health details',
+            'threshold' => 'Enhanced rates may be available for '.$userName,
             'passed' => false,
-            'explanation' => 'Based on a total fund value of £'.number_format($totalFundValue, 0).' and an enhancement factor of '.number_format($enhancementFactor, 2).', '.$userName.' could receive approximately £'.number_format($additionalIncome, 0).' per year more than standard annuity rates. Always request enhanced annuity quotes from multiple providers when approaching retirement.',
+            'explanation' => 'An annuity provider may offer '.$userName.' more than its standard rates. Give every provider your health details and compare quotes before choosing.',
         ];
 
         return [[
@@ -2083,7 +2076,6 @@ class RetirementActionDefinitionService
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
             'enhanced_annuity_reason' => $eligibility['reason'],
-            'enhancement_factor' => $eligibility['enhancement_factor'],
             'decision_trace' => $trace,
         ]];
     }

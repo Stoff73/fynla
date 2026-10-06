@@ -49,16 +49,31 @@ it('pins EDUCATION_LEVELS to the users.education_level column', function (): voi
 });
 
 /**
- * smoking_status being NOT NULL is load-bearing: it is why an unanswered select
- * drops its key rather than sending null, and why that rule alone is not
- * `nullable`. Making the column nullable means revisiting both.
+ * Item 8a (CSJ 2026-10-06): null is "not answered". The old defaults ('never',
+ * 'yes') read every unasked user as a non-smoker in good health.
  */
-it('records that smoking_status is NOT NULL, which the request rules depend on', function (): void {
-    $column = DB::selectOne(
-        "SELECT IS_NULLABLE AS is_nullable
+it('stores smoking and health as nullable with no default, so not answered stays not answered', function (string $column): void {
+    $definition = DB::selectOne(
+        "SELECT IS_NULLABLE AS is_nullable, COLUMN_DEFAULT AS column_default
            FROM INFORMATION_SCHEMA.COLUMNS
-          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'smoking_status'"
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = ?",
+        [$column]
     );
 
-    expect($column->is_nullable)->toBe('NO');
+    expect($definition->is_nullable)->toBe('YES')
+        ->and($definition->column_default)->toBeNull();
+})->with(['smoking_status', 'health_status']);
+
+it('counts a smoker as anyone who smoked in the last 12 months, and keeps not answered as null', function (): void {
+    expect(ProfileEnums::isSmoker('yes'))->toBeTrue()
+        ->and(ProfileEnums::isSmoker('quit_recent'))->toBeTrue()
+        ->and(ProfileEnums::isSmoker('quit_long_ago'))->toBeFalse()
+        ->and(ProfileEnums::isSmoker('never'))->toBeFalse()
+        ->and(ProfileEnums::isSmoker(null))->toBeNull()
+        ->and(ProfileEnums::hasHealthHistory('yes'))->toBeFalse()
+        ->and(ProfileEnums::hasHealthHistory('yes_previous'))->toBeTrue()
+        ->and(ProfileEnums::hasHealthHistory('no_both'))->toBeTrue()
+        ->and(ProfileEnums::hasHealthHistory(null))->toBeNull()
+        ->and(array_keys(ProfileEnums::SMOKING_STATUS_LABELS))->toBe(ProfileEnums::SMOKING_STATUSES)
+        ->and(array_keys(ProfileEnums::HEALTH_STATUS_LABELS))->toBe(ProfileEnums::HEALTH_STATUSES);
 });

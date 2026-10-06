@@ -205,39 +205,12 @@ class ComprehensiveProtectionPlanService
             $age = Carbon::parse($user->date_of_birth)->age;
         }
 
-        // W-0033, decided 2026-08-21: the PROTECTION PROFILE is the authoritative
-        // source for smoking and health status in protection advice, and the user
-        // record is not consulted. This used to read `$user->smoker` and
-        // `$user->good_health` "first" — neither property has ever existed, so both
-        // branches were permanently false and the profile always won anyway.
-        //
-        // The decision is the enforcing layer's, not a preference. RecommendationEngine
-        // (:185, :232) generates the advice from `$profile->smoker_status`,
-        // ProtectionDataReadinessService (:199, :396) gates on it, and two other
-        // modules read the same profile field for the same fact
-        // (RetirementActionDefinitionService:1656, DecumulationPlanner:183). Nothing
-        // anywhere reads `users.smoking_status` for protection.
-        //
-        // The two sources are also not interchangeable: `users.smoking_status` is
-        // enum('never','quit_recent','quit_long_ago','yes') and
-        // `protection_profiles.smoker_status` is a BOOLEAN; `users.health_status` is
-        // enum('yes','yes_previous',…) and the profile's is in(excellent,good,fair,poor).
-        // Repointing these reads would be a vocabulary translation, and would put this
-        // summary out of step with the engine writing the advice beside it.
-        //
-        // Unanswered stays unanswered. `smoker_status` is a nullable boolean and
-        // `health_status` is nullable, and both previously rendered a missing answer as
-        // a definite one — "Non-smoker" and "Good". This method already says
-        // 'Not provided' for an absent date of birth.
-        $smokerStatus = match ($profile->smoker_status) {
-            true => 'Smoker',
-            false => 'Non-smoker',
-            default => 'Not provided',
-        };
-
-        $healthStatus = $profile->health_status !== null && $profile->health_status !== ''
-            ? ucfirst($profile->health_status)
-            : 'Not provided';
+        // One home for smoking and health: the user's own answers, the same
+        // ones the web and /m Health forms save (item 8a, CSJ 2026-10-06). The
+        // protection profile's copies had no input anywhere and were dropped.
+        // Not answered stays "Not provided", never a definite answer.
+        $smokerStatus = ProfileEnums::SMOKING_STATUS_LABELS[$user->smoking_status ?? ''] ?? 'Not provided';
+        $healthStatus = ProfileEnums::HEALTH_STATUS_LABELS[$user->health_status ?? ''] ?? 'Not provided';
 
         // Format education level for display. The labels live in ProfileEnums so
         // this cannot drift from the selects again — it held its own copy and kept
@@ -504,7 +477,7 @@ class ComprehensiveProtectionPlanService
             $estimatedMonthlyPremium = $this->estimateLifePremium(
                 $totalGap,
                 $profile->age ?? 40,
-                $profile->smoker_status
+                ProfileEnums::isSmoker($profile->user?->smoking_status) === true
             );
 
             $strategyRecommendations[] = [
@@ -532,7 +505,7 @@ class ComprehensiveProtectionPlanService
             $estimatedMonthlyPremium = $this->estimateCIPremium(
                 $ciGap,
                 $profile->age ?? 40,
-                $profile->smoker_status
+                ProfileEnums::isSmoker($profile->user?->smoking_status) === true
             );
 
             $strategyRecommendations[] = [
