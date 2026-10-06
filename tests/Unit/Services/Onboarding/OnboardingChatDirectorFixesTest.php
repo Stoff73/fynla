@@ -226,7 +226,10 @@ describe('Fix §4: base_expenditure syncs into ExpenditureProfile', function () 
     });
 
     it('updates the existing ExpenditureProfile when the user already has one', function () {
-        $user = User::factory()->create();
+        // The typed step writes through HouseholdExpenditureWriter, the web
+        // form's writer (c2c3f9604, Rule 20). The profile row mirrors the total
+        // only; the breakdown lives on the user row and is left as it was.
+        $user = User::factory()->create(['food_groceries' => 450]);
         ExpenditureProfile::create([
             'user_id' => $user->id,
             'total_monthly_expenditure' => 1000,
@@ -235,10 +238,10 @@ describe('Fix §4: base_expenditure syncs into ExpenditureProfile', function () 
 
         invokePersistCapture($user, OnboardingStateMachine::STATE_BASE_EXPENDITURE, 4000);
 
+        expect(ExpenditureProfile::where('user_id', $user->id)->count())->toBe(1);
         $profile = ExpenditureProfile::where('user_id', $user->id)->first();
-        expect($profile)->not->toBeNull()
-            ->and((float) $profile->total_monthly_expenditure)->toBe(4000.0)
-            ->and((float) $profile->monthly_housing)->toBe(500.0); // preserved
+        expect((float) $profile->total_monthly_expenditure)->toBe(4000.0)
+            ->and((float) $user->fresh()->food_groceries)->toBe(450.0);
     });
 
     it('does not create a profile when the captured value is zero', function () {

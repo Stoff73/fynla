@@ -82,6 +82,7 @@ class PreviewWriteInterceptor
         'api/advisor/clients/*/enter',    // Allow advisor impersonation start
         'api/advisor/exit',                // Allow advisor impersonation end
         'api/bug-report',                  // Allow preview users to file bug reports
+        'api/recommendations/*/mark-done', // Kept on the visitor's token only (RecommendationTracking's preview-session scope)
     ];
 
     /**
