@@ -191,6 +191,26 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
 
+## How much protection cover you need, worked out from sourced figures (6 October, about 17:20, release #1115)
+
+**This is live on fynla.org** through release #1115 (#1112, #1113 and #1114), UK time.
+
+- **Every figure behind "You need £X" on the Protection page now has a source** and lives in one place, the tax configuration, under "Protection needs calculations". The administrator can see and update each figure, with its source, from Tax Settings. Nothing is typed into the code any more.
+- **Life cover is worked out from your household's spending.** Your household's living costs, less the income that would continue, are paid until your State Pension age and turned into a lump sum at the Personal Injury Discount Rate of 0.5%, the rate the law uses to turn a future income into a lump sum ([GOV.UK: Personal Injury Discount Rate](https://www.gov.uk/guidance/personal-injury-discount-rate); Damages Act 1996 as amended). Before, it was your income divided by a typed-in 4.7%, paid for ever, and a couple who earned the same were told they lost nothing. If your spending is not recorded, the page says so and covers your debts and final expenses only, rather than guessing.
+- **Final expenses are £9,797**, the cost of dying in the [SunLife Cost of Dying Report 2025](https://sunlife.co.uk/siteassets/documents/cost-of-dying/sunlife-cost-of-dying-report-2025.pdf) (the funeral, professional fees and send-off), instead of a typed-in £7,500.
+- **The £9,000 a year education figure is gone.** It charged every year from now to age 21, so a newborn added £189,000.
+- **Income protection follows what insurers pay out:** 60% of your gross income up to £60,000 and 50% above it ([Legal & General Low Start Income Protection policy summary, QGI16002 04/25](https://www.legalandgeneral.com/asset/4a18ed/globalassets/adviser/files/protection/policy-summary/qgi16002.pdf/)), instead of a flat 60% in one place and 70% of net income in another.
+- **Critical illness cover stays at three times your gross earned income, and says it is a rule of thumb**, not a set amount: cover is usually set by what you can afford.
+- **The protection plan page and its PDF print the working** the Protection page shows, from the same one calculation.
+
+**What we checked.**
+- **On the test site, desktop and mobile**, as a walk account born 1985 earning £75,000 and spending £2,000 a month: life cover £605,543 (£24,000 a year for 26.6 years to State Pension age at 0.5%, £595,746, plus £9,797), critical illness £225,000 with the rule-of-thumb line, income protection £3,625 a month; the plan page; the administrator's "Protection needs calculations" section.
+- **Live on fynla.org** as the Carter demo, on desktop (full-size window) and mobile: life cover short by £49,308 (£39,511 of income replacement plus £9,797 of final expenses; living costs of £46,824 less £38,080 of continuing income, £8,744 a year for 31.6 years, £255,011), critical illness £225,000 with the rule-of-thumb line, income protection £3,625 a month (60% of £60,000 plus 50% of £15,000); the plan page shows the same working and no 70%, 4.7% or education figure. The server reads every figure from the configuration. No errors in the log. The administrator's section was not opened on fynla.org.
+
+**Still to do.** The protection plan page still shows ratings ("Excellent", "Critical") beside each kind of cover; "Excellent" shows for life cover even when it is short. They are coming off next.
+
+**Behind the scenes.** No database change. The tax configuration, protection definitions and how-to seeders, app code, and both the desktop and mobile web bundles.
+
 ## Smoking and health in one place, no made-up premiums, and the right Retirement line for a retiree (6 October, about 15:40, release #1110)
 
 **This is live on fynla.org** through release #1110 (#1108 and #1109), UK time.

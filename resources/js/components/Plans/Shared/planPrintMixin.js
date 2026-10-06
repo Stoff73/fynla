@@ -716,14 +716,12 @@ export const planPrintMixin = {
 
         const pct = Math.min(100, data.coverage_percentage || 0);
         const barColor = pct >= 80 ? '#22c55e' : pct >= 60 ? '#3b82f6' : '#ef4444';
-        const statusColors = this.getStatusColors(data.status);
         const gapColor = (data.gap || 0) > 0 ? '#b91c1c' : '#15803d';
 
         html += `
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; page-break-inside: avoid;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span style="font-size: 11px; font-weight: 600; color: #1f2937;">${this.escapeHtml(t.label)}</span>
-              <span style="display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 600; background: ${statusColors.bg}; color: ${statusColors.text};">${this.escapeHtml(data.status || 'Unknown')}</span>
             </div>
             <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 6px;">
               <div>
@@ -1260,7 +1258,6 @@ export const planPrintMixin = {
         const pct = Math.min(100, data.coverage_percentage || 0);
         const barColor = pct >= 80 ? '#22c55e' : pct >= 40 ? '#3b82f6' : '#ef4444';
         const gapColor = (data.gap || 0) > 0 ? '#b91c1c' : '#15803d';
-        const statusColors = this.getStatusColors(data.status);
 
         return `
           <tr style="page-break-inside: avoid;">
@@ -1268,14 +1265,9 @@ export const planPrintMixin = {
             <td>${this.fmtCurrency(data.need || 0)}${t.suffix}</td>
             <td>${this.fmtCurrency(data.coverage || 0)}${t.suffix}</td>
             <td style="color: ${gapColor}; font-weight: 600;">${this.fmtCurrency(data.gap || 0)}${t.suffix}</td>
-            <td>
-              <span style="display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 600; background: ${statusColors.bg}; color: ${statusColors.text};">
-                ${this.escapeHtml(data.status || 'Unknown')}
-              </span>
-            </td>
           </tr>
           <tr style="page-break-inside: avoid;">
-            <td colspan="5" style="border-top: none; padding: 0 10px 6px;">
+            <td colspan="4" style="border-top: none; padding: 0 10px 6px;">
               <div style="background: #e5e7eb; border-radius: 4px; height: 6px; width: 100%;">
                 <div style="background: ${barColor}; border-radius: 4px; height: 6px; width: ${pct}%;"></div>
               </div>
@@ -1295,7 +1287,6 @@ export const planPrintMixin = {
               <th>Need</th>
               <th>Have</th>
               <th>Gap</th>
-              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -1303,15 +1294,6 @@ export const planPrintMixin = {
           </tbody>
         </table>
       `;
-    },
-
-    getStatusColors(status) {
-      const s = (status || '').toLowerCase();
-      if (s === 'excellent' || s === 'good' || s === 'adequate')
-        return { bg: '#dcfce7', text: '#166534' };
-      if (s === 'fair')
-        return { bg: '#dbeafe', text: '#1e40af' };
-      return { bg: '#fee2e2', text: '#991b1b' };
     },
 
     buildPoliciesHtml(coverage) {
@@ -1638,12 +1620,10 @@ export const planPrintMixin = {
         const s = scenarios[key];
         if (!s) return;
 
-        const statusColors = this.getStatusColors(s.adequacy);
         html += `
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; page-break-inside: avoid;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span style="font-size: 11px; font-weight: 600; color: #1f2937;">${this.escapeHtml(label)}</span>
-              <span style="display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 600; background: ${statusColors.bg}; color: ${statusColors.text};">${this.escapeHtml(s.adequacy || 'Unknown')}</span>
             </div>
         `;
 
