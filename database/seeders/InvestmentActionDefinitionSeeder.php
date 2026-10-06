@@ -317,7 +317,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'key' => 'consider_bonds',
                 'source' => 'agent',
                 'title_template' => 'Consider an investment bond for some of your {gia_value}',
-                'description_template' => 'With {gia_value} in your General Investment Account, an investment bond is another way to hold it. Gains in a bond are taxed as income when it ends or you cash it in, and you can take up to 5% of what you paid in each year without tax at the time: the tax on it is deferred, not removed.',
+                'description_template' => 'With {gia_value} in your General Investment Account, an investment bond is another way to hold it. Gains in a bond are taxed as income when it ends or you cash it in, with top-slicing relief. Each year you can take back up to 5% of what you paid in, building up if unused, with the tax deferred, not removed.',
                 'action_template' => 'Speak to a financial adviser before buying a bond: charges and the tax when it ends depend on your circumstances.',
                 'category' => 'Tax Efficiency',
                 'priority' => 'low',
