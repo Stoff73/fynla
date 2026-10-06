@@ -25,7 +25,7 @@ Rules for these steps:
 - **No banned words** (Rule 9): never "harvest".
 
 ## allocation_position
-status: draft
+status: approved
 source: the account's rebalancing panel (`AccountDriftService`: the risk level that applies to the account, its own or the user's, and the account's rebalancing threshold; `DriftAnalyzer` places money in funds with no recorded mix where it closes the gaps first); https://www.gov.uk/tax-sell-shares (selling shares can make a gain liable to Capital Gains Tax); https://www.gov.uk/individual-savings-accounts (no tax on gains inside an ISA); the card's own figures
 figures: account_name, current_text, asset_label, target_percent, risk_label, allocation_summary, unrecorded_percent, has_unrecorded, is_isa
 why:
@@ -47,7 +47,7 @@ outcome:
 1. {account_name} is back within its rebalancing threshold for the {risk_label} risk level.
 
 ## account_charges
-status: draft
+status: approved
 source: the account page's recorded charges (`FeeAnalyzer::recordedCharges`: platform, adviser and fund charges as recorded on the account and its holdings); https://www.gov.uk/individual-savings-accounts/transferring-your-isa (transfer an ISA to keep it tax-free; do not withdraw); https://www.gov.uk/tax-sell-shares (selling shares can make a gain liable to Capital Gains Tax); the card's own figures
 figures: account_name, annual_fees, total_fee_percent, charges_list, platform_fee_percent, weighted_ocf, has_adviser_fee, is_isa
 why:
@@ -67,7 +67,7 @@ outcome:
 1. You know what {account_name} costs you each year, and whether the same investments can be held for less.
 
 ## tax_loss_harvesting
-status: draft
+status: approved
 source: https://www.gov.uk/capital-gains-tax/losses (deduct losses from gains in the same tax year first; report a loss within 4 years of the end of the tax year of the sale); HMRC Capital Gains Manual CG21500 (losses of the year are set against that year's gains before the annual exempt amount; https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg21500); TCGA 1992 s16(2A) (a loss counts once notified; https://www.legislation.gov.uk/ukpga/1992/12/section/16); Taxes Management Act 1970 s43 (four years); TCGA 1992 s106A(3) and (5), the 30-day rule and "same capacity" (https://www.legislation.gov.uk/ukpga/1992/12/section/106A); HMRC CG51560; `ChargeableGains` (General Investment Accounts only, at the user's share); `capital_gains_tax.annual_exempt_amount` in tax config; the card's own figures
 figures: holdings_count, holdings_word, holdings_verb, total_losses, annual_exempt_amount
 why:
@@ -81,7 +81,7 @@ outcome:
 1. The loss is on record, ready to reduce the Capital Gains Tax on your gains this year or in a later one.
 
 ## use_isa_allowance
-status: draft
+status: approved
 source: https://www.gov.uk/individual-savings-accounts/how-isas-work (ISA allowance per tax year); https://www.gov.uk/individual-savings-accounts (no tax on income or gains inside an ISA); unused allowance does not carry over (CSJ ruling 2026-09-29); https://www.gov.uk/tax-sell-shares (selling shares can make a gain liable to Capital Gains Tax); this card shows only when the General Investment Account holds no gains to shelter, otherwise the Tax plan's Bed & ISA carries the move (CSJ 2026-10-06, D2); `ISATracker::usedThisTaxYear` (allowance left); the card's own figures
 figures: isa_remaining, gia_value
 why:
@@ -100,7 +100,7 @@ outcome:
 1. Up to {isa_remaining} more of your investments is held where its dividends and gains are free of tax.
 
 ## open_isa
-status: draft
+status: approved
 source: https://www.gov.uk/individual-savings-accounts (stocks and shares ISAs; no tax on income or gains); https://www.gov.uk/individual-savings-accounts/how-isas-work (ISA allowance per tax year, across all your ISAs); unused allowance does not carry over (CSJ ruling 2026-09-29); https://www.gov.uk/tax-sell-shares (selling shares can make a gain liable to Capital Gains Tax); this card shows only when the General Investment Account holds no gains to shelter, otherwise the Tax plan's Bed & ISA carries the move (CSJ 2026-10-06, D2); the card's own figures
 figures: isa_allowance
 why:
@@ -115,21 +115,24 @@ outcome:
 1. New money and the investments you move are held where their dividends and gains are free of tax.
 
 ## consider_bonds
-status: draft
-source: Income Tax (Trading and Other Income) Act 2005 s461 (gains on life insurance policies, including investment bonds, are charged to income tax; https://www.legislation.gov.uk/ukpga/2005/5/section/461), s484 (chargeable events: ending the policy, cashing it in, assigning it for value, death), s507 (5% a year of the premium can be withdrawn with tax deferred, cumulative, up to 100%; https://www.legislation.gov.uk/ukpga/2005/5/section/507); TCGA 1992 s210 (not a chargeable disposal for the original owner); the card's own figures
+status: approved
+source: Income Tax (Trading and Other Income) Act 2005 s461 (gains on life insurance policies, including investment bonds, are charged to income tax; https://www.legislation.gov.uk/ukpga/2005/5/section/461), s484 (chargeable events: the bond ending, cashing it in in full or in part, assigning it for value, the death that ends it), s507 (each year 5% of what was paid in can be withdrawn with the tax deferred; unused amounts carry forward, up to the full amount paid in; https://www.legislation.gov.uk/ukpga/2005/5/section/507), s530 (a gain on a UK policy is treated as having had basic-rate tax paid on it; https://www.legislation.gov.uk/ukpga/2005/5/section/530); Income Tax Act 2007 s535 (top-slicing relief; https://www.legislation.gov.uk/ukpga/2007/3/section/535); TCGA 1992 s210 (not a chargeable disposal for the original owner); CSJ 2026-10-06 (onshore and offshore bonds, top-slicing relief, the cumulative 5%); the card's own figures
 figures: gia_value
 why:
 1. You hold {gia_value} in your General Investment Account, where dividends and gains are taxed each year as they arise or when you sell.
 always:
-1. An investment bond is another way to hold investments. Gains inside it are taxed as income, not as capital gains, when the bond ends, when you cash it in or part of it, or when it is assigned.
-2. You can take up to 5% a year of what you paid in without tax at the time, and any unused 5% carries forward, up to the full amount you paid in. The tax on it is deferred, not removed: it counts when the bond ends.
-3. Moving money from your General Investment Account into a bond means selling there first. Check the gain on anything you would sell: selling at a gain can make Capital Gains Tax due.
-4. Speak to a financial adviser before buying a bond. The charges, and the tax when it ends, depend on your circumstances.
+1. An investment bond is another way to hold investments. Gains inside it are taxed as income, not as capital gains, when the bond ends, when you cash in all or part of it, when it is assigned, or on the death that ends it.
+2. Each year you can take back up to 5% of what you paid in, with no tax at the time. Any 5% you do not take builds up for later years, until you have taken back the full amount you paid in. The tax is deferred, not removed: those withdrawals count in the gain when the bond ends.
+3. An onshore bond, from a UK insurer, pays tax inside the fund as it grows. When the bond ends, the gain is treated as having had basic-rate tax paid on it already, so only tax above the basic rate is left to pay.
+4. An offshore bond, from an insurer outside the UK, grows with no UK tax taken along the way. All the tax is deferred, and the whole gain is taxed at your income tax rates when the bond ends, with no basic-rate tax treated as paid.
+5. Top-slicing relief can reduce the tax on a bond gain. The gain is divided by the number of full years the bond has run, and that slice is used to work out how much of the gain falls into the higher rates, so a gain built up over many years is not all taxed as if it arose in one.
+6. Moving money from your General Investment Account into a bond means selling there first. Check the gain on anything you would sell: selling at a gain can make Capital Gains Tax due.
+7. Speak to a financial adviser before buying a bond. Which kind suits you, the charges, and the tax when it ends depend on your circumstances.
 outcome:
-1. You know how a bond would be taxed compared with your General Investment Account.
+1. You know how an onshore or an offshore bond would be taxed, compared with your General Investment Account.
 
 ## no_holdings
-status: draft
+status: approved
 source: the account page (`InvestmentAccount` holdings); charges, mix and tax are read from the holdings (`FeeAnalyzer::recordedCharges`, `AccountDriftService`, `ChargeableGains`)
 figures:
 why:

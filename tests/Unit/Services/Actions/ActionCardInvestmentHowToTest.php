@@ -60,6 +60,9 @@ function investmentCard(User $user, string $key): ?array
 }
 
 it('keeps a draft investment entry off the card until CSJ approves it', function () {
+    // The seeded batch is approved (CSJ 2026-10-06); put this entry back in draft
+    // rather than depend on the seed's current state.
+    InvestmentActionDefinition::where('key', 'account_charges')->update(['how_to_status' => 'draft']);
     [$user] = chargedInvestor();
     $item = investmentCard($user, 'account_charges');
 
