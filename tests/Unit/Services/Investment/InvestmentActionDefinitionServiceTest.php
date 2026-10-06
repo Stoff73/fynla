@@ -150,7 +150,8 @@ describe('evaluateAgentActions — investment triggers', function () {
             ->and($recs[0]['scope'])->toBe('account')
             ->and($recs[0]['account_id'])->toBe(1)
             ->and($recs[0]['title'])->toBe('Review the charges on Test ISA')
-            ->and($recs[0]['description'])->toBe('Test ISA costs £750 a year in charges, 1.50% of its value: adviser £100, platform £500, fund charges £150.')
+            ->and($recs[0]['description'])->toBe('£750 a year, 1.50% of the account\'s value.')
+            ->and($recs[0]['figures']['charges_list'])->toBe('adviser £100, platform £500, fund charges £150')
             ->and($recs[0]['figures']['annual_fees'])->toBe('£750')
             ->and(collect($result['recommendations'])->pluck('definition_key'))->not->toContain('high_total_fees');
     });
@@ -213,7 +214,8 @@ describe('evaluateAgentActions — investment triggers', function () {
         expect($recs)->toHaveCount(1)
             ->and($recs[0]['account_id'])->toBe(7)
             ->and($recs[0]['title'])->toBe('Test GIA holds 35% in bonds against 20% for its risk level')
-            ->and($recs[0]['description'])->toBe('Test GIA is outside its rebalancing threshold for the upper-medium risk level: shares 60% against 75%, bonds 35% against 20%, alternatives 5% against 5%.');
+            ->and($recs[0]['description'])->toBe('Outside its rebalancing threshold for the upper-medium risk level.')
+            ->and($recs[0]['figures']['allocation_summary'])->toBe('shares 60% against 75%, bonds 35% against 20%, alternatives 5% against 5%');
     });
 
     it('says at least and at most where part of the account has no recorded mix', function () {
@@ -238,8 +240,8 @@ describe('evaluateAgentActions — investment triggers', function () {
 
         $rec = collect($result['recommendations'])->firstWhere('definition_key', 'allocation_position');
         expect($rec['title'])->toBe('Test GIA holds at least 21% in alternatives against 5% for its risk level')
-            ->and($rec['description'])->toContain('shares at most 50% against 60%')
-            ->and($rec['description'])->toContain('40% is in funds whose mix is not recorded');
+            ->and($rec['figures']['allocation_summary'])->toContain('shares at most 50% against 60%')
+            ->and($rec['figures']['has_unrecorded'])->toBeTrue();
     });
 
     it('fires tax_loss_harvesting when opportunities exist', function () {
@@ -263,8 +265,8 @@ describe('evaluateAgentActions — investment triggers', function () {
         // (item 8; it said "Potential tax saving: £0" on every card before).
         $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'tax_loss_harvesting');
         expect($rec)->not->toBeNull()
-            ->and($rec['description'])->toStartWith('2 holdings in your General Investment Account are worth £1,200 less than you paid.')
-            ->and($rec['description'])->toContain('before the £3,000 tax-free allowance')
+            ->and($rec['description'])->toBe('£1,200 of losses in your General Investment Account.')
+            ->and($rec['figures']['annual_exempt_amount'])->toBe('£3,000')
             ->and($rec['description'])->not->toContain('saving');
     });
 });
@@ -333,9 +335,8 @@ describe('evaluateAgentActions — tax efficiency triggers', function () {
         );
         $recs = collect($result['recommendations'])->keyBy('definition_key');
 
-        expect($recs['use_isa_allowance']['description'])
-            ->toContain('£10,000 ISA allowance')
-            ->toContain('(£75,000)')
+        expect($recs['use_isa_allowance']['description'])->toContain('Move up to £10,000')
+            ->and($recs['use_isa_allowance']['figures'])->toMatchArray(['isa_remaining' => '£10,000', 'gia_value' => '£75,000'])
             ->and($recs['consider_bonds']['description'])->toContain('£75,000');
     });
 });

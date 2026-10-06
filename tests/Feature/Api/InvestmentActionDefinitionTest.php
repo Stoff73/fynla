@@ -47,9 +47,9 @@ describe('Admin Investment Action Definitions API', function () {
                 ],
             ]);
 
-        // 20 agent rows (item 8: two new cards, 12 kept disabled) + 3 goal rows
-        // + 3 source='strategy' composer catalogue rows (Phase 2).
-        expect($response->json('data'))->toHaveCount(26);
+        // 22 agent rows (item 8: position, charges and two bond cards; 12 kept
+        // disabled) + 3 goal rows + 3 source='strategy' composer catalogue rows.
+        expect($response->json('data'))->toHaveCount(28);
     });
 
     it('denies access to non-admin users', function () {

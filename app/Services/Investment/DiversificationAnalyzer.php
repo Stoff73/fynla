@@ -5,10 +5,20 @@ declare(strict_types=1);
 namespace App\Services\Investment;
 
 use App\Constants\InvestmentDefaults;
+use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use Illuminate\Support\Collection;
 
 class DiversificationAnalyzer
 {
+    /** Asset types that are one company's shares, not a fund of many. */
+    private const SINGLE_COMPANY_TYPES = ['equity', 'stock'];
+
+    /** A single company above this share of the account is named (product setting). */
+    private const SINGLE_COMPANY_WARNING_PERCENT = 25.0;
+
+    /** How each asset class reads in an insight. */
+    private const CLASS_LABELS = ['equities' => 'shares', 'bonds' => 'bonds', 'cash' => 'cash', 'alternatives' => 'alternatives'];
+
     // Map string risk levels to numeric
     private const RISK_LEVEL_MAP = [
         'low' => 1,
@@ -303,51 +313,80 @@ class DiversificationAnalyzer
     }
 
     /**
+     * The largest holding of one company's shares, as a share of the account.
+     *
+     * @return array{name: string, percent: float}|null
+     */
+    private function topSingleCompany(Collection $holdings): ?array
+    {
+        $total = (float) $holdings->sum('current_value');
+        $top = $holdings
+            ->filter(fn ($h) => in_array(strtolower((string) ($h->asset_type ?? '')), self::SINGLE_COMPANY_TYPES, true))
+            ->sortByDesc('current_value')
+            ->first();
+
+        if ($total <= 0 || $top === null) {
+            return null;
+        }
+
+        return [
+            'name' => (string) ($top->security_name ?? $top->ticker ?? 'One holding'),
+            'percent' => round((float) $top->current_value / $total * 100, 2),
+        ];
+    }
+
+    /**
      * Generate recommendations based on analysis
      */
     public function generateRecommendations(float $hhi, array $concentration, array $comparison): array
     {
         $recommendations = [];
 
-        // HHI-based recommendations
-        if ($hhi >= 0.25) {
+        // Concentration: only one company's shares count. A fund, ETF or trust
+        // holds many companies, so three global funds are not "concentrated"
+        // (item 8, 2026-10-06). The 25% is a product setting, stated as a fact
+        // about the account, not as a target.
+        $single = $concentration['top_single_company'] ?? null;
+        if (is_array($single) && $single['percent'] > self::SINGLE_COMPANY_WARNING_PERCENT) {
             $recommendations[] = [
                 'type' => 'warning',
-                'message' => 'High concentration - consider spreading investments across more holdings',
+                'message' => sprintf(
+                    '%s is %s%% of this account, all in one company\'s shares',
+                    $single['name'],
+                    number_format((float) $single['percent'], 0),
+                ),
             ];
         }
 
-        // Concentration-based recommendations
-        if ($concentration['top_holding_percent'] > 25) {
-            $recommendations[] = [
-                'type' => 'warning',
-                'message' => sprintf('Largest holding is %.1f%% - consider reducing to below 25%%', $concentration['top_holding_percent']),
-            ];
-        }
-
-        // Allocation deviation recommendations
-        foreach ($comparison as $class => $data) {
-            if ($data['severity'] === 'significant') {
-                $direction = $data['deviation'] > 0 ? 'overweight' : 'underweight';
-                $action = $data['deviation'] > 0 ? 'reduce' : 'increase';
-                $recommendations[] = [
-                    'type' => 'info',
-                    'message' => sprintf(
-                        '%s allocation is %s by %.1f%% - consider %s exposure',
-                        ucfirst($class),
-                        $direction,
-                        abs($data['deviation']),
-                        $action === 'increase' ? 'increasing' : 'reducing'
-                    ),
-                ];
+        // Allocation gaps: only those the recorded holdings prove. Money in funds
+        // with no recorded mix is placed where it closes the gaps first, the
+        // rule the account's rebalancing panel and card use (DriftAnalyzer,
+        // item 8), so a fund's unknown mix is never reported as a missing class.
+        $unrecorded = (float) ($comparison['_unrecorded_percent'] ?? 0);
+        foreach ($comparison['_assessed'] ?? [] as $class => $data) {
+            if ($data['severity'] !== 'significant') {
+                continue;
             }
+            $qualifier = $unrecorded > 0 ? ($data['deviation'] > 0 ? 'at least ' : 'at most ') : '';
+            $recommendations[] = [
+                'type' => 'info',
+                'message' => sprintf(
+                    '%s are %s%s%% of this account against a %s%% target for its risk level',
+                    ucfirst(self::CLASS_LABELS[$class] ?? $class),
+                    $qualifier,
+                    number_format((float) $data['current'], 0),
+                    number_format((float) $data['target'], 0),
+                ),
+            ];
         }
 
         // Add positive feedback if well diversified
         if (empty($recommendations)) {
             $recommendations[] = [
                 'type' => 'success',
-                'message' => 'Portfolio is well diversified and aligned with your risk profile',
+                'message' => $unrecorded > 0
+                    ? sprintf('The recorded holdings show no gap from the target mix for this account\'s risk level. %s%% is in funds whose mix is not recorded.', number_format($unrecorded, 0))
+                    : 'This account is within the target mix for its risk level',
             ];
         }
 
@@ -369,8 +408,16 @@ class DiversificationAnalyzer
         $comparison = $this->compareToTarget($assetClassBreakdown, $effectiveRiskLevel);
         $score = $this->calculateDiversificationScore($hhi, $concentration, $assetClassBreakdown);
 
-        // Generate recommendations
-        $recommendations = $this->generateRecommendations($hhi, $concentration, $comparison);
+        // Generate recommendations, judging gaps on the allocation with unrecorded
+        // money placed (DriftAnalyzer::placeUnrecorded); the breakdown shown stays as recorded.
+        $target = InvestmentDefaults::getTargetAllocation($effectiveRiskLevel);
+        $assessed = $this->compareToTarget(DriftAnalyzer::placeUnrecorded($assetClassBreakdown, $target), $effectiveRiskLevel);
+        $recommendations = $this->generateRecommendations($hhi, $concentration + [
+            'top_single_company' => $this->topSingleCompany($holdings),
+        ], $comparison + [
+            '_assessed' => $assessed,
+            '_unrecorded_percent' => DriftAnalyzer::unrecordedPercent($assetClassBreakdown),
+        ]);
 
         return [
             'diversification_score' => $score,

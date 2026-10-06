@@ -131,6 +131,41 @@ always:
 outcome:
 1. You know how an onshore or an offshore bond would be taxed, compared with your General Investment Account.
 
+## bond_position
+status: draft
+source: `BondPositionService` (the gain: value plus what has been taken, less what was paid in, ITTOIA 2005 s491; the 5%: for each policy year begun 5% of what was paid in, building up, to no more than the full amount, s507; https://www.legislation.gov.uk/ukpga/2005/5/section/507); ITTOIA 2005 s484 (chargeable events), s530 (a UK policy's gain is treated as having had basic-rate tax paid; https://www.legislation.gov.uk/ukpga/2005/5/section/530); Income Tax Act 2007 s535 (top-slicing relief; https://www.legislation.gov.uk/ukpga/2007/3/section/535); CSJ 2026-10-06 (onshore and offshore bonds, top-slicing relief, the cumulative 5%); the card's own figures
+figures: account_name, bond_kind, is_offshore, value, paid_in, withdrawn, has_withdrawn, gain, has_allowance, allowance_left, policy_years
+why:
+1. {account_name} is worth {value}. You paid in {paid_in}, so about {gain} of gain is building up inside it.
+why when has_withdrawn:
+2. That counts the {withdrawn} you have taken out so far, which is added back when the gain is worked out.
+always:
+1. No tax is due on the gain until a chargeable event: the bond ending, cashing in all or part of it, assigning it, or the death that ends it. The gain is then taxed as income.
+when is_offshore:
+2. As an offshore bond, no UK tax has been taken from it along the way, so the whole gain is taxed at your income tax rates when it ends.
+when not is_offshore:
+2. As an onshore bond, the gain is treated as having had basic-rate tax paid on it already, so only tax above the basic rate is left to pay.
+always:
+3. Top-slicing relief can reduce the tax: the gain is divided by the number of full years the bond has run, and that slice decides how much falls into the higher rates.
+when has_allowance:
+4. You can still take {allowance_left} with no tax at the time, from the 5% a year that has built up over {policy_years} policy years. Taking more than that in a policy year counts as a gain that year.
+always:
+5. A year when your other income is lower can mean less tax when the bond ends. Speak to a financial adviser before cashing it in.
+outcome:
+1. You know the gain building up in {account_name} and what you can take from it without tax at the time.
+
+## bond_paid_in_missing
+status: draft
+source: `BondPositionService` (the gain and the 5% are worked out from what was paid in and when the bond started; ITTOIA 2005 s491, s507); the bond form (`StandardInvestmentFields` bond section; Fyn's investment form, `CaptureForms` onshore and offshore bond kinds)
+figures: account_name, bond_kind, value
+why:
+1. {account_name} is worth {value}, but what you paid into it is not recorded, so the gain building up in it cannot be worked out.
+always:
+1. Find what you paid in, and when the bond started, on your latest statement or the policy schedule.
+2. Open {account_name} on the Investment page, choose Edit, and add what you paid in, when it started and any 5% withdrawals you have taken.
+outcome:
+1. Your {bond_kind} bond shows the gain building up in it and the 5% you can still take.
+
 ## no_holdings
 status: approved
 source: the account page (`InvestmentAccount` holdings); charges, mix and tax are read from the holdings (`FeeAnalyzer::recordedCharges`, `AccountDriftService`, `ChargeableGains`)

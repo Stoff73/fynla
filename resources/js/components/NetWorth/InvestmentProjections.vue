@@ -186,9 +186,11 @@
 
             <!-- Summary Row -->
             <div class="summary-row">
+              <!-- The value the projection starts from, as the server sent it: a joint
+                   account is projected at your share (item 8, 2026-10-06). -->
               <div class="summary-item blue">
-                <span class="summary-item-label">Current Value</span>
-                <span class="summary-item-value">{{ formatCurrency(account.current_value) }}</span>
+                <span class="summary-item-label">{{ projectedFromLabel }}</span>
+                <span class="summary-item-value">{{ formatCurrency(projectedFromValue) }}</span>
               </div>
               <!-- W-0259 — the median leads; the conservative band stands beside it. -->
               <div class="summary-item purple">
@@ -736,6 +738,17 @@ export default {
     // scale and falls again — so a card leading on it alone tells a user that taking
     // more risk made them poorer. The median rises monotonically with risk, so the two
     // together say what is actually true of the model.
+    projectedFromValue() {
+      return this.allProjections?.current_value ?? this.account.current_value;
+    },
+
+    projectedFromLabel() {
+      const projected = Number(this.allProjections?.current_value);
+      return Number.isFinite(projected) && projected !== Number(this.account.current_value)
+        ? 'Your share today'
+        : 'Current Value';
+    },
+
     formatProjectedMedian() {
       if (!this.hasProjectionData) return '—';
       const lastYear = this.projectionData.year_by_year[this.projectionData.year_by_year.length - 1];
@@ -1048,26 +1061,23 @@ export default {
     },
 
     // ---- Rebalancing helpers ----
+    // One rule (AccountDriftService, item 8): the account is either outside
+    // its rebalancing threshold or within it; no score is shown (Rule 12).
     getDriftLabel() {
       if (!this.rebalancingData?.drift_analysis) return 'N/A';
-      const score = this.rebalancingData.drift_analysis.drift_score;
-      if (score < 5) return 'Well aligned';
-      if (score < 10) return 'Minor drift';
-      return 'Significant drift — review recommended';
+      return this.rebalancingData.drift_analysis.needs_rebalancing
+        ? 'Outside its rebalancing threshold'
+        : 'Within its rebalancing threshold';
     },
 
     getDriftStatusClass() {
       if (!this.rebalancingData?.drift_analysis) return 'text-neutral-500';
-      const score = this.rebalancingData.drift_analysis.drift_score;
-      if (score < 5) return 'text-spring-600';
-      return 'text-violet-600';
+      return this.rebalancingData.drift_analysis.needs_rebalancing ? 'text-violet-600' : 'text-spring-600';
     },
 
     getDriftBgClass() {
       if (!this.rebalancingData?.drift_analysis) return 'bg-eggshell-500';
-      const score = this.rebalancingData.drift_analysis.drift_score;
-      if (score < 5) return 'bg-spring-50';
-      return 'bg-violet-50';
+      return this.rebalancingData.drift_analysis.needs_rebalancing ? 'bg-violet-50' : 'bg-spring-50';
     },
 
     // ---- Tax status helpers ----

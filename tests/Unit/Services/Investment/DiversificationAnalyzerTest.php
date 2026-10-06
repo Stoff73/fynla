@@ -461,59 +461,46 @@ describe('getScoreLabel', function () {
 });
 
 describe('generateRecommendations', function () {
-    it('recommends reducing concentration for high HHI', function () {
-        $hhi = 0.30;
-        $concentration = ['top_holding_percent' => 20, 'top_3_holdings_percent' => 50];
-        $comparison = [
-            'equities' => ['deviation' => 0, 'severity' => 'aligned'],
-            'bonds' => ['deviation' => 0, 'severity' => 'aligned'],
-            'cash' => ['deviation' => 0, 'severity' => 'aligned'],
-            'alternatives' => ['deviation' => 0, 'severity' => 'aligned'],
-        ];
+    it('does not call an account of three funds concentrated (item 8)', function () {
+        $holdings = collect([
+            (object) ['asset_type' => 'fund', 'current_value' => 35000, 'security_name' => 'Global Fund'],
+            (object) ['asset_type' => 'etf', 'current_value' => 35000, 'security_name' => 'World ETF'],
+            (object) ['asset_type' => 'uk_equity', 'current_value' => 30000, 'security_name' => 'UK Trust'],
+        ]);
 
-        $recommendations = $this->analyzer->generateRecommendations($hhi, $concentration, $comparison);
+        $messages = array_column($this->analyzer->analyze($holdings, 4)['recommendations'], 'message');
 
-        expect($recommendations)->toHaveCount(1)
-            ->and($recommendations[0]['type'])->toBe('warning')
-            ->and($recommendations[0]['message'])->toContain('concentration');
+        expect(implode(' ', $messages))->not->toContain('concentration')
+            ->and(implode(' ', $messages))->not->toContain('below 25%');
     });
 
-    it('recommends reducing top holding when over 25%', function () {
-        $hhi = 0.10;
-        $concentration = ['top_holding_percent' => 35, 'top_3_holdings_percent' => 50];
-        $comparison = [
-            'equities' => ['deviation' => 0, 'severity' => 'aligned'],
-            'bonds' => ['deviation' => 0, 'severity' => 'aligned'],
-            'cash' => ['deviation' => 0, 'severity' => 'aligned'],
-            'alternatives' => ['deviation' => 0, 'severity' => 'aligned'],
-        ];
+    it('names one company\'s shares above a quarter of the account, as a fact', function () {
+        $holdings = collect([
+            (object) ['asset_type' => 'equity', 'current_value' => 40000, 'security_name' => 'Acme plc'],
+            (object) ['asset_type' => 'bond', 'current_value' => 20000, 'security_name' => 'Gilt Fund'],
+            (object) ['asset_type' => 'equity', 'current_value' => 35000, 'security_name' => 'Beta plc'],
+            (object) ['asset_type' => 'alternative', 'current_value' => 5000, 'security_name' => 'Gold'],
+        ]);
 
-        $recommendations = $this->analyzer->generateRecommendations($hhi, $concentration, $comparison);
+        $messages = array_column($this->analyzer->analyze($holdings, 4)['recommendations'], 'message');
 
-        expect($recommendations)->toHaveCount(1)
-            ->and($recommendations[0]['message'])->toContain('35.0%')
-            ->and($recommendations[0]['message'])->toContain('below 25%');
+        expect($messages)->toContain('Acme plc is 40% of this account, all in one company\'s shares');
     });
 
-    it('recommends allocation adjustments for significant deviations', function () {
-        $hhi = 0.10;
-        $concentration = ['top_holding_percent' => 10, 'top_3_holdings_percent' => 25];
-        $comparison = [
-            'equities' => ['deviation' => 20, 'severity' => 'significant'],
-            'bonds' => ['deviation' => -15, 'severity' => 'significant'],
-            'cash' => ['deviation' => 0, 'severity' => 'aligned'],
-            'alternatives' => ['deviation' => 0, 'severity' => 'aligned'],
-        ];
+    it('states only the allocation gaps the recorded holdings prove', function () {
+        // 60% in an ETF whose mix is not recorded: it is placed where it closes
+        // the gaps first, so shares are "at most" 60%, alternatives "at least" 20%.
+        $holdings = collect([
+            (object) ['asset_type' => 'etf', 'current_value' => 60000, 'security_name' => 'World ETF'],
+            (object) ['asset_type' => 'bond', 'current_value' => 20000, 'security_name' => 'Gilt Fund'],
+            (object) ['asset_type' => 'alternative', 'current_value' => 20000, 'security_name' => 'Gold'],
+        ]);
 
-        $recommendations = $this->analyzer->generateRecommendations($hhi, $concentration, $comparison);
+        $messages = array_column($this->analyzer->analyze($holdings, 4)['recommendations'], 'message');
 
-        expect($recommendations)->toHaveCount(2);
-
-        $equityRec = collect($recommendations)->first(fn ($r) => str_contains($r['message'], 'Equities'));
-        $bondRec = collect($recommendations)->first(fn ($r) => str_contains($r['message'], 'Bonds'));
-
-        expect($equityRec['message'])->toContain('overweight')
-            ->and($bondRec['message'])->toContain('underweight');
+        expect($messages)->toContain('Alternatives are at least 20% of this account against a 5% target for its risk level')
+            ->and($messages)->toContain('Shares are at most 60% of this account against a 75% target for its risk level')
+            ->and(implode(' ', $messages))->not->toContain('underweight');
     });
 
     it('returns success message for well-diversified portfolio', function () {
@@ -530,7 +517,7 @@ describe('generateRecommendations', function () {
 
         expect($recommendations)->toHaveCount(1)
             ->and($recommendations[0]['type'])->toBe('success')
-            ->and($recommendations[0]['message'])->toContain('well diversified');
+            ->and($recommendations[0]['message'])->toBe('This account is within the target mix for its risk level');
     });
 });
 

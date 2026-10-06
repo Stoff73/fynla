@@ -211,10 +211,11 @@ it('builds the bank inputs with a composed account name and joint fixed at 50', 
     expect($withRate['current_account']['interest_rate'])->toBe(1.5);
 });
 
-it('offers the two investment kinds and builds their inputs with the share only when joint', function (): void {
+it('offers the investment kinds and builds their inputs with the share only when joint', function (): void {
     $schema = CaptureForms::schema('investment');
-    expect(array_column($schema['kinds'], 'key'))->toBe(['gia', 'other'])
-        ->and(array_column($schema['kinds'], 'label'))->toBe(['General Investment Account', 'Other investment'])
+    // Item 8 (CSJ 2026-10-06): onshore and offshore bonds, with what was paid in.
+    expect(array_column($schema['kinds'], 'key'))->toBe(['gia', 'other', 'onshore_bond', 'offshore_bond'])
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['General Investment Account', 'Other investment', 'Onshore investment bond', 'Offshore investment bond'])
         ->and($schema['fields']['ownership_percentage']['required_when'])->toBe(['field' => 'ownership_type', 'in' => ['joint']]);
 
     $form = ['name' => 'investment', 'answers' => [
@@ -237,6 +238,15 @@ it('offers the two investment kinds and builds their inputs with the share only 
     $untyped = ['name' => 'investment', 'answers' => ['other' => ['provider' => 'Freetrade', 'current_value' => 5000, 'ownership_type' => 'individual']]];
     expect(CaptureForms::toolInputs($untyped)['other']['account_name'])->toBe('Freetrade Other investment')
         ->and(CaptureForms::summarise($untyped))->toBe('Other investment with Freetrade worth £5,000, individual.');
+
+    $bond = ['name' => 'investment', 'answers' => ['offshore_bond' => [
+        'provider' => 'Quilter', 'current_value' => 120000, 'investment_amount' => 100000,
+        'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 10000, 'ownership_type' => 'individual',
+    ]]];
+    expect(CaptureForms::toolInputs($bond)['offshore_bond'])->toMatchArray([
+        'account_type' => 'offshore_bond', 'investment_amount' => 100000.0,
+        'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 10000.0,
+    ]);
 });
 
 it('the three account steps are form turns owned by the corpus with short lead-ins', function (): void {

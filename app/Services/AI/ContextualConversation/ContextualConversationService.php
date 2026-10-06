@@ -58,7 +58,7 @@ final class ContextualConversationService
         // details", not a missing income, which starts with the job.
         $form = $resource->resourceType === 'income' && $recommendation !== null
             ? null
-            : $editForms->formForResource($user, $resource->resourceType, $destinationParams);
+            : $editForms->formForResource($user, $resource->resourceType, $destinationParams, $resource->resourceId !== null ? (int) $resource->resourceId : null);
         // Several records and no one form (the Income overview): the edit
         // chooser's bubbles, each opening its record's form.
         $chooser = $form === null && $recommendation === null && $validated['action'] === 'edit'
@@ -68,7 +68,7 @@ final class ContextualConversationService
         // 2026-10-01: all capture through forms); the save comes back to the
         // director (OnboardingChatDirector::handleCreateFormTurn).
         $createForm = $form === null && $chooser === null && $recommendation === null && $validated['action'] === 'add'
-            ? CaptureForms::schema(RecordEditForms::createFormsFor($resource->resourceType)[0] ?? '')
+            ? self::addingForm(RecordEditForms::createFormsFor($resource->resourceType)[0] ?? '')
             : null;
 
         return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation, $form, $chooser, $createForm): array {
@@ -177,6 +177,14 @@ final class ContextualConversationService
         $verb = preg_match('/[^s]s$/', $label) === 1 ? 'are' : 'is';
 
         return "Here {$verb} your {$label}. Change what needs changing and save, or tell me what has changed.";
+    }
+
+    /** @return array<string, mixed>|null */
+    private static function addingForm(string $formName): ?array
+    {
+        $schema = CaptureForms::schema($formName);
+
+        return $schema === null ? null : CaptureForms::forAdding($schema);
     }
 
     private function openingFor(string $action, ContextualResource $resource): string

@@ -41,8 +41,8 @@ class DriftAnalyzer
         // A fund or ETF with no recorded mix cannot be said to be in the wrong
         // class, so the drift is what remains once that money is placed where it
         // closes the gaps first (item 8, CSJ 2026-10-06: one rule for page and card).
-        $unrecordedPercent = $this->unrecordedPercent($currentAllocation);
-        $assessedAllocation = $this->placeUnrecorded($currentAllocation, $targetAllocation);
+        $unrecordedPercent = self::unrecordedPercent($currentAllocation);
+        $assessedAllocation = self::placeUnrecorded($currentAllocation, $targetAllocation);
 
         // Calculate drift metrics
         $driftMetrics = $this->calculateDriftMetrics($assessedAllocation, $targetAllocation);
@@ -99,9 +99,9 @@ class DriftAnalyzer
     }
 
     /** Classes that say the holding's mix is not recorded (InvestmentDefaults::resolveAssetClass). */
-    private const UNRECORDED_CLASSES = ['unclassified', 'mixed'];
+    public const UNRECORDED_CLASSES = ['unclassified', 'mixed'];
 
-    private function unrecordedPercent(array $currentAllocation): float
+    public static function unrecordedPercent(array $currentAllocation): float
     {
         return array_sum(array_intersect_key($currentAllocation, array_flip(self::UNRECORDED_CLASSES)));
     }
@@ -111,9 +111,9 @@ class DriftAnalyzer
      * closest to its target: first into each under-weight class, in proportion
      * to its shortfall, then any rest in the target's own proportions.
      */
-    private function placeUnrecorded(array $currentAllocation, array $targetAllocation): array
+    public static function placeUnrecorded(array $currentAllocation, array $targetAllocation): array
     {
-        $unrecorded = $this->unrecordedPercent($currentAllocation);
+        $unrecorded = self::unrecordedPercent($currentAllocation);
         $known = array_diff_key($currentAllocation, array_flip(self::UNRECORDED_CLASSES));
 
         if ($unrecorded <= 0) {

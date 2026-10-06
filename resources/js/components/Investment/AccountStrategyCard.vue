@@ -169,15 +169,15 @@ export default {
 
       // 6. Needs rebalancing
       if (this.hasRiskProfile && this.rebalancingData?.drift_analysis?.needs_rebalancing) {
-        const driftScore = this.rebalancingData.drift_analysis.drift_score;
-        if (driftScore > 5) {
-          recs.push({
-            priority: 2,
-            title: 'Rebalancing Needed',
-            description: `Portfolio drift is ${driftScore.toFixed(1)}%. Consider rebalancing to match your target allocation.`,
-            action: 'rebalancing',
-          });
-        }
+        // The account's one rule (AccountDriftService); the largest gap in
+        // percentage points, not a score (Rule 12).
+        const maxDrift = this.rebalancingData.drift_analysis.max_drift;
+        recs.push({
+          priority: 2,
+          title: 'Rebalancing Needed',
+          description: `This account is outside its rebalancing threshold: the largest gap from its target mix is ${maxDrift.toFixed(1)} percentage points.`,
+          action: 'rebalancing',
+        });
       }
 
       // 7. ISA allowance available

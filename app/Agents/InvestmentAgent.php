@@ -10,6 +10,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
+use App\Services\Investment\BondPositionService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentActionDefinitionService;
@@ -46,6 +47,7 @@ class InvestmentAgent extends BaseAgent
         private readonly CrossModuleAssetAggregator $assetAggregator,
         private readonly AccountDriftService $accountDrift,
         private readonly ChargeableGains $chargeableGains,
+        private readonly BondPositionService $bondPositions,
     ) {}
 
     /**
@@ -261,6 +263,12 @@ class InvestmentAgent extends BaseAgent
                     // any account outside its own threshold (AccountDriftService).
                     'needs_rebalancing' => collect($accountDrift)->contains('needs_rebalancing', true),
                     'account_fee_analyses' => $accountFeeAnalyses,
+                    // Each bond's deferred tax position (BondPositionService, item 8).
+                    'bond_positions' => $ownedAccounts
+                        ->filter(fn ($a) => in_array($a->account_type, BondPositionService::BOND_TYPES, true))
+                        ->map(fn ($a) => $this->bondPositions->forAccount($a, $userId))
+                        ->values()
+                        ->all(),
                     'goals' => $goals->map(function ($goal) use ($totalValue) {
                         $progress = $totalValue > 0 ? ($totalValue / $goal->target_amount) * 100 : 0;
 
