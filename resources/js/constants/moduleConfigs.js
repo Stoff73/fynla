@@ -94,6 +94,8 @@ export const MODULE_CONFIGS = {
       { value: 'fund_ocf_above_threshold', label: 'Fund charges above threshold' },
       { value: 'platform_fee_above_threshold', label: 'Platform fee above threshold' },
       { value: 'allocation_needs_rebalancing', label: 'Asset allocation needs rebalancing' },
+      { value: 'account_outside_drift_threshold', label: 'Account outside its rebalancing threshold' },
+      { value: 'account_charges_above', label: 'Account charges above a threshold' },
       { value: 'tax_loss_harvesting_opportunities', label: 'Tax loss harvesting opportunities' },
       { value: 'has_gia_no_isa', label: 'Has General Investment Account but no ISA' },
       { value: 'isa_remaining_with_gia', label: 'ISA allowance remaining with General Investment Account' },

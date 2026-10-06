@@ -1,6 +1,6 @@
 # Investment cards: review and design
 
-**Status:** REVIEW, decisions D1 to D4 waiting on CSJ.
+**Status:** APPROVED. CSJ answered D1 to D4 on 2026-10-06, each as recommended.
 **Date:** 2026-10-06
 **Item:** `todoCurrent/TODO.md` item 8 (the item 7 shape: review, decisions, fixes, how-tos, walk, release).
 
@@ -113,7 +113,9 @@
 
 ### 3.4 One "your portfolio against your risk level" card (decision D3)
 
-**Recommended, the protection and retirement pattern:** an `investment_allocation_position` card replaces "Rebalance Portfolio" and "Improve Portfolio Diversification".
+**Amended (CSJ 2026-10-06, "Per account, as the page"):** the card is per account, and reads the rule the account's rebalancing panel shows (`DriftAnalyzer`, the account's own threshold and risk level), so card, page and dashboard say the same. The portfolio rule below (`calculateDeviation`) is not used for the card.
+
+**Recommended, the protection and retirement pattern:** an `allocation_position` card replaces "Rebalance Portfolio" and "Improve Portfolio Diversification".
 - **It fires when** the allocation is outside its bands (`allocation_deviation.needs_rebalancing`), the figure the page shows.
 - **Title:** "Your portfolio is {actual}% in shares against {target}% for your risk level" (the largest gap), with every asset class's actual and target in its figures.
 - **The diversification score stops being a trigger** (Rule 12, and its 70 has no source). A concentrated portfolio shows as its allocation.
@@ -143,7 +145,7 @@
 
 Written after the decisions, in `database/seeders/data/action-how-to/investment.md` (the `savings.md` / `protection.md` / `retirement.md` format), with `'investment' => [InvestmentActionDefinition::class, 'key']` in `ActionHowToSeeder::SOURCES`. Every entry starts as `draft`, every claim is sourced, and the draft is merged to `dev` before CSJ reviews it.
 
-The cards that need one, if D1 to D4 are approved: `investment_allocation_position`, the fees card, `tax_loss_harvesting`, `use_isa_allowance`, `open_isa`, `consider_bonds` and `no_holdings` (seven). `risk_profile_missing` reaches no card (1.2); the goal and strategy rows are not cards (1.1).
+The cards that need one, if D1 to D4 are approved: `allocation_position`, the fees card, `tax_loss_harvesting`, `use_isa_allowance`, `open_isa`, `consider_bonds` and `no_holdings` (seven). `risk_profile_missing` reaches no card (1.2); the goal and strategy rows are not cards (1.1).
 
 ## 6. Testing
 
