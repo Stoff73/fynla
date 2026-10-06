@@ -36,8 +36,7 @@ class RecommendationEngine
                     'Current coverage falls short by £%s. This gap could leave your dependants financially vulnerable.',
                     number_format($gaps['gaps_by_category']['human_capital_gap'], 2)
                 ),
-                impact: 'High',
-                estimatedCost: $this->estimateLifePremium($gaps['gaps_by_category']['human_capital_gap'], $profile)
+                impact: 'High'
             );
         }
 
@@ -51,8 +50,7 @@ class RecommendationEngine
                     'Outstanding debts of £%s should be covered separately to protect your estate.',
                     number_format($profile->mortgage_balance + $profile->other_debts, 2)
                 ),
-                impact: 'High',
-                estimatedCost: $this->estimateDebtProtectionPremium($profile)
+                impact: 'High'
             );
         }
 
@@ -63,11 +61,7 @@ class RecommendationEngine
                 category: 'Critical Illness',
                 action: 'Consider critical illness cover',
                 rationale: 'Critical illness cover would provide a lump sum if you are diagnosed with a serious condition.',
-                impact: 'Medium',
-                estimatedCost: $this->estimateCriticalIllnessPremium(
-                    $profile->annual_income * (int) $this->taxConfig->get('protection.income_multipliers.critical_illness', 3),
-                    $profile
-                )
+                impact: 'Medium'
             );
         }
 
@@ -81,8 +75,7 @@ class RecommendationEngine
                     'Income protection would replace £%s per year if you cannot work due to illness or injury.',
                     number_format($gaps['gaps_by_category']['income_protection_gap'], 2)
                 ),
-                impact: 'High',
-                estimatedCost: $this->estimateIncomeProtectionPremium($gaps['gaps_by_category']['income_protection_gap'], $profile)
+                impact: 'High'
             );
         }
 
@@ -96,8 +89,7 @@ class RecommendationEngine
                     'A family income benefit policy could provide regular income to cover education costs for your %d dependent(s).',
                     $profile->number_of_dependents
                 ),
-                impact: 'Medium',
-                estimatedCost: $this->estimateFamilyIncomeBenefitPremium($profile)
+                impact: 'Medium'
             );
         }
 
@@ -108,8 +100,7 @@ class RecommendationEngine
                 category: 'Trust Planning',
                 action: 'Place policies in trust',
                 rationale: 'Policies not in trust may be subject to inheritance tax and probate delays.',
-                impact: 'Medium',
-                estimatedCost: 0
+                impact: 'Medium'
             );
         }
 
@@ -124,8 +115,7 @@ class RecommendationEngine
                     'Total premiums of £%s per year exceed 5%% of income. Consider reviewing for better value.',
                     number_format($totalPremiums, 2)
                 ),
-                impact: 'Low',
-                estimatedCost: 0
+                impact: 'Low'
             );
         }
 
@@ -143,8 +133,7 @@ class RecommendationEngine
         string $category,
         string $action,
         string $rationale,
-        string $impact,
-        float $estimatedCost
+        string $impact
     ): array {
         return [
             'priority' => $priority,
@@ -152,7 +141,8 @@ class RecommendationEngine
             'action' => $action,
             'rationale' => $rationale,
             'impact' => $impact,
-            'estimated_cost' => $estimatedCost,
+            // No premium figure: nothing sources what an insurer would charge
+            // this person (Rule 23; CSJ 2026-10-06).
         ];
     }
 
@@ -169,84 +159,6 @@ class RecommendationEngine
             $gapRatio > 1 => 3, // Medium
             default => 4,       // Low
         };
-    }
-
-    /**
-     * Estimate life insurance premium.
-     */
-    private function estimateLifePremium(float $sumAssured, ProtectionProfile $profile): float
-    {
-        // Simplified premium estimation: base rate per £1,000 sum assured per year
-        // Adjust for smoker status (smoker loading) and age
-        $baseRate = (float) $this->taxConfig->get('protection.premium_factors.base_rate', 0.50);
-        $smokerLoading = (float) $this->taxConfig->get('protection.premium_factors.smoker_loading', 1.5);
-        $basePremium = ($sumAssured / 1000) * $baseRate;
-
-        if ($profile->smoker_status) {
-            $basePremium *= $smokerLoading;
-        }
-
-        // Adjust for age (very simplified)
-        $age = $profile->user->date_of_birth ?
-               (int) $profile->user->date_of_birth->diffInYears(now()) : 40;
-
-        if ($age > 50) {
-            $basePremium *= 1.5;
-        } elseif ($age > 40) {
-            $basePremium *= 1.2;
-        }
-
-        return round($basePremium / 12, 2); // Monthly premium
-    }
-
-    /**
-     * Estimate debt protection premium.
-     */
-    private function estimateDebtProtectionPremium(ProtectionProfile $profile): float
-    {
-        $debtAmount = $profile->mortgage_balance + $profile->other_debts;
-
-        return $this->estimateLifePremium($debtAmount, $profile) * 0.8; // Decreasing term is cheaper
-    }
-
-    /**
-     * Estimate critical illness premium.
-     */
-    private function estimateCriticalIllnessPremium(float $sumAssured, ProtectionProfile $profile): float
-    {
-        // Critical illness is typically 2-3x more expensive than life insurance
-        $ciRatio = (float) $this->taxConfig->get('protection.premium_factors.ci_ratio', 2.5);
-
-        return $this->estimateLifePremium($sumAssured, $profile) * $ciRatio;
-    }
-
-    /**
-     * Estimate income protection premium.
-     */
-    private function estimateIncomeProtectionPremium(float $annualBenefit, ProtectionProfile $profile): float
-    {
-        // Typically 1-3% of annual benefit
-        $ipRate = (float) $this->taxConfig->get('protection.premium_factors.ip_rate', 0.02);
-        $basePremium = $annualBenefit * $ipRate;
-
-        if ($profile->smoker_status) {
-            $basePremium *= 1.3;
-        }
-
-        return round($basePremium / 12, 2); // Monthly premium
-    }
-
-    /**
-     * Estimate family income benefit premium.
-     */
-    private function estimateFamilyIncomeBenefitPremium(ProtectionProfile $profile): float
-    {
-        // FIB is typically cheaper than level term
-        $annualIncome = $profile->monthly_expenditure * 12;
-
-        $lifeCoverMultiplier = (int) $this->taxConfig->get('protection.income_multipliers.life_cover', 10);
-
-        return $this->estimateLifePremium($annualIncome * $lifeCoverMultiplier, $profile) * 0.7;
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Constants\ProfileEnums;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
@@ -76,9 +77,10 @@ class DecumulationPlanner
     /**
      * Compare annuity purchase vs flexible drawdown.
      *
-     * Optionally accepts a User to check for enhanced annuity eligibility via their
-     * ProtectionProfile (smoker status, health status). Enhanced annuity rates offer
-     * better income for individuals with reduced life expectancy.
+     * Optionally accepts a User to say whether their smoking or health answers
+     * make enhanced annuity quotes worth asking for. The income shown is the
+     * standard rate: no enhancement is assumed, because what a provider adds
+     * depends on its own underwriting and has no source to model it from.
      *
      * @param  float  $pensionPot  DC pension pot value
      * @param  int  $age  Current age
@@ -90,11 +92,9 @@ class DecumulationPlanner
         // Base annuity rate from TaxConfigService
         $annuityRate = $this->getAnnuityRate($age, $spouse);
 
-        // Check for enhanced annuity eligibility via smoker/health status
         $enhancedInfo = $this->assessEnhancedAnnuityEligibility($user);
-        $enhancedAnnuityRate = $annuityRate * $enhancedInfo['enhancement_factor'];
 
-        $annuityIncome = $pensionPot * $enhancedAnnuityRate;
+        $annuityIncome = $pensionPot * $annuityRate;
 
         // Drawdown scenario using safe withdrawal rate
         $drawdownRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
@@ -109,14 +109,12 @@ class DecumulationPlanner
                 'flexibility' => 'None - irreversible decision',
                 'enhanced_annuity_eligible' => $enhancedInfo['is_eligible'],
                 'enhanced_annuity_reason' => $enhancedInfo['reason'],
-                'enhancement_factor' => $enhancedInfo['enhancement_factor'],
                 'base_annuity_rate' => round($annuityRate * 100, 2),
-                'effective_annuity_rate' => round($enhancedAnnuityRate * 100, 2),
                 'pros' => [
                     'Guaranteed income for life',
                     'No investment risk',
                     'Simplicity',
-                    ...($enhancedInfo['is_eligible'] ? ['Enhanced rate may offer significantly higher income'] : []),
+                    ...($enhancedInfo['is_eligible'] ? ['A provider may pay more than its standard rates because of your health'] : []),
                 ],
                 'cons' => [
                     'Irreversible',
@@ -148,75 +146,39 @@ class DecumulationPlanner
     }
 
     /**
-     * Assess whether the user is eligible for enhanced annuity rates.
+     * Whether the user's own answers make enhanced annuity quotes worth asking for.
      *
-     * Smokers and those with certain health conditions typically receive higher
-     * annuity rates because of reduced life expectancy. The enhancement factor
-     * reflects the typical 15-25% increase in annuity income.
+     * Annuity providers price on health conditions, "lifestyle—such as smoking or
+     * drinking—and your medical history" (Legal & General,
+     * https://www.legalandgeneral.com/retirement/pension-annuity/guides/enhanced-annuities/),
+     * and what an annuity pays depends on "your health (sometimes)"
+     * (https://www.gov.uk/personal-pensions-your-rights/how-you-can-take-pension).
+     * The answers are the user's own (`users.smoking_status` / `health_status`,
+     * ProfileEnums::isSmoker / hasHealthHistory). Not answered is not eligible.
+     * No uplift is estimated: it is each provider's own underwriting.
      *
-     * Smoker and health status are stored on the ProtectionProfile (captured
-     * during onboarding), not on the User model directly.
-     *
-     * @return array{is_eligible: bool, reason: string|null, enhancement_factor: float}
+     * @return array{is_eligible: bool, reason: string|null}
      */
     public function assessEnhancedAnnuityEligibility(?User $user): array
     {
-        if ($user === null) {
-            return [
-                'is_eligible' => false,
-                'reason' => null,
-                'enhancement_factor' => 1.0,
-            ];
-        }
-
-        $user->loadMissing('protectionProfile');
-        $protectionProfile = $user->protectionProfile;
-
-        if ($protectionProfile === null) {
-            return [
-                'is_eligible' => false,
-                'reason' => null,
-                'enhancement_factor' => 1.0,
-            ];
-        }
-
-        $smokerStatus = $protectionProfile->smoker_status;
-        $healthStatus = $protectionProfile->health_status;
-
-        $isSmoker = (bool) $smokerStatus;
-        $hasHealthCondition = in_array($healthStatus, ['poor', 'fair'], true);
-
-        if (! $isSmoker && ! $hasHealthCondition) {
-            return [
-                'is_eligible' => false,
-                'reason' => null,
-                'enhancement_factor' => 1.0,
-            ];
-        }
-
-        // Calculate enhancement factor
-        // Smokers typically receive 15-25% higher annuity rates
-        // Health conditions add a further 10-15% enhancement
-        $factor = 1.0;
         $reasons = [];
-
-        if ($isSmoker) {
-            $factor *= 1.20; // 20% enhancement for smokers (middle of 15-25% range)
-            $reasons[] = 'smoker status';
+        if ($user !== null && ProfileEnums::isSmoker($user->smoking_status) === true) {
+            $reasons[] = 'smoking';
+        }
+        if ($user !== null && ProfileEnums::hasHealthHistory($user->health_status) === true) {
+            $reasons[] = 'health';
         }
 
-        if ($hasHealthCondition) {
-            $factor *= 1.15; // 15% enhancement for health conditions
-            $reasons[] = sprintf('%s health status', $healthStatus);
+        if ($reasons === []) {
+            return ['is_eligible' => false, 'reason' => null];
         }
 
         return [
             'is_eligible' => true,
             'reason' => sprintf(
-                'You may qualify for enhanced annuity rates due to %s. Enhanced annuities offer higher income because providers factor in reduced life expectancy.',
+                'Because of your %s, an annuity provider may offer you more than its standard rates. Give every provider your health details when you ask for quotes.',
                 implode(' and ', $reasons)
             ),
-            'enhancement_factor' => round($factor, 4),
         ];
     }
 

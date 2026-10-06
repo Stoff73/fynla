@@ -424,6 +424,54 @@ describe('evaluateAgentActions', function () {
             ->not->toContain('adjust_retirement_age')->not->toContain('retirement_income_position');
     });
 
+    it('asks for enhanced annuity quotes from the user\'s own smoking answer, with no uplift figure (8a)', function () {
+        $this->user->update(['smoking_status' => 'yes', 'health_status' => 'yes']);
+        DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Test Workplace', 'scheme_type' => 'workplace',
+            'pension_type' => 'occupational', 'current_fund_value' => 200000,
+        ]);
+
+        $card = collect($this->service->evaluateAgentActions([
+            'user_id' => $this->user->id,
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 0, 'target_retirement_income' => 30000, 'target_retirement_age' => 65],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 56700, 'carry_forward_available' => 0],
+        ])['recommendations'])->firstWhere('definition_key', 'enhanced_annuity_eligible');
+
+        expect($card)->not->toBeNull()
+            ->and($card)->not->toHaveKey('enhancement_factor')
+            ->and(json_encode($card['decision_trace']))->not->toMatch('/\d+(\.\d+)?%|enhancement factor|per year more/i');
+    });
+
+    it('gives a retiree with no retirement profile the enhanced annuity card (8a)', function () {
+        $retiree = User::factory()->create(['employment_status' => 'retired', 'smoking_status' => 'never', 'health_status' => 'no_existing', 'is_preview_user' => false]);
+        DCPension::create([
+            'user_id' => $retiree->id, 'scheme_name' => 'SIPP', 'scheme_type' => 'personal',
+            'pension_type' => 'personal', 'current_fund_value' => 200000,
+        ]);
+
+        $keys = array_column($this->service->evaluateAgentActions(['user_id' => $retiree->id])['recommendations'], 'definition_key');
+
+        expect($keys)->toContain('enhanced_annuity_eligible');
+    });
+
+    it('gives no enhanced annuity card when smoking and health are not answered (8a)', function () {
+        $this->user->update(['smoking_status' => null, 'health_status' => null]);
+        DCPension::create([
+            'user_id' => $this->user->id, 'scheme_name' => 'Test Workplace', 'scheme_type' => 'workplace',
+            'pension_type' => 'occupational', 'current_fund_value' => 200000,
+        ]);
+
+        $keys = array_column($this->service->evaluateAgentActions([
+            'user_id' => $this->user->id,
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 0, 'target_retirement_income' => 30000, 'target_retirement_age' => 65],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 56700, 'carry_forward_available' => 0],
+        ])['recommendations'], 'definition_key');
+
+        expect($keys)->not->toContain('enhanced_annuity_eligible');
+    });
+
     it('carries its definition key and figures on every card', function () {
         DCPension::create([
             'user_id' => $this->user->id, 'scheme_name' => 'Test Workplace', 'scheme_type' => 'workplace',

@@ -265,12 +265,15 @@ const ICON = {
 // unified "top" highlight set (module 'tax').
 const AREA_META = {
   save_tax: { label: 'Save tax', route: '/tax-strategy', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
-  retirement: { label: 'Retirement', route: '/net-worth/retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
-  protection: { label: 'Protection', route: '/protection', icon: ICON.protection, info: 'Make sure your family is covered if the unexpected happens.' },
-  savings: { label: 'Savings', route: '/net-worth/cash', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
-  investment: { label: 'Investment', route: '/net-worth/investments', icon: ICON.investmentArea, info: 'Put your money to work and keep your portfolio on track.' },
-  estate: { label: 'Estate', route: '/estate', icon: ICON.estate, info: 'Plan how your wealth passes on and reduce Inheritance Tax.' },
-  goals: { label: 'Goals', route: '/goals', icon: ICON.goals, info: 'Set financial goals and track your progress towards them.' },
+  // A module area's line comes with its server card (NextActionsService
+  // AREA_INFO), so it can follow the user: a retiree drawing their pension is
+  // not told to close an income gap. Save tax has no card of its own.
+  retirement: { label: 'Retirement', route: '/net-worth/retirement', icon: ICON.retirement },
+  protection: { label: 'Protection', route: '/protection', icon: ICON.protection },
+  savings: { label: 'Savings', route: '/net-worth/cash', icon: ICON.savings },
+  investment: { label: 'Investment', route: '/net-worth/investments', icon: ICON.investmentArea },
+  estate: { label: 'Estate', route: '/estate', icon: ICON.estate },
+  goals: { label: 'Goals', route: '/goals', icon: ICON.goals },
 };
 
 // Module focus areas the aggregator returns, in server order (NextActionsService
@@ -311,8 +314,8 @@ export default {
       fynHasTheUser: false,
       cats: [
         { key: 'save_tax', route: '/tax-strategy', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
-        { key: 'retirement', route: '/net-worth/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
-        { key: 'savings', route: '/net-worth/cash', label: 'Savings', icon: ICON.savings, info: 'Build your emergency fund and earn more on your cash.' },
+        { key: 'retirement', route: '/net-worth/retirement', label: 'Retirement', icon: ICON.retirement, info: '' },
+        { key: 'savings', route: '/net-worth/cash', label: 'Savings', icon: ICON.savings, info: '' },
       ],
     };
   },
@@ -605,7 +608,7 @@ export default {
           .filter((k) => byKey[k])
           .sort((a, b) => (byKey[a].locked ? 1 : 0) - (byKey[b].locked ? 1 : 0));
         this.cats = [{ key: 'save_tax', ...AREA_META.save_tax }]
-          .concat(orderedModules.map((key) => ({ key, ...(AREA_META[key] || { label: key, route: null, icon: '', info: '' }) })));
+          .concat(orderedModules.map((key) => ({ key, ...(AREA_META[key] || { label: key, route: null, icon: '' }), info: byKey[key].info || '' })));
         this.buckets = buckets;
         this.areaStats = areaStats;
         this.activeCat = 0;

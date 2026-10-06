@@ -335,3 +335,19 @@ it('never leaves a focus-area card with a blank stat', function () {
         ->and(NextActionsService::cardStat([$warning, $topical]))->toBe('2 actions')
         ->and(NextActionsService::cardStat([$topical, $warning]))->toBe('You could save £420');
 });
+
+/*
+ * CSJ 2026-10-06 ("why leave the dashboard as an error, FIX IT"): a retiree
+ * drawing their pension was told to "close your projected income gap". The
+ * line comes with the card, following the rule that picks the drawing view.
+ */
+it('gives a retiree drawing their pension the drawing view line, and a saver the income gap line', function () {
+    $line = fn (User $user) => collect(app(NextActionsService::class)->focusAreas($user->id))
+        ->firstWhere('key', 'retirement')['info'];
+
+    $retiree = User::factory()->create(['is_preview_user' => false, 'employment_status' => 'retired']);
+    $saver = User::factory()->create(['is_preview_user' => false, 'employment_status' => 'employed']);
+
+    expect($line($retiree))->toBe('See your income this year and how long your pension lasts.')
+        ->and($line($saver))->toBe('Close your projected income gap — small increases now compound.');
+});

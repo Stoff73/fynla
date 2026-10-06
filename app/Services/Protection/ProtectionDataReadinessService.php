@@ -202,16 +202,16 @@ class ProtectionDataReadinessService
             $this->check(
                 key: 'smoker_status',
                 level: self::LEVEL_INFO,
-                passed: $this->hasSmokerStatus($user, $protectionProfile),
+                passed: $this->hasSmokerStatus($user),
                 message: 'Smoking status is a key factor in protection policy pricing.',
-                formLink: '/protection',
+                formLink: '/settings/health',
             ),
             $this->check(
                 key: 'health_conditions',
                 level: self::LEVEL_INFO,
                 passed: $this->hasHealthDetails($user),
                 message: 'Health information helps refine premium estimates and highlight conditions that may affect cover.',
-                formLink: '/protection',
+                formLink: '/settings/health',
             ),
             $this->check(
                 key: 'spouse_income',
@@ -389,28 +389,19 @@ class ProtectionDataReadinessService
     }
 
     /**
-     * Smoker status is known via the user profile or protection profile.
+     * Smoking is answered. `users.smoking_status` is the one home (item 8a);
+     * null is "not answered".
      */
-    private function hasSmokerStatus(User $user, mixed $protectionProfile): bool
+    private function hasSmokerStatus(User $user): bool
     {
-        // User table has smoking_status with default 'never', so check if explicitly set
-        // Protection profile has smoker_status boolean
-        if ($protectionProfile && $protectionProfile->smoker_status !== null) {
-            return true;
-        }
-
-        // The user table smoking_status defaults to 'never' — we treat it as set
-        // since the user must have actively chosen a value during onboarding
         return $user->smoking_status !== null;
     }
 
     /**
-     * User has provided health condition information.
+     * Health is answered. `users.health_status`; null is "not answered".
      */
     private function hasHealthDetails(User $user): bool
     {
-        // health_status on users table: 'yes' means healthy, other values indicate conditions
-        // We consider any non-null value as "health details available"
         return $user->health_status !== null;
     }
 

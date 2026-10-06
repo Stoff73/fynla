@@ -646,7 +646,7 @@ class TaxConfigService
     /**
      * Get Protection module configuration
      *
-     * @return array Contains income_multipliers, affordability, premium_factors, etc.
+     * @return array Contains income_multipliers, withdrawal_rates, etc.
      */
     public function getProtectionConfig(): array
     {
@@ -676,7 +676,7 @@ class TaxConfigService
     /**
      * Get Estate planning configuration
      *
-     * @return array Contains onboarding_estimates, insurance_premium_estimates
+     * @return array Contains onboarding_estimates
      */
     public function getEstateConfig(): array
     {

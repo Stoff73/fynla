@@ -163,9 +163,11 @@ describe('strategy recommendation triggers', function () {
 
         $result = $this->service->evaluateActions($plan);
 
-        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Life Insurance' && $r['estimated_cost'] > 0);
+        // The strategy's cost never reaches the card: no premium is estimated (Rule 23).
+        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Life Insurance');
         expect($rec)->not->toBeNull()
-            ->and($rec['estimated_cost'])->toBe(25.0);
+            ->and($rec)->not->toHaveKey('estimated_cost')
+            ->and($rec['figures'] ?? [])->not->toHaveKey('monthly_cost');
     });
 
     it('fires add_critical_illness when strategy recommends critical illness cover', function () {
@@ -197,9 +199,11 @@ describe('strategy recommendation triggers', function () {
 
         $result = $this->service->evaluateActions($plan);
 
-        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Critical Illness' && $r['estimated_cost'] > 0);
+        // The strategy's cost never reaches the card: no premium is estimated (Rule 23).
+        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Critical Illness');
         expect($rec)->not->toBeNull()
-            ->and($rec['estimated_cost'])->toBe(35.0);
+            ->and($rec)->not->toHaveKey('estimated_cost')
+            ->and($rec['figures'] ?? [])->not->toHaveKey('monthly_cost');
     });
 
     it('fires add_income_protection when strategy recommends income protection', function () {
@@ -231,9 +235,11 @@ describe('strategy recommendation triggers', function () {
 
         $result = $this->service->evaluateActions($plan);
 
-        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Income Protection' && $r['estimated_cost'] > 0);
+        // The strategy's cost never reaches the card: no premium is estimated (Rule 23).
+        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Income Protection');
         expect($rec)->not->toBeNull()
-            ->and($rec['estimated_cost'])->toBe(45.0);
+            ->and($rec)->not->toHaveKey('estimated_cost')
+            ->and($rec['figures'] ?? [])->not->toHaveKey('monthly_cost');
     });
 
     it('does NOT fire strategy action when no matching recommendations exist', function () {

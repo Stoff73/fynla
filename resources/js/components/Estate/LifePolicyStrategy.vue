@@ -42,26 +42,17 @@
         </div>
 
         <div class="p-4 sm:p-6">
-          <!-- Key Metrics -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <!-- Key Metrics. No premium: only an insurer's quote gives one (Rule 23). -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
             <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
               <p class="text-xs sm:text-sm text-horizon-500 font-medium mb-1">Cover Amount</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(policy.cover_amount) }}</p>
-              <p class="text-xs text-neutral-500 mt-1">Guaranteed payout</p>
+              <p class="text-xs text-neutral-500 mt-1">Your Inheritance Tax liability today</p>
             </div>
             <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
-              <p class="text-xs sm:text-sm text-spring-700 font-medium mb-1">Monthly Premium</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-spring-900">{{ formatCurrency(policy.monthly_premium) }}</p>
-            </div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
-              <p class="text-xs sm:text-sm text-violet-700 font-medium mb-1">Annual Premium</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">{{ formatCurrency(policy.annual_premium) }}</p>
-              <p class="text-xs text-violet-600 mt-1">Per year</p>
-            </div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
-              <p class="text-xs sm:text-sm text-raspberry-700 font-medium mb-1">Total Premiums</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-raspberry-700">{{ formatCurrency(policy.total_premiums_paid) }}</p>
-              <p class="text-xs text-neutral-500 mt-1">Over {{ policy.term_years }} years</p>
+              <p class="text-xs sm:text-sm text-horizon-500 font-medium mb-1">Premium</p>
+              <p class="text-base font-semibold text-horizon-500">From insurers' quotes</p>
+              <p class="text-xs text-neutral-500 mt-1">Each insurer prices on your age, health and smoking</p>
             </div>
           </div>
 

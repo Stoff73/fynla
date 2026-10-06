@@ -355,6 +355,8 @@ final class RecordEditForms
                 'date_of_birth' => $model->date_of_birth?->format('Y-m-d'),
                 'gender' => $model->gender,
                 'marital_status' => $model->marital_status,
+                'smoking_status' => $model->smoking_status,
+                'health_status' => $model->health_status,
             ]), 'Your details'],
             'employer_benefits' => [CaptureForms::EMPLOYER_BENEFITS, CaptureForms::LEAD, $this->employerBenefitsAnswers($model), 'Your employer benefits'],
             'state_pension' => [CaptureForms::STATE_PENSION, CaptureForms::LEAD, array_filter([

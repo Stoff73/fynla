@@ -27,12 +27,15 @@ namespace App\Constants;
  * the reverse) and it goes red.
  *
  * The `users` column definitions these mirror:
- *   health_status    enum('yes','yes_previous','no_previous','no_existing','no_both') NULL DEFAULT 'yes'
- *   smoking_status   enum('never','quit_recent','quit_long_ago','yes') NOT NULL DEFAULT 'never'
+ *   health_status    enum('yes','yes_previous','no_previous','no_existing','no_both') NULL
+ *   smoking_status   enum('never','quit_recent','quit_long_ago','yes') NULL
  *   education_level  enum('secondary','a_level','undergraduate','postgraduate','professional','other') NULL
  *
- * Note `smoking_status` is NOT NULL. An unanswered select must drop the key
- * rather than send null — see UpdatePersonalInfoRequest::prepareForValidation().
+ * No defaults: null is "not answered" (item 8a, CSJ 2026-10-06). The old
+ * defaults ('never', 'yes') read every unasked user as a non-smoker in good
+ * health. These two columns are the ONE home for smoking and health: the
+ * protection profile's own `smoker_status` / `health_status` had no input on
+ * any surface and were dropped.
  */
 final class ProfileEnums
 {
@@ -91,10 +94,57 @@ final class ProfileEnums
     ];
 
     /**
+     * Display labels, the same words the web and /m selects show
+     * (`profileOptions.js` formatHealthStatus / formatSmokingStatus).
+     *
+     * @var array<string, string>
+     */
+    public const HEALTH_STATUS_LABELS = [
+        'yes' => 'Yes, good health',
+        'yes_previous' => 'Yes, previous health conditions',
+        'no_previous' => 'No, previous health conditions',
+        'no_existing' => 'No, existing health conditions',
+        'no_both' => 'No, previous and existing health conditions',
+    ];
+
+    /** @var array<string, string> */
+    public const SMOKING_STATUS_LABELS = [
+        'never' => 'Never smoked',
+        'quit_recent' => 'No, gave up 12 months or sooner',
+        'quit_long_ago' => 'No, gave up more than 12 months ago',
+        'yes' => 'Yes',
+    ];
+
+    /**
+     * Whether the person counts as a smoker, or null when not answered.
+     *
+     * Insurers count anyone who has smoked, vaped or used nicotine replacement
+     * "at all in the last 12 months" as a smoker (Legal & General,
+     * https://www.legalandgeneral.com/insurance/life-insurance/health/life-insurance-for-smokers/),
+     * which is the line the select's two "gave up" answers are drawn on.
+     */
+    public static function isSmoker(?string $smokingStatus): ?bool
+    {
+        return $smokingStatus === null ? null : in_array($smokingStatus, ['yes', 'quit_recent'], true);
+    }
+
+    /**
+     * Whether the person has a health condition, now or in the past, or null
+     * when not answered. Annuity providers price on health conditions,
+     * "lifestyle—such as smoking or drinking—and your medical history"
+     * (Legal & General, https://www.legalandgeneral.com/retirement/pension-annuity/guides/enhanced-annuities/),
+     * so every answer other than good health with none in the past counts.
+     */
+    public static function hasHealthHistory(?string $healthStatus): ?bool
+    {
+        return $healthStatus === null ? null : $healthStatus !== 'yes';
+    }
+
+    /**
      * The fields whose selects submit '' for "not answered". The global
      * ConvertEmptyStringsToNull middleware turns that into null before a request
-     * is seen, which fails Rule::in on the nullable columns and is an outright
-     * 500 on the NOT NULL one — so the key is dropped instead.
+     * is seen; an unanswered select means "leave it alone", so the key is
+     * dropped rather than clearing an answer already given.
      *
      * @var list<string>
      */

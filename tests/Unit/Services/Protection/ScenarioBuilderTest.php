@@ -172,7 +172,7 @@ describe('modelDisabilityScenario', function () {
 });
 
 describe('modelPremiumChangeScenario', function () {
-    it('calculates premium increase for additional coverage', function () {
+    it('models the extra cover without estimating a premium', function () {
         $coverage = [
             'total_coverage' => 300000,
         ];
@@ -187,9 +187,9 @@ describe('modelPremiumChangeScenario', function () {
             'new_coverage',
             'coverage_increase',
             'coverage_increase_percent',
-            'estimated_monthly_premium_increase',
-            'estimated_annual_premium_increase',
         ]);
+        // No premium figure: only an insurer's quote gives one (Rule 23).
+        expect($result)->not->toHaveKey('estimated_monthly_premium_increase');
         expect($result['scenario_type'])->toBe('Premium Change');
         expect($result['current_coverage'])->toEqual(300000);
         expect($result['new_coverage'])->toEqual(500000);
