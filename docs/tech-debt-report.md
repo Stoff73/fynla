@@ -1,3 +1,25 @@
+# Tech Debt Report — Session 2026-10-06 (session 2)
+
+**Files analysed:** 51 changed in #1108 and #1112 (items 8a and 8b: smoking and health one home, no made-up premiums, protection needs config); changed lines audited.
+**Issues found:** 8
+**Severity breakdown:** 0 critical, 4 warnings, 4 suggestions
+
+## Warnings
+
+- **Hardcoded source names beside configurable figures** — `app/Services/Protection/ProtectionGapPresentationService.php:152` ("SunLife Cost of Dying Report 2025"), `:178` and `app/Services/Protection/ComprehensiveProtectionPlanService.php:387` ("Legal & General's limit"). *Inconsistency.* Admin can change the final expenses amount and the income protection tiers, but the user-facing sentences still name the original source. *Fix:* print the config's own `source` (or a short `source_label` added beside it) instead of a typed-in name.
+- **Spending worked out twice per person** — `CoverageGapAnalyzer::monthlyLivingCosts` (`app/Services/Protection/CoverageGapAnalyzer.php`, the new method) calls `UserProfileService::getExpenditureBreakdown()`, which itself calls `getFinancialCommitments()` (`app/Services/UserProfile/UserProfileService.php:387`), then calls `getFinancialCommitments()` again; done for the user and the partner on every protection analysis. *Complexity/performance.* *Fix:* one read of commitments, or a breakdown that returns the property lines.
+- **Unused dependency** — `app/Services/Protection/RecommendationEngine.php` and `app/Services/Protection/AdequacyScorer.php` inject `TaxConfigService` and no longer read it (0 uses after the premium and critical illness changes). *Dead code.* *Fix:* drop the constructor argument and the test mocks.
+- **`calculateProtectionNeeds` is long** — `app/Services/Protection/CoverageGapAnalyzer.php` (about 190 lines; file 654 lines). *Complexity.* It assembles income, the partner, living costs, the term, four needs and state benefits. *Fix:* extract the partner block and the state benefits block.
+
+## Suggestions
+
+- **Repeated number trimming** — `rtrim(rtrim(number_format(...), '0'), '.')` in `ProtectionGapPresentationService.php:224`, `:226`, `CoverageGapAnalyzer.php:573`, `:608`, `ProtectionCoverPosition.php:67`. *Duplication.* *Fix:* one helper (for example on `FormatsCurrency`).
+- **Unused parameter** — `LifePolicyStrategyService::calculateStrategy(?User $user = null)` (`app/Services/Estate/LifePolicyStrategyService.php:35`) no longer reads `$user`. *Fix:* drop it.
+- **Labels in two languages** — `ProfileEnums::SMOKING_STATUS_LABELS` / `HEALTH_STATUS_LABELS` (PHP) and `resources/js/constants/profileOptions.js` hold the same words; only the keys are pinned (`tests/Unit/Database/ProfileEnumColumnsTest.php:77-78`). *Duplication.* *Fix:* a parity spec like the education labels have.
+- **`TaxSettings.vue` is 3,157 lines** — `resources/js/components/Admin/TaxSettings.vue`. Pre-existing; this session added the protection needs section (about 90 lines). *Fix:* split per tab when next touched.
+
+---
+
 # Tech Debt Report — Session 2026-10-06
 
 **Files analysed:** 36 changed in #1087–#1104 today (item 7a step 4 merges, item 8 review, found-line fixes); changed lines audited, not every whole file.
