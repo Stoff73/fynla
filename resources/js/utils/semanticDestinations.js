@@ -34,8 +34,13 @@ function identifier(value) {
 }
 
 // Detail screens with a web route of their own; the rest fall back to the
-// module overview (the web SPA has no goal or investment-account detail page).
+// module overview (the web SPA has no goal detail page). An investment account
+// opens inside the investments list, named by ?account=.
 const detailPaths = Object.freeze({
+  investment_account_detail: (params) => {
+    const id = identifier(params.account_id);
+    return id ? `/net-worth/investments?account=${id}` : null;
+  },
   savings_account_detail: (params) => {
     const id = identifier(params.account_id);
     return id ? `/savings/account/${id}` : null;

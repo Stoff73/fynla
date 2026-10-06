@@ -54,6 +54,12 @@ it('counts gains and losses only in chargeable accounts, a joint one at the user
     item8Holding($joint, 20000, 18000); // -2,000 whole, -1,000 at 50%
     item8Holding($vct, 5000, 1000);     // a VCT loss is not allowable (TCGA 1992 s151A)
     item8Holding($isa, 1000, 9000);     // no CGT in an ISA
+    // Tax review 2026-10-06: EIS gains are exempt (s150A), a trust's are the
+    // trustees' (s69), RSUs are taxed as income on vesting (ITEPA Part 7).
+    foreach (['eis', 'trust', 'rsu'] as $type) {
+        $other = InvestmentAccount::factory()->create(['user_id' => $user->id, 'account_type' => $type, 'ownership_type' => 'individual', 'joint_owner_id' => null, 'ownership_percentage' => 100]);
+        item8Holding($other, 1000, 50000);
+    }
 
     $rows = app(ChargeableGains::class)->holdingsFor($user);
 

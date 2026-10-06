@@ -15,13 +15,25 @@ use Illuminate\Support\Collection;
  * investments today: the one home for Bed & ISA (Tax plan), the investment ISA
  * cards and the losses card (item 8, CSJ 2026-10-06).
  *
- * Only accounts whose disposals are chargeable gains count. Not:
- * - ISAs (no Capital Gains Tax on ISA investments, https://www.gov.uk/individual-savings-accounts);
- * - Venture Capital Trust shares (neither gains nor losses are chargeable,
- *   Taxation of Chargeable Gains Act 1992 s151A);
- * - pensions (gains inside a registered scheme are exempt, TCGA 1992 s271(1A));
- * - investment bonds (gains are chargeable event gains under income tax,
- *   Income Tax (Trading and Other Income) Act 2005 s461).
+ * Only a General Investment Account counts: it holds listed investments whose
+ * gains and losses are chargeable and which can be sold and bought back inside
+ * an ISA. Every other account type is left out (tax review 2026-10-06):
+ * - ISAs: no Capital Gains Tax (https://www.gov.uk/individual-savings-accounts);
+ * - Venture Capital Trust shares: neither gains nor losses are chargeable
+ *   (Taxation of Chargeable Gains Act 1992 s151A, within its limits);
+ * - EIS and SEIS shares: gains exempt once the conditions are met, losses
+ *   reduced by the relief kept (TCGA 1992 s150A, s150E);
+ * - investment bonds: not a chargeable disposal for the original owner
+ *   (TCGA 1992 s210); gains are chargeable event gains under income tax
+ *   (Income Tax (Trading and Other Income) Act 2005 s461);
+ * - trusts: the trustees' gains, not the user's (TCGA 1992 s69);
+ * - private company and crowdfunding shares: not qualifying ISA investments
+ *   (Individual Savings Account Regulations 1998, reg 7), so not a Bed & ISA;
+ * - employee share schemes and options (SAYE, CSOP, EMI, unapproved options,
+ *   RSUs): taxed as employment income on exercise or vesting (Income Tax
+ *   (Earnings and Pensions) Act 2003 Part 7), and the recorded price is not a
+ *   reliable CGT base cost (TCGA 1992 s17);
+ * - National Savings & Investments and "other": their contents are not known.
  *
  * A joint account counts at the user's share (Rule 6): the other owner's half
  * of a gain or loss is theirs to realise.
@@ -30,13 +42,8 @@ final class ChargeableGains
 {
     use CalculatesOwnershipShare;
 
-    /** Account types whose disposals are not chargeable gains (see the class note). */
-    public const NOT_CHARGEABLE_ACCOUNT_TYPES = [
-        'isa', 'stocks_shares_isa', 'cash_isa', 'lisa', 'junior_isa',
-        'vct',
-        'sipp', 'pension',
-        'onshore_bond', 'offshore_bond',
-    ];
+    /** The account types whose disposals count (see the class note). */
+    public const CHARGEABLE_ACCOUNT_TYPES = ['gia'];
 
     /**
      * Each chargeable account the user owns or co-owns, with the user's share.
@@ -47,7 +54,7 @@ final class ChargeableGains
     {
         return InvestmentAccount::query()
             ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
-            ->where(fn ($q) => $q->whereNull('account_type')->orWhereNotIn('account_type', self::NOT_CHARGEABLE_ACCOUNT_TYPES))
+            ->whereIn('account_type', self::CHARGEABLE_ACCOUNT_TYPES)
             ->get()
             ->mapWithKeys(fn (InvestmentAccount $account) => [$account->id => $this->userShareFraction($account, $user->id)])
             ->all();

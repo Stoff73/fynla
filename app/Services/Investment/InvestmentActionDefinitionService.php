@@ -748,10 +748,12 @@ class InvestmentActionDefinitionService
         $count = (int) ($opportunities['opportunities_count'] ?? 0);
         $totalLosses = (float) ($opportunities['total_harvestable_losses'] ?? 0);
 
-        // Losses in chargeable accounts at the user's share (ChargeableGains). No
-        // gains this year are recorded anywhere, so no saving is stated: a loss is
-        // set against gains of the same year, else carried forward once claimed
-        // (TCGA 1992 s2(2), s16(2A)).
+        // Losses in General Investment Accounts at the user's share
+        // (ChargeableGains). No gains this year are recorded anywhere, so no
+        // saving is stated. A loss is set against the same year's gains first,
+        // before the annual exempt amount, and carries forward only if reported
+        // within four years (HMRC CG21500; https://www.gov.uk/capital-gains-tax/losses;
+        // TCGA 1992 s16(2A); Taxes Management Act 1970 s43).
         $trace = [];
 
         $trace[] = [
@@ -774,6 +776,7 @@ class InvestmentActionDefinitionService
             'holdings_word' => $count === 1 ? 'holding' : 'holdings',
             'holdings_verb' => $count === 1 ? 'is' : 'are',
             'total_losses' => $this->formatCurrency($totalLosses),
+            'annual_exempt_amount' => $this->formatCurrency((float) $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount']),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);

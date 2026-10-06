@@ -263,7 +263,8 @@ describe('evaluateAgentActions — investment triggers', function () {
         // (item 8; it said "Potential tax saving: £0" on every card before).
         $rec = collect($result['recommendations'])->first(fn ($r) => ($r['definition_key'] ?? '') === 'tax_loss_harvesting');
         expect($rec)->not->toBeNull()
-            ->and($rec['description'])->toStartWith('2 holdings outside an ISA are worth £1,200 less than you paid.')
+            ->and($rec['description'])->toStartWith('2 holdings in your General Investment Account are worth £1,200 less than you paid.')
+            ->and($rec['description'])->toContain('before the £3,000 tax-free allowance')
             ->and($rec['description'])->not->toContain('saving');
     });
 });
