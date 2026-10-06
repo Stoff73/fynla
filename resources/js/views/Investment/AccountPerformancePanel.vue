@@ -769,29 +769,23 @@ export default {
       this.$emit('change-tab', 'rebalancing');
     },
 
+    // One rule (AccountDriftService, item 8): outside or within the account's
+    // rebalancing threshold; no score is shown (Rule 12).
     getDriftLabel() {
       if (!this.rebalancingData?.drift_analysis) return 'N/A';
-      const score = this.rebalancingData.drift_analysis.drift_score;
-      // drift_score is a percentage where lower = better aligned
-      if (score < 5) return 'Well aligned';
-      if (score < 10) return 'Minor drift';
-      return 'Significant drift \u2014 review recommended';
+      return this.rebalancingData.drift_analysis.needs_rebalancing
+        ? 'Outside its rebalancing threshold'
+        : 'Within its rebalancing threshold';
     },
 
     getDriftStatusClass() {
       if (!this.rebalancingData?.drift_analysis) return 'text-neutral-500';
-      const score = this.rebalancingData.drift_analysis.drift_score;
-      if (score < 5) return 'text-spring-600';
-      if (score < 10) return 'text-violet-600';
-      return 'text-violet-600';
+      return this.rebalancingData.drift_analysis.needs_rebalancing ? 'text-violet-600' : 'text-spring-600';
     },
 
     getDriftBgClass() {
       if (!this.rebalancingData?.drift_analysis) return 'bg-eggshell-500';
-      const score = this.rebalancingData.drift_analysis.drift_score;
-      if (score < 5) return 'bg-spring-50';
-      if (score < 10) return 'bg-violet-50';
-      return 'bg-violet-50';
+      return this.rebalancingData.drift_analysis.needs_rebalancing ? 'bg-violet-50' : 'bg-spring-50';
     },
 
     formatAllocation(value) {

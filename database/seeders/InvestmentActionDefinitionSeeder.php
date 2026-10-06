@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
 /**
  * Seed the investment_action_definitions table with all action types.
  *
- * Seeds 20 agent-sourced (8 disabled for Savings, 5 folded into two, item 8,
+ * Seeds 22 agent-sourced (7 disabled for Savings, 5 folded into two, 2 bond cards, item 8,
  * CSJ 2026-10-06), 3 goal-sourced, and 3 strategy catalogue definitions.
  * Uses updateOrCreate on `key` for idempotency.
  *
@@ -110,7 +110,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'key' => 'no_holdings',
                 'source' => 'agent',
                 'title_template' => 'Add the funds you hold',
-                'description_template' => 'Your investment accounts have no holdings recorded, so their charges, their mix and the tax on them cannot be checked.',
+                'description_template' => 'Holdings are needed before charges, mix and tax can be checked.',
                 'action_template' => 'Open each account and add the funds or shares it holds.',
                 'category' => 'Portfolio Setup',
                 'priority' => 'medium',
@@ -222,7 +222,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'key' => 'tax_loss_harvesting',
                 'source' => 'agent',
                 'title_template' => 'Losses you could use against gains',
-                'description_template' => '{holdings_count} {holdings_word} in your General Investment Account {holdings_verb} worth {total_losses} less than you paid. Selling realises the loss. It is set against your gains in the same tax year first, before the {annual_exempt_amount} tax-free allowance, and any left over carries forward if you report it to HM Revenue and Customs (HMRC) within four years.',
+                'description_template' => '{total_losses} of losses in your General Investment Account.',
                 'action_template' => 'Check your gains this tax year before selling: if they are already under the tax-free allowance, the loss saves nothing this year. Do not buy the same holding back within 30 days.',
                 'category' => 'Tax Planning',
                 'priority' => 'medium',
@@ -240,7 +240,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'key' => 'allocation_position',
                 'source' => 'agent',
                 'title_template' => '{account_name} holds {current_text} in {asset_label} against {target_percent}% for its risk level',
-                'description_template' => '{account_name} is outside its rebalancing threshold for the {risk_label} risk level: {allocation_summary}.{unrecorded_note}',
+                'description_template' => 'Outside its rebalancing threshold for the {risk_label} risk level.',
                 'action_template' => 'Open the account and look at its rebalancing panel.',
                 'category' => 'Asset Allocation',
                 'priority' => 'medium',
@@ -258,7 +258,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'key' => 'account_charges',
                 'source' => 'agent',
                 'title_template' => 'Review the charges on {account_name}',
-                'description_template' => '{account_name} costs {annual_fees} a year in charges, {total_fee_percent}% of its value: {charges_list}.',
+                'description_template' => '{annual_fees} a year, {total_fee_percent}% of the account\'s value.',
                 'action_template' => 'Compare these charges with what other providers and funds would cost for the same holdings.',
                 'category' => 'Fees',
                 'priority' => 'high',
@@ -275,13 +275,49 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'notes' => 'Item 8 D4 (CSJ 2026-10-06): one card per account whose total, fund or platform charges cross a threshold. Replaces high_total_fees, high_fund_fees and high_platform_fees.',
             ],
 
+            [
+                'key' => 'bond_position',
+                'source' => 'agent',
+                'title_template' => '{account_name}: about {gain} of gain building up',
+                'description_template' => 'Taxed as income when the bond ends, with top-slicing relief.',
+                'action_template' => 'Keep track of the 5% you take each year and plan when the bond ends.',
+                'category' => 'Tax Planning',
+                'priority' => 'low',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'holds_bond_with_paid_in',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 115,
+                'notes' => 'Item 8 (CSJ 2026-10-06): an investment bond\'s deferred tax position (BondPositionService): the gain building up and the 5% still available.',
+            ],
+
+            [
+                'key' => 'bond_paid_in_missing',
+                'source' => 'agent',
+                'title_template' => 'Add what you paid into {account_name}',
+                'description_template' => 'So the gain building up in it, and the 5% you can still take, can be worked out.',
+                'action_template' => 'Open the bond and add what you paid in and when it started.',
+                'category' => 'Portfolio Setup',
+                'priority' => 'low',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'holds_bond_without_paid_in',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 116,
+                'notes' => 'Item 8 (CSJ 2026-10-06): a bond with no amount paid in recorded, so its gain and 5% allowance cannot be worked out.',
+            ],
+
             // ── Agent-sourced: Tax efficiency actions (3) ──────────────
 
             [
                 'key' => 'open_isa',
                 'source' => 'agent',
                 'title_template' => 'Open a Stocks & Shares ISA',
-                'description_template' => 'Your investments are in a General Investment Account where gains and dividends are taxable. An ISA shelters up to {isa_allowance} per year from income tax and capital gains tax.',
+                'description_template' => 'An ISA shelters up to {isa_allowance} a year of new money from tax on dividends and gains.',
                 'action_template' => 'Open an ISA and transfer or contribute up to the annual allowance.',
                 'category' => 'Tax Efficiency',
                 'priority' => 'high',
@@ -299,7 +335,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'key' => 'use_isa_allowance',
                 'source' => 'agent',
                 'title_template' => 'Use your ISA allowance: {isa_remaining} left this tax year',
-                'description_template' => 'You have {isa_remaining} ISA allowance remaining this tax year. Consider moving General Investment Account holdings ({gia_value}) into your ISA before 5 April.',
+                'description_template' => 'Move up to {isa_remaining} of your General Investment Account into your ISA before 5 April.',
                 'action_template' => 'Transfer or contribute General Investment Account funds into your ISA to shelter from tax.',
                 'category' => 'Tax Efficiency',
                 'priority' => 'medium',

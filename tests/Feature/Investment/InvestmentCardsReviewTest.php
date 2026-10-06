@@ -146,3 +146,43 @@ it('states the same charges as the account page', function () {
         ->and($card['figures']['annual_fees'])->toBe('£'.number_format($page['total_annual_cost']))
         ->and($card['figures']['total_fee_percent'])->toBe(number_format($page['total_fee_percent'], 2));
 });
+
+it('shows an investment bond\'s gain building up and the 5% still available', function () {
+    $user = User::factory()->create(['annual_employment_income' => 60000, 'date_of_birth' => '1970-01-01', 'monthly_expenditure' => 2500]);
+    RiskProfile::factory()->create(['user_id' => $user->id, 'risk_level' => 'medium']);
+    InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'offshore_bond', 'account_name' => 'Test Bond', 'ownership_type' => 'individual',
+        'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 120000,
+        'investment_amount' => 100000, 'bond_purchase_date' => now()->subYears(3)->subMonth()->toDateString(), 'bond_withdrawal_taken' => 10000,
+    ]);
+    $missing = InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'onshore_bond', 'account_name' => 'Other Bond', 'ownership_type' => 'individual',
+        'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 50000, 'investment_amount' => null,
+    ]);
+
+    $agent = app(InvestmentAgent::class);
+    $analysis = $agent->analyze($user->id);
+    $recs = collect($agent->generateRecommendations($analysis['data'] ?? $analysis)['recommendations']);
+
+    // Gain = 120,000 + 10,000 taken - 100,000 paid in (ITTOIA 2005 s491).
+    // 5%: four policy years begun = 20,000, less 10,000 taken (s507).
+    $position = $recs->firstWhere('definition_key', 'bond_position');
+    expect($position['title'])->toBe('Test Bond: about £30,000 of gain building up')
+        ->and($position['figures'])->toMatchArray(['allowance_left' => '£10,000', 'is_offshore' => true, 'bond_kind' => 'offshore']);
+
+    $ask = $recs->firstWhere('definition_key', 'bond_paid_in_missing');
+    expect($ask['title'])->toBe('Add what you paid into Other Bond')
+        ->and($ask['account_id'])->toBe($missing->id);
+});
+
+it('suggests no sale at a loss when no gains are recorded (tax review F12)', function () {
+    $user = User::factory()->create();
+    $gia = InvestmentAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'gia', 'ownership_type' => 'individual', 'joint_owner_id' => null, 'ownership_percentage' => 100]);
+    item8Holding($gia, 20000, 8000); // a 60% loss
+
+    $result = app(CGTHarvestingCalculator::class)->calculateHarvestingOpportunities($user->id);
+
+    expect($result['harvesting_strategy']['harvest_now'])->toBe([])
+        ->and(implode(' ', $result['harvesting_strategy']['explanation']))->toContain('saves no tax')
+        ->and($result['recommendations'][0]['action'])->toBe('No need to sell at a loss now');
+});

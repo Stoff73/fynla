@@ -563,6 +563,17 @@ final class RecordEditForms
                 'paid_in_this_year' => self::floatOrNull($account->isa_subscription_current_year ?? null),
             ], static fn ($v): bool => $v !== null && $v !== ''), $label];
         }
+        // A bond opens as its own kind, with what was paid in, when, and the
+        // 5% taken (item 8).
+        if (in_array($account->account_type, ['onshore_bond', 'offshore_bond'], true)) {
+            return [CaptureForms::INVESTMENT, $account->account_type, array_filter([
+                'provider' => $account->provider,
+                'current_value' => (float) $account->current_value,
+                'investment_amount' => self::floatOrNull($account->investment_amount ?? null),
+                'bond_purchase_date' => $account->bond_purchase_date?->toDateString(),
+                'bond_withdrawal_taken' => self::floatOrNull($account->bond_withdrawal_taken ?? null),
+            ], static fn ($v): bool => $v !== null && $v !== ''), $label];
+        }
         // A General Investment Account is stored as 'gia' (CoordinatingAgent
         // maps the form's personal_investment_account); checking only the
         // input alias opened every stored one as the "other" kind.
@@ -728,6 +739,9 @@ final class RecordEditForms
                 'current_value' => $input['current_value'] ?? null,
                 'contributions_ytd' => $input['isa_subscription_current_year'] ?? null,
                 'annual_dividend_income' => $input['annual_dividend_income'] ?? null,
+                'investment_amount' => $input['investment_amount'] ?? null,
+                'bond_purchase_date' => $input['bond_purchase_date'] ?? null,
+                'bond_withdrawal_taken' => $input['bond_withdrawal_taken'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'dc_pension' => array_filter([
                 'provider' => $input['provider'] ?? null,
