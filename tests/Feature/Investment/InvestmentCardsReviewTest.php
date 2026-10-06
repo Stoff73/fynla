@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Agents\InvestmentAgent;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
@@ -10,6 +11,8 @@ use App\Models\User;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Tax\CGTHarvestingCalculator;
+use App\Services\Onboarding\CaptureForms;
+use App\Services\Onboarding\RecordEditForms;
 use App\Services\Tax\ChargeableGains;
 use App\Services\Tax\Strategies\BedAndIsaStrategy;
 use App\Services\Tax\Strategies\TaxStrategyContext;
@@ -145,4 +148,88 @@ it('states the same charges as the account page', function () {
     expect($card)->not->toBeNull()
         ->and($card['figures']['annual_fees'])->toBe('£'.number_format($page['total_annual_cost']))
         ->and($card['figures']['total_fee_percent'])->toBe(number_format($page['total_fee_percent'], 2));
+});
+
+it('shows an investment bond\'s gain building up and the 5% still available', function () {
+    $user = User::factory()->create(['annual_employment_income' => 60000, 'date_of_birth' => '1970-01-01', 'monthly_expenditure' => 2500]);
+    RiskProfile::factory()->create(['user_id' => $user->id, 'risk_level' => 'medium']);
+    InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'offshore_bond', 'account_name' => 'Test Bond', 'ownership_type' => 'individual',
+        'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 120000,
+        'investment_amount' => 100000, 'bond_purchase_date' => now()->subYears(3)->subMonth()->toDateString(), 'bond_withdrawal_taken' => 10000,
+    ]);
+    $missing = InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'onshore_bond', 'account_name' => 'Other Bond', 'ownership_type' => 'individual',
+        'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 50000, 'investment_amount' => null,
+    ]);
+
+    $agent = app(InvestmentAgent::class);
+    $analysis = $agent->analyze($user->id);
+    $recs = collect($agent->generateRecommendations($analysis['data'] ?? $analysis)['recommendations']);
+
+    // Gain = 120,000 + 10,000 taken - 100,000 paid in (ITTOIA 2005 s491).
+    // 5%: four policy years begun = 20,000, less 10,000 taken (s507).
+    $position = $recs->firstWhere('definition_key', 'bond_position');
+    expect($position['title'])->toBe('Test Bond: about £30,000 of gain building up')
+        ->and($position['figures'])->toMatchArray(['allowance_left' => '£10,000', 'is_offshore' => true, 'bond_kind' => 'offshore']);
+
+    $ask = $recs->firstWhere('definition_key', 'bond_paid_in_missing');
+    expect($ask['title'])->toBe('Add what you paid into Other Bond')
+        ->and($ask['account_id'])->toBe($missing->id);
+});
+
+it('suggests no sale at a loss when no gains are recorded (tax review F12)', function () {
+    $user = User::factory()->create();
+    $gia = InvestmentAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'gia', 'ownership_type' => 'individual', 'joint_owner_id' => null, 'ownership_percentage' => 100]);
+    item8Holding($gia, 20000, 8000); // a 60% loss
+
+    $result = app(CGTHarvestingCalculator::class)->calculateHarvestingOpportunities($user->id);
+
+    expect($result['harvesting_strategy']['harvest_now'])->toBe([])
+        ->and(implode(' ', $result['harvesting_strategy']['explanation']))->toContain('saves no tax')
+        ->and($result['recommendations'][0]['action'])->toBe('No need to sell at a loss now');
+});
+
+it('opens a single record\'s own form from "Edit details", a bond with its paid-in figures', function () {
+    $user = User::factory()->create();
+    $bond = InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'offshore_bond', 'account_name' => 'Quilter bond', 'provider' => 'Quilter',
+        'ownership_type' => 'individual', 'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 120000,
+        'investment_amount' => 100000, 'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 10000,
+    ]);
+
+    // Before item 8 this returned null for every account, so a typed change in
+    // its "Edit details" conversation was answered in words, never a form.
+    $form = app(RecordEditForms::class)->formForResource($user, 'investment_account', [], $bond->id);
+
+    expect($form)->not->toBeNull()
+        ->and($form['record'])->toMatchArray(['type' => 'investment_account', 'id' => $bond->id])
+        ->and($form['answers']['offshore_bond'])->toMatchArray(['investment_amount' => 100000.0, 'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 10000.0]);
+});
+
+it('offers an Add form without the setup walk\'s "save with none chosen" wording (item 39)', function () {
+    $schema = CaptureForms::forAdding(CaptureForms::schema('investment'));
+
+    expect($schema)->not->toHaveKey('allow_empty')
+        ->and($schema['kinds_prompt'])->toBe('Choose what you are adding.');
+});
+
+it('saves a bond\'s paid-in figures through an edit (update_record allowlist)', function () {
+    $user = User::factory()->create();
+    $bond = InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'offshore_bond', 'ownership_type' => 'individual',
+        'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 120000, 'bond_withdrawal_taken' => 10000,
+    ]);
+
+    // Walking csjones /m: the edit said "Updated" and the 5% figure was dropped.
+    $result = app(CoordinatingAgent::class)->executeTool('update_record', [
+        'entity_type' => 'investment_account', 'entity_id' => $bond->id,
+        'fields' => ['investment_amount' => 100000, 'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 12000],
+    ], $user);
+
+    $fresh = $bond->fresh();
+    expect($result['error'] ?? false)->toBeFalse()
+        ->and((float) $fresh->bond_withdrawal_taken)->toBe(12000.0)
+        ->and((float) $fresh->investment_amount)->toBe(100000.0)
+        ->and($fresh->bond_purchase_date->toDateString())->toBe('2022-05-01');
 });

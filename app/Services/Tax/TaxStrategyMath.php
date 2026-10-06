@@ -229,6 +229,38 @@ final class TaxStrategyMath
      * is the Income page's: recorded, or worked out from the savings accounts
      * when none is recorded (IncomeDefinitionsService::interestIncome).
      */
+    /**
+     * Capital Gains Tax on a taxable gain (after the annual exempt amount): the
+     * lower rate on the part that fits in the basic rate band the user's income
+     * leaves unused, the higher rate on the rest (TCGA 1992 s1H,
+     * https://www.legislation.gov.uk/ukpga/1992/12/section/1H;
+     * https://www.gov.uk/capital-gains-tax/rates). The band is the user's own,
+     * extended by Gift Aid and relief-at-source pension payments
+     * (bandThresholdsFor). `marginal_rate` is the rate on the next pound of gain.
+     *
+     * @return array{tax: float, marginal_rate: float, unused_basic_band: float}
+     */
+    public function capitalGainsTaxOn(User $user, float $taxableGain): array
+    {
+        $cgt = $this->taxConfig->getCapitalGainsTax();
+        $basicRate = (float) $cgt['basic_rate'];
+        $higherRate = (float) $cgt['higher_rate'];
+        $personalAllowance = (float) $this->taxConfig->getIncomeTax()['personal_allowance'];
+
+        $bandWidth = max(0.0, $this->bandThresholdsFor($user)['higher'] - $personalAllowance);
+        $bandUsed = max(0.0, $this->taxableIncomeFor($user) - $personalAllowance);
+        $unused = max(0.0, $bandWidth - $bandUsed);
+
+        $gain = max(0.0, $taxableGain);
+        $atBasic = min($gain, $unused);
+
+        return [
+            'tax' => $atBasic * $basicRate + ($gain - $atBasic) * $higherRate,
+            'marginal_rate' => $gain < $unused ? $basicRate : $higherRate,
+            'unused_basic_band' => $unused,
+        ];
+    }
+
     public function taxableIncomeFor(User $user): float
     {
         $compute = function () use ($user): float {

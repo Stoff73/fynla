@@ -89,19 +89,13 @@
       <!-- Drift Status -->
       <div class="bg-white rounded-lg border border-light-gray p-4">
         <h3 class="text-lg font-semibold text-horizon-500 mb-4">Allocation Drift</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div class="text-center p-4 rounded-lg" :class="driftStatusBgClass">
-            <p class="text-sm text-neutral-500 mb-1">Average drift from target</p>
-            <p class="text-3xl font-bold" :class="driftStatusClass">
-              {{ rebalancingData.drift_analysis.drift_score.toFixed(1) }}%
-            </p>
-            <p class="text-xs text-neutral-500 mt-1">across all holdings</p>
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div class="text-center p-4 bg-savannah-100 rounded-lg">
-            <p class="text-sm text-neutral-500 mb-1">Maximum Drift</p>
+            <p class="text-sm text-neutral-500 mb-1">Largest gap from target</p>
             <p class="text-3xl font-bold text-horizon-500">
-              {{ rebalancingData.drift_analysis.max_drift.toFixed(1) }}%
+              {{ rebalancingData.drift_analysis.max_drift.toFixed(1) }} points
             </p>
+            <p class="text-xs text-neutral-500 mt-1">percentage points, for the {{ (rebalancingData.risk_profile?.effective_risk_label || '').toLowerCase() }} risk level</p>
           </div>
           <div class="text-center p-4 rounded-lg" :class="needsRebalancingBgClass">
             <p class="text-sm text-neutral-500 mb-1">Rebalancing</p>
@@ -110,6 +104,9 @@
             </p>
           </div>
         </div>
+        <p v-if="rebalancingData.unrecorded_percent > 0" class="text-xs text-neutral-500 mb-4">
+          {{ Math.round(rebalancingData.unrecorded_percent) }}% of this account is in funds whose mix is not recorded. It is counted where it closes the gaps first, so the real gap may be larger.
+        </p>
       </div>
 
       <!-- Allocation Comparison -->
@@ -333,22 +330,6 @@ export default {
         4: 'text-violet-600',
         5: 'text-raspberry-600',
       }[level] || 'text-neutral-500';
-    },
-
-    driftStatusClass() {
-      const score = this.rebalancingData?.drift_analysis?.drift_score || 0;
-      const threshold = this.rebalancingData?.threshold_percent || 10;
-      if (score >= threshold) return 'text-raspberry-600';
-      if (score >= threshold * 0.7) return 'text-violet-600';
-      return 'text-spring-600';
-    },
-
-    driftStatusBgClass() {
-      const score = this.rebalancingData?.drift_analysis?.drift_score || 0;
-      const threshold = this.rebalancingData?.threshold_percent || 10;
-      if (score >= threshold) return 'bg-raspberry-50';
-      if (score >= threshold * 0.7) return 'bg-violet-50';
-      return 'bg-spring-50';
     },
 
     needsRebalancingClass() {

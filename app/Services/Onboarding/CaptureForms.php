@@ -91,6 +91,26 @@ final class CaptureForms
     public const EXPENDITURE_DETAILED_HOUSEHOLD = 'expenditure_detailed_household';
 
     /** The line above a blank form offered outside the setup walk to add a record. */
+    /**
+     * A form offered to add a record outside the setup walk (an Add button, a
+     * typed "add"): the walk's "save with none chosen" wording and empty save
+     * do not apply, since an empty save is refused there (item 39, 2026-10-06).
+     *
+     * @param  array<string, mixed>  $schema
+     * @return array<string, mixed>
+     */
+    public static function forAdding(array $schema): array
+    {
+        if (! empty($schema['allow_empty'])) {
+            unset($schema['allow_empty']);
+            if (isset($schema['kinds_prompt'])) {
+                $schema['kinds_prompt'] = 'Choose what you are adding.';
+            }
+        }
+
+        return $schema;
+    }
+
     public const ADD_PROMPT = "Fill this in and save, and I'll add it to your records.";
 
     /** The line above a form Fyn filled in from what the user typed (a setup step, or a new record). */
@@ -481,6 +501,14 @@ final class CaptureForms
         if (is_numeric($answers['annual_dividend_income'] ?? null)) {
             $input['annual_dividend_income'] = (float) $answers['annual_dividend_income'];
         }
+        foreach (['investment_amount', 'bond_withdrawal_taken'] as $field) {
+            if (is_numeric($answers[$field] ?? null)) {
+                $input[$field] = (float) $answers[$field];
+            }
+        }
+        if (! empty($answers['bond_purchase_date'])) {
+            $input['bond_purchase_date'] = (string) $answers['bond_purchase_date'];
+        }
         if ($input['ownership_type'] === 'joint') {
             $share = $answers['ownership_percentage'] ?? null;
             $input['ownership_percentage'] = is_numeric($share) ? (float) $share : 50.0;
@@ -527,6 +555,13 @@ final class CaptureForms
         $parts = [$what.' with '.$input['provider'].' worth '.self::pounds($input['current_value'])];
         if (isset($input['annual_dividend_income'])) {
             $parts[] = 'paying '.self::pounds($input['annual_dividend_income']).' a year in dividends';
+        }
+        // A bond's own figures (item 8), so the confirmation names what was saved.
+        if (isset($input['investment_amount'])) {
+            $parts[] = self::pounds($input['investment_amount']).' paid in';
+        }
+        if (isset($input['bond_withdrawal_taken'])) {
+            $parts[] = self::pounds($input['bond_withdrawal_taken']).' of 5% withdrawals taken';
         }
         $parts[] = $input['ownership_type'];
         if (isset($input['ownership_percentage'])) {
@@ -816,6 +851,9 @@ final class CaptureForms
      *
      * @return array<string, mixed>
      */
+    /** The bond kinds' fields (item 8): what was paid in, when, and the 5% taken. */
+    private const BOND_FIELDS = ['provider', 'current_value', 'investment_amount', 'bond_purchase_date', 'bond_withdrawal_taken', 'ownership_type', 'ownership_percentage'];
+
     private static function investment(): array
     {
         // CSJ 2026-09-22: shares pay dividends, so the form asks for them here.
@@ -833,6 +871,12 @@ final class CaptureForms
                     'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => $fields],
                 ['key' => 'other', 'label' => 'Other investment', 'account_type' => 'other',
                     'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => ['provider', 'investment_type', ...array_slice($fields, 1)]],
+                // Item 8 (CSJ 2026-10-06): a bond's deferred tax position needs
+                // what was paid in, when, and the 5% withdrawals taken so far.
+                ['key' => 'onshore_bond', 'label' => 'Onshore investment bond', 'account_type' => 'onshore_bond',
+                    'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => self::BOND_FIELDS],
+                ['key' => 'offshore_bond', 'label' => 'Offshore investment bond', 'account_type' => 'offshore_bond',
+                    'tool' => 'create_investment_account', 'entity_type' => 'investment_account', 'fields' => self::BOND_FIELDS],
             ],
             'fields' => [
                 'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
@@ -848,6 +892,11 @@ final class CaptureForms
                 ]],
                 'ownership_percentage' => ['type' => 'percent', 'label' => 'Your share %', 'required' => false, 'default' => 50,
                     'required_when' => ['field' => 'ownership_type', 'in' => ['joint']]],
+                'investment_amount' => ['type' => 'money', 'label' => 'What you paid in', 'required' => false,
+                    'hint' => 'The total paid into the bond, from your statement'],
+                'bond_purchase_date' => ['type' => 'date', 'label' => 'When it started', 'required' => false],
+                'bond_withdrawal_taken' => ['type' => 'money', 'label' => '5% withdrawals taken so far', 'required' => false,
+                    'hint' => 'Leave blank if none'],
             ],
         ];
     }

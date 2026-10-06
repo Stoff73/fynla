@@ -106,15 +106,13 @@ class CGTHarvestingCalculator
     }
 
     /**
-     * The CGT rate for the user's income band (TaxConfigService), as the Tax
-     * plan's Bed & ISA uses: the basic rate for a basic-rate taxpayer, the
-     * higher rate otherwise.
+     * The CGT rate on the next pound of gain for this user: the lower rate only
+     * within the unused basic rate band (TCGA 1992 s1H,
+     * TaxStrategyMath::capitalGainsTaxOn), as the Tax plan's Bed & ISA uses.
      */
     private function rateFor(?User $user, array $cgtConfig): float
     {
-        $band = $user ? $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user)) : 'higher';
-
-        return (float) ($band === 'basic' ? $cgtConfig['basic_rate'] : $cgtConfig['higher_rate']);
+        return $user ? $this->math->capitalGainsTaxOn($user, 1.0)['marginal_rate'] : (float) $cgtConfig['higher_rate'];
     }
 
     /**
@@ -383,20 +381,11 @@ class CGTHarvestingCalculator
         $taxableGains = max(0, $expectedGains - $cgtAllowance - $lossCarryforward);
 
         if ($taxableGains <= 0 && $expectedGains <= $cgtAllowance) {
-            // No immediate need to harvest losses
-            $strategy['explanation'][] = 'No taxable gains expected - using losses can wait';
-
-            // But still recommend harvesting poor performers
-            foreach ($opportunities as $opp) {
-                if ($opp['priority'] === 'high' && $opp['recovery_potential']['potential'] === 'low') {
-                    $strategy['harvest_now'][] = $opp;
-                    $strategy['total_losses_to_harvest'] += $opp['loss_amount'];
-                    $strategy['explanation'][] = sprintf(
-                        'Sell %s to use the loss (poor recovery outlook)',
-                        $opp['security_name']
-                    );
-                }
-            }
+            // No taxable gains: a loss realised now is set against this year's
+            // gains first, before the annual exempt amount, so there is no tax to
+            // save by selling now (HMRC CG21500; tax review F12, item 8). No sale
+            // is suggested, whatever a holding might do next.
+            $strategy['explanation'][] = 'No taxable gains recorded this tax year, so selling at a loss now saves no tax.';
 
             return $strategy;
         }
@@ -447,8 +436,8 @@ class CGTHarvestingCalculator
         if (empty($strategy['harvest_now'])) {
             $recommendations[] = [
                 'priority' => 'low',
-                'action' => 'No need to use losses now',
-                'reason' => 'No taxable gains expected or no suitable losses to use',
+                'action' => 'No need to sell at a loss now',
+                'reason' => 'No taxable gains recorded this tax year, so a loss realised now would save no tax.',
             ];
 
             return $recommendations;
@@ -465,9 +454,8 @@ class CGTHarvestingCalculator
                 'tax_saving' => $opp['potential_tax_saving'],
                 'repurchase_eligible_date' => $this->getRepurchaseDate(),
                 'notes' => [
-                    'Avoid repurchasing within 30 days (bed and breakfasting rule)',
-                    'Consider purchasing similar (but not identical) security',
-                    'Loss can be carried forward indefinitely',
+                    'Buying the same holding back within 30 days matches the sale to the purchase, and the loss is not available (TCGA 1992 s106A).',
+                    'A loss not used this tax year carries forward if you report it to HM Revenue and Customs (HMRC) within four years.',
                 ],
             ];
         }
@@ -478,7 +466,7 @@ class CGTHarvestingCalculator
             array_unshift($recommendations, [
                 'priority' => 'high',
                 'action' => sprintf('Use losses before the tax year ends (%d months remaining)', $monthsToYearEnd),
-                'reason' => 'Maximize tax efficiency for current tax year',
+                'reason' => 'A loss realised after 5 April counts against next tax year\'s gains instead.',
             ]);
         }
 

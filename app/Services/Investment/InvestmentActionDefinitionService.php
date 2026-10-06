@@ -143,6 +143,8 @@ class InvestmentActionDefinitionService
             'allocation_needs_rebalancing' => $this->evaluateRebalancePortfolio($definition, $investmentAnalysis, $priority),
             'account_outside_drift_threshold' => $this->evaluateAllocationPosition($definition, $investmentAnalysis, $priority),
             'account_charges_above' => $this->evaluateAccountCharges($definition, $accountFeeAnalyses, $config, $priority),
+            'holds_bond_with_paid_in' => $this->evaluateBonds($definition, $investmentAnalysis, true, $priority),
+            'holds_bond_without_paid_in' => $this->evaluateBonds($definition, $investmentAnalysis, false, $priority),
             'has_harvesting_opportunities' => $this->evaluateTaxLossHarvesting($definition, $investmentAnalysis, $priority),
 
             // Tax efficiency triggers
@@ -671,6 +673,55 @@ class InvestmentActionDefinitionService
                 'passed' => true,
                 'explanation' => $accountName.' crosses: '.implode(', ', $crossed).'.',
             ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Item 8 (CSJ 2026-10-06): one card per investment bond. With what was paid
+     * in, its deferred tax position (BondPositionService); without it, a card
+     * asking for it. A bond with no gain building up needs no card.
+     */
+    private function evaluateBonds(
+        InvestmentActionDefinition $definition,
+        array $investmentAnalysis,
+        bool $withPaidIn,
+        int $priority
+    ): array {
+        $results = [];
+
+        foreach ($investmentAnalysis['bond_positions'] ?? [] as $bond) {
+            if ($bond['paid_in_known'] !== $withPaidIn) {
+                continue;
+            }
+            if ($withPaidIn && ($bond['gain'] ?? 0) <= 0) {
+                continue;
+            }
+
+            $vars = [
+                'account_name' => $bond['account_name'],
+                'bond_kind' => $bond['is_offshore'] ? 'offshore' : 'onshore',
+                'is_offshore' => $bond['is_offshore'],
+                'value' => $this->formatCurrency($bond['value']),
+                'withdrawn' => $this->formatCurrency($bond['withdrawn']),
+                'has_withdrawn' => $bond['withdrawn'] > 0,
+            ];
+            if ($withPaidIn) {
+                $vars += [
+                    'paid_in' => $this->formatCurrency((float) $bond['paid_in']),
+                    'gain' => $this->formatCurrency((float) $bond['gain']),
+                    'has_allowance' => $bond['allowance_left'] !== null,
+                    'allowance_left' => $bond['allowance_left'] === null ? '' : $this->formatCurrency((float) $bond['allowance_left']),
+                    'policy_years' => (string) ($bond['policy_years'] ?? ''),
+                ];
+            }
+
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['scope'] = 'account';
+            $rec['account_id'] = $bond['account_id'];
+            $rec['account_name'] = $bond['account_name'];
             $results[] = $rec;
         }
 

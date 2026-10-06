@@ -64,6 +64,25 @@
     <div v-if="isBondType" class="space-y-4 pt-4 border-t border-light-gray">
       <h4 class="text-sm font-semibold text-horizon-500">Bond Details</h4>
 
+      <!-- What was paid in: the gain building up and the 5% allowance are worked out from it -->
+      <div>
+        <label for="bond_investment_amount" class="block text-sm font-medium text-neutral-500 mb-1">
+          What you paid in (£)
+        </label>
+        <input
+          id="bond_investment_amount"
+          v-model.number="localData.investment_amount"
+          type="number"
+          step="0.01"
+          min="0"
+          class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          placeholder="0.00"
+        />
+        <p class="mt-1 text-xs text-neutral-500">
+          The total paid into the bond, from your statement (used for the gain building up and the 5% allowance)
+        </p>
+      </div>
+
       <!-- Bond Purchase Date -->
       <div>
         <label for="bond_purchase_date" class="block text-sm font-medium text-neutral-500 mb-1">

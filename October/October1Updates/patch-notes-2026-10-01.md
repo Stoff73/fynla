@@ -191,6 +191,32 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
 
+## Investment actions you can follow, with figures that match the page (6 October, about 11:10, release #1102)
+
+**This is live on fynla.org** through release #1102 (#1098 to #1101), UK time.
+
+- **One card for moving investments into an ISA.** When your General Investment Account holds gains, the Tax plan's "Bed & ISA" is the card; "Use your ISA allowance" no longer sits beside it (your decision, D2).
+- **One card per account that has drifted from its risk level** (D3, per account, as the account page shows it), for example "Joint General Investment Account holds at least 21% in alternatives against 5% for its risk level". The card, the account page, the dashboard and the investment overview now use one rule. Funds whose mix of shares and bonds is not recorded are no longer counted as drift: two-thirds of the Mitchell demo's portfolio had been.
+- **One charges card per account, in pounds a year** (D4): "Joint General Investment Account costs £1,104 a year in charges, 1.16% of its value: adviser £713, platform £238, fund charges £154." It shows the same figure as the account page, and it now reaches your actions list.
+- **The losses card no longer says "Potential tax saving: £0".** It states the losses in your General Investment Account at your share, that a loss is set against the same year's gains before the tax-free allowance, and that it carries forward if reported to HM Revenue and Customs (HMRC) within four years ([HMRC CG21500](https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg21500); [GOV.UK](https://www.gov.uk/capital-gains-tax/losses)).
+- **Only a General Investment Account counts for gains and losses**, in Bed & ISA too: EIS, trust, private company and employee share scheme accounts had been counted.
+- **The emergency fund, savings rate and spare-cash suggestions are no longer repeated under Investment** (D1); Savings carries them.
+- **Seven new "How to do it" guides,** approved by you: the position card, charges, losses, the two ISA cards, investment bonds and adding your holdings. The bond guide covers onshore and offshore bonds, top-slicing relief ([Income Tax Act 2007 s535](https://www.legislation.gov.uk/ukpga/2007/3/section/535)) and the 5% a year that builds up if unused ([ITTOIA 2005 s507](https://www.legislation.gov.uk/ukpga/2005/5/section/507)).
+- **On the desktop app, "Go to it" on an investment account card opens that account,** not the investment overview.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps, as the Mitchell demo:** the actions list, the position card through to the account page ("Rebalancing Recommended", bonds 26.3% against 20%), the charges card and the account page both at £1,104 and 1.16%, the losses card and its guide.
+- **Live on fynla.org, as the Mitchell demo:** the desktop actions list with the new cards and Bed & ISA alone; the joint account's charges card and its guide; on mobile, the position card and its guide.
+
+**Still to do:**
+- On the charges, losses and position cards, the first "Why this matters for you" line repeats the description.
+- The account page's diversification panel still says "Equities allocation is underweight by 75%", counting funds with no recorded mix as missing.
+- The joint account's 10-year projection shows a middle outcome below today's value.
+- The rebalancing panel shows its drift score as a percentage.
+- Someone who already holds an investment bond gets no card about its deferred tax position.
+
+**Behind the scenes.** App code, the investment definitions and how-to seeders, and the desktop web bundle. No database change and no mobile bundle change.
+
 ## Fyn's changes always go through a form; demo "Mark as done" is kept; the Holistic Plan follows your actions (6 October, about 09:09, release #1094)
 
 **This is live on fynla.org** through release #1094 (#1082, #1084, #1085, #1087, #1090), UK time.

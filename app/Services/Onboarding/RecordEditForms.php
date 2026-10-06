@@ -76,6 +76,9 @@ final class RecordEditForms
         'personal_information' => 'personal',
     ];
 
+    /** Contextual resources that are one saved record, opened on its own form. */
+    public const RECORD_RESOURCES = ['savings_account', 'investment_account', 'dc_pension', 'property', 'life_insurance', 'critical_illness', 'income_protection'];
+
     /** The income source rows (/m Income detail) that the other-income form edits. */
     public const OTHER_INCOME_SOURCES = ['dividend', 'interest', 'trust', 'other'];
 
@@ -95,10 +98,16 @@ final class RecordEditForms
      *
      * @param  array<string, mixed>  $destinationParams  current_destination.params
      */
-    public function formForResource(User $user, string $resourceType, array $destinationParams = []): ?array
+    public function formForResource(User $user, string $resourceType, array $destinationParams = [], ?int $resourceId = null): ?array
     {
         if ($resourceType === 'income') {
             return $this->formForIncomeSource($user, $destinationParams);
+        }
+        // A resource that is one saved record ("Edit details" on an account, a
+        // pension, a property or a policy) opens that record's form, so a
+        // typed change there is read into it (forms only, CSJ 2026-10-01; item 8).
+        if ($resourceId !== null && in_array($resourceType, self::RECORD_RESOURCES, true)) {
+            return $this->formFor($user, $resourceType, $resourceId);
         }
         $type = self::CONTEXTUAL_FORMS[$resourceType] ?? null;
 
@@ -563,6 +572,17 @@ final class RecordEditForms
                 'paid_in_this_year' => self::floatOrNull($account->isa_subscription_current_year ?? null),
             ], static fn ($v): bool => $v !== null && $v !== ''), $label];
         }
+        // A bond opens as its own kind, with what was paid in, when, and the
+        // 5% taken (item 8).
+        if (in_array($account->account_type, ['onshore_bond', 'offshore_bond'], true)) {
+            return [CaptureForms::INVESTMENT, $account->account_type, array_filter([
+                'provider' => $account->provider,
+                'current_value' => (float) $account->current_value,
+                'investment_amount' => self::floatOrNull($account->investment_amount ?? null),
+                'bond_purchase_date' => $account->bond_purchase_date?->toDateString(),
+                'bond_withdrawal_taken' => self::floatOrNull($account->bond_withdrawal_taken ?? null),
+            ], static fn ($v): bool => $v !== null && $v !== ''), $label];
+        }
         // A General Investment Account is stored as 'gia' (CoordinatingAgent
         // maps the form's personal_investment_account); checking only the
         // input alias opened every stored one as the "other" kind.
@@ -728,6 +748,9 @@ final class RecordEditForms
                 'current_value' => $input['current_value'] ?? null,
                 'contributions_ytd' => $input['isa_subscription_current_year'] ?? null,
                 'annual_dividend_income' => $input['annual_dividend_income'] ?? null,
+                'investment_amount' => $input['investment_amount'] ?? null,
+                'bond_purchase_date' => $input['bond_purchase_date'] ?? null,
+                'bond_withdrawal_taken' => $input['bond_withdrawal_taken'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'dc_pension' => array_filter([
                 'provider' => $input['provider'] ?? null,

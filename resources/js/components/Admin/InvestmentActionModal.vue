@@ -378,29 +378,31 @@ export default {
     conditionOptions() {
       return [
         // Investment triggers
-        { value: 'risk_profile_missing', label: 'Risk profile missing' },
-        { value: 'no_holdings_in_accounts', label: 'No holdings in accounts' },
-        { value: 'diversification_score_below_threshold', label: 'Diversification score below threshold' },
-        { value: 'total_fee_above_threshold', label: 'Total fee above threshold (per account)' },
-        { value: 'fund_ocf_above_threshold', label: 'Fund charges above threshold (per account)' },
-        { value: 'platform_fee_above_threshold', label: 'Platform fee above threshold (per account)' },
+        { value: 'risk_profile_not_set', label: 'Risk profile missing' },
+        { value: 'accounts_exist_but_no_holdings', label: 'No holdings in accounts' },
+        { value: 'diversification_score_below', label: 'Diversification score below threshold' },
+        { value: 'total_fee_percent_above', label: 'Total fee above threshold (per account)' },
+        { value: 'weighted_ocf_above', label: 'Fund charges above threshold (per account)' },
+        { value: 'platform_fee_percent_above', label: 'Platform fee above threshold (per account)' },
         { value: 'allocation_needs_rebalancing', label: 'Asset allocation needs rebalancing' },
         { value: 'account_outside_drift_threshold', label: 'Account outside its rebalancing threshold (per account)' },
         { value: 'account_charges_above', label: 'Account charges above a threshold (per account)' },
-        { value: 'tax_loss_harvesting_opportunities', label: 'Tax loss harvesting opportunities' },
+        { value: 'holds_bond_with_paid_in', label: 'Holds an investment bond with what was paid in (per account)' },
+        { value: 'holds_bond_without_paid_in', label: 'Holds an investment bond, paid in not recorded (per account)' },
+        { value: 'has_harvesting_opportunities', label: 'Losses that could be used against gains' },
         // Tax efficiency triggers
         { value: 'has_gia_no_isa', label: 'Has General Investment Account but no ISA' },
-        { value: 'isa_remaining_with_gia', label: 'ISA allowance remaining with General Investment Account holdings' },
-        { value: 'gia_value_above_threshold_no_bonds', label: 'General Investment Account value above threshold, no bonds' },
+        { value: 'has_isa_remaining_and_gia', label: 'ISA allowance remaining with General Investment Account holdings' },
+        { value: 'gia_value_above_and_no_bonds', label: 'General Investment Account value above threshold, no bonds' },
         // Savings triggers
-        { value: 'emergency_fund_below_threshold', label: 'Emergency fund below critical threshold' },
-        { value: 'emergency_fund_below_target', label: 'Emergency fund below target (grow)' },
-        { value: 'poor_savings_rate', label: 'Poor savings rate detected' },
-        { value: 'savings_isa_allowance_remaining', label: 'Savings ISA allowance remaining' },
+        { value: 'emergency_runway_below', label: 'Emergency fund below critical threshold' },
+        { value: 'emergency_runway_between', label: 'Emergency fund below target (grow)' },
+        { value: 'has_poor_rate_accounts', label: 'Poor savings rate detected' },
+        { value: 'isa_remaining_and_runway_above', label: 'Savings ISA allowance remaining' },
         // Surplus waterfall
-        { value: 'surplus_available_isa', label: 'Surplus available for ISA' },
-        { value: 'surplus_available_pension', label: 'Surplus available for pension' },
-        { value: 'surplus_available_bond', label: 'Surplus available for bond' },
+        { value: 'surplus_exists_and_isa_remaining', label: 'Surplus available for ISA' },
+        { value: 'surplus_exceeds_isa', label: 'Surplus available for pension' },
+        { value: 'surplus_exceeds_pension', label: 'Surplus available for bond' },
         // Goal triggers
         { value: 'linked_goal_no_monthly_contribution', label: 'Linked goal has no monthly contribution' },
         { value: 'linked_goal_off_track', label: 'Linked goal is off track' },
@@ -410,26 +412,28 @@ export default {
 
     conditionHint() {
       const hints = {
-        risk_profile_missing: 'Triggers when the user has no risk profile set.',
-        no_holdings_in_accounts: 'Triggers when investment accounts exist but have no holdings.',
-        diversification_score_below_threshold: 'Triggers when portfolio diversification is below the threshold.',
-        total_fee_above_threshold: 'Triggers per account when total annual charge exceeds the threshold percentage.',
-        fund_ocf_above_threshold: 'Triggers per account when weighted fund charges exceed the threshold percentage.',
-        platform_fee_above_threshold: 'Triggers per account when platform fee exceeds the threshold percentage.',
+        risk_profile_not_set: 'Triggers when the user has no risk profile set.',
+        accounts_exist_but_no_holdings: 'Triggers when investment accounts exist but have no holdings.',
+        diversification_score_below: 'Triggers when portfolio diversification is below the threshold.',
+        total_fee_percent_above: 'Triggers per account when total annual charge exceeds the threshold percentage.',
+        weighted_ocf_above: 'Triggers per account when weighted fund charges exceed the threshold percentage.',
+        platform_fee_percent_above: 'Triggers per account when platform fee exceeds the threshold percentage.',
         allocation_needs_rebalancing: 'Triggers when asset allocation has drifted and needs rebalancing.',
         account_outside_drift_threshold: 'One card per account outside its own rebalancing threshold, as its rebalancing panel shows.',
         account_charges_above: 'One card per account whose total, fund or platform charges cross their thresholds.',
-        tax_loss_harvesting_opportunities: 'Triggers when tax loss harvesting opportunities are identified.',
+        holds_bond_with_paid_in: 'One card per investment bond with a gain building up: the gain and the 5% still available.',
+        holds_bond_without_paid_in: 'One card per investment bond with no amount paid in recorded.',
+        has_harvesting_opportunities: 'Triggers when holdings in a General Investment Account are worth less than was paid.',
         has_gia_no_isa: 'Triggers when the user has a General Investment Account but no ISA.',
-        isa_remaining_with_gia: 'Triggers when ISA allowance remains and General Investment Account holdings exist.',
-        gia_value_above_threshold_no_bonds: 'Triggers when General Investment Account value exceeds threshold with no bond wrappers.',
-        emergency_fund_below_threshold: 'Triggers when emergency fund is critically low.',
-        emergency_fund_below_target: 'Triggers when emergency fund is below the target but above critical.',
-        poor_savings_rate: 'Triggers when poor-rated savings accounts have significant potential gains.',
-        savings_isa_allowance_remaining: 'Triggers when savings ISA allowance remains and emergency fund is adequate.',
-        surplus_available_isa: 'Triggers when excess emergency fund can be moved to ISA.',
-        surplus_available_pension: 'Triggers when surplus exceeds ISA capacity for pension.',
-        surplus_available_bond: 'Triggers when surplus exceeds pension capacity for bonds.',
+        has_isa_remaining_and_gia: 'Triggers when ISA allowance remains and General Investment Account holdings exist.',
+        gia_value_above_and_no_bonds: 'Triggers when General Investment Account value exceeds threshold with no bond wrappers.',
+        emergency_runway_below: 'Triggers when emergency fund is critically low.',
+        emergency_runway_between: 'Triggers when emergency fund is below the target but above critical.',
+        has_poor_rate_accounts: 'Triggers when poor-rated savings accounts have significant potential gains.',
+        isa_remaining_and_runway_above: 'Triggers when savings ISA allowance remains and emergency fund is adequate.',
+        surplus_exists_and_isa_remaining: 'Triggers when excess emergency fund can be moved to ISA.',
+        surplus_exceeds_isa: 'Triggers when surplus exceeds ISA capacity for pension.',
+        surplus_exceeds_pension: 'Triggers when surplus exceeds pension capacity for bonds.',
         linked_goal_no_monthly_contribution: 'Triggers when a linked investment goal has no monthly contribution.',
         linked_goal_off_track: 'Triggers when a linked investment goal is off track.',
         goal_months_remaining_below_and_progress_below: 'Triggers when a goal is near its deadline with low progress.',
@@ -439,29 +443,29 @@ export default {
 
     showThreshold() {
       return [
-        'diversification_score_below_threshold',
-        'total_fee_above_threshold',
-        'fund_ocf_above_threshold',
-        'platform_fee_above_threshold',
-        'gia_value_above_threshold_no_bonds',
+        'diversification_score_below',
+        'total_fee_percent_above',
+        'weighted_ocf_above',
+        'platform_fee_percent_above',
+        'gia_value_above_and_no_bonds',
       ].includes(this.form.trigger_config.condition);
     },
 
     thresholdUnit() {
       const units = {
-        diversification_score_below_threshold: '(score 0-100)',
-        total_fee_above_threshold: '% total annual charge',
-        fund_ocf_above_threshold: '% weighted fund charge',
-        platform_fee_above_threshold: '% platform fee',
-        gia_value_above_threshold_no_bonds: 'minimum General Investment Account value',
+        diversification_score_below: '(score 0-100)',
+        total_fee_percent_above: '% total annual charge',
+        weighted_ocf_above: '% weighted fund charge',
+        platform_fee_percent_above: '% platform fee',
+        gia_value_above_and_no_bonds: 'minimum General Investment Account value',
       };
       return units[this.form.trigger_config.condition] || '';
     },
 
     showDualThresholds() {
       return [
-        'emergency_fund_below_threshold',
-        'emergency_fund_below_target',
+        'emergency_runway_below',
+        'emergency_runway_between',
       ].includes(this.form.trigger_config.condition);
     },
 

@@ -50,11 +50,9 @@ final class BedAndIsaStrategy implements TaxStrategy
             return [];
         }
 
-        $userBand = $this->math->bandFromIncomeFor($user, $this->math->taxableIncomeFor($user));
-        $cgtRate = match ($userBand) {
-            'basic' => (float) $cgt['basic_rate'],
-            default => (float) $cgt['higher_rate'],
-        };
+        // The rate on a gain above the allowance: basic only within the unused
+        // basic rate band (TCGA 1992 s1H, TaxStrategyMath::capitalGainsTaxOn).
+        $cgtRate = $this->math->capitalGainsTaxOn($user, 1.0)['marginal_rate'];
 
         // The one home for chargeable gains (item 8): chargeable accounts only,
         // each at the user's share (Rule 6). Shared with the investment ISA cards,
@@ -84,7 +82,9 @@ final class BedAndIsaStrategy implements TaxStrategy
             );
         }
 
-        $saving = $realisableGains * $cgtRate;
+        // The tax these gains would bear if realised above the allowance later:
+        // split between the rates by the unused basic rate band (s1H).
+        $saving = $this->math->capitalGainsTaxOn($user, $realisableGains)['tax'];
         if ($saving < 1) {
             return [];
         }
