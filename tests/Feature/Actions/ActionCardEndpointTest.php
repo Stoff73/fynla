@@ -6,6 +6,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\InvestmentActionDefinitionSeeder;
 use Database\Seeders\ProtectionActionDefinitionSeeder;
 use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\SavingsActionDefinitionSeeder;
@@ -24,6 +25,7 @@ beforeEach(function () {
     $this->seed(SavingsActionDefinitionSeeder::class);
     $this->seed(ProtectionActionDefinitionSeeder::class);
     $this->seed(RetirementActionDefinitionSeeder::class);
+    $this->seed(InvestmentActionDefinitionSeeder::class);
 });
 
 function actionCardUserWithIsaHeadroom(): User
