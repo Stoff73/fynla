@@ -222,7 +222,7 @@ class InvestmentActionDefinitionSeeder extends Seeder
                 'key' => 'tax_loss_harvesting',
                 'source' => 'agent',
                 'title_template' => 'Losses you could use against gains',
-                'description_template' => '{holdings_count} {holdings_word} in your General Investment Account {holdings_verb} worth {total_losses} less than you paid. Selling realises the loss. It is set against your gains in the same tax year first, before the {annual_exempt_amount} tax-free allowance, and any left over carries forward if you report it to HMRC within four years.',
+                'description_template' => '{holdings_count} {holdings_word} in your General Investment Account {holdings_verb} worth {total_losses} less than you paid. Selling realises the loss. It is set against your gains in the same tax year first, before the {annual_exempt_amount} tax-free allowance, and any left over carries forward if you report it to HM Revenue and Customs (HMRC) within four years.',
                 'action_template' => 'Check your gains this tax year before selling: if they are already under the tax-free allowance, the loss saves nothing this year. Do not buy the same holding back within 30 days.',
                 'category' => 'Tax Planning',
                 'priority' => 'medium',
