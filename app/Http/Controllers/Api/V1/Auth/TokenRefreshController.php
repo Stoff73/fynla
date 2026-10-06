@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\RecommendationTracking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -30,13 +31,17 @@ class TokenRefreshController extends Controller
                 ], 400);
             }
 
-            // Revoke the current token
-            $currentToken->delete();
-
             // Create a new short-lived token (rotation). TTL is config-driven
             // (default 12h) so a leaked /m token self-expires; /m rotates on boot.
             $ttlMinutes = (int) config('sanctum.mobile_token_ttl_minutes', 720);
             $newToken = $user->createToken('mobile-token', ['*'], now()->addMinutes($ttlMinutes));
+
+            // The same demo visitor carries on: their session's completions
+            // move to the new token before the old one (and its rows) goes.
+            RecommendationTracking::movePreviewSession((int) $currentToken->getKey(), (int) $newToken->accessToken->getKey());
+
+            // Revoke the current token
+            $currentToken->delete();
 
             return response()->json([
                 'success' => true,
