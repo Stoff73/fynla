@@ -7,6 +7,7 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
+use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Tax\CGTHarvestingCalculator;
 use App\Services\Tax\ChargeableGains;
@@ -124,4 +125,24 @@ it('lets the joint owner open the account\'s rebalancing panel', function () {
     $this->getJson("/api/investment/accounts/{$joint->id}/rebalancing")
         ->assertOk()
         ->assertJsonPath('data.account_id', $joint->id);
+});
+
+it('states the same charges as the account page', function () {
+    $user = User::factory()->create(['annual_employment_income' => 60000, 'date_of_birth' => '1980-01-01', 'monthly_expenditure' => 2500]);
+    RiskProfile::factory()->create(['user_id' => $user->id, 'risk_level' => 'medium']);
+    $gia = InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'gia', 'ownership_type' => 'individual', 'joint_owner_id' => null, 'ownership_percentage' => 100,
+        'current_value' => 100000, 'platform_fee_type' => 'percentage', 'platform_fee_percent' => 0.45, 'advisor_fee_percent' => 0.75,
+    ]);
+    item8Holding($gia, 90000, 100000)->update(['ocf_percent' => 0.2]);
+
+    $page = app(FeeAnalyzer::class)->recordedCharges($gia->fresh('holdings'));
+
+    $agent = app(InvestmentAgent::class);
+    $analysis = $agent->analyze($user->id);
+    $card = collect($agent->generateRecommendations($analysis['data'] ?? $analysis)['recommendations'])->firstWhere('definition_key', 'account_charges');
+
+    expect($card)->not->toBeNull()
+        ->and($card['figures']['annual_fees'])->toBe('£'.number_format($page['total_annual_cost']))
+        ->and($card['figures']['total_fee_percent'])->toBe(number_format($page['total_fee_percent'], 2));
 });

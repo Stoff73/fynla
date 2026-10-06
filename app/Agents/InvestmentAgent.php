@@ -228,10 +228,8 @@ class InvestmentAgent extends BaseAgent
                             'drifts_by_asset' => $drift['drifts_by_asset'],
                         ];
                     }
-                    $fees = $this->feeAnalyzer->analyzeAccountFees($owned);
-                    if ($fees['success'] ?? false) {
-                        $accountFeeAnalyses[] = $fees;
-                    }
+                    // The charges the account page shows (FeeAnalyzer::recordedCharges).
+                    $accountFeeAnalyses[] = $this->feeAnalyzer->recordedChargesForCard($owned);
                 }
 
                 // S1.6.b — structured gap list for the LLM to ask about.
