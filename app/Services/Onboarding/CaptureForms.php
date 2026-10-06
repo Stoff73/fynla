@@ -91,6 +91,26 @@ final class CaptureForms
     public const EXPENDITURE_DETAILED_HOUSEHOLD = 'expenditure_detailed_household';
 
     /** The line above a blank form offered outside the setup walk to add a record. */
+    /**
+     * A form offered to add a record outside the setup walk (an Add button, a
+     * typed "add"): the walk's "save with none chosen" wording and empty save
+     * do not apply, since an empty save is refused there (item 39, 2026-10-06).
+     *
+     * @param  array<string, mixed>  $schema
+     * @return array<string, mixed>
+     */
+    public static function forAdding(array $schema): array
+    {
+        if (! empty($schema['allow_empty'])) {
+            unset($schema['allow_empty']);
+            if (isset($schema['kinds_prompt'])) {
+                $schema['kinds_prompt'] = 'Choose what you are adding.';
+            }
+        }
+
+        return $schema;
+    }
+
     public const ADD_PROMPT = "Fill this in and save, and I'll add it to your records.";
 
     /** The line above a form Fyn filled in from what the user typed (a setup step, or a new record). */

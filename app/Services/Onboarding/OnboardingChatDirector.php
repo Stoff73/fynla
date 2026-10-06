@@ -7765,6 +7765,7 @@ PROMPT;
             // A blank form outside the walk, offered to add a record; its save
             // comes back through handleCreateFormTurn.
             $prompt = $changeFilledIn ? CaptureForms::FILLED_PROMPT : CaptureForms::ADD_PROMPT;
+            $form['schema'] = CaptureForms::forAdding($form['schema']);
         } else {
             // Some labels already start "Your" ("Your spouse's details").
             $label = preg_replace('/^your\s+/i', '', (string) $form['label']);

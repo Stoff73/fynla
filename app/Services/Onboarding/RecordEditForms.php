@@ -76,6 +76,9 @@ final class RecordEditForms
         'personal_information' => 'personal',
     ];
 
+    /** Contextual resources that are one saved record, opened on its own form. */
+    public const RECORD_RESOURCES = ['savings_account', 'investment_account', 'dc_pension', 'property', 'life_insurance', 'critical_illness', 'income_protection'];
+
     /** The income source rows (/m Income detail) that the other-income form edits. */
     public const OTHER_INCOME_SOURCES = ['dividend', 'interest', 'trust', 'other'];
 
@@ -95,10 +98,16 @@ final class RecordEditForms
      *
      * @param  array<string, mixed>  $destinationParams  current_destination.params
      */
-    public function formForResource(User $user, string $resourceType, array $destinationParams = []): ?array
+    public function formForResource(User $user, string $resourceType, array $destinationParams = [], ?int $resourceId = null): ?array
     {
         if ($resourceType === 'income') {
             return $this->formForIncomeSource($user, $destinationParams);
+        }
+        // A resource that is one saved record ("Edit details" on an account, a
+        // pension, a property or a policy) opens that record's form, so a
+        // typed change there is read into it (forms only, CSJ 2026-10-01; item 8).
+        if ($resourceId !== null && in_array($resourceType, self::RECORD_RESOURCES, true)) {
+            return $this->formFor($user, $resourceType, $resourceId);
         }
         $type = self::CONTEXTUAL_FORMS[$resourceType] ?? null;
 

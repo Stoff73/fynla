@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Tax\CGTHarvestingCalculator;
+use App\Services\Onboarding\CaptureForms;
+use App\Services\Onboarding\RecordEditForms;
 use App\Services\Tax\ChargeableGains;
 use App\Services\Tax\Strategies\BedAndIsaStrategy;
 use App\Services\Tax\Strategies\TaxStrategyContext;
@@ -185,4 +187,28 @@ it('suggests no sale at a loss when no gains are recorded (tax review F12)', fun
     expect($result['harvesting_strategy']['harvest_now'])->toBe([])
         ->and(implode(' ', $result['harvesting_strategy']['explanation']))->toContain('saves no tax')
         ->and($result['recommendations'][0]['action'])->toBe('No need to sell at a loss now');
+});
+
+it('opens a single record\'s own form from "Edit details", a bond with its paid-in figures', function () {
+    $user = User::factory()->create();
+    $bond = InvestmentAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'offshore_bond', 'account_name' => 'Quilter bond', 'provider' => 'Quilter',
+        'ownership_type' => 'individual', 'joint_owner_id' => null, 'ownership_percentage' => 100, 'current_value' => 120000,
+        'investment_amount' => 100000, 'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 10000,
+    ]);
+
+    // Before item 8 this returned null for every account, so a typed change in
+    // its "Edit details" conversation was answered in words, never a form.
+    $form = app(RecordEditForms::class)->formForResource($user, 'investment_account', [], $bond->id);
+
+    expect($form)->not->toBeNull()
+        ->and($form['record'])->toMatchArray(['type' => 'investment_account', 'id' => $bond->id])
+        ->and($form['answers']['offshore_bond'])->toMatchArray(['investment_amount' => 100000.0, 'bond_purchase_date' => '2022-05-01', 'bond_withdrawal_taken' => 10000.0]);
+});
+
+it('offers an Add form without the setup walk\'s "save with none chosen" wording (item 39)', function () {
+    $schema = CaptureForms::forAdding(CaptureForms::schema('investment'));
+
+    expect($schema)->not->toHaveKey('allow_empty')
+        ->and($schema['kinds_prompt'])->toBe('Choose what you are adding.');
 });

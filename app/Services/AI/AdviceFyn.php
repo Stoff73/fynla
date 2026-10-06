@@ -640,7 +640,8 @@ final class AdviceFyn
         $forms = app(RecordEditForms::class);
         $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
         if (($metadata['source'] ?? null) === 'surface_action' && ($metadata['action'] ?? null) === 'edit') {
-            $form = $forms->formForResource($user, (string) ($metadata['resource_type'] ?? ''), (array) ($metadata['current_destination']['params'] ?? []));
+            $resourceId = is_numeric($metadata['resource_id'] ?? null) ? (int) $metadata['resource_id'] : null;
+            $form = $forms->formForResource($user, (string) ($metadata['resource_type'] ?? ''), (array) ($metadata['current_destination']['params'] ?? []), $resourceId);
             $candidates = $form !== null ? [['type' => (string) $form['record']['type'], 'id' => (int) $form['record']['id'], 'label' => (string) $form['label']]] : [];
         } else {
             $candidates = [];
