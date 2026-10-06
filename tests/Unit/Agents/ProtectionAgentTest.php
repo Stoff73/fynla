@@ -327,17 +327,14 @@ describe('buildScenarios', function () {
         $mockDeathScenario = [
             'scenario_type' => 'Death',
             'payout' => 200000,
-            'adequacy' => 'Good',
         ];
         $mockCriticalIllnessScenario = [
             'scenario_type' => 'Critical Illness',
             'payout' => 100000,
-            'adequacy' => 'Fair',
         ];
         $mockDisabilityScenario = [
             'scenario_type' => 'Disability',
             'annual_benefit' => 24000,
-            'adequacy' => 'Good',
         ];
 
         $this->gapAnalyzer->shouldReceive('calculateTotalCoverage')
