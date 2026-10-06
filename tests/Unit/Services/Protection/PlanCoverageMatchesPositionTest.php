@@ -29,3 +29,23 @@ it('gives the cards the same need, cover and shortfall as the cover position', f
         ->and((float) $ci['gap'])->toBe($position['short_by'])
         ->and((float) $plan['coverage_analysis']['life_insurance']['gap'])->toBe($plan['cover_position']['life']['short_by']);
 });
+
+it('carries no ratings in the plan (Rule 12)', function () {
+    $user = User::factory()->create(['employment_status' => 'employed', 'annual_employment_income' => 60000, 'annual_self_employment_income' => 0,
+        'annual_rental_income' => 0, 'annual_dividend_income' => 0, 'annual_other_income' => 0, 'annual_expenditure' => 30000,
+        'date_of_birth' => now()->subYears(40)]);
+    ProtectionProfile::factory()->create(['user_id' => $user->id, 'annual_income' => 60000, 'monthly_expenditure' => 2500,
+        'mortgage_balance' => 0, 'other_debts' => 0, 'number_of_dependents' => 0, 'dependents_ages' => []]);
+
+    $plan = app(ComprehensiveProtectionPlanService::class)->generateComprehensiveProtectionPlan($user->fresh());
+
+    expect($plan['coverage_analysis'])->not->toHaveKey('overall_rating')
+        ->and($plan['executive_summary'])->not->toHaveKeys(['adequacy_rating', 'recommended_action']);
+    foreach (['life_insurance', 'critical_illness', 'income_protection'] as $type) {
+        expect($plan['coverage_analysis'][$type])->not->toHaveKey('status');
+    }
+    foreach (array_filter($plan['scenario_analysis'] ?? []) as $scenario) {
+        expect($scenario)->not->toHaveKey('adequacy');
+    }
+    expect(json_encode($plan))->not->toMatch('/\b(Excellent|Good coverage)\b/');
+});

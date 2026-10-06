@@ -11,9 +11,6 @@
           <div class="bg-eggshell-500 rounded-lg p-4">
             <div class="flex items-center justify-between mb-2">
               <p class="text-sm font-medium text-horizon-500">Life Insurance</p>
-              <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="statusBadge(coverageAnalysis.life_insurance?.status)">
-                {{ coverageAnalysis.life_insurance?.status || 'Unknown' }}
-              </span>
             </div>
             <div class="grid grid-cols-3 gap-2 text-center">
               <div>
@@ -75,9 +72,6 @@
           <div class="bg-eggshell-500 rounded-lg p-4">
             <div class="flex items-center justify-between mb-2">
               <p class="text-sm font-medium text-horizon-500">Critical Illness</p>
-              <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="statusBadge(coverageAnalysis.critical_illness?.status)">
-                {{ coverageAnalysis.critical_illness?.status || 'Unknown' }}
-              </span>
             </div>
             <div class="grid grid-cols-3 gap-2 text-center">
               <div>
@@ -132,9 +126,6 @@
           <div class="bg-eggshell-500 rounded-lg p-4">
             <div class="flex items-center justify-between mb-2">
               <p class="text-sm font-medium text-horizon-500">Income Protection</p>
-              <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="statusBadge(coverageAnalysis.income_protection?.status)">
-                {{ coverageAnalysis.income_protection?.status || 'Unknown' }}
-              </span>
             </div>
             <div class="grid grid-cols-3 gap-2 text-center">
               <div>
@@ -283,13 +274,6 @@ export default {
     gapColor(gap) {
       if (!gap || gap <= 0) return 'text-spring-700';
       return 'text-raspberry-700';
-    },
-    statusBadge(status) {
-      const s = (status || '').toLowerCase();
-      if (s === 'excellent') return 'bg-spring-100 text-spring-800';
-      if (s === 'good') return 'bg-violet-100 text-violet-800';
-      if (s === 'fair') return 'bg-violet-100 text-violet-800';
-      return 'bg-raspberry-100 text-raspberry-800';
     },
     progressBarColor(percentage) {
       if (percentage >= 80) return 'bg-spring-500';

@@ -43,7 +43,6 @@ describe('modelDeathScenario', function () {
             'remaining_funds',
             'monthly_income_potential',
             'months_of_support',
-            'adequacy',
             'insights',
         ]);
         expect($result['scenario_type'])->toBe('Death');
@@ -68,7 +67,7 @@ describe('modelDeathScenario', function () {
         $result = $this->builder->modelDeathScenario($profile, $coverage);
 
         expect($result['remaining_funds'])->toEqual(0);
-        expect($result['adequacy'])->toBe('Poor');
+        expect($result)->not->toHaveKey('adequacy');
     });
 });
 
@@ -92,7 +91,6 @@ describe('modelCriticalIllnessScenario', function () {
             'immediate_needs',
             'remaining_funds',
             'months_of_support',
-            'adequacy',
             'insights',
         ]);
         expect($result['scenario_type'])->toBe('Critical Illness');
@@ -114,7 +112,7 @@ describe('modelCriticalIllnessScenario', function () {
         $result = $this->builder->modelCriticalIllnessScenario($profile, $coverage);
 
         expect($result['payout'])->toEqual(0);
-        expect($result['adequacy'])->toBe('Poor');
+        expect($result)->not->toHaveKey('adequacy');
     });
 });
 
@@ -140,13 +138,13 @@ describe('modelDisabilityScenario', function () {
             'monthly_expenditure',
             'monthly_shortfall',
             'income_replacement_ratio',
-            'adequacy',
             'insights',
         ]);
         expect($result['scenario_type'])->toBe('Disability');
         expect($result['annual_benefit'])->toEqual(30000);
         expect($result['income_replacement_ratio'])->toEqual(60.0);
-        expect($result['adequacy'])->toBe('Excellent');
+        expect($result)->not->toHaveKey('adequacy')
+            ->and(implode(' ', $result['insights']))->not->toContain('Excellent');
     });
 
     it('calculates shortfall when coverage is insufficient', function () {

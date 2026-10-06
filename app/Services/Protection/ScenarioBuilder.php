@@ -36,7 +36,6 @@ class ScenarioBuilder
             'remaining_funds' => max(0, $remainingFunds),
             'monthly_income_potential' => round($monthlyIncome, 2),
             'months_of_support' => round($monthsOfSupport, 1),
-            'adequacy' => $this->assessScenarioAdequacy($remainingFunds, $profile),
             'insights' => $this->generateDeathScenarioInsights($remainingFunds, $monthsOfSupport, $profile),
         ];
     }
@@ -59,7 +58,6 @@ class ScenarioBuilder
             'immediate_needs' => $immediateNeeds,
             'remaining_funds' => max(0, $remainingFunds),
             'months_of_support' => round($monthsOfSupport, 1),
-            'adequacy' => $this->assessScenarioAdequacy($criticalIllnessCoverage, $profile),
             'insights' => $this->generateCriticalIllnessInsights($criticalIllnessCoverage, $monthsOfSupport),
         ];
     }
@@ -82,7 +80,6 @@ class ScenarioBuilder
             'monthly_expenditure' => $profile->monthly_expenditure,
             'monthly_shortfall' => round($shortfall, 2),
             'income_replacement_ratio' => round($replacementRatio, 1),
-            'adequacy' => $this->assessIncomeProtectionAdequacy($replacementRatio),
             'insights' => $this->generateDisabilityInsights($replacementRatio, $shortfall),
         ];
     }
@@ -106,35 +103,6 @@ class ScenarioBuilder
             'coverage_increase' => $coverageIncrease,
             'coverage_increase_percent' => round($coverageIncreasePercent, 1),
         ];
-    }
-
-    /**
-     * Assess scenario adequacy.
-     */
-    private function assessScenarioAdequacy(float $funds, ProtectionProfile $profile): string
-    {
-        $yearsOfSupport = $profile->monthly_expenditure > 0 ?
-                         $funds / ($profile->monthly_expenditure * 12) : 0;
-
-        return match (true) {
-            $yearsOfSupport >= 10 => 'Excellent',
-            $yearsOfSupport >= 5 => 'Good',
-            $yearsOfSupport >= 2 => 'Fair',
-            default => 'Poor',
-        };
-    }
-
-    /**
-     * Assess income protection adequacy.
-     */
-    private function assessIncomeProtectionAdequacy(float $replacementRatio): string
-    {
-        return match (true) {
-            $replacementRatio >= 60 => 'Excellent',
-            $replacementRatio >= 50 => 'Good',
-            $replacementRatio >= 40 => 'Fair',
-            default => 'Poor',
-        };
     }
 
     /**
@@ -168,8 +136,8 @@ class ScenarioBuilder
         } else {
             $insights[] = sprintf(
                 $hasDependants
-                    ? 'Excellent: Coverage would provide %.1f years of support for dependants.'
-                    : 'Excellent: Coverage would provide %.1f years of financial security.',
+                    ? 'Coverage would provide %.1f years of support for dependants.'
+                    : 'Coverage would provide %.1f years of financial security.',
                 $monthsOfSupport / 12
             );
         }
@@ -205,7 +173,7 @@ class ScenarioBuilder
             $insights[] = 'This may cover initial recovery but consider long-term needs.';
         } else {
             $insights[] = sprintf(
-                'Good coverage: Payout would cover %.1f years of expenses.',
+                'The payout would cover %.1f years of expenses.',
                 $monthsOfSupport / 12
             );
         }
@@ -234,7 +202,6 @@ class ScenarioBuilder
                 'This creates a monthly shortfall of £%.2f.',
                 $shortfall
             );
-            $insights[] = 'Consider increasing coverage to at least 50-60% of income.';
         } elseif ($replacementRatio < 60) {
             $insights[] = sprintf(
                 'Income protection would replace %.1f%% of your current income.',
@@ -246,7 +213,7 @@ class ScenarioBuilder
             $insights[] = 'This provides reasonable protection but may need supplementing.';
         } else {
             $insights[] = sprintf(
-                'Excellent: Income protection would replace %.1f%% of your income.',
+                'Income protection would replace %.1f%% of your income.',
                 $replacementRatio
             );
             if ($shortfall > 0) {
