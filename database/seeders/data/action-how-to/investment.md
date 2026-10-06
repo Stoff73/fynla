@@ -75,7 +75,7 @@ why:
 always:
 1. Add up the gains you have made, or expect to make, this tax year from selling investments, property or other assets.
 2. A loss is set against your gains in the same tax year first, before the {annual_exempt_amount} tax-free allowance. If your gains this year are already under the allowance, selling now uses the loss for no saving.
-3. Any loss left over carries forward to later tax years, if you report it to HM Revenue and Customs (HMRC) within four years of the end of the tax year you sold in.
+3. Any loss left over carries forward to later tax years, if you report it to HMRC within four years of the end of the tax year you sold in.
 4. If you sell and buy the same holding back within 30 days in your General Investment Account, the sale is matched with the new purchase and the loss is not available. Buying it back inside your ISA is not matched, as the ISA holds it in a different capacity.
 outcome:
 1. The loss is on record, ready to reduce the Capital Gains Tax on your gains this year or in a later one.
