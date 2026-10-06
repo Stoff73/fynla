@@ -574,6 +574,9 @@ class InvestmentActionDefinitionService
                 'risk_label' => strtolower((string) ($account['risk_label'] ?? 'medium')),
                 'allocation_summary' => implode(', ', $parts),
                 'unrecorded_percent' => (string) round($unrecorded),
+                // How-to conditions (ActionHowToFacts reads booleans as facts).
+                'has_unrecorded' => $unrecorded > 0,
+                'is_isa' => ($account['account_type'] ?? null) === 'isa',
                 'unrecorded_note' => $unrecorded > 0
                     ? ' '.round($unrecorded).'% is in funds whose mix is not recorded, so these figures assume it sits where it closes the gaps first.'
                     : '',
@@ -652,6 +655,8 @@ class InvestmentActionDefinitionService
                 'charges_list' => implode(', ', $charges),
                 'platform_fee_percent' => number_format($platformPercent, 2),
                 'weighted_ocf' => number_format($fundPercent, 2),
+                'has_adviser_fee' => (float) ($acctFees['fees']['advisory_fee'] ?? 0) > 0,
+                'is_isa' => ($acctFees['account_type'] ?? null) === 'isa',
             ];
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);

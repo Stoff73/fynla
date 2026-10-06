@@ -222,6 +222,7 @@ class InvestmentAgent extends BaseAgent
                         $accountDrift[] = [
                             'account_id' => $owned->id,
                             'account_name' => $owned->account_name,
+                            'account_type' => $owned->account_type,
                             'risk_label' => $drift['risk_profile']['effective_risk_label'],
                             'needs_rebalancing' => $drift['needs_rebalancing'],
                             'unrecorded_percent' => $drift['unrecorded_percent'],

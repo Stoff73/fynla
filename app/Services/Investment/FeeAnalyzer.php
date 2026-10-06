@@ -396,6 +396,7 @@ class FeeAnalyzer
         return [
             'account_id' => $account->id,
             'account_name' => (string) ($account->account_name ?? $account->provider ?? 'This account'),
+            'account_type' => $account->account_type,
             'account_value' => $value,
             'holdings_count' => $account->holdings->count(),
             'total_fee_percent' => $charges['total_fee_percent'],
