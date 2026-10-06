@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Constants\TaxDefaults;
+use App\Exceptions\FinancialCalculationException;
 use App\Models\User;
 use App\Services\Stores\TaxConfigStore;
 use Carbon\Carbon;
@@ -646,11 +647,30 @@ class TaxConfigService
     /**
      * Get Protection module configuration
      *
-     * @return array Contains income_multipliers, withdrawal_rates, etc.
+     * @return array Contains needs_calculation and ipt
      */
     public function getProtectionConfig(): array
     {
         return $this->get('protection', []);
+    }
+
+    /**
+     * The protection needs calculations: the ONE place every figure that sizes
+     * a protection need is read from (item 8b, CSJ 2026-10-06). Headings:
+     * life_cover (income_replacement, final_expenses), critical_illness,
+     * income_protection, employer_cover; each figure carries its source.
+     * No fallback figures: a configuration without them is an error, never a guess.
+     *
+     * @return array<string, mixed>
+     */
+    public function getProtectionNeeds(): array
+    {
+        $needs = $this->get('protection.needs_calculation');
+        if (! is_array($needs) || $needs === []) {
+            throw FinancialCalculationException::taxConfigError('protection.needs_calculation', 'missing from the active tax configuration');
+        }
+
+        return $needs;
     }
 
     /**

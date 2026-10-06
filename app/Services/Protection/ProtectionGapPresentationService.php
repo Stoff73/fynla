@@ -7,6 +7,7 @@ namespace App\Services\Protection;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\TaxConfigService;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class ProtectionGapPresentationService
@@ -59,6 +60,7 @@ class ProtectionGapPresentationService
             $user,
         );
         $gaps = $this->gapAnalyzer->calculateCoverageGap($needs, $coverage);
+        $replacement = $needs['income_replacement'];
 
         // W-0227 — the inputs disclosed on the debt panel must be the inputs the
         // figure was actually built from. This published `profile->mortgage_balance`
@@ -81,21 +83,27 @@ class ProtectionGapPresentationService
                 (float) ($needs['human_capital'] ?? 0),
                 (float) ($gaps['coverage_allocated']['human_capital_covered'] ?? 0),
                 (float) ($gaps['gaps_by_category']['human_capital_gap'] ?? 0),
-                [
-                    'income_that_stops' => round((float) ($needs['income_that_stops'] ?? 0), 2),
-                    'income_that_continues' => round((float) ($needs['income_that_continues'] ?? 0), 2),
-                    'net_income_difference' => round((float) ($needs['net_income_difference'] ?? 0), 2),
-                ],
+                $replacement['spending_recorded']
+                    ? [
+                        'household_living_costs_a_year' => $replacement['household_living_costs'],
+                        'income_that_continues_a_year' => $replacement['income_that_continues'],
+                        'income_gap_a_year' => $replacement['income_gap'],
+                    ]
+                    : [],
                 [[
-                    'key' => 'sustainable_withdrawal_rate',
-                    'value' => round((float) $this->taxConfig->get('protection.withdrawal_rates.human_capital', 0.047) * 100, 2),
+                    'key' => 'years_until_state_pension_age',
+                    'value' => $replacement['term_years'],
+                    'unit' => 'years',
+                ], [
+                    'key' => 'personal_injury_discount_rate',
+                    'value' => round($replacement['discount_rate'] * 100, 2),
                     'unit' => 'percent',
                 ], [
                     'key' => 'allocation_priority',
                     'value' => 'Life cover remaining after debt protection',
                     'unit' => null,
                 ]],
-                'This estimates the capital needed to replace earned income that would stop, after continuing household income, using the configured sustainable withdrawal rate.',
+                $this->incomeReplacementExplanation($replacement, (float) ($needs['human_capital'] ?? 0)),
                 $lifePolicies,
             ),
             $this->category(
@@ -135,39 +143,13 @@ class ProtectionGapPresentationService
                 (float) ($needs['final_expenses'] ?? 0),
                 (float) ($gaps['coverage_allocated']['final_expenses_covered'] ?? 0),
                 (float) ($gaps['gaps_by_category']['final_expenses_gap'] ?? 0),
-                ['configured_need' => round((float) ($needs['final_expenses'] ?? 0), 2)],
+                ['cost_of_dying' => round((float) ($needs['final_expenses'] ?? 0), 2)],
                 [[
-                    'key' => 'configured_final_expenses',
-                    'value' => round((float) $this->taxConfig->get('protection.final_expenses', 7500), 2),
-                    'unit' => 'GBP',
-                ], [
                     'key' => 'allocation_priority',
                     'value' => 'After debt and income replacement capital',
                     'unit' => null,
                 ]],
-                'This allows for the configured final-expense amount and applies life cover left after higher-priority needs.',
-                $lifePolicies,
-            ),
-            $this->category(
-                'education_funding',
-                'Education funding',
-                (float) ($needs['education_funding'] ?? 0),
-                (float) ($gaps['coverage_allocated']['education_covered'] ?? 0),
-                (float) ($gaps['gaps_by_category']['education_funding_gap'] ?? 0),
-                [
-                    'number_of_dependants' => (int) ($profile->number_of_dependents ?? 0),
-                    'dependant_ages' => $profile->dependents_ages ?? [],
-                ],
-                [[
-                    'key' => 'annual_cost_per_child',
-                    'value' => (float) $this->taxConfig->get('protection.education_cost_per_year', 9000),
-                    'unit' => 'GBP',
-                ], [
-                    'key' => 'education_end_age',
-                    'value' => 21,
-                    'unit' => 'years',
-                ]],
-                'This estimates education funding to age 21 for each recorded dependant and applies any life cover left after earlier needs.',
+                'The average cost of dying in the UK: the funeral, professional fees and send-off (SunLife Cost of Dying Report 2025). Life cover left after the higher priorities pays it.',
                 $lifePolicies,
             ),
             $this->category(
@@ -184,17 +166,17 @@ class ProtectionGapPresentationService
                     'gross_income' => round((float) ($needs['gross_income'] ?? 0), 2),
                 ],
                 [[
-                    'key' => 'maximum_benefit_ratio',
-                    'value' => round((float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit') * 100, 2),
-                    'unit' => 'percent',
+                    'key' => 'most_an_insurer_pays',
+                    'value' => $this->gapAnalyzer->benefitTiersInWords(),
+                    'unit' => null,
                 ], [
                     'key' => 'coverage_basis',
                     'value' => 'Annualised recorded income, disability and sickness benefits',
                     'unit' => null,
                 ]],
                 sprintf(
-                    'This compares %s%% of your gross earned income with the income protection, disability and sickness benefits you have recorded, as yearly amounts.',
-                    rtrim(rtrim(number_format((float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit') * 100, 2), '0'), '.')
+                    'This compares the most an insurer pays on your gross earned income (%s, Legal & General\'s limit) with the income protection, disability and sickness benefits you have recorded, as yearly amounts.',
+                    $this->gapAnalyzer->benefitTiersInWords()
                 ),
                 $incomePolicies,
             ),
@@ -211,6 +193,38 @@ class ProtectionGapPresentationService
             'categories' => $categories,
             'calculated_at' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * The income replacement working in words, from the figures the analyser
+     * used (item 8b). No spending recorded: say so, never guess (D7).
+     */
+    public function incomeReplacementExplanation(array $replacement, float $capital): string
+    {
+        if (! $replacement['spending_recorded']) {
+            return 'Add your monthly spending to include your family\'s income in this need. Until then it covers your debts and final expenses only.';
+        }
+        if ($replacement['term_years'] <= 0) {
+            return 'You have reached State Pension age, so no earnings would be lost; this need covers your debts and final expenses.';
+        }
+        if ($replacement['income_gap'] <= 0) {
+            return sprintf(
+                'The income that continues, £%s a year, covers your household\'s living costs of £%s a year, so no income replacement is needed; this need covers your debts and final expenses.',
+                number_format($replacement['income_that_continues']),
+                number_format($replacement['household_living_costs']),
+            );
+        }
+
+        return sprintf(
+            'Your household\'s living costs of £%s a year, less £%s a year of income that continues, leave a gap of £%s a year. Paying that until your State Pension age%s, %s years, needs £%s today, at the Personal Injury Discount Rate of %s%% (the rate the law uses to turn a future income into a lump sum).',
+            number_format($replacement['household_living_costs']),
+            number_format($replacement['income_that_continues']),
+            number_format($replacement['income_gap']),
+            $replacement['state_pension_date'] ? ' ('.Carbon::parse($replacement['state_pension_date'])->format('F Y').')' : '',
+            rtrim(rtrim(number_format($replacement['term_years'], 1), '0'), '.'),
+            number_format($capital),
+            rtrim(rtrim(number_format($replacement['discount_rate'] * 100, 2), '0'), '.'),
+        );
     }
 
     private function category(

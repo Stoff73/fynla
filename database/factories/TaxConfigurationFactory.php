@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Models\TaxConfiguration;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -76,6 +77,11 @@ class TaxConfigurationFactory extends Factory
             'effective_from' => $this->attributes['effective_from'] ?? date('Y-04-06'),
             'effective_to' => $this->attributes['effective_to'] ?? date('Y-04-05'),
             'notes' => "Test configuration for {$taxYear}",
+
+            // The protection needs figures, from the seeder's one home (item 8b).
+            'protection' => [
+                'needs_calculation' => TaxConfigurationSeeder::protectionNeedsCalculation(),
+            ],
 
             'income_tax' => [
                 'personal_allowance' => 12570,

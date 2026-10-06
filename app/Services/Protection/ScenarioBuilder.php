@@ -22,7 +22,9 @@ class ScenarioBuilder
         $debtAmount = $profile->mortgage_balance + $profile->other_debts;
         $remainingFunds = $lifeCoverage - $debtAmount;
 
-        $scenarioWithdrawalRate = (float) $this->taxConfig->get('protection.withdrawal_rates.scenario', 0.03);
+        // What the remaining payout pays a year: the Personal Injury Discount
+        // Rate, the one sourced rate for income from a lump sum (item 8b, D1).
+        $scenarioWithdrawalRate = (float) $this->taxConfig->getProtectionNeeds()['life_cover']['income_replacement']['discount_rate'];
         $monthlyIncome = $remainingFunds > 0 ? ($remainingFunds * $scenarioWithdrawalRate) / 12 : 0;
         $monthsOfSupport = $profile->monthly_expenditure > 0 ?
                           $remainingFunds / $profile->monthly_expenditure : 0;

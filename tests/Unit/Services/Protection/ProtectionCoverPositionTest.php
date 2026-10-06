@@ -29,14 +29,24 @@ it('splits life cover into own policies and the job, and says what is short', fu
         'over_by' => 0.0, 'status' => 'short', 'depends_on_job' => true, 'unit' => 'lump_sum']);
 });
 
-it('works out the critical illness need from gross income and the configured multiple', function () {
-    // protection.income_multipliers.critical_illness = 3 (TaxConfigurationSeeder)
+it('reads the critical illness need the analyser works out, and says it is a rule of thumb', function () {
+    // CoverageGapAnalyzer::criticalIllnessNeed: 3 x £72,000 (protection.needs_calculation).
     $p = app(ProtectionCoverPosition::class)->fromAnalysis(
-        ['total_need' => 0, 'gross_income' => 72000, 'income_protection_need' => 0],
+        ['total_need' => 0, 'gross_income' => 72000, 'income_protection_need' => 0, 'critical_illness_need' => 216000],
         coverage(['critical_illness_coverage' => 250000]),
     )['critical_illness'];
 
-    expect($p)->toMatchArray(['need' => 216000.0, 'over_by' => 34000.0, 'short_by' => 0.0, 'status' => 'over']);
+    expect($p)->toMatchArray(['need' => 216000.0, 'over_by' => 34000.0, 'short_by' => 0.0, 'status' => 'over'])
+        ->and($p['basis'])->toBe('This need is a rule of thumb, not a set amount: 3 times your gross earned income. Critical illness cover is usually set by what you can afford.');
+});
+
+it('tells the user the life need leaves out the family income when spending is not recorded', function () {
+    $p = app(ProtectionCoverPosition::class)->fromAnalysis(
+        ['total_need' => 9797, 'income_replacement' => ['spending_recorded' => false]],
+        coverage([]),
+    )['life'];
+
+    expect($p['basis'])->toContain('Your monthly spending is not recorded');
 });
 
 it('shows income protection a month, converting the annual group cover once', function () {
@@ -85,7 +95,7 @@ it('has no position for a user with no protection profile', function () {
 // One figure, every surface (CSJ 2026-10-01): the words web, /m and iOS print
 // come from here, not from three client copies.
 it('words each cover type for every surface', function () {
-    $position = app(\App\Services\Protection\ProtectionCoverPosition::class)->fromAnalysis(
+    $position = app(ProtectionCoverPosition::class)->fromAnalysis(
         ['total_need' => 400000, 'gross_income' => 0, 'income_protection_need' => 30000],
         ['life_coverage' => 250000, 'income_protection_coverage' => 30000, 'employer_benefits' => []],
     );

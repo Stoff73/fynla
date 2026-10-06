@@ -35,9 +35,10 @@ describe('Protection Cache Invalidation', function () {
         $agent = app(ProtectionAgent::class);
         $firstAnalysis = $agent->analyze($user->id);
 
-        // Verify human capital was calculated (should be > 0)
-        expect($firstAnalysis['data']['needs']['human_capital'])->toBeGreaterThan(0);
-        $firstHumanCapital = $firstAnalysis['data']['needs']['human_capital'];
+        // The income protection need moves with income (item 8b: the life need's
+        // income part comes from spending, not income).
+        expect($firstAnalysis['data']['needs']['income_protection_need'])->toEqual(30000.0);
+        $firstNeed = $firstAnalysis['data']['needs']['income_protection_need'];
 
         // Update user income via API
         $response = $this->actingAs($user, 'sanctum')
@@ -54,17 +55,9 @@ describe('Protection Cache Invalidation', function () {
 
         // Second analysis - should recalculate with new income (NOT use cached value)
         $secondAnalysis = $agent->analyze($user->id);
-        $secondHumanCapital = $secondAnalysis['data']['needs']['human_capital'];
-
-        // Human capital should be different (higher) with increased income
-        expect($secondHumanCapital)->toBeGreaterThan($firstHumanCapital);
-
-        // Verify the increase is at least 30% (accounting for progressive tax bands)
-        // Gross income increased 50% (£50k → £75k), but net income increases less
-        // due to 40% tax on income above £50,270
-        $minimumIncrease = $firstHumanCapital * 1.3;
-
-        expect($secondHumanCapital)->toBeGreaterThanOrEqual($minimumIncrease);
+        // 60% of the first £60,000 and 50% above: £36,000 + £7,500.
+        expect($secondAnalysis['data']['needs']['income_protection_need'])->toEqual(43500.0)
+            ->and($secondAnalysis['data']['needs']['income_protection_need'])->toBeGreaterThan($firstNeed);
     });
 
     it('caches protection analysis results', function () {

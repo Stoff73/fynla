@@ -705,9 +705,9 @@ class ProtectionActionDefinitionSeeder extends Seeder
                 'trigger_config' => [
                     'condition' => 'education_funding_gap',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 131,
-                'notes' => 'Triggers when education funding gap exists for dependant children.',
+                'notes' => 'Removed 2026-10-06 (item 8b, D5): there is no separate education need; children\'s costs sit in the household living costs the income gap replaces, and tuition in England is paid by the student\'s own loan.',
             ],
 
             [
