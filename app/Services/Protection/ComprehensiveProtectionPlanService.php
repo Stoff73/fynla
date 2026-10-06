@@ -465,8 +465,11 @@ class ComprehensiveProtectionPlanService
         $coverage = $data['coverage'] ?? [];
         $recommendations = $data['recommendations'] ?? [];
 
+        // No premium figure on any of these: nothing sources what an insurer
+        // would charge this person, so the plan states the cover and leaves the
+        // price to the quotes (Rule 23; CSJ 2026-10-06 "we do not make up
+        // monthly premiums").
         $strategyRecommendations = [];
-        $totalEstimatedCost = 0;
         $totalCoverageIncrease = 0;
 
         $totalGap = $gaps['total_gap'] ?? 0;
@@ -474,24 +477,16 @@ class ComprehensiveProtectionPlanService
         // Priority 1: Life Insurance (if gap exists and user has dependants)
         $hasDependants = ($profile->number_of_dependents ?? 0) > 0;
         if ($totalGap > 10000 && $hasDependants) {
-            $estimatedMonthlyPremium = $this->estimateLifePremium(
-                $totalGap,
-                $profile->age ?? 40,
-                ProfileEnums::isSmoker($profile->user?->smoking_status) === true
-            );
-
             $strategyRecommendations[] = [
                 'priority' => 1,
                 'category' => 'Life Insurance',
                 'action' => 'Increase Life Insurance Coverage',
                 'details' => 'Add £'.number_format($totalGap, 0).' life insurance coverage to protect your dependants',
                 'coverage_amount' => $totalGap,
-                'estimated_monthly_cost' => $estimatedMonthlyPremium,
                 'timeframe' => 'Immediate',
                 'importance' => 'Critical',
             ];
 
-            $totalEstimatedCost += $estimatedMonthlyPremium;
             $totalCoverageIncrease += $totalGap;
         }
 
@@ -502,24 +497,16 @@ class ComprehensiveProtectionPlanService
         $ciGap = max(0, $ciNeed - $ciCoverage);
 
         if ($ciGap > 10000) {
-            $estimatedMonthlyPremium = $this->estimateCIPremium(
-                $ciGap,
-                $profile->age ?? 40,
-                ProfileEnums::isSmoker($profile->user?->smoking_status) === true
-            );
-
             $strategyRecommendations[] = [
                 'priority' => 2,
                 'category' => 'Critical Illness',
                 'action' => 'Add Critical Illness Coverage',
                 'details' => 'Add £'.number_format($ciGap, 0).' critical illness coverage for financial security',
                 'coverage_amount' => $ciGap,
-                'estimated_monthly_cost' => $estimatedMonthlyPremium,
                 'timeframe' => 'Immediate',
                 'importance' => 'High',
             ];
 
-            $totalEstimatedCost += $estimatedMonthlyPremium;
             $totalCoverageIncrease += $ciGap;
         }
 
@@ -530,23 +517,16 @@ class ComprehensiveProtectionPlanService
         $ipMonthlyGap = max(0, $ipMonthlyNeed - $ipMonthlyCoverage);
 
         if ($ipMonthlyGap > 100) {
-            $estimatedMonthlyPremium = $this->estimateIPPremium(
-                $ipMonthlyGap,
-                $profile->age ?? 40
-            );
-
             $strategyRecommendations[] = [
                 'priority' => 3,
                 'category' => 'Income Protection',
                 'action' => 'Add Income Protection Coverage',
                 'details' => 'Add £'.number_format($ipMonthlyGap, 0).'/month income protection for long-term disability',
                 'monthly_benefit' => $ipMonthlyGap,
-                'estimated_monthly_cost' => $estimatedMonthlyPremium,
                 'timeframe' => 'Within 3 months',
                 'importance' => 'Medium',
             ];
 
-            $totalEstimatedCost += $estimatedMonthlyPremium;
         }
 
         return [
@@ -554,10 +534,6 @@ class ComprehensiveProtectionPlanService
             'recommendations' => $strategyRecommendations,
             'summary' => [
                 'total_coverage_increase' => $totalCoverageIncrease,
-                'total_estimated_monthly_cost' => $totalEstimatedCost,
-                'total_estimated_annual_cost' => $totalEstimatedCost * 12,
-                'affordability_percentage' => $profile->monthly_expenditure > 0 ?
-                    round(($totalEstimatedCost / ($profile->monthly_expenditure * 0.1)) * 100, 1) : 0,
             ],
         ];
     }
@@ -725,28 +701,5 @@ class ComprehensiveProtectionPlanService
         // the mapping itself lives in ONE place now — `/m` was carrying a second
         // copy in a Vue computed property (Rule 20).
         return PremiumAnnualiser::toAnnual($amount, $frequency);
-    }
-
-    private function estimateLifePremium(float $coverage, int $age, bool $smoker): float
-    {
-        // Simplified premium estimation (£ per £1000 of coverage per month)
-        $baseRate = $smoker ? 1.5 : 0.8;
-        $ageMultiplier = 1 + (($age - 30) * 0.05);
-
-        return ($coverage / 1000) * $baseRate * $ageMultiplier;
-    }
-
-    private function estimateCIPremium(float $coverage, int $age, bool $smoker): float
-    {
-        // CI is typically 50% more expensive than life insurance
-        return $this->estimateLifePremium($coverage, $age, $smoker) * 1.5;
-    }
-
-    private function estimateIPPremium(float $monthlyBenefit, int $age): float
-    {
-        // IP typically costs 1-3% of benefit per month
-        $rate = 0.02 + (($age - 30) * 0.001);
-
-        return $monthlyBenefit * $rate;
     }
 }

@@ -59,7 +59,7 @@ describe('generateRecommendations', function () {
 
         expect($result)->toBeArray();
         expect($result)->not->toBeEmpty();
-        expect($result[0])->toHaveKeys(['priority', 'category', 'action', 'rationale', 'impact', 'estimated_cost']);
+        expect($result[0])->toHaveKeys(['priority', 'category', 'action', 'rationale', 'impact']);
         expect($result[0]['category'])->toBe('Life Insurance');
         expect($result[0]['action'])->toContain('Increase life insurance');
     });
@@ -169,7 +169,8 @@ describe('generateRecommendations', function () {
         expect($priorities)->toEqual($sortedPriorities);
     });
 
-    it('includes estimated cost in recommendations', function () {
+    // No premium figure: nothing sources what an insurer would charge (Rule 23; CSJ 2026-10-06).
+    it('never estimates a premium', function () {
         $user = User::factory()->create(['date_of_birth' => now()->subYears(35)]);
         $profile = ProtectionProfile::factory()->create([
             'user_id' => $user->id,
@@ -188,6 +189,6 @@ describe('generateRecommendations', function () {
         $result = $this->engine->generateRecommendations($gaps, $profile);
 
         expect($result)->not->toBeEmpty();
-        expect($result[0]['estimated_cost'])->toBeGreaterThan(0);
+        expect($result[0])->not->toHaveKey('estimated_cost');
     });
 });

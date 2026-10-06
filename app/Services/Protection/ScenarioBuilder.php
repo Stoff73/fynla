@@ -95,18 +95,14 @@ class ScenarioBuilder
         $coverageIncreasePercent = $currentCoverage > 0 ?
                                   ($coverageIncrease / $currentCoverage) * 100 : 0;
 
-        // Simplified premium estimation: base rate per £1,000 per year
-        $baseRate = (float) $this->taxConfig->get('protection.premium_factors.base_rate', 0.50);
-        $estimatedPremiumIncrease = ($coverageIncrease / 1000) * $baseRate / 12;
-
+        // No premium figure: nothing sources what an insurer would charge for
+        // the extra cover (Rule 23; CSJ 2026-10-06). Only a quote gives one.
         return [
             'scenario_type' => 'Premium Change',
             'current_coverage' => $currentCoverage,
             'new_coverage' => $newCoverage,
             'coverage_increase' => $coverageIncrease,
             'coverage_increase_percent' => round($coverageIncreasePercent, 1),
-            'estimated_monthly_premium_increase' => round($estimatedPremiumIncrease, 2),
-            'estimated_annual_premium_increase' => round($estimatedPremiumIncrease * 12, 2),
         ];
     }
 
