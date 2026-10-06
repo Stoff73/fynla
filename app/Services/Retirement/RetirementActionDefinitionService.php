@@ -32,6 +32,9 @@ class RetirementActionDefinitionService
     private const NEEDS_NO_PROFILE = [
         'pension_value_unknown', 'state_pension_no_forecast', 'ni_gaps',
         'pension_consolidation_opportunity', 'high_pension_total_fees', 'high_pension_platform_fees', 'high_pension_fund_fees',
+        // Reads the user's own smoking and health answers and their pensions,
+        // never a target (item 8a): a retiree set up through Fyn has no profile.
+        'enhanced_annuity_eligible',
     ];
 
     /**

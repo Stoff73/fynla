@@ -305,7 +305,7 @@ class RetirementActionDefinitionSeeder extends Seeder
                 'key' => 'enhanced_annuity_eligible',
                 'source' => 'agent',
                 'title_template' => 'Ask for enhanced annuity quotes',
-                'description_template' => 'What an annuity pays can depend on your health, so an annuity provider may offer you more than its standard rates.',
+                'description_template' => 'Your smoking or health answers could mean a better annuity rate.',
                 'action_template' => 'Give every provider your health details when you ask for annuity quotes.',
                 'category' => 'Annuity',
                 'priority' => 'medium',
@@ -316,7 +316,7 @@ class RetirementActionDefinitionSeeder extends Seeder
                 ],
                 'is_enabled' => true,
                 'sort_order' => 55,
-                'notes' => 'Triggers when smoker status or health condition qualifies for enhanced annuity rates.',
+                'notes' => 'Triggers on the user\'s own answers (users.smoking_status / health_status): smoked in the last 12 months, or any health condition now or in the past (item 8a).',
             ],
 
             [

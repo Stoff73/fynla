@@ -443,6 +443,18 @@ describe('evaluateAgentActions', function () {
             ->and(json_encode($card['decision_trace']))->not->toMatch('/\d+(\.\d+)?%|enhancement factor|per year more/i');
     });
 
+    it('gives a retiree with no retirement profile the enhanced annuity card (8a)', function () {
+        $retiree = User::factory()->create(['employment_status' => 'retired', 'smoking_status' => 'never', 'health_status' => 'no_existing', 'is_preview_user' => false]);
+        DCPension::create([
+            'user_id' => $retiree->id, 'scheme_name' => 'SIPP', 'scheme_type' => 'personal',
+            'pension_type' => 'personal', 'current_fund_value' => 200000,
+        ]);
+
+        $keys = array_column($this->service->evaluateAgentActions(['user_id' => $retiree->id])['recommendations'], 'definition_key');
+
+        expect($keys)->toContain('enhanced_annuity_eligible');
+    });
+
     it('gives no enhanced annuity card when smoking and health are not answered (8a)', function () {
         $this->user->update(['smoking_status' => null, 'health_status' => null]);
         DCPension::create([
