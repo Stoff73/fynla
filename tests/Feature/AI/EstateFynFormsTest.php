@@ -111,6 +111,10 @@ it('saves a pension beneficiary from Fyn\'s pension form, add and edit alike', f
         'provider' => 'Aviva', 'current_value' => 50000, 'beneficiary_name' => 'Jo',
     ]], 'record' => ['type' => 'dc_pension', 'id' => $pension->id]]);
     expect($pension->fresh()->beneficiary_name)->toBe('Jo');
+
+    // The user's own line in the chat says whom it goes to, so they can see it was taken.
+    $said = AiConversation::findOrFail($edit)->messages()->where('role', 'user')->latest('id')->value('content');
+    expect($said)->toContain('to go to Jo if I die');
 });
 
 it('gives the Lasting Power of Attorney card a link that opens Fyn on its form', function (): void {

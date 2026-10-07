@@ -647,6 +647,9 @@ final class CaptureForms
         if (isset($input['monthly_contribution_amount'])) {
             $parts[] = 'I pay in '.self::pounds($input['monthly_contribution_amount'] * 12).' a year';
         }
+        if (isset($input['beneficiary_name'])) {
+            $parts[] = 'to go to '.$input['beneficiary_name'].' if I die';
+        }
 
         return implode(', ', $parts).'.';
     }
