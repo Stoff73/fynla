@@ -174,8 +174,9 @@ final class WalkFormPrefill
 
     /**
      * The working-spouse form: what they do, when already known (an earlier
-     * answer, the funnel, or their own linked account), and a linked
-     * partner's own income when none was given for them.
+     * answer, the funnel, or their own linked account while they share it),
+     * and a linked partner's own income when none was given for them. Their
+     * account is read only through the sharing permission, as their income is.
      *
      * @return array{values: array<string, array<string, mixed>>, record: null}|null
      */
@@ -185,7 +186,7 @@ final class WalkFormPrefill
         $lead = [];
 
         $known = array_column(CaptureForms::SPOUSE_STATUS_OPTIONS, 'value');
-        foreach ([$holding?->spouse_employment_status, FunnelAnswersMapper::spouseEmploymentStatus($user), $user->liveSpouse()?->employment_status] as $status) {
+        foreach ([$holding?->spouse_employment_status, FunnelAnswersMapper::spouseEmploymentStatus($user), $this->household->partnerWithOwnRecords($user)?->employment_status] as $status) {
             if (in_array($status, $known, true)) {
                 $lead['spouse_employment_status'] = $status;
                 break;
