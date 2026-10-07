@@ -136,6 +136,6 @@ always:
 1. Ask the provider of {pension_name} how to tell it whom you would like to receive the money when you die, and complete its form.
 2. From 6 April 2027 most unused pension money counts towards your estate for Inheritance Tax. What passes to a husband, wife or civil partner is free of it.
 3. Check the form again after a marriage, a divorce, a death or a birth in your family.
-4. Then record the beneficiary on the pension on the Retirement page.
+4. Then record the beneficiary on the pension, on the Retirement page of the web app. You can mark this action as done on any device.
 outcome:
 1. The scheme knows whom you would like the money to go to.

@@ -41,7 +41,6 @@ use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
@@ -319,7 +318,7 @@ it('LetterToSpouseService bank accounts info lists all single-owner accounts', f
     expect($info)->not->toContain('OtherBank');
 });
 
-it('EstateActionDefinitionService::evaluateActions surfaces iht_position with correct estimated_impact when savings push estate above NRB+RNRB', function () {
+it('EstateActionDefinitionService::evaluateActions surfaces iht_position with the correct tax when savings push estate above NRB+RNRB', function () {
     $this->seed(EstateActionDefinitionSeeder::class);
 
     $user = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'single', 'date_of_birth' => '1970-01-01']);
@@ -364,7 +363,9 @@ it('EstateActionDefinitionService::evaluateActions surfaces iht_position with co
         ->firstWhere('definition_key', 'iht_position');
 
     expect($ihtRec)->not->toBeNull();
-    expect($ihtRec['estimated_impact'])->toBe(70000.0);
+    expect($ihtRec['figures']['iht_liability'])->toBe('£70,000')
+        // The tax due is never presented as a saving (item 9).
+        ->and($ihtRec)->not->toHaveKey('estimated_impact');
 });
 
 // PR 5c-1 parity tests — Plans cluster
@@ -1031,7 +1032,7 @@ it('TaxStrategyMath::estimateIsaSubscriptionsThisYear is ISATracker\'s figure', 
     ]);
 
     expect(app(TaxStrategyMath::class)->estimateIsaSubscriptionsThisYear($user))
-        ->toBe((float) app(\App\Services\Savings\ISATracker::class)->usedThisTaxYear($user)['total_used'])
+        ->toBe((float) app(ISATracker::class)->usedThisTaxYear($user)['total_used'])
         ->toBe(12000.0);
 });
 

@@ -188,7 +188,8 @@ class EstateActionDefinitionService
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
-        $rec['estimated_impact'] = round($ihtLiability, 2);
+        // No `estimated_impact`: the list shows it as "You could save £X", and the
+        // tax due is not a saving (the old card claimed the whole tax as one).
         $rec['figures'] = array_filter($vars, static fn ($v): bool => is_scalar($v));
 
         return [$rec];
