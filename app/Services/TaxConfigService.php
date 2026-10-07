@@ -540,15 +540,11 @@ class TaxConfigService
      * the admin setting did nothing, and editing either service let the two
      * answers drift apart with nothing comparing them.
      *
-     * The two numbers are surfaced explicitly because they are the ones the
-     * strategies act on, and neither is in the legislation: s21 sets no cap at
-     * all. `safe_surplus_fraction` is a deliberate conservatism — the third
-     * statutory test is that the donor keeps their usual standard of living, so
-     * suggesting the whole surplus would advise up to the edge of failing it.
-     * `minimum_annual_gift` is the point below which a standing order is not
-     * worth the record-keeping the exemption demands.
+     * s21 sets no cap, fraction or floor, so none is configured: the whole
+     * surplus after the usual spending is the figure (item 9, 2026-10-07; the
+     * 50% fraction and £1,000 floor that stood here had no source).
      *
-     * @return array{limit: null|float, immediately_exempt: bool, safe_surplus_fraction: float, minimum_annual_gift: float, conditions: array<string, bool>, evidence_required: list<string>}
+     * @return array{limit: null|float, immediately_exempt: bool, conditions: array<string, bool>, evidence_required: list<string>}
      */
     public function getNormalExpenditureFromIncome(): array
     {
@@ -557,8 +553,6 @@ class TaxConfigService
         return $rules + [
             'limit' => null,
             'immediately_exempt' => true,
-            'safe_surplus_fraction' => 0.5,
-            'minimum_annual_gift' => 1000.0,
             'conditions' => [],
             'evidence_required' => [],
         ];
@@ -696,7 +690,7 @@ class TaxConfigService
     /**
      * Get Estate planning configuration
      *
-     * @return array Contains onboarding_estimates
+     * @return array The `estate` block (its setup estimates were removed, item 9)
      */
     public function getEstateConfig(): array
     {

@@ -145,12 +145,12 @@ describe('AccountStrategyCard', () => {
   it('recommends rebalancing when allocation drift exceeds the threshold', () => {
     const wrapper = mountCard({
       rebalancingData: {
-        drift_analysis: { needs_rebalancing: true, drift_score: 8.2 },
+        drift_analysis: { needs_rebalancing: true, max_drift: 8.2 },
       },
     });
 
     expect(wrapper.text()).toContain('Rebalancing Needed');
-    expect(wrapper.text()).toContain('8.2%');
+    expect(wrapper.text()).toContain('8.2 percentage points');
   });
 
   it('limits the visible recommendations to three', () => {

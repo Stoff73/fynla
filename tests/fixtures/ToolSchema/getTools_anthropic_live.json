@@ -1858,6 +1858,30 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "investment_amount": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "bond_purchase_date": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "bond_withdrawal_taken": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -1981,6 +2005,14 @@
                                     ]
                                 },
                                 "pcls_taken": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "beneficiary_name": {
                                     "type": [
                                         "string",
                                         "number",

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Actions;
 
+use App\Constants\GateRoutes;
 use App\Models\EstateActionDefinition;
 use App\Models\InvestmentActionDefinition;
 use App\Models\PlanActionFundingSelection;
@@ -13,6 +14,7 @@ use App\Models\RetirementActionDefinition;
 use App\Models\SavingsActionDefinition;
 use App\Models\TaxActionDefinition;
 use App\Models\User;
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Mobile\NextActionsService;
@@ -175,6 +177,24 @@ final class ActionCardService
         ];
     }
 
+    /**
+     * The POST /api/ai-chat/contextual-conversations body that opens Fyn on a
+     * blank form for a resource (no recommendation, so the add form opens:
+     * ContextualConversationService).
+     *
+     * @return array<string, mixed>
+     */
+    private static function fynAddRequest(string $resourceType): array
+    {
+        return [
+            'action' => 'add',
+            'resource_type' => $resourceType,
+            'resource_id' => null,
+            'current_destination' => GateRoutes::destination(app(ContextualResourceResolver::class)->overviewScreenFor($resourceType)),
+            'origin' => ['kind' => 'surface_action', 'recommendation_id' => null],
+        ];
+    }
+
     /** The definition model per module, where its approved how-to steps live. */
     private const DEFINITIONS = [
         'tax' => TaxActionDefinition::class,
@@ -217,8 +237,13 @@ final class ActionCardService
             'why' => ActionHowTo::render($steps, $facts, $text, 'why'),
             'outcome' => ActionHowTo::render($steps, $facts, $text, 'outcome'),
             // "Label | /path": a page of Fynla's own help, never an outside site.
+            // "Label | fyn:add/<resource>": Fyn opens that record's form in chat,
+            // the same contextual request every client already posts (item 9).
             'learn' => array_values(array_filter(array_map(static function (string $line): ?array {
                 [$label, $url] = array_map('trim', explode('|', $line, 2) + [1 => '']);
+                if ($label !== '' && preg_match('#^fyn:add/([a-z_]+)$#', $url, $m) === 1) {
+                    return ['label' => $label, 'url' => null, 'fyn' => self::fynAddRequest($m[1])];
+                }
 
                 return $label !== '' && str_starts_with($url, '/') ? ['label' => $label, 'url' => $url] : null;
             }, ActionHowTo::render($steps, $facts, $text, 'learn')))),

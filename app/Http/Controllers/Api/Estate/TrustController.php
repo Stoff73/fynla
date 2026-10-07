@@ -203,7 +203,7 @@ class TrustController extends Controller
         }
 
         // Use the simplified IHT calculation service
-        // W-0480 F2 — the same line as `ComprehensiveEstatePlanService`, feeding the same
+        // W-0480 F2 — the same line the deleted `ComprehensiveEstatePlanService` held, feeding the same
         // `calculate()`. Left reading `['married']` alone, it handed a civil partnership a
         // null spouse and so a single-person Inheritance Tax liability on this screen,
         // beside the corrected one on the next.

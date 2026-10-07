@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Plans;
 
 use App\Agents\EstateAgent;
-use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
@@ -84,8 +83,9 @@ class EstatePlanService extends BasePlanService
         $recommendations = $this->enrichRecommendations($recommendations, $user, $data);
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($recommendations, 'estate', $options);
 
-        // Attach gifting detail to actions from the analysis data
-        $actions = $this->attachGiftingDetailToActions($actions, $data);
+        // No gifting timeline is attached to the steps: each step carries its own
+        // figure from the one step engine (EstateAgent), so a step never sits
+        // beside a second, contradicting set of cycles and totals (item 9).
 
         $currentSituation = $this->buildCurrentSituation($data, $user);
         $whatIf = $this->buildWhatIfData($data, $enabledActions);
@@ -175,9 +175,9 @@ class EstatePlanService extends BasePlanService
     private function identifyFundingSource(string $category, array $rec, float $liquidAssets): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $ihtRate = (float) $ihtConfig['standard_rate'];
         $giftingConfig = $this->taxConfig->getGiftingExemptions();
-        $annualExemption = (float) ($giftingConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION);
+        $annualExemption = (float) $giftingConfig['annual_exemption'];
 
         $amount = match ($category) {
             'charitable_bequest' => (float) ($rec['shortfall'] ?? $rec['potential_saving'] ?? 0),
@@ -530,8 +530,8 @@ class EstatePlanService extends BasePlanService
 
         // Rate and NRB/RNRB messages
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtStandardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $charitableRate = (float) ($ihtConfig['reduced_rate_charity'] ?? TaxDefaults::IHT_CHARITABLE_RATE);
+        $ihtStandardRate = (float) $ihtConfig['standard_rate'];
+        $charitableRate = $this->taxConfig->getCharitableReducedRate();
 
         // WillAnalysisService::analyzeCharitableBequests() returns 'below',
         // 'at' or 'above' — never 'qualifies'. This comparison was the same bug
@@ -776,49 +776,6 @@ class EstatePlanService extends BasePlanService
     }
 
     /**
-     * Attach gifting detail from analysis data to matching actions.
-     */
-    private function attachGiftingDetailToActions(array $actions, array $data): array
-    {
-        $giftingStrategies = $data['gifting_opportunities']['strategies'] ?? [];
-
-        // Build lookup by strategy name keywords
-        $petStrategy = null;
-        $annualStrategy = null;
-        foreach ($giftingStrategies as $strategy) {
-            $name = strtolower($strategy['strategy_name'] ?? '');
-            if (str_contains($name, 'pet') || str_contains($name, 'potentially exempt')) {
-                $petStrategy = $strategy;
-            }
-            if (str_contains($name, 'annual exemption')) {
-                $annualStrategy = $strategy;
-            }
-        }
-
-        foreach ($actions as &$action) {
-            $category = $action['category'] ?? '';
-
-            if ($category === 'pet_gifting' && $petStrategy) {
-                $action['gift_schedule'] = $petStrategy['gift_schedule'] ?? [];
-                $action['seven_year_cycles'] = (int) ($petStrategy['number_of_cycles'] ?? 0);
-                $action['amount_per_cycle'] = (float) ($petStrategy['amount_per_cycle'] ?? 0);
-            }
-
-            if ($category === 'annual_gifting' && $annualStrategy) {
-                $action['annual_gifting_detail'] = [
-                    'annual_amount' => (float) ($annualStrategy['annual_amount'] ?? 0),
-                    'years' => (int) ($annualStrategy['years'] ?? 0),
-                    'total_gifted' => (float) ($annualStrategy['total_gifted'] ?? 0),
-                    'iht_saved' => (float) ($annualStrategy['iht_saved'] ?? 0),
-                ];
-            }
-        }
-        unset($action);
-
-        return $actions;
-    }
-
-    /**
      * Build joint estate view for married users with spouse data.
      */
     private function buildJointEstateView(User $user, array $data): ?array
@@ -889,49 +846,84 @@ class EstatePlanService extends BasePlanService
         return rtrim(rtrim(number_format($percent, 2), '0'), '.').'%';
     }
 
+    /**
+     * The position with the plan's actions taken, worked out on the server for
+     * every combination of the actions that change the tax (item 9, CSJ
+     * 2026-10-07: the old total added each action's saving, but they interact,
+     * and the browser added them again when actions were toggled).
+     *
+     * Only two steps change the tax: the larger gifts (out of the estate once
+     * survived, IHTA 1984 s3A, s7) and the charity gift (the reduced rate,
+     * Schedule 1A). A gift lowers the estate the 10% test measures, so the
+     * charity gift needed is worked out again on the smaller estate. Annual
+     * gifts save per year, life cover pays the tax rather than reducing it, and
+     * a gift into a trust has no amount: none changes these figures.
+     *
+     * Figures are the Inheritance Tax engine's own household figures, the ones
+     * its tax is worked on (W-0501).
+     */
     private function buildWhatIfData(array $data, array $enabledActions): array
     {
-        $summary = $data['summary'] ?? [];
-        $ihtLiability = (float) ($summary['iht_liability'] ?? 0);
-        $netEstate = (float) ($summary['net_estate'] ?? 0);
-        $grossEstate = (float) ($summary['gross_estate'] ?? 0);
+        $iht = $data['iht_calculation'] ?? [];
+        $charity = $data['charitable_analysis'] ?? [];
+        $ihtLiability = (float) ($data['summary']['iht_liability'] ?? 0);
+        $netEstate = (float) ($iht['total_net_estate'] ?? $data['summary']['net_estate'] ?? 0);
+        $grossEstate = (float) ($iht['total_gross_assets'] ?? $data['summary']['gross_estate'] ?? 0);
+        $taxableEstate = (float) ($iht['taxable_estate'] ?? 0);
+        $rate = (float) ($iht['iht_rate'] ?? $this->taxConfig->getInheritanceTax()['standard_rate']);
+        $reducedRate = $this->taxConfig->getCharitableReducedRate();
+        $thresholdPercent = $this->taxConfig->getCharitableThresholdPercent();
 
-        $currentToBeneficiaries = max(0, $netEstate - $ihtLiability);
-        $currentEffectiveRate = $grossEstate > 0 ? ($ihtLiability / $grossEstate) * 100 : 0;
-
-        // Calculate total mitigation from enabled actions
-        $totalSavings = 0;
-        $savingsMap = [];
-
+        $taxChanging = [];
         foreach ($enabledActions as $action) {
-            $saving = (float) ($action['estimated_impact'] ?? 0);
-            $savingsMap[$action['id']] = $saving;
-            $totalSavings += $saving;
+            if (in_array($action['category'] ?? '', ['charitable_bequest', 'pet_gifting'], true)) {
+                $taxChanging[$action['category']] = $action['id'];
+            }
+        }
+        $gift = (float) (collect($enabledActions)->firstWhere('category', 'pet_gifting')['impact_parameters']['gift'] ?? 0);
+
+        $position = function (bool $withCharity, bool $withGift) use ($ihtLiability, $netEstate, $grossEstate, $taxableEstate, $rate, $reducedRate, $thresholdPercent, $charity, $gift): array {
+            $given = $withGift ? $gift : 0.0;
+            $taxable = max(0.0, $taxableEstate - $given);
+            $charityGift = 0.0;
+            $tax = $withGift ? $taxable * $rate : $ihtLiability;
+            if ($withCharity && ($charity['status'] ?? null) === 'below') {
+                $baseline = max(0.0, (float) ($charity['baseline'] ?? 0) - $given);
+                $charityGift = max(0.0, $thresholdPercent * $baseline - (float) ($charity['charitable_total'] ?? 0));
+                $tax = max(0.0, $taxable - $charityGift) * $reducedRate;
+            }
+
+            return [
+                'iht_liability' => $this->roundToPenny($tax),
+                'effective_tax_rate' => $grossEstate > 0 ? round($tax / $grossEstate * 100, 1) : 0,
+                'estate_to_beneficiaries' => $this->roundToPenny(max(0.0, $netEstate - $tax - $charityGift)),
+                'total_mitigation_savings' => $this->roundToPenny(max(0.0, $ihtLiability - $tax)),
+            ];
+        };
+
+        // One projected position per set of tax-changing actions switched on,
+        // keyed by their ids joined in id order ('' for none).
+        $byEnabled = [];
+        $ids = array_values($taxChanging);
+        sort($ids);
+        foreach ([[], ...array_map(fn ($id) => [$id], $ids), ...(count($ids) === 2 ? [$ids] : [])] as $set) {
+            $byEnabled[implode('+', $set)] = $position(
+                in_array($taxChanging['charitable_bequest'] ?? null, $set, true),
+                in_array($taxChanging['pet_gifting'] ?? null, $set, true),
+            );
         }
 
-        $projectedLiability = max(0, $ihtLiability - $totalSavings);
-        $projectedToBeneficiaries = max(0, $netEstate - $projectedLiability);
-        $projectedEffectiveRate = $grossEstate > 0 ? ($projectedLiability / $grossEstate) * 100 : 0;
+        $current = $position(false, false);
 
         return [
             'current_scenario' => [
-                'iht_liability' => $this->roundToPenny($ihtLiability),
-                'effective_tax_rate' => round($currentEffectiveRate, 1),
-                'estate_to_beneficiaries' => $this->roundToPenny($currentToBeneficiaries),
+                'iht_liability' => $current['iht_liability'],
+                'effective_tax_rate' => $current['effective_tax_rate'],
+                'estate_to_beneficiaries' => $current['estate_to_beneficiaries'],
             ],
-            'projected_scenario' => [
-                'iht_liability' => $this->roundToPenny($projectedLiability),
-                'effective_tax_rate' => round($projectedEffectiveRate, 1),
-                'estate_to_beneficiaries' => $this->roundToPenny($projectedToBeneficiaries),
-                'total_mitigation_savings' => $this->roundToPenny($totalSavings),
-            ],
-            'is_approximate' => true,
-            'frontend_calc_params' => [
-                'current_iht_liability' => $ihtLiability,
-                'net_estate' => $netEstate,
-                'gross_estate' => $grossEstate,
-                'savings_map' => $savingsMap,
-            ],
+            'projected_scenario' => $byEnabled[implode('+', $ids)],
+            'projected_by_enabled' => $byEnabled,
+            'tax_changing_action_ids' => $ids,
         ];
     }
 }

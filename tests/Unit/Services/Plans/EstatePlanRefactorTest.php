@@ -41,6 +41,7 @@ beforeEach(function () {
     // and a per-test override is silently ignored — which is how the assertion
     // below came to pass against a hardcoded literal (C3).
     $this->taxConfig->shouldReceive('getCharitableThresholdPercent')->andReturn(0.10)->byDefault();
+    $this->taxConfig->shouldReceive('getCharitableReducedRate')->andReturn(0.36)->byDefault();
     $this->taxConfig->shouldReceive('getGiftingExemptions')->andReturn([
         'annual_exemption' => 3000,
     ]);
@@ -564,7 +565,7 @@ describe('Current Situation Expansion', function () {
 });
 
 describe('Gifting Detail Attachment', function () {
-    it('merges gift_schedule for pet_gifting [5.1.T6]', function () {
+    it('attaches no seven-year cycles to the larger gifts step (item 9: one figure per step)', function () {
         $user = User::factory()->create([
             'date_of_birth' => now()->subYears(50),
         ]);
@@ -574,10 +575,7 @@ describe('Gifting Detail Attachment', function () {
             'strategies' => [
                 [
                     'strategy_name' => 'Potentially Exempt Transfer Strategy',
-                    'gift_schedule' => [
-                        ['year' => 0, 'amount' => 50000, 'iht_reduction' => 20000, 'exempt_after_year' => 7],
-                        ['year' => 7, 'amount' => 50000, 'iht_reduction' => 20000, 'exempt_after_year' => 14],
-                    ],
+                    'gift_schedule' => [['year' => 0, 'amount' => 50000, 'iht_reduction' => 20000, 'exempt_after_year' => 7]],
                     'number_of_cycles' => 2,
                     'amount_per_cycle' => 50000,
                 ],
@@ -588,7 +586,7 @@ describe('Gifting Detail Attachment', function () {
         $this->estateAgent->shouldReceive('generateRecommendations')->once()->andReturn([
             'success' => true,
             'data' => ['recommendations' => [
-                ['category' => 'pet_gifting', 'priority' => 'high', 'step' => 2, 'title' => 'PET Gifting', 'description' => 'Test', 'actions' => [], 'potential_saving' => 40000],
+                ['category' => 'pet_gifting', 'priority' => 'medium', 'step' => 6, 'title' => 'Larger Gifts', 'description' => 'Test', 'actions' => [], 'potential_saving' => 40000, 'band_left' => 100000],
             ]],
         ]);
         $this->disposableIncome->shouldReceive('getMonthlyForUser')->andReturn(2000.0);
@@ -597,48 +595,8 @@ describe('Gifting Detail Attachment', function () {
         $petAction = collect($plan['actions'])->firstWhere('category', 'pet_gifting');
 
         expect($petAction)->not->toBeNull()
-            ->and($petAction)->toHaveKey('gift_schedule')
-            ->and($petAction['gift_schedule'])->toBeArray()
-            ->and(count($petAction['gift_schedule']))->toBe(2)
-            ->and($petAction['seven_year_cycles'])->toBe(2)
-            ->and($petAction['amount_per_cycle'])->toBe(50000.0);
-    });
-
-    it('merges annual_gifting_detail for annual_gifting [5.1.T7]', function () {
-        $user = User::factory()->create([
-            'date_of_birth' => now()->subYears(50),
-        ]);
-
-        $analysisData = buildMockAnalysis(100000);
-        $analysisData['data']['gifting_opportunities'] = [
-            'strategies' => [
-                [
-                    'strategy_name' => 'Annual Exemption Gifting',
-                    'annual_amount' => 3000,
-                    'years' => 10,
-                    'total_gifted' => 30000,
-                    'iht_saved' => 12000,
-                ],
-            ],
-        ];
-
-        $this->estateAgent->shouldReceive('analyze')->once()->andReturn($analysisData);
-        $this->estateAgent->shouldReceive('generateRecommendations')->once()->andReturn([
-            'success' => true,
-            'data' => ['recommendations' => [
-                ['category' => 'annual_gifting', 'priority' => 'medium', 'step' => 4, 'title' => 'Annual Gifting', 'description' => 'Test', 'actions' => [], 'potential_saving' => 12000],
-            ]],
-        ]);
-        $this->disposableIncome->shouldReceive('getMonthlyForUser')->andReturn(2000.0);
-
-        $plan = $this->service->generatePlan($user->id);
-        $annualAction = collect($plan['actions'])->firstWhere('category', 'annual_gifting');
-
-        expect($annualAction)->not->toBeNull()
-            ->and($annualAction)->toHaveKey('annual_gifting_detail')
-            ->and($annualAction['annual_gifting_detail'])->toHaveKeys(['annual_amount', 'years', 'total_gifted', 'iht_saved'])
-            ->and($annualAction['annual_gifting_detail']['annual_amount'])->toBe(3000.0)
-            ->and($annualAction['annual_gifting_detail']['total_gifted'])->toBe(30000.0);
+            ->and($petAction)->not->toHaveKey('gift_schedule')
+            ->and($petAction)->not->toHaveKey('seven_year_cycles');
     });
 });
 

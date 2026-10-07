@@ -17,7 +17,7 @@ use App\Services\Coordination\PlanSources\ModuleStrategySource;
 use App\Services\Coordination\PlanSources\ProtectionStrategySource;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
 use App\Services\Coordination\PlanSources\SavingsStrategySource;
-use App\Services\Estate\ComprehensiveEstatePlanService;
+use App\Services\Estate\EstateActionDefinitionService;
 use App\Services\PrerequisiteGateService;
 use Illuminate\Support\Facades\Log;
 
@@ -34,7 +34,7 @@ class RecommendationsAggregatorService
         private readonly SavingsAgent $savingsCalculator,
         private readonly InvestmentAgent $investmentAgent,
         private readonly RetirementAgent $retirementAgent,
-        private readonly ComprehensiveEstatePlanService $estatePlanService,
+        private readonly EstateActionDefinitionService $estateActions,
         private readonly GoalsAgent $goalsAgent,
         private readonly RecommendationPersonaliser $personaliser,
         private readonly PrerequisiteGateService $gate,
@@ -171,22 +171,15 @@ class RecommendationsAggregatorService
         }
 
         if (! $composedEnabled && $this->moduleGateOpen('estate', $user)) {
+            // The rollback path reads the same estate engine as the composed one
+            // (item 9: the unrouted comprehensive estate plan it read is gone).
             $collect('estate', function () use ($user): array {
-                $plan = $this->estatePlanService->generateComprehensiveEstatePlan($user);
-                $recs = [];
-                foreach ($plan['implementation_timeline'] ?? [] as $item) {
-                    if (is_array($item) && isset($item['action'])) {
-                        $recs[] = [
-                            'recommendation_text' => $item['action'].(! empty($item['timeframe']) ? " ({$item['timeframe']})" : ''),
-                            'priority' => $item['priority'] ?? 2,
-                            'category' => $item['category'] ?? 'estate_planning',
-                            'estimated_cost' => $item['cost'] ?? null,
-                            'potential_benefit' => is_numeric($item['iht_saving'] ?? null) ? $item['iht_saving'] : null,
-                        ];
-                    }
-                }
-
-                return $recs;
+                return array_map(static fn (array $r): array => [
+                    'recommendation_text' => $r['title'] ?? $r['action'] ?? '',
+                    'priority' => $r['priority'] ?? null,
+                    'impact' => $r['impact'] ?? null,
+                    'category' => $r['category'] ?? 'estate_planning',
+                ], $this->estateActions->evaluateActions($user)['recommendations'] ?? []);
             });
         }
 

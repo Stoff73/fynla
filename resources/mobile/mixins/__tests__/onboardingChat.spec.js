@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 
@@ -513,6 +513,27 @@ describe('onboardingChat mixin — skip id collision at the front door (MB-24)',
 
     expect(runFynAction).toHaveBeenCalledWith('skip');
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+// "Something else" on the welcome-back resume parks the step at null on the
+// server, which sends no event saying so. The user was not re-read, so /m kept
+// its onboarding nudge and hid Edit details until a reload (2026-10-07 walk).
+describe('a director action re-reads the user', () => {
+  let refresh;
+  afterEach(() => refresh?.mockRestore());
+
+  it('refreshes the user once the something_else stream ends', async () => {
+    store.token = 'live-token';
+    store.user = { onboarding_completed: false, onboarding_fyn_step: 'path_choice' };
+    refresh = vi.spyOn(store, 'refreshUser').mockResolvedValue(store.user);
+    const w = mount(Host);
+    w.vm.conversationId = 12;
+
+    await w.vm.runFynAction('something_else');
+
+    expect(apiStream).toHaveBeenCalledWith('/api/ai-chat/conversations/12/action', { action: 'something_else' }, 'live-token', expect.any(Function), expect.any(Function));
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });
 

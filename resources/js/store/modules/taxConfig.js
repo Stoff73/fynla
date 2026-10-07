@@ -109,6 +109,7 @@ const getters = {
   // and the backend's own literal) while the configured table went unread.
   ihtGiftTaperBands: (state) => state.config?.inheritance_tax?.potentially_exempt_transfers?.taper_relief ?? null,
   annualGiftExemption: (state) => state.config?.gifting_exemptions?.annual_exemption ?? null,
+  smallGiftsLimit: (state) => state.config?.gifting_exemptions?.small_gifts_limit ?? null,
   smallGiftExemption: (state) => state.config?.gifting_exemptions?.small_gift_exemption ?? null,
 
   // Stamp Duty Land Tax — England

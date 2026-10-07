@@ -74,12 +74,14 @@
           </ol>
         </section>
 
-        <section v-if="card.learn_more && card.learn_more.length" class="mt-6">
+        <section v-if="learnLinks.length" class="mt-6">
           <h2 class="section-title">Find out more</h2>
           <ul class="space-y-1 text-body-sm">
-            <!-- Fynla's own help pages; the router hands server-rendered pages to a full load. -->
-            <li v-for="link in card.learn_more" :key="link.url">
-              <router-link :to="link.url" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more">{{ link.label }}</router-link>
+            <!-- Fynla's own help pages; the router hands server-rendered pages to a full load.
+                 A link with `fyn` opens Fyn on that record's form (item 9). -->
+            <li v-for="link in learnLinks" :key="link.url || link.label">
+              <button v-if="link.fyn" type="button" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more-fyn" @click="openFynForm(link.fyn)">{{ link.label }}</button>
+              <router-link v-else :to="link.url" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more">{{ link.label }}</router-link>
             </li>
           </ul>
         </section>
@@ -128,13 +130,14 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 import logger from '@/utils/logger';
 import { resolveWebDestination } from '@/utils/semanticDestinations';
 
 export default {
   name: 'ActionCardView',
   components: { AppLayout },
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, fynScreenRefreshMixin],
 
   data() {
     return { card: null, loading: true, notFound: false, marking: false };
@@ -144,6 +147,10 @@ export default {
     // A demo session shows no Fyn (AppLayout, AppNavbar), so nothing offers it.
     fynAvailable() {
       return !this.$store.getters['preview/isPreviewMode'];
+    },
+    // A link that opens Fyn shows only where Fyn does (not in a demo).
+    learnLinks() {
+      return (this.card.learn_more || []).filter(link => !link.fyn || this.fynAvailable);
     },
     actionId() {
       return String(this.$route.params.actionId || '');
@@ -169,6 +176,12 @@ export default {
   },
 
   methods: {
+    // A record Fyn saved from this card's link (a gift, a Lasting Power of
+    // Attorney) changes the card's own figures.
+    fynScreenRefresh() {
+      this.load();
+    },
+
     async load() {
       this.loading = true;
       this.notFound = false;
@@ -221,6 +234,11 @@ export default {
 
     openFynWith(prompt) {
       this.$store.dispatch('aiChat/prefillPrompt', prompt);
+      this.openFyn();
+    },
+
+    async openFynForm(request) {
+      await this.$store.dispatch('aiChat/startContextualConversation', request);
       this.openFyn();
     },
 

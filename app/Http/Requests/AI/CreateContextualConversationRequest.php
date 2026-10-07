@@ -26,6 +26,10 @@ final class CreateContextualConversationRequest extends FormRequest
         'expenditure',
         'net_worth',
         'estate',
+        // A gift and a Lasting Power of Attorney, recorded through Fyn's forms
+        // from the estate how-tos (item 9, CSJ 2026-10-07).
+        'gifts',
+        'lpa',
         'tax_strategy',
     ];
 
