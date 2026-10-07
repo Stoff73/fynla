@@ -98,17 +98,22 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
             type: 'non_earner_spouse_pension',
             category: StrategyCategory::Household,
             priority: StrategyPriority::Medium,
+            // Worded as money HMRC adds, as the user's own card is (CSJ
+            // 2026-09-29, #975): the provider claims basic-rate relief from HMRC
+            // and adds it (FA 2004 s192; gov.uk/tax-on-your-private-pension/pension-tax-relief).
             title: sprintf(
-                'Top up your spouse\'s pension by £%s — instant £%s of free money',
+                'Pay £%s into your spouse\'s personal pension and HMRC adds £%s',
                 number_format((int) $netContribution),
                 number_format((int) $governmentUplift),
             ),
             description: sprintf(
-                'A £%s contribution to your spouse\'s personal pension is grossed up to £%s by the government, even though they have no earnings. That\'s £%s a year of free uplift, plus a separate 25%% tax-free lump sum and another Personal Allowance in retirement.%s',
+                'Without earnings from work your spouse can still get tax relief on up to £%s a year of pension contributions. Pay £%s into their personal pension and HMRC adds £%s through their pension provider, making £%s. They can also take a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.%s Relief stops once they reach %d.',
+                number_format((int) ($figures['net'] + $figures['relief'])),
                 number_format((int) $netContribution),
-                number_format((int) ($netContribution + $governmentUplift)),
                 number_format((int) $governmentUplift),
+                number_format((int) ($netContribution + $governmentUplift)),
                 $balanceLine,
+                $this->reliefMaxAge(),
             ),
             estimatedAnnualTaxSaved: round($governmentUplift, 2),
             extra: [
@@ -188,18 +193,18 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
             category: StrategyCategory::Household,
             priority: StrategyPriority::Medium,
             title: sprintf(
-                'Top up your spouse\'s pension by £%s — instant £%s government top-up',
+                'Pay £%s into your spouse\'s personal pension and HMRC adds £%s',
                 number_format((int) $netCost),
                 number_format((int) $uplift),
             ),
             description: sprintf(
-                '%s, and relief is given on pension contributions up to their relevant UK earnings or the basic amount, whichever is higher. Paying in £%s net gets grossed up to £%s by basic-rate relief at source — that\'s £%s of free government money. They can also draw a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
+                '%s, and relief is given on pension contributions up to their relevant UK earnings or the basic amount, whichever is higher. Pay £%s into their personal pension and HMRC adds £%s through their pension provider, making £%s. They can also take a separate 25%% tax-free lump sum and use another Personal Allowance in retirement.',
                 ($earnings ?? 0.0) > 0
                     ? sprintf('Your spouse earns £%s from work', number_format((int) $earnings))
                     : 'Your spouse has no earnings from work recorded',
                 number_format((int) $netCost),
-                number_format((int) $grossCapacity),
                 number_format((int) $uplift),
+                number_format((int) $grossCapacity),
             ),
             estimatedAnnualTaxSaved: $uplift,
             extra: [

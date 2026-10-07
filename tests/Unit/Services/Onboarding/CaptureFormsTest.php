@@ -9,7 +9,7 @@ use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'expenditure_tax', 'protection', 'employer_benefits', 'state_pension', 'other_income', 'gift', 'lpa'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'expenditure_tax', 'protection', 'employer_benefits', 'state_pension', 'db_pension', 'other_income', 'gift', 'lpa'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -303,7 +303,7 @@ it('the pension step is a form turn with the loop question after it', function (
 it('the spouse forms fold every section into one household write', function (): void {
     $schema = CaptureForms::schema('spouse_household');
     expect($schema['tool'])->toBe('capture_spouse_household_data')
-        ->and($schema['lead_fields'])->toBe(['spouse_annual_income', 'spouse_annual_earnings'])
+        ->and($schema['lead_fields'])->toBe(['spouse_employment_status', 'spouse_annual_income', 'spouse_annual_earnings'])
         ->and($schema['kinds_prompt'])->toBe('Do they have any of the following? You can choose more than one, or save with none chosen.')
         ->and(array_column($schema['kinds'], 'label'))->toBe(['Savings', 'ISAs', 'A pension', 'Investments'])
         ->and(CaptureForms::rules('spouse_household'))->toHaveKey('_lead.spouse_annual_income')
@@ -550,4 +550,14 @@ it('the Save Tax walk asks the monthly total; the three-field form still saves',
     expect(CaptureForms::expenditureVariantFor($savetax, true)['name'])->toBe('expenditure')
         ->and(CaptureForms::expenditureVariantFor($savetax, false)['name'])->toBe('expenditure')
         ->and(CaptureForms::expenditureVariantFor($other, false)['name'])->toBe('expenditure');
+});
+
+it('asks what the spouse does on the working-spouse form, and writes it with their income', function (): void {
+    // Item 11 (2026-10-07): the link could not tell a retired partner's
+    // pension from pay, because the inviter was never asked.
+    $form = ['name' => 'spouse_household', 'answers' => ['_lead' => ['spouse_employment_status' => 'retired', 'spouse_annual_income' => 30000]]];
+
+    expect(CaptureForms::rules('spouse_household')['_lead.spouse_employment_status'])->toBe(['required_with:_lead', 'in:full_time,part_time,self_employed,retired,unemployed'])
+        ->and(CaptureForms::toolInputs($form)['_lead'])->toMatchArray(['spouse_employment_status' => 'retired', 'spouse_annual_income' => 30000.0])
+        ->and(CaptureForms::summarise($form))->toStartWith('My spouse is retired, their income is £30,000 a year');
 });

@@ -132,15 +132,16 @@ final class LifecycleStrategy implements TaxStrategy
                 type: 'junior_pension',
                 category: StrategyCategory::Lifecycle,
                 priority: StrategyPriority::Medium,
+                // Money HMRC adds, as the non-earner cards word it (CSJ 2026-09-29, #975).
                 title: sprintf(
-                    'Open a pension for each child — instant £%s a year of free money',
+                    'Open a pension for each child and HMRC adds £%s a year',
                     number_format((int) $totalUplift),
                 ),
                 description: sprintf(
-                    'Anyone, including a child with no income, can hold a personal pension. £%s contributed per child is topped up to £%s by the government — that\'s £%s of free money per child, every year. Decades of compounding sheltered from tax.',
+                    'Anyone, including a child with no income, can hold a personal pension. Pay £%s a year into each child\'s pension and HMRC adds £%s through the pension provider, making £%s. Decades of compounding sheltered from tax.',
                     number_format((int) $juniorPensionNet),
-                    number_format((int) ($juniorPensionNet + $juniorPensionUplift)),
                     number_format((int) $juniorPensionUplift),
+                    number_format((int) ($juniorPensionNet + $juniorPensionUplift)),
                 ),
                 // A government uplift, not tax saved (CSJ ruling 2026-09-25): never in the headline total.
                 estimatedAnnualTaxSaved: null,

@@ -61,7 +61,7 @@ it('saves the spouse income from that form', function (): void {
     $this->withHeader('X-Fynla-Forms', '1')
         ->postJson("/api/ai-chat/conversations/{$this->conversation->id}/messages", ['form' => [
             'name' => 'spouse_household',
-            'answers' => ['_lead' => ['spouse_annual_income' => 9000]],
+            'answers' => ['_lead' => ['spouse_employment_status' => 'part_time', 'spouse_annual_income' => 9000]],
             'record' => ['type' => 'spouse_household', 'id' => $this->user->id],
         ]])->assertOk()->streamedContent();
 
@@ -77,7 +77,7 @@ it('saves how much of the spouse income is earnings, and the form offers it', fu
     $this->withHeader('X-Fynla-Forms', '1')
         ->postJson("/api/ai-chat/conversations/{$this->conversation->id}/messages", ['form' => [
             'name' => 'spouse_household',
-            'answers' => ['_lead' => ['spouse_annual_income' => 9000, 'spouse_annual_earnings' => 3000]],
+            'answers' => ['_lead' => ['spouse_employment_status' => 'part_time', 'spouse_annual_income' => 9000, 'spouse_annual_earnings' => 3000]],
             'record' => ['type' => 'spouse_household', 'id' => $this->user->id],
         ]])->assertOk()->streamedContent();
 
