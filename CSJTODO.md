@@ -78,7 +78,6 @@ Released 2026-09-29 and walked live on fynla.org: #966 (#960 Ask Fyn grounding +
 - [ ] **Old wizard invents a mortgage** (`OnboardingService.php:598-613`: "Mortgage Provider", 3.5%, 5 years in, 20 left) for any property balance; only reachable by typing `/onboarding/full`.
 - [ ] **Web setup never asks whether the partner is retired:** the inviter's "Now your spouse" form has no status field, so the link cannot split the income; #1016 restates it once the partner answers. Status is only known up front from the Save Tax funnel's 60%-band question.
 - [ ] **Open, not fixed:** the Apple bridge (`services/apple_store_bridge` + `.venv`) is not installed on fynla.org (`route:list` fails `invalid_configuration`); prod `vendor/` carries dev packages.
-- [ ] **Module how-to batches:** retirement and investment are done and live (items 7 and 8, `todoCurrent/TODO.md`); estate (12) next as item 9 (after releasing 8b, the protection needs config).
 - [ ] **Protection still has two engines:** `RecommendationEngine` still feeds `ProtectionAgent::analyze()['recommendations']` (the plan page's own recommendations section and the composed-flag-off rollback path); the cards no longer use it.
 - [ ] **Savings market rates fall back to an invented 4.00%** (`RateComparator::getMarketBenchmarks`, `getBenchmarkForAccount`) when no stored rate exists; the card can fire from it (Rule 23).
 - [ ] **Tax plan items carry no working, so Fyn invents it (Rule 23).** "Talk me through my tax plan" → "£60,000 − £50,270 = £9,730 taxed at 40%"; the plan's £3,700 is adjusted net income £54,000 − £50,270. The composed item (`pension_tax_relief`) has no figures behind `suggested_contribution`.
@@ -253,11 +252,13 @@ Three small decisions, all optional:
 
 ## Deploy state
 
-- **2026-10-06: prod (fynla.org) = main `f8c0c6567` (#1105).** Releases o #1094 (7a), p #1102 (item 8 cards + how-tos), q #1105 (item 8 found lines, bond cards, record edit forms), each run by CSJ via `! bash`; scripts in session 85369bda scratchpad.
+- **2026-10-07: prod (fynla.org) = main `7c9f30899` (release u, #1122, item 9 Estate).** csjones = dev `01ad5b76e`. Scripts in session ac9c551a scratchpad (`release-prod-2026-10-07-u.sh`).
 
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
+
+- **(2026-10-07, item 9)** `GiftForm.vue:114-116` calls every gift above the annual exemption a Potentially Exempt Transfer (wrong for a gift into a trust); the married own-records predicate written twice (`EstateActionDefinitionService.php:158`, `EstateIhtExposureDetector.php:80`); two gift write paths; form-turn refresh not on the queued path (`aiChat.js:1157`). Detail under item 9 in `todoCurrent/TODO.md`.
 
 - **(2026-09-24)** `tests/Pest.php:111`: per-test `fyn-test-memory-*` temp directories are never deleted. They go away when plan Tasks 4 and 5 remove the two memory path keys.
 - **(2026-09-22)** `RequiredCapitalDetail.vue` dead (0 imports); `campaign_verify_announce` + `verifyPromptAnnounce()` orphaned since #932; `CoordinatingAgent` 6,979 lines with `handleSetExpenditure` 203; the spouse acks build the dividends/contribution clauses twice (`OnboardingChatDirector:6423`, `:6479`); the childcare hint is written three times in `CaptureForms` (`:1267`, `:1291`, `:1345`); `expenditureColumns()` / `expenditureColumnsOf()` walk the same list; `nonEarnerNetContribution()` resolves `TaxConfigService` via `app()` in a static class; `.user.ini` left on both servers.
