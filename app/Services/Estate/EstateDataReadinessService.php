@@ -8,9 +8,9 @@ use App\Events\Eval\GateChecked;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\LetterToSpouse;
 use App\Models\User;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -28,6 +28,7 @@ class EstateDataReadinessService
     use ResolvesIncome;
 
     public function __construct(
+        private readonly InvestmentAccountStore $investmentAccountStore,
         private readonly MortgageStore $mortgageStore,
         private readonly PropertyStore $propertyStore,
         private readonly SavingsStore $savingsStore,
@@ -155,7 +156,7 @@ class EstateDataReadinessService
         // A joint owner's share is their asset too (Rule 6): the record sits
         // under the other owner's user_id with this user as joint_owner_id.
         $hasAsset = $this->propertyStore->existsForUser($user)
-            || InvestmentAccount::forUserOrJoint($user->id)->exists()
+            || $this->investmentAccountStore->existsForUser($user)
             || $this->savingsStore->existsForUser($user)
             || $user->dcPensions()->exists()
             || $user->dbPensions()->exists();

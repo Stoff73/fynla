@@ -75,7 +75,7 @@
           <option value="pet">Potentially Exempt Transfer</option>
           <option value="clt">Chargeable Lifetime Transfer</option>
           <option value="exempt">Exempt Gift</option>
-          <option value="small_gift">Small Gift Exemption (£{{ (smallGiftsLimit || 0).toLocaleString() }} limit)</option>
+          <option value="small_gift">Small Gift Exemption (£{{ (smallGiftExemption || 0).toLocaleString() }} limit)</option>
           <option value="annual_exemption">Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }})</option>
         </select>
         <span v-if="errors.gift_type" class="error-message">
@@ -106,13 +106,10 @@
         </div>
         <ul>
           <li v-if="qualifiesForSmallGift">
-            This gift qualifies for the Small Gift Exemption (£{{ (smallGiftsLimit || 0).toLocaleString() }} or less per person per year)
+            This gift qualifies for the Small Gift Exemption (£{{ (smallGiftExemption || 0).toLocaleString() }} or less per person per year)
           </li>
           <li v-if="canUseAnnualExemption">
             You can use your Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }} per tax year)
-          </li>
-          <li v-if="!qualifiesForSmallGift && formData.gift_value > annualGiftExemption">
-            ⚠️ This gift exceeds typical exemptions and will be a Potentially Exempt Transfer (subject to 7-year rule)
           </li>
         </ul>
       </div>
@@ -168,7 +165,7 @@ export default {
 
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
-    ...mapGetters('taxConfig', ['annualGiftExemption', 'smallGiftsLimit']),
+    ...mapGetters('taxConfig', ['annualGiftExemption', 'smallGiftExemption']),
 
     isEditMode() {
       return this.mode === 'edit' && this.gift !== null;
@@ -183,18 +180,22 @@ export default {
         pet: 'Most common type - becomes Inheritance Tax-free if you survive 7 years',
         clt: 'Gift into most trusts, or to a company - Inheritance Tax is due now only on the part above your nil rate band',
         exempt: 'Gifts to spouses, charities, or political parties',
-        small_gift: `Up to £${(this.smallGiftsLimit || 0).toLocaleString()} per person per year (exempt immediately)`,
+        small_gift: `Up to £${(this.smallGiftExemption || 0).toLocaleString()} per person per year (exempt immediately)`,
         annual_exemption: `First £${(this.annualGiftExemption || 0).toLocaleString()} of gifts each tax year (exempt immediately)`,
       };
       return descriptions[this.formData.gift_type] || 'Select a type to see description';
     },
 
+    // Only when an exemption applies. It also said any larger gift "will be a
+    // Potentially Exempt Transfer" whatever type was chosen, but a gift into
+    // most trusts is a Chargeable Lifetime Transfer (IHTA 1984 s3A(1A)); the
+    // chosen type's description says what it is.
     showExemptionInfo() {
-      return this.formData.gift_value > 0 && this.formData.gift_type;
+      return this.formData.gift_value > 0 && (this.qualifiesForSmallGift || this.canUseAnnualExemption);
     },
 
     qualifiesForSmallGift() {
-      return this.smallGiftsLimit !== null && this.formData.gift_value <= this.smallGiftsLimit && this.formData.gift_type === 'small_gift';
+      return this.smallGiftExemption !== null && this.formData.gift_value <= this.smallGiftExemption && this.formData.gift_type === 'small_gift';
     },
 
     canUseAnnualExemption() {
