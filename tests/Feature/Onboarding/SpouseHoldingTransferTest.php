@@ -447,3 +447,21 @@ it('takes "none" on the final salary form as the answer', function (): void {
     expect(CaptureForms::toolInputs($form))->toBe([])
         ->and(CaptureForms::summarise($form))->toBe('I have none of these.');
 });
+
+it('moves the other income the link copied when the partner then says they are retired, so it is not counted twice', function (): void {
+    // No status at the link, earnings from work given as £0: the £30,000 was
+    // copied as other income. Retired, their walk places it as pension income.
+    $spouse = linkPartner(['spouse_annual_income' => 30000, 'spouse_annual_earnings' => 0]);
+    expect((float) $spouse->annual_other_income)->toBe(30000.0);
+
+    $spouse->update(['employment_status' => 'retired']);
+    $spouse->refresh();
+
+    expect((float) ($spouse->annual_other_income ?? 0))->toBe(0.0)
+        ->and(app(SpouseHoldingTransfer::class)->pensionIncomeLeftToPlace($spouse))->toBe(30000.0);
+
+    // Back and forth does not take other income they have since given.
+    $spouse->update(['employment_status' => 'unemployed', 'annual_other_income' => 5000]);
+    $spouse->update(['employment_status' => 'retired']);
+    expect((float) $spouse->fresh()->annual_other_income)->toBe(5000.0);
+});

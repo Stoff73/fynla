@@ -167,19 +167,47 @@ final class SpouseHoldingTransfer
             return;
         }
         $amount = app(EmploymentIncomeService::class)->dropEstimates($spouse);
-        if ($amount <= 0) {
-            return;
-        }
         $spouse->refresh();
-        $copied = ['estimate dropped'];
+        $copied = $amount > 0 ? ['estimate dropped'] : [];
 
-        if ($status !== 'retired') {
+        if ($status === 'retired') {
+            // What the link copied as other income (status unknown, earnings
+            // given) is the same figure their walk now places as pension
+            // income: it goes, or it would be counted twice. Only while their
+            // other income still holds it.
+            $other = (float) ($spouse->annual_other_income ?? 0);
+            $moved = $this->otherIncomeCopiedAtLink($spouse);
+            if ($moved > 0 && $other >= $moved) {
+                $this->run('update_profile', ['section' => 'income_occupation', 'fields' => ['annual_other_income' => round($other - $moved, 2)]], $spouse, $copied, 'other income moved to pension');
+            }
+        } elseif ($amount > 0) {
             $this->run('update_profile', ['section' => 'income_occupation', 'fields' => ['annual_other_income' => (float) ($spouse->annual_other_income ?? 0) + $amount]], $spouse, $copied, 'other income');
+        }
+        if ($copied === []) {
+            return;
         }
 
         Log::info('[SpouseHoldingTransfer] Restated the inviter\'s income estimate for the partner\'s status', [
             'spouse_id' => $spouse->id, 'status' => $status, 'amount' => $amount, 'copied' => $copied,
         ]);
+    }
+
+    /**
+     * The part of the inviter's figure the link copied as other income: what
+     * was not pay for a partner not then known to be retired (splitIncome, on
+     * the status given at the link).
+     */
+    private function otherIncomeCopiedAtLink(User $spouse): float
+    {
+        $holding = ($inviter = $spouse->liveSpouse()) === null ? null
+            : TaxStrategyHouseholdInput::where('user_id', $inviter->id)->whereNotNull('spouse_holding_transferred_at')->first();
+        if ($holding === null || $holding->spouse_annual_income === null || $holding->spouse_employment_status === 'retired') {
+            return 0.0;
+        }
+        $income = (float) $holding->spouse_annual_income;
+        $pay = $this->payAtLink($income, $holding->spouse_annual_earnings, $holding->spouse_employment_status);
+
+        return max(0.0, $income - $pay);
     }
 
     /**
@@ -247,20 +275,24 @@ final class SpouseHoldingTransfer
     private function splitIncome(float $income, TaxStrategyHouseholdInput $holding, User $spouse): array
     {
         $status = $holding->spouse_employment_status ?? $spouse->employment_status;
-
-        if ($holding->spouse_annual_earnings !== null) {
-            $pay = min($income, max(0.0, (float) $holding->spouse_annual_earnings));
-        } else {
-            $pay = match (true) {
-                in_array($status, self::WORKING_STATUSES, true) => $income,
-                in_array($status, self::NON_WORKING_STATUSES, true) => 0.0,
-                default => $income,
-            };
-        }
-
+        $pay = $this->payAtLink($income, $holding->spouse_annual_earnings, $status);
         $rest = $income - $pay;
 
         return ['pay' => $pay, 'other' => $status === 'retired' ? 0.0 : $rest];
+    }
+
+    /** Earnings given are the pay; otherwise the status decides, and unknown means all pay. */
+    private function payAtLink(float $income, mixed $earnings, ?string $status): float
+    {
+        if ($earnings !== null) {
+            return min($income, max(0.0, (float) $earnings));
+        }
+
+        return match (true) {
+            in_array($status, self::WORKING_STATUSES, true) => $income,
+            in_array($status, self::NON_WORKING_STATUSES, true) => 0.0,
+            default => $income,
+        };
     }
 
     /** @param  array<string, mixed>  $input */
