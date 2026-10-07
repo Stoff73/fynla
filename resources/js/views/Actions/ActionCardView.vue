@@ -74,12 +74,12 @@
           </ol>
         </section>
 
-        <section v-if="card.learn_more && card.learn_more.length" class="mt-6">
+        <section v-if="learnLinks.length" class="mt-6">
           <h2 class="section-title">Find out more</h2>
           <ul class="space-y-1 text-body-sm">
             <!-- Fynla's own help pages; the router hands server-rendered pages to a full load.
                  A link with `fyn` opens Fyn on that record's form (item 9). -->
-            <li v-for="link in card.learn_more" :key="link.url || link.label">
+            <li v-for="link in learnLinks" :key="link.url || link.label">
               <button v-if="link.fyn" type="button" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more-fyn" @click="openFynForm(link.fyn)">{{ link.label }}</button>
               <router-link v-else :to="link.url" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more">{{ link.label }}</router-link>
             </li>
@@ -146,6 +146,10 @@ export default {
     // A demo session shows no Fyn (AppLayout, AppNavbar), so nothing offers it.
     fynAvailable() {
       return !this.$store.getters['preview/isPreviewMode'];
+    },
+    // A link that opens Fyn shows only where Fyn does (not in a demo).
+    learnLinks() {
+      return (this.card.learn_more || []).filter(link => !link.fyn || this.fynAvailable);
     },
     actionId() {
       return String(this.$route.params.actionId || '');

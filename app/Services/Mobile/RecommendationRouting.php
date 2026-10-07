@@ -92,9 +92,9 @@ final class RecommendationRouting
         // 2026-09-09: Fyn only acknowledged the answers and wrote nothing).
         'investment_no_holdings' => ['action' => 'add', 'resource_type' => 'investment'],
 
-        // Estate — an LPA is created through Fyn. A will stays on the page (the
-        // Will Builder); the life policy trust card is Protection's (item 9 D2).
-        'estate_no_lpa' => ['action' => 'add', 'resource_type' => 'estate'],
+        // Estate cards open their page: the "estate" resource is Fyn's property
+        // form, so routing the LPA card here opened the wrong form (item 9). An
+        // LPA and a gift are recorded through the how-to's Fyn link instead.
     ];
 
     /**

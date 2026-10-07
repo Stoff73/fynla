@@ -77,7 +77,7 @@ it('counts only a registered Lasting Power of Attorney', function () {
     expect($card['figures']['missing_financial'])->toBeTrue()
         ->and($card['figures']['missing_health'])->toBeFalse()
         ->and($card['figures']['has_unregistered'])->toBeTrue()
-        ->and($card['description'])->toContain('no registered property and financial affairs Lasting Power of Attorney');
+        ->and($card['figures']['missing_text'])->toBe('property and financial affairs');
 
     LastingPowerOfAttorney::where('user_id', $this->user->id)->where('lpa_type', 'property_financial')
         ->update(['status' => 'registered', 'is_registered_with_opg' => true]);
