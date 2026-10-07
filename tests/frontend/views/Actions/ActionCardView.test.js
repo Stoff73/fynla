@@ -76,6 +76,21 @@ describe('ActionCardView', () => {
     expect(text.indexOf('Why this matters for you')).toBeLessThan(text.indexOf('Saves about'));
   });
 
+  it('reloads the card when a Fyn write lands behind it', async () => {
+    // A gift saved from the gifts card's "Record a gift with Fyn" link changes
+    // the card's own count and total; the page never remounts.
+    const { wrapper } = mountCard(card());
+    await flushPromises();
+    api.get.mockResolvedValue({ data: { success: true, data: card({ title: 'After the write' }) } });
+
+    window.dispatchEvent(new Event('fyn-screen-refresh'));
+    await flushPromises();
+
+    expect(api.get).toHaveBeenLastCalledWith('/recommendations/actions/tax_pension_tax_relief');
+    expect(wrapper.text()).toContain('After the write');
+    wrapper.unmount();
+  });
+
   it('shows approved steps when the payload carries them', async () => {
     const { wrapper } = mountCard(card({ how_to: ['Decide how much.', 'Pay it in.'] }));
     await flushPromises();

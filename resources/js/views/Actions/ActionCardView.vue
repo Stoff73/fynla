@@ -130,13 +130,14 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 import logger from '@/utils/logger';
 import { resolveWebDestination } from '@/utils/semanticDestinations';
 
 export default {
   name: 'ActionCardView',
   components: { AppLayout },
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, fynScreenRefreshMixin],
 
   data() {
     return { card: null, loading: true, notFound: false, marking: false };
@@ -175,6 +176,12 @@ export default {
   },
 
   methods: {
+    // A record Fyn saved from this card's link (a gift, a Lasting Power of
+    // Attorney) changes the card's own figures.
+    fynScreenRefresh() {
+      this.load();
+    },
+
     async load() {
       this.loading = true;
       this.notFound = false;

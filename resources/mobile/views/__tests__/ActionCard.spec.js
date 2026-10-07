@@ -79,6 +79,20 @@ describe('/m action card', () => {
     expect(w.find('[data-testid="learn-more"]').exists()).toBe(false);
   });
 
+  it('reloads the card when a Fyn write lands behind it', async () => {
+    // A gift saved from the gifts card's "Record a gift with Fyn" link changes
+    // the card's own count and total; no route change remounts the screen.
+    const w = mountCard(card());
+    await flushPromises();
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { data: card({ title: 'After the write' }) } });
+
+    store.bumpScreenRefresh();
+    await flushPromises();
+
+    expect(apiGet).toHaveBeenLastCalledWith('/api/recommendations/actions/tax_pension_tax_relief', 'live-token');
+    expect(w.text()).toContain('After the write');
+  });
+
   it('marks the action done', async () => {
     const w = mountCard(card());
     await flushPromises();

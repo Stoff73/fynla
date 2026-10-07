@@ -210,6 +210,8 @@ describe('desktop Fyn stream event parity', () => {
     };
     const commit = (name, payload) => aiChat.mutations[name](localState, payload);
     const dispatch = vi.fn().mockResolvedValue(undefined);
+    const refreshes = vi.fn();
+    window.addEventListener('fyn-screen-refresh', refreshes);
 
     await aiChat.actions.sendMessage({
       commit,
@@ -217,6 +219,11 @@ describe('desktop Fyn stream event parity', () => {
       state: localState,
       rootState: { route: { path: '/dashboard' } },
     }, { message: 'Add my Cash ISA' });
+    window.removeEventListener('fyn-screen-refresh', refreshes);
+
+    // Each write tells the screen behind the chat to refetch (a gift saved
+    // from the gifts card's Fyn link left the card stale until a reload).
+    expect(refreshes).toHaveBeenCalledTimes(3);
 
     const writes = localState.messages.filter((message) => message.role.startsWith('entity_'));
 
@@ -231,6 +238,36 @@ describe('desktop Fyn stream event parity', () => {
       route: '/savings',
       label: 'Bank Accounts',
     });
+  });
+
+  it.each([
+    ['refreshes the screen behind the chat after a saved form', [{ type: 'form_received', summary: 'I gave Sam £5,000 on 1 May 2025 (a gift to a person).' }, { type: 'content', text: 'Saved.' }], 1],
+    ['leaves the screen alone when the form is refused', [{ type: 'capture_form_errors', errors: { gift_value: 'Required' } }], 0],
+  ])('%s', async (_name, events, expected) => {
+    // A gift saved from the gifts card's Fyn link confirms in plain text with
+    // no entity event, so the card stayed stale until a reload (2026-10-07).
+    aiChatService.sendMessageStream.mockResolvedValue(streamReader([...events, { type: 'done', message_id: 60 }]));
+    const localState = {
+      ...aiChat.state,
+      currentConversation: { id: 10, title: 'Fyn' },
+      messages: [],
+      conversations: [],
+      streamingText: '',
+      error: null,
+    };
+    const commit = (name, payload) => aiChat.mutations[name](localState, payload);
+    const refreshes = vi.fn();
+    window.addEventListener('fyn-screen-refresh', refreshes);
+
+    await aiChat.actions.sendMessage({
+      commit,
+      dispatch: vi.fn().mockResolvedValue(undefined),
+      state: localState,
+      rootState: { route: { path: '/actions/estate_gifts_pet_window' } },
+    }, { form: { name: 'gift', answers: { pet: { recipient: 'Sam', gift_date: '2025-05-01', gift_value: 5000 } } } });
+    window.removeEventListener('fyn-screen-refresh', refreshes);
+
+    expect(refreshes).toHaveBeenCalledTimes(expected);
   });
 
   it('renders a subscription action after the accurate at-cap reply', async () => {

@@ -95,7 +95,7 @@ learn:
 1. How Inheritance Tax is worked out | /help#estate
 
 ## gifts_pet_window
-status: draft
+status: approved
 source: Inheritance Tax Act 1984 s3A(1A) (a gift to an individual is a potentially exempt transfer; a gift into a discretionary trust is not; https://www.legislation.gov.uk/ukpga/1984/51/section/3A), s7(4) (taper relief: tax on a gift made three to four years before death is 80% of the full tax, falling to 20% at six to seven years; https://www.legislation.gov.uk/ukpga/1984/51/section/7), s19, s20, s22 (exempt gifts never count); HMRC IHTM14512 (a gift carries tax of its own only above the nil rate band, after earlier gifts; CSJ 2026-10-07), IHTM14503 (gifts of the seven years before death are added to the death estate and use its band; https://www.gov.uk/hmrc-internal-manuals/inheritance-tax-manual/ihtm14503); https://www.gov.uk/inheritance-tax/gifts (taper relief only applies above the threshold; the person who received the gift pays its tax); `FailedGiftTaxCalculator`; each gift is recorded through Fyn's gift form, the web gift form's fields (`CaptureForms::GIFT`; CSJ 2026-10-07: "we record the gifts in Fynla, with a link for Fyn to open the gift form in chat"); the card's own figures
 figures: gift_count, gifts_text, gift_total, band_used, gift_tax, has_gift_tax, has_trust_gift, next_clear_date
 why:

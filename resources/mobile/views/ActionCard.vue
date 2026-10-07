@@ -134,6 +134,9 @@ export default {
   },
 
   async created() {
+    // A record Fyn saved from this card's link (a gift, a Lasting Power of
+    // Attorney) changes the card's own figures; no route change remounts it.
+    this.$watch(() => store.screenRefreshTick, () => { this.load(); });
     await this.load();
   },
 
