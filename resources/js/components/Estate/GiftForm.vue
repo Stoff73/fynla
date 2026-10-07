@@ -75,7 +75,7 @@
           <option value="pet">Potentially Exempt Transfer</option>
           <option value="clt">Chargeable Lifetime Transfer</option>
           <option value="exempt">Exempt Gift</option>
-          <option value="small_gift">Small Gift Exemption (£250 limit)</option>
+          <option value="small_gift">Small Gift Exemption (£{{ (smallGiftsLimit || 0).toLocaleString() }} limit)</option>
           <option value="annual_exemption">Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }})</option>
         </select>
         <span v-if="errors.gift_type" class="error-message">
@@ -106,7 +106,7 @@
         </div>
         <ul>
           <li v-if="qualifiesForSmallGift">
-            ✓ This gift qualifies for the Small Gift Exemption (£250 or less per person per year)
+            ✓ This gift qualifies for the Small Gift Exemption (£{{ (smallGiftsLimit || 0).toLocaleString() }} or less per person per year)
           </li>
           <li v-if="canUseAnnualExemption">
             You can use your Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }} per tax year)
@@ -168,7 +168,7 @@ export default {
 
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
-    ...mapGetters('taxConfig', ['annualGiftExemption']),
+    ...mapGetters('taxConfig', ['annualGiftExemption', 'smallGiftsLimit']),
 
     isEditMode() {
       return this.mode === 'edit' && this.gift !== null;
@@ -183,7 +183,7 @@ export default {
         pet: 'Most common type - becomes Inheritance Tax-free if you survive 7 years',
         clt: 'Gift to a trust or company - immediately taxable at 20%',
         exempt: 'Gifts to spouses, charities, or political parties',
-        small_gift: 'Up to £250 per person per year (exempt immediately)',
+        small_gift: `Up to £${(this.smallGiftsLimit || 0).toLocaleString()} per person per year (exempt immediately)`,
         annual_exemption: `First £${(this.annualGiftExemption || 0).toLocaleString()} of gifts each tax year (exempt immediately)`,
       };
       return descriptions[this.formData.gift_type] || 'Select a type to see description';
@@ -194,7 +194,7 @@ export default {
     },
 
     qualifiesForSmallGift() {
-      return this.formData.gift_value <= 250 && this.formData.gift_type === 'small_gift';
+      return this.smallGiftsLimit !== null && this.formData.gift_value <= this.smallGiftsLimit && this.formData.gift_type === 'small_gift';
     },
 
     canUseAnnualExemption() {

@@ -4466,7 +4466,8 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $validationError = $this->validateToolInput($input, [
-            'gift_date' => 'required|date',
+            // Not in the future: the web form's rule (StoreGiftRequest).
+            'gift_date' => 'required|date|before_or_equal:today',
             'recipient' => 'required|string|max:255',
             'gift_type' => ['required', Rule::in(['pet', 'clt', 'exempt', 'small_gift', 'annual_exemption'])],
             'gift_value' => 'required|numeric|min:0|max:999999999.99',
@@ -4681,6 +4682,9 @@ class CoordinatingAgent extends BaseAgent
             'replacement_attorney_name' => 'nullable|string|max:255',
             'status' => ['nullable', Rule::in(['draft', 'registered'])],
             'opg_reference' => 'nullable|string|max:50',
+            // The date it was registered, from Fyn's form (item 9); without it
+            // a registered one is dated today, as before.
+            'registration_date' => 'nullable|date|before_or_equal:today',
         ]);
         if ($validationError) {
             return $validationError;
@@ -4709,7 +4713,9 @@ class CoordinatingAgent extends BaseAgent
                 'donor_date_of_birth' => $user->date_of_birth,
                 'opg_reference' => $input['opg_reference'] ?? null,
                 'is_registered_with_opg' => ($input['status'] ?? 'draft') === 'registered',
-                'registration_date' => ($input['status'] ?? 'draft') === 'registered' ? now()->toDateString() : null,
+                'registration_date' => ($input['status'] ?? 'draft') === 'registered'
+                    ? substr((string) ($input['registration_date'] ?? now()->toDateString()), 0, 10)
+                    : null,
             ]);
 
             LpaAttorney::create([
@@ -4737,6 +4743,8 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            // The form saver reads success with an entity id (writeFormRecords).
+            'success' => true,
             'created' => true,
             'entity_type' => 'lasting_power_of_attorney',
             'entity_id' => $lpa->id,

@@ -1,6 +1,6 @@
 # ActuarialLifeTableStore
 
-Canonical write boundary for `App\Models\ActuarialLifeTable`. Every mutation of the `actuarial_life_tables` table flows through this store, and every read by the Estate consumers (`TrustService`, `FutureValueCalculator`, `ComprehensiveEstatePlanService`) goes through `forCohort()`.
+Canonical write boundary for `App\Models\ActuarialLifeTable`. Every mutation of the `actuarial_life_tables` table flows through this store, and every read by the Estate consumers (`TrustService`, `FutureValueCalculator`) goes through `forCohort()`. (`ComprehensiveEstatePlanService`, a third, was deleted with the unrouted estate plan, item 9, 2026-10-07.)
 
 **Entity key:** `actuarial_life_table` (emitted on every `ReferenceDataUpdated` event)
 **Table:** `actuarial_life_tables`
@@ -45,7 +45,7 @@ Adding a new direct-model consumer requires either routing through the store (pr
 
 ## Per-entity quirks
 
-1. **Cohort-then-in-memory access pattern.** Estate consumers (`TrustService`, `FutureValueCalculator`, `ComprehensiveEstatePlanService`) fetch the full cohort once via `forCohort()` and then run age-comparison logic in memory — exact match, nearest-lower, nearest-upper. The data set is small (~22 ages per cohort), so an in-memory pass is cheaper than three separate WHERE clauses.
+1. **Cohort-then-in-memory access pattern.** Estate consumers (`TrustService`, `FutureValueCalculator`) fetch the full cohort once via `forCohort()` and then run age-comparison logic in memory — exact match, nearest-lower, nearest-upper. The data set is small (~22 ages per cohort), so an in-memory pass is cheaper than three separate WHERE clauses.
 
 2. **DB unique key vs. seeder lookup mismatch.** The `actuarial_life_tables` table has `UNIQUE (age, gender, table_year)` — `table_source` is **not** part of the unique index. The seeder upsert via `findByCohortAndAge` DOES include `table_source` for safety, but two rows for the same `(age, gender, table_year)` with different `table_source` values will violate the unique constraint at insert time. If you ever introduce a second source for the same cohort, the unique index needs widening first.
 

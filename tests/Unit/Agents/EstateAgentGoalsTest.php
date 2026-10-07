@@ -6,7 +6,6 @@ use App\Agents\EstateAgent;
 use App\Models\Goal;
 use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
-use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\EstateDataReadinessService;
 use App\Services\Estate\FutureValueCalculator;
@@ -29,7 +28,6 @@ beforeEach(function () {
     // Mock all EstateAgent dependencies
     $this->ihtCalculator = Mockery::mock(IHTCalculationService::class);
     $this->assetAggregator = Mockery::mock(EstateAssetAggregatorService::class);
-    $this->estatePlanService = Mockery::mock(ComprehensiveEstatePlanService::class);
     $this->giftingOptimizer = Mockery::mock(GiftingStrategyOptimizer::class);
     $this->trustStrategyService = Mockery::mock(PersonalizedTrustStrategyService::class);
     $this->willAnalysisService = Mockery::mock(WillAnalysisService::class);
@@ -75,7 +73,6 @@ beforeEach(function () {
     $this->agent = new EstateAgent(
         $this->ihtCalculator,
         $this->assetAggregator,
-        $this->estatePlanService,
         $this->giftingOptimizer,
         $this->trustStrategyService,
         $this->willAnalysisService,

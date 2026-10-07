@@ -28,7 +28,6 @@ use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\CashFlowProjector;
-use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Stores\Exceptions\StoreValidationException;
@@ -52,7 +51,6 @@ class EstateController extends Controller
     public function __construct(
         private readonly NetWorthAnalyzer $netWorthAnalyzer,
         private readonly CashFlowProjector $cashFlowProjector,
-        private readonly ComprehensiveEstatePlanService $comprehensiveEstatePlan,
         private readonly TaxConfigService $taxConfig,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
         private readonly CacheInvalidationService $cacheInvalidation,
@@ -235,39 +233,6 @@ class EstateController extends Controller
         ];
 
         return ['all' => $sum($rows)] + $rows->groupBy('liability_type')->map($sum)->all();
-    }
-
-    /**
-     * Generate comprehensive estate plan combining all strategies
-     */
-    public function getComprehensiveEstatePlan(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $this->requireFullEstate($user);
-
-        try {
-            // Eager load relationships needed for IHT calculations
-            $user->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
-
-            // Also load spouse relationships if spouse is involved
-            $spouse = $user->marital_status === 'married' ? $user->liveSpouse() : null;
-            if ($spouse) {
-                $spouse->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
-            }
-
-            $plan = $this->comprehensiveEstatePlan->generateComprehensiveEstatePlan($user);
-
-            return response()->json([
-                'success' => true,
-                'data' => $plan,
-            ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Comprehensive estate plan generation');
-        }
     }
 
     /**

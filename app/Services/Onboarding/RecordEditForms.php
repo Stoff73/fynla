@@ -55,6 +55,8 @@ final class RecordEditForms
         'personal' => 'personal details',
         'family' => 'personal details',
         'dependants' => 'children and dependants',
+        'gifts' => 'gifts',
+        'lpa' => 'Lasting Powers of Attorney',
     ];
 
     /**
@@ -193,6 +195,10 @@ final class RecordEditForms
         'income' => [CaptureForms::WORK],
         'expenditure' => [CaptureForms::EXPENDITURE],
         'dependants' => [CaptureForms::DEPENDANTS],
+        // Item 9 (CSJ 2026-10-07): the estate how-tos record gifts and Lasting
+        // Powers of Attorney in Fynla, through Fyn on every surface.
+        'gifts' => [CaptureForms::GIFT],
+        'lpa' => [CaptureForms::LPA],
     ];
 
     /** Sections that hold one record on the user: once saved, an "add" opens it. */
@@ -241,6 +247,8 @@ final class RecordEditForms
             'expenditure', 'spending' => 'expenditure',
             'personal', 'personal_details' => 'personal',
             'dependant', 'dependants', 'family_member' => 'dependants',
+            'gift', 'gifts', 'estate_gift' => 'gifts',
+            'lpa', 'lasting_power_of_attorney', 'power_of_attorney' => 'lpa',
             default => null,
         };
     }
@@ -630,6 +638,9 @@ final class RecordEditForms
                 'pcls_taken' => self::floatOrNull($pension->pcls_taken),
             ], static fn ($v): bool => $v !== null);
         }
+        if (trim((string) $pension->beneficiary_name) !== '') {
+            $answers['beneficiary_name'] = (string) $pension->beneficiary_name;
+        }
 
         return [CaptureForms::PENSION, $workplace ? 'workplace' : 'personal', $answers, $label];
     }
@@ -764,6 +775,7 @@ final class RecordEditForms
                 'monthly_contribution_amount' => $input['monthly_contribution_amount'] ?? null,
                 'annual_drawdown_income' => $input['annual_drawdown_income'] ?? null,
                 'pcls_taken' => $input['pcls_taken'] ?? null,
+                'beneficiary_name' => $input['beneficiary_name'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'life_insurance', 'critical_illness' => array_filter([
                 'provider' => $input['provider'] ?? null,

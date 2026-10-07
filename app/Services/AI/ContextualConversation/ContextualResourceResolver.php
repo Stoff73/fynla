@@ -53,7 +53,7 @@ final class ContextualResourceResolver
             'income' => 'income',
             'expenditure' => 'expenditure',
             'net_worth' => 'net_worth',
-            'estate' => 'estate',
+            'estate', 'gifts', 'lpa' => 'estate',
             'tax_strategy' => 'tax_strategy',
             default => 'dashboard',
         };
@@ -87,6 +87,8 @@ final class ContextualResourceResolver
             'expenditure' => 'Expenditure',
             'net_worth' => 'Net Worth',
             'estate' => 'Estate Planning',
+            'gifts' => 'Gifts',
+            'lpa' => 'Lasting Powers of Attorney',
             'tax_strategy' => 'Tax Strategy',
             default => 'Fyn Conversation',
         };

@@ -66,6 +66,19 @@ describe('/m action card', () => {
     expect(openPublicWebPath).toHaveBeenCalledWith('/help#avcs');
   });
 
+  // Item 9 (CSJ 2026-10-07): a how-to link can open Fyn on a record's form.
+  it('opens Fyn on the form a Find out more link names', async () => {
+    const request = { action: 'add', resource_type: 'gifts', resource_id: null, current_destination: { screen: 'estate', params: {}, fallback: 'dashboard' }, origin: { kind: 'surface_action', recommendation_id: null } };
+    const w = mountCard(card({ learn_more: [{ label: 'Record a gift with Fyn', url: null, fyn: request }] }));
+    await flushPromises();
+
+    const link = w.find('[data-testid="learn-more-fyn"]');
+    expect(link.text()).toBe('Record a gift with Fyn');
+    await link.trigger('click');
+    expect(chrome.openContextualFyn).toHaveBeenCalledWith(request);
+    expect(w.find('[data-testid="learn-more"]').exists()).toBe(false);
+  });
+
   it('marks the action done', async () => {
     const w = mountCard(card());
     await flushPromises();

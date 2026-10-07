@@ -77,9 +77,11 @@
         <section v-if="card.learn_more && card.learn_more.length" class="mt-6">
           <h2 class="section-title">Find out more</h2>
           <ul class="space-y-1 text-body-sm">
-            <!-- Fynla's own help pages; the router hands server-rendered pages to a full load. -->
-            <li v-for="link in card.learn_more" :key="link.url">
-              <router-link :to="link.url" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more">{{ link.label }}</router-link>
+            <!-- Fynla's own help pages; the router hands server-rendered pages to a full load.
+                 A link with `fyn` opens Fyn on that record's form (item 9). -->
+            <li v-for="link in card.learn_more" :key="link.url || link.label">
+              <button v-if="link.fyn" type="button" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more-fyn" @click="openFynForm(link.fyn)">{{ link.label }}</button>
+              <router-link v-else :to="link.url" class="text-raspberry-600 underline hover:text-raspberry-700" data-testid="learn-more">{{ link.label }}</router-link>
             </li>
           </ul>
         </section>
@@ -221,6 +223,11 @@ export default {
 
     openFynWith(prompt) {
       this.$store.dispatch('aiChat/prefillPrompt', prompt);
+      this.openFyn();
+    },
+
+    async openFynForm(request) {
+      await this.$store.dispatch('aiChat/startContextualConversation', request);
       this.openFyn();
     },
 

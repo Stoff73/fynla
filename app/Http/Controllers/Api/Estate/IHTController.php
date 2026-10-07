@@ -10,8 +10,8 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
 use App\Models\User;
-use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
+use App\Services\Estate\EstateLifeEventsImpact;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
 use App\Services\TaxConfigService;
@@ -268,9 +268,9 @@ class IHTController extends Controller
             ];
 
             // Upcoming life events and their Inheritance Tax effect, from the one
-            // rule the estate plan uses (the IHT screen worked these out itself).
+            // home for them (EstateLifeEventsImpact).
             $response['life_events_impact'] = rescue(
-                fn () => app(ComprehensiveEstatePlanService::class)->buildLifeEventsImpact(
+                fn () => app(EstateLifeEventsImpact::class)->forUser(
                     $user,
                     (float) $calculation['iht_liability'],
                     $calculation,

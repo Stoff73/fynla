@@ -9,7 +9,6 @@ use App\Models\Estate\Will;
 use App\Models\Goal;
 use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
-use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\EstateDataReadinessService;
 use App\Services\Estate\FailedGiftTaxCalculator;
@@ -34,7 +33,6 @@ class EstateAgent extends BaseAgent
     public function __construct(
         private readonly IHTCalculationService $ihtCalculator,
         private readonly EstateAssetAggregatorService $assetAggregator,
-        private readonly ComprehensiveEstatePlanService $estatePlanService,
         private readonly GiftingStrategyOptimizer $giftingOptimizer,
         private readonly PersonalizedTrustStrategyService $trustStrategyService,
         private readonly WillAnalysisService $willAnalysisService,
@@ -1088,6 +1086,8 @@ class EstateAgent extends BaseAgent
                 ],
                 'potential_saving' => $potentialSavings,
                 'band_left' => $bandLeft,
+                // The gift the plan's what-if takes out of the estate (item 9).
+                'impact_parameters' => ['gift' => $bandLeft],
                 'decision_trace' => $trace,
             ];
         }
@@ -1392,39 +1392,14 @@ class EstateAgent extends BaseAgent
     }
 
     /**
-     * Build what-if scenarios for estate planning.
+     * Required by BaseAgent. Estate builds no what-if scenarios: nothing called
+     * this, and its builders took released equity out of the estate and used
+     * set-up estimates (item 9, removed 2026-10-07). The Estate plan page
+     * models each step with its own figure.
      */
     public function buildScenarios(int $userId, array $parameters): array
     {
-        $user = User::with([
-            'ihtProfile',
-            'assets',
-            'properties',
-            'liabilities',
-            'spouse',
-        ])->findOrFail($userId);
-
-        $scenarios = [];
-        $scenarioTypes = $parameters['scenario_types'] ?? ['current', 'optimized', 'gifting'];
-
-        foreach ($scenarioTypes as $scenarioType) {
-            $scenarios[$scenarioType] = match ($scenarioType) {
-                'current' => $this->buildCurrentScenario($user),
-                'optimized' => $this->buildOptimizedScenario($user, $parameters),
-                'gifting' => $this->buildGiftingScenario($user, $parameters),
-                'property_downsizing' => $this->buildDownsizingScenario($user, $parameters),
-                'trust_creation' => $this->buildTrustScenario($user, $parameters),
-                default => null,
-            };
-        }
-
-        return $this->response(
-            true,
-            'Scenarios built successfully.',
-            [
-                'scenarios' => array_filter($scenarios),
-            ]
-        );
+        return $this->response(false, 'Estate scenarios are not built here; the Estate plan page models each step.', []);
     }
 
     /**
@@ -1487,126 +1462,6 @@ class EstateAgent extends BaseAgent
                 'semi_liquid' => $semiLiquid,
                 'illiquid' => max(0, $illiquid),
             ],
-        ];
-    }
-
-    /**
-     * Build current state scenario.
-     */
-    private function buildCurrentScenario(User $user): array
-    {
-        $assetSummary = $this->buildAssetSummary($user);
-
-        $ihtLiability = 0;
-        try {
-            // W-0529 — one derivation. This pooled on the link alone, so Fyn quoted a
-            // different estate figure from the one on the screen.
-            $spouse = $user->reciprocalLiveSpouse();
-            $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
-            $result = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
-            $ihtLiability = $result['iht_liability'] ?? 0;
-        } catch (\Exception $e) {
-            // Continue with zero
-        }
-
-        return [
-            'name' => 'Current Estate Position',
-            'gross_estate' => $assetSummary['gross_estate'] ?? 0,
-            'net_estate' => $assetSummary['net_estate'] ?? 0,
-            'iht_liability' => $ihtLiability,
-            'to_beneficiaries' => ($assetSummary['net_estate'] ?? 0) - $ihtLiability,
-        ];
-    }
-
-    /**
-     * Build optimized scenario with all strategies applied.
-     */
-    private function buildOptimizedScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-
-        // Estimate savings from various strategies
-        $giftingSavings = min($current['iht_liability'] * 0.15, 50000);
-        $trustSavings = min($current['iht_liability'] * 0.1, 40000);
-
-        $optimizedIHT = max(0, $current['iht_liability'] - $giftingSavings - $trustSavings);
-
-        return [
-            'name' => 'Optimized Estate Plan',
-            'gross_estate' => $current['gross_estate'],
-            'net_estate' => $current['net_estate'],
-            'iht_liability' => $optimizedIHT,
-            'to_beneficiaries' => $current['net_estate'] - $optimizedIHT,
-            'estimated_savings' => $current['iht_liability'] - $optimizedIHT,
-            'strategies_applied' => ['gifting', 'trusts', 'allowance_optimization'],
-        ];
-    }
-
-    /**
-     * Build gifting strategy scenario.
-     */
-    private function buildGiftingScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-        $yearsOfGifting = $parameters['gifting_years'] ?? (int) $this->taxConfig->getPETRules()['years_to_exemption'];
-        $annualGiftAmount = $parameters['annual_gift'] ?? (float) $this->taxConfig->getGiftingExemptions()['annual_exemption'];
-
-        $totalGifted = $annualGiftAmount * $yearsOfGifting;
-        $ihtRate = (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
-        $ihtSaved = $totalGifted * $ihtRate;
-
-        return [
-            'name' => "Gifting Strategy ({$yearsOfGifting} years)",
-            'gross_estate' => $current['gross_estate'] - $totalGifted,
-            'net_estate' => $current['net_estate'] - $totalGifted,
-            'iht_liability' => max(0, $current['iht_liability'] - $ihtSaved),
-            'to_beneficiaries' => $current['net_estate'] - max(0, $current['iht_liability'] - $ihtSaved),
-            'total_gifted' => $totalGifted,
-            'estimated_iht_saved' => $ihtSaved,
-        ];
-    }
-
-    /**
-     * Build property downsizing scenario.
-     */
-    private function buildDownsizingScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-        // The amount released is the user's figure; never a setup estimate (item 9).
-        $equityRelease = (float) ($parameters['equity_release'] ?? 0);
-
-        $ihtRate = (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
-
-        return [
-            'name' => 'Property Downsizing',
-            'gross_estate' => $current['gross_estate'] - $equityRelease,
-            'net_estate' => $current['net_estate'] - $equityRelease,
-            'iht_liability' => max(0, $current['iht_liability'] - ($equityRelease * $ihtRate)),
-            'to_beneficiaries' => $current['net_estate'] - $equityRelease - max(0, $current['iht_liability'] - ($equityRelease * $ihtRate)),
-            'cash_released' => $equityRelease,
-        ];
-    }
-
-    /**
-     * Build trust creation scenario.
-     */
-    private function buildTrustScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-        $trustValue = $parameters['trust_value'] ?? (float) $this->taxConfig->getInheritanceTax()['nil_rate_band'];
-
-        // Discretionary trust within NRB
-        $ihtRate = (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
-        $ihtReduction = min($trustValue * $ihtRate, $current['iht_liability']);
-
-        return [
-            'name' => 'Trust Creation Strategy',
-            'gross_estate' => $current['gross_estate'],
-            'net_estate' => $current['net_estate'],
-            'iht_liability' => max(0, $current['iht_liability'] - $ihtReduction),
-            'to_beneficiaries' => $current['net_estate'] - max(0, $current['iht_liability'] - $ihtReduction),
-            'trust_value' => $trustValue,
-            'estimated_iht_saved' => $ihtReduction,
         ];
     }
 

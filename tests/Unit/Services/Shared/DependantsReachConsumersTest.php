@@ -105,7 +105,6 @@ describe('no consumer asks the question for itself', function () {
             'app/Services/Estate/IntestacyCalculator.php',
             'app/Services/AI/AdvicePromptBuilder.php',
             'app/Services/Savings/SavingsActionDefinitionService.php',
-            'app/Services/Estate/ComprehensiveEstatePlanService.php',
             'app/Services/UserProfile/ProfileCompletenessChecker.php',
         ];
 

@@ -64,8 +64,10 @@
       <section v-if="card.learn_more && card.learn_more.length" class="mac-section">
         <h2 class="m-section-label">Find out more</h2>
         <ul class="mac-list">
-          <li v-for="link in card.learn_more" :key="link.url">
-            <button type="button" class="mac-link" data-testid="learn-more" @click="openPublicWebPath(link.url)">{{ link.label }}</button>
+          <!-- A link with `fyn` opens Fyn on that record's form (item 9). -->
+          <li v-for="link in card.learn_more" :key="link.url || link.label">
+            <button v-if="link.fyn" type="button" class="mac-link" data-testid="learn-more-fyn" @click="openFynForm(link.fyn)">{{ link.label }}</button>
+            <button v-else type="button" class="mac-link" data-testid="learn-more" @click="openPublicWebPath(link.url)">{{ link.label }}</button>
           </li>
         </ul>
       </section>
@@ -204,6 +206,10 @@ export default {
       if (!chrome) return;
       await chrome.openFyn();
       chrome.send(prompt);
+    },
+
+    async openFynForm(request) {
+      await this.$refs.chrome?.openContextualFyn(request);
     },
 
     async askFyn() {
