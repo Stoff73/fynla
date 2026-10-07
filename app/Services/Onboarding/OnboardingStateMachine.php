@@ -173,6 +173,13 @@ final class OnboardingStateMachine
     // only matters once we reach pensions/retirement).
     public const STATE_CAMPAIGN_DOB = 'campaign_dob';
 
+    // A retired partner whose partner gave their income at the link (item 10,
+    // CSJ 2026-10-07): their State Pension and final salary pensions are asked
+    // before the personal pension form, which opens with what is left.
+    public const STATE_CAMPAIGN_RETIRED_STATE_PENSION = 'campaign_retired_state_pension';
+
+    public const STATE_CAMPAIGN_RETIRED_DB_PENSION = 'campaign_retired_db_pension';
+
     // Per-section advice turns (turn_type 'advice'): auto-advancing read-only
     // messages where Fyn relays the relevant tax-engine recommendation for the
     // section just completed, before moving to the next section.
@@ -689,6 +696,16 @@ final class OnboardingStateMachine
                 // DOB is captured and we skip straight to the next section.
                 'next' => self::class.'::nextFromCampaignDob',
                 'skip_if' => [self::class, 'skipIfDobSet'],
+            ],
+            // Item 10 (CSJ 2026-10-07): a retired partner's State Pension, then
+            // their final salary pensions; the personal pension form then opens
+            // with what is left of the figure their partner gave.
+            self::STATE_CAMPAIGN_RETIRED_STATE_PENSION => [
+                'skip_if' => [self::class, 'skipSectionIfStatePensionKnown'],
+            ],
+            self::STATE_CAMPAIGN_RETIRED_DB_PENSION => [
+                'next' => self::class.'::nextFromRetiredDbPension',
+                'skip_if' => [self::class, 'skipIfDbPensionKnown'],
             ],
             self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
                 // Deterministic gap-fill focus: campaign users carry selection
@@ -2449,6 +2466,13 @@ final class OnboardingStateMachine
      */
     public static function nextFromCampaignDob(string $answer, User $user): string
     {
+        // A retired partner is asked what makes up the pension income their
+        // partner gave for them before any personal pension (item 10).
+        if ($user->onboarding_fyn_selection !== 'pensioncheck'
+            && app(SpouseHoldingTransfer::class)->inviterPensionIncome($user) !== null) {
+            return self::STATE_CAMPAIGN_RETIRED_STATE_PENSION;
+        }
+
         // PensionCheck is entirely about pensions — always enter the occupational-
         // scheme step regardless of funnel_answers['assets']. The pensioncheck
         // funnel uses funnel_answers['pensions'] (not 'assets'), so
@@ -2461,6 +2485,25 @@ final class OnboardingStateMachine
         return self::funnelHasAnyAsset($user, ['pension'])
             ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
             : self::nextCampaignSection('pensions', $user);
+    }
+
+    /**
+     * After a retired partner's final salary step: the personal pension form
+     * when they hold one or part of their partner's figure is still to be
+     * placed (it opens with that part), else the next section.
+     */
+    public static function nextFromRetiredDbPension(string $answer, User $user): string
+    {
+        return self::funnelHasAnyAsset($user, ['pension'])
+            || app(SpouseHoldingTransfer::class)->pensionIncomeLeftToPlace($user) !== null
+            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            : self::nextCampaignSection('pensions', $user);
+    }
+
+    /** A final salary or career average pension already on file is not asked again. */
+    public static function skipIfDbPensionKnown(User $user): bool
+    {
+        return app(PensionStore::class)->forUserByType($user, 'db')->isNotEmpty();
     }
 
     /** True if the user's funnel answers list at least one of the given assets. */

@@ -47,6 +47,7 @@ final class WalkFormPrefill
         private readonly HouseholdFinancialContext $household,
         private readonly SavingsStore $savings,
         private readonly PensionStore $pensions,
+        private readonly SpouseHoldingTransfer $transfer,
     ) {}
 
     /**
@@ -58,9 +59,39 @@ final class WalkFormPrefill
             CaptureForms::WORK => $this->existingJob($user, $conversation),
             CaptureForms::SPOUSE_HOUSEHOLD => $this->linkedSpouseIncome($user),
             CaptureForms::SAVINGS, CaptureForms::ISA, CaptureForms::INVESTMENT,
-            CaptureForms::PENSION, CaptureForms::PENSION_PERSONAL => $this->existingRecord($user, $conversation, $formName),
+            CaptureForms::PENSION => $this->existingRecord($user, $conversation, $formName),
+            CaptureForms::PENSION_PERSONAL => $this->withPensionIncomeLeft($user, $conversation, $this->existingRecord($user, $conversation, $formName)),
             default => null,
         };
+    }
+
+    /**
+     * A retired partner's personal pension form opens with what they draw
+     * worked out from the figure their partner gave, less the State Pension
+     * and final salary pensions they have said are paid to them (item 10,
+     * SpouseHoldingTransfer::pensionIncomeLeftToPlace). A figure already on
+     * the record stands.
+     *
+     * @param  array<string, mixed>|null  $prefill
+     * @return array<string, mixed>|null
+     */
+    private function withPensionIncomeLeft(User $user, AiConversation $conversation, ?array $prefill): ?array
+    {
+        if (self::formSaved($conversation, CaptureForms::PENSION_PERSONAL)) {
+            return $prefill;
+        }
+        $left = $this->transfer->pensionIncomeLeftToPlace($user);
+        if ($left === null) {
+            return $prefill;
+        }
+        if ($prefill === null) {
+            return ['values' => ['personal' => ['annual_drawdown_income' => $left]], 'record' => null];
+        }
+        if ((float) ($prefill['values']['personal']['annual_drawdown_income'] ?? 0) <= 0) {
+            $prefill['values']['personal']['annual_drawdown_income'] = $left;
+        }
+
+        return $prefill;
     }
 
     /** @return array{values: array<string, array<string, mixed>>, record: array{type: string, id: int}}|null */
