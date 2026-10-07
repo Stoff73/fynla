@@ -1,8 +1,8 @@
-# Tech Debt Report — Session 2026-10-07 (session 2)
+# Tech Debt Report — Session 2026-10-07 (session 3)
 
-**Files analysed:** 10 (the session's changes to item 9, released as #1122)
-**Issues found:** 6
-**Severity breakdown:** 0 critical, 3 warnings, 3 suggestions
+**Files analysed:** 22 (the session's changes, `7c9f30899..f26970f14`, released as #1127)
+**Issues found:** 5
+**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
 
 ## Critical Issues
 
@@ -10,27 +10,24 @@ None.
 
 ## Warnings
 
-1. **`resources/js/components/Estate/GiftForm.vue:114-116` — Inconsistency (wrong in law).** The exemption box says any gift above the annual exemption "will be a Potentially Exempt Transfer (subject to 7-year rule)", whatever type was chosen. A gift into most trusts is a Chargeable Lifetime Transfer, not a PET (IHTA 1984 s3A(1A)), and the form's own type select offers both. The line's emoji is grandfathered (Rule 15); the claim is not.
-   *Fix:* show that line only for `gift_type === 'pet'`, or word it from the chosen type.
+1. **`app/Services/Tax/Strategies/NonEarnerSpousePensionStrategy.php:108` and `:199` — Convention (Rule 2).** Both descriptions say "a separate 25%% tax-free lump sum" as typed text. The rate is `pension.pcls_rate` in tax config (`TaxConfigService.php:192`, `calculatePCLS`). The lines were reworded this session (item 13) and kept the literal.
+   *Fix:* read the rate from tax config (`getPensionAllowances()['pcls_rate']`) and format it into both sentences.
 
-2. **`app/Services/Estate/EstateActionDefinitionService.php:158-164` and `app/Services/Tiers/EstateIhtExposureDetector.php:80-89` — Duplicate code.** The "married but not pooled" and "married but unlinked" predicates are written twice, read off the same engine result. The sentences now have one home (constants on the detector), but the predicate does not, so the two can drift (the W-0467 history is exactly that drift).
-   *Fix:* have `IHTCalculationService` publish `own_records_only` and `partner_unlinked` (or one static method on the detector), and have both callers read it.
-
-3. **`resources/js/store/modules/aiChat.js:1157` (`streamNextQueued`) — Inconsistency.** The new "unrefused form turn refreshes the screen behind the chat" signal was added to `sendMessage` only. A form turn that is queued behind an in-flight turn streams through `streamNextQueued`, which fires the refresh on entity events (`recordEntityWrite`) but not at the end of a form turn with no entity event. Not verified that a form can be queued.
-   *Fix:* confirm whether a form submission can be queued; if it can, lift the end-of-turn check into a helper used by both paths.
+2. **`app/Services/Onboarding/SpouseHoldingTransfer.php` (`otherIncomeCopiedAtLink`, `inviterPensionIncome`) — Duplicate code.** Both run the same lookup for the inviter's transferred holding row (`liveSpouse()` then `TaxStrategyHouseholdInput::where('user_id', …)->whereNotNull('spouse_holding_transferred_at')->first()`). `inviterPensionIncome` also works out the earnings share inline, where `payAtLink` (same class) already holds that rule.
+   *Fix:* one private `transferredHolding(User $spouse): ?TaxStrategyHouseholdInput`, and `inviterPensionIncome` via `payAtLink($income, $earnings, 'retired')`.
 
 ## Suggestions
 
-4. **`app/Services/Estate/EstateDataReadinessService.php:158` — Inconsistency.** Property and savings now go through their stores (`existsForUser`), but investment accounts still query `InvestmentAccount::forUserOrJoint` directly; `InvestmentAccountStore` has no `existsForUser`. Not caught by an architecture test today.
-   *Fix:* add `InvestmentAccountStore::existsForUser` and use it.
+3. **`app/Agents/CoordinatingAgent.php` (`handleCreateEstateGift`, `handleDeleteRecord` estate_gift branch) — Redundant.** `GiftStore` already clears the user's caches (`CacheInvalidationService::invalidateForUser`), and the handlers call `invalidateUserCache` again afterwards. No defect; one call is enough.
+   *Fix:* drop the handler-side call for gifts, or document why the agent cache needs its own.
 
-5. **`app/Services/Estate/EstateActionDefinitionService.php:130-223` — Complexity.** `evaluateIhtPosition` is about 95 lines: it reads the engine, maps seven steps and builds about 30 template variables.
-   *Fix:* extract the variable map (`ihtPositionVars(array $iht, array $steps)`).
+4. **`app/Agents/CoordinatingAgent.php` `handleCreateEstateGift` — Redundant work.** It calls `GiftStore::validateNew` before the duplicate check, then `GiftStore::create` validates again.
+   *Fix:* acceptable as is (the check must run before `guardRecapture`); or let `create` take a pre-validated flag. Low value.
 
-6. **Two gift write paths (carried from session 1).** `EstateController::storeGift` and `CoordinatingAgent::handleCreateEstateGift` both call `Gift::create`, with validation written twice (`StoreGiftRequest` and the tool's own rules). Both clear the same caches (`CoordinatingAgent::invalidateUserCache` calls `CacheInvalidationService::invalidateForUser`), so no live defect.
-   *Fix:* a `GiftStore` both call, as the other modules have.
+5. **`app/Services/Investment/Recommendation/SpouseOptimisationService.php` — Duplicate engine (Rule 20).** The Investment plan's partner top-up and `NonEarnerSpousePensionStrategy` (Tax Strategy) are two engines for one suggestion. They now share figures (`TaxStrategyMath::nonEarnerPensionContribution`) and wording, but not the affordability cap or the age rule the Tax Strategy card applies.
+   *Fix:* have the plan read the Tax Strategy recommendation, as the Holistic Plan follows the actions list (item 41 is the same class of problem).
 
-Grandfathered and not reported as defects: the `fa-info-circle` icon font at `GiftForm.vue:104` and the emoji at `:115` (Rule 15, forward-only).
+Not reported (grandfathered or ruled): the `fa-info-circle` icon font at `GiftForm.vue` (Rule 15, forward-only); `CaptureForms.php` length (CSJ ruling 53, do not split).
 
 ---
 *Generated by tech-debt-session skill*
