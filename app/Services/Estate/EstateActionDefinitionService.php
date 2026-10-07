@@ -13,6 +13,7 @@ use App\Models\EstateActionDefinition;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\EstateIhtExposureDetector;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
 use Carbon\Carbon;
@@ -153,15 +154,41 @@ class EstateActionDefinitionService
         $newCover = (float) ($steps['new_life_cover']['cover_amount'] ?? 0);
         $larger = $steps['pet_gifting'] ?? null;
 
+        // W-0467 — a married user whose figure is their own records alone: the
+        // partner has no linked account, or does not share. What passes to a
+        // husband, wife or civil partner is free of the tax (IHTA 1984 s18), so
+        // "if you died today" of this figure is not true of them. Read off the
+        // engine's result, as `EstateIhtExposureDetector` reads it.
+        $marriedNotPooled = ($iht['is_married'] ?? false) && ! ($iht['data_sharing_enabled'] ?? false);
+        $marriedUnlinked = in_array($iht['marital_status'] ?? null, ['married', 'civil_partnership'], true)
+            && ! ($iht['is_married'] ?? false);
+        $ownRecordsOnly = $marriedNotPooled || $marriedUnlinked;
+
         $vars = [
             'iht_liability' => $this->money($ihtLiability),
             // The engine's own estate, the one its tax is worked on: a couple's
             // pooled estate where the partner's is counted (W-0501).
-            'estate_text' => ($couple = ((float) ($iht['spouse_net_estate'] ?? 0)) > 0) ? 'Your household\'s estate' : 'Your estate',
+            'estate_text' => ($couple = ((float) ($iht['spouse_net_estate'] ?? 0)) > 0)
+                ? 'Your household\'s estate'
+                : ($ownRecordsOnly ? 'Based on your own records alone, your estate' : 'Your estate'),
             // A couple's figure is the tax on the second death, as the Estate page
             // words it ("If both die today", IHTPlanning.vue).
             'when_text' => $couple ? 'if you both died today' : 'if you died today',
-            'when_start' => $couple ? 'If you both died today' : 'If you died today',
+            'when_start' => $couple
+                ? 'If you both died today'
+                : ($ownRecordsOnly ? 'Based on your own records alone, if you died today' : 'If you died today'),
+            // W-0466 / W-0534 — the engine's caveats on the CURRENT figure, the one
+            // this card prints, in the engine's own words (Rule 20). The projected
+            // column's caveat stays with the projected figure, which the card does
+            // not show.
+            'has_relief_caveat' => ($iht['unmodelled_relief_caveat'] ?? null) !== null,
+            'relief_caveat' => $iht['unmodelled_relief_caveat'] ?? null,
+            'has_pension_caveat' => ($iht['pension_exclusion_caveat'] ?? null) !== null,
+            'pension_caveat' => $iht['pension_exclusion_caveat'] ?? null,
+            'has_partner_note' => $ownRecordsOnly,
+            'partner_note' => $ownRecordsOnly
+                ? EstateIhtExposureDetector::OWN_RECORDS_PARTNER_NOTE.' '.($marriedUnlinked ? EstateIhtExposureDetector::LINK_ACCOUNTS_NOTE : EstateIhtExposureDetector::SHARE_FINANCES_NOTE)
+                : null,
             'net_estate' => $this->money((float) ($iht['total_net_estate'] ?? $summary['net_estate'] ?? 0)),
             'allowances' => $this->money((float) ($iht['total_allowances'] ?? 0)),
             'rate_percent' => (string) (int) round(((float) ($iht['iht_rate'] ?? $this->taxConfig->getInheritanceTax()['standard_rate'])) * 100),

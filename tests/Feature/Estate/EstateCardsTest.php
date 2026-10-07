@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\EstateAgent;
 use App\Models\DCPension;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
@@ -12,6 +13,7 @@ use App\Services\Estate\EstateActionDefinitionService;
 use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -117,4 +119,36 @@ it('states an Inheritance Tax figure that the estate and allowances add up to', 
     expect(round(($pounds($f['net_estate']) - $pounds($f['allowances'])) * ((int) $f['rate_percent'] / 100)))
         ->toBe(round($pounds($f['iht_liability'])))
         ->and($card['description'])->not->toMatch('/\b40%\s+resulting|nil-rate band/i');
+});
+
+it('says a married user\'s figure is their own records alone when the partner is not linked (W-0467)', function () {
+    // brett-a on csjones (2026-10-07): married, partner with no account, told
+    // "If you died today, £105,200 would be due" — but what passes to a wife is
+    // free of the tax (IHTA 1984 s18). The teaser's approved sentences apply.
+    $this->user->update(['marital_status' => 'married']);
+    Property::where('user_id', $this->user->id)->update(['current_value' => 1_000_000]);
+
+    [$card] = estateCardsFor($this->user, 'iht_position');
+
+    expect($card['description'])->toStartWith('Based on your own records alone, your estate of')
+        ->and($card['figures']['has_partner_note'])->toBeTrue()
+        ->and($card['figures']['partner_note'])->toBe('This figure does not allow for anything passing to your partner. Linking your accounts gives a fuller picture.');
+
+    $this->user->update(['marital_status' => 'single']);
+    Cache::flush(); // the agent's cached analysis; a real profile edit clears it
+    [$single] = estateCardsFor($this->user->fresh(), 'iht_position');
+    expect($single['description'])->toStartWith('Your estate of')
+        ->and($single['figures']['has_partner_note'])->toBeFalse();
+});
+
+it('carries the engine\'s caveat on the current figure, in its words (W-0534)', function () {
+    Property::where('user_id', $this->user->id)->update(['current_value' => 1_000_000]);
+    DCPension::factory()->create(['user_id' => $this->user->id, 'current_fund_value' => 100_000]);
+
+    [$card] = estateCardsFor($this->user, 'iht_position');
+    $engine = app(EstateAgent::class)->analyze($this->user->id)['data']['iht_calculation'];
+
+    expect($engine['pension_exclusion_caveat'])->not->toBeNull()
+        ->and($card['figures']['has_pension_caveat'])->toBeTrue()
+        ->and($card['figures']['pension_caveat'])->toBe($engine['pension_exclusion_caveat']);
 });
