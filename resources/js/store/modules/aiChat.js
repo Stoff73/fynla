@@ -32,6 +32,15 @@ function entityWriteMessage(event) {
     };
 }
 
+// A Fyn write landed. Add its row, and tell the screen behind the chat to
+// refetch (fynScreenRefreshMixin): a form Fyn opened over a page (a gift from
+// the gifts card) leaves no route change, so the page kept its old figures
+// until a reload. /m bumps store.screenRefreshTick on every write the same way.
+function recordEntityWrite(commit, event) {
+    commit('ADD_MESSAGE', entityWriteMessage(event));
+    window.dispatchEvent(new Event('fyn-screen-refresh'));
+}
+
 // A turn queued behind a lock this client does not hold is streamed once the
 // lock frees, retried on the /m schedule (onboardingChat.js streamQueuedReply).
 const QUEUED_STREAM_ATTEMPTS = 8;
@@ -689,6 +698,10 @@ const actions = {
         // (see api.js handleAuthExpiry) — skip the error banner and the
         // empty-response fallback below so they don't flash behind the redirect.
         let authExpired = false;
+        // A form turn the server refused, and whether a write event already told
+        // the screen behind the chat to refetch (see the end of the stream).
+        let formRefused = false;
+        let screenRefreshed = false;
         // A refused form submission (capture_form_errors) rewrites the existing
         // form row in place rather than pushing a new message, so it would
         // otherwise be invisible to the empty-response check below — the
@@ -833,7 +846,8 @@ const actions = {
                     case 'entity_created':
                     case 'entity_updated':
                     case 'entity_deleted':
-                        commit('ADD_MESSAGE', entityWriteMessage(event));
+                        recordEntityWrite(commit, event);
+                        screenRefreshed = true;
                         break;
 
                     case 'action':
@@ -884,6 +898,7 @@ const actions = {
                         break;
 
                     case 'capture_form_errors':
+                        formRefused = true;
                         // A rejected form submission — re-attach the errors to the
                         // same form row rather than adding a new one. Mark the turn
                         // as replied so the empty-response guard in the finally
@@ -1059,6 +1074,14 @@ const actions = {
             // FR-M7 — the in-flight turn streamed to completion; the finally
             // pops the next queued turn for this conversation.
             streamedToCompletion = !interrupted;
+            // A saved form changes the record the screen behind the chat shows,
+            // and the form path often confirms in plain text with no entity
+            // event (a gift from the gifts card's Fyn link). An unrefused form
+            // turn is the signal, as on /m (onboardingChat.js send()). An
+            // interrupted turn may still have saved, so it refetches too.
+            if (form && !formRefused && !screenRefreshed) {
+                window.dispatchEvent(new Event('fyn-screen-refresh'));
+            }
         } catch (error) {
             // Don't show error if the user intentionally cancelled
             if (error.name === 'AbortError') {
@@ -1195,7 +1218,7 @@ const actions = {
                     case 'entity_created':
                     case 'entity_updated':
                     case 'entity_deleted':
-                        commit('ADD_MESSAGE', entityWriteMessage(event));
+                        recordEntityWrite(commit, event);
                         break;
                     case 'action':
                         addPresentationAction(commit, state, event);

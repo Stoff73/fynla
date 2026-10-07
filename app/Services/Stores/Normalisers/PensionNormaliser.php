@@ -220,7 +220,7 @@ class PensionNormaliser
         if (isset($toolParams['retirement_age']) && is_numeric($toolParams['retirement_age'])) {
             $canonical['retirement_age'] = (int) $toolParams['retirement_age'];
         }
-        foreach (['member_number', 'investment_strategy'] as $f) {
+        foreach (['member_number', 'investment_strategy', 'beneficiary_name'] as $f) {
             if (isset($toolParams[$f]) && $toolParams[$f] !== '') {
                 $canonical[$f] = $toolParams[$f];
             }

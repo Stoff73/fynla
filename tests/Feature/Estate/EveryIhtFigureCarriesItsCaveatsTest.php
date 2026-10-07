@@ -84,3 +84,15 @@ it('writes no engine sentence into a frontend bundle', function () {
         }
     }
 });
+
+it('carries the current figure\'s caveats onto the Inheritance Tax action card', function () {
+    // Item 9 (2026-10-07): the `iht_position` card is a fourth surface printing the
+    // engine's figure — the current one, so the current column's two caveats, not the
+    // projected one. Built server-side, so the service and its how-to are the markup.
+    $service = (string) file_get_contents(app_path('Services/Estate/EstateActionDefinitionService.php'));
+    $howTo = (string) file_get_contents(database_path('seeders/data/action-how-to/estate.md'));
+    foreach (['unmodelled_relief_caveat' => 'relief_caveat', 'pension_exclusion_caveat' => 'pension_caveat'] as $key => $figure) {
+        expect($service)->toContain("\$iht['{$key}']")
+            ->and($howTo)->toContain('{'.$figure.'}');
+    }
+});

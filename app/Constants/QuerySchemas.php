@@ -640,7 +640,7 @@ final class QuerySchemas
             'strategy_isa_coordination',
         ],
         self::ESTATE_IHT => [
-            'iht_exceeds_nrb',
+            'iht_position',
             'policy_not_in_trust',
             'gifts_pet_window',
             'no_will',
@@ -649,8 +649,8 @@ final class QuerySchemas
         self::ESTATE_PLANNING => [
             'no_will',
             'no_lpa',
-            'beneficiary_review',
-            'trust_review_due',
+            'pension_no_beneficiary',
+            'trust_anniversary_due',
         ],
         self::GOALS_PROGRESS => [
             'goal_behind_schedule',

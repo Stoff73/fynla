@@ -9,7 +9,7 @@ use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'expenditure_tax', 'protection', 'employer_benefits', 'state_pension', 'other_income'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household', 'expenditure_tax', 'protection', 'employer_benefits', 'state_pension', 'other_income', 'gift', 'lpa'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -270,8 +270,8 @@ it('offers a workplace pension and a personal pension or SIPP, both through crea
         ->and($schema['kinds_prompt'])->toBe('A SIPP is a Self-Invested Personal Pension.')
         ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP'])
         ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_pension'])
-        ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice'])
-        ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken'])
+        ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice', 'beneficiary_name'])
+        ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken', 'beneficiary_name'])
         ->and($schema['fields']['current_value']['required'])->toBeFalse()
         ->and($schema['fields']['employee_contribution_percent'])->toMatchArray(['required' => true, 'min' => 0, 'max' => 100])
         ->and(array_column($schema['fields']['salary_sacrifice']['options'], 'value'))->toBe(['yes', 'no']);

@@ -42,13 +42,13 @@ function ihtActionFor(User $user): ?array
     // Exceeds Nil-Rate Band" — hyphenated — and matching prose found nothing, so an
     // earlier draft of these tests passed and failed for reasons that had nothing to
     // do with the defect.
-    return collect($actions)->first(fn (array $a) => ($a['definition_key'] ?? null) === 'iht_exceeds_nrb');
+    return collect($actions)->first(fn (array $a) => ($a['definition_key'] ?? null) === 'iht_position');
 }
 
 it('warns the joint owner whose share alone exceeds the band', function () {
-    $primary = User::factory()->create(['marital_status' => 'single']);
+    $primary = User::factory()->create(['marital_status' => 'single', 'date_of_birth' => '1970-01-01']);
     // The viewer is the JOINT owner, not the primary — the case that reported £0.
-    $viewer = User::factory()->create(['marital_status' => 'single']);
+    $viewer = User::factory()->create(['marital_status' => 'single', 'date_of_birth' => '1970-01-01']);
 
     Property::factory()->create([
         'user_id' => $primary->id,
@@ -67,8 +67,8 @@ it('warns the joint owner whose share alone exceeds the band', function () {
 });
 
 it('does not inflate the primary owner to the whole property', function () {
-    $viewer = User::factory()->create(['marital_status' => 'single']);
-    $other = User::factory()->create(['marital_status' => 'single']);
+    $viewer = User::factory()->create(['marital_status' => 'single', 'date_of_birth' => '1970-01-01']);
+    $other = User::factory()->create(['marital_status' => 'single', 'date_of_birth' => '1970-01-01']);
 
     // 40% of £700,000 is £280,000 — BELOW the £325,000 band, so no warning is due.
     // Counting the whole £700,000, as the hand-rolled estimate did, invents one.

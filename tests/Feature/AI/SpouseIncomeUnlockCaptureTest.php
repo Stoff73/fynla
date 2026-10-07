@@ -10,6 +10,7 @@ use App\Services\Actions\ActionCardService;
 use App\Services\GDPR\ConsentService;
 use App\Services\Mobile\RecommendationRouting;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\InvestmentActionDefinitionSeeder;
 use Database\Seeders\ProtectionActionDefinitionSeeder;
 use Database\Seeders\RetirementActionDefinitionSeeder;
@@ -92,6 +93,7 @@ it('explains the spouse top-up from their earnings from work', function (?float 
     $this->seed(ProtectionActionDefinitionSeeder::class);
     $this->seed(RetirementActionDefinitionSeeder::class);
     $this->seed(InvestmentActionDefinitionSeeder::class);
+    $this->seed(EstateActionDefinitionSeeder::class);
     $this->seed(ActionHowToSeeder::class);
     $this->user->update(['household_calculation_mode' => 'dual_earner', 'annual_employment_income' => 45000,
         'employment_status' => 'employed', 'date_of_birth' => now()->subYears(40)->toDateString()]);

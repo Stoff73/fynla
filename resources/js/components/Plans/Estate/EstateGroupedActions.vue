@@ -263,32 +263,15 @@ export default {
     },
 
     projectedScenario() {
-      if (!this.hasWhatIfData || !this.whatIf.frontend_calc_params) {
-        return this.whatIf?.projected_scenario || {};
-      }
-
-      const params = this.whatIf.frontend_calc_params;
-      const savingsMap = params.savings_map || {};
-      const grossEstate = params.gross_estate || 0;
-      const netEstate = params.net_estate || 0;
-      const currentLiability = params.current_iht_liability || 0;
-
-      // Sum savings from enabled actions
-      let totalSavings = 0;
-      this.actions.filter(a => a.enabled).forEach(action => {
-        totalSavings += savingsMap[action.id] || action.estimated_impact || 0;
-      });
-
-      const projectedLiability = Math.max(0, currentLiability - totalSavings);
-      const projectedRate = grossEstate > 0 ? (projectedLiability / grossEstate) * 100 : 0;
-      const projectedToBeneficiaries = Math.max(0, netEstate - projectedLiability);
-
-      return {
-        iht_liability: projectedLiability,
-        effective_tax_rate: Math.round(projectedRate * 10) / 10,
-        estate_to_beneficiaries: projectedToBeneficiaries,
-        total_mitigation_savings: totalSavings,
-      };
+      // The server works out every combination of the actions that change the
+      // tax (item 9): the browser picks the one switched on, and adds nothing.
+      if (!this.hasWhatIfData) return {};
+      const byEnabled = this.whatIf.projected_by_enabled;
+      if (!byEnabled) return this.whatIf.projected_scenario || {};
+      const ids = this.whatIf.tax_changing_action_ids || [];
+      const enabled = new Set(this.actions.filter(a => a.enabled).map(a => a.id));
+      const key = ids.filter(id => enabled.has(id)).sort().join('+');
+      return byEnabled[key] || this.whatIf.projected_scenario || {};
     },
   },
 

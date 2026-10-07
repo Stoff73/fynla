@@ -78,6 +78,8 @@ final class UpdateRecordAllowlist
             // The personal pension form asks what is drawn and the tax-free
             // lump sum taken; an edit of that form dropped both (2026-09-30).
             'annual_drawdown_income', 'pcls_taken',
+            // The beneficiary the web form records (item 9, one form).
+            'beneficiary_name',
         ],
         'db_pension' => [
             'scheme_name', 'accrued_annual_pension', 'normal_retirement_age',

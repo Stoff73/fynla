@@ -353,15 +353,12 @@ class PersonalizedGiftingStrategyService
             return null;
         }
 
-        // W-0525 — one home for the s21 parameters. `GiftingStrategyOptimizer`
-        // computes the same exemption and reads the same block, so the two
-        // cannot drift; both used to hardcode 0.5 and 1000 independently.
-        $s21 = $this->taxConfig->getNormalExpenditureFromIncome();
-
+        // The whole surplus (s21(1)(c)): no fraction or floor, which s21 does
+        // not set (item 9, 2026-10-07).
         $surplusIncome = max(0, $totalIncome - $annualExpenditure);
-        $safeGiftingAmount = $surplusIncome * (float) $s21['safe_surplus_fraction'];
+        $safeGiftingAmount = $surplusIncome;
 
-        $canAfford = $surplusIncome > 0 && $safeGiftingAmount >= (float) $s21['minimum_annual_gift'];
+        $canAfford = $surplusIncome > 0;
 
         if (! $canAfford) {
             return null;

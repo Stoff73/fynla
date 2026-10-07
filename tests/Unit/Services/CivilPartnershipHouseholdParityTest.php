@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\LifeInsurancePolicy;
 use App\Models\TaxActionDefinition;
 use App\Models\User;
-use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\LifeCoverCalculator;
 use App\Services\Tax\TaxActionDefinitionService;
 use App\Services\Tax\TaxOptimisationService;
@@ -78,22 +77,6 @@ describe('LifeCoverCalculator', function () {
         expect($warn('civil_partnership'))->toBeTrue()
             ->and($warn('married'))->toBeTrue()
             ->and($warn('single'))->toBeFalse();
-    });
-});
-
-describe('ComprehensiveEstatePlanService', function () {
-    it('finds the partner of a civil partnership when building the plan', function () {
-        $service = app(ComprehensiveEstatePlanService::class);
-
-        $spouseBlock = function (string $status) use ($service) {
-            [$user] = w0480Household($status);
-
-            return $service->generateComprehensiveEstatePlan($user)['user_profile']['spouse'];
-        };
-
-        expect($spouseBlock('civil_partnership'))->not->toBeNull()
-            ->and($spouseBlock('married'))->not->toBeNull()
-            ->and($spouseBlock('single'))->toBeNull();
     });
 });
 

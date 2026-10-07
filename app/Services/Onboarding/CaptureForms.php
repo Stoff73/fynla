@@ -8,6 +8,7 @@ use App\Constants\ProfileEnums;
 use App\Models\User;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
 /**
@@ -82,6 +83,12 @@ final class CaptureForms
     /** Dividends, interest, trust and other income: the figures the web Income form edits that belong to no job or account, ONE write through update_profile (TODO item 7a). Edit only. */
     public const OTHER_INCOME = 'other_income';
 
+    /** A gift the user has made: the web gift form's fields (item 9, CSJ 2026-10-07). */
+    public const GIFT = 'gift';
+
+    /** A Lasting Power of Attorney the user has made (item 9, one form on every surface). */
+    public const LPA = 'lpa';
+
     /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
     public const EXPENDITURE_DETAILED = 'expenditure_detailed';
 
@@ -127,7 +134,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS, self::STATE_PENSION, self::OTHER_INCOME];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS, self::STATE_PENSION, self::OTHER_INCOME, self::GIFT, self::LPA];
     }
 
     /** @return array<string, mixed>|null */
@@ -155,6 +162,8 @@ final class CaptureForms
             self::EMPLOYER_BENEFITS => self::employerBenefits(),
             self::STATE_PENSION => self::statePension(),
             self::OTHER_INCOME => self::otherIncome(),
+            self::GIFT => self::gift(),
+            self::LPA => self::lpa(),
             default => null,
         };
     }
@@ -297,6 +306,8 @@ final class CaptureForms
                 self::INVESTMENT => self::investmentInputs($kind, $answers),
                 self::PENSION, self::PENSION_PERSONAL => self::pensionInputs($kind, $answers),
                 self::PROTECTION => self::protectionInputs($kind, $answers),
+                self::GIFT => self::giftInputs($kind, $answers),
+                self::LPA => self::lpaInputs($kind, $answers),
             };
         }
 
@@ -340,6 +351,8 @@ final class CaptureForms
                 self::INVESTMENT => self::investmentSentence($label, $input),
                 self::PENSION, self::PENSION_PERSONAL => self::pensionSentence($label, $input),
                 self::PROTECTION => self::protectionSentence($label, $input),
+                self::GIFT => self::giftSentence($label, $input),
+                self::LPA => self::lpaSentence($label, $input),
             };
         }
 
@@ -608,6 +621,10 @@ final class CaptureForms
                 $input[$field] = (float) $answers[$field];
             }
         }
+        $beneficiary = trim((string) ($answers['beneficiary_name'] ?? ''));
+        if ($beneficiary !== '') {
+            $input['beneficiary_name'] = $beneficiary;
+        }
 
         return $input;
     }
@@ -629,6 +646,9 @@ final class CaptureForms
         }
         if (isset($input['monthly_contribution_amount'])) {
             $parts[] = 'I pay in '.self::pounds($input['monthly_contribution_amount'] * 12).' a year';
+        }
+        if (isset($input['beneficiary_name'])) {
+            $parts[] = 'to go to '.$input['beneficiary_name'].' if I die';
         }
 
         return implode(', ', $parts).'.';
@@ -919,10 +939,10 @@ final class CaptureForms
             'kinds' => [
                 ['key' => 'workplace', 'label' => 'Workplace pension', 'scheme_type' => 'occupational',
                     'tool' => 'create_pension', 'entity_type' => 'dc_pension',
-                    'fields' => ['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice']],
+                    'fields' => ['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice', 'beneficiary_name']],
                 ['key' => 'personal', 'label' => 'Personal pension or SIPP', 'scheme_type' => 'personal',
                     'tool' => 'create_pension', 'entity_type' => 'dc_pension',
-                    'fields' => ['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken']],
+                    'fields' => ['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken', 'beneficiary_name']],
             ],
             'fields' => [
                 'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
@@ -941,6 +961,10 @@ final class CaptureForms
                     'hint' => "Leave out any tax-free part. Leave blank if you haven't started drawing"],
                 'pcls_taken' => ['type' => 'money', 'label' => 'Tax-free lump sum already taken', 'required' => false,
                     'hint' => 'Leave blank if none'],
+                // The web pension form's beneficiary (DCPensionForm.vue): one form
+                // on every surface (CSJ 2026-10-07).
+                'beneficiary_name' => ['type' => 'text', 'label' => 'Who you want it to go to if you die', 'required' => false,
+                    'hint' => "The person you have named to the scheme. Leave blank if you haven't named anyone"],
             ],
         ];
     }
@@ -1634,6 +1658,138 @@ final class CaptureForms
                     'hint' => 'Leave blank for whole of life or if unsure'],
             ],
         ];
+    }
+
+    /**
+     * A gift the user has made (item 9, CSJ 2026-10-07: "we record the gifts in
+     * Fynla"): the web gift form's fields (GiftForm.vue), written through the
+     * same Fyn handler (create_estate_gift). The kind is the gift's type; the
+     * allowances come from the tax configuration (Rule 2).
+     *
+     * @return array<string, mixed>
+     */
+    private static function gift(): array
+    {
+        $exemptions = app(TaxConfigService::class)->getGiftingExemptions();
+        $fields = ['recipient', 'gift_date', 'gift_value', 'notes'];
+        $kind = static fn (string $key, string $label): array => [
+            'key' => $key, 'label' => $label, 'tool' => 'create_estate_gift', 'entity_type' => 'estate_gift', 'fields' => $fields,
+        ];
+
+        return [
+            'name' => self::GIFT,
+            'submit_label' => 'Save',
+            'kinds_prompt' => 'Choose the kind of gift, and record each gift on its own.',
+            'kinds' => [
+                $kind('pet', 'A gift to a person'),
+                $kind('clt', 'A gift into a trust'),
+                $kind('annual_exemption', 'Within your '.self::pounds((float) $exemptions['annual_exemption']).' yearly allowance'),
+                $kind('small_gift', 'A small gift of up to '.self::pounds((float) $exemptions['small_gifts_limit']).' to one person'),
+                $kind('exempt', 'Another gift free of Inheritance Tax, such as to your husband, wife, civil partner or a charity'),
+            ],
+            'fields' => [
+                'recipient' => ['type' => 'text', 'label' => 'Who received it', 'required' => true],
+                'gift_date' => ['type' => 'date', 'label' => 'When you gave it', 'required' => true],
+                'gift_value' => ['type' => 'money', 'label' => 'What it was worth', 'required' => true],
+                'notes' => ['type' => 'text', 'label' => 'Notes', 'required' => false, 'hint' => 'For example, what the gift was'],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $kind
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    private static function giftInputs(array $kind, array $answers): array
+    {
+        $input = [
+            'gift_type' => $kind['key'],
+            'recipient' => trim((string) $answers['recipient']),
+            'gift_date' => (string) $answers['gift_date'],
+            'gift_value' => (float) $answers['gift_value'],
+        ];
+        $notes = trim((string) ($answers['notes'] ?? ''));
+        if ($notes !== '') {
+            $input['notes'] = $notes;
+        }
+
+        return $input;
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function giftSentence(string $label, array $input): string
+    {
+        return 'I gave '.$input['recipient'].' '.self::pounds((float) $input['gift_value'])
+            .' on '.Carbon::parse($input['gift_date'])->format('j F Y').' ('.lcfirst($label).').';
+    }
+
+    /**
+     * A Lasting Power of Attorney the user has made: the attorneys, whether it
+     * is registered (it only exists once registered, Mental Capacity Act 2005
+     * s9(2)(b)), when, and its reference, through create_power_of_attorney.
+     *
+     * @return array<string, mixed>
+     */
+    private static function lpa(): array
+    {
+        $fields = ['primary_attorney_name', 'replacement_attorney_name', 'registered', 'registration_date', 'opg_reference'];
+        $kind = static fn (string $key, string $label): array => [
+            'key' => $key, 'label' => $label, 'tool' => 'create_power_of_attorney', 'entity_type' => 'lasting_power_of_attorney', 'fields' => $fields,
+        ];
+
+        return [
+            'name' => self::LPA,
+            'submit_label' => 'Save',
+            'kinds_prompt' => 'Choose each Lasting Power of Attorney you have made.',
+            'kinds' => [
+                $kind('property_financial', 'Property and financial affairs'),
+                $kind('health_welfare', 'Health and welfare'),
+            ],
+            'fields' => [
+                'primary_attorney_name' => ['type' => 'text', 'label' => 'Your attorney', 'required' => true],
+                'replacement_attorney_name' => ['type' => 'text', 'label' => 'Your replacement attorney', 'required' => false, 'hint' => 'Leave blank if none'],
+                'registered' => ['type' => 'choice', 'label' => 'Registered with the Office of the Public Guardian', 'required' => true, 'options' => [
+                    ['value' => 'yes', 'label' => 'Yes'],
+                    ['value' => 'no', 'label' => 'Not yet'],
+                ]],
+                'registration_date' => ['type' => 'date', 'label' => 'When it was registered', 'required' => false, 'hint' => 'Leave blank if not registered yet'],
+                'opg_reference' => ['type' => 'text', 'label' => 'Its Office of the Public Guardian reference', 'required' => false, 'hint' => "Leave blank if you don't have it"],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $kind
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    private static function lpaInputs(array $kind, array $answers): array
+    {
+        $registered = ($answers['registered'] ?? 'no') === 'yes';
+        $input = [
+            'lpa_type' => $kind['key'],
+            'primary_attorney_name' => trim((string) $answers['primary_attorney_name']),
+            'status' => $registered ? 'registered' : 'draft',
+        ];
+        foreach (['replacement_attorney_name', 'opg_reference'] as $field) {
+            $value = trim((string) ($answers[$field] ?? ''));
+            if ($value !== '') {
+                $input[$field] = $value;
+            }
+        }
+        if ($registered && trim((string) ($answers['registration_date'] ?? '')) !== '') {
+            $input['registration_date'] = (string) $answers['registration_date'];
+        }
+
+        return $input;
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function lpaSentence(string $label, array $input): string
+    {
+        return 'My '.lcfirst($label).' Lasting Power of Attorney names '.$input['primary_attorney_name']
+            .($input['status'] === 'registered' ? ', and it is registered.' : ', and it is not registered yet.');
     }
 
     /**

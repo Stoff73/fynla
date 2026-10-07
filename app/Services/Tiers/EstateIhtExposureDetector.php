@@ -30,6 +30,17 @@ use App\Services\NetWorth\NetWorthService;
  */
 class EstateIhtExposureDetector
 {
+    /**
+     * W-0467 — the partner sentences CSJ chose (2026-08-23) for a married user
+     * whose figure is their own records alone. One home: this teaser and the
+     * Inheritance Tax action card (`EstateActionDefinitionService`) both read them.
+     */
+    public const OWN_RECORDS_PARTNER_NOTE = 'This figure does not allow for anything passing to your partner.';
+
+    public const LINK_ACCOUNTS_NOTE = 'Linking your accounts gives a fuller picture.';
+
+    public const SHARE_FINANCES_NOTE = 'Sharing your finances with them gives a fuller picture.';
+
     public function __construct(
         private readonly NetWorthService $netWorthService,
         private readonly IHTCalculationService $ihtCalculation,
@@ -155,7 +166,7 @@ class EstateIhtExposureDetector
         // the first version told the user to do a thing they had already done. What
         // is switched off is the sharing permission (compliance-lead, second pass).
         if ($marriedButNotPooled) {
-            return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. This figure does not allow for anything passing to your partner. Sharing your finances with them gives a fuller picture.";
+            return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. ".self::OWN_RECORDS_PARTNER_NOTE.' '.self::SHARE_FINANCES_NOTE;
         }
 
         // Married, and the partner has no Fynla account. **This group was falling to
@@ -167,7 +178,7 @@ class EstateIhtExposureDetector
         // be ignored, so "married in profile, no linked partner" is an ordinary
         // steady state rather than a transient one.
         if ($marriedButUnlinked) {
-            return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. This figure does not allow for anything passing to your partner. Linking your accounts gives a fuller picture.";
+            return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. ".self::OWN_RECORDS_PARTNER_NOTE.' '.self::LINK_ACCOUNTS_NOTE;
         }
 
         return "Your estate could be subject to up to {$formatted} in Inheritance Tax. Upgrading unlocks estate planning tools you could use to explore ways of reducing it.";

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Actions\ActionCardService;
 use App\Services\Mobile\NextActionsService;
 use Database\Seeders\ActionHowToSeeder;
+use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\InvestmentActionDefinitionSeeder;
 use Database\Seeders\ProtectionActionDefinitionSeeder;
 use Database\Seeders\RetirementActionDefinitionSeeder;
@@ -29,6 +30,7 @@ beforeEach(function () {
     $this->seed(ProtectionActionDefinitionSeeder::class);
     $this->seed(RetirementActionDefinitionSeeder::class);
     $this->seed(InvestmentActionDefinitionSeeder::class);
+    $this->seed(EstateActionDefinitionSeeder::class);
     $this->seed(ActionHowToSeeder::class);
 });
 

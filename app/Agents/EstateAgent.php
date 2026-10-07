@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
-use App\Constants\TaxDefaults;
 use App\Events\Eval\EngineCalled;
 use App\Models\Estate\Will;
 use App\Models\Goal;
 use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
-use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\EstateDataReadinessService;
+use App\Services\Estate\FailedGiftTaxCalculator;
 use App\Services\Estate\FutureValueCalculator;
 use App\Services\Estate\GiftingStrategyOptimizer;
 use App\Services\Estate\IHTCalculationService;
@@ -31,20 +30,9 @@ use Illuminate\Support\Facades\Cache;
  */
 class EstateAgent extends BaseAgent
 {
-    /**
-     * Fallback current age when user date of birth is unknown.
-     */
-    private const DEFAULT_CURRENT_AGE = 50;
-
-    /**
-     * Fallback life expectancy for planning calculations.
-     */
-    private const DEFAULT_LIFE_EXPECTANCY = 85;
-
     public function __construct(
         private readonly IHTCalculationService $ihtCalculator,
         private readonly EstateAssetAggregatorService $assetAggregator,
-        private readonly ComprehensiveEstatePlanService $estatePlanService,
         private readonly GiftingStrategyOptimizer $giftingOptimizer,
         private readonly PersonalizedTrustStrategyService $trustStrategyService,
         private readonly WillAnalysisService $willAnalysisService,
@@ -190,30 +178,32 @@ class EstateAgent extends BaseAgent
 
                 // Get gifting opportunities
                 $giftingOpportunities = [];
-                try {
-                    $currentAge = $user->date_of_birth
-                        ? (int) $user->date_of_birth->diffInYears(now())
-                        : self::DEFAULT_CURRENT_AGE;
-                    // W-0198. Was `override ?? 85` — it could not see the figure the
-                    // user typed in the retirement module at all, so a household that
-                    // set one there was projected to 85 here and to their own number
-                    // in retirement.
-                    $lifeExpectancy = $this->futureValue->getLifeExpectancy($user)['death_age'];
-                    $yearsUntilDeath = max(1, $lifeExpectancy - $currentAge);
-                    $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
-                    $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
+                // No date of birth, no gifting timeline: the age is never assumed
+                // (item 9, 2026-10-07; the old default was 50).
+                if ($user->date_of_birth) {
+                    try {
+                        $currentAge = (int) $user->date_of_birth->diffInYears(now());
+                        // W-0198. Was `override ?? 85` — it could not see the figure the
+                        // user typed in the retirement module at all, so a household that
+                        // set one there was projected to 85 here and to their own number
+                        // in retirement.
+                        $lifeExpectancy = $this->futureValue->getLifeExpectancy($user)['death_age'];
+                        $yearsUntilDeath = max(1, $lifeExpectancy - $currentAge);
+                        $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
+                        $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
 
-                    $giftingOpportunities = $this->giftingOptimizer->calculateOptimalGiftingStrategy(
-                        $assetSummary['net_estate'] ?? 0,
-                        $ihtLiability,
-                        $yearsUntilDeath,
-                        $user,
-                        $nrb,
-                        $rnrb
-                    );
-                } catch (\Throwable $e) {
-                    report($e);
-                    // Continue without gifting opportunities
+                        $giftingOpportunities = $this->giftingOptimizer->calculateOptimalGiftingStrategy(
+                            $assetSummary['net_estate'] ?? 0,
+                            $ihtLiability,
+                            $yearsUntilDeath,
+                            $user,
+                            $nrb,
+                            $rnrb
+                        );
+                    } catch (\Throwable $e) {
+                        report($e);
+                        // Continue without gifting opportunities
+                    }
                 }
 
                 // Check will for trust-triggering wishes
@@ -271,7 +261,7 @@ class EstateAgent extends BaseAgent
 
                 // Calculate current age and life expectancy context
                 $currentAge = $user->date_of_birth ?
-                    (int) $user->date_of_birth->diffInYears(now()) : self::DEFAULT_CURRENT_AGE;
+                    (int) $user->date_of_birth->diffInYears(now()) : null;
 
                 // Assess existing life insurance policies for IHT planning suitability
                 $policyAssessment = [];
@@ -333,6 +323,7 @@ class EstateAgent extends BaseAgent
 
                 // Build user context for recommendation traces
                 $userContext = [
+                    'user_id' => $user->id,
                     'first_name' => $user->first_name ?? 'User',
                     'surname' => $user->surname ?? '',
                     'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
@@ -504,8 +495,7 @@ class EstateAgent extends BaseAgent
             $netEstate = $data['summary']['net_estate'] ?? 0;
             $grossEstate = $data['summary']['gross_estate'] ?? 0;
             $totalLiabilities = $data['summary']['total_liabilities'] ?? 0;
-            $currentAge = $data['profile']['current_age'] ?? 50;
-            $lifeExpectancy = $data['profile']['life_expectancy'] ?? self::DEFAULT_LIFE_EXPECTANCY;
+            $currentAge = $data['profile']['current_age'] ?? null;
             $charitableAnalysis = $data['charitable_analysis'] ?? [];
             $trustWishTriggers = $data['trust_wish_triggers'] ?? [];
             $ihtCalc = $data['iht_calculation'] ?? [];
@@ -513,67 +503,53 @@ class EstateAgent extends BaseAgent
             // Build estate context from analysis data for granular traces
             $ctx = $this->buildEstateContext($data);
 
-            // Only generate mitigation recommendations if there's an IHT liability
+            // Only generate mitigation recommendations if there's an IHT liability.
+            // Each step shows its own effect against today's tax; cover in trust
+            // PAYS the tax rather than reducing it, so it never shortens a later
+            // step (item 9, 2026-10-07: the old chain let new life cover zero the
+            // "remaining liability" and hide the gift steps).
             if ($ihtLiability > 0) {
-                $remainingLiability = $ihtLiability;
-
                 // STEP 1: Charitable Bequest Check (Rate Reduction)
                 $step1Result = $this->step1CharitableBequestCheck($charitableAnalysis, $ihtLiability, $ctx);
                 if ($step1Result) {
                     $recommendations[] = $step1Result;
                 }
 
-                // STEP 2: Liquidity & Affordability Assessment
+                // STEP 2: Paying the tax (liquidity)
                 $liquidityData = $this->step2LiquidityAssessment($data, $ctx);
                 if ($liquidityData['recommendation']) {
                     $recommendations[] = $liquidityData['recommendation'];
                 }
 
-                // STEP 3: Check Existing Life Cover
+                // STEP 3: Existing life cover in trust
                 $lifeCoverData = $this->step3ExistingLifeCover($data, $ctx);
-                if ($lifeCoverData['usable_cover'] > 0) {
-                    $remainingLiability = max(0, $remainingLiability - $lifeCoverData['usable_cover']);
-                }
                 if ($lifeCoverData['recommendation']) {
                     $recommendations[] = $lifeCoverData['recommendation'];
                 }
-                if ($lifeCoverData['trust_placement_recommendation'] ?? null) {
-                    $recommendations[] = $lifeCoverData['trust_placement_recommendation'];
+
+                // STEP 4: Annual gifts (per year)
+                $annualGiftingResult = $this->step4AnnualGiftingStrategy($ctx);
+                if ($annualGiftingResult['recommendation']) {
+                    $recommendations[] = $annualGiftingResult['recommendation'];
                 }
 
-                // STEP 4: Annual Gifting Strategy (First Resort)
-                if ($remainingLiability > 0) {
-                    $annualGiftingResult = $this->step4AnnualGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy, $ctx);
-                    if ($annualGiftingResult['recommendation']) {
-                        $recommendations[] = $annualGiftingResult['recommendation'];
-                    }
-                    $remainingLiability = max(0, $remainingLiability - $annualGiftingResult['potential_savings']);
+                // STEP 5: Life cover in trust for the tax not already covered
+                $taxNotCovered = max(0.0, $ihtLiability - $lifeCoverData['existing_cover']);
+                if ($taxNotCovered > 0) {
+                    $lifeCoverStrategyResult = $this->step5LifeCoverStrategy($taxNotCovered, $liquidityData, $ctx);
+                    $recommendations[] = $lifeCoverStrategyResult['recommendation'];
                 }
 
-                // STEP 5: Life Cover Strategy (Second Resort) - Only if age <= 50
-                if ($remainingLiability > 0 && $currentAge <= 50) {
-                    $lifeCoverStrategyResult = $this->step5LifeCoverStrategy($remainingLiability, $liquidityData, $ctx);
-                    if ($lifeCoverStrategyResult['recommendation']) {
-                        $recommendations[] = $lifeCoverStrategyResult['recommendation'];
-                    }
-                    $remainingLiability = max(0, $remainingLiability - $lifeCoverStrategyResult['cover_amount']);
+                // STEP 6: Larger gifts within the nil rate band gifts have not used
+                $petResult = $this->step6PETGiftingStrategy($ihtLiability, $ctx);
+                if ($petResult['recommendation']) {
+                    $recommendations[] = $petResult['recommendation'];
                 }
 
-                // STEP 6: PET Gifting Strategy (Third Resort)
-                if ($remainingLiability > 0) {
-                    $petResult = $this->step6PETGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy, $ctx);
-                    if ($petResult['recommendation']) {
-                        $recommendations[] = $petResult['recommendation'];
-                    }
-                    $remainingLiability = max(0, $remainingLiability - $petResult['potential_savings']);
-                }
-
-                // STEP 7: CLT into Trust (Last Resort ONLY)
-                if ($remainingLiability > 0) {
-                    $cltResult = $this->step7CLTIntoTrust($remainingLiability, $ctx);
-                    if ($cltResult['recommendation']) {
-                        $recommendations[] = $cltResult['recommendation'];
-                    }
+                // STEP 7: Gifts into trust, only while tax would remain after step 6
+                if ($ihtLiability - $petResult['potential_savings'] > 0) {
+                    $cltResult = $this->step7CLTIntoTrust($ctx);
+                    $recommendations[] = $cltResult['recommendation'];
                 }
             }
 
@@ -616,46 +592,12 @@ class EstateAgent extends BaseAgent
                 ];
             }
 
-            // Stale will warning
-            $willReviewStatus = $data['will_review_status'] ?? null;
-            if ($willReviewStatus && $willReviewStatus['has_will']) {
-                $isStale = $willReviewStatus['is_stale'] ?? false;
-                $lastReviewed = $willReviewStatus['last_reviewed_date'] ?? 'Not recorded';
-
-                $staleWillTrace = $this->buildEstateContextTrace($ctx);
-                $staleWillTrace[] = [
-                    'question' => 'Has '.$ctx['first_name'].'\'s will been reviewed within the last 3 years?',
-                    'data_field' => 'Last will review date',
-                    'data_value' => $lastReviewed,
-                    'threshold' => 'Within the last 3 years',
-                    'passed' => ! $isStale,
-                    'explanation' => ! $isStale
-                        ? $ctx['first_name'].'\'s will has been reviewed recently and is up to date.'
-                        : $ctx['first_name'].'\'s will has not been reviewed in over 3 years.'
-                            .($ctx['will_executor'] ? ' Executor: '.$ctx['will_executor'].'.' : '')
-                            .' It is recommended to review your will every 3-5 years or after significant life events.',
-                ];
-
-                if ($isStale) {
-                    $recommendations[] = [
-                        'category' => 'will_review',
-                        'priority' => 'medium',
-                        'step' => 0,
-                        'title' => 'Will Review Recommended',
-                        'description' => $ctx['first_name'].'\'s will has not been reviewed recently. It is recommended to review your will every 3-5 years or after significant life events.',
-                        'actions' => [
-                            'Schedule a review with your solicitor',
-                            'Check that your executor details are still correct',
-                            'Ensure your beneficiaries reflect your current wishes',
-                        ],
-                        'last_reviewed_date' => $lastReviewed,
-                        'decision_trace' => $staleWillTrace,
-                    ];
-                }
-            }
+            // No "will review every 3-5 years" card: no source sets a period
+            // (item 9, 2026-10-07; Rule 23). Marriage revoking a will (Wills Act
+            // 1837 s18) needs a marriage date the app does not record.
 
             // Recommend completing missing data only when we lack essentials for a meaningful calculation
-            $hasDob = ($data['profile']['current_age'] ?? self::DEFAULT_CURRENT_AGE) !== self::DEFAULT_CURRENT_AGE;
+            $hasDob = $currentAge !== null;
             if ($grossEstate <= 0 || ! $hasDob) {
                 $missingDataTrace = [];
 
@@ -732,7 +674,7 @@ class EstateAgent extends BaseAgent
         $trace = $this->buildEstateContextTrace($ctx);
 
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $standardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $standardRate = (float) $ihtConfig['standard_rate'];
         // W-0451. This read the configuration array with its own `?? 0.36` — one
         // more copy of the duplication `TaxConfigService::getCharitableReducedRate()`
         // is the single home for, sitting in the very method whose sentences this
@@ -854,6 +796,9 @@ class EstateAgent extends BaseAgent
                     'Consider leaving to registered UK charities',
                     "This reduces the Inheritance Tax rate from {$standardRatePercent}% to {$reducedRatePercent}%",
                 ],
+                // The extra the will would leave to charity: the card and the plan's
+                // funding source read it (item 9; they read 0 or the saving before).
+                'shortfall' => $shortfall,
                 'potential_saving' => $potentialSaving,
                 'decision_trace' => $trace,
             ];
@@ -897,68 +842,53 @@ class EstateAgent extends BaseAgent
     }
 
     /**
-     * Step 2: Liquidity & Affordability Assessment
+     * Step 2: Paying the tax. The tax is due six months after the end of the
+     * month of death (IHTA 1984 s226(1)); tax on land and buildings can be paid
+     * in ten yearly instalments (s227(1), (2)). Fires when the estate's liquid
+     * assets are less than the tax: the shortfall is what would have to be
+     * sold, borrowed or paid by instalments. (Was: under 50% of the tax, a
+     * threshold with no source; item 9, 2026-10-07.)
      */
     private function step2LiquidityAssessment(array $data, array $ctx): array
     {
         $trace = $this->buildEstateContextTrace($ctx);
 
         $assetBreakdown = $data['asset_breakdown'] ?? [];
-        $liquidAssets = $assetBreakdown['liquid'] ?? 0;
-        $semiLiquidAssets = $assetBreakdown['semi_liquid'] ?? 0;
-        $illiquidAssets = $assetBreakdown['illiquid'] ?? 0;
-        $ihtLiability = $data['summary']['iht_liability'] ?? 0;
+        $liquidAssets = (float) ($assetBreakdown['liquid'] ?? 0);
+        $semiLiquidAssets = (float) ($assetBreakdown['semi_liquid'] ?? 0);
+        $illiquidAssets = (float) ($assetBreakdown['illiquid'] ?? 0);
+        $ihtLiability = (float) ($data['summary']['iht_liability'] ?? 0);
 
-        $liquidityRatio = $ihtLiability > 0 ? $liquidAssets / $ihtLiability : 1;
-        $hasLiquidityIssue = $liquidityRatio < 0.5;
+        $shortfall = max(0.0, $ihtLiability - $liquidAssets);
+        $hasLiquidityIssue = $shortfall > 0;
 
-        // Build itemised liquid assets list from context
         $liquidAssetNames = $this->filterAssetNamesByType($ctx, ['cash', 'savings']);
-        $semiLiquidAssetNames = $this->filterAssetNamesByType($ctx, ['investment']);
-        $illiquidAssetNames = $this->filterAssetNamesByType($ctx, ['property', 'pension', 'dc_pension', 'db_pension', 'business', 'chattel']);
-
-        $liquidDetail = ! empty($liquidAssetNames)
-            ? implode(', ', $liquidAssetNames)
-            : 'No liquid assets recorded';
+        $liquidDetail = ! empty($liquidAssetNames) ? implode(', ', $liquidAssetNames) : 'No cash or savings recorded';
 
         $trace[] = [
-            'question' => 'Do '.$ctx['first_name'].'\'s liquid assets cover at least 50% of the Inheritance Tax liability?',
+            'question' => 'Do '.$ctx['first_name'].'\'s cash and savings cover the Inheritance Tax?',
             'data_field' => 'Liquidity breakdown',
-            'data_value' => 'Liquid: £'.number_format($liquidAssets, 0)
-                .' | Semi-liquid (investments): £'.number_format($semiLiquidAssets, 0)
-                .' | Illiquid (property, pensions, other): £'.number_format($illiquidAssets, 0),
-            'threshold' => '50% of £'.number_format($ihtLiability, 0).' Inheritance Tax liability (£'.number_format($ihtLiability * 0.5, 0).')',
+            'data_value' => 'Cash and savings: £'.number_format($liquidAssets, 0)
+                .' | Investments: £'.number_format($semiLiquidAssets, 0)
+                .' | Property, pensions and other: £'.number_format($illiquidAssets, 0),
+            'threshold' => '£'.number_format($ihtLiability, 0).' Inheritance Tax',
             'passed' => ! $hasLiquidityIssue,
             'explanation' => ! $hasLiquidityIssue
-                ? $ctx['first_name'].'\'s liquid assets of £'.number_format($liquidAssets, 0).' ('.$liquidDetail.') provide adequate coverage ('.round($liquidityRatio * 100, 1).'%) for the Inheritance Tax liability.'
-                : $ctx['first_name'].'\'s liquid assets of £'.number_format($liquidAssets, 0).' ('.$liquidDetail.') cover only '.round($liquidityRatio * 100, 1).'% of the £'.number_format($ihtLiability, 0).' Inheritance Tax liability. Beneficiaries may need to sell illiquid assets.',
+                ? 'Cash and savings of £'.number_format($liquidAssets, 0).' ('.$liquidDetail.') cover the £'.number_format($ihtLiability, 0).' of Inheritance Tax.'
+                : 'Cash and savings of £'.number_format($liquidAssets, 0).' ('.$liquidDetail.') leave £'.number_format($shortfall, 0).' of the £'.number_format($ihtLiability, 0).' Inheritance Tax to find. The tax is due six months after the end of the month of death (Inheritance Tax Act 1984 s226); tax on land and buildings can be paid in ten yearly instalments (s227).',
         ];
 
         $recommendation = null;
-        if ($hasLiquidityIssue && $ihtLiability > 0) {
-            $shortfall = $ihtLiability - $liquidAssets;
-
-            $trace[] = [
-                'question' => 'What is the liquidity shortfall and which assets might need to be sold?',
-                'data_field' => 'Liquidity shortfall',
-                'data_value' => '£'.number_format($shortfall, 0),
-                'threshold' => '£0 (no shortfall)',
-                'passed' => false,
-                'explanation' => $ctx['first_name'].'\'s beneficiaries may need to sell assets to pay the £'.number_format($shortfall, 0).' shortfall.'
-                    .(! empty($illiquidAssetNames) ? ' Illiquid assets that may need to be sold: '.implode(', ', $illiquidAssetNames).'.' : '')
-                    .(! empty($semiLiquidAssetNames) ? ' Semi-liquid investments that could be liquidated: '.implode(', ', $semiLiquidAssetNames).'.' : ''),
-            ];
-
+        if ($hasLiquidityIssue) {
             $recommendation = [
                 'category' => 'liquidity',
                 'priority' => 'high',
                 'step' => 2,
-                'title' => 'Liquidity Risk Identified',
-                'description' => "{$ctx['first_name']}'s liquid assets of {$this->formatCurrency($liquidAssets)} may not cover the Inheritance Tax liability of {$this->formatCurrency($ihtLiability)}.",
+                'title' => 'Paying the Inheritance Tax',
+                'description' => "{$ctx['first_name']}'s cash and savings of {$this->formatCurrency($liquidAssets)} are {$this->formatCurrency($shortfall)} short of the {$this->formatCurrency($ihtLiability)} Inheritance Tax.",
                 'actions' => [
-                    'Consider life insurance written in trust to provide liquidity',
-                    'Review property holdings for potential downsizing',
-                    'Build up liquid savings over time',
+                    'Life cover written in trust pays out outside the estate, in time to pay the tax',
+                    'Tax on land and buildings can be paid in ten yearly instalments',
                 ],
                 'shortfall' => $shortfall,
                 'decision_trace' => $trace,
@@ -967,14 +897,17 @@ class EstateAgent extends BaseAgent
 
         return [
             'liquid_assets' => $liquidAssets,
-            'liquidity_ratio' => $liquidityRatio,
+            'shortfall' => $shortfall,
             'has_issue' => $hasLiquidityIssue,
             'recommendation' => $recommendation,
         ];
     }
 
     /**
-     * Step 3: Check Existing Life Cover
+     * Step 3: Life cover already in trust. Its payout is outside the estate
+     * (HMRC IHTM20012) and can pay the tax in full. (Was: cover minus every
+     * debt, with no source, and a third "place policies in trust" card; the
+     * trust placement card is Protection's alone, item 9 D2.)
      */
     private function step3ExistingLifeCover(array $data, array $ctx): array
     {
@@ -982,317 +915,179 @@ class EstateAgent extends BaseAgent
 
         $lifeCover = $data['life_cover'] ?? [];
         $existingCover = (float) ($lifeCover['total_cover_in_trust'] ?? 0);
-        $userCoverInTrust = (float) ($lifeCover['user_cover_in_trust'] ?? 0);
-        $spouseCoverInTrust = (float) ($lifeCover['spouse_cover_in_trust'] ?? 0);
-        $liabilities = $data['summary']['total_liabilities'] ?? 0;
-        $ihtLiability = $data['summary']['iht_liability'] ?? 0;
+        $ihtLiability = (float) ($data['summary']['iht_liability'] ?? 0);
 
-        $usableCover = max(0, $existingCover - $liabilities);
-
-        // Build itemised policy list for trace
         $policiesInTrust = array_filter($ctx['itemised_policies'], fn ($p) => $p['in_trust']);
         $policyDetail = ! empty($policiesInTrust)
             ? implode(', ', array_map(fn ($p) => $p['provider'].' (£'.number_format($p['sum_assured'], 0).')', $policiesInTrust))
             : 'None';
 
-        $coverBreakdown = $ctx['has_spouse']
-            ? $ctx['first_name'].': £'.number_format($userCoverInTrust, 0).', '.$ctx['spouse_first_name'].': £'.number_format($spouseCoverInTrust, 0)
-            : '£'.number_format($existingCover, 0);
-
         $trace[] = [
-            'question' => 'Does '.$ctx['first_name'].' have life insurance policies written in trust?',
+            'question' => 'Does '.$ctx['first_name'].' have life cover written in trust?',
             'data_field' => 'Life cover in trust',
-            'data_value' => '£'.number_format($existingCover, 0).' total ('.$coverBreakdown.')',
-            'threshold' => '£0 (any cover in trust is beneficial)',
-            'passed' => $existingCover > 0,
+            'data_value' => '£'.number_format($existingCover, 0).' ('.$policyDetail.')',
+            'threshold' => '£'.number_format($ihtLiability, 0).' Inheritance Tax',
+            'passed' => $existingCover >= $ihtLiability,
             'explanation' => $existingCover > 0
-                ? $ctx['first_name'].' has £'.number_format($existingCover, 0).' of life cover written in trust ('.$policyDetail.'), which bypasses the estate for Inheritance Tax purposes.'
-                : $ctx['first_name'].' has no life insurance policies written in trust. Policies in trust can provide liquidity to pay Inheritance Tax without adding to the estate.',
-        ];
-
-        $trace[] = [
-            'question' => 'After deducting liabilities, is there usable cover to offset Inheritance Tax?',
-            'data_field' => 'Usable cover calculation',
-            'data_value' => '£'.number_format($existingCover, 0).' cover − £'.number_format($liabilities, 0).' liabilities = £'.number_format($usableCover, 0),
-            'threshold' => '£'.number_format($ihtLiability, 0).' (Inheritance Tax liability)',
-            'passed' => $usableCover >= $ihtLiability,
-            'explanation' => $usableCover > 0
-                ? '£'.number_format($usableCover, 0).' of life cover is available to offset '.$ctx['first_name'].'\'s £'.number_format($ihtLiability, 0).' Inheritance Tax liability.'
-                : 'No usable cover remains after accounting for £'.number_format($liabilities, 0).' in liabilities.',
+                ? '£'.number_format($existingCover, 0).' of life cover in trust pays out outside the estate and can be used to pay the Inheritance Tax.'
+                : 'No life cover is written in trust.',
         ];
 
         $recommendation = null;
-        if ($usableCover > 0) {
+        if ($existingCover > 0) {
             $recommendation = [
                 'category' => 'life_cover',
                 'priority' => 'low',
                 'step' => 3,
-                'title' => 'Existing Life Cover Available',
-                'description' => "{$ctx['first_name']} has {$this->formatCurrency($usableCover)} in life cover that can offset Inheritance Tax.",
-                'actions' => ['Ensure life policies are written in trust to bypass estate'],
-                'usable_cover' => $usableCover,
+                'title' => 'Life Cover in Trust',
+                'description' => "{$ctx['first_name']} has {$this->formatCurrency($existingCover)} of life cover in trust, which pays out outside the estate and can pay the Inheritance Tax.",
+                'actions' => ['Keep the trustees and the people the trust is for up to date'],
+                'usable_cover' => $existingCover,
                 'decision_trace' => $trace,
-            ];
-        }
-
-        // Trust placement for policies NOT in trust
-        $trustPlacementTrace = $this->buildEstateContextTrace($ctx);
-        $notInTrustCount = $lifeCover['policies_not_in_trust_count'] ?? 0;
-        $notInTrustValue = (float) ($lifeCover['total_cover_not_in_trust'] ?? 0);
-
-        // Build detail of policies not in trust
-        $policiesNotInTrust = array_filter($ctx['itemised_policies'], fn ($p) => ! $p['in_trust']);
-        $notInTrustDetail = ! empty($policiesNotInTrust)
-            ? implode(', ', array_map(fn ($p) => $p['provider'].' '.ucfirst($p['policy_type']).' (£'.number_format($p['sum_assured'], 0).')', $policiesNotInTrust))
-            : 'None';
-
-        $trustPlacementTrace[] = [
-            'question' => 'Does '.$ctx['first_name'].' have life insurance policies not written in trust?',
-            'data_field' => 'Policies not in trust',
-            'data_value' => $notInTrustCount.' '.($notInTrustCount === 1 ? 'policy' : 'policies').' totalling £'.number_format($notInTrustValue, 0),
-            'threshold' => '0 policies (all should be in trust)',
-            'passed' => $notInTrustCount === 0,
-            'explanation' => $notInTrustCount > 0
-                ? $notInTrustDetail.' — totalling £'.number_format($notInTrustValue, 0).' could be placed in trust to bypass '.$ctx['first_name'].'\'s estate.'
-                : 'All of '.$ctx['first_name'].'\'s life insurance policies are written in trust.',
-        ];
-
-        $trustPlacementRecommendation = null;
-        if ($notInTrustCount > 0) {
-            $trustPlacementRecommendation = [
-                'category' => 'trust_planning',
-                'priority' => 'medium',
-                'step' => 3,
-                'title' => 'Place Life Policies in Trust',
-                'description' => sprintf(
-                    '%s has %d life insurance %s totalling %s not written in trust. Policies in trust bypass the estate for Inheritance Tax purposes.',
-                    $ctx['first_name'],
-                    $notInTrustCount,
-                    $notInTrustCount === 1 ? 'policy' : 'policies',
-                    $this->formatCurrency($notInTrustValue)
-                ),
-                'actions' => ['Contact your insurance provider to place existing policies in trust'],
-                'decision_trace' => $trustPlacementTrace,
             ];
         }
 
         return [
             'existing_cover' => $existingCover,
-            'usable_cover' => $usableCover,
             'recommendation' => $recommendation,
-            'trust_placement_recommendation' => $trustPlacementRecommendation,
         ];
     }
 
     /**
-     * Step 4: Annual Gifting Strategy (First Resort)
-     * Immediately exempt gifts - no 7-year wait, no tax risk
+     * Step 4: Annual gifts, per year. The annual exemption (IHTA 1984 s19, with
+     * last year's unused amount carried forward once, s19(2)), small gifts (s20)
+     * and wedding gifts (s22), all from the configuration. Shown per year: the
+     * tax each year's gifts save at the estate's rate. (Was: £3,000 × years to
+     * life expectancy, with the limits typed into the sentences.)
      */
-    private function step4AnnualGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy, array $ctx): array
+    private function step4AnnualGiftingStrategy(array $ctx): array
     {
         $trace = $this->buildEstateContextTrace($ctx);
 
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $annualExemption = $ihtConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION;
-
-        // Estimate years to life expectancy
-        $yearsToLifeExpectancy = max(1, $lifeExpectancy - $currentAge);
-
-        // Show existing gift history context
-        if (! empty($ctx['gift_history_text'])) {
-            $trace[] = [
-                'question' => 'What is '.$ctx['first_name'].'\'s existing gift history?',
-                'data_field' => 'Recorded gifts',
-                'data_value' => $ctx['gift_history_text'],
-                'threshold' => 'Informational — existing gifts reduce available Nil Rate Band',
-                'passed' => true,
-                'explanation' => 'Gifts made within the last 7 years may reduce the available Nil Rate Band. Gifts older than 7 years are fully exempt from Inheritance Tax.',
-            ];
-        }
+        $exemptions = $this->taxConfig->getGiftingExemptions();
+        $annualExemption = (float) $exemptions['annual_exemption'];
+        $smallGifts = (float) $exemptions['small_gifts_limit'];
+        $wedding = $exemptions['wedding_gifts'];
+        $rate = $this->estateRate($ctx);
+        $annualSaving = $annualExemption * $rate;
 
         $trace[] = [
-            'question' => 'How many years of annual gift exemptions are available for '.$ctx['first_name'].'?',
-            'data_field' => 'Years to life expectancy',
-            'data_value' => (string) $yearsToLifeExpectancy.' years (age '.$currentAge.', life expectancy '.$lifeExpectancy.')',
-            'threshold' => '1 year (minimum for strategy to be worthwhile)',
-            'passed' => $yearsToLifeExpectancy >= 1,
-            'explanation' => $ctx['first_name'].' is '.$currentAge.' years old with a life expectancy of '.$lifeExpectancy.', giving approximately '.$yearsToLifeExpectancy.' years of annual exemptions available.',
-        ];
-
-        // Annual exemption potential (including carry forward from unused previous year)
-        $annualGiftingCapacity = $annualExemption * $yearsToLifeExpectancy;
-
-        // IHT saved at standard rate
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $ihtRatePercent = round($ihtRate * 100);
-        $potentialSavings = min($annualGiftingCapacity * $ihtRate, $remainingLiability);
-
-        $coversLiability = $potentialSavings >= $remainingLiability;
-
-        $trace[] = [
-            'question' => 'Can annual gifting fully offset '.$ctx['first_name'].'\'s remaining Inheritance Tax liability?',
-            'data_field' => 'Annual gifting calculation',
-            'data_value' => '£'.number_format($annualExemption, 0).'/year × '.$yearsToLifeExpectancy.' years = £'.number_format($annualGiftingCapacity, 0).' total gifted, saving £'.number_format($potentialSavings, 0).' at '.$ihtRatePercent.'%',
-            'threshold' => '£'.number_format($remainingLiability, 0).' (remaining liability after prior steps)',
-            'passed' => $coversLiability,
-            'explanation' => $coversLiability
-                ? $ctx['first_name'].' gifting £'.number_format($annualExemption, 0).'/year over '.$yearsToLifeExpectancy.' years removes £'.number_format($annualGiftingCapacity, 0).' from the estate, saving £'.number_format($potentialSavings, 0).' in Inheritance Tax — fully offsetting the remaining liability.'
-                : $ctx['first_name'].' gifting £'.number_format($annualExemption, 0).'/year over '.$yearsToLifeExpectancy.' years removes £'.number_format($annualGiftingCapacity, 0).' from the estate, saving £'.number_format($potentialSavings, 0).' in Inheritance Tax. However, £'.number_format($remainingLiability - $potentialSavings, 0).' of liability would remain.',
-        ];
-
-        $recommendation = [
-            'category' => 'annual_gifting',
-            'priority' => $coversLiability ? 'high' : 'medium',
-            'step' => 4,
-            'title' => 'Annual Gifting Strategy',
-            'description' => $coversLiability
-                ? "Using {$ctx['first_name']}'s annual gift exemption of {$this->formatCurrency($annualExemption)}/year could fully offset the Inheritance Tax liability over {$yearsToLifeExpectancy} years."
-                : "Annual gifting of {$this->formatCurrency($annualExemption)}/year could save {$this->formatCurrency($potentialSavings)} in Inheritance Tax for {$ctx['first_name']}.",
-            'actions' => [
-                "Use the annual {$this->formatCurrency($annualExemption)} gift exemption each year",
-                'Consider gifts out of normal income (fully exempt if regular and affordable)',
-                'Small gifts of £250 per recipient are also exempt',
-                'Wedding gifts up to £5,000 (parents) or £2,500 (grandparents)',
-            ],
-            'potential_saving' => $potentialSavings,
-            'covers_liability' => $coversLiability,
-            'decision_trace' => $trace,
+            'question' => 'What do '.$ctx['first_name'].'\'s yearly exempt gifts save?',
+            'data_field' => 'Annual exemption',
+            'data_value' => '£'.number_format($annualExemption, 0).' a year at '.round($rate * 100).'% = £'.number_format($annualSaving, 0).' of tax a year',
+            'threshold' => 'Exempt when made (Inheritance Tax Act 1984 s19)',
+            'passed' => false,
+            'explanation' => 'Each year\'s £'.number_format($annualExemption, 0).' of gifts leaves the estate at once, with no seven-year wait, saving £'.number_format($annualSaving, 0).' of Inheritance Tax a year while the estate is above its allowances.',
         ];
 
         return [
-            'recommendation' => $recommendation,
-            'potential_savings' => $potentialSavings,
-            'covers_liability' => $coversLiability,
+            'recommendation' => [
+                'category' => 'annual_gifting',
+                'priority' => 'medium',
+                'step' => 4,
+                'title' => 'Annual Gifts',
+                'description' => "Gifts of {$this->formatCurrency($annualExemption)} a year leave {$ctx['first_name']}'s estate at once and save {$this->formatCurrency($annualSaving)} of Inheritance Tax for each year they are made.",
+                'actions' => [
+                    "Use the {$this->formatCurrency($annualExemption)} annual exemption each tax year; last year's, if unused, can be added once",
+                    'Regular gifts out of income that leave your usual standard of living are exempt too',
+                    "Small gifts of up to {$this->formatCurrency($smallGifts)} to each person are exempt",
+                    "Wedding gifts are exempt up to {$this->formatCurrency((float) $wedding['parent_to_child'])} from a parent, {$this->formatCurrency((float) $wedding['grandparent_to_grandchild'])} from a grandparent and {$this->formatCurrency((float) $wedding['other'])} from anyone else",
+                ],
+                'annual_exemption' => $annualExemption,
+                'annual_saving' => $annualSaving,
+                'decision_trace' => $trace,
+            ],
         ];
     }
 
     /**
-     * Step 5: Life Cover Strategy (Second Resort)
-     * Only recommended if age <= 50 (premiums become prohibitive after 50)
+     * Step 5: Life cover in trust for the tax that cover already in trust does
+     * not meet. No age limit and no premium: what cover costs is an insurer's
+     * quote (W-0141). (Was: only at age 50 or under, with no source.)
      */
-    private function step5LifeCoverStrategy(float $remainingLiability, array $liquidityData, array $ctx): array
+    private function step5LifeCoverStrategy(float $taxNotCovered, array $liquidityData, array $ctx): array
     {
         $trace = $this->buildEstateContextTrace($ctx);
 
-        // No premium estimate. What a policy costs is set by an insurer after
-        // underwriting the individual, and Fynla cannot know it. ComplianceRules
-        // rule 3 names protection underwriting as something to signpost rather than
-        // perform, and rule 7 forbids stating product details from memory; since
-        // 2026-08-13 (05-perimeter.md §3) those rules bind all outbound content, not
-        // only Fyn's chat. Recommend the cover; point at a quote for the cost. W-0141.
         $trace[] = [
-            'question' => 'Is there a remaining Inheritance Tax liability that life cover could address for '.$ctx['first_name'].'?',
-            'data_field' => 'Remaining liability after steps 1-4',
-            'data_value' => '£'.number_format($remainingLiability, 0),
-            'threshold' => '£0 (no remaining liability)',
-            'passed' => $remainingLiability <= 0,
-            'explanation' => 'A whole of life policy for £'.number_format($remainingLiability, 0).' written in trust could cover '.$ctx['first_name'].'\'s remaining Inheritance Tax liability, providing funds outside of the estate. What such a policy costs depends on underwriting, so an insurer or a regulated adviser is the right place to get a figure.',
-        ];
-
-        $hasLiquidityIssue = $liquidityData['has_issue'] ?? false;
-        $liquidAssets = $liquidityData['liquid_assets'] ?? 0;
-
-        $trace[] = [
-            'question' => 'Is there a liquidity concern that makes life cover more urgent?',
-            'data_field' => 'Liquidity position',
-            'data_value' => $hasLiquidityIssue
-                ? 'Yes — liquid assets of £'.number_format($liquidAssets, 0).' are insufficient'
-                : 'No — liquid assets of £'.number_format($liquidAssets, 0).' are adequate',
-            'threshold' => 'No liquidity issue',
-            'passed' => ! $hasLiquidityIssue,
-            'explanation' => $hasLiquidityIssue
-                ? 'A liquidity shortfall has been identified for '.$ctx['first_name'].'\'s estate. Life cover written in trust would provide immediate funds to pay the Inheritance Tax bill without requiring asset sales.'
-                : 'No liquidity issue identified, but life cover still provides certainty of funds for '.$ctx['first_name'].'\'s Inheritance Tax payment.',
-        ];
-
-        $recommendation = [
-            'category' => 'new_life_cover',
-            'priority' => 'medium',
-            'step' => 5,
-            'title' => 'Whole of Life Cover Strategy',
-            'description' => "A whole of life policy for {$this->formatCurrency($remainingLiability)} could cover {$ctx['first_name']}'s remaining Inheritance Tax liability.",
-            'actions' => [
-                "Consider whole of life cover for {$this->formatCurrency($remainingLiability)}",
-                'CRITICAL: Policy must be written in trust to bypass the estate',
-                'The cost depends on underwriting — get quotes from multiple providers, or speak to a regulated adviser',
-            ],
-            'cover_amount' => $remainingLiability,
-            'decision_trace' => $trace,
+            'question' => 'How much Inheritance Tax is not already met by life cover in trust?',
+            'data_field' => 'Tax not covered',
+            'data_value' => '£'.number_format($taxNotCovered, 0),
+            'threshold' => '£0',
+            'passed' => false,
+            'explanation' => 'Whole of life cover of £'.number_format($taxNotCovered, 0).' written in trust would pay out outside the estate in time to pay the tax. What it costs depends on the insurer\'s underwriting.',
         ];
 
         return [
-            'recommendation' => $recommendation,
-            'cover_amount' => $remainingLiability,
+            'recommendation' => [
+                'category' => 'new_life_cover',
+                'priority' => 'medium',
+                'step' => 5,
+                'title' => 'Life Cover for the Tax',
+                'description' => "Whole of life cover of {$this->formatCurrency($taxNotCovered)} written in trust would pay {$ctx['first_name']}'s Inheritance Tax without selling anything.",
+                'actions' => [
+                    "Get quotes for whole of life cover of {$this->formatCurrency($taxNotCovered)}",
+                    'Write the policy in trust, so its payout stays outside the estate',
+                ],
+                'cover_amount' => $taxNotCovered,
+                'decision_trace' => $trace,
+            ],
         ];
     }
 
     /**
-     * Step 6: PET Gifting Strategy (Third Resort)
-     * Potentially Exempt Transfers - exempt if donor survives 7 years
+     * Step 6: Larger gifts within the nil rate band that gifts of the last seven
+     * years have not used. A gift up to that band carries no tax of its own even
+     * if death comes within seven years (HMRC IHTM14512, "chargeable in its own
+     * right" only above the band; CSJ 2026-10-07), and once survived by seven
+     * years it has left the estate (IHTA 1984 s3A, s7). The band used comes from
+     * the one gift engine (`FailedGiftTaxCalculator` via the Inheritance Tax
+     * calculation). (Was: one band per seven years × life expectancy.)
      */
-    private function step6PETGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy, array $ctx): array
+    private function step6PETGiftingStrategy(float $ihtLiability, array $ctx): array
     {
         $trace = $this->buildEstateContextTrace($ctx);
 
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
-
-        // Calculate years to life expectancy
-        $yearsToLifeExpectancy = max(1, $lifeExpectancy - $currentAge);
-
-        // Calculate 7-year cycles available
-        $sevenYearCycles = floor($yearsToLifeExpectancy / 7);
+        $nrb = (float) $this->taxConfig->getInheritanceTax()['nil_rate_band'];
+        // The band this user's own gifts of the last seven years use, from the
+        // one gift engine (gifts within the band never appear in `failed_gifts`,
+        // only in these totals).
+        $member = isset($ctx['user_id']) ? User::find($ctx['user_id']) : null;
+        $bandUsed = $member
+            ? (float) app(FailedGiftTaxCalculator::class)->forMember($member, $nrb)['total_nrb_used']
+            : 0.0;
+        $bandLeft = max(0.0, $nrb - $bandUsed);
+        $rate = $this->estateRate($ctx);
+        $potentialSavings = min($bandLeft * $rate, $ihtLiability);
 
         $trace[] = [
-            'question' => 'How many seven-year cycles are available for '.$ctx['first_name'].' based on life expectancy?',
-            'data_field' => 'Seven-year cycles',
-            'data_value' => $sevenYearCycles.' '.($sevenYearCycles === 1.0 ? 'cycle' : 'cycles').' ('.$yearsToLifeExpectancy.' years ÷ 7 = '.$sevenYearCycles.')',
-            'threshold' => '1 cycle (minimum for Potentially Exempt Transfer strategy)',
-            'passed' => $sevenYearCycles >= 1,
-            'explanation' => $sevenYearCycles >= 1
-                ? $ctx['first_name'].' at age '.$currentAge.' with life expectancy of '.$lifeExpectancy.' has '.$yearsToLifeExpectancy.' years remaining, providing '.$sevenYearCycles.' complete seven-year '.($sevenYearCycles === 1.0 ? 'cycle' : 'cycles').' for Potentially Exempt Transfers.'
-                : $ctx['first_name'].' at age '.$currentAge.' has only '.$yearsToLifeExpectancy.' years to life expectancy — insufficient time for a Potentially Exempt Transfer to become fully exempt (requires 7 years).',
+            'question' => 'How much of '.$ctx['first_name'].'\'s nil rate band have gifts of the last seven years left?',
+            'data_field' => 'Nil rate band left for gifts',
+            'data_value' => '£'.number_format($nrb, 0).' − £'.number_format($bandUsed, 0).' used by gifts = £'.number_format($bandLeft, 0),
+            'threshold' => '£0',
+            'passed' => $bandLeft <= 0,
+            'explanation' => $bandLeft > 0
+                ? 'Gifts of up to £'.number_format($bandLeft, 0).' carry no tax of their own even if '.$ctx['first_name'].' dies within seven years. Once survived by seven years they have left the estate, saving up to £'.number_format($potentialSavings, 0).' of Inheritance Tax.'
+                : 'Gifts of the last seven years have used the nil rate band; a further gift would carry tax of its own if '.$ctx['first_name'].' died within seven years.',
         ];
-
-        // Each cycle can gift up to NRB tax-efficiently
-        $petCapacity = $sevenYearCycles * $nrb;
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $ihtRatePercent = round($ihtRate * 100);
-        $potentialSavings = min($petCapacity * $ihtRate, $remainingLiability);
-
-        if ($sevenYearCycles >= 1) {
-            $coversLiability = $potentialSavings >= $remainingLiability;
-
-            $trace[] = [
-                'question' => 'Can Potentially Exempt Transfers cover '.$ctx['first_name'].'\'s remaining Inheritance Tax liability?',
-                'data_field' => 'Potentially Exempt Transfer calculation',
-                'data_value' => $sevenYearCycles.' cycles × £'.number_format($nrb, 0).' Nil Rate Band = £'.number_format($petCapacity, 0).' capacity, saving £'.number_format($potentialSavings, 0).' at '.$ihtRatePercent.'%',
-                'threshold' => '£'.number_format($remainingLiability, 0).' (remaining liability after steps 1-5)',
-                'passed' => $coversLiability,
-                'explanation' => $coversLiability
-                    ? 'Potentially Exempt Transfers totalling £'.number_format($petCapacity, 0).' over '.$sevenYearCycles.' cycles would save £'.number_format($potentialSavings, 0).' — fully covering the remaining liability.'
-                    : 'Potentially Exempt Transfers totalling £'.number_format($petCapacity, 0).' would save £'.number_format($potentialSavings, 0).', but £'.number_format($remainingLiability - $potentialSavings, 0).' of liability would remain.',
-            ];
-        }
 
         $recommendation = null;
-        if ($sevenYearCycles >= 1) {
+        if ($bandLeft > 0) {
             $recommendation = [
                 'category' => 'pet_gifting',
                 'priority' => 'medium',
                 'step' => 6,
-                'title' => 'Potentially Exempt Transfer Strategy',
-                'description' => "With {$sevenYearCycles} seven-year cycles available, {$ctx['first_name']} could make Potentially Exempt Transfers up to {$this->formatCurrency($petCapacity)} that become fully exempt.",
+                'title' => 'Larger Gifts',
+                'description' => "Gifts of up to {$this->formatCurrency($bandLeft)} to people carry no tax of their own even within seven years, and once {$ctx['first_name']} survives seven years they save up to {$this->formatCurrency($potentialSavings)} of Inheritance Tax.",
                 'actions' => [
-                    'Make larger gifts (Potentially Exempt Transfers) that become exempt after 7 years',
-                    "Each 7-year cycle can shelter up to {$this->formatCurrency($nrb)} (the Nil Rate Band)",
-                    'Taper relief applies if death occurs within 7 years of a Potentially Exempt Transfer',
-                    'Consider timing gifts to maximise 7-year survival probability',
+                    "Gifts to people of up to {$this->formatCurrency($bandLeft)} stay within the nil rate band",
+                    'They leave the estate once you survive seven years from the date of each gift',
+                    'Only give what you will not need: a gift you keep using is not a gift for Inheritance Tax',
                 ],
                 'potential_saving' => $potentialSavings,
-                'seven_year_cycles' => $sevenYearCycles,
+                'band_left' => $bandLeft,
+                // The gift the plan's what-if takes out of the estate (item 9).
+                'impact_parameters' => ['gift' => $bandLeft],
                 'decision_trace' => $trace,
             ];
         }
@@ -1304,78 +1099,54 @@ class EstateAgent extends BaseAgent
     }
 
     /**
-     * Step 7: CLT into Trust (Last Resort ONLY)
-     * Only recommended if Steps 4-6 do NOT fully cover the liability
+     * Step 7: Gifts into trust, last, only while tax would remain after step 6.
+     * No amount: the gift is the user's choice. Taxed now at the lifetime rate
+     * on the part above the nil rate band available, more if death follows
+     * within seven years, and up to the periodic maximum every ten years (IHTA
+     * 1984 s64, s66(1)), all from the configuration. (Was: the remaining TAX
+     * used as the size of the gift.)
      */
-    private function step7CLTIntoTrust(float $remainingLiability, array $ctx): array
+    private function step7CLTIntoTrust(array $ctx): array
     {
         $trace = $this->buildEstateContextTrace($ctx);
 
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
-        $cltRate = $ihtConfig['clt_rate'] ?? TaxDefaults::CLT_RATE;
+        $lifetimeRate = $this->taxConfig->getCLTLifetimeRate();
+        $periodicMax = (float) $this->taxConfig->getTrustCharges()['periodic']['max_rate'];
+        $standardRate = (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
 
         $trace[] = [
-            'question' => 'Is there still a remaining Inheritance Tax liability for '.$ctx['first_name'].' after all prior strategies?',
-            'data_field' => 'Remaining liability after steps 1-6',
-            'data_value' => '£'.number_format($remainingLiability, 0),
-            'threshold' => '£0 (no remaining liability)',
-            'passed' => $remainingLiability <= 0,
-            'explanation' => 'Steps 1 to 6 (charitable bequests, liquidity review, existing life cover, annual gifting, new life cover, Potentially Exempt Transfers) have been unable to fully offset '.$ctx['first_name'].'\'s Inheritance Tax liability. £'.number_format($remainingLiability, 0).' remains, making a Chargeable Lifetime Transfer a last-resort option.',
-        ];
-
-        // Calculate immediate charge if CLT exceeds NRB
-        $excessOverNRB = max(0, $remainingLiability - $nrb);
-        $immediateCharge = $excessOverNRB * $cltRate;
-
-        // Show existing trust context if relevant
-        if (! empty($ctx['trust_summary_text'])) {
-            $trace[] = [
-                'question' => 'Does '.$ctx['first_name'].' have existing trust structures?',
-                'data_field' => 'Existing trusts',
-                'data_value' => $ctx['trust_summary_text'],
-                'threshold' => 'Informational — existing trusts may affect Nil Rate Band availability',
-                'passed' => true,
-                'explanation' => 'Existing trust structures should be considered when planning a new Chargeable Lifetime Transfer, as they may affect the available Nil Rate Band.',
-            ];
-        }
-
-        $trace[] = [
-            'question' => 'Does the transfer amount exceed the Nil Rate Band, triggering an immediate charge?',
-            'data_field' => 'Chargeable Lifetime Transfer calculation',
-            'data_value' => '£'.number_format($remainingLiability, 0).' transfer − £'.number_format($nrb, 0).' Nil Rate Band = £'.number_format($excessOverNRB, 0).' excess × '.round($cltRate * 100).'% = £'.number_format($immediateCharge, 0).' immediate charge',
-            'threshold' => '£'.number_format($nrb, 0).' (Nil Rate Band — no charge if within this amount)',
-            'passed' => $excessOverNRB <= 0,
-            'explanation' => $excessOverNRB > 0
-                ? 'A Chargeable Lifetime Transfer of £'.number_format($remainingLiability, 0).' for '.$ctx['first_name'].' exceeds the Nil Rate Band by £'.number_format($excessOverNRB, 0).', incurring an immediate charge of £'.number_format($immediateCharge, 0).' at '.round($cltRate * 100).'%. If '.$ctx['first_name'].' dies within 7 years, an additional charge applies (up to '.round(($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE) * 100).'% total).'
-                : 'The transfer amount is within the Nil Rate Band, so no immediate charge would apply for '.$ctx['first_name'].'.',
-        ];
-
-        $standardRatePercent = round(($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE) * 100);
-        $cltRatePercent = round($cltRate * 100);
-
-        $recommendation = [
-            'category' => 'clt_trust',
-            'priority' => 'low',
-            'step' => 7,
-            'title' => 'Chargeable Lifetime Transfer — Last Resort',
-            'description' => 'A Chargeable Lifetime Transfer into trust can remove assets from '.$ctx['first_name'].'\'s estate, but comes with immediate tax charges.',
-            'actions' => [
-                "Chargeable Lifetime Transfer of {$this->formatCurrency($remainingLiability)} would incur immediate {$this->formatCurrency($immediateCharge)} charge ({$cltRatePercent}% on amount over Nil Rate Band)",
-                "Additional {$cltRatePercent}% charge if death within 7 years ({$standardRatePercent}% total)",
-                'Trust subject to periodic charges (max 6% every 10 years)',
-                'Exit charges apply when assets leave the trust',
-                'Seek professional advice before proceeding',
-            ],
-            'immediate_charge' => $immediateCharge,
-            'amount' => $remainingLiability,
-            'warning' => 'Chargeable Lifetime Transfers are complex and should only be considered after exhausting simpler strategies.',
-            'decision_trace' => $trace,
+            'question' => 'What does a gift into a trust cost?',
+            'data_field' => 'Charges on a gift into trust',
+            'data_value' => round($lifetimeRate * 100).'% now above the nil rate band; up to '.round($periodicMax * 100).'% every ten years',
+            'threshold' => 'Inheritance Tax Act 1984 s64, s66',
+            'passed' => false,
+            'explanation' => 'A gift into a discretionary trust is taxed at '.round($lifetimeRate * 100).'% now on the part above the nil rate band available, up to '.round($standardRate * 100).'% in all if '.$ctx['first_name'].' dies within seven years, and the trust pays up to '.round($periodicMax * 100).'% every ten years.',
         ];
 
         return [
-            'recommendation' => $recommendation,
+            'recommendation' => [
+                'category' => 'clt_trust',
+                'priority' => 'low',
+                'step' => 7,
+                'title' => 'Gifts into a Trust',
+                'description' => 'A gift into a trust leaves '.$ctx['first_name'].'\'s estate while trustees keep control, but is taxed at '.round($lifetimeRate * 100).'% now on the part above the nil rate band.',
+                'actions' => [
+                    'Up to '.round($standardRate * 100).'% in all if death follows within seven years',
+                    'The trust pays up to '.round($periodicMax * 100).'% every ten years, and when assets leave it',
+                    'A trust needs a solicitor to set up',
+                ],
+                'decision_trace' => $trace,
+            ],
         ];
+    }
+
+    /**
+     * The rate the estate's tax is charged at: 36% when the charity test is met,
+     * else the standard rate, as the Inheritance Tax calculation found it.
+     */
+    private function estateRate(array $ctx): float
+    {
+        return (float) ($ctx['iht_rate'] ?? $this->taxConfig->getInheritanceTax()['standard_rate']);
     }
 
     /**
@@ -1398,10 +1169,10 @@ class EstateAgent extends BaseAgent
         $spouseSurname = $userCtx['spouse_surname'] ?? null;
         $maritalStatus = $profile['marital_status'] ?? $userCtx['marital_status'] ?? 'unknown';
         $hasSpouse = $profile['has_spouse'] ?? ($spouseFirstName !== null);
-        $currentAge = $profile['current_age'] ?? self::DEFAULT_CURRENT_AGE;
+        $currentAge = $profile['current_age'] ?? null;
 
-        // Build profile description
-        $profileDesc = $firstName.' '.$surname.', age '.$currentAge;
+        // Build profile description (no age when none is recorded, never a default)
+        $profileDesc = $firstName.' '.$surname.($currentAge !== null ? ', age '.$currentAge : '');
         if ($hasSpouse && $spouseFirstName) {
             $profileDesc .= ', '.($maritalStatus === 'married' ? 'married' : $maritalStatus).' to '.$spouseFirstName.' '.$spouseSurname;
         } elseif ($maritalStatus && $maritalStatus !== 'unknown') {
@@ -1423,7 +1194,7 @@ class EstateAgent extends BaseAgent
         $rnrbIndividual = (float) ($ihtCalc['rnrb_individual'] ?? 0);
         $totalAllowances = (float) ($ihtCalc['total_allowances'] ?? 0);
         $taxableEstate = (float) ($ihtCalc['taxable_estate'] ?? 0);
-        $ihtRate = (float) ($ihtCalc['iht_rate'] ?? ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE));
+        $ihtRate = (float) ($ihtCalc['iht_rate'] ?? $this->taxConfig->getInheritanceTax()['standard_rate']);
         $ihtRatePercent = (int) ($ihtRate * 100);
 
         // Build estate composition description
@@ -1532,6 +1303,8 @@ class EstateAgent extends BaseAgent
             'nrb_available' => $nrbAvailable,
             'rnrb_available' => $rnrbAvailable,
             'iht_rate_percent' => $ihtRatePercent,
+            'iht_rate' => $ihtRate,
+            'user_id' => $userCtx['user_id'] ?? null,
             'itemised_assets' => $itemisedAssets,
             'itemised_policies' => $itemisedPolicies,
             'gift_history_text' => $giftHistoryText,
@@ -1619,39 +1392,14 @@ class EstateAgent extends BaseAgent
     }
 
     /**
-     * Build what-if scenarios for estate planning.
+     * Required by BaseAgent. Estate builds no what-if scenarios: nothing called
+     * this, and its builders took released equity out of the estate and used
+     * set-up estimates (item 9, removed 2026-10-07). The Estate plan page
+     * models each step with its own figure.
      */
     public function buildScenarios(int $userId, array $parameters): array
     {
-        $user = User::with([
-            'ihtProfile',
-            'assets',
-            'properties',
-            'liabilities',
-            'spouse',
-        ])->findOrFail($userId);
-
-        $scenarios = [];
-        $scenarioTypes = $parameters['scenario_types'] ?? ['current', 'optimized', 'gifting'];
-
-        foreach ($scenarioTypes as $scenarioType) {
-            $scenarios[$scenarioType] = match ($scenarioType) {
-                'current' => $this->buildCurrentScenario($user),
-                'optimized' => $this->buildOptimizedScenario($user, $parameters),
-                'gifting' => $this->buildGiftingScenario($user, $parameters),
-                'property_downsizing' => $this->buildDownsizingScenario($user, $parameters),
-                'trust_creation' => $this->buildTrustScenario($user, $parameters),
-                default => null,
-            };
-        }
-
-        return $this->response(
-            true,
-            'Scenarios built successfully.',
-            [
-                'scenarios' => array_filter($scenarios),
-            ]
-        );
+        return $this->response(false, 'Estate scenarios are not built here; the Estate plan page models each step.', []);
     }
 
     /**
@@ -1714,125 +1462,6 @@ class EstateAgent extends BaseAgent
                 'semi_liquid' => $semiLiquid,
                 'illiquid' => max(0, $illiquid),
             ],
-        ];
-    }
-
-    /**
-     * Build current state scenario.
-     */
-    private function buildCurrentScenario(User $user): array
-    {
-        $assetSummary = $this->buildAssetSummary($user);
-
-        $ihtLiability = 0;
-        try {
-            // W-0529 — one derivation. This pooled on the link alone, so Fyn quoted a
-            // different estate figure from the one on the screen.
-            $spouse = $user->reciprocalLiveSpouse();
-            $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
-            $result = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
-            $ihtLiability = $result['iht_liability'] ?? 0;
-        } catch (\Exception $e) {
-            // Continue with zero
-        }
-
-        return [
-            'name' => 'Current Estate Position',
-            'gross_estate' => $assetSummary['gross_estate'] ?? 0,
-            'net_estate' => $assetSummary['net_estate'] ?? 0,
-            'iht_liability' => $ihtLiability,
-            'to_beneficiaries' => ($assetSummary['net_estate'] ?? 0) - $ihtLiability,
-        ];
-    }
-
-    /**
-     * Build optimized scenario with all strategies applied.
-     */
-    private function buildOptimizedScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-
-        // Estimate savings from various strategies
-        $giftingSavings = min($current['iht_liability'] * 0.15, 50000);
-        $trustSavings = min($current['iht_liability'] * 0.1, 40000);
-
-        $optimizedIHT = max(0, $current['iht_liability'] - $giftingSavings - $trustSavings);
-
-        return [
-            'name' => 'Optimized Estate Plan',
-            'gross_estate' => $current['gross_estate'],
-            'net_estate' => $current['net_estate'],
-            'iht_liability' => $optimizedIHT,
-            'to_beneficiaries' => $current['net_estate'] - $optimizedIHT,
-            'estimated_savings' => $current['iht_liability'] - $optimizedIHT,
-            'strategies_applied' => ['gifting', 'trusts', 'allowance_optimization'],
-        ];
-    }
-
-    /**
-     * Build gifting strategy scenario.
-     */
-    private function buildGiftingScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-        $yearsOfGifting = $parameters['gifting_years'] ?? 7;
-        $annualGiftAmount = $parameters['annual_gift'] ?? 3000;
-
-        $totalGifted = $annualGiftAmount * $yearsOfGifting;
-        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $ihtSaved = $totalGifted * $ihtRate;
-
-        return [
-            'name' => "Gifting Strategy ({$yearsOfGifting} years)",
-            'gross_estate' => $current['gross_estate'] - $totalGifted,
-            'net_estate' => $current['net_estate'] - $totalGifted,
-            'iht_liability' => max(0, $current['iht_liability'] - $ihtSaved),
-            'to_beneficiaries' => $current['net_estate'] - max(0, $current['iht_liability'] - $ihtSaved),
-            'total_gifted' => $totalGifted,
-            'estimated_iht_saved' => $ihtSaved,
-        ];
-    }
-
-    /**
-     * Build property downsizing scenario.
-     */
-    private function buildDownsizingScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-        $equityRelease = $parameters['equity_release'] ?? $this->taxConfig->get('estate.onboarding_estimates.property', 200000);
-
-        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
-
-        return [
-            'name' => 'Property Downsizing',
-            'gross_estate' => $current['gross_estate'] - $equityRelease,
-            'net_estate' => $current['net_estate'] - $equityRelease,
-            'iht_liability' => max(0, $current['iht_liability'] - ($equityRelease * $ihtRate)),
-            'to_beneficiaries' => $current['net_estate'] - $equityRelease - max(0, $current['iht_liability'] - ($equityRelease * $ihtRate)),
-            'cash_released' => $equityRelease,
-        ];
-    }
-
-    /**
-     * Build trust creation scenario.
-     */
-    private function buildTrustScenario(User $user, array $parameters): array
-    {
-        $current = $this->buildCurrentScenario($user);
-        $trustValue = $parameters['trust_value'] ?? ($this->taxConfig->getInheritanceTax()['nil_rate_band'] ?? TaxDefaults::NRB);
-
-        // Discretionary trust within NRB
-        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $ihtReduction = min($trustValue * $ihtRate, $current['iht_liability']);
-
-        return [
-            'name' => 'Trust Creation Strategy',
-            'gross_estate' => $current['gross_estate'],
-            'net_estate' => $current['net_estate'],
-            'iht_liability' => max(0, $current['iht_liability'] - $ihtReduction),
-            'to_beneficiaries' => $current['net_estate'] - max(0, $current['iht_liability'] - $ihtReduction),
-            'trust_value' => $trustValue,
-            'estimated_iht_saved' => $ihtReduction,
         ];
     }
 

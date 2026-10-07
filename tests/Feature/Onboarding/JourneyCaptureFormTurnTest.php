@@ -71,7 +71,7 @@ it('emits the personal form with its lead-in to a forms client and the typed que
     if ($forms) {
         expect($formEvent['prompt_text'])->toBe('Let me grab a few basics first, Chris.')
             ->and($formEvent['form']['name'])->toBe('personal')
-            ->and($formEvent['form']['lead_fields'])->toBe(['date_of_birth', 'gender', 'marital_status']);
+            ->and($formEvent['form']['lead_fields'])->toBe(['date_of_birth', 'gender', 'marital_status', 'smoking_status', 'health_status']);
     } else {
         expect($formEvent)->toBeNull()
             ->and(collect($emitted)->where('type', 'content')->pluck('text')->implode(' '))->toContain('date of birth');

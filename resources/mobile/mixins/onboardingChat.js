@@ -426,6 +426,11 @@ export default {
       const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
       this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
+      // A director action moves the onboarding step server-side ("Something
+      // else" parks it at null) without an event saying so. Re-read the user
+      // once the stream ends, or the screen keeps its onboarding nudge and
+      // hides Edit details until a reload.
+      this.userRefreshPending = true;
       try {
         if (await this.streamFynAction(this.conversationId, action, cursor)) return;
         this.finalizeCaptureReply(cursor);

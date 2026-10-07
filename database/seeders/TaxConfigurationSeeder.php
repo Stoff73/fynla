@@ -741,14 +741,8 @@ class TaxConfigurationSeeder extends Seeder
                 'normal_expenditure_from_income' => [
                     'limit' => null,                             // Unlimited — s21 sets no cap
                     'immediately_exempt' => true,
-                    // W-0525 — the two numbers the gifting strategies act on.
-                    // Neither is in the legislation: the fraction is a deliberate
-                    // conservatism against the "standard of living" test, and the
-                    // minimum is where a standing order stops being worth the
-                    // record-keeping s21 demands. They were hardcoded in two
-                    // services and configured in neither.
-                    'safe_surplus_fraction' => 0.5,
-                    'minimum_annual_gift' => 1000,
+                    // No fraction or floor: s21 sets none, so the whole surplus after
+                    // the usual spending is the figure (item 9, 2026-10-07).
                     'conditions' => [
                         'from_income_not_capital' => true,       // Must be from income, not capital
                         'regular_pattern' => true,               // Must be regular/habitual
@@ -756,7 +750,7 @@ class TaxConfigurationSeeder extends Seeder
                     ],
                     'evidence_required' => [
                         'Income and expenditure records',
-                        'Pattern of regular giving (typically 3+ years)',
+                        'Pattern of regular giving',
                         'Proof that standard of living maintained',
                     ],
                     'examples' => [
@@ -1035,16 +1029,6 @@ class TaxConfigurationSeeder extends Seeder
                     'lower_rate_lump_sum' => 2500,               // If no dependent children
                     'lower_rate_monthly' => 100,                 // Monthly for 18 months
                     'payment_months' => 18,                      // Paid for up to 18 months
-                ],
-            ],
-
-            // Estate planning constants
-            'estate' => [
-                'onboarding_estimates' => [
-                    'property' => 300000,                        // Default property estimate
-                    'investment' => 50000,                       // Default investment estimate
-                    'savings' => 25000,                          // Default savings estimate
-                    'business' => 100000,                        // Default business estimate
                 ],
             ],
 
