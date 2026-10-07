@@ -80,6 +80,15 @@ final class CaptureForms
     /** The State Pension: the forecast, qualifying years and whether it is paid now, ONE write through capture_state_pension (TODO item 6). */
     public const STATE_PENSION = 'state_pension';
 
+    /** A partner's work, as `tax_strategy_household_inputs.spouse_employment_status` stores it, in the funnel's words. */
+    public const SPOUSE_STATUS_OPTIONS = [
+        ['value' => 'full_time', 'label' => 'Working full-time'],
+        ['value' => 'part_time', 'label' => 'Working part-time'],
+        ['value' => 'self_employed', 'label' => 'Self-employed'],
+        ['value' => 'retired', 'label' => 'Retired'],
+        ['value' => 'unemployed', 'label' => 'Not currently working'],
+    ];
+
     /** A final salary or career average pension: the web DB pension form (DBPensionForm.vue). */
     public const DB_PENSION = 'db_pension';
 
@@ -710,8 +719,17 @@ final class CaptureForms
         // answer, not an omission, and the read-back says so.
         $lead = is_array($answers[self::LEAD] ?? null) ? $answers[self::LEAD] : [];
         $incomeUnknown = array_key_exists('spouse_annual_income', $lead) && $lead['spouse_annual_income'] === null;
+        if (isset($input['spouse_employment_status'])) {
+            $status = collect(self::SPOUSE_STATUS_OPTIONS)->firstWhere('value', $input['spouse_employment_status'])['label'] ?? null;
+            if ($status !== null) {
+                $parts[] = 'my spouse is '.lcfirst($status);
+            }
+        }
         if (isset($input['spouse_annual_income'])) {
-            $parts[] = 'my spouse earns '.self::pounds($input['spouse_annual_income']).' a year';
+            // A pension or other income is not earned.
+            $parts[] = in_array($input['spouse_employment_status'] ?? null, ['retired', 'unemployed'], true)
+                ? 'their income is '.self::pounds($input['spouse_annual_income']).' a year'
+                : 'my spouse earns '.self::pounds($input['spouse_annual_income']).' a year';
         } elseif ($incomeUnknown) {
             $parts[] = "I don't know what my spouse earns";
         }
@@ -989,7 +1007,7 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_spouse_household_data',
             'entity_type' => 'spouse_household',
-            'lead_fields' => ['spouse_annual_income', 'spouse_annual_earnings'],
+            'lead_fields' => ['spouse_employment_status', 'spouse_annual_income', 'spouse_annual_earnings'],
             'allow_empty' => true,
             'kinds_prompt' => 'Do they have any of the following? You can choose more than one, or save with none chosen.',
             'kinds' => [
@@ -1001,6 +1019,11 @@ final class CaptureForms
                 ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_annual_dividends', 'spouse_unrealised_gains']],
             ],
             'fields' => [
+                // Item 11 (2026-10-07): whether they work or are retired decides
+                // what their income is at the link (pay, or pension income their
+                // own setup splits, item 10) and their pension relief (earnings
+                // only, FA 2004 s189-190). The funnel's words for the same answer.
+                'spouse_employment_status' => ['type' => 'choice', 'label' => 'What they do', 'required' => true, 'options' => self::SPOUSE_STATUS_OPTIONS],
                 // Laura, 2026-09-18: she did not know it and had no way to say so.
                 'spouse_annual_income' => ['type' => 'money_or_none', 'label' => 'Their annual income', 'required' => true, 'hint' => 'Before tax',
                     'none_label' => "I don't know"],

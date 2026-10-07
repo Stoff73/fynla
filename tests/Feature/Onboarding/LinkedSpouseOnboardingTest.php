@@ -137,7 +137,8 @@ describe('the partner questions the link already answers', function (): void {
 
         $form = collect($events)->firstWhere('type', 'capture_form');
         expect($form['form']['name'])->toBe(CaptureForms::SPOUSE_HOUSEHOLD)
-            ->and($form['values'][CaptureForms::LEAD])->toBe(['spouse_annual_income' => 72000.0, 'spouse_annual_earnings' => 72000.0])
+            // What they do comes from their own account too (item 11).
+            ->and($form['values'][CaptureForms::LEAD])->toBe(['spouse_employment_status' => 'full_time', 'spouse_annual_income' => 72000.0, 'spouse_annual_earnings' => 72000.0])
             ->and($form)->not->toHaveKey('record');
         $saved = $conversation->messages()->where('role', 'assistant')->latest('id')->first();
         expect($saved->metadata['capture_form_values'][CaptureForms::LEAD]['spouse_annual_income'])->toBe(72000);
@@ -150,7 +151,8 @@ describe('the partner questions the link already answers', function (): void {
 
         $events = linkedSpouseOnboardingEmitStep($alex, linkedSpouseOnboardingConversation($alex), OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
 
-        expect(collect($events)->firstWhere('type', 'capture_form'))->not->toHaveKey('values');
+        // Only what they do is filled in; the figure given is left as given.
+        expect(collect($events)->firstWhere('type', 'capture_form')['values'][CaptureForms::LEAD])->toBe(['spouse_employment_status' => 'full_time']);
     });
 });
 
@@ -167,7 +169,7 @@ describe("the linked partner's holdings are on their own account", function (): 
         expect($form['name'])->toBe(CaptureForms::SPOUSE_HOUSEHOLD)
             ->and($form['kinds'])->toBe([])
             ->and($form)->not->toHaveKey('kinds_prompt')
-            ->and($form['lead_fields'])->toBe(['spouse_annual_income', 'spouse_annual_earnings']);
+            ->and($form['lead_fields'])->toBe(['spouse_employment_status', 'spouse_annual_income', 'spouse_annual_earnings']);
     });
 
     it('asks only their income in words, for a client without forms', function (): void {

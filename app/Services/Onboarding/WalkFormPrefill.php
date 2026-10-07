@@ -8,6 +8,7 @@ use App\Models\AiConversation;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\PensionStore;
@@ -171,19 +172,33 @@ final class WalkFormPrefill
         };
     }
 
-    /** @return array{values: array<string, array<string, mixed>>, record: null}|null */
+    /**
+     * The working-spouse form: what they do, when already known (an earlier
+     * answer, the funnel, or their own linked account), and a linked
+     * partner's own income when none was given for them.
+     *
+     * @return array{values: array<string, array<string, mixed>>, record: null}|null
+     */
     private function linkedSpouseIncome(User $user): ?array
     {
-        $given = TaxStrategyHouseholdInput::where('user_id', $user->id)->whereNotNull('spouse_annual_income')->exists();
-        $linked = $given ? null : $this->household->linkedSpouseEarnings($user);
-        if ($linked === null) {
-            return null;
+        $holding = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        $lead = [];
+
+        $known = array_column(CaptureForms::SPOUSE_STATUS_OPTIONS, 'value');
+        foreach ([$holding?->spouse_employment_status, FunnelAnswersMapper::spouseEmploymentStatus($user), $user->liveSpouse()?->employment_status] as $status) {
+            if (in_array($status, $known, true)) {
+                $lead['spouse_employment_status'] = $status;
+                break;
+            }
         }
 
-        return ['values' => [CaptureForms::LEAD => [
-            'spouse_annual_income' => $linked['total_income'],
-            'spouse_annual_earnings' => $linked['earnings'],
-        ]], 'record' => null];
+        $linked = $holding?->spouse_annual_income !== null ? null : $this->household->linkedSpouseEarnings($user);
+        if ($linked !== null) {
+            $lead['spouse_annual_income'] = $linked['total_income'];
+            $lead['spouse_annual_earnings'] = $linked['earnings'];
+        }
+
+        return $lead === [] ? null : ['values' => [CaptureForms::LEAD => $lead], 'record' => null];
     }
 
     /** A form of this name already posted in this conversation — the next one is another record. */

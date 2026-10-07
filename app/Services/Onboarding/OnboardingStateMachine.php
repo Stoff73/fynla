@@ -160,7 +160,8 @@ final class OnboardingStateMachine
     public const STATE_CAMPAIGN_SPOUSE_HOUSEHOLD = 'campaign_spouse_household';
 
     /** The working-spouse question and its retry when the partner's holdings are on their own linked account. */
-    public const LINKED_SPOUSE_INCOME_PROMPT = 'Great. **How much does your spouse earn annually, before tax?**';
+    // Item 11: what they do is asked with their income (the form's first box).
+    public const LINKED_SPOUSE_INCOME_PROMPT = 'Great. **Is your spouse working, self-employed, retired or not working, and what is their income a year before tax?**';
 
     public const LINKED_SPOUSE_INCOME_RETRY = 'I need their annual income before tax. Could you share it?';
 
@@ -2716,7 +2717,7 @@ final class OnboardingStateMachine
     {
         return app(HouseholdFinancialContext::class)->partnerWithOwnRecords($user) !== null
             ? self::LINKED_SPOUSE_INCOME_PROMPT
-            : 'Great. **How much does your spouse earn annually, and do they have savings, ISAs, investments or pension contributions of their own?**';
+            : 'Great. **Is your spouse working, self-employed, retired or not working, what is their income a year, and do they have savings, ISAs, investments or pension contributions of their own?**';
     }
 
     /**
