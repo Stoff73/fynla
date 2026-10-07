@@ -76,6 +76,12 @@ class InvestmentAccountStore
         return InvestmentAccount::forUserOrJoint($user->id)->get();
     }
 
+    /** Whether the user owns or jointly owns any investment account (Rule 6). */
+    public function existsForUser(User $user): bool
+    {
+        return InvestmentAccount::forUserOrJoint($user->id)->exists();
+    }
+
     public function forUserPrimaryOnly(User $user): Collection
     {
         return InvestmentAccount::where('user_id', $user->id)->get();

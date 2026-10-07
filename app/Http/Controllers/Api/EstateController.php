@@ -30,7 +30,9 @@ use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Stores\Exceptions\GiftOwnedByTrustException;
 use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\GiftStore;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\LiabilityStore;
 use App\Services\Stores\TierConfigurationStore;
@@ -58,6 +60,7 @@ class EstateController extends Controller
         private readonly EstateIhtExposureDetector $ihtExposureDetector,
         private readonly TierConfigurationStore $tierStore,
         private readonly LiabilityStore $liabilityStore,
+        private readonly GiftStore $giftStore,
     ) {}
 
     /**
@@ -499,25 +502,16 @@ class EstateController extends Controller
      */
     public function storeGift(StoreGiftRequest $request): JsonResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-
         try {
-            $validated['user_id'] = $user->id;
-            $gift = Gift::create($validated);
-
-            // Invalidate cache
-            $this->cacheInvalidation->invalidateForUser($user->id);
+            $gift = $this->giftStore->create($request->validated(), $request->user(), IngestSource::FORM);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Gift created successfully',
                 'data' => new GiftResource($gift),
             ], 201);
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (StoreValidationException $e) {
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $e->errors], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Gift creation');
         }
@@ -526,56 +520,25 @@ class EstateController extends Controller
     /**
      * Update a gift
      */
-    /**
-     * W-0528 — a settlement into a trust is the trust's record, not a free-standing gift.
-     *
-     * The chargeable lifetime transfer written by `TrustObserver` is what withholds the
-     * settlor's nil rate band for seven years. Editing or deleting it here released or
-     * moved that band while the trust still stood — and the next edit to the trust put
-     * it straight back, so the two records fought and the estate answered differently
-     * depending on which had been touched last. One record, one owner: the trust.
-     */
-    private function refuseIfTrustOwnsTheGift(Gift $gift, string $verb): ?JsonResponse
-    {
-        if ($gift->trust_id === null) {
-            return null;
-        }
-
-        return response()->json([
-            'success' => false,
-            'message' => $verb.' the trust "'.$gift->recipient.'" instead — this record is its settlement, and it follows whatever you change there.',
-        ], 422);
-    }
-
     public function updateGift(UpdateGiftRequest $request, int $id): JsonResponse
     {
-        $user = $request->user();
-        $validated = $request->validated();
-
         try {
-            $gift = Gift::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            if ($refusal = $this->refuseIfTrustOwnsTheGift($gift, 'Edit')) {
-                return $refusal;
-            }
-
-            $gift->update($validated);
-
-            // Invalidate cache
-            $this->cacheInvalidation->invalidateForUser($user->id);
+            $gift = $this->giftStore->update($id, $request->validated(), $request->user(), IngestSource::FORM);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Gift updated successfully',
-                'data' => new GiftResource($gift->fresh()),
+                'data' => new GiftResource($gift),
             ]);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Gift not found or unauthorized',
             ], 404);
+        } catch (GiftOwnedByTrustException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (StoreValidationException $e) {
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $e->errors], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Gift update');
         }
@@ -586,21 +549,8 @@ class EstateController extends Controller
      */
     public function destroyGift(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
         try {
-            $gift = Gift::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            if ($refusal = $this->refuseIfTrustOwnsTheGift($gift, 'Delete')) {
-                return $refusal;
-            }
-
-            $gift->delete();
-
-            // Invalidate cache
-            $this->cacheInvalidation->invalidateForUser($user->id);
+            $this->giftStore->delete($id, $request->user(), IngestSource::FORM);
 
             return response()->json([
                 'success' => true,
@@ -611,6 +561,8 @@ class EstateController extends Controller
                 'success' => false,
                 'message' => 'Gift not found or unauthorized',
             ], 404);
+        } catch (GiftOwnedByTrustException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Gift deletion');
         }
