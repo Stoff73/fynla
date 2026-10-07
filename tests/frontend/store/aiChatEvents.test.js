@@ -270,6 +270,66 @@ describe('desktop Fyn stream event parity', () => {
     expect(refreshes).toHaveBeenCalledTimes(expected);
   });
 
+  it.each([
+    ['refreshes the screen after a queued saved form, and shows what was saved', [{ type: 'form_received', text: 'I gave Sam £5,000 on 1 May 2025.' }, { type: 'content', text: 'Saved.' }], 1],
+    ['leaves the screen alone when a queued form is refused', [{ type: 'capture_form_errors', errors: { gift_value: 'Required' } }], 0],
+  ])('%s', async (name, events, expected) => {
+    // A form answered while another turn streams is queued by the server
+    // (AiChatController keeps it on the row's metadata) and streamed later.
+    aiChatService.streamQueuedMessage.mockResolvedValue(streamReader([...events, { type: 'done', message_id: 61 }]));
+    const form = { name: 'gift', answers: { pet: { recipient: 'Sam', gift_date: '2025-05-01', gift_value: 5000 } } };
+    const localState = {
+      ...aiChat.state,
+      currentConversation: { id: 10, title: 'Fyn' },
+      messages: [{ id: 60, role: 'user', content: 'Saving your details…', status: 'queued', form }],
+      streaming: false,
+      isOnboardingActive: false,
+      streamingText: '',
+      error: null,
+    };
+    const commit = (n, payload) => aiChat.mutations[n](localState, payload);
+    const refreshes = vi.fn();
+    window.addEventListener('fyn-screen-refresh', refreshes);
+
+    await aiChat.actions.streamNextQueued({
+      commit,
+      dispatch: vi.fn().mockResolvedValue(undefined),
+      state: localState,
+      rootState: { route: { path: '/actions/estate_gifts_pet_window' } },
+    });
+    window.removeEventListener('fyn-screen-refresh', refreshes);
+
+    expect(refreshes).toHaveBeenCalledTimes(expected);
+    if (expected === 1) {
+      expect(localState.messages[0].content).toBe('I gave Sam £5,000 on 1 May 2025.');
+    }
+  });
+
+  it('retries an interrupted queued form as the form, never as its placeholder text', async () => {
+    // The stream ends with no `done`: the turn was interrupted.
+    aiChatService.streamQueuedMessage.mockResolvedValue(streamReader([{ type: 'content', text: 'Sav' }]));
+    const form = { name: 'gift', answers: { pet: { recipient: 'Sam' } } };
+    const localState = {
+      ...aiChat.state,
+      currentConversation: { id: 10, title: 'Fyn' },
+      messages: [{ id: 62, role: 'user', content: 'Saving your details…', status: 'queued', form }],
+      streaming: false,
+      isOnboardingActive: false,
+      streamingText: '',
+      error: null,
+    };
+    const commit = (n, payload) => aiChat.mutations[n](localState, payload);
+
+    await aiChat.actions.streamNextQueued({
+      commit,
+      dispatch: vi.fn().mockResolvedValue(undefined),
+      state: localState,
+      rootState: { route: { path: '/dashboard' } },
+    });
+
+    expect(localState.retryTurn).toEqual({ arg: { form }, messageId: 62 });
+  });
+
   it('renders a subscription action after the accurate at-cap reply', async () => {
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
       { type: 'content', text: "You've reached your plan's limit of 2 goals. To add more, upgrade your plan." },

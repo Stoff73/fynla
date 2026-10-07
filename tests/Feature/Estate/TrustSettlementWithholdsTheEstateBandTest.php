@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Trust;
 use App\Models\User;
@@ -126,5 +127,63 @@ describe('the gifting module cannot move a band the trust owns', function () {
         $this->actingAs($this->user)->deleteJson("/api/estate/gifts/{$own->id}")->assertOk();
 
         expect(($this->bandWithheld)())->toBe(194_000.0);
+    });
+});
+
+describe('Fyn cannot move a band the trust owns either', function () {
+    // The refusal lived in the web controller only, so Fyn's update_record and
+    // delete_record changed or removed the settlement (one store now, GiftStore).
+    it('refuses to edit the settlement gift through Fyn', function () {
+        $gift = Gift::where('trust_id', $this->trust->id)->firstOrFail();
+
+        $result = app(CoordinatingAgent::class)->executeTool('update_record', [
+            'entity_type' => 'estate_gift', 'entity_id' => $gift->id, 'fields' => ['gift_value' => 10_000],
+        ], $this->user);
+
+        expect($result['error_type'] ?? null)->toBe('owned_by_trust')
+            ->and(($this->bandWithheld)())->toBe(194_000.0);
+    });
+
+    it('refuses to delete the settlement gift through Fyn', function () {
+        $gift = Gift::where('trust_id', $this->trust->id)->firstOrFail();
+        $agent = app(CoordinatingAgent::class);
+        $first = $agent->executeTool('delete_record', ['entity_type' => 'estate_gift', 'entity_id' => $gift->id], $this->user);
+
+        $result = $agent->executeTool('delete_record', [
+            'entity_type' => 'estate_gift', 'entity_id' => $gift->id, 'confirmation_token' => $first['confirmation_token'],
+        ], $this->user);
+
+        expect($result['error_type'] ?? null)->toBe('owned_by_trust')
+            ->and(Gift::find($gift->id))->not->toBeNull()
+            ->and(($this->bandWithheld)())->toBe(194_000.0);
+    });
+
+    it('still lets Fyn edit and delete a gift the user entered', function () {
+        $own = Gift::create([
+            'user_id' => $this->user->id, 'gift_date' => today()->subYear()->toDateString(),
+            'recipient' => 'Nephew', 'gift_type' => 'pet', 'gift_value' => 50_000,
+        ]);
+        $agent = app(CoordinatingAgent::class);
+
+        $edit = $agent->executeTool('update_record', ['entity_type' => 'estate_gift', 'entity_id' => $own->id, 'fields' => ['gift_value' => 40_000]], $this->user);
+        expect($edit['success'] ?? false)->toBeTrue()->and((float) $own->fresh()->gift_value)->toBe(40_000.0);
+
+        $first = $agent->executeTool('delete_record', ['entity_type' => 'estate_gift', 'entity_id' => $own->id], $this->user);
+        $delete = $agent->executeTool('delete_record', ['entity_type' => 'estate_gift', 'entity_id' => $own->id, 'confirmation_token' => $first['confirmation_token']], $this->user);
+        expect($delete['deleted'] ?? false)->toBeTrue()->and(Gift::find($own->id))->toBeNull();
+    });
+
+    it('refuses a gift dated in the future through Fyn, as the web form does', function () {
+        $own = Gift::create([
+            'user_id' => $this->user->id, 'gift_date' => today()->subYear()->toDateString(),
+            'recipient' => 'Nephew', 'gift_type' => 'pet', 'gift_value' => 50_000,
+        ]);
+
+        $result = app(CoordinatingAgent::class)->executeTool('update_record', [
+            'entity_type' => 'estate_gift', 'entity_id' => $own->id, 'fields' => ['gift_date' => today()->addMonth()->toDateString()],
+        ], $this->user);
+
+        expect($result['error_type'] ?? null)->toBe('validation_failed')
+            ->and($own->fresh()->gift_date->toDateString())->toBe(today()->subYear()->toDateString());
     });
 });
