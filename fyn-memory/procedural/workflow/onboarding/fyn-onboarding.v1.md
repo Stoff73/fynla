@@ -297,6 +297,26 @@ campaign_dob:
   retry_text: 'Could you give me your date of birth — for example 12 January 1985 or 12/01/85 — and your gender?'
   next: { branch: nextFromCampaignDob }
 
+campaign_retired_state_pension:
+  turn_type: grouped_extract
+  form: state_pension
+  form_prompt_text: 'Now your pensions. First, your State Pension.'
+  prompt_text: "Now your pensions. **Is your State Pension being paid to you now, and how much is it a year?** If it isn't being paid yet, tell me your forecast if you know it."
+  extraction_tool: capture_state_pension
+  retry_text: "Tell me whether your State Pension is being paid now and how much it is a year, for example \"yes, £11,500 a year\". If you're not sure, just say so."
+  capture_field: null
+  next: campaign_retired_db_pension
+  advance_on_answered_question: true
+
+campaign_retired_db_pension:
+  turn_type: delegated
+  form: db_pension
+  form_prompt_text: 'Do you have a final salary or career average pension?'
+  prompt_text: "**Do you have a final salary or career average pension, the kind that pays a set income for life?** If so, tell me the scheme, whether it is being paid to you now, and how much it pays a year. If not, just say so."
+  capture_field: null
+  next: { branch: nextFromRetiredDbPension }
+  advance_on_answered_question: true
+
 campaign_occupational_scheme:
   turn_type: form
   form: pension

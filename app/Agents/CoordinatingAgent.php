@@ -86,8 +86,10 @@ use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RetirementHeadline;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Shared\DependantsReach;
+use App\Services\Stores\Exceptions\GiftOwnedByTrustException;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\GiftStore;
 use App\Services\Stores\GoalStore;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
@@ -4465,36 +4467,33 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('estate gift');
         }
 
-        $validationError = $this->validateToolInput($input, [
-            // Not in the future: the web form's rule (StoreGiftRequest).
-            'gift_date' => 'required|date|before_or_equal:today',
-            'recipient' => 'required|string|max:255',
-            'gift_type' => ['required', Rule::in(['pet', 'clt', 'exempt', 'small_gift', 'annual_exemption'])],
-            'gift_value' => 'required|numeric|min:0|max:999999999.99',
-        ]);
-        if ($validationError) {
-            return $validationError;
-        }
-
-        $recipient = $this->resolveFamilyNames($input['recipient'], $user) ?? $input['recipient'];
+        // The rules are the web form's, in one home (GiftStore).
+        $recipient = isset($input['recipient']) && is_string($input['recipient'])
+            ? ($this->resolveFamilyNames($input['recipient'], $user) ?? $input['recipient'])
+            : null;
 
         $payload = [
             'user_id' => $user->id,
-            'gift_date' => substr($input['gift_date'], 0, 10),
+            'gift_date' => isset($input['gift_date']) ? substr((string) $input['gift_date'], 0, 10) : null,
             'recipient' => $recipient,
-            'gift_type' => $input['gift_type'] ?? 'pet',
-            'gift_value' => (float) $input['gift_value'],
+            'gift_type' => $input['gift_type'] ?? null,
+            'gift_value' => $input['gift_value'] ?? null,
         ];
 
         if (isset($input['notes']) && $input['notes'] !== '') {
             $payload['notes'] = $input['notes'];
+        }
+        try {
+            app(GiftStore::class)->validateNew($payload);
+        } catch (StoreValidationException $e) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'errors' => $e->errors, 'message' => 'Validation failed for the gift.'];
         }
         $recapture = $this->guardRecapture('estate_gift', $payload, $input, $user);
         if ($recapture !== null) {
             return $recapture;
         }
 
-        $gift = DB::transaction(fn () => Gift::create($payload));
+        $gift = app(GiftStore::class)->create(array_diff_key($payload, ['user_id' => null]), $user, IngestSource::FYN_AI);
 
         $this->invalidateUserCache($user->id);
 
@@ -4505,7 +4504,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $gift->id,
             'name' => $recipient,
             'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
-            'message' => "I've recorded your gift of £".number_format((float) $input['gift_value'])." to {$recipient}.",
+            'message' => "I've recorded your gift of £".number_format((float) $gift->gift_value)." to {$recipient}.",
         ];
     }
 
@@ -6651,7 +6650,7 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability'], true)) {
+        if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability', 'estate_gift'], true)) {
             // An investment account's dividends move the user's taxable dividend
             // total inside InvestmentAccountStore::update.
             try {
@@ -6659,9 +6658,12 @@ class CoordinatingAgent extends BaseAgent
                     'savings_account' => app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
                     'investment_account' => app(InvestmentAccountStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
                     'estate_liability' => app(LiabilityStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                    'estate_gift' => app(GiftStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
                 };
             } catch (ModelNotFoundException $e) {
                 return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            } catch (GiftOwnedByTrustException $e) {
+                return ['error' => true, 'error_type' => 'owned_by_trust', 'message' => $e->getMessage()];
             } catch (StoreValidationException $e) {
                 return [
                     'error' => true,
@@ -6787,6 +6789,25 @@ class CoordinatingAgent extends BaseAgent
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,
                 'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted.",
+            ];
+        }
+
+        if ($entityType === 'estate_gift') {
+            try {
+                $gift = app(GiftStore::class)->delete($entityId, $user, IngestSource::FYN_AI);
+            } catch (ModelNotFoundException $e) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            } catch (GiftOwnedByTrustException $e) {
+                return ['error' => true, 'error_type' => 'owned_by_trust', 'message' => $e->getMessage()];
+            }
+            $this->invalidateUserCache($user->id);
+
+            return [
+                'success' => true,
+                'deleted' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'message' => 'Gift to "'.($gift->recipient ?? "#{$entityId}").'" deleted.',
             ];
         }
 

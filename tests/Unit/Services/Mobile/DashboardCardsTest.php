@@ -86,6 +86,16 @@ it('fills the investment ring with its share of assets', function () {
         ->and($card['visual'])->toBe(['type' => 'donut', 'progress' => 10, 'number' => '1', 'label' => 'Account']);
 });
 
+it('asks for the funds an account holds instead of saying "0 holdings" beside its value', function () {
+    // ice-cube #973: an ISA added through Fyn has a value and no holdings.
+    $card = $this->cards->build(['investment' => [
+        'portfolio_value' => 20000, 'accounts_count' => 1, 'holdings_count' => 0,
+    ]], $this->netWorth)['investment'];
+
+    expect($card['caption'])->toBe('Add the funds you hold')
+        ->and($this->cards->build(['investment' => ['portfolio_value' => 0]], $this->netWorth)['investment']['caption'])->toBe('Add your investments');
+});
+
 it('prints the runway as the Savings page does: whole months from ten', function () {
     $card = $this->cards->build(['savings' => [
         'total_savings' => 74750, 'emergency_fund_months' => 14.4, 'emergency_fund_target_months' => 6,

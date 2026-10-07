@@ -699,7 +699,10 @@ final class RecordEditForms
     /** @return array<string, array<string, mixed>> */
     private function spouseAnswers(TaxStrategyHouseholdInput $row): array
     {
+        // What they do opens as stored (item 11), so an edit never re-asks it.
+        $status = in_array($row->spouse_employment_status, array_column(CaptureForms::SPOUSE_STATUS_OPTIONS, 'value'), true) ? $row->spouse_employment_status : null;
         $answers = [CaptureForms::LEAD => array_filter([
+            'spouse_employment_status' => $status,
             'spouse_annual_income' => self::floatOrNull($row->spouse_annual_income),
             'spouse_annual_earnings' => self::floatOrNull($row->spouse_annual_earnings),
         ], static fn ($v, string $k): bool => $k === 'spouse_annual_income' || $v !== null, ARRAY_FILTER_USE_BOTH)];

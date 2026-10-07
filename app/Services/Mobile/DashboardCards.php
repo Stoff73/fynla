@@ -147,7 +147,16 @@ final class DashboardCards
 
         return $this->card(
             value: $value,
-            caption: $value > 0 ? $holdings.' '.($holdings === 1 ? 'holding' : 'holdings') : 'Add your investments',
+            // An account with a value and no holdings recorded (an ISA added
+            // through Fyn) read "0 holdings" beside its value, as if it held
+            // nothing (ice-cube #973). It asks for them in the approved
+            // `no_holdings` action's words, as the other cards ask for what is
+            // missing.
+            caption: match (true) {
+                $value <= 0 => 'Add your investments',
+                $holdings === 0 => 'Add the funds you hold',
+                default => $holdings.' '.($holdings === 1 ? 'holding' : 'holdings'),
+            },
             visual: $this->donut($share, $value > 0 ? (string) $accounts : '0', $accounts === 1 ? 'Account' : 'Accounts'),
         );
     }

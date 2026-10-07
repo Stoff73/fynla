@@ -41,6 +41,18 @@ class EstateIhtExposureDetector
 
     public const SHARE_FINANCES_NOTE = 'Sharing your finances with them gives a fuller picture.';
 
+    /** The engine's figure covers both estates (married, linked, sharing). */
+    public const PARTNER_POOLED = 'pooled';
+
+    /** Married with a linked account, sharing off or revoked: own records alone. */
+    public const PARTNER_NOT_SHARING = 'not_sharing';
+
+    /** Married, the partner has no linked account: own records alone. */
+    public const PARTNER_UNLINKED = 'unlinked';
+
+    /** Not married: the figure genuinely is the user's own. */
+    public const PARTNER_NONE = 'none';
+
     public function __construct(
         private readonly NetWorthService $netWorthService,
         private readonly IHTCalculationService $ihtCalculation,
@@ -73,20 +85,7 @@ class EstateIhtExposureDetector
             'headline' => $this->buildHeadline(
                 $exposed,
                 $estimatedLiabilityGbp,
-                // W-0467 — whether the figure is one estate or two is the ENGINE's
-                // answer, read back off the result it just returned. Re-deriving
-                // `married && sharing` here would be a second predicate that can
-                // drift from the one the figure was actually computed under.
-                ($calculation['is_married'] ?? false) && ($calculation['data_sharing_enabled'] ?? false),
-                // Married with a linked account but NOT pooling — sharing off or
-                // revoked. Also read off the calculation, for the same reason.
-                ($calculation['is_married'] ?? false) && ! ($calculation['data_sharing_enabled'] ?? false),
-                // Married, and the partner has NO linked account at all. `is_married`
-                // is FALSE here — it requires `$spouse !== null` — which is why this
-                // needs the marital status the engine published rather than that flag
-                // (compliance-lead, second pass, §11).
-                in_array($calculation['marital_status'] ?? null, ['married', 'civil_partnership'], true)
-                    && ! ($calculation['is_married'] ?? false),
+                self::partnerPosition($calculation),
             ),
             'estimated_liability_gbp' => $estimatedLiabilityGbp,
             // W-0466 — the teaser is the ONLY Inheritance Tax figure `/m` shows, so
@@ -109,6 +108,32 @@ class EstateIhtExposureDetector
     }
 
     /**
+     * W-0467 — whose estate the engine's figure covers, read back off the result
+     * it returned. One home for the predicate: this teaser and the Inheritance
+     * Tax action card (`EstateActionDefinitionService`) both read it, so the
+     * sentence can never be chosen on a different test from the figure.
+     *
+     * `is_married` requires a linked spouse account, so a married user whose
+     * partner has none needs the marital status the engine published
+     * (compliance-lead, second pass, §11). What passes to a husband, wife or
+     * civil partner is free of the tax (IHTA 1984 s18), which is why a
+     * married user's own-records figure is not "if you died today".
+     *
+     * @param  array<string, mixed>  $calculation  `IHTCalculationService::calculate()`
+     * @return self::PARTNER_*
+     */
+    public static function partnerPosition(array $calculation): string
+    {
+        if ($calculation['is_married'] ?? false) {
+            return ($calculation['data_sharing_enabled'] ?? false) ? self::PARTNER_POOLED : self::PARTNER_NOT_SHARING;
+        }
+
+        return in_array($calculation['marital_status'] ?? null, ['married', 'civil_partnership'], true)
+            ? self::PARTNER_UNLINKED
+            : self::PARTNER_NONE;
+    }
+
+    /**
      * W-0467 — the teaser said "your estate" of a figure that is frequently neither
      * that person's estate nor payable on their death.
      *
@@ -124,13 +149,8 @@ class EstateIhtExposureDetector
      * Wording chosen by CSJ, 2026-08-23. The single/unmarried branch keeps "your
      * estate" because for them the figure genuinely is their own.
      */
-    private function buildHeadline(
-        bool $exposed,
-        float $estimatedLiabilityGbp,
-        bool $pooledHousehold,
-        bool $marriedButNotPooled = false,
-        bool $marriedButUnlinked = false,
-    ): string {
+    private function buildHeadline(bool $exposed, float $estimatedLiabilityGbp, string $partnerPosition): string
+    {
         if (! $exposed) {
             return 'Your estate is currently below the Inheritance Tax threshold.';
         }
@@ -141,7 +161,7 @@ class EstateIhtExposureDetector
 
         $formatted = '£'.number_format((int) $estimatedLiabilityGbp);
 
-        if ($pooledHousehold) {
+        if ($partnerPosition === self::PARTNER_POOLED) {
             return "Your household could face up to {$formatted} in Inheritance Tax on the second death. Upgrading unlocks estate planning tools you could use to explore ways of reducing it.";
         }
 
@@ -165,7 +185,7 @@ class EstateIhtExposureDetector
         // instruction here** — reaching this branch REQUIRES a linked account, so
         // the first version told the user to do a thing they had already done. What
         // is switched off is the sharing permission (compliance-lead, second pass).
-        if ($marriedButNotPooled) {
+        if ($partnerPosition === self::PARTNER_NOT_SHARING) {
             return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. ".self::OWN_RECORDS_PARTNER_NOTE.' '.self::SHARE_FINANCES_NOTE;
         }
 
@@ -177,7 +197,7 @@ class EstateIhtExposureDetector
         // W-0347 makes this population grow: linking is now an invitation that can
         // be ignored, so "married in profile, no linked partner" is an ordinary
         // steady state rather than a transient one.
-        if ($marriedButUnlinked) {
+        if ($partnerPosition === self::PARTNER_UNLINKED) {
             return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. ".self::OWN_RECORDS_PARTNER_NOTE.' '.self::LINK_ACCOUNTS_NOTE;
         }
 

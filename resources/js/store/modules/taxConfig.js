@@ -109,7 +109,9 @@ const getters = {
   // and the backend's own literal) while the configured table went unread.
   ihtGiftTaperBands: (state) => state.config?.inheritance_tax?.potentially_exempt_transfers?.taper_relief ?? null,
   annualGiftExemption: (state) => state.config?.gifting_exemptions?.annual_exemption ?? null,
-  smallGiftsLimit: (state) => state.config?.gifting_exemptions?.small_gifts_limit ?? null,
+  // `/api/tax/config` sends the £250 limit as `small_gift_exemption`
+  // (TaxConfigSnapshotService). A second getter read `small_gifts_limit`,
+  // which the snapshot never sends, so the gift form said "£0 limit".
   smallGiftExemption: (state) => state.config?.gifting_exemptions?.small_gift_exemption ?? null,
 
   // Stamp Duty Land Tax — England

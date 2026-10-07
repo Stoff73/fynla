@@ -8,6 +8,7 @@ use App\Models\AiConversation;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\PensionStore;
@@ -47,6 +48,7 @@ final class WalkFormPrefill
         private readonly HouseholdFinancialContext $household,
         private readonly SavingsStore $savings,
         private readonly PensionStore $pensions,
+        private readonly SpouseHoldingTransfer $transfer,
     ) {}
 
     /**
@@ -58,9 +60,39 @@ final class WalkFormPrefill
             CaptureForms::WORK => $this->existingJob($user, $conversation),
             CaptureForms::SPOUSE_HOUSEHOLD => $this->linkedSpouseIncome($user),
             CaptureForms::SAVINGS, CaptureForms::ISA, CaptureForms::INVESTMENT,
-            CaptureForms::PENSION, CaptureForms::PENSION_PERSONAL => $this->existingRecord($user, $conversation, $formName),
+            CaptureForms::PENSION => $this->existingRecord($user, $conversation, $formName),
+            CaptureForms::PENSION_PERSONAL => $this->withPensionIncomeLeft($user, $conversation, $this->existingRecord($user, $conversation, $formName)),
             default => null,
         };
+    }
+
+    /**
+     * A retired partner's personal pension form opens with what they draw
+     * worked out from the figure their partner gave, less the State Pension
+     * and final salary pensions they have said are paid to them (item 10,
+     * SpouseHoldingTransfer::pensionIncomeLeftToPlace). A figure already on
+     * the record stands.
+     *
+     * @param  array<string, mixed>|null  $prefill
+     * @return array<string, mixed>|null
+     */
+    private function withPensionIncomeLeft(User $user, AiConversation $conversation, ?array $prefill): ?array
+    {
+        if (self::formSaved($conversation, CaptureForms::PENSION_PERSONAL)) {
+            return $prefill;
+        }
+        $left = $this->transfer->pensionIncomeLeftToPlace($user);
+        if ($left === null) {
+            return $prefill;
+        }
+        if ($prefill === null) {
+            return ['values' => ['personal' => ['annual_drawdown_income' => $left]], 'record' => null];
+        }
+        if ((float) ($prefill['values']['personal']['annual_drawdown_income'] ?? 0) <= 0) {
+            $prefill['values']['personal']['annual_drawdown_income'] = $left;
+        }
+
+        return $prefill;
     }
 
     /** @return array{values: array<string, array<string, mixed>>, record: array{type: string, id: int}}|null */
@@ -140,19 +172,34 @@ final class WalkFormPrefill
         };
     }
 
-    /** @return array{values: array<string, array<string, mixed>>, record: null}|null */
+    /**
+     * The working-spouse form: what they do, when already known (an earlier
+     * answer, the funnel, or their own linked account while they share it),
+     * and a linked partner's own income when none was given for them. Their
+     * account is read only through the sharing permission, as their income is.
+     *
+     * @return array{values: array<string, array<string, mixed>>, record: null}|null
+     */
     private function linkedSpouseIncome(User $user): ?array
     {
-        $given = TaxStrategyHouseholdInput::where('user_id', $user->id)->whereNotNull('spouse_annual_income')->exists();
-        $linked = $given ? null : $this->household->linkedSpouseEarnings($user);
-        if ($linked === null) {
-            return null;
+        $holding = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        $lead = [];
+
+        $known = array_column(CaptureForms::SPOUSE_STATUS_OPTIONS, 'value');
+        foreach ([$holding?->spouse_employment_status, FunnelAnswersMapper::spouseEmploymentStatus($user), $this->household->partnerWithOwnRecords($user)?->employment_status] as $status) {
+            if (in_array($status, $known, true)) {
+                $lead['spouse_employment_status'] = $status;
+                break;
+            }
         }
 
-        return ['values' => [CaptureForms::LEAD => [
-            'spouse_annual_income' => $linked['total_income'],
-            'spouse_annual_earnings' => $linked['earnings'],
-        ]], 'record' => null];
+        $linked = $holding?->spouse_annual_income !== null ? null : $this->household->linkedSpouseEarnings($user);
+        if ($linked !== null) {
+            $lead['spouse_annual_income'] = $linked['total_income'];
+            $lead['spouse_annual_earnings'] = $linked['earnings'];
+        }
+
+        return $lead === [] ? null : ['values' => [CaptureForms::LEAD => $lead], 'record' => null];
     }
 
     /** A form of this name already posted in this conversation — the next one is another record. */

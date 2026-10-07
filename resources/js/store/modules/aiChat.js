@@ -41,6 +41,17 @@ function recordEntityWrite(commit, event) {
     window.dispatchEvent(new Event('fyn-screen-refresh'));
 }
 
+// A saved form changes the record the screen behind the chat shows, and the
+// form path often confirms in plain text with no entity event (a gift from
+// the gifts card's Fyn link). An unrefused form turn is the signal, as on /m
+// (onboardingChat.js send()), whether it streamed at once or was queued. An
+// interrupted turn may still have saved, so it refetches too.
+function refreshAfterFormTurn(isForm, refused, alreadyRefreshed) {
+    if (isForm && !refused && !alreadyRefreshed) {
+        window.dispatchEvent(new Event('fyn-screen-refresh'));
+    }
+}
+
 // A turn queued behind a lock this client does not hold is streamed once the
 // lock frees, retried on the /m schedule (onboardingChat.js streamQueuedReply).
 const QUEUED_STREAM_ATTEMPTS = 8;
@@ -688,6 +699,9 @@ const actions = {
             id: tempId,
             role: 'user',
             content: displayMessage,
+            // Held for a turn the server queues: streamed later, it still
+            // needs to know it was a form (screen refresh, retry).
+            ...(form ? { form } : {}),
             created_at: new Date().toISOString(),
         });
 
@@ -1074,14 +1088,7 @@ const actions = {
             // FR-M7 — the in-flight turn streamed to completion; the finally
             // pops the next queued turn for this conversation.
             streamedToCompletion = !interrupted;
-            // A saved form changes the record the screen behind the chat shows,
-            // and the form path often confirms in plain text with no entity
-            // event (a gift from the gifts card's Fyn link). An unrefused form
-            // turn is the signal, as on /m (onboardingChat.js send()). An
-            // interrupted turn may still have saved, so it refetches too.
-            if (form && !formRefused && !screenRefreshed) {
-                window.dispatchEvent(new Event('fyn-screen-refresh'));
-            }
+            refreshAfterFormTurn(!!form, formRefused, screenRefreshed);
         } catch (error) {
             // Don't show error if the user intentionally cancelled
             if (error.name === 'AbortError') {
@@ -1170,6 +1177,10 @@ const actions = {
         const currentRoute = rootState.route?.path || window.location.pathname;
         let streamedToCompletion = false;
         let interrupted = false;
+        // A queued form answer (the server keeps it on the queued row).
+        const queuedForm = queued.form || queued.metadata?.form || null;
+        let formRefused = false;
+        let screenRefreshed = false;
 
         try {
             const reader = await aiChatService.streamQueuedMessage(
@@ -1219,13 +1230,16 @@ const actions = {
                     case 'entity_updated':
                     case 'entity_deleted':
                         recordEntityWrite(commit, event);
+                        screenRefreshed = true;
                         break;
                     case 'action':
                         addPresentationAction(commit, state, event);
                         break;
                     case 'form_received':
-                        // No placeholder user row exists on this path (a queued
-                        // turn resumes after the fact) — nothing to rewrite.
+                        // The queued row shows "Saving your details…": rewrite
+                        // it with the server's summary, as the direct path does.
+                        commit('SET_TEMP_USER_CONTENT', { id: queued.id, content: event.text || '' });
+                        commit('SET_CAPTURE_FORM_ERRORS', null);
                         break;
                     case 'capture_form':
                         // Fyn's structured capture form (e.g. property) — one
@@ -1234,6 +1248,7 @@ const actions = {
                         pushCaptureFormTurn(commit, state, event);
                         break;
                     case 'capture_form_errors':
+                        formRefused = true;
                         commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
                         break;
                     case 'capture_complete':
@@ -1290,6 +1305,7 @@ const actions = {
             // (stable id) so it reads like any other answered turn.
             commit('SET_MESSAGE_STATUS', { id: queued.id, status: 'answered' });
             streamedToCompletion = !interrupted;
+            refreshAfterFormTurn(!!queuedForm, formRefused, screenRefreshed);
         } catch (error) {
             if (error.name === 'AbortError') return;
             // The previous turn still holds the conversation lock: put the turn
@@ -1308,7 +1324,8 @@ const actions = {
         } finally {
             if (interrupted) {
                 commit('SET_ERROR', FYN_INTERRUPTED_MESSAGE);
-                commit('SET_RETRY_TURN', { arg: queued.content, messageId: queued.id });
+                // A form is re-sent as the form, never as its placeholder text.
+                commit('SET_RETRY_TURN', { arg: queuedForm ? { form: queuedForm } : queued.content, messageId: queued.id });
             }
             commit('SET_STREAMING', false);
             commit('SET_THINKING', false);

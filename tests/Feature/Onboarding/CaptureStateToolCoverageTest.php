@@ -66,6 +66,7 @@ const DELEGATED_STATE_TOOLS = [
     'campaign_property' => ['savetax', 'create_property'],
     'campaign_occupational_scheme' => ['savetax', 'capture_salary_sacrifice'],
     'campaign_pension_contribs' => ['savetax', 'create_pension'],
+    'campaign_retired_db_pension' => ['savetax', 'create_pension'],
     'campaign2_pension_pots' => ['pensioncheck', 'update_record'],
     'campaign2_pension_db' => ['pensioncheck', 'create_pension'],
     'campaign2_flexible_access' => ['pensioncheck', 'update_record'],

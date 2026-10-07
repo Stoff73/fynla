@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Investment\Recommendation;
 
 use App\Constants\TaxDefaults;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Str;
 
@@ -17,7 +18,8 @@ use Illuminate\Support\Str;
 class SpouseOptimisationService
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly TaxStrategyMath $math,
     ) {}
 
     /**
@@ -432,6 +434,10 @@ class SpouseOptimisationService
             $earningPartnerIncome = $spouseIncome;
         }
 
+        // The non-earner figures from tax config, the one rule the Tax
+        // Strategy card uses (TaxStrategyMath::nonEarnerPensionContribution;
+        // Rule 2).
+        $figures = $this->math->nonEarnerPensionContribution();
         $trace = [];
 
         $trace[] = [
@@ -441,7 +447,7 @@ class SpouseOptimisationService
             'threshold' => 'One partner earning £0',
             'passed' => $nonEarningPartner !== null,
             'explanation' => $nonEarningPartner !== null
-                ? $nonEarningName.' has no income but can still receive pension contributions of up to £3,600 gross per year with government basic rate tax relief.'
+                ? $nonEarningName.' has no income but can still receive pension contributions of up to £'.number_format($figures['gross'], 0).' gross per year with basic rate tax relief.'
                 : 'Both partners have income — non-earning pension strategy does not apply.',
         ];
 
@@ -449,30 +455,30 @@ class SpouseOptimisationService
             return null;
         }
 
-        // Non-earning spouse can contribute up to £3,600 gross (£2,880 net).
-        // Figures from TaxDefaults (Rule #2) until the non_earner_pension schema key lands.
-        $netCost = TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
-        $grossContribution = TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION + TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
-        $freeRelief = $grossContribution - $netCost;
+        $netCost = $figures['net'];
+        $grossContribution = $figures['gross'];
+        $freeRelief = $figures['relief'];
 
         $trace[] = [
             'question' => 'What is the maximum gross pension contribution for a non-earner?',
             'data_field' => 'pension rules',
-            'data_value' => '£'.number_format($grossContribution, 0).' gross (£'.number_format($netCost, 0).' net + £'.number_format($freeRelief, 0).' government relief)',
+            'data_value' => '£'.number_format($grossContribution, 0).' gross (£'.number_format($netCost, 0).' net + £'.number_format($freeRelief, 0).' relief HMRC adds)',
             'threshold' => '£'.number_format($grossContribution, 0).' maximum',
             'passed' => true,
-            'explanation' => 'A net contribution of £'.number_format($netCost, 0).' from the earning partner (income £'.number_format($earningPartnerIncome, 0).') becomes £'.number_format($grossContribution, 0).' in '.$nonEarningName.'\'s pension with £'.number_format($freeRelief, 0).' in government basic rate tax relief. This is effectively free money — a '.round(($freeRelief / $netCost) * 100).'% return.',
+            // Money HMRC adds through the provider (CSJ 2026-09-29, #975; FA 2004 s192).
+            'explanation' => 'A net contribution of £'.number_format($netCost, 0).' from the earning partner (income £'.number_format($earningPartnerIncome, 0).') becomes £'.number_format($grossContribution, 0).' in '.$nonEarningName.'\'s pension: HMRC adds £'.number_format($freeRelief, 0).' of basic rate tax relief through the pension provider.',
         ];
 
         $rec = $this->buildRecommendation(
             'non_earning_spouse_pension',
             'Pension contribution for non-earning partner',
             sprintf(
-                'Even with no income, %s can receive pension contributions of up to £%s gross per year. The government adds £%s in basic rate tax relief on a net contribution of £%s. This is effectively free money.',
+                'Even with no income, %s can receive pension contributions of up to £%s a year. Pay in £%s and HMRC adds £%s through the pension provider, making £%s.',
                 $nonEarningPartner === 'you' ? 'the primary holder' : $spouseName,
                 number_format($grossContribution, 0, '.', ','),
+                number_format($netCost, 0, '.', ','),
                 number_format($freeRelief, 0, '.', ','),
-                number_format($netCost, 0, '.', ',')
+                number_format($grossContribution, 0, '.', ',')
             ),
             sprintf('Net cost: £%s per year for £%s gross pension contribution.', number_format($netCost, 0, '.', ','), number_format($grossContribution, 0, '.', ',')),
             'high',

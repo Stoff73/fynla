@@ -159,7 +159,7 @@ final class HouseholdFinancialContext
             'savings_balances' => 'savings accounts',
             'charitable_giving' => 'charitable giving',
             'spouse_income' => "spouse's income",
-            'spouse_income_amount' => "spouse's total income a year, including any pension or rent (enter 0 if none)",
+            'spouse_income_amount' => "spouse's total income",
             'spouse_savings' => "spouse's savings and the interest they receive each year",
             'marital_status' => 'marital status',
             'employment_status' => 'employment status',

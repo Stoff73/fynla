@@ -80,6 +80,18 @@ final class CaptureForms
     /** The State Pension: the forecast, qualifying years and whether it is paid now, ONE write through capture_state_pension (TODO item 6). */
     public const STATE_PENSION = 'state_pension';
 
+    /** A partner's work, as `tax_strategy_household_inputs.spouse_employment_status` stores it, in the funnel's words. */
+    public const SPOUSE_STATUS_OPTIONS = [
+        ['value' => 'full_time', 'label' => 'Working full-time'],
+        ['value' => 'part_time', 'label' => 'Working part-time'],
+        ['value' => 'self_employed', 'label' => 'Self-employed'],
+        ['value' => 'retired', 'label' => 'Retired'],
+        ['value' => 'unemployed', 'label' => 'Not currently working'],
+    ];
+
+    /** A final salary or career average pension: the web DB pension form (DBPensionForm.vue). */
+    public const DB_PENSION = 'db_pension';
+
     /** Dividends, interest, trust and other income: the figures the web Income form edits that belong to no job or account, ONE write through update_profile (TODO item 7a). Edit only. */
     public const OTHER_INCOME = 'other_income';
 
@@ -134,7 +146,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS, self::STATE_PENSION, self::OTHER_INCOME, self::GIFT, self::LPA];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX, self::PROTECTION, self::EMPLOYER_BENEFITS, self::STATE_PENSION, self::DB_PENSION, self::OTHER_INCOME, self::GIFT, self::LPA];
     }
 
     /** @return array<string, mixed>|null */
@@ -161,6 +173,7 @@ final class CaptureForms
             self::PROTECTION => self::protection(),
             self::EMPLOYER_BENEFITS => self::employerBenefits(),
             self::STATE_PENSION => self::statePension(),
+            self::DB_PENSION => self::dbPension(),
             self::OTHER_INCOME => self::otherIncome(),
             self::GIFT => self::gift(),
             self::LPA => self::lpa(),
@@ -305,6 +318,7 @@ final class CaptureForms
                 self::SAVINGS => self::savingsInputs($kind, $answers),
                 self::INVESTMENT => self::investmentInputs($kind, $answers),
                 self::PENSION, self::PENSION_PERSONAL => self::pensionInputs($kind, $answers),
+                self::DB_PENSION => self::dbPensionInputs($kind, $answers),
                 self::PROTECTION => self::protectionInputs($kind, $answers),
                 self::GIFT => self::giftInputs($kind, $answers),
                 self::LPA => self::lpaInputs($kind, $answers),
@@ -350,6 +364,7 @@ final class CaptureForms
                 self::SAVINGS => self::savingsSentence($label, $input),
                 self::INVESTMENT => self::investmentSentence($label, $input),
                 self::PENSION, self::PENSION_PERSONAL => self::pensionSentence($label, $input),
+                self::DB_PENSION => self::dbPensionSentence($label, $input),
                 self::PROTECTION => self::protectionSentence($label, $input),
                 self::GIFT => self::giftSentence($label, $input),
                 self::LPA => self::lpaSentence($label, $input),
@@ -704,8 +719,17 @@ final class CaptureForms
         // answer, not an omission, and the read-back says so.
         $lead = is_array($answers[self::LEAD] ?? null) ? $answers[self::LEAD] : [];
         $incomeUnknown = array_key_exists('spouse_annual_income', $lead) && $lead['spouse_annual_income'] === null;
+        if (isset($input['spouse_employment_status'])) {
+            $status = collect(self::SPOUSE_STATUS_OPTIONS)->firstWhere('value', $input['spouse_employment_status'])['label'] ?? null;
+            if ($status !== null) {
+                $parts[] = 'my spouse is '.lcfirst($status);
+            }
+        }
         if (isset($input['spouse_annual_income'])) {
-            $parts[] = 'my spouse earns '.self::pounds($input['spouse_annual_income']).' a year';
+            // A pension or other income is not earned.
+            $parts[] = in_array($input['spouse_employment_status'] ?? null, ['retired', 'unemployed'], true)
+                ? 'their income is '.self::pounds($input['spouse_annual_income']).' a year'
+                : 'my spouse earns '.self::pounds($input['spouse_annual_income']).' a year';
         } elseif ($incomeUnknown) {
             $parts[] = "I don't know what my spouse earns";
         }
@@ -983,7 +1007,7 @@ final class CaptureForms
             'submit_label' => 'Save',
             'tool' => 'capture_spouse_household_data',
             'entity_type' => 'spouse_household',
-            'lead_fields' => ['spouse_annual_income', 'spouse_annual_earnings'],
+            'lead_fields' => ['spouse_employment_status', 'spouse_annual_income', 'spouse_annual_earnings'],
             'allow_empty' => true,
             'kinds_prompt' => 'Do they have any of the following? You can choose more than one, or save with none chosen.',
             'kinds' => [
@@ -995,6 +1019,11 @@ final class CaptureForms
                 ['key' => 'investments', 'label' => 'Investments', 'fields' => ['spouse_annual_dividends', 'spouse_unrealised_gains']],
             ],
             'fields' => [
+                // Item 11 (2026-10-07): whether they work or are retired decides
+                // what their income is at the link (pay, or pension income their
+                // own setup splits, item 10) and their pension relief (earnings
+                // only, FA 2004 s189-190). The funnel's words for the same answer.
+                'spouse_employment_status' => ['type' => 'choice', 'label' => 'What they do', 'required' => true, 'options' => self::SPOUSE_STATUS_OPTIONS],
                 // Laura, 2026-09-18: she did not know it and had no way to say so.
                 'spouse_annual_income' => ['type' => 'money_or_none', 'label' => 'Their annual income', 'required' => true, 'hint' => 'Before tax',
                     'none_label' => "I don't know"],
@@ -1365,6 +1394,107 @@ final class CaptureForms
                 'gender' => self::personal()['fields']['gender'],
             ],
         ];
+    }
+
+    /**
+     * A final salary or career average pension, the web form's fields
+     * (DBPensionForm.vue, dbPensionFields.js): one form on every surface
+     * (CSJ 2026-10-07). The kinds are the web form's scheme types. Nothing
+     * chosen is the answer "none" (a retired partner's walk, item 10).
+     * Through create_pension, the handler Fyn's own call uses.
+     *
+     * @return array<string, mixed>
+     */
+    private static function dbPension(): array
+    {
+        $fields = ['scheme_name', 'scheme_status', 'accrued_annual_pension', 'pensionable_service_years', 'pensionable_salary', 'normal_retirement_age', 'spouse_pension_percent', 'inflation_protection', 'revaluation_rate', 'lump_sum_entitlement'];
+
+        return [
+            'name' => self::DB_PENSION,
+            'submit_label' => 'Save',
+            'allow_empty' => true,
+            'kinds_prompt' => 'A final salary or career average pension pays a set income for life rather than building a pot. Choose the kind, or save with none chosen if you have none.',
+            'kinds' => [
+                ['key' => 'final_salary', 'label' => 'Final salary pension', 'tool' => 'create_pension', 'entity_type' => 'db_pension', 'fields' => $fields],
+                ['key' => 'career_average', 'label' => 'Career average pension', 'tool' => 'create_pension', 'entity_type' => 'db_pension', 'fields' => $fields],
+                ['key' => 'public_sector', 'label' => 'Public sector pension', 'tool' => 'create_pension', 'entity_type' => 'db_pension', 'fields' => $fields],
+            ],
+            'fields' => [
+                'scheme_name' => ['type' => 'text', 'label' => 'Employer or scheme name', 'required' => true, 'hint' => 'For example NHS Pension Scheme'],
+                'scheme_status' => ['type' => 'choice', 'label' => 'Is it being paid to you now?', 'required' => true,
+                    'hint' => 'This decides whether it counts towards your income today', 'options' => [
+                        ['value' => 'in_payment', 'label' => 'Yes, it is being paid now'],
+                        ['value' => 'deferred', 'label' => 'No, I have left the scheme and not started drawing it'],
+                        ['value' => 'active', 'label' => 'No, I am still building it up'],
+                    ]],
+                'accrued_annual_pension' => ['type' => 'money', 'label' => 'Pension a year', 'required' => true,
+                    'hint' => "What it pays you each year, or the yearly pension at the scheme's normal retirement age"],
+                'pensionable_service_years' => ['type' => 'percent', 'label' => 'Years of service', 'required' => true, 'min' => 0, 'max' => 60, 'step' => 0.1],
+                'pensionable_salary' => ['type' => 'money', 'label' => 'Pensionable salary', 'required' => false, 'hint' => "Leave blank if you don't know"],
+                'normal_retirement_age' => ['type' => 'percent', 'label' => "The scheme's normal retirement age", 'required' => false, 'min' => 50, 'max' => 75, 'step' => 1,
+                    'hint' => "Leave blank if you don't know"],
+                'spouse_pension_percent' => ['type' => 'percent', 'label' => 'Pension your spouse would receive %', 'required' => false, 'min' => 0, 'max' => 100, 'step' => 1,
+                    'hint' => "Leave blank if you don't know"],
+                'inflation_protection' => ['type' => 'choice', 'label' => 'How it rises each year', 'required' => false, 'options' => [
+                    ['value' => 'cpi', 'label' => 'In line with the Consumer Prices Index'],
+                    ['value' => 'rpi', 'label' => 'In line with the Retail Prices Index'],
+                    ['value' => 'fixed', 'label' => 'By a fixed rate'],
+                    ['value' => 'none', 'label' => 'It does not rise'],
+                ]],
+                'revaluation_rate' => ['type' => 'percent', 'label' => 'Fixed rate %', 'required' => false, 'min' => 0, 'max' => 20, 'step' => 0.1,
+                    'hint' => 'Only if it rises by a fixed rate'],
+                'lump_sum_entitlement' => ['type' => 'money', 'label' => 'Tax-free lump sum available', 'required' => false, 'hint' => 'Leave blank if none or unknown'],
+            ],
+        ];
+    }
+
+    /**
+     * create_pension (defined benefit), shaped as the web form's payload
+     * (buildDbPensionPayload): a fixed rate travels as `revaluation_method`.
+     *
+     * @param  array<string, mixed>  $kind
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    private static function dbPensionInputs(array $kind, array $answers): array
+    {
+        $input = [
+            'pension_category' => 'db',
+            'scheme_name' => trim((string) $answers['scheme_name']),
+            'scheme_type' => $kind['key'],
+            'scheme_status' => (string) $answers['scheme_status'],
+            'accrued_annual_pension' => (float) $answers['accrued_annual_pension'],
+            'pensionable_service_years' => (float) $answers['pensionable_service_years'],
+        ];
+        foreach (['pensionable_salary', 'spouse_pension_percent', 'lump_sum_entitlement'] as $field) {
+            if (is_numeric($answers[$field] ?? null)) {
+                $input[$field] = (float) $answers[$field];
+            }
+        }
+        if (is_numeric($answers['normal_retirement_age'] ?? null)) {
+            $input['normal_retirement_age'] = (int) $answers['normal_retirement_age'];
+        }
+        $rises = (string) ($answers['inflation_protection'] ?? '');
+        if ($rises !== '') {
+            $input['inflation_protection'] = $rises;
+            if ($rises === 'fixed' && is_numeric($answers['revaluation_rate'] ?? null)) {
+                $input['revaluation_method'] = ((float) $answers['revaluation_rate']).'%';
+            }
+        }
+
+        return $input;
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private static function dbPensionSentence(string $label, array $input): string
+    {
+        $paid = match ($input['scheme_status']) {
+            'in_payment' => 'being paid to me now',
+            'deferred' => 'not being paid to me yet',
+            default => 'still building up',
+        };
+
+        return $label.' with '.$input['scheme_name'].', '.self::pounds($input['accrued_annual_pension']).' a year, '.$paid.'.';
     }
 
     /**

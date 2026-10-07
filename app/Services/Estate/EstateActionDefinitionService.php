@@ -146,6 +146,27 @@ class EstateActionDefinitionService
             $steps[$step['category'] ?? ''] = $step;
         }
 
+        $vars = $this->ihtPositionVars($ihtLiability, $iht, $summary, $steps);
+
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        // No `estimated_impact`: the list shows it as "You could save £X", and the
+        // tax due is not a saving (the old card claimed the whole tax as one).
+        $rec['figures'] = array_filter($vars, static fn ($v): bool => is_scalar($v));
+
+        return [$rec];
+    }
+
+    /**
+     * The Inheritance Tax card's figures and sentences, from the engine's result
+     * and the plan page's steps keyed by category.
+     *
+     * @param  array<string, mixed>  $iht  the engine's `iht_calculation`
+     * @param  array<string, mixed>  $summary  the analysis summary
+     * @param  array<string, array<string, mixed>>  $steps
+     * @return array<string, mixed>
+     */
+    private function ihtPositionVars(float $ihtLiability, array $iht, array $summary, array $steps): array
+    {
         $charity = $steps['charitable_bequest'] ?? null;
         $charityStep = $charity !== null && ($charity['potential_saving'] ?? 0) > 0;
         $payment = $steps['liquidity'] ?? null;
@@ -157,14 +178,11 @@ class EstateActionDefinitionService
         // W-0467 — a married user whose figure is their own records alone: the
         // partner has no linked account, or does not share. What passes to a
         // husband, wife or civil partner is free of the tax (IHTA 1984 s18), so
-        // "if you died today" of this figure is not true of them. Read off the
-        // engine's result, as `EstateIhtExposureDetector` reads it.
-        $marriedNotPooled = ($iht['is_married'] ?? false) && ! ($iht['data_sharing_enabled'] ?? false);
-        $marriedUnlinked = in_array($iht['marital_status'] ?? null, ['married', 'civil_partnership'], true)
-            && ! ($iht['is_married'] ?? false);
-        $ownRecordsOnly = $marriedNotPooled || $marriedUnlinked;
+        // "if you died today" of this figure is not true of them.
+        $partner = EstateIhtExposureDetector::partnerPosition($iht);
+        $ownRecordsOnly = in_array($partner, [EstateIhtExposureDetector::PARTNER_NOT_SHARING, EstateIhtExposureDetector::PARTNER_UNLINKED], true);
 
-        $vars = [
+        return [
             'iht_liability' => $this->money($ihtLiability),
             // The engine's own estate, the one its tax is worked on: a couple's
             // pooled estate where the partner's is counted (W-0501).
@@ -187,7 +205,7 @@ class EstateActionDefinitionService
             'pension_caveat' => $iht['pension_exclusion_caveat'] ?? null,
             'has_partner_note' => $ownRecordsOnly,
             'partner_note' => $ownRecordsOnly
-                ? EstateIhtExposureDetector::OWN_RECORDS_PARTNER_NOTE.' '.($marriedUnlinked ? EstateIhtExposureDetector::LINK_ACCOUNTS_NOTE : EstateIhtExposureDetector::SHARE_FINANCES_NOTE)
+                ? EstateIhtExposureDetector::OWN_RECORDS_PARTNER_NOTE.' '.($partner === EstateIhtExposureDetector::PARTNER_UNLINKED ? EstateIhtExposureDetector::LINK_ACCOUNTS_NOTE : EstateIhtExposureDetector::SHARE_FINANCES_NOTE)
                 : null,
             'net_estate' => $this->money((float) ($iht['total_net_estate'] ?? $summary['net_estate'] ?? 0)),
             'allowances' => $this->money((float) ($iht['total_allowances'] ?? 0)),
@@ -213,13 +231,6 @@ class EstateActionDefinitionService
             'clt_rate_percent' => (string) (int) round($this->taxConfig->getCLTLifetimeRate() * 100),
             'periodic_max_percent' => (string) (int) round(((float) $this->taxConfig->getTrustCharges()['periodic']['max_rate']) * 100),
         ];
-
-        $rec = $this->buildRecommendation($definition, $vars, $priority);
-        // No `estimated_impact`: the list shows it as "You could save £X", and the
-        // tax due is not a saving (the old card claimed the whole tax as one).
-        $rec['figures'] = array_filter($vars, static fn ($v): bool => is_scalar($v));
-
-        return [$rec];
     }
 
     /**

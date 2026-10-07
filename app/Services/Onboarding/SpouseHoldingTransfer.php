@@ -9,6 +9,7 @@ use App\Models\FamilyMember;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Income\EmploymentIncomeService;
+use App\Traits\ResolvesIncome;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -24,6 +25,8 @@ use Illuminate\Support\Facades\Log;
  */
 final class SpouseHoldingTransfer
 {
+    use ResolvesIncome;
+
     /** Employment statuses whose income is earnings from work (tax_strategy_household_inputs / users values). */
     private const WORKING_STATUSES = ['employed', 'full_time', 'part_time', 'self_employed'];
 
@@ -58,9 +61,8 @@ final class SpouseHoldingTransfer
         $hasIncome = (float) ($spouse->annual_employment_income ?? 0) > 0
             || (float) ($spouse->annual_self_employment_income ?? 0) > 0
             || (float) ($spouse->annual_other_income ?? 0) > 0;
-        $pensionIncome = 0.0;
         if ($income > 0 && ! $hasIncome) {
-            ['pay' => $pay, 'pension' => $pensionIncome, 'other' => $other] = $this->splitIncome($income, $holding, $spouse);
+            ['pay' => $pay, 'other' => $other] = $this->splitIncome($income, $holding, $spouse);
             if ($pay > 0) {
                 // Held as an estimate, not through capture_work_details: it is the
                 // requester's figure, and the spouse's own job must replace it
@@ -115,10 +117,14 @@ final class SpouseHoldingTransfer
 
         $pot = (float) ($holding->spouse_existing_pension_balance ?? 0);
         $contribution = (float) ($holding->spouse_pension_input_annual ?? 0);
-        // A retired partner's income is their pension (CSJ 2026-09-30): it is
-        // stored as their own pension form stores it, as what they draw, on
-        // the one pension record, so their walk opens it to confirm.
-        if ($pot > 0 || $contribution > 0 || $pensionIncome > 0) {
+        // A retired partner's income is their pension, but one figure cannot
+        // say how much is State Pension, a final salary pension or drawn from
+        // a pot (item 10, CSJ 2026-10-07: "Partner's setup asks"). Nothing is
+        // recorded as drawn here: their walk asks the State Pension and final
+        // salary forms, then opens the personal pension form with what is
+        // left (pensionIncomeLeftToPlace). Until then the household reads the
+        // figure given (TaxStrategyMath::linkedSpouseWithIncome).
+        if ($pot > 0 || $contribution > 0) {
             $provider = trim((string) ($holding->spouse_pension_provider ?? ''));
             $input = ['pension_category' => 'dc', 'scheme_type' => 'personal', 'scheme_name' => trim($provider.' personal pension')];
             if ($provider !== '') {
@@ -130,10 +136,7 @@ final class SpouseHoldingTransfer
             if ($contribution > 0) {
                 $input['monthly_contribution_amount'] = round($contribution / 12, 2);
             }
-            if ($pensionIncome > 0) {
-                $input['annual_drawdown_income'] = $pensionIncome;
-            }
-            $this->run('create_pension', $input, $spouse, $copied, $pensionIncome > 0 ? 'pension income' : 'pension');
+            $this->run('create_pension', $input, $spouse, $copied, 'pension');
         }
 
         $holding->spouse_holding_transferred_at = now();
@@ -148,13 +151,14 @@ final class SpouseHoldingTransfer
 
     /**
      * The partner said they do not work after the link, so the inviter's figure
-     * that arrived as an estimate of pay (status unknown at the link) is split
-     * the way it would have been had the status been known then: a retired
-     * partner's is what they draw from their pension (CSJ 2026-09-30), anyone
-     * else's is other income. Without this a retired partner, who has no job
-     * to replace the estimate with, kept it as pay beside the pension they
-     * then confirmed: £30,000 counted twice, taxed at the higher rate with
+     * that arrived as an estimate of pay (status unknown at the link) is not
+     * pay. Without this a retired partner kept it as pay beside the pension
+     * they then confirmed: £30,000 counted twice, taxed at the higher rate with
      * National Insurance (fynla.org, 2026-09-30).
+     *
+     * Retired: the estimate goes and nothing takes its place here; their walk
+     * asks what makes up their pension income (item 10). Anyone else not
+     * working: it is other income, since it could be rent as much as anything.
      */
     public function restateEstimateForStatus(User $spouse): void
     {
@@ -163,29 +167,89 @@ final class SpouseHoldingTransfer
             return;
         }
         $amount = app(EmploymentIncomeService::class)->dropEstimates($spouse);
-        if ($amount <= 0) {
-            return;
-        }
         $spouse->refresh();
-        $copied = [];
+        $copied = $amount > 0 ? ['estimate dropped'] : [];
 
-        $pensions = $spouse->dcPensions()->get();
-        if ($status === 'retired' && $pensions->contains(fn ($p): bool => (float) ($p->annual_drawdown_income ?? 0) > 0)) {
-            // They already gave what they draw; their own figure stands.
-            $copied[] = 'estimate dropped';
-        } elseif ($status === 'retired' && $pensions->count() === 1) {
-            $this->run('update_record', ['entity_type' => 'dc_pension', 'entity_id' => $pensions->first()->id, 'fields' => ['annual_drawdown_income' => $amount]], $spouse, $copied, 'pension income');
-        } elseif ($status === 'retired' && $pensions->isEmpty()) {
-            $this->run('create_pension', ['pension_category' => 'dc', 'scheme_type' => 'personal', 'scheme_name' => 'Personal pension', 'annual_drawdown_income' => $amount], $spouse, $copied, 'pension income');
-        } else {
-            // Not working, or retired with several pensions and no way to know
-            // which one pays: not pay, and not guessed onto a pension.
+        if ($status === 'retired') {
+            // What the link copied as other income (status unknown, earnings
+            // given) is the same figure their walk now places as pension
+            // income: it goes, or it would be counted twice. Only while their
+            // other income still holds it.
+            $other = (float) ($spouse->annual_other_income ?? 0);
+            $moved = $this->otherIncomeCopiedAtLink($spouse);
+            if ($moved > 0 && $other >= $moved) {
+                $this->run('update_profile', ['section' => 'income_occupation', 'fields' => ['annual_other_income' => round($other - $moved, 2)]], $spouse, $copied, 'other income moved to pension');
+            }
+        } elseif ($amount > 0) {
             $this->run('update_profile', ['section' => 'income_occupation', 'fields' => ['annual_other_income' => (float) ($spouse->annual_other_income ?? 0) + $amount]], $spouse, $copied, 'other income');
+        }
+        if ($copied === []) {
+            return;
         }
 
         Log::info('[SpouseHoldingTransfer] Restated the inviter\'s income estimate for the partner\'s status', [
             'spouse_id' => $spouse->id, 'status' => $status, 'amount' => $amount, 'copied' => $copied,
         ]);
+    }
+
+    /**
+     * The part of the inviter's figure the link copied as other income: what
+     * was not pay for a partner not then known to be retired (splitIncome, on
+     * the status given at the link).
+     */
+    private function otherIncomeCopiedAtLink(User $spouse): float
+    {
+        $holding = ($inviter = $spouse->liveSpouse()) === null ? null
+            : TaxStrategyHouseholdInput::where('user_id', $inviter->id)->whereNotNull('spouse_holding_transferred_at')->first();
+        if ($holding === null || $holding->spouse_annual_income === null || $holding->spouse_employment_status === 'retired') {
+            return 0.0;
+        }
+        $income = (float) $holding->spouse_annual_income;
+        $pay = $this->payAtLink($income, $holding->spouse_annual_earnings, $holding->spouse_employment_status);
+
+        return max(0.0, $income - $pay);
+    }
+
+    /**
+     * The pension income the inviter gave for this partner, when the partner
+     * is retired: their income less what was given as earnings from work.
+     * Null when they are not retired, or arrived by no transfer.
+     */
+    public function inviterPensionIncome(User $spouse): ?float
+    {
+        if ($spouse->employment_status !== 'retired' || ($inviter = $spouse->liveSpouse()) === null) {
+            return null;
+        }
+        $holding = TaxStrategyHouseholdInput::where('user_id', $inviter->id)->whereNotNull('spouse_holding_transferred_at')->first();
+        if ($holding === null || $holding->spouse_annual_income === null) {
+            return null;
+        }
+        $income = (float) $holding->spouse_annual_income;
+        $earnings = min($income, max(0.0, (float) ($holding->spouse_annual_earnings ?? 0)));
+
+        return $income - $earnings > 0 ? $income - $earnings : null;
+    }
+
+    /**
+     * What a retired partner draws from a pension pot, worked out from the
+     * figure their partner gave: that figure less the State Pension being paid
+     * to them and the final salary pensions being paid to them, as they have
+     * recorded them (CSJ 2026-10-07, item 10). Their personal pension form
+     * opens with it. Null when nothing is left, or there is no such figure.
+     */
+    public function pensionIncomeLeftToPlace(User $spouse): ?float
+    {
+        $given = $this->inviterPensionIncome($spouse);
+        if ($given === null) {
+            return null;
+        }
+        // The one rule for pension income being paid (ResolvesIncome), less
+        // what it counts as drawn from a pot: that is the part being placed.
+        $spouse->loadMissing('dcPensions');
+        $drawn = (float) $spouse->dcPensions->sum(fn ($pension): float => (float) ($pension->annual_drawdown_income ?? 0));
+        $left = round($given - ($this->resolvePensionIncomeInPayment($spouse) - $drawn), 2);
+
+        return $left > 0 ? $left : null;
     }
 
     /**
@@ -202,32 +266,33 @@ final class SpouseHoldingTransfer
      * gave are transferred and stored). It is an estimate, so the spouse's own
      * job replaces it rather than adding to it.
      *
-     * What is not pay is a retired partner's pension (CSJ 2026-09-30: entered
-     * as their pension, it must arrive as pension income), and otherwise
-     * other income, since for anyone else it could be rent as much as a
-     * pension.
+     * What is not pay is a retired partner's pension, which their walk asks
+     * them to split (item 10), and otherwise other income, since for anyone
+     * else it could be rent as much as a pension.
      *
-     * @return array{pay: float, pension: float, other: float}
+     * @return array{pay: float, other: float}
      */
     private function splitIncome(float $income, TaxStrategyHouseholdInput $holding, User $spouse): array
     {
         $status = $holding->spouse_employment_status ?? $spouse->employment_status;
-
-        if ($holding->spouse_annual_earnings !== null) {
-            $pay = min($income, max(0.0, (float) $holding->spouse_annual_earnings));
-        } else {
-            $pay = match (true) {
-                in_array($status, self::WORKING_STATUSES, true) => $income,
-                in_array($status, self::NON_WORKING_STATUSES, true) => 0.0,
-                default => $income,
-            };
-        }
-
+        $pay = $this->payAtLink($income, $holding->spouse_annual_earnings, $status);
         $rest = $income - $pay;
 
-        return $status === 'retired'
-            ? ['pay' => $pay, 'pension' => $rest, 'other' => 0.0]
-            : ['pay' => $pay, 'pension' => 0.0, 'other' => $rest];
+        return ['pay' => $pay, 'other' => $status === 'retired' ? 0.0 : $rest];
+    }
+
+    /** Earnings given are the pay; otherwise the status decides, and unknown means all pay. */
+    private function payAtLink(float $income, mixed $earnings, ?string $status): float
+    {
+        if ($earnings !== null) {
+            return min($income, max(0.0, (float) $earnings));
+        }
+
+        return match (true) {
+            in_array($status, self::WORKING_STATUSES, true) => $income,
+            in_array($status, self::NON_WORKING_STATUSES, true) => 0.0,
+            default => $income,
+        };
     }
 
     /** @param  array<string, mixed>  $input */

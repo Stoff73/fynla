@@ -1,4 +1,4 @@
-# What's new in Fynla — 1 to 6 October 2026
+# What's new in Fynla — 1 to 7 October 2026
 
 Your pension suggestions now start from what you can actually afford. A suggestion to pay into your own pension, or to top up your partner's, is sized to the money left after your spending and goals, and when there is not enough for both, the two are shown as alternatives rather than added together. The Save Tax setup asks for your monthly spending again so this works from the start, and a pension allowance you cannot afford to use no longer says "Fully used".
 
@@ -190,6 +190,28 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **On Save Tax,** answering "No thanks" to the question about bank and savings accounts ends the whole setup, so date of birth, pension and spending are not asked (CSJ to decide).
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
+
+## Estate actions you can follow, with figures that add up (7 October, about 12:50, release #1122)
+
+**This is live on fynla.org** through release #1122 (#1120, with #1118, #1119 and #1121), UK time.
+
+- **One Inheritance Tax card instead of a figure with no steps.** It states the tax, the estate and the allowances it is worked on, and each step that reduces or pays it, with its own figure: leaving more to charity (the rate falls to 36% once charity gifts reach 10% of the estate the test measures, [Inheritance Tax Act 1984 Schedule 1A](https://www.legislation.gov.uk/ukpga/1984/51/schedule/1A)), the £3,000 yearly exemption ([s19](https://www.legislation.gov.uk/ukpga/1984/51/section/19)), gifts out of income ([s21](https://www.legislation.gov.uk/ukpga/1984/51/section/21)), larger gifts, life cover in trust and gifts into a trust. For a couple it says "If you both died today".
+- **A married person whose partner is not linked** is told the figure is "based on your own records alone" and "does not allow for anything passing to your partner", because what passes to a husband, wife or civil partner is free of the tax ([s18](https://www.legislation.gov.uk/ukpga/1984/51/section/18)). The card also carries the same notes the Estate page does, such as pension pots being left out until 6 April 2027.
+- **One Lasting Power of Attorney card** that counts only a registered one ([Mental Capacity Act 2005 s9](https://www.legislation.gov.uk/ukpga/2005/9/section/9)) and names which kind is missing. A link opens Fyn's form to record it.
+- **A gifts card** that never counts exempt gifts, uses the band a gift actually takes after the yearly exemptions, and gives the date the first gift leaves the seven years. A link opens Fyn's form to record each gift.
+- **A pension card only where no beneficiary is recorded.** Fyn's pension form now asks "Who you want it to go to if you die", as the web form does, on every surface.
+- **A trust card two years before the trust's ten-year anniversary** ([s64](https://www.legislation.gov.uk/ukpga/1984/51/section/64)), instead of a yearly review with no source.
+- **Protection and Estate no longer both list the same life policy** that is not in trust.
+- **The Estate plan page's sums are corrected.** The trust step no longer uses the remaining tax as the size of the gift; the gift steps are no longer multiplied by your life expectancy; there is no 50% cash test, no "age 50 or under" rule for life cover and no invented 85 or 50 ages. Turning steps on and off now uses the server's figure for each combination: for the Mitchell demo, charity and larger gifts together save £137,575, not the £151,331 the two added up to.
+- **The card updates as soon as Fyn saves** a gift or a Lasting Power of Attorney behind it, on the desktop and mobile web apps. Before, it needed a reload.
+- **Jointly owned assets now count** towards opening the Estate module for the joint owner.
+- **Wording (approved by CSJ, 7 October):** all six estate how-tos, including recording each gift through Fyn.
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps:** the Mitchell demo's plan page (charity alone £78,931, larger gifts alone £72,400, both £137,575) and Inheritance Tax card ("If you both died today, £349,112"); a married account with no linked partner (£105,200 = (£588,000 − £325,000) × 40%, with the "own records" wording); the Lasting Power of Attorney link through Fyn's form, the card updating without a reload.
+- **Live on fynla.org:** the Mitchell demo on desktop (the card, £349,112 with the pension note, and the plan page toggles, the same figures as the test site); on the mobile app a walk account with £500,000 of savings (tax £70,000 = (£500,000 − £325,000) × 40%), recording a health and welfare Lasting Power of Attorney through the card's link, the card then naming only property and financial affairs with no reload. The walk account was deleted afterwards. No errors in the log.
+
+**Behind the scenes.** No database change. The tax configuration, estate definitions and how-to seeders, app code, both the desktop and mobile web bundles, and one unused class removed.
 
 ## How much protection cover you need, worked out from sourced figures (6 October, about 17:20, release #1115)
 
