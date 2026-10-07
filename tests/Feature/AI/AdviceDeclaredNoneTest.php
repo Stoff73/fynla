@@ -71,3 +71,10 @@ it('leaves a plain "no" alone when nothing is locked', function (): void {
 
     expect($body)->not->toContain("I won't ask about");
 });
+
+it("names the spouse's income in Fyn's words, with no instruction meant for a form", function (): void {
+    // Item 14: the label is read back in "I won't ask about … again", where
+    // "(enter 0 if none)" made no sense.
+    expect(HouseholdFinancialContext::labelFor('spouse_income_amount'))
+        ->toBe("spouse's total income a year, including any pension or rent");
+});
