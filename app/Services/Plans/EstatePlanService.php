@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Plans;
 
 use App\Agents\EstateAgent;
-use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
@@ -84,8 +83,9 @@ class EstatePlanService extends BasePlanService
         $recommendations = $this->enrichRecommendations($recommendations, $user, $data);
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($recommendations, 'estate', $options);
 
-        // Attach gifting detail to actions from the analysis data
-        $actions = $this->attachGiftingDetailToActions($actions, $data);
+        // No gifting timeline is attached to the steps: each step carries its own
+        // figure from the one step engine (EstateAgent), so a step never sits
+        // beside a second, contradicting set of cycles and totals (item 9).
 
         $currentSituation = $this->buildCurrentSituation($data, $user);
         $whatIf = $this->buildWhatIfData($data, $enabledActions);
@@ -175,9 +175,9 @@ class EstatePlanService extends BasePlanService
     private function identifyFundingSource(string $category, array $rec, float $liquidAssets): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $ihtRate = (float) $ihtConfig['standard_rate'];
         $giftingConfig = $this->taxConfig->getGiftingExemptions();
-        $annualExemption = (float) ($giftingConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION);
+        $annualExemption = (float) $giftingConfig['annual_exemption'];
 
         $amount = match ($category) {
             'charitable_bequest' => (float) ($rec['shortfall'] ?? $rec['potential_saving'] ?? 0),
@@ -530,8 +530,8 @@ class EstatePlanService extends BasePlanService
 
         // Rate and NRB/RNRB messages
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtStandardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $charitableRate = (float) ($ihtConfig['reduced_rate_charity'] ?? TaxDefaults::IHT_CHARITABLE_RATE);
+        $ihtStandardRate = (float) $ihtConfig['standard_rate'];
+        $charitableRate = $this->taxConfig->getCharitableReducedRate();
 
         // WillAnalysisService::analyzeCharitableBequests() returns 'below',
         // 'at' or 'above' — never 'qualifies'. This comparison was the same bug
@@ -773,49 +773,6 @@ class EstatePlanService extends BasePlanService
             ->sortByDesc('value')
             ->values()
             ->toArray();
-    }
-
-    /**
-     * Attach gifting detail from analysis data to matching actions.
-     */
-    private function attachGiftingDetailToActions(array $actions, array $data): array
-    {
-        $giftingStrategies = $data['gifting_opportunities']['strategies'] ?? [];
-
-        // Build lookup by strategy name keywords
-        $petStrategy = null;
-        $annualStrategy = null;
-        foreach ($giftingStrategies as $strategy) {
-            $name = strtolower($strategy['strategy_name'] ?? '');
-            if (str_contains($name, 'pet') || str_contains($name, 'potentially exempt')) {
-                $petStrategy = $strategy;
-            }
-            if (str_contains($name, 'annual exemption')) {
-                $annualStrategy = $strategy;
-            }
-        }
-
-        foreach ($actions as &$action) {
-            $category = $action['category'] ?? '';
-
-            if ($category === 'pet_gifting' && $petStrategy) {
-                $action['gift_schedule'] = $petStrategy['gift_schedule'] ?? [];
-                $action['seven_year_cycles'] = (int) ($petStrategy['number_of_cycles'] ?? 0);
-                $action['amount_per_cycle'] = (float) ($petStrategy['amount_per_cycle'] ?? 0);
-            }
-
-            if ($category === 'annual_gifting' && $annualStrategy) {
-                $action['annual_gifting_detail'] = [
-                    'annual_amount' => (float) ($annualStrategy['annual_amount'] ?? 0),
-                    'years' => (int) ($annualStrategy['years'] ?? 0),
-                    'total_gifted' => (float) ($annualStrategy['total_gifted'] ?? 0),
-                    'iht_saved' => (float) ($annualStrategy['iht_saved'] ?? 0),
-                ];
-            }
-        }
-        unset($action);
-
-        return $actions;
     }
 
     /**

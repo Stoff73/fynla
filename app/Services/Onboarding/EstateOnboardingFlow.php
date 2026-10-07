@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
-use App\Constants\EstateDefaults;
 use App\Services\TaxConfigService;
 
 class EstateOnboardingFlow
@@ -230,14 +229,11 @@ class EstateOnboardingFlow
             return true;
         }
 
-        // Trust Info - show only if:
-        // 1. User indicated trust ownership elsewhere
-        // 2. Or estimated estate value > £2m (RNRB taper threshold)
+        // Trust Info - show only if the user said they have a trust. (An estimate
+        // built from typed-in values per asset kind stood here, item 9: it could
+        // never reach the £2m test, and an unanswered value is never guessed.)
         if ($stepName === 'trust_info') {
-            $hasTrusts = $userData['has_trusts'] ?? false;
-            $estateValue = $this->calculateEstimatedEstateValue($userData);
-
-            return $hasTrusts || $estateValue > EstateDefaults::RNRB_TAPER_THRESHOLD;
+            return (bool) ($userData['has_trusts'] ?? false);
         }
 
         // Family Info - show spouse section only if married
@@ -249,43 +245,6 @@ class EstateOnboardingFlow
         }
 
         return true;
-    }
-
-    /**
-     * Calculate estimated estate value from user data
-     */
-    private function calculateEstimatedEstateValue(array $userData): float
-    {
-        $estimates = $this->taxConfig->get('estate.onboarding_estimates', [
-            'property' => 300000,
-            'investment' => 50000,
-            'savings' => 25000,
-            'business' => 100000,
-        ]);
-
-        $estimatedValue = 0.0;
-
-        // Add property values (uses average UK property price as rough estimate)
-        if (isset($userData['has_properties']) && $userData['has_properties']) {
-            $estimatedValue += (float) ($estimates['property'] ?? 300000);
-        }
-
-        // Add investment values (conservative estimate)
-        if (isset($userData['has_investments']) && $userData['has_investments']) {
-            $estimatedValue += (float) ($estimates['investment'] ?? 50000);
-        }
-
-        // Add savings (conservative estimate)
-        if (isset($userData['has_savings']) && $userData['has_savings']) {
-            $estimatedValue += (float) ($estimates['savings'] ?? 25000);
-        }
-
-        // Add business interests (conservative estimate)
-        if (isset($userData['has_business_interests']) && $userData['has_business_interests']) {
-            $estimatedValue += (float) ($estimates['business'] ?? 100000);
-        }
-
-        return $estimatedValue;
     }
 
     /**

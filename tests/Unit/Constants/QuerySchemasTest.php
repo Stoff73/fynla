@@ -33,7 +33,7 @@ describe('QuerySchemas', function () {
             expect($holisticTriggers)->toContain('employer_match');
             expect($holisticTriggers)->toContain('life_insurance_gap');
             expect($holisticTriggers)->toContain('emergency_fund_critical');
-            expect($holisticTriggers)->toContain('iht_exceeds_nrb');
+            expect($holisticTriggers)->toContain('iht_position');
             expect(count($holisticTriggers))->toBeGreaterThan(20);
         });
 

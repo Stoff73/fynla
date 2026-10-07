@@ -9,9 +9,9 @@ use App\Services\TaxConfigService;
 /**
  * EstateDefaults - Threshold constants used in estate planning calculations.
  *
- * Onboarding estimates (ESTIMATED_PROPERTY_VALUE, ESTIMATED_INVESTMENT_VALUE,
- * ESTIMATED_SAVINGS_VALUE, ESTIMATED_BUSINESS_VALUE) and default life expectancy/age
- * constants have been moved to TaxConfigService under 'estate.onboarding_estimates'.
+ * The onboarding estimates and the default life expectancy and age constants
+ * that once lived here are gone (item 9, 2026-10-07): a value the user has not
+ * given is never estimated.
  *
  * Threshold constants are retained for convenience but sourced from TaxConfigService
  * where possible, with hardcoded fallbacks for when the service is unavailable.

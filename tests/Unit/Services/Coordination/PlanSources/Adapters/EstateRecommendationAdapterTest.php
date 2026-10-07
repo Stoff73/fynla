@@ -39,13 +39,13 @@ it('maps an IHT-exceeds-NRB rec carrying estimated_impact to Warning category wi
         'action' => 'Review estate planning strategies.',
         'impact' => 'High',
         'scope' => 'portfolio',
-        'definition_key' => 'iht_exceeds_nrb',
+        'definition_key' => 'iht_position',
         'estimated_impact' => 60000.0,
     ];
 
     $dto = (new EstateRecommendationAdapter)->toStrategyRecommendation($rec);
 
-    expect($dto->type)->toBe('iht_exceeds_nrb')
+    expect($dto->type)->toBe('iht_position')
         ->and($dto->category)->toBe('warning')
         ->and($dto->priority)->toBe('high')
         ->and($dto->estimatedAnnualTaxSaved)->toBeNull()

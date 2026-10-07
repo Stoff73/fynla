@@ -70,6 +70,7 @@ final class EstateRecommendationAdapter
         'new_life_cover' => 'reduce_iht_exposure',
         'annual_gifting' => 'gift_to_reduce_estate',
         'Gifts' => 'gift_to_reduce_estate',
+        'Pensions' => 'reduce_iht_exposure',
         'charitable_bequest' => 'reduce_iht_exposure',
         'Beneficiaries' => 'register_lpa',
         'will_review' => 'make_a_will',
@@ -105,6 +106,10 @@ final class EstateRecommendationAdapter
             'scope' => $rec['scope'] ?? null,
             // The policy a per-policy rule is about — the aggregator scopes the id by it.
             'policy_id' => $rec['policy_id'] ?? null,
+            // The pension a per-pension rule is about (beneficiaries, item 9 D4).
+            'account_id' => $rec['account_id'] ?? null,
+            // The card's own figures, for its how-to (item 9).
+            'figures' => ! empty($rec['figures']) ? $rec['figures'] : null,
             'estimated_iht_saving' => $estimatedIhtSaving,
             'source_category' => $category !== '' ? $category : null,
             'decision_trace' => $rec['decision_trace'] ?? null,

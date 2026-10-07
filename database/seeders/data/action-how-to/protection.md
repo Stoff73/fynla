@@ -320,7 +320,7 @@ learn:
 ## life_cover_position
 status: approved
 source: every source under life_insurance_gap, mortgage_no_decreasing_term, education_funding_gap, dis_reliance_warning and non_earning_spouse_no_cover below (approved 2026-09-29); the cover position (`ProtectionCoverPosition`: need = total need, cover = life policies reaching you plus death in service)
-figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, mortgage_amount, dependant_count, education_gap; reasons: life_insurance_gap, dependants_no_life_cover, mortgage_no_decreasing_term, education_funding_gap, dis_reliance_warning, non_earning_spouse_no_cover
+figures: need, own_cover, employer_cover, short_by, over_by, employer_share, is_short, is_over, depends_on_job, mortgage_amount, dependant_count; reasons: life_insurance_gap, dependants_no_life_cover, mortgage_no_decreasing_term, dis_reliance_warning, non_earning_spouse_no_cover (education left the need, item 8b D5, CSJ 2026-10-06)
 why when is_short:
 1. Your family would need {need}. Your own policies give {own_cover} and your job {employer_cover}, so your life cover is {short_by} short.
 why when is_over:
@@ -331,12 +331,10 @@ why when dependants_no_life_cover:
 3. {dependant_count} people depend on your income, and you have no life cover.
 why when mortgage_no_decreasing_term:
 4. You owe {mortgage_amount} on your mortgage, and no life policy you have recorded is set up to pay it off.
-why when education_funding_gap:
-5. Your children's education would be {education_gap} short.
 why when non_earning_spouse_no_cover:
 6. {spouse_start} has no earned income and no life cover. If they died, you would pay for the childcare and running of the home they now provide.
 always:
-1. Check the figures behind your need on the Protection page: your mortgage and other debts, your family's yearly income need, and your children's education.
+1. Check the figures behind your need on the Protection page: your mortgage and other debts, your family's yearly living costs, and the income that would carry on.
 when is_short:
 2. Get quotes for level term life cover of about {short_by}, for as long as your family would need it. A protection adviser or a comparison service can quote several insurers at once.
 when is_short and has_spouse:

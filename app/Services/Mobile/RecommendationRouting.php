@@ -92,11 +92,9 @@ final class RecommendationRouting
         // 2026-09-09: Fyn only acknowledged the answers and wrote nothing).
         'investment_no_holdings' => ['action' => 'add', 'resource_type' => 'investment'],
 
-        // Estate — an LPA is created through Fyn; a trust flag is an edit to
-        // the policy record. A will stays on the page (the Will Builder).
+        // Estate — an LPA is created through Fyn. A will stays on the page (the
+        // Will Builder); the life policy trust card is Protection's (item 9 D2).
         'estate_no_lpa' => ['action' => 'add', 'resource_type' => 'estate'],
-        'estate_no_lpa_health' => ['action' => 'add', 'resource_type' => 'estate'],
-        'estate_policy_not_in_trust' => ['action' => 'edit', 'resource_type' => 'protection'],
     ];
 
     /**
@@ -163,9 +161,10 @@ final class RecommendationRouting
         if ($module === 'investment' && $accountId !== null) {
             return self::detail('investment_account_detail', ['account_id' => $accountId], $overview, "/investment/account/{$accountId}");
         }
-        if ($module === 'retirement' && $accountId !== null) {
+        if (in_array($module, ['retirement', 'estate'], true) && $accountId !== null) {
             // The retirement rules that name a pension (fees, consolidation,
-            // salary sacrifice) evaluate workplace Defined Contribution schemes.
+            // salary sacrifice) evaluate workplace Defined Contribution schemes;
+            // the estate one names a pension with no beneficiary (item 9 D4).
             return self::detail('pension_detail', ['pension_id' => $accountId, 'pension_type' => 'dc'], $overview, "/retirement/pension/dc/{$accountId}");
         }
         if ($goalId !== null) {

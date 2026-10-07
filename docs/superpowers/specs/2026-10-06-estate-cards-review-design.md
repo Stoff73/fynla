@@ -1,6 +1,6 @@
 # Estate cards: review and design
 
-**Status:** DRAFT. Decisions D1 to D6 (section 4) wait on CSJ.
+**Status:** APPROVED. CSJ answered D1 to D6 on 2026-10-07: yes to all six, and "a clt is only a clt if it exceeds the nil rate band for iht, same for a pet" (3.1).
 **Date:** 2026-10-06
 **Item:** `todoCurrent/TODO.md` item 9 (the item 7 and 8 shape: review, decisions, fixes, how-tos, walk, release).
 
@@ -81,7 +81,7 @@ The will, intestacy and LPA cards rest on the law of England and Wales (Wills Ac
 ## 3. Design
 
 ### 3.1 Fix the gifts card (no decision needed; defect)
-Count only gifts that can still become chargeable: `pet` and `clt` within seven years (s3A, s2), net of any annual exemption that covers part of them only where the record says so. Say which kind each is. Describe taper relief as a reduction (s7(4)), with the date each gift leaves the seven years. Harold Bennett gets no card; Patricia gets "2 gifts, £40,000"; David Mitchell's card names the £150,000 gift into trust as a chargeable lifetime transfer, out of the seven years on 1 September 2027.
+Count only gifts that can still become chargeable: `pet` and `clt` within seven years (s3A, s2); exempt gifts (`annual_exemption`, `small_gift`, `wedding`, `normal_expenditure`, `exempt`) never count. For each, taking earlier gifts first: the part above the nil rate band carries tax of its own ("chargeable in its own right", [IHTM14512](https://www.gov.uk/hmrc-internal-manuals/inheritance-tax-manual/ihtm14512)), with taper relief only there ([GOV.UK](https://www.gov.uk/inheritance-tax/gifts), s7(4)); the part within it carries no tax of its own but uses that much of the band the estate would get if death came first ([IHTM14503](https://www.gov.uk/hmrc-internal-manuals/inheritance-tax-manual/ihtm14503)). Name the date each gift leaves the seven years. (CSJ 2026-10-07: a gift is only taxed as a CLT or a PET above the nil rate band.) Harold Bennett gets no card; Patricia gets "2 gifts, £40,000"; David Mitchell's card names the £150,000 gift into trust as a chargeable lifetime transfer, out of the seven years on 1 September 2027.
 
 ### 3.2 LPA: only a registered one counts (no decision needed; defect)
 `status = registered` (or `uploaded` with `is_registered_with_opg`) clears a card; a draft or completed but unregistered LPA keeps it, worded "registered" (s9(2)(b)).
@@ -91,6 +91,20 @@ Rates and bands from the config, never typed (Rule 2); "allowances" not "nil-rat
 
 ### 3.4 One Inheritance Tax position card (decision D1)
 Replace the generic `iht_exceeds_nrb` card with one "your Inheritance Tax position" card, as Protection and Investment have: the tax today, the allowances it uses, and the steps that reduce it with each step's figure, from the one engine the Estate plan page uses. The plan page and the card then show the same steps and figures.
+
+**The steps' maths, corrected (found while building, 2026-10-07; Rule 23, no decision).** The plan page's steps carry figures the card would inherit, and several are wrong:
+
+| Step | Was | Now (source) |
+|---|---|---|
+| 1 Charity | 36% rate when 10% of the baseline goes to charity (W-0451, correct) | Unchanged (Sch 1A) |
+| 2 Paying the tax | Fires when liquid assets are under 50% of the tax (no source) | Fires when liquid assets are under the tax; the shortfall in pounds. The tax is due six months after the end of the month of death (s226(1)); tax on land and buildings can be paid in ten yearly instalments (s227(1), (2)) |
+| 3 Cover in trust | "Usable" cover = cover in trust minus every debt (no source); a third "place policies in trust" card | Cover in trust on your own life, in full (its payout is outside the estate, IHTM20012); the trust placement suggestion is Protection's card only (D2) |
+| 4 Annual gifts | £3,000 × years to life expectancy × 40% | Per year: the annual exemption (s19, `gifting_exemptions.annual_exemption`, plus last year's if unused, s19(2)) and the tax it saves at the estate's rate; small gifts and wedding gifts from the config (s20, s22) |
+| 5 Life cover | Only if aged 50 or under (no source) | Cover equal to the tax still due after steps 1 to 4, written in trust; no age gate, no premium |
+| 6 Larger gifts | One nil rate band per seven years × life expectancy | The nil rate band not used by gifts of the last seven years: a gift up to that carries no tax of its own even if death comes within seven years (IHTM14512), and once survived saves tax at the estate's rate (s3A, s7) |
+| 7 Gifts into trust | Treats the tax as the size of the gift | No amount: taxed at 20% now on the part above the nil rate band available (`chargeable_lifetime_transfers.lifetime_rate`), up to 6% every ten years (s64, s66(1); `trust_charges.periodic.max_rate`), more if death within seven years |
+
+The life expectancy and age defaults (85, 50) and the three-year "will review" (no source) leave the steps.
 
 ### 3.5 Life policy in trust: one card (decision D2)
 Drop Estate's `policy_not_in_trust` from the list; Protection's card (approved how-to, IHTM20012) is the one, and it opens the policy.

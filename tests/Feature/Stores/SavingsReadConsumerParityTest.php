@@ -319,10 +319,10 @@ it('LetterToSpouseService bank accounts info lists all single-owner accounts', f
     expect($info)->not->toContain('OtherBank');
 });
 
-it('EstateActionDefinitionService::evaluateActions surfaces iht_exceeds_nrb with correct estimated_impact when savings push estate above NRB+RNRB', function () {
+it('EstateActionDefinitionService::evaluateActions surfaces iht_position with correct estimated_impact when savings push estate above NRB+RNRB', function () {
     $this->seed(EstateActionDefinitionSeeder::class);
 
-    $user = User::factory()->create(['is_preview_user' => false]);
+    $user = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'single', 'date_of_birth' => '1970-01-01']);
 
     // £400k individual savings — counts toward estimateEstateValue via store->forUser()->where(user_id)->sum
     SavingsAccount::factory()->create([
@@ -361,7 +361,7 @@ it('EstateActionDefinitionService::evaluateActions surfaces iht_exceeds_nrb with
     $result = app(EstateActionDefinitionService::class)->evaluateActions($user);
 
     $ihtRec = collect($result['recommendations'])
-        ->firstWhere('definition_key', 'iht_exceeds_nrb');
+        ->firstWhere('definition_key', 'iht_position');
 
     expect($ihtRec)->not->toBeNull();
     expect($ihtRec['estimated_impact'])->toBe(70000.0);
