@@ -106,7 +106,7 @@
         </div>
         <ul>
           <li v-if="qualifiesForSmallGift">
-            ✓ This gift qualifies for the Small Gift Exemption (£{{ (smallGiftsLimit || 0).toLocaleString() }} or less per person per year)
+            This gift qualifies for the Small Gift Exemption (£{{ (smallGiftsLimit || 0).toLocaleString() }} or less per person per year)
           </li>
           <li v-if="canUseAnnualExemption">
             You can use your Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }} per tax year)
@@ -181,7 +181,7 @@ export default {
     giftTypeDescription() {
       const descriptions = {
         pet: 'Most common type - becomes Inheritance Tax-free if you survive 7 years',
-        clt: 'Gift to a trust or company - immediately taxable at 20%',
+        clt: 'Gift into most trusts, or to a company - Inheritance Tax is due now only on the part above your nil rate band',
         exempt: 'Gifts to spouses, charities, or political parties',
         small_gift: `Up to £${(this.smallGiftsLimit || 0).toLocaleString()} per person per year (exempt immediately)`,
         annual_exemption: `First £${(this.annualGiftExemption || 0).toLocaleString()} of gifts each tax year (exempt immediately)`,

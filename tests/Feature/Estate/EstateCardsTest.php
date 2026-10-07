@@ -35,7 +35,7 @@ beforeEach(function () {
     ]);
 });
 
-function estateCards(User $user, string $key): array
+function estateCardsFor(User $user, string $key): array
 {
     return collect(app(EstateActionDefinitionService::class)->evaluateActions($user->fresh())['recommendations'])
         ->where('definition_key', $key)
@@ -43,23 +43,23 @@ function estateCards(User $user, string $key): array
         ->all();
 }
 
-function gift(User $user, string $type, string $date, float $value): void
+function estateCardGift(User $user, string $type, string $date, float $value): void
 {
     Gift::create(['user_id' => $user->id, 'gift_type' => $type, 'gift_date' => $date, 'gift_value' => $value, 'recipient' => 'Child']);
 }
 
 it('never counts exempt gifts as inside the seven years', function () {
-    gift($this->user, 'annual_exemption', now()->subYears(2)->toDateString(), 3000);
-    gift($this->user, 'annual_exemption', now()->subYear()->toDateString(), 3000);
+    estateCardGift($this->user, 'annual_exemption', now()->subYears(2)->toDateString(), 3000);
+    estateCardGift($this->user, 'annual_exemption', now()->subYear()->toDateString(), 3000);
 
-    expect(estateCards($this->user, 'gifts_pet_window'))->toBe([]);
+    expect(estateCardsFor($this->user, 'gifts_pet_window'))->toBe([]);
 });
 
 it('counts a gift to a person and says how much band it uses', function () {
-    gift($this->user, 'pet', now()->subYears(2)->toDateString(), 20000);
-    gift($this->user, 'annual_exemption', now()->subYear()->toDateString(), 3000);
+    estateCardGift($this->user, 'pet', now()->subYears(2)->toDateString(), 20000);
+    estateCardGift($this->user, 'annual_exemption', now()->subYear()->toDateString(), 3000);
 
-    [$card] = estateCards($this->user, 'gifts_pet_window');
+    [$card] = estateCardsFor($this->user, 'gifts_pet_window');
 
     expect($card['figures']['gift_count'])->toBe('1')
         ->and($card['figures']['gift_total'])->toBe('£20,000')
@@ -72,7 +72,7 @@ it('counts only a registered Lasting Power of Attorney', function () {
     LastingPowerOfAttorney::create(['user_id' => $this->user->id, 'lpa_type' => 'property_financial', 'status' => 'draft']);
     LastingPowerOfAttorney::create(['user_id' => $this->user->id, 'lpa_type' => 'health_welfare', 'status' => 'registered', 'is_registered_with_opg' => true]);
 
-    [$card] = estateCards($this->user, 'no_lpa');
+    [$card] = estateCardsFor($this->user, 'no_lpa');
 
     expect($card['figures']['missing_financial'])->toBeTrue()
         ->and($card['figures']['missing_health'])->toBeFalse()
@@ -82,7 +82,7 @@ it('counts only a registered Lasting Power of Attorney', function () {
     LastingPowerOfAttorney::where('user_id', $this->user->id)->where('lpa_type', 'property_financial')
         ->update(['status' => 'registered', 'is_registered_with_opg' => true]);
 
-    expect(estateCards($this->user, 'no_lpa'))->toBe([]);
+    expect(estateCardsFor($this->user, 'no_lpa'))->toBe([]);
 });
 
 it('dates a discretionary trust by its ten-year anniversary, not a yearly review', function () {
@@ -90,7 +90,7 @@ it('dates a discretionary trust by its ten-year anniversary, not a yearly review
     Trust::create($base + ['trust_name' => 'Soon', 'trust_creation_date' => now()->subYears(9)->toDateString()]);
     Trust::create($base + ['trust_name' => 'Later', 'trust_creation_date' => now()->subYears(5)->toDateString()]);
 
-    $cards = estateCards($this->user, 'trust_anniversary_due');
+    $cards = estateCardsFor($this->user, 'trust_anniversary_due');
 
     expect($cards)->toHaveCount(1)
         ->and($cards[0]['title'])->toBe('Soon reaches ten years on '.now()->subYears(9)->addYears(10)->format('j F Y'))
@@ -101,7 +101,7 @@ it('names a pension only when it has no beneficiary recorded', function () {
     DCPension::factory()->create(['user_id' => $this->user->id, 'scheme_name' => 'Nominated', 'beneficiary_name' => 'Sam']);
     DCPension::factory()->create(['user_id' => $this->user->id, 'scheme_name' => 'Unnominated', 'beneficiary_name' => null, 'beneficiary_id' => null]);
 
-    $cards = estateCards($this->user, 'pension_no_beneficiary');
+    $cards = estateCardsFor($this->user, 'pension_no_beneficiary');
 
     expect($cards)->toHaveCount(1)
         ->and($cards[0]['title'])->toBe('No beneficiary recorded for Unnominated');
@@ -110,7 +110,7 @@ it('names a pension only when it has no beneficiary recorded', function () {
 it('states an Inheritance Tax figure that the estate and allowances add up to', function () {
     Property::where('user_id', $this->user->id)->update(['current_value' => 1_000_000]);
 
-    [$card] = estateCards($this->user, 'iht_position');
+    [$card] = estateCardsFor($this->user, 'iht_position');
     $f = $card['figures'];
     $pounds = fn (string $v): float => (float) str_replace(['£', ','], '', $v);
 
