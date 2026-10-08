@@ -54,7 +54,8 @@ final class PensionTaxReliefStrategy implements TaxStrategy
 
         $earnings = $this->math->relevantEarningsFor($user);
         $age = $this->math->ageOf($user->date_of_birth);
-        $availableAA = $this->math->availableAnnualAllowance($user, $context->overrides);
+        $allowanceLeft = $this->math->availableAnnualAllowance($user, $context->overrides);
+        $availableAA = $allowanceLeft;
         // Never more than the money the user has to pay it with (CSJ
         // 2026-09-30; PensionAffordability). Unknown money leaves it as it was.
         $fundable = $context->pensionFundableGross((float) $this->taxConfig->getPensionAllowances()['tax_relief']['basic_rate']);
@@ -79,17 +80,21 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         }
 
         $band = $this->math->bandFromIncomeFor($user, $taxable);
-        $contribution = $band === 'higher'
-            ? min(
-                $this->math->higherRateSlice($user, $taxable, $this->math->bandThresholdsFor($user)['higher']),
-                $availableAA,
-                $earnings - $this->math->grossEmployeePensionContributions($user),
-            )
-            : min(
-                $earnings * self::BASIC_RATE_SHARE_OF_EARNINGS - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
-                $availableAA,
-                $this->basicRateTaxedIncome($user, $taxable),
-            );
+        // Each limit by name, so the working can say which one set the figure.
+        $limits = $band === 'higher'
+            ? [
+                'slice' => $this->math->higherRateSlice($user, $taxable, $this->math->bandThresholdsFor($user)['higher']),
+                'allowance' => $allowanceLeft,
+                'afford' => $fundable,
+                'earnings' => $earnings - $this->math->grossEmployeePensionContributions($user),
+            ]
+            : [
+                'target' => $earnings * self::BASIC_RATE_SHARE_OF_EARNINGS - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
+                'allowance' => $allowanceLeft,
+                'afford' => $fundable,
+                'basic_taxed' => $this->basicRateTaxedIncome($user, $taxable),
+            ];
+        $contribution = min(array_filter($limits, static fn (?float $limit): bool => $limit !== null));
 
         // Down, never up: rounding up would relieve tax the user does not pay.
         $display = (int) (floor($contribution / 100) * 100);
@@ -129,8 +134,64 @@ final class PensionTaxReliefStrategy implements TaxStrategy
                 'suggested_contribution' => (float) $display,
                 'relief_rate' => $rate,
                 'tax_band' => $band,
+                'working' => $this->working($context, $band, $limits, $earnings, $display, $ratePct, $saving),
             ],
         )];
+    }
+
+    /**
+     * How the figure was reached, step by step, from the figures the sizing
+     * used, so Fyn gives this working and never redoes the sums from another
+     * income figure (item 18: Fyn worked "£60,000 − £50,270" where the plan
+     * used £54,000, income after pension payments through pay).
+     *
+     * @param  array<string, float|null>  $limits
+     * @return list<string>
+     */
+    private function working(TaxStrategyContext $context, string $band, array $limits, float $earnings, int $display, int $ratePct, float $saving): array
+    {
+        $user = $context->user;
+        $pounds = static fn (float $value): string => '£'.number_format((int) floor($value));
+        $lines = [];
+
+        if ($band === 'higher') {
+            $definitions = $this->math->incomeDefinitionsFor($user);
+            $total = (float) ($definitions['total_income'] ?? 0);
+            $taxable = $this->math->taxableIncomeFor($user);
+            $lines[] = sprintf('Your income this year is %s.', $pounds($total));
+            if ($total - $taxable >= 1) {
+                $lines[] = sprintf('%s of it goes into your pension from your pay before tax, which leaves %s taxed as income.', $pounds($total - $taxable), $pounds($taxable));
+            }
+            $raw = $this->math->bandThresholds()['higher'];
+            $limit = $this->math->bandThresholdsFor($user)['higher'];
+            $lines[] = $limit - $raw >= 1
+                ? sprintf('The higher rate starts at %s, raised to %s by your Gift Aid and personal pension payments.', $pounds($raw), $pounds($limit))
+                : sprintf('The higher rate starts at %s.', $pounds($raw));
+            $lines[] = sprintf('So %s of your income is taxed at %d%%.', $pounds((float) $limits['slice']), $ratePct);
+        } else {
+            $paying = $this->math->estimatePensionContributionThisYear($user, $context->overrides);
+            $lines[] = sprintf('Your plan suggests paying in a tenth of your earnings of %s, which is %s a year.', $pounds($earnings), $pounds($earnings * self::BASIC_RATE_SHARE_OF_EARNINGS));
+            if ($paying >= 1) {
+                $lines[] = sprintf('You already pay in %s, which leaves %s.', $pounds($paying), $pounds(max(0.0, (float) $limits['target'])));
+            }
+        }
+
+        // The limit that set the figure, when it is not the first one.
+        $first = array_key_first($limits);
+        $binding = array_search(min(array_filter($limits, static fn (?float $limit): bool => $limit !== null)), $limits, true);
+        if ($binding !== false && $binding !== $first && (float) $limits[$binding] < (float) $limits[$first]) {
+            $lines[] = sprintf(match ($binding) {
+                'allowance' => 'You have %s of your Annual Allowance left this year, so the payment stops there.',
+                'afford' => 'What you can afford from your income after spending and goals is %s, so the payment stops there.',
+                'earnings' => 'Relief is limited to your earnings: %s more can go in this year.',
+                'basic_taxed' => 'Only %s of your income is taxed at the basic rate, so relief stops there.',
+                default => '%s',
+            }, $pounds((float) $limits[$binding]));
+        }
+
+        $lines[] = sprintf('Rounded down to the nearest £100 that is %s, and %d%% of %s is %s of tax saved.', $pounds($display), $ratePct, $pounds($display), $pounds($saving));
+
+        return $lines;
     }
 
     /**
@@ -146,11 +207,10 @@ final class PensionTaxReliefStrategy implements TaxStrategy
         $user = $context->user;
         // Funded from savings, not income they do not have: never more than
         // their recorded cash covers (CSJ 2026-09-29).
-        $gross = floor(min(
-            $this->math->pensionReliefLimit(0.0) - $this->math->estimatePensionContributionThisYear($user, $context->overrides),
-            $availableAA,
-            $this->math->nonEarnerFundableGross($user),
-        ) / 100) * 100;
+        $basicAmount = $this->math->pensionReliefLimit(0.0);
+        $paying = $this->math->estimatePensionContributionThisYear($user, $context->overrides);
+        $savingsCover = $this->math->nonEarnerFundableGross($user);
+        $gross = floor(min($basicAmount - $paying, $availableAA, $savingsCover) / 100) * 100;
         if ($gross < 100) {
             return [];
         }
@@ -183,6 +243,12 @@ final class PensionTaxReliefStrategy implements TaxStrategy
                 // When nothing is claimed back, the whole benefit is the relief
                 // HMRC adds, and the action row says so (CSJ 2026-10-08).
                 'benefit_wording' => $saving - $atSource < 1 ? 'hmrc_adds' : null,
+                'working' => array_values(array_filter([
+                    sprintf('Without earnings from work, tax relief is given on up to £%s a year of pension payments.', number_format((int) $basicAmount)),
+                    $paying >= 1 ? sprintf('You already pay in £%s, which leaves £%s.', number_format((int) floor($paying)), number_format((int) floor(max(0.0, $basicAmount - $paying)))) : null,
+                    $savingsCover < $basicAmount - $paying ? sprintf('Your savings cover a payment of £%s, so it stops there.', number_format((int) floor($savingsCover))) : null,
+                    sprintf('Rounded down to the nearest £100 that is £%s: you pay £%s and HMRC adds £%s through your pension provider.', number_format((int) $gross), number_format((int) $net), number_format((int) $atSource)),
+                ])),
             ],
         )];
     }

@@ -372,6 +372,35 @@ it('does not inject the saving block on an onboarding turn', function (): void {
         ->not->toContain('<savings_getting_started>');
 });
 
+it('does not count a send whose turn failed as a repeat', function (): void {
+    // csjones 2026-10-08 (item 18): the first ask failed and got no reply; the
+    // second got one; the third was then treated as a third send and Fyn stopped
+    // explaining. Only answered sends count.
+    $conversation = AiConversation::create([
+        'user_id' => $this->user->id, 'title' => 'Test', 'status' => 'active',
+        'model_used' => 'grok-4.3', 'metadata' => ['source' => 'fyn_advice'],
+    ]);
+    $turn = static fn (string $role, string $content) => AiMessage::create([
+        'conversation_id' => $conversation->id, 'role' => $role, 'content' => $content,
+    ]);
+    $build = fn (string $message): string => app(FynContextAssembler::class)->build(FynTurnContext::make(
+        user: $this->user, message: $message, currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'billing'], conversation: $conversation,
+    ));
+    $ask = 'How did you work out the £3,700 pension figure?';
+
+    $turn('user', $ask); // failed: no reply saved
+    $turn('user', $ask);
+    expect($build($ask))->not->toContain('<repeated_question>');
+    $turn('assistant', 'The figure comes from your income above the higher-rate threshold.');
+
+    $turn('user', $ask);
+    expect($build($ask))
+        ->toContain('I answered that a moment ago')
+        ->not->toContain('times in a row');
+});
+
 it('flags a word-for-word repeat of the previous user message, and nothing else', function (): void {
     $conversation = AiConversation::create([
         'user_id' => $this->user->id, 'title' => 'Test', 'status' => 'active',

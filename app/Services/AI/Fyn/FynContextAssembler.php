@@ -361,25 +361,37 @@ final class FynContextAssembler
         $current = $normalise($ctx->message);
 
         $recent = $ctx->conversation->messages()
-            ->where('role', 'user')
+            ->whereIn('role', ['user', 'assistant'])
             ->latest('id')
-            ->limit(6)
-            ->pluck('content')
-            ->map(static fn ($content): string => $normalise((string) $content))
+            ->limit(12)
+            ->get(['role', 'content'])
+            ->map(static fn ($row): array => ['role' => (string) $row->role, 'text' => $normalise((string) $row->content)])
             ->values()
             ->all();
 
         // Drop the current turn's own row, then count how many earlier sends
-        // in a row were this same message.
-        if (($recent[0] ?? null) === $current) {
+        // in a row were this same message AND got a reply. A send whose turn
+        // failed has no reply after it: it is not a repeat (csjones 2026-10-08,
+        // item 18: one failed turn made the next ask a "third send", and Fyn
+        // stopped explaining; the history drops it too, HasAiChat).
+        if (($recent[0]['role'] ?? null) === 'user' && $recent[0]['text'] === $current) {
             array_shift($recent);
         }
         $repeats = 0;
-        foreach ($recent as $earlier) {
-            if ($earlier !== $current) {
+        $answered = false;
+        foreach ($recent as $row) {
+            if ($row['role'] === 'assistant') {
+                $answered = true;
+
+                continue;
+            }
+            if ($row['text'] !== $current) {
                 break;
             }
-            $repeats++;
+            if ($answered) {
+                $repeats++;
+            }
+            $answered = false;
         }
 
         if ($repeats === 0) {
@@ -625,6 +637,15 @@ final class FynContextAssembler
         if ($card !== null) {
             return $this->actionGrounding($card, $ctx->user);
         }
+        // A question about how one of the user's action figures was reached,
+        // quoting the amount ("How did you work out the £3,700 pension figure?"),
+        // is grounded on that action's card too (item 18: it went ungrounded).
+        $card = $ctx->user !== null
+            ? app(ActionCardService::class)->forFigureQuestion($ctx->user, trim($ctx->message))
+            : null;
+        if ($card !== null) {
+            return $this->actionGrounding($card, $ctx->user, tapped: false);
+        }
 
         if (($ctx->classification['primary'] ?? null) !== QuerySchemas::TAX_OPTIMISATION) {
             return null;
@@ -658,11 +679,15 @@ GROUNDING;
      *
      * @param  array<string, mixed>  $card
      */
-    private function actionGrounding(array $card, User $user): string
+    private function actionGrounding(array $card, User $user, bool $tapped = true): string
     {
         $lines = [
             '<action_grounding>',
-            'The user tapped "Ask Fyn about this" on one of their actions. Explain that action from the card below: it holds the live figures the user is looking at. Use them exactly, and do not recompute them or rebuild them from other tool data. Talk about the user\'s money, not about the card. Bring in a figure the card does not show only when it helps, and then quote it as given below or by the tools, with all of its parts. For working the card does not show, call get_recommendations and use the matching item.',
+            ($tapped
+                ? 'The user tapped "Ask Fyn about this" on one of their actions.'
+                : 'The user is asking how a figure in one of their actions was worked out.')
+            .' When the card below has working, give that working step by step, with its figures exactly as given.'
+            .' Explain that action from the card below: it holds the live figures the user is looking at. Use them exactly, and do not recompute them or rebuild them from other tool data. Talk about the user\'s money, not about the card. Bring in a figure the card does not show only when it helps, and then quote it as given below or by the tools, with all of its parts. For working the card does not show, call get_recommendations and use the matching item.',
             'title: '.UserContentSanitiser::wrap((string) $card['title']),
             'module: '.$card['module_label'],
         ];
@@ -671,6 +696,7 @@ GROUNDING;
             'why_it_matters' => (array) $card['why'],
             'what_this_changes' => (array) $card['what_this_changes'],
             'key_figure' => isset($card['key_figure']) ? [trim(implode(' ', array_map('strval', (array) $card['key_figure'])))] : [],
+            'working' => (array) ($card['working'] ?? []),
             'how_to' => (array) $card['how_to'],
             'overlap' => [(string) ($card['conflict_note'] ?? '')],
             'alternatives' => [StrategyPlanComposer::alternativesNoteOf($card) ?? ''],

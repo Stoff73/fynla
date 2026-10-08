@@ -1933,6 +1933,14 @@ trait HasAiChat
                 }
             }
 
+            // A turn that failed leaves the user's message with no reply; asked
+            // again, the model saw it twice in a row and said "I answered that a
+            // moment ago" (csjones 2026-10-08, item 18). The retry replaces it.
+            $last = end($messages);
+            if ($msg->role === 'user' && $last !== false && $last['role'] === 'user' && trim((string) $last['content']) === trim((string) $msg->content)) {
+                array_pop($messages);
+            }
+
             $messages[] = [
                 'role' => $msg->role,
                 'content' => $msg->content,
