@@ -180,6 +180,9 @@ final class PensionTaxReliefStrategy implements TaxStrategy
                 'suggested_contribution' => (float) $gross,
                 'relief_rate' => $basic,
                 'tax_band' => 'no_earnings',
+                // When nothing is claimed back, the whole benefit is the relief
+                // HMRC adds, and the action row says so (CSJ 2026-10-08).
+                'benefit_wording' => $saving - $atSource < 1 ? 'hmrc_adds' : null,
             ],
         )];
     }

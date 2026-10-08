@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Investment\Recommendation\SpouseOptimisationService;
+use App\Services\Mobile\NextActionsService;
 use App\Services\Tax\TaxStrategyCalculator;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -46,4 +47,22 @@ it('words the investment plan partner top-up the same way, from tax config', fun
 
     expect($result['explanation'])->toContain('Pay in £2,880 and HMRC adds £720 through the pension provider, making £3,600')
         ->and(json_encode($result))->not->toContain('free money');
+});
+
+it('says "HMRC adds £720" on the action row for the partner top-up, not "You could save"', function (): void {
+    // fynla.org 2026-10-07: the row read "You could save £720" beside the card's
+    // "HMRC adds £720". CSJ 2026-10-08: "if it is pensions, then yes".
+    $user = User::factory()->create([
+        'is_preview_user' => false, 'marital_status' => 'married', 'employment_status' => 'full_time',
+        'annual_employment_income' => 45000, 'household_calculation_mode' => 'single_earner_couple',
+        'expenditure_entry_mode' => 'simple', 'monthly_expenditure' => 2000, 'onboarding_completed' => true,
+        'date_of_birth' => now()->subYears(40)->toDateString(),
+    ]);
+    TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+
+    $row = collect(app(NextActionsService::class)->buildAll($user->id))
+        ->first(fn (array $i): bool => $i['id'] === 'tax_non_earner_spouse_pension');
+
+    expect($row)->not->toBeNull()
+        ->and($row['meta'])->toBe('HMRC adds £720');
 });
