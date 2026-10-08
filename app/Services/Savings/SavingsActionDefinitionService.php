@@ -6,10 +6,12 @@ namespace App\Services\Savings;
 
 use App\Constants\TaxDefaults;
 use App\Models\Goal;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
 use App\Models\Mortgage;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
+use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Shared\DependantsReach;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -41,6 +43,7 @@ class SavingsActionDefinitionService
         // W-0275 — the one home for reaching a household's family (Rule 20).
         private readonly DependantsReach $dependantsReach,
         private readonly TaxStrategyMath $taxMath,
+        private readonly AnnualAllowanceChecker $allowanceChecker,
     ) {}
 
     /**
@@ -161,13 +164,13 @@ class SavingsActionDefinitionService
 
             // Debt vs Savings
             'debt_rate_exceeds_savings_rate' => $this->evaluateDebtRateExceedsSavings($definition, $userId, $savingsAccounts, $config, $priority),
-            'mortgage_rate_exceeds_after_tax_savings_rate' => $this->evaluateMortgageRateComparison($definition, $userId, $savingsAccounts, $priority),
+            'mortgage_rate_exceeds_after_tax_savings_rate' => $this->evaluateMortgageRateComparison($definition, $savingsAnalysis, $userId, $savingsAccounts, $priority),
 
             // Cash vs Investment
             'excess_cash_and_isa_remaining' => $this->evaluateConsiderStocksSharesISA($definition, $savingsAnalysis, $investmentAnalysis, $userId, $priority),
             'excess_cash_isa_full_pension_remaining' => $this->evaluateConsiderPensionContribution($definition, $savingsAnalysis, $userId, $priority),
-            'excess_cash_isa_and_pension_full' => $this->evaluateCashDragRisk($definition, $savingsAnalysis, $investmentAnalysis, $config, $priority),
-            'excess_cash_all_wrappers_full' => $this->evaluateSurplusAboveEmergencyFund($definition, $savingsAnalysis, $config, $priority),
+            'excess_cash_isa_and_pension_full' => $this->evaluateCashDragRisk($definition, $savingsAnalysis, $userId, $config, $priority),
+            'excess_cash_all_wrappers_full' => $this->evaluateSurplusAboveEmergencyFund($definition, $savingsAnalysis, $userId, $config, $priority),
 
             // Goals (portfolio-level, one query per user)
             'goal_no_linked_savings_account' => $this->evaluateGoalNoLinkedAccount($definition, $userId, $priority),
@@ -1751,6 +1754,7 @@ class SavingsActionDefinitionService
      */
     private function evaluateMortgageRateComparison(
         SavingsActionDefinition $definition,
+        array $savingsAnalysis,
         int $userId,
         Collection $savingsAccounts,
         int $priority
@@ -1762,11 +1766,17 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        // Only trigger if user has surplus above emergency fund levels
-        $nonEmergencyAccounts = $savingsAccounts->where('is_emergency_fund', false);
-        $nonEmergencyBalance = $nonEmergencyAccounts->sum('current_balance');
+        // Only cash above the user's own emergency fund target, the measure
+        // every excess-cash card uses. Counting the accounts not ticked as
+        // emergency fund told a household with none ticked that all £169,180
+        // sat outside it, beside a card saying £36,763 was spare (2026-10-08).
+        $targetMonths = $this->emergencyTargetMonths($savingsAnalysis, $userId);
+        $monthlyExpenditure = (float) ($savingsAnalysis['summary']['monthly_expenditure'] ?? 0);
+        $totalSavings = (float) ($savingsAnalysis['summary']['total_savings'] ?? 0);
+        $emergencyTarget = $monthlyExpenditure * $targetMonths;
+        $surplus = $totalSavings - $emergencyTarget;
 
-        if ($nonEmergencyBalance <= 0) {
+        if ($surplus <= 0) {
             return [];
         }
 
@@ -1784,17 +1794,14 @@ class SavingsActionDefinitionService
         // 1. User profile
         $trace[] = $this->buildUserProfileTrace($user);
 
-        // 2. Non-emergency savings listing
-        $userName = $this->getUserName($user);
-        $nonEmergencyDetails = $nonEmergencyAccounts->map(fn ($a) => $this->formatAccountDescription($a))->implode('; ');
-
+        // 2. Cash above the emergency fund target
         $trace[] = [
-            'question' => 'What non-emergency savings are available?',
-            'data_field' => 'non_emergency_balance',
-            'data_value' => '£'.number_format($nonEmergencyBalance, 0).' across '.$nonEmergencyAccounts->count().' account(s)',
+            'question' => 'How much cash is held above the emergency fund target?',
+            'data_field' => 'surplus',
+            'data_value' => '£'.number_format($surplus, 0),
             'threshold' => 'Greater than £0',
             'passed' => true,
-            'explanation' => 'Non-emergency savings accounts: '.$nonEmergencyDetails.'. Total: £'.number_format($nonEmergencyBalance, 0).'.',
+            'explanation' => '£'.number_format($totalSavings, 0).' total cash − £'.number_format($emergencyTarget, 0).' emergency target ('.number_format($targetMonths, 0).' months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($surplus, 0).'.',
         ];
 
         // 3. Mortgage vs savings rate comparison
@@ -1802,7 +1809,7 @@ class SavingsActionDefinitionService
         $mortgageLender = $highestMortgage->lender_name ?? 'unknown lender';
         $mortgageBalance = (float) ($highestMortgage->outstanding_balance ?? $highestMortgage->current_balance ?? 0);
         $rateDiff = $highestMortgageRate - $averageSavingsRate;
-        $effectiveSaving = $nonEmergencyBalance * $rateDiff / 100;
+        $effectiveSaving = $surplus * $rateDiff / 100;
 
         $trace[] = [
             'question' => 'Does the mortgage rate meaningfully exceed the average savings rate?',
@@ -1810,13 +1817,13 @@ class SavingsActionDefinitionService
             'data_value' => 'Mortgage '.number_format($highestMortgageRate, 2).'% vs savings avg '.number_format($averageSavingsRate, 2).'%',
             'threshold' => 'Mortgage rate must exceed average savings rate by > 0.5%',
             'passed' => true,
-            'explanation' => 'Highest mortgage: '.$mortgageLender.' at '.number_format($highestMortgageRate, 2).'% (£'.number_format($mortgageBalance, 0).' outstanding). Average savings rate: '.number_format($averageSavingsRate, 2).'%. Rate gap: '.number_format($rateDiff, 2).' percentage points. Overpaying with the £'.number_format($nonEmergencyBalance, 0).' non-emergency savings could save approximately £'.number_format($effectiveSaving, 0).'/year in net interest.',
+            'explanation' => 'Highest mortgage: '.$mortgageLender.' at '.number_format($highestMortgageRate, 2).'% (£'.number_format($mortgageBalance, 0).' outstanding). Average savings rate: '.number_format($averageSavingsRate, 2).'%. Rate gap: '.number_format($rateDiff, 2).' percentage points. Overpaying with the £'.number_format($surplus, 0).' above the emergency target could save approximately £'.number_format($effectiveSaving, 0).'/year in net interest.',
         ];
 
         $vars = [
             'mortgage_rate' => number_format($highestMortgageRate, 2),
             'average_savings_rate' => number_format($averageSavingsRate, 2),
-            'non_emergency_balance' => $this->formatCurrency($nonEmergencyBalance),
+            'surplus_amount' => $this->formatCurrency($surplus),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -1830,19 +1837,21 @@ class SavingsActionDefinitionService
     // =========================================================================
 
     /**
-     * Surplus above emergency fund: triggers when savings significantly
-     * exceed emergency fund target, suggesting investment consideration.
+     * General Investment Account (CSJ 2026-10-08): with cash above the emergency
+     * fund target, it shows to someone who already holds one, and otherwise
+     * only once the ISA allowance is used and no pension room attracts relief.
      */
     private function evaluateSurplusAboveEmergencyFund(
         SavingsActionDefinition $definition,
         array $savingsAnalysis,
+        int $userId,
         array $config,
         int $priority
     ): array {
         $trace = [];
 
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
-        $targetMonths = (float) ($config['target_months'] ?? 6);
+        $targetMonths = $this->emergencyTargetMonths($savingsAnalysis, $userId);
         $surplusThreshold = (float) ($config['surplus_threshold'] ?? 5000);
 
         if ($runway <= $targetMonths) {
@@ -1855,6 +1864,11 @@ class SavingsActionDefinitionService
         $surplus = $totalSavings - $targetAmount;
 
         if ($surplus < $surplusThreshold) {
+            return [];
+        }
+
+        $wrappers = $this->wrapperPosition($savingsAnalysis, $userId, ['gia']);
+        if ($wrappers === null) {
             return [];
         }
 
@@ -1879,6 +1893,9 @@ class SavingsActionDefinitionService
             'explanation' => '£'.number_format($totalSavings, 0).' total savings − £'.number_format($targetAmount, 0).' target ('.number_format($targetMonths, 0).' months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($surplus, 0).' surplus. This exceeds the £'.number_format($surplusThreshold, 0).' threshold and could potentially be invested for higher long-term returns.',
         ];
 
+        // 3. Holds one, or the allowances are used
+        $trace[] = $wrappers['trace'];
+
         $vars = [
             'surplus_amount' => $this->formatCurrency($surplus),
             'target_amount' => $this->formatCurrency($targetAmount),
@@ -1886,19 +1903,22 @@ class SavingsActionDefinitionService
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
         $rec['estimated_impact'] = round($surplus, 2);
+        $rec['holds_account'] = $wrappers['holds'];
         $rec['decision_trace'] = $trace;
 
         return [$rec];
     }
 
     /**
-     * Cash drag risk: triggers when significant savings are held in cash
-     * while investment accounts exist but could benefit from more funding.
+     * Investment bond (CSJ 2026-10-08): with cash above the emergency fund
+     * target and above the card's minimum, it shows to someone who already
+     * holds a bond, and otherwise only once the ISA allowance is used and no
+     * pension room attracts relief.
      */
     private function evaluateCashDragRisk(
         SavingsActionDefinition $definition,
         array $savingsAnalysis,
-        array $investmentAnalysis,
+        int $userId,
         array $config,
         int $priority
     ): array {
@@ -1911,44 +1931,43 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        // Only trigger if user has investment accounts
-        $investmentCount = $investmentAnalysis['portfolio_summary']['accounts_count'] ?? 0;
-        if ($investmentCount === 0) {
-            return [];
-        }
-
         $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
-        $emergencyTarget = $monthlyExpenditure * 6;
+        $targetMonths = $this->emergencyTargetMonths($savingsAnalysis, $userId);
+        $emergencyTarget = $monthlyExpenditure * $targetMonths;
         $surplus = $totalSavings - $emergencyTarget;
 
         if ($surplus < $threshold * 0.5) {
             return [];
         }
 
+        $wrappers = $this->wrapperPosition($savingsAnalysis, $userId, ['onshore_bond', 'offshore_bond']);
+        if ($wrappers === null) {
+            return [];
+        }
+
         // 1. Cash savings total
-        $accountCount = $savingsAnalysis['summary']['account_count'] ?? 0;
-        $avgRate = $savingsAnalysis['summary']['average_rate'] ?? 0;
+        $accountCount = $savingsAnalysis['summary']['total_accounts'] ?? 0;
         $trace[] = [
             'question' => 'How much is held in cash savings?',
             'data_field' => 'total_savings',
             'data_value' => '£'.number_format($totalSavings, 0).' across '.$accountCount.' account(s)',
             'threshold' => '£'.number_format($threshold, 0).' minimum',
             'passed' => true,
-            'explanation' => 'Total cash savings of £'.number_format($totalSavings, 0).' across '.$accountCount.' account(s) at an average rate of '.number_format((float) $avgRate, 2).'%. This exceeds the £'.number_format($threshold, 0).' cash drag threshold.',
+            'explanation' => 'Total cash savings of £'.number_format($totalSavings, 0).' across '.$accountCount.' account(s), at or above the £'.number_format($threshold, 0).' minimum for this card.',
         ];
 
         // 2. Surplus vs emergency fund
-        $investmentValue = $investmentAnalysis['portfolio_summary']['total_value'] ?? 0;
-        $cashToInvestmentRatio = $investmentValue > 0 ? ($totalSavings / $investmentValue) * 100 : 0;
-
         $trace[] = [
             'question' => 'How much surplus cash is held above the emergency fund target?',
             'data_field' => 'surplus',
             'data_value' => '£'.number_format($surplus, 0),
             'threshold' => '£'.number_format($threshold * 0.5, 0).' minimum surplus',
             'passed' => true,
-            'explanation' => '£'.number_format($totalSavings, 0).' total cash − £'.number_format($emergencyTarget, 0).' emergency target (6 months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($surplus, 0).' surplus. Investment portfolio: £'.number_format((float) $investmentValue, 0).' across '.$investmentCount.' account(s). Cash-to-investment ratio: '.number_format($cashToInvestmentRatio, 0).'%. Holding excessive cash may create drag on overall returns compared to investing.',
+            'explanation' => '£'.number_format($totalSavings, 0).' total cash − £'.number_format($emergencyTarget, 0).' emergency target ('.number_format($targetMonths, 0).' months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($surplus, 0).' surplus.',
         ];
+
+        // 3. Holds one, or the allowances are used
+        $trace[] = $wrappers['trace'];
 
         $vars = [
             'surplus_amount' => $this->formatCurrency($surplus),
@@ -1956,9 +1975,81 @@ class SavingsActionDefinitionService
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['holds_account'] = $wrappers['holds'];
         $rec['decision_trace'] = $trace;
 
         return [$rec];
+    }
+
+    /**
+     * The user's own emergency fund target in months: the one the savings
+     * analysis set (EmergencyFundCalculator::getTargetMonths, by employment
+     * status), never a typed-in six.
+     */
+    private function emergencyTargetMonths(array $savingsAnalysis, int $userId): float
+    {
+        $months = $savingsAnalysis['emergency_fund']['target_months'] ?? null;
+
+        return is_numeric($months)
+            ? (float) $months
+            : (float) $this->emergencyFundCalculator->getTargetMonths(User::find($userId)?->employment_status);
+    }
+
+    private function isaUsedUp(array $savingsAnalysis): bool
+    {
+        return (float) ($savingsAnalysis['isa_allowance']['remaining'] ?? 0) <= 0;
+    }
+
+    /**
+     * What still attracts pension relief this year: nothing from 75 (FA 2004
+     * s188(3)(a), `pension.relief_max_age`), otherwise the one relief rule
+     * (AnnualAllowanceChecker::reliefRoomThisYear, s190).
+     */
+    private function pensionReliefRoom(User $user): float
+    {
+        $age = $user->date_of_birth?->age;
+        if ($age !== null && $age >= (int) $this->taxConfig->get('pension.relief_max_age')) {
+            return 0.0;
+        }
+
+        return $this->allowanceChecker->reliefRoomThisYear($user);
+    }
+
+    /**
+     * The bond and General Investment Account rungs (CSJ 2026-10-08): the card
+     * shows to someone who holds that kind of account, or once the ISA
+     * allowance is used and no pension room attracts relief. Null when neither.
+     *
+     * @param  list<string>  $accountTypes
+     * @return array{holds: bool, trace: array<string, mixed>}|null
+     */
+    private function wrapperPosition(array $savingsAnalysis, int $userId, array $accountTypes): ?array
+    {
+        $holds = InvestmentAccount::forUserOrJoint($userId)->whereIn('account_type', $accountTypes)->exists();
+        if ($holds) {
+            return ['holds' => true, 'trace' => [
+                'question' => 'Does the user already hold this kind of account?',
+                'data_field' => 'account_type',
+                'data_value' => 'Yes',
+                'threshold' => 'Holds one, or ISA and pension room used',
+                'passed' => true,
+                'explanation' => 'An account of this kind is recorded, so the card shows whatever the ISA and pension position.',
+            ]];
+        }
+
+        $user = User::find($userId);
+        if (! $user || ! $this->isaUsedUp($savingsAnalysis) || $this->pensionReliefRoom($user) > 0) {
+            return null;
+        }
+
+        return ['holds' => false, 'trace' => [
+            'question' => 'Are the ISA allowance and pension room used?',
+            'data_field' => 'wrappers',
+            'data_value' => 'ISA allowance used; no pension room attracting relief',
+            'threshold' => 'Holds one, or ISA and pension room used',
+            'passed' => true,
+            'explanation' => 'No account of this kind is recorded, the ISA allowance for this tax year is used, and no further pension contribution would attract relief this year.',
+        ]];
     }
 
     /**
@@ -1980,7 +2071,8 @@ class SavingsActionDefinitionService
         }
 
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
-        if ($runway < 6) {
+        $targetMonths = $this->emergencyTargetMonths($savingsAnalysis, $userId);
+        if ($runway < $targetMonths) {
             return [];
         }
 
@@ -2017,9 +2109,9 @@ class SavingsActionDefinitionService
             'question' => 'Is the emergency fund adequate to consider longer-term investing?',
             'data_field' => 'runway_months',
             'data_value' => number_format($runway, 1).' months',
-            'threshold' => '6 months minimum',
+            'threshold' => number_format($targetMonths, 0).' months minimum',
             'passed' => true,
-            'explanation' => 'Emergency fund runway of '.number_format($runway, 1).' months (£'.number_format($totalSavings, 0).' total savings ÷ £'.number_format($monthlyExpenditure, 0).' monthly expenditure) exceeds the 6-month threshold.',
+            'explanation' => 'Emergency fund runway of '.number_format($runway, 1).' months (£'.number_format($totalSavings, 0).' total savings ÷ £'.number_format($monthlyExpenditure, 0).' monthly expenditure) meets the '.number_format($targetMonths, 0).'-month target.',
         ];
 
         // 4. No existing Stocks & Shares ISA
@@ -2033,7 +2125,7 @@ class SavingsActionDefinitionService
         ];
 
         $monthlyExpenditureForExcess = (float) ($savingsAnalysis['summary']['monthly_expenditure'] ?? 0);
-        $excessAboveTarget = max(0.0, (float) ($savingsAnalysis['summary']['total_savings'] ?? 0) - 6 * $monthlyExpenditureForExcess);
+        $excessAboveTarget = max(0.0, (float) ($savingsAnalysis['summary']['total_savings'] ?? 0) - $targetMonths * $monthlyExpenditureForExcess);
         $vars = [
             'isa_remaining' => $this->formatCurrency($isaRemaining),
             'excess_amount' => $this->formatCurrency(min($excessAboveTarget, (float) $isaRemaining)),
@@ -2058,7 +2150,14 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
-        if ($runway < 6) {
+        $targetMonths = $this->emergencyTargetMonths($savingsAnalysis, $userId);
+        if ($runway < $targetMonths) {
+            return [];
+        }
+
+        // Its definition: the ISA allowance is used and pension room remains
+        // (CSJ 2026-10-08). The approved how-to opens "Your ISA allowance is used".
+        if (! $this->isaUsedUp($savingsAnalysis)) {
             return [];
         }
 
@@ -2072,9 +2171,14 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $reliefRoom = $this->pensionReliefRoom($user);
+        if ($reliefRoom <= 0) {
+            return [];
+        }
+
         $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;
         $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
-        $emergencyTarget = $monthlyExpenditure * 6;
+        $emergencyTarget = $monthlyExpenditure * $targetMonths;
         $surplus = $totalSavings - $emergencyTarget;
 
         if ($surplus < 5000) {
@@ -2092,13 +2196,14 @@ class SavingsActionDefinitionService
             'data_value' => '£'.number_format($surplus, 0),
             'threshold' => '£5,000 minimum',
             'passed' => true,
-            'explanation' => '£'.number_format($totalSavings, 0).' total savings − £'.number_format($emergencyTarget, 0).' emergency fund target (6 months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($surplus, 0).' surplus available for pension contributions.',
+            'explanation' => '£'.number_format($totalSavings, 0).' total savings − £'.number_format($emergencyTarget, 0).' emergency fund target ('.number_format($targetMonths, 0).' months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($surplus, 0).' surplus available for pension contributions.',
         ];
 
         // 3. Pension contribution and tax relief
         $pensionAllowances = $this->taxConfig->getPensionAllowances();
         $annualAllowance = (float) ($pensionAllowances['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE);
-        $pensionAmount = min($surplus, $annualAllowance);
+        // No more than still attracts relief this year (FA 2004 s190).
+        $pensionAmount = min($surplus, $reliefRoom);
 
         // Determine marginal tax rate based on income
         $incomeTax = $this->taxConfig->getIncomeTax();
@@ -2122,9 +2227,9 @@ class SavingsActionDefinitionService
             'question' => 'What pension contribution and tax relief is available?',
             'data_field' => 'pension_amount',
             'data_value' => '£'.number_format($pensionAmount, 0).' contribution',
-            'threshold' => '£'.number_format($annualAllowance, 0).' Annual Allowance',
+            'threshold' => '£'.number_format($reliefRoom, 0).' still attracting relief this year',
             'passed' => true,
-            'explanation' => $userName.' earns £'.number_format($grossIncome, 0).'/year ('.$rateLabel.' rate taxpayer). Contributing £'.number_format($pensionAmount, 0).' to a pension (capped by the £'.number_format($annualAllowance, 0).' Annual Allowance) could provide approximately £'.number_format($taxRelief, 0).' in '.$rateLabel.' rate tax relief (£'.number_format($pensionAmount, 0).' × '.number_format($marginalRate * 100, 0).'%).',
+            'explanation' => $userName.' earns £'.number_format($grossIncome, 0).'/year ('.$rateLabel.' rate taxpayer). Contributing £'.number_format($pensionAmount, 0).' to a pension (capped by the £'.number_format($reliefRoom, 0).' that still attracts relief this year, within the £'.number_format($annualAllowance, 0).' Annual Allowance) could provide approximately £'.number_format($taxRelief, 0).' in '.$rateLabel.' rate tax relief (£'.number_format($pensionAmount, 0).' × '.number_format($marginalRate * 100, 0).'%).',
         ];
 
         $vars = [
@@ -3627,7 +3732,11 @@ class SavingsActionDefinitionService
         if ($firedRung !== null) {
             $recommendations = array_values(array_filter(
                 $recommendations,
-                fn ($r) => ! in_array($r['definition_key'] ?? '', $cascade, true) || ($r['definition_key'] ?? '') === $firedRung
+                fn ($r) => ! in_array($r['definition_key'] ?? '', $cascade, true)
+                    || ($r['definition_key'] ?? '') === $firedRung
+                    // Someone who holds a bond or General Investment Account keeps that
+                    // card beside the ISA or pension one (CSJ 2026-10-08, "Show both").
+                    || ! empty($r['holds_account'])
             ));
             // The plain ISA-allowance nudge says the same thing as the ISA rung.
             if ($firedRung === 'excess_cash_isa_available') {

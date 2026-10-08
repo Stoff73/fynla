@@ -191,6 +191,34 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
 
+## A retired partner's pension income is split the way it is paid, and the gift form names the £250 limit (7 October, about 16:30, release #1127)
+
+**This is live on fynla.org** through release #1127 (#1125 and #1126), UK time.
+
+- **A retired partner's income is no longer recorded as drawn from a pension pot.** When you give your partner's income and say they are retired, linking your accounts used to record all of it as drawn each year from a personal pension the link created. A State Pension or a final salary pension then looked like a pot being run down, and the State Pension showed as not paid. Now nothing is recorded as drawn at the link. Your partner's own setup asks:
+  - their State Pension (is it paid now, how much);
+  - any final salary or career average pension, on a new Fyn form with the same boxes as the web form;
+  - then their personal pension, with "what you draw each year" filled in with what is left. For example, £30,000 given, less a £11,500 State Pension and a £10,000 final salary pension, leaves £8,500.
+
+  Until they answer, your plan uses the figure you gave. (CSJ, 7 October: "Partner's setup asks".)
+- **"Now your spouse" asks what your partner does:** working full-time or part-time, self-employed, retired, or not currently working. It is filled in when we already know, for example from a linked partner's own account while they share it. A retired partner's figure then arrives as pension income, never as pay.
+- **The gift form names the small gifts limit.** It said "Small Gift Exemption (£0 limit)" and never recognised a small gift; it now says £250 ([Inheritance Tax Act 1984 s20](https://www.legislation.gov.uk/ukpga/1984/51/section/20)). It also no longer calls every larger gift a Potentially Exempt Transfer, which a gift into most trusts is not ([s3A(1A)](https://www.legislation.gov.uk/ukpga/1984/51/section/3A)).
+- **A trust's settlement can only be changed through the trust,** in Fyn as well as on the web. Before, Fyn could edit or delete it, which released the nil rate band it holds for seven years.
+- **An investment account with no holdings recorded** reads "Add the funds you hold" on the dashboard card, not "0 holdings".
+- **A partner, child or Investment plan pension top-up reads "Pay £2,880 … and HMRC adds £720"** through the pension provider ([Finance Act 2004 s192](https://www.legislation.gov.uk/ukpga/2004/12/section/192)), not "free money". The Investment plan's figures now come from the tax configuration.
+- **Fyn's "I won't ask about … again"** reads "spouse's total income", without "(enter 0 if none)".
+
+**What we checked.**
+- **On the test site, desktop (full-size window) and mobile web apps:** each change above, as a user, including two retired partners walked from their first login (State Pension paid and not yet paid, with and without a final salary pension) and the gift form adding, editing and deleting a gift, with the trust's own gift refused.
+- **Live on fynla.org:** a walk household made for the check. Sam said his partner was retired with £30,000 a year and added an ISA through Fyn; his dashboard read "Investment £20,000 · Add the funds you hold". Pat registered from Sam's invitation and, on the mobile app, gave a £11,500 State Pension and a £10,000 Council final salary pension; her personal pension form opened at £8,500, and her income came to £30,000. Her "Now your spouse." step asked only what Sam does and his income, filled in from his account. A second walk account whose partner does not earn saw "Pay £2,880 into your spouse's personal pension and HMRC adds £720". The walk accounts were deleted afterwards. No errors in the log.
+
+**Still to do:**
+- **"No, they don't currently work" opens a form that asks no income,** so a retired partner living on a pension can reach the plan with none. That step's typed question also states "around £40,000 of unused tax allowances" with no source.
+- **The Retirement tip on an employer match ends "This is free money!"**
+- **The dashboard action row shows "You could save £720"** beside the partner top-up. The £720 stays in the total (CSJ, 29 September); whether that row should say "HMRC adds" instead is for CSJ.
+
+**Behind the scenes.** No database change. App code, the onboarding steps (`fyn-memory`) and the desktop web bundle.
+
 ## Estate actions you can follow, with figures that add up (7 October, about 12:50, release #1122)
 
 **This is live on fynla.org** through release #1122 (#1120, with #1118, #1119 and #1121), UK time.
