@@ -36,3 +36,17 @@ it('drops retry rows and the canned refusal from the model-facing history but ke
         'Individual',
     ]);
 });
+
+it('keeps one copy of a question asked again after a turn that failed', function (): void {
+    // csjones 2026-10-08 (item 18): the first turn failed and saved no reply; asked
+    // again, the model saw the question twice and said "I answered that a moment ago".
+    $user = User::factory()->create();
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test'])->fresh();
+    $conversation->messages()->create(['role' => 'user', 'content' => 'How did you work out the £3,700 pension figure?']);
+    $conversation->messages()->create(['role' => 'user', 'content' => 'How did you work out the £3,700 pension figure?']);
+
+    $method = new ReflectionMethod(CoordinatingAgent::class, 'buildMessageHistory');
+    $history = $method->invoke(app(CoordinatingAgent::class), $conversation->fresh());
+
+    expect(array_column($history, 'content'))->toBe(['How did you work out the £3,700 pension figure?']);
+});

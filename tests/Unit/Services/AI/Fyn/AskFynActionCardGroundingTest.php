@@ -114,3 +114,21 @@ it('carries the plan\'s alternatives sentence into the grounding', function (): 
 
     expect($grounding)->toContain("alternatives: {$note}");
 });
+
+it('grounds a question about how an action\'s figure was reached on that action, with its working', function (): void {
+    // csjones 2026-10-08 (item 18): "How did you work out the £3,700 pension
+    // figure?" went ungrounded, no tool was called, and Fyn invented a meaning.
+    $user = askFynWalkUser();
+    $card = app(ActionCardService::class)->for($user, 'tax_pension_tax_relief');
+    preg_match('/£[\d,]+/', $card['title'], $amount);
+
+    $out = askFynTurn($user, 'How did you work out the '.$amount[0].' pension figure?', 'retirement_contribution');
+
+    expect($card['working'])->not->toBe([])
+        ->and($out)->toContain('<action_grounding>')
+        ->toContain('The user is asking how a figure in one of their actions was worked out.')
+        ->toContain($card['working'][0])
+        ->toContain(end($card['working']))
+        ->and(app(ActionCardService::class)->forFigureQuestion($user, 'What is my pension worth?'))->toBeNull()
+        ->and(app(ActionCardService::class)->forFigureQuestion($user, 'How did you work out the £1 figure?'))->toBeNull();
+});
