@@ -203,6 +203,40 @@ it('carries the working behind a higher-rate item, from income after pension pay
         ]);
 });
 
+it('names the interest the Personal Savings Allowance covers, so the working adds up', function () {
+    // Full Luna run 2026-10-08 (Robin, user 141): the working went from
+    // £69,165 taxed and a £50,870 threshold straight to "£17,795 taxed at
+    // 40%"; the £500 the allowance covers (ITA 2007 s12B) had no line.
+    $user = reliefUser(72000);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 5,
+        'salary_sacrifice' => false,
+    ]);
+    SavingsAccount::factory()->for($user)->create([
+        'current_balance' => 18000, 'interest_rate' => 4.25, 'is_isa' => false,
+        'ownership_type' => 'individual', 'joint_owner_id' => null,
+    ]);
+    $math = app(TaxStrategyMath::class);
+    $threshold = $math->bandThresholds()['higher'];
+    $covered = $math->psaForBand('higher');
+    $rate = (int) round($math->bandRateForBand('higher') * 100);
+    $slice = 72000 + 765 - 3600 - $threshold - $covered;
+    $pounds = static fn (float $v): string => '£'.number_format((int) floor($v));
+
+    $rec = reliefRecs($user)['higher'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and(array_slice($rec['working'], 0, 5))->toBe([
+            'Your income this year is £72,765.',
+            '£3,600 of it goes into your pension from your pay before tax, which leaves £69,165 taxed as income.',
+            sprintf('The higher rate starts at %s.', $pounds($threshold)),
+            sprintf('%s of your savings interest above that is covered by your Personal Savings Allowance, so it is taxed at 0%%.', $pounds($covered)),
+            sprintf('So %s of your income is taxed at %d%%.', $pounds($slice), $rate),
+        ]);
+});
+
 it('names the limit that set a basic-rate item, and the working reaches Fyn\'s actions list', function () {
     $user = reliefUser(30000, ['onboarding_completed' => true, 'monthly_expenditure' => 1500]);
     $rec = reliefRecs($user)['basic'] ?? null;

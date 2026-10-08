@@ -946,13 +946,31 @@ final class TaxStrategyMath
      */
     public function higherRateSlice(User $user, float $taxable, float $limit): float
     {
+        return $this->higherRateSliceParts($user, $taxable, $limit)['slice'];
+    }
+
+    /**
+     * The higher-rate slice with the income above the limit it leaves out, so
+     * a working can show every step: interest the Personal Savings Allowance
+     * covers (taxed at 0%) and dividends (taxed at the dividend rates).
+     *
+     * @return array{slice: float, interest_covered: float, dividends: float}
+     */
+    public function higherRateSliceParts(User $user, float $taxable, float $limit): array
+    {
         $parts = $this->incomePartsFor($user);
         $interest = $parts['interest'];
         $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
         $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
         $allowanceLeft = max(0.0, $this->psaForBand('higher') - ($interest - $interestAbove));
+        $slice = max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
+        $covered = min($interestAbove, $allowanceLeft);
 
-        return max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
+        return [
+            'slice' => $slice,
+            'interest_covered' => $covered,
+            'dividends' => max(0.0, max(0.0, $taxable - $limit) - $slice - $covered),
+        ];
     }
 
     /**
