@@ -54,7 +54,9 @@ return [
     // https://developers.openai.com/api/docs/models/gpt-6-luna
     'openai' => [
         'api_key' => env('OPENAI_API_KEY', ''),
-        'chat_model' => env('OPENAI_CHAT_MODEL', 'gpt-6-luna'),
+        // OPENAI_MODEL, not the deleted Python sidecar's chat-model key, which
+        // is barred (tests/Architecture/NoStaleReferencesTest.php).
+        'chat_model' => env('OPENAI_MODEL', 'gpt-6-luna'),
         'advanced_chat_model' => env('OPENAI_ADVANCED_CHAT_MODEL', 'gpt-6-luna'),
         // Cheaper tier for the weekly-budget soft-degrade; defaults to the
         // standard chat model so chat stays open (as for xAI).

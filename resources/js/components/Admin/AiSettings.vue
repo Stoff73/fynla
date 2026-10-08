@@ -103,14 +103,14 @@ export default {
       successMessage: '',
       errorMessage: '',
       switching: false,
-      _successTimer: null,
-      _errorTimer: null,
+      successTimer: null,
+      errorTimer: null,
     };
   },
 
   beforeUnmount() {
-    if (this._successTimer) clearTimeout(this._successTimer);
-    if (this._errorTimer) clearTimeout(this._errorTimer);
+    if (this.successTimer) clearTimeout(this.successTimer);
+    if (this.errorTimer) clearTimeout(this.errorTimer);
   },
 
   async mounted() {
@@ -126,7 +126,7 @@ export default {
           this.activeProvider = response.data.data.provider;
           this.providers = response.data.data.available_providers;
         }
-      } catch (error) {
+      } catch {
         this.errorMessage = 'Failed to load AI provider settings';
       } finally {
         this.loading = false;
@@ -145,11 +145,11 @@ export default {
         if (response.data.success) {
           this.activeProvider = providerId;
           this.successMessage = response.data.message;
-          this._successTimer = setTimeout(() => { this.successMessage = ''; }, 5000);
+          this.successTimer = setTimeout(() => { this.successMessage = ''; }, 5000);
         }
       } catch (error) {
         this.errorMessage = error.response?.data?.message || 'Failed to switch provider';
-        this._errorTimer = setTimeout(() => { this.errorMessage = ''; }, 5000);
+        this.errorTimer = setTimeout(() => { this.errorMessage = ''; }, 5000);
       } finally {
         this.switching = false;
       }
