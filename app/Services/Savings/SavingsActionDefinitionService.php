@@ -155,7 +155,7 @@ class SavingsActionDefinitionService
             'rate_significantly_below_market' => $this->evaluateRateSignificantlyBelow($definition, $savingsAnalysis, $savingsAccounts, $config, $priority),
             'fixed_term_maturing_within' => $this->evaluateFixedRateMaturing($definition, $savingsAccounts, $config, $priority),
             'promo_rate_expiring_within' => $this->evaluatePromoRateExpiring($definition, $savingsAccounts, $config, $priority),
-            'account_rate_is_zero' => $this->evaluateZeroRateAccount($definition, $savingsAccounts, $priority),
+            'account_rate_is_zero' => $this->evaluateZeroRateAccount($definition, $savingsAnalysis, $savingsAccounts, $priority),
             'has_easy_access_with_regular_contributions' => $this->evaluateRegularSaverOpportunity($definition, $savingsAccounts, $config, $priority),
 
             // FSCS Protection
@@ -1121,7 +1121,11 @@ class SavingsActionDefinitionService
 
         foreach ($rateComparisons as $comparison) {
             $gapThreshold = (float) ($config['gap_threshold'] ?? 0.5);
-            $rateGap = (float) ($comparison['comparison']['market_rate_percent'] ?? 0) - (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
+            // No stored best-buy rate, no comparison (Rule 23).
+            if (($comparison['comparison']['market_rate_percent'] ?? null) === null) {
+                continue;
+            }
+            $rateGap = (float) $comparison['comparison']['market_rate_percent'] - (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
             if ($rateGap < $gapThreshold) {
                 continue;
             }
@@ -1220,7 +1224,11 @@ class SavingsActionDefinitionService
 
         foreach ($rateComparisons as $comparison) {
             $gapThreshold = (float) ($config['gap_threshold'] ?? 1.5);
-            $rateGap = (float) ($comparison['comparison']['market_rate_percent'] ?? 0) - (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
+            // No stored best-buy rate, no comparison (Rule 23).
+            if (($comparison['comparison']['market_rate_percent'] ?? null) === null) {
+                continue;
+            }
+            $rateGap = (float) $comparison['comparison']['market_rate_percent'] - (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
             if ($rateGap < $gapThreshold) {
                 continue;
             }
@@ -1455,6 +1463,7 @@ class SavingsActionDefinitionService
      */
     private function evaluateZeroRateAccount(
         SavingsActionDefinition $definition,
+        array $savingsAnalysis,
         Collection $savingsAccounts,
         int $priority
     ): array {
@@ -1489,16 +1498,20 @@ class SavingsActionDefinitionService
                 'explanation' => $accountName.' at '.$institution.' — £'.number_format($balance, 0).' balance, 0.00% interest rate, '.$accessType.' access'.$isIsa.$isEmergency.'.',
             ];
 
-            // 2. Opportunity cost estimate (assume a modest 4% easy-access rate)
-            $illustrativeRate = 0.04;
-            $potentialInterest = $balance * $illustrativeRate;
+            // 2. What it could earn, from the stored best-buy rate for this kind of
+            // account (RateComparator); left out when none is stored. A typed-in
+            // "illustrative 4%" stood here before (Rule 23).
+            $market = collect($savingsAnalysis['rate_comparisons'] ?? [])->firstWhere('account_id', $account->id)['comparison'] ?? [];
+            $marketPercent = $market['market_rate_percent'] ?? null;
             $trace[] = [
                 'question' => 'How much interest is being foregone?',
                 'data_field' => 'interest_rate',
                 'data_value' => '0.00%',
                 'threshold' => 'Greater than 0%',
                 'passed' => true,
-                'explanation' => '£'.number_format($balance, 0).' is earning no interest. At an illustrative '.number_format($illustrativeRate * 100, 1).'% easy-access rate, this balance could earn approximately £'.number_format($potentialInterest, 0).'/year (£'.number_format($balance, 0).' × '.number_format($illustrativeRate * 100, 1).'%). Moving to a competitive account would generate meaningful returns.',
+                'explanation' => $marketPercent === null
+                    ? '£'.number_format($balance, 0).' is earning no interest.'
+                    : '£'.number_format($balance, 0).' is earning no interest. At '.number_format((float) $marketPercent, 2).'% ('.trim(($market['market_provider'] ?? '').' '.($market['market_label'] ?? '')).(($market['market_as_of'] ?? null) ? ', '.$market['market_as_of'] : '').'), this balance could earn approximately £'.number_format($balance * (float) $marketPercent / 100, 0).'/year.',
             ];
 
             $vars = [

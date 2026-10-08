@@ -121,7 +121,7 @@ describe('analyze', function () {
 
         $this->rateComparator
             ->shouldReceive('compareToMarketRates')
-            ->twice()
+            ->once() // once per account (item 17: was called twice)
             ->andReturn([
                 'account_rate' => 0.04,
                 'market_rate' => 0.045,
@@ -330,7 +330,7 @@ describe('analyze', function () {
 
         $this->rateComparator
             ->shouldReceive('compareToMarketRates')
-            ->times(4)
+            ->twice() // once per account (item 17: was called twice each)
             ->andReturn([
                 'account_rate' => 0.04,
                 'market_rate' => 0.045,

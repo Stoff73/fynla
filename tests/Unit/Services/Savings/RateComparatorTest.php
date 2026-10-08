@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Agents\SavingsAgent;
 use App\Models\SavingsAccount;
 use App\Models\SavingsMarketRate;
 use App\Models\User;
 use App\Services\Savings\RateComparator;
 use App\Services\TaxConfigService;
+use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -58,4 +60,43 @@ it('computes the annual interest difference in pounds from the percentage column
     ]);
 
     expect($this->comparator->calculateInterestDifference($account, 0.045))->toBe(200.0);
+});
+
+it('compares nothing when no stored market rate exists, rather than a typed-in 4.00%', function () {
+    // Item 17 (Rule 23): with no savings_market_rates rows the benchmark was 4.00%
+    // for every account, and the rate-gap card fired from it.
+    SavingsMarketRate::query()->delete();
+    $account = SavingsAccount::factory()->create([
+        'user_id' => $this->user->id, 'access_type' => 'immediate', 'is_isa' => false,
+        'current_balance' => 20000, 'interest_rate' => 1.0,
+    ]);
+
+    $result = $this->comparator->compareToMarketRates($account);
+
+    expect($this->comparator->getMarketBenchmarks())->toBe([])
+        ->and($result['market_rate'])->toBeNull()
+        ->and($result['market_rate_percent'])->toBeNull()
+        ->and($result['category'])->toBeNull()
+        ->and($result['account_rate_percent'])->toBe(1.0)
+        ->and($this->comparator->calculateInterestDifference($account, $result['market_rate']))->toBeNull();
+});
+
+it('shows no rate-gap card for an account with no stored market rate', function () {
+    SavingsMarketRate::query()->delete();
+    $this->seed(SavingsActionDefinitionSeeder::class);
+    $user = User::factory()->create([
+        'employment_status' => 'employed', 'annual_employment_income' => 40000, 'monthly_expenditure' => 2000,
+        'date_of_birth' => now()->subYears(40)->toDateString(), 'marital_status' => 'single',
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'access_type' => 'immediate', 'is_isa' => false, 'account_type' => 'easy_access',
+        'current_balance' => 20000, 'interest_rate' => 1.0, 'ownership_type' => 'individual', 'joint_owner_id' => null,
+    ]);
+
+    $agent = app(SavingsAgent::class);
+    $analysis = $agent->analyze($user->id);
+    $keys = collect($agent->generateRecommendations($analysis['data'] ?? $analysis))->pluck('definition_key');
+
+    expect($keys)->not->toContain('rate_below_market')
+        ->and($keys)->not->toContain('rate_poor');
 });

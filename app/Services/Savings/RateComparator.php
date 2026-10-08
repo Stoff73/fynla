@@ -17,14 +17,16 @@ class RateComparator
     ) {}
 
     /**
-     * Compare account rate to market benchmarks
+     * Compare account rate to market benchmarks. With no stored best-buy rate
+     * behind the account's benchmark, every market field is null and nothing
+     * is compared: a typed-in 4.00% stood in before and a card fired from it
+     * (Rule 23).
      *
-     * @return array{account_rate: float, market_rate: float, difference: float, is_competitive: bool, category: string}
+     * @return array{account_rate: float, market_rate: float|null, difference: float|null, is_competitive: bool|null, category: string|null}
      */
     public function compareToMarketRates(SavingsAccount $account): array
     {
         $benchmarks = $this->getMarketBenchmarks();
-        $accountType = $account->account_type;
         // savings_accounts.interest_rate holds percentages (4.25 = 4.25%);
         // savings_market_rates.rate holds decimals (0.0450). This method is
         // the one place the two meet — nothing else may do this arithmetic.
@@ -32,6 +34,22 @@ class RateComparator
 
         // Get appropriate benchmark based on account type and ISA status
         $marketRate = $this->getBenchmarkForAccount($account, $benchmarks);
+        if ($marketRate === null) {
+            return [
+                'account_rate' => round($accountRate, 4),
+                'market_rate' => null,
+                'market_label' => null,
+                'market_provider' => null,
+                'market_as_of' => null,
+                'market_source' => null,
+                'difference' => null,
+                'account_rate_percent' => round($accountRate * 100, 2),
+                'market_rate_percent' => null,
+                'difference_percent' => null,
+                'is_competitive' => null,
+                'category' => null,
+            ];
+        }
 
         $difference = $accountRate - $marketRate;
         $isCompetitive = $difference >= -0.005; // Within 0.5% is considered competitive
@@ -65,9 +83,8 @@ class RateComparator
     }
 
     /**
-     * Get market benchmark rates by account type from database.
-     *
-     * Falls back to sensible defaults if no rates are seeded.
+     * Market benchmark rates by account type, from the stored best-buy rates
+     * (`savings_market_rates`). Empty when none are stored: no rate is typed in.
      *
      * @return array<string, float>
      */
@@ -90,30 +107,19 @@ class RateComparator
                 ->toArray();
         }
 
-        // Fall back to defaults if no rates seeded
-        if (empty($rates)) {
-            return [
-                'easy_access' => 0.0400,
-                'easy_access_isa' => 0.0400,
-                'notice' => 0.0400,
-                'notice_isa' => 0.0400,
-                'fixed_1_year' => 0.0400,
-                'fixed_1_year_isa' => 0.0400,
-                'fixed_2_year' => 0.0400,
-                'fixed_2_year_isa' => 0.0400,
-                'fixed_3_year' => 0.0400,
-                'fixed_3_year_isa' => 0.0400,
-            ];
-        }
-
         return $rates;
     }
 
     /**
-     * Calculate potential interest difference over a year
+     * Calculate potential interest difference over a year; null with no stored
+     * market rate to compare against.
      */
-    public function calculateInterestDifference(SavingsAccount $account, float $marketRate): float
+    public function calculateInterestDifference(SavingsAccount $account, ?float $marketRate): ?float
     {
+        if ($marketRate === null) {
+            return null;
+        }
+
         $balance = (float) $account->current_balance;
         $accountRate = (float) $account->interest_rate / 100; // percentage column, decimal benchmark
 
@@ -153,9 +159,9 @@ class RateComparator
     }
 
     /**
-     * Get appropriate benchmark for an account
+     * The stored benchmark for an account, or null when none is stored.
      */
-    private function getBenchmarkForAccount(SavingsAccount $account, array $benchmarks): float
+    private function getBenchmarkForAccount(SavingsAccount $account, array $benchmarks): ?float
     {
         $benchmarkKey = $this->benchmarkKeyFor($account);
 
@@ -163,7 +169,7 @@ class RateComparator
         // carries no row for it; the taxable notice benchmark is the nearest measure.
         return $benchmarks[$benchmarkKey]
             ?? $benchmarks[str_replace('_isa', '', $benchmarkKey)]
-            ?? 0.0400; // Default to 4% if nothing is seeded at all
+            ?? null;
     }
 
     /**
