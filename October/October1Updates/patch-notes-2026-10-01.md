@@ -1,4 +1,4 @@
-# What's new in Fynla — 1 to 8 October 2026
+# What's new in Fynla — 1 to 7 October 2026
 
 Your pension suggestions now start from what you can actually afford. A suggestion to pay into your own pension, or to top up your partner's, is sized to the money left after your spending and goals, and when there is not enough for both, the two are shown as alternatives rather than added together. The Save Tax setup asks for your monthly spending again so this works from the start, and a pension allowance you cannot afford to use no longer says "Fully used".
 
@@ -190,42 +190,6 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **On Save Tax,** answering "No thanks" to the question about bank and savings accounts ends the whole setup, so date of birth, pension and spending are not asked (CSJ to decide).
 - **In a demo, "Mark as done"** is accepted but not kept.
 - **The mobile app's "Date of birth is required" prompt** asks Fyn for pension details.
-
-## A partner's pension top-up says "HMRC adds £720" on the action row too (8 October, about 09:15, release #1135)
-
-**This is live on fynla.org** through release #1135 (#1134), UK time.
-
-- **The action row for a partner's pension top-up reads "HMRC adds £720",** not "You could save £720", and the card's figure box reads "HMRC adds £720 a year", not "Saves about £720 a year". The £720 is basic-rate relief the pension provider claims from HMRC and adds to the pot ([Finance Act 2004 s192](https://www.legislation.gov.uk/ukpga/2004/12/section/192)), not tax you save. (CSJ, 8 October: "if it is pensions, then yes".)
-- **The same for your own pension top-up when you have no earnings** and nothing is claimed back through Self Assessment. Where part is claimed back, the row still says "You could save", because the benefit is more than HMRC adds.
-- The row and the figure box are written once on the server, so the desktop and mobile web apps and the iPhone app read the same words.
-
-**What we checked.**
-- **On the test site, desktop and mobile web apps:** a walk household whose partner does not earn: the row "HMRC adds £720" beside "You could save £120" on an ISA row, and the card "HMRC adds £720 a year".
-- **Live on fynla.org:** a walk account made through Save Tax (earning £45,000, a partner with no income, £2,000 a month spending). Its plan: "Pay £4,500 more into your pension and save £900 in tax" (row "You could save £900") and "Pay £2,880 into your spouse's personal pension and HMRC adds £720" (row "HMRC adds £720", card "HMRC adds £720 a year"), on the desktop and mobile web apps. The account was deleted afterwards. No errors in the log.
-
-**Behind the scenes.** App code only.
-
-## Spare cash: General Investment Account and bond suggestions reach the right people, with steps (8 October, about 08:30, release #1132)
-
-**This is live on fynla.org** through release #1132 (#1130 and #1131), UK time.
-
-- **Cash above your emergency fund now leads to a General Investment Account or an investment bond when that fits.** Before, these two suggestions could never show: the pension suggestion took every case they were meant for. Now, if you hold a General Investment Account or a bond, you see that suggestion, alongside the ISA or pension one if those apply. If you do not, you see it only once your ISA allowance for the year is used and no further pension payment would get tax relief this year. Either way, only with cash above your emergency fund target. (CSJ, 8 October: "if a person has entered a gia or bond account, these cards need to show, if a person has not, then they only show if they have used their allowances up".)
-- **The pension suggestion for spare cash checks it can work.** It now shows only when your ISA allowance is used, a pension payment would still get relief this year (within the Annual Allowance and your earnings, [Finance Act 2004 s190](https://www.legislation.gov.uk/ukpga/2004/12/section/190)), and you are under 75 ([s188(3)(a)](https://www.legislation.gov.uk/ukpga/2004/12/section/188)). Its amount is no more than still gets relief.
-- **Your spare cash is measured against your own emergency fund target:** 3 months of spending if you are retired, 9 if self-employed, 6 otherwise. These suggestions used 6 months for everyone. The offset mortgage suggestion also counted every account not marked as emergency fund as spare; it now uses the same measure, so it agrees with the others.
-- **Three suggestions now have "How to do it" steps,** each from named sources (approved by CSJ, 8 October).
-- **An offset mortgage:** ask your lender about one (interest is charged on the mortgage less your savings, [HMRC BIM45695](https://www.gov.uk/hmrc-internal-manuals/business-income-manual/bim45695)); check the early repayment charge on your mortgage statement ([FCA MCOB 7.5.3R and 12.3.1R](https://www.handbook.fca.org.uk/handbook/MCOB/12/3.html)); or overpay from savings above your emergency fund.
-- **An investment bond:** what it is ([HMRC IPTM2005](https://www.gov.uk/hmrc-internal-manuals/insurance-policyholder-taxation-manual/iptm2005)), when gains are taxed, the one-twentieth (5%) yearly allowance, basic-rate tax treated as paid on UK bonds only, and top slicing relief ([HMRC helpsheets HS320](https://www.gov.uk/government/publications/gains-on-uk-life-insurance-policies-hs320-self-assessment-helpsheet/hs320-gains-on-uk-life-insurance-policies-2026) and [HS321](https://www.gov.uk/government/publications/gains-on-foreign-life-insurance-policies-hs321-self-assessment-helpsheet/hs321-gains-on-foreign-life-insurance-policies-2026)).
-- **A General Investment Account:** add to the one you hold or compare charges before opening one; dividends above the £500 dividend allowance and gains above the £3,000 Capital Gains Tax allowance are taxed, both from the tax configuration ([gov.uk](https://www.gov.uk/tax-on-dividends)); the Financial Services Compensation Scheme covers a firm failing, not a fall in value ([FSCS](https://www.fscs.org.uk/what-we-cover/investments/)).
-
-**What we checked.**
-- **On the test site, desktop (full-size window) and mobile web apps:** the Mitchell demo (holds a General Investment Account, ISA allowance left) sees "Consider a General Investment Account" beside "Use Your ISA Allowance for Excess Savings". The Alex Chen demo (holds an AJ Bell General Investment Account, no bond, ISA allowance used, £76,995 paid into pensions against a £60,000 allowance, so no relief room) sees all three suggestions with their steps.
-- **Live on fynla.org, as the Alex Chen demo, desktop and mobile:** the offset mortgage ("Your mortgage costs 4.49% a year. Your savings earn 2.21% on average… You hold £36,763 in savings above your emergency fund target"), the bond ("You hold £169,180 in cash, £36,763 of it above your emergency fund target", ending "Before you buy, ask the provider for the bond's charges") and the General Investment Account ("You hold £36,763 in cash above your emergency fund target of £132,417", "You can add to your General Investment Account with AJ Bell", £500 and £3,000). No errors in the log.
-
-**Still to do:**
-- **The General Investment Account suggestion's own text** says "Open a general investment account" even to someone who holds one; its steps say "add to".
-- **The dashboard action row "You could save £720"** beside the partner top-up will read "HMRC adds £720" (CSJ, 8 October); done in release #1135.
-
-**Behind the scenes.** One rule for how much a pension payment can still get relief, used by the Retirement plan and the savings suggestions. No database change. App code and the how-to steps (`ActionHowToSeeder`); no new web or mobile bundle.
 
 ## A retired partner's pension income is split the way it is paid, and the gift form names the £250 limit (7 October, about 16:30, release #1127)
 
