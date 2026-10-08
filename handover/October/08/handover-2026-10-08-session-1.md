@@ -23,6 +23,12 @@ branch: dev
 
 ## Priorities for the next session
 
+0. **NEW, FIRST (CSJ 2026-10-08): item 17a.** Add OpenAI to the AI choices in the admin panel, so Fyn can connect to GPT 6 Luna, "specifically for now".
+   - Starting points and what to look up are under item 17a in `todoCurrent/TODO.md`.
+   - Find the admin panel's AI setting first.
+   - Look up the model id in OpenAI's docs; do not assume it.
+   - Then do items 18 (card wording) and the retirement error, in that order.
+
 1. **Close item 18: Fyn still says the working is "shown on the card" (web, fynla.org, after z2).**
    - Cause: the instruction added in #1143 alone is not reliable. `FynContextAssembler::actionGrounding` frames everything as "the card" ("Explain that action from the card below", "When the card below has working").
    - Fix: present the working as the plan's own. For example, field `how_the_plan_worked_it_out`, and an intro naming "the action and how the plan worked out its figure", with the card fields separate. Keep `tapped:`.
