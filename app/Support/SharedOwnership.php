@@ -209,6 +209,36 @@ final class SharedOwnership
     }
 
     /**
+     * A form's ownership answers, turned into the columns to STORE.
+     *
+     * Either owner may change a joint record (HasJointOwnership::scopeForUserOrJoint),
+     * and a form speaks from the editor's side: "Your Ownership Share" and the
+     * co-owner they hold it with. The columns speak from the primary owner's
+     * (Rule 6). So for the joint owner, their share is the other side of the
+     * split, and naming their co-owner (the primary owner) names the link
+     * already stored. A form that states neither is left alone.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function fromEditor(array $data, object $record, int $editorId): array
+    {
+        if ((int) ($record->user_id ?? 0) === $editorId) {
+            return $data;
+        }
+
+        $stated = self::statedShare($data['ownership_percentage'] ?? null);
+        if ($stated !== null) {
+            $data['ownership_percentage'] = self::jointOwnerPercentage($stated);
+        }
+        if (isset($data['joint_owner_id']) && (int) $data['joint_owner_id'] === (int) ($record->user_id ?? 0)) {
+            $data['joint_owner_id'] = $editorId;
+        }
+
+        return $data;
+    }
+
+    /**
      * The share the OTHER party holds, given the primary owner's share.
      */
     public static function jointOwnerPercentage(float $primaryOwnerPercentage): float

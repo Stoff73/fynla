@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome :title="heading" subtitle="Mortgage details" :loading="loading" loading-label="this mortgage" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome :title="heading" subtitle="Mortgage details" :loading="loading" loading-label="this mortgage" edit-details :contextual-request="contextualRequest" back @back="goBack">
     <div v-if="error" class="m-card m-state"><p class="m-err">{{ error }}</p><button class="m-btn" @click="load">Try again</button></div>
     <template v-else-if="mortgage">
       <div class="m-card m-hero"><p class="m-sub m-label">Outstanding balance</p><p class="m-metric">{{ fmt(mortgage.outstanding_balance ?? mortgage.current_balance) }}</p><p class="m-hero-sub">{{ rate(mortgage.interest_rate) }} · {{ label(mortgage.rate_type) }}</p></div>
@@ -23,8 +23,9 @@ const date = (value) => { if (!value) return '—'; const parsed = new Date(valu
 export default {
   name: 'MobileMortgageDetail', components: { MobileChrome }, data: () => ({ loading: true, error: '', mortgage: null }),
   computed: {
-    recordId() { return Number(this.$route.params.id); }, heading() { return this.mortgage?.lender_name || this.mortgage?.lender || 'Mortgage'; }, canEdit() { return this.mortgage?.is_primary_owner !== false; },
-    contextualRequest() { if (!this.canEdit || !Number.isInteger(this.recordId) || this.recordId < 1) return null; return buildContextualConversationRequest({ action: 'edit', resourceType: 'mortgage', resourceId: this.recordId, currentDestination: { screen: 'mortgage_detail', params: { mortgage_id: this.recordId }, fallback: 'net_worth' }, origin: { kind: 'surface_action' } }); },
+    recordId() { return Number(this.$route.params.id); }, heading() { return this.mortgage?.lender_name || this.mortgage?.lender || 'Mortgage'; },
+    // Either owner of a joint mortgage may change it (CSJ 2026-10-08).
+    contextualRequest() { if (!Number.isInteger(this.recordId) || this.recordId < 1) return null; return buildContextualConversationRequest({ action: 'edit', resourceType: 'mortgage', resourceId: this.recordId, currentDestination: { screen: 'mortgage_detail', params: { mortgage_id: this.recordId }, fallback: 'net_worth' }, origin: { kind: 'surface_action' } }); },
     // W-0351. A mixed-rate mortgage's split had no row on EITHER surface: web gated on
     // fields the API never sent, and `/m` had no row at all. The API serves them now,
     // so both surfaces state the same fact (Rule 19). The split is the label and the

@@ -28,6 +28,7 @@ use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Services\Onboarding\RecordEditForms;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -234,8 +235,9 @@ class AiChatController extends Controller
         $form = $request->input('form');
         $form = is_array($form) ? $form : null;
         // A form answer arrives with no typed text; the transcript line is
-        // composed in ONE place (CaptureForms) so every surface reads the same.
-        $message = $form !== null ? CaptureForms::summarise($form) : (string) $request->input('message');
+        // composed in ONE place (RecordEditForms::transcriptLine, CaptureForms'
+        // line with an edited record's real ownership) so every surface reads the same.
+        $message = $form !== null ? app(RecordEditForms::class)->transcriptLine($user, $form) : (string) $request->input('message');
         $currentRoute = $request->input('current_route');
         $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
 

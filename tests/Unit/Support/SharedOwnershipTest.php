@@ -120,3 +120,18 @@ it('rejects a shared asset that names nobody', function () {
         ->and(SharedOwnership::namesCounterparty(['joint_owner_name' => '   ']))->toBeFalse()
         ->and(SharedOwnership::namesCounterparty(['joint_owner_id' => null, 'joint_owner_name' => null]))->toBeFalse();
 });
+
+it("stores the joint owner's stated share as the other side of the split, and leaves the primary owner's as stated", function () {
+    $record = (object) ['user_id' => 1, 'joint_owner_id' => 2, 'ownership_percentage' => 60];
+
+    expect(SharedOwnership::fromEditor(['ownership_percentage' => 30], $record, 2)['ownership_percentage'])->toBe(70.0)
+        ->and(SharedOwnership::fromEditor(['ownership_percentage' => 60], $record, 1)['ownership_percentage'])->toBe(60)
+        ->and(SharedOwnership::fromEditor(['current_value' => 1], $record, 2))->toBe(['current_value' => 1]);
+});
+
+it('reads the joint owner naming their co-owner, the primary owner, as the link already stored', function () {
+    $record = (object) ['user_id' => 1, 'joint_owner_id' => 2];
+
+    expect(SharedOwnership::fromEditor(['joint_owner_id' => 1], $record, 2)['joint_owner_id'])->toBe(2)
+        ->and(SharedOwnership::fromEditor(['joint_owner_id' => 2], $record, 1)['joint_owner_id'])->toBe(2);
+});

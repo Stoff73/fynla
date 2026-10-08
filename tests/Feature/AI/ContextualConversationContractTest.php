@@ -295,7 +295,8 @@ it('does not disclose whether another user owns a requested resource', function 
     $this->postJson('/api/ai-chat/contextual-conversations', $missing)->assertNotFound();
 });
 
-it('keeps contextual edit authority primary-owner only for read-only joint records', function (): void {
+// Both owners of a joint account own it (CSJ 2026-10-08), so either may open it to change it.
+it('lets the joint owner open a joint account to change it', function (): void {
     $owner = User::factory()->create();
     $jointOwner = User::factory()->create();
     $account = SavingsAccount::factory()->for($owner)->create([
@@ -309,7 +310,7 @@ it('keeps contextual edit authority primary-owner only for read-only joint recor
         'current_destination' => [
             'params' => ['account_id' => $account->id],
         ],
-    ]))->assertNotFound();
+    ]))->assertCreated();
 });
 
 it('marks joint-owned goals read-only for contextual edit surfaces', function (): void {

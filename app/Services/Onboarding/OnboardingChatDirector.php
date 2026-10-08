@@ -7890,7 +7890,7 @@ PROMPT;
     {
         $forms = app(RecordEditForms::class);
         $record = (array) $form['record'];
-        yield ['type' => 'form_received', 'text' => ($form['delete'] ?? false) ? 'Remove this record.' : CaptureForms::summarise($form)];
+        yield ['type' => 'form_received', 'text' => ($form['delete'] ?? false) ? 'Remove this record.' : $forms->transcriptLine($user, $form)];
 
         $result = ($form['delete'] ?? false) === true
             ? $forms->delete($user, (string) ($record['type'] ?? ''), (int) ($record['id'] ?? 0), $conversation->id)
@@ -7929,7 +7929,7 @@ PROMPT;
             $ack = $this->buildCaptureAck($user->refresh(), $currentStateId, []) ?? $result['message'];
             yield ['type' => 'content', 'text' => $ack];
             $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
-            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, CaptureForms::summarise($form), (string) ($user->onboarding_fyn_selection ?? 'savetax'));
+            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $forms->transcriptLine($user, $form), (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
             return;
         }

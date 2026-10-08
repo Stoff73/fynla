@@ -61,6 +61,32 @@ it('DELETE /api/properties/{id} soft-deletes via PropertyStore', function () {
     expect(Property::withTrashed()->find($property->id))->not->toBeNull();
 });
 
+// Both owners of a joint property own it (CSJ 2026-10-08). The form asks for
+// "Your Ownership Share", so the joint owner's 30 is the primary owner's 70.
+it('lets the joint owner update a joint property, storing their share as the other side of the split', function () {
+    $owner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+    $jointOwner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium', 'spouse_id' => $owner->id]);
+    $owner->update(['spouse_id' => $jointOwner->id]);
+    $property = Property::factory()->create([
+        'user_id' => $owner->id, 'joint_owner_id' => $jointOwner->id,
+        'ownership_type' => 'joint', 'ownership_percentage' => 60, 'current_value' => 400000,
+    ]);
+
+    $response = $this->actingAs($jointOwner)->putJson("/api/properties/{$property->id}", [
+        'current_value' => 450000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 30,
+    ]);
+
+    $response->assertOk();
+    $fresh = $property->fresh();
+    expect((float) $fresh->current_value)->toBe(450000.0)
+        ->and((float) $fresh->ownership_percentage)->toBe(70.0)
+        ->and($fresh->user_id)->toBe($owner->id)
+        ->and($fresh->joint_owner_id)->toBe($jointOwner->id)
+        ->and($response->json('data.property.is_primary_owner'))->toBeFalse();
+});
+
 it('rejects updates from a non-owner', function () {
     $owner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $stranger = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
