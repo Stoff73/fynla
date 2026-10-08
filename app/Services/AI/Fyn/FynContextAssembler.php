@@ -687,6 +687,9 @@ GROUNDING;
                 ? 'The user tapped "Ask Fyn about this" on one of their actions.'
                 : 'The user is asking how a figure in one of their actions was worked out.')
             .' When the card below has working, give that working step by step, with its figures exactly as given.'
+            // fynla.org 2026-10-08: Fyn said "the working shown on the card"; the
+            // card does not show it.
+            .' That working is how the plan reached its figure; the card does not show it, so never say it is on the card.'
             .' Explain that action from the card below: it holds the live figures the user is looking at. Use them exactly, and do not recompute them or rebuild them from other tool data. Talk about the user\'s money, not about the card. Bring in a figure the card does not show only when it helps, and then quote it as given below or by the tools, with all of its parts. For working the card does not show, call get_recommendations and use the matching item.',
             'title: '.UserContentSanitiser::wrap((string) $card['title']),
             'module: '.$card['module_label'],
