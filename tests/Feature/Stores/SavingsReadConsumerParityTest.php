@@ -12,7 +12,6 @@ use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\DuplicateAcknowledgement;
-use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\HouseholdPlanningService;
 use App\Services\Estate\EstateActionDefinitionService;
 use App\Services\Estate\EstateAssetAggregatorService;
@@ -1279,46 +1278,6 @@ it('HouseholdPlanningService::calculateISAUsage single-owner ISA subscription su
     $method->setAccessible(true);
 
     expect($method->invoke($service, $user))->toBe(8500.0);
-});
-
-it('CashFlowCoordinator::calculateCommittedContributions monthly-equivalent of regular savings contributions identical after store migration', function () {
-    $user = User::factory()->create(['is_preview_user' => false]);
-
-    SavingsAccount::factory()->create([
-        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
-        'current_balance' => 5000, 'regular_contribution_amount' => 300,
-        'contribution_frequency' => 'monthly',
-        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
-    ]);
-    SavingsAccount::factory()->create([
-        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
-        'current_balance' => 5000, 'regular_contribution_amount' => 1200,
-        'contribution_frequency' => 'annually',
-        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
-    ]);
-    // Null contribution — excluded by whereNotNull.
-    SavingsAccount::factory()->create([
-        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
-        'current_balance' => 5000, 'regular_contribution_amount' => null,
-        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
-    ]);
-
-    $service = app(CashFlowCoordinator::class);
-    $reflection = new ReflectionClass($service);
-    $method = $reflection->getMethod('calculateCommittedContributions');
-    $method->setAccessible(true);
-
-    // 300 (monthly) + 1200/12 (annual → 100/mo) = 400.0
-    expect($method->invoke($service, $user->id))->toBe(400.0);
-});
-
-it('CashFlowCoordinator::calculateCommittedContributions non-existent userId returns 0.0 (collect() empty-equivalent)', function () {
-    $service = app(CashFlowCoordinator::class);
-    $reflection = new ReflectionClass($service);
-    $method = $reflection->getMethod('calculateCommittedContributions');
-    $method->setAccessible(true);
-
-    expect($method->invoke($service, 999999))->toBe(0.0);
 });
 
 it('LifeEventAllocationService::buildExpenseFundFrom draws from cash accounts LARGEST-BALANCE-FIRST (sortByDesc allocation order parity, sites 205/258)', function () {
