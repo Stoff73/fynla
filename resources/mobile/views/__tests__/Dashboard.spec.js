@@ -31,7 +31,7 @@ const REC_FOCUS_AREAS = [
     label: 'Top actions',
     locked: false,
     actions: [
-      { id: 'r1', type: 'recommendation', title: 'Top up your ISA', done: false },
+      { id: 'r1', type: 'recommendation', title: 'Top up your ISA', ask_fyn_prompt: 'Tell me more about: Top up your ISA', done: false },
     ],
   },
 ];
@@ -120,7 +120,7 @@ describe('Dashboard.vue — openRecChat awaits openFyn() (D3: rec-chat race)', (
     const openSpy = vi.spyOn(wrapper.vm, 'openFyn').mockReturnValue(openPromise);
     const sendSpy = vi.spyOn(wrapper.vm, 'send').mockImplementation(() => {});
 
-    const tapPromise = wrapper.vm.openRecChat({ title: 'Top up your ISA' });
+    const tapPromise = wrapper.vm.openRecChat({ title: 'Top up your ISA', ask_fyn_prompt: 'Tell me more about: Top up your ISA' });
     await Promise.resolve();
     await Promise.resolve();
     expect(openSpy).toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe('Dashboard.vue — openRecChat awaits openFyn() (D3: rec-chat race)', (
 
     resolveOpen();
     await tapPromise;
-    expect(sendSpy).toHaveBeenCalledWith('How do I "Top up your ISA"?');
+    expect(sendSpy).toHaveBeenCalledWith('Tell me more about: Top up your ISA');
   });
 });
 

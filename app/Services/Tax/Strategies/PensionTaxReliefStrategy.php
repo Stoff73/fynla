@@ -164,8 +164,18 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             }
             $raw = $this->math->bandThresholds()['higher'];
             $limit = $this->math->bandThresholdsFor($user)['higher'];
-            $lines[] = $limit - $raw >= 1
-                ? sprintf('The higher rate starts at %s, raised to %s by your Gift Aid and personal pension payments.', $pounds($raw), $pounds($limit))
+            // Name only what raised the limit, each with its amount.
+            $parts = $this->math->bandExtensionParts($user);
+            $raisedBy = array_filter([
+                'your Gift Aid' => $parts['gift_aid'],
+                'your personal pension payments' => $parts['personal_pension'],
+                "your Blind Person's Allowance" => $parts['blind_persons_allowance'],
+            ], static fn (float $amount): bool => $amount >= 1);
+            $named = array_map(static fn (string $name, float $amount): string => sprintf('%s (%s)', $name, $pounds($amount)), array_keys($raisedBy), $raisedBy);
+            $lines[] = $limit - $raw >= 1 && $named !== []
+                ? sprintf('The higher rate starts at %s, raised to %s by %s.', $pounds($raw), $pounds($limit), count($named) > 1
+                    ? implode(', ', array_slice($named, 0, -1)).' and '.end($named)
+                    : $named[0])
                 : sprintf('The higher rate starts at %s.', $pounds($raw));
             // The slice leaves out income above the threshold that is not taxed
             // at the higher rate; each part gets its line so the steps add up.

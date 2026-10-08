@@ -251,3 +251,34 @@ it('names the limit that set a basic-rate item, and the working reaches Fyn\'s a
     expect($row)->not->toBeNull()
         ->and($row['working'])->toBe($rec['working']);
 });
+
+it('names only what raised the higher-rate limit', function () {
+    // csjones walk 2026-10-08 (Alex, user 502): Gift Aid alone raised the
+    // limit, and the working said "by your Gift Aid and personal pension
+    // payments". Each part is named only when it is there (ITA 2007 s414,
+    // FA 2004 s192(4)).
+    $user = reliefUser(84000, ['is_gift_aid' => true, 'annual_charitable_donations' => 480]);
+    $math = app(TaxStrategyMath::class);
+    $raw = $math->bandThresholds()['higher'];
+    $limit = $math->bandThresholdsFor($user)['higher'];
+    $pounds = static fn (float $v): string => '£'.number_format((int) floor($v));
+
+    $rec = reliefRecs($user)['higher'] ?? null;
+
+    expect($limit)->toBe($raw + 600.0)
+        ->and($rec)->not->toBeNull()
+        ->and($rec['working'])->toContain(sprintf('The higher rate starts at %s, raised to %s by your Gift Aid (%s).', $pounds($raw), $pounds($limit), '£600'));
+
+    // A personal pension paid from take-home raises it too, and is named.
+    $user = reliefUser(84000, ['is_gift_aid' => true, 'annual_charitable_donations' => 480]);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'personal', 'pension_type' => 'personal',
+        'monthly_contribution_amount' => 100, 'annual_salary' => null,
+        'employee_contribution_percent' => null, 'employer_contribution_percent' => null,
+        'salary_sacrifice' => false,
+    ]);
+    $rec = reliefRecs($user->fresh())['higher'] ?? null;
+    $limit = $raw + 600.0 + 1500.0;
+
+    expect($rec['working'])->toContain(sprintf('The higher rate starts at %s, raised to %s by your Gift Aid (%s) and your personal pension payments (%s).', $pounds($raw), $pounds($limit), '£600', '£1,500'));
+});

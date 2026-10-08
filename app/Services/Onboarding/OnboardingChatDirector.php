@@ -43,6 +43,7 @@ use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
 use App\Services\Coordination\StrategyPlanComposer;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
@@ -53,6 +54,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Support\SharedExpenditure;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -4243,15 +4245,25 @@ PROMPT;
 
     /**
      * "I couldn't save …", one sentence per kind that failed, after a recap of
-     * any that were saved.
+     * any that were saved; then any question the duplicate guard asks.
      *
-     * @param  array<string, array{message: string}>  $errors
+     * @param  array<string, array{message: string, error_type?: string}>  $errors
      * @param  list<array<string, mixed>>  $recordsCreated
      */
     private function formErrorText(string $formName, array $errors, array $recordsCreated): string
     {
+        // The duplicate guard asks; it never refuses (CSJ 2026-10-08). Its
+        // question is in Fyn's voice already, so it is asked as written, not
+        // under "I couldn't save" (Jamie read "I couldn't save Easy access
+        // savings: You already have …" as a failure).
+        $questions = [];
         $lines = [];
         foreach ($errors as $kind => $error) {
+            if (in_array($error['error_type'] ?? null, ['confirm_duplicate_required', 'confirm_edit_required'], true)) {
+                $questions[] = rtrim($error['message']);
+
+                continue;
+            }
             // A guard's own refusal (RecaptureGuard's "...or a separate
             // one?") already ends in terminal punctuation — gluing on
             // another full stop produced "?." live. A period-ending
@@ -4267,8 +4279,9 @@ PROMPT;
             $lines[] = CaptureForms::kindLabel($formName, $kind).': '.$reason.$fullStop;
         }
 
-        return ($recordsCreated !== [] ? rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. ' : '')
-            ."I couldn't save ".implode(' ', $lines);
+        return trim(($recordsCreated !== [] ? rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. ' : '')
+            .($lines !== [] ? "I couldn't save ".implode(' ', $lines).' ' : '')
+            .implode(' ', $questions));
     }
 
     /** @param  array<string, array{error_type?: string}>  $errors */
@@ -6691,7 +6704,14 @@ PROMPT;
         }
         $parts = [];
         if ((float) ($user->monthly_expenditure ?? 0) > 0) {
-            $parts[] = 'monthly spending of '.$this->wholePounds((float) $user->monthly_expenditure);
+            // A shared household's account holds its half (SharedExpenditure);
+            // say so, or the figure reads as a mistake (Jamie typed £3,800 and
+            // was told £1,900, csjones 2026-10-08).
+            $monthly = (float) $user->monthly_expenditure;
+            $parts[] = 'monthly spending of '.$this->wholePounds($monthly)
+                .(app(HouseholdExpenditureWriter::class)->dividesFor($user)
+                    ? ', your half of the '.$this->wholePounds((float) SharedExpenditure::householdOf(['monthly_expenditure' => $monthly])['monthly_expenditure']).' your household spends'
+                    : '');
         }
         if ((float) ($user->childcare ?? 0) > 0) {
             $parts[] = 'childcare of '.$this->wholePounds((float) $user->childcare).' a month';
