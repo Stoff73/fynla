@@ -134,14 +134,14 @@ class SavingsAgent extends BaseAgent
 
                 // Rate Comparison
                 $rateComparisons = $accounts->map(function ($account) {
+                    $comparison = $this->rateComparator->compareToMarketRates($account);
+
                     return [
                         'account_id' => $account->id,
                         'institution' => $account->institution,
-                        'comparison' => $this->rateComparator->compareToMarketRates($account),
-                        'potential_gain' => $this->rateComparator->calculateInterestDifference(
-                            $account,
-                            $this->rateComparator->compareToMarketRates($account)['market_rate']
-                        ),
+                        'comparison' => $comparison,
+                        // Null when no stored market rate backs the comparison.
+                        'potential_gain' => $this->rateComparator->calculateInterestDifference($account, $comparison['market_rate']),
                     ];
                 });
 
