@@ -4214,6 +4214,9 @@ PROMPT;
             $errors[$kind] = [
                 'message' => (string) ($result['message'] ?? $result['reason'] ?? 'The write failed.'),
                 'error_type' => (string) ($result['error_type'] ?? ''),
+                // The record the duplicate guard's question is about, so the
+                // answer can be taken as about it (emitFormProblem).
+                'entity_id' => isset($result['entity_id']) ? (int) $result['entity_id'] : null,
                 'fields' => is_array($result['errors'] ?? null)
                     ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])
                     : [],
@@ -4236,11 +4239,25 @@ PROMPT;
         yield ['type' => 'capture_form_errors', 'form' => $formName, 'errors' => $errors];
         yield ['type' => 'content', 'text' => $text];
 
-        return $this->saveMessage($conversation, 'assistant', $text, ['metadata' => array_filter([
-            'onboarding_step' => $stateId,
-            'capture_write_failed' => true,
-            'turn_intent' => FynTurnIntent::CaptureClarification->value,
-        ])]);
+        // Outside the setup walk nothing holds a step, so a duplicate guard's
+        // question is marked as a capture still asking about its record: the
+        // reply ("It's the same one") is then taken as the answer about that
+        // record (AdviceFyn::captureContinuationIntent), not as a new request
+        // that reopened a blank form (csjones, Alex, 2026-10-08).
+        $guardRecordId = $stateId === null
+            ? collect($errors)->first(static fn (array $e): bool => in_array($e['error_type'] ?? null, ['confirm_duplicate_required', 'confirm_edit_required'], true))['entity_id'] ?? null
+            : null;
+
+        return $this->saveMessage($conversation, 'assistant', $text, array_filter([
+            'persona' => $guardRecordId !== null ? 'data_capture' : null,
+            'metadata' => array_filter([
+                'onboarding_step' => $stateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+                'capture_write_landed' => $guardRecordId !== null ? false : null,
+                'capture_record_id' => $guardRecordId,
+            ], static fn ($value): bool => $value !== null),
+        ]));
     }
 
     /**

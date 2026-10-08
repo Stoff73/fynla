@@ -799,6 +799,9 @@ final class AdviceFyn
             $intent = $this->writeIntentClassifier->classify((string) $priorMessage);
             if ($intent !== null) {
                 $intent['reason'] .= ' (capture continuation — the previous capture turn asked for these details)';
+                // The record Fyn asked about, so only it may be amended without
+                // asking again (4ffe24d56 read it and never passed it on).
+                $intent['pending_record_id'] = is_numeric($pendingRecordId) ? (int) $pendingRecordId : null;
 
                 return $intent;
             }

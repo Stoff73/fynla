@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 
@@ -60,4 +61,31 @@ it('says a shared household spending figure is the user\'s half', function () {
 
     expect($method->invoke($director, $jamie->fresh()))
         ->toContain('monthly spending of £1,900, your half of the £3,800 your household spends');
+});
+
+it('saves the guard question outside the walk as a capture still asking about its record', function () {
+    $user = User::factory()->create();
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'emitFormProblem');
+    $method->setAccessible(true);
+    $errors = ['easy_access' => ['message' => 'You already have … Is this a separate savings account you also hold, or the same one?', 'error_type' => 'confirm_duplicate_required', 'entity_id' => 893, 'fields' => []]];
+
+    $run = function (?string $stateId) use ($method, $director, $conversation, $errors) {
+        $gen = $method->invoke($director, $conversation, 'savings', $errors, 'question', $stateId);
+        foreach ($gen as $_) {
+        }
+
+        return $gen->getReturn();
+    };
+
+    $outside = $run(null);
+    expect($outside->persona)->toBe('data_capture')
+        ->and($outside->metadata['capture_record_id'])->toBe(893)
+        ->and($outside->metadata['capture_write_landed'])->toBeFalse();
+
+    // Inside the walk the step holds the question; the row is unchanged.
+    $inside = $run('campaign_savings');
+    expect($inside->persona)->toBeNull()
+        ->and($inside->metadata)->not->toHaveKey('capture_record_id');
 });
