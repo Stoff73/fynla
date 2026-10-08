@@ -110,6 +110,24 @@ describe('the partner questions the link already answers', function (): void {
             ->toBe(['earnings' => 72000.0, 'total_income' => 72000.0]);
     });
 
+    // csjones walk 2026-10-08: a partner sacrificing salary showed "£79,440,
+    // of that £84,000 from work" — gross pay set against post-sacrifice income.
+    it("puts the linked partner's earnings on the same footing as their income when they sacrifice salary", function (): void {
+        [$sam, $alex] = linkedSpouseOnboardingCouple();
+        DCPension::factory()->create([
+            'user_id' => $sam->id, 'pension_type' => 'occupational', 'scheme_type' => 'workplace',
+            'salary_sacrifice' => true, 'employee_contribution_percent' => 6, 'employer_contribution_percent' => 8,
+        ]);
+
+        $linked = app(HouseholdFinancialContext::class)->linkedSpouseEarnings($alex);
+
+        // Pay is their only income, so earnings and income are one figure,
+        // below the £72,000 gross by the sacrifice (before: £72,000 against a
+        // smaller total).
+        expect($linked['earnings'])->toBe($linked['total_income'])
+            ->and($linked['earnings'])->toBeLessThan(72000.0);
+    });
+
     it("does not ask an invitee for their partner's earnings band", function (): void {
         [, $alex] = linkedSpouseOnboardingCouple();
 
@@ -144,7 +162,7 @@ describe('the partner questions the link already answers', function (): void {
         expect($saved->metadata['capture_form_values'][CaptureForms::LEAD]['spouse_annual_income'])->toBe(72000);
     });
 
-    it("does not read what the partner does from their account when they do not share it", function (): void {
+    it('does not read what the partner does from their account when they do not share it', function (): void {
         // Their account is read only through the sharing permission (W-0530),
         // as their income is: no status, no income filled in.
         [$sam, $alex] = linkedSpouseOnboardingCouple();
