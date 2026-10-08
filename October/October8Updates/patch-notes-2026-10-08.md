@@ -2,12 +2,13 @@
 
 Spare cash now leads to the right next step. If you hold a General Investment Account or an investment bond, or your ISA and pension allowances are used, Fynla suggests where the cash above your emergency fund could go, with "How to do it" steps for a General Investment Account, an investment bond and an offset mortgage. And a pension top-up for a partner who does not earn now says what it is: "HMRC adds £720", not "You could save £720".
 
-**This is live on fynla.org** through two releases on the morning of 8 October:
+**This is live on fynla.org** through three releases on the morning of 8 October:
 
 - **About 08:30:** release #1132 (#1130 and #1131: spare cash suggestions and their steps).
 - **About 09:15:** release #1135 (#1134: "HMRC adds £720" on the action row and card).
+- **About 09:40:** release #1139 (#1138: no savings rate comparison without a stored market rate).
 
-Both were walked on the test site first, on the desktop web app (full-size window) and the mobile web app, and then checked on fynla.org.
+All were walked on the test site first, on the desktop web app (full-size window) and the mobile web app, and then checked on fynla.org.
 
 ## Spare cash: General Investment Account and bond suggestions reach the right people, with steps (8 October, about 08:30, release #1132)
 
@@ -44,3 +45,20 @@ Both were walked on the test site first, on the desktop web app (full-size windo
 - **Live on fynla.org:** a walk account made through Save Tax (earning £45,000, a partner with no income, £2,000 a month spending). Its plan: "Pay £4,500 more into your pension and save £900 in tax" (row "You could save £900") and "Pay £2,880 into your spouse's personal pension and HMRC adds £720" (row "HMRC adds £720", card "HMRC adds £720 a year"), on the desktop and mobile web apps. The account was deleted afterwards. No errors in the log.
 
 **Behind the scenes.** App code only.
+
+## No savings rate comparison without a stored market rate (8 October, about 09:40, release #1139)
+
+**This is live on fynla.org** through release #1139 (#1138), UK time.
+
+- **A savings account is compared only against a stored best-buy rate.** When none was stored, every account was compared against a typed-in 4.00%, and a "Better rate available" suggestion could appear from it. Now, with no stored rate, nothing is compared and no such suggestion appears.
+- **"Show how we worked this out" on an account earning no interest** priced the lost interest at "an illustrative 4.0% easy-access rate". It now uses the stored rate with its provider and date, for example "At 5.00% (Cahoot (part of Santander) Sunny Day Saver Easy Access, 1 October 2026), this balance could earn approximately £1,250/year", or gives no figure when none is stored.
+- fynla.org holds the best-buy rates taken on 1 October 2026 (MoneySavingExpert's tables), so today's suggestions do not change.
+
+**What we checked.**
+- **On the test site and live on fynla.org, as the Mitchell demo, desktop and mobile web apps:** "Better Rate Available for David's Cash ISA" still reads 4.25% against 5.01% from Trading 212 on 1 October 2026, about £171 a year; on the desktop Savings page, "Show how we worked this out" for David's Current Account (£25,000 at 0%) quotes the stored 5.00% rate. No errors in the log.
+
+**Still to do:**
+- **The Investment page's "switch to a better savings rate" suggestion can never show:** it looks for a rating the savings comparison does not send.
+
+**Behind the scenes.** App code only. Each account is now compared once per analysis, not twice.
+
