@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\DCPension;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Mobile\NextActionsService;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -89,7 +90,7 @@ it('gives someone with no earnings relief on the basic amount (FA 2004 s190, 29 
     $user = reliefUser(0, ['employment_status' => $status, 'annual_other_income' => $otherIncome]);
     // Savings cover the £2,880 payment (CSJ 2026-09-29: never suggest more
     // than recorded cash can fund).
-    \App\Models\SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 5000, 'interest_rate' => 0, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 5000, 'interest_rate' => 0, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
     $rec = reliefRecs($user)['no_earnings'] ?? null;
 
     expect($rec)->not->toBeNull()
@@ -98,6 +99,7 @@ it('gives someone with no earnings relief on the basic amount (FA 2004 s190, 29 
         ->and($rec['title'])->toContain('Pay £2,880 into a personal pension')
         // Money HMRC adds, not "tax relief" won by someone who may pay no tax (CSJ 2026-09-29).
         ->and($rec['title'])->toContain('HMRC adds £720')
+        ->and(end($rec['working']))->toContain('you pay £2,880 and HMRC adds £720 through your pension provider')
         ->and($rec['title'])->not->toContain('of tax relief');
 })->with([
     'retired basic-rate' => [30000, 'retired', 720.0],
@@ -164,9 +166,54 @@ it('sizes a non-earner\'s payment to what their savings cover, and offers none w
     // CSJ 2026-09-29: funded from savings, so £1,000 of cash buys £1,200 gross
     // (rounded down to £100), and no cash means no item.
     $withCash = reliefUser(0, ['employment_status' => 'retired', 'annual_other_income' => 20000]);
-    \App\Models\SavingsAccount::factory()->create(['user_id' => $withCash->id, 'current_balance' => 1000, 'interest_rate' => 0, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    SavingsAccount::factory()->create(['user_id' => $withCash->id, 'current_balance' => 1000, 'interest_rate' => 0, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
     $noCash = reliefUser(0, ['employment_status' => 'retired', 'annual_other_income' => 20000]);
 
     expect(reliefRecs($withCash)['no_earnings']['suggested_contribution'])->toBe(1200.0)
         ->and(reliefRecs($noCash))->not->toHaveKey('no_earnings');
+});
+
+it('carries the working behind a higher-rate item, from income after pension payments through pay', function () {
+    // Item 18: Fyn told a user "£60,000 − £50,270 = £9,730 taxed at 40%"; the
+    // plan's figure starts from income after the pension paid through pay.
+    $user = reliefUser(60000);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 10, 'employer_contribution_percent' => 0,
+        'salary_sacrifice' => false,
+    ]);
+    $math = app(TaxStrategyMath::class);
+    $threshold = $math->bandThresholds()['higher'];
+    $rate = (int) round($math->bandRateForBand('higher') * 100);
+    $slice = 54000 - $threshold;
+    $display = (int) (floor($slice / 100) * 100);
+    $pounds = static fn (float $v): string => '£'.number_format((int) floor($v));
+
+    $rec = reliefRecs($user)['higher'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['suggested_contribution'])->toBe((float) $display)
+        ->and($rec['working'])->toBe([
+            'Your income this year is £60,000.',
+            '£6,000 of it goes into your pension from your pay before tax, which leaves £54,000 taxed as income.',
+            sprintf('The higher rate starts at %s.', $pounds($threshold)),
+            sprintf('So %s of your income is taxed at %d%%.', $pounds($slice), $rate),
+            sprintf('Rounded down to the nearest £100 that is %s, and %d%% of %s is %s of tax saved.', $pounds($display), $rate, $pounds($display), $pounds($display * $rate / 100)),
+        ]);
+});
+
+it('names the limit that set a basic-rate item, and the working reaches Fyn\'s actions list', function () {
+    $user = reliefUser(30000, ['onboarding_completed' => true, 'monthly_expenditure' => 1500]);
+    $rec = reliefRecs($user)['basic'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['working'][0])->toBe('Your plan suggests paying in a tenth of your earnings of £30,000, which is £3,000 a year.')
+        ->and(end($rec['working']))->toStartWith('Rounded down to the nearest £100 that is £');
+
+    $row = collect(app(NextActionsService::class)->forModel($user->id))
+        ->firstWhere('recommendation_id', 'tax_pension_tax_relief');
+
+    expect($row)->not->toBeNull()
+        ->and($row['working'])->toBe($rec['working']);
 });
