@@ -173,6 +173,45 @@ class AnnualAllowanceChecker
     }
 
     /**
+     * The most that can still attract relief this year: remaining Annual
+     * Allowance plus carry forward, and no more than relevant UK earnings less
+     * what the member already pays (s190 caps the year's total). The basic
+     * amount lifts the earnings cap only where the payment can go by relief at
+     * source: a personal pension held, or one to open (s190(2), s191(7)). The
+     * Money Purchase Annual Allowance once a pension has been flexibly
+     * accessed (s227G).
+     *
+     * One home for this rule: the Retirement plan's payable contribution and
+     * the savings excess-cash cards read it (Rule 20).
+     *
+     * @param  array<string, mixed>|null  $allowance  checkAnnualAllowance() for this tax year, when already worked out
+     */
+    public function reliefRoomThisYear(User $user, ?array $allowance = null): float
+    {
+        $allowance ??= $this->checkAnnualAllowance($user->id, $this->taxConfig->getTaxYear());
+        $headroom = (float) ($allowance['remaining_allowance'] ?? 0) + (float) ($allowance['carry_forward_available'] ?? 0);
+        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
+
+        $user->loadMissing(['dcPensions', 'dbPensions']);
+        $reliefAtSourceRoute = ($user->dcPensions->isEmpty() && $user->dbPensions->isEmpty())
+            || $user->dcPensions->contains(fn ($pension): bool => ! PensionContributionRule::isWorkplace($pension));
+        $cap = $reliefAtSourceRoute ? max($earnings, (float) $this->taxConfig->get('pension.relevant_earnings_minimum')) : $earnings;
+
+        // Member contributions only: employer and sacrificed pay are not limited by s190.
+        $deductions = (array) ($this->incomeDefinitions->calculate($user->id)['deductions'] ?? []);
+        $memberPaid = (float) ($deductions['employee_pension_contributions'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
+
+        $limit = min($headroom, max(0.0, $cap - $memberPaid));
+
+        if ((bool) ($allowance['mpaa_applies'] ?? app(PensionStore::class)->hasFlexiblyAccessedDcPension($user))) {
+            $paying = (float) ($allowance['total_contributions'] ?? $allowance['allowance_used'] ?? 0);
+            $limit = min($limit, max(0.0, (float) $this->taxConfig->get('pension.mpaa') - $paying));
+        }
+
+        return max(0.0, $limit);
+    }
+
+    /**
      * Calculate tapered annual allowance for high earners.
      *
      * Reduction: £1 for every £2 over adjusted income threshold.

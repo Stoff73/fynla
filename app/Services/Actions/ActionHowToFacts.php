@@ -322,9 +322,10 @@ final class ActionHowToFacts
         $stocksIsa = $investments->first(fn ($a) => $a->account_type === 'isa' && $a->isa_type !== 'lifetime');
         $lifetime ??= $investments->first(fn ($a) => $a->isa_type === 'lifetime');
         $gia = $investments->first(fn ($a) => $a->account_type === 'gia');
+        $bond = $investments->first(fn ($a) => in_array($a->account_type, ['onshore_bond', 'offshore_bond'], true));
 
         $label = static fn ($a): string => trim((string) ($a->institution ?? $a->provider ?? $a->platform ?? $a->account_name ?? ''));
-        foreach (['cash_isa' => $cashIsa, 'stocks_isa' => $stocksIsa, 'lifetime_isa_account' => $lifetime, 'gia' => $gia] as $key => $account) {
+        foreach (['cash_isa' => $cashIsa, 'stocks_isa' => $stocksIsa, 'lifetime_isa_account' => $lifetime, 'gia' => $gia, 'bond' => $bond] as $key => $account) {
             $facts['has_'.$key] = $account !== null;
             if ($account !== null && $label($account) !== '') {
                 $text[$key] = $label($account);
@@ -476,6 +477,17 @@ final class ActionHowToFacts
         }
         if (is_numeric($savings['fscs_temporary_high_balance_months'] ?? null)) {
             $text['fscs_high_balance_months'] = (string) (int) $savings['fscs_temporary_high_balance_months'];
+        }
+
+        // Investing outside a wrapper: the dividend allowance (ITA 2007 s13A)
+        // and the Capital Gains Tax annual exempt amount (TCGA 1992 s1K).
+        foreach ([
+            'dividend_allowance' => $this->taxConfig->getDividendTax()['allowance'] ?? null,
+            'cgt_allowance' => $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? null,
+        ] as $key => $value) {
+            if (is_numeric($value)) {
+                $text[$key] = self::pounds((float) $value);
+            }
         }
 
         // National Insurance Contributions (Employer Pensions Contributions)
