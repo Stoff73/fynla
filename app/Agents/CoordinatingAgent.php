@@ -117,7 +117,6 @@ use App\Support\SharedExpenditure;
 use App\Support\SharedOwnership;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
-use App\Traits\HasJointOwnership;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -149,6 +148,9 @@ class CoordinatingAgent extends BaseAgent
      *
      * @var list<string>
      */
+    /** Record types either owner of a joint record may change or remove (CSJ 2026-10-08). */
+    private const JOINT_OWNER_EDITABLE = ['savings_account', 'investment_account', 'property', 'mortgage', 'estate_liability', 'goal', 'chattel', 'business_interest'];
+
     private const SAVINGS_ACCOUNT_TYPES = [
         'easy_access', 'notice', 'fixed', 'fixed_term',
         'regular_saver', 'cash_isa', 'junior_isa', 'current_account',
@@ -6936,8 +6938,10 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
         }
 
-        // Either owner of a joint record may change it (HasJointOwnership::scopeForUserOrJoint).
-        $model = in_array(HasJointOwnership::class, class_uses_recursive($modelClass), true)
+        // Either owner of a joint record may change it (HasJointOwnership::scopeForUserOrJoint):
+        // CSJ 2026-10-08, accounts, property, mortgages, liabilities, goals,
+        // chattels and business interests. Nothing else opens to the joint owner.
+        $model = in_array($entityType, self::JOINT_OWNER_EDITABLE, true)
             ? $modelClass::whereKey($entityId)->forUserOrJoint($userId)->first()
             : $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
 

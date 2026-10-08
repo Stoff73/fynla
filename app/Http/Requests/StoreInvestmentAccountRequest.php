@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Constants\TaxDefaults;
 use App\Http\Traits\ValidatesSharedOwnership;
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -77,7 +78,7 @@ class StoreInvestmentAccountRequest extends FormRequest
             // Ownership
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
-            'joint_owner_id' => 'nullable|exists:users,id',
+            'joint_owner_id' => ['nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|exists:trusts,id',
 

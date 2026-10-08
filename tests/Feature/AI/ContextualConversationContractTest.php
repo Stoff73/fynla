@@ -313,7 +313,7 @@ it('lets the joint owner open a joint account to change it', function (): void {
     ]))->assertCreated();
 });
 
-it('marks joint-owned goals read-only for contextual edit surfaces', function (): void {
+it('tells the joint owner of a goal that they are not its primary owner', function (): void {
     $owner = User::factory()->create();
     $jointOwner = User::factory()->create();
     $goal = Goal::factory()->for($owner)->create([

@@ -234,6 +234,13 @@ final class SharedOwnership
         if (isset($data['joint_owner_id']) && (int) $data['joint_owner_id'] === (int) ($record->user_id ?? 0)) {
             $data['joint_owner_id'] = $editorId;
         }
+        // Naming no co-owner on a record still shared cannot take the joint
+        // owner off their own record: the link stays (a goal edit did exactly
+        // that when its payload carried no owner ids, 2026-10-08).
+        if (array_key_exists('joint_owner_id', $data) && $data['joint_owner_id'] === null
+            && self::isShared($data['ownership_type'] ?? ($record->ownership_type ?? null))) {
+            $data['joint_owner_id'] = $editorId;
+        }
 
         return $data;
     }

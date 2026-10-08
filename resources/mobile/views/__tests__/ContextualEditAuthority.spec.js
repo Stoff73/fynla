@@ -28,10 +28,7 @@ describe('/m contextual edit authority', () => {
     expect(request).not.toBeNull();
   });
 
-  it('hides joint goal edits and uses the canonical goals fallback', () => {
-    expect(Goals.methods.canEditGoal({ is_primary_owner: false })).toBe(false);
-    expect(Goals.methods.canEditGoal({ is_primary_owner: true })).toBe(true);
-
+  it('uses the canonical goals fallback for a goal edit', () => {
     const request = Goals.methods.goalRequest('edit', 43);
     expect(request.current_destination.fallback).toBe('goals');
   });

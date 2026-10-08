@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Savings;
 
 use App\Http\Traits\ValidatesSharedOwnership;
+use App\Rules\LinkedCoOwner;
 use App\Support\SharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -64,7 +65,7 @@ class StoreSavingsAccountRequest extends FormRequest
             // Ownership - defaults to 'individual' if not provided
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'joint_owner_id' => ['nullable', 'exists:users,id'],
+            'joint_owner_id' => ['nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
             'trust_id' => ['nullable', 'exists:trusts,id'],
         ];

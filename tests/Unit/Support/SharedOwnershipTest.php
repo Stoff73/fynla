@@ -135,3 +135,11 @@ it('reads the joint owner naming their co-owner, the primary owner, as the link 
     expect(SharedOwnership::fromEditor(['joint_owner_id' => 1], $record, 2)['joint_owner_id'])->toBe(2)
         ->and(SharedOwnership::fromEditor(['joint_owner_id' => 2], $record, 1)['joint_owner_id'])->toBe(2);
 });
+
+it('never takes the joint owner off a record still shared when their form names no co-owner', function () {
+    $record = (object) ['user_id' => 1, 'joint_owner_id' => 2, 'ownership_type' => 'joint'];
+
+    expect(SharedOwnership::fromEditor(['joint_owner_id' => null], $record, 2)['joint_owner_id'])->toBe(2)
+        ->and(SharedOwnership::fromEditor(['joint_owner_id' => null, 'ownership_type' => 'individual'], $record, 2)['joint_owner_id'])->toBeNull()
+        ->and(SharedOwnership::fromEditor(['joint_owner_id' => null], $record, 1)['joint_owner_id'])->toBeNull();
+});
