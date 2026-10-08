@@ -562,11 +562,14 @@ class InvestmentController extends Controller
         $user = $request->user();
 
         $account = $this->investmentAccountStore->find($id, $user);
-        if ($account === null || $account->user_id !== $user->id) {
+        // Either owner may change a joint account (HasJointOwnership::scopeForUserOrJoint).
+        if ($account === null) {
             return $this->notFoundResponse('Investment account');
         }
 
-        $validated = $request->validated();
+        // The form speaks from the editor's side; the joint owner's answers are
+        // turned into the stored columns.
+        $validated = SharedOwnership::fromEditor($request->validated(), $account, (int) $user->id);
 
         // Log joint account update if applicable
         if ($this->isSharedOwnership($account) && $account->joint_owner_id && isset($validated['current_value'])) {
@@ -623,7 +626,9 @@ class InvestmentController extends Controller
         $holdings = $validated['holdings'] ?? null;
         unset($validated['holdings']);
 
-        $canonical = InvestmentAccountNormaliser::fromForm($validated, $user);
+        // The record's own owner: the normaliser stamps user_id, and a joint
+        // owner's save must not hand the account to them.
+        $canonical = InvestmentAccountNormaliser::fromForm($validated, $account->user);
 
         try {
             $account = $this->investmentAccountStore->update($id, $canonical, $user, IngestSource::FORM);
@@ -667,10 +672,8 @@ class InvestmentController extends Controller
             }
         }
 
-        // Clear cache
-        $this->investmentAgent->clearCache($user->id);
-
-        // If joint owner, clear their cache too
+        // Clear both owners' caches, whichever of them changed it
+        $this->investmentAgent->clearCache((int) $account->user_id);
         if ($account->joint_owner_id) {
             $this->investmentAgent->clearCache($account->joint_owner_id);
         }
@@ -687,7 +690,7 @@ class InvestmentController extends Controller
         $resourceData = (new InvestmentAccountResource($account))->toArray(request());
         $resourceData['user_share'] = $this->calculateUserShare($account, $user->id);
         $resourceData['full_value'] = (float) $account->current_value;
-        $resourceData['is_primary_owner'] = true;
+        $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
 
         return response()->json([
             'success' => true,
@@ -708,7 +711,8 @@ class InvestmentController extends Controller
         $user = $request->user();
 
         $account = $this->investmentAccountStore->find($id, $user);
-        if ($account === null || $account->user_id !== $user->id) {
+        // Either owner may change a joint account (HasJointOwnership::scopeForUserOrJoint).
+        if ($account === null) {
             return $this->notFoundResponse('Investment account');
         }
 
@@ -719,10 +723,8 @@ class InvestmentController extends Controller
             IngestSource::FORM
         );
 
-        // Clear caches
-        $this->investmentAgent->clearCache($user->id);
-
-        // If joint owner, clear their cache too
+        // Clear both owners' caches
+        $this->investmentAgent->clearCache((int) $account->user_id);
         if ($account->joint_owner_id) {
             $this->investmentAgent->clearCache($account->joint_owner_id);
         }
@@ -749,7 +751,8 @@ class InvestmentController extends Controller
         $user = $request->user();
 
         $account = $this->investmentAccountStore->find($id, $user);
-        if ($account === null || $account->user_id !== $user->id) {
+        // Either owner may change a joint account (HasJointOwnership::scopeForUserOrJoint).
+        if ($account === null) {
             return $this->notFoundResponse('Investment account');
         }
 
@@ -760,10 +763,8 @@ class InvestmentController extends Controller
 
         $this->investmentAccountStore->delete($id, $user, IngestSource::FORM);
 
-        // Clear cache
-        $this->investmentAgent->clearCache($user->id);
-
-        // If joint owner, clear their cache too
+        // Clear both owners' caches
+        $this->investmentAgent->clearCache((int) $account->user_id);
         if ($jointOwnerId) {
             $this->investmentAgent->clearCache($jointOwnerId);
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Goals;
 
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateGoalRequest extends FormRequest
@@ -36,7 +37,9 @@ class UpdateGoalRequest extends FormRequest
             'risk_preference' => 'nullable|integer|min:1|max:5',
             'use_global_risk_profile' => 'sometimes|boolean',
             'ownership_type' => 'sometimes|string|in:individual,joint',
-            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            // A joint goal names its co-owner, as on create (StoreGoalRequest):
+            // a joint save with none unlinked the goal from the partner.
+            'joint_owner_id' => ['nullable', 'required_if:ownership_type,joint', 'integer', 'exists:users,id', new LinkedCoOwner($this->user())],
             'ownership_percentage' => 'nullable|numeric|min:1|max:100',
             // Property-specific fields
             'property_location' => 'nullable|string|max:255',

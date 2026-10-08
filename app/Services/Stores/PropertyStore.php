@@ -167,7 +167,8 @@ class PropertyStore
 
     public function update(int $id, array $data, User $user, IngestSource $source): Property
     {
-        $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $property = Property::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $property->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
         $this->validateCanonical($data);
 
         $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data, $user, $source) {
@@ -241,7 +242,8 @@ class PropertyStore
 
     public function delete(int $id, User $user, string $reason): void
     {
-        $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $property = Property::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $property->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
         $jointOwnerId = $property->joint_owner_id === null ? null : (int) $property->joint_owner_id;
         $property->delete();
 

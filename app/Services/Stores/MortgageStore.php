@@ -120,7 +120,8 @@ class MortgageStore
      */
     public function update(int $id, array $canonical, User $user, IngestSource $source): Mortgage
     {
-        $mortgage = Mortgage::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $mortgage = Mortgage::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $mortgage->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
         $this->validateCanonical($canonical, partial: true);
 
         $result = AuditLog::withContext(
@@ -193,7 +194,8 @@ class MortgageStore
 
     public function delete(int $id, User $user, IngestSource $source, bool $force = false): void
     {
-        $mortgage = Mortgage::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $mortgage = Mortgage::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $mortgage->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
 
         AuditLog::withContext(
             ['ingest_source' => $source->value],

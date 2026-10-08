@@ -577,6 +577,7 @@ import { isaAllowanceMixin } from '@/mixins/isaAllowanceMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 import logger from '@/utils/logger';
+import { coOwnerId } from '@/utils/ownership';
 export default {
   name: 'SaveAccountModal',
 
@@ -1005,7 +1006,8 @@ export default {
         planned_lump_sum_amount: this.account.planned_lump_sum_amount ? parseFloat(this.account.planned_lump_sum_amount) : null,
         planned_lump_sum_date: this.formatDateForInput(this.account.planned_lump_sum_date),
         ownership_type: this.account.ownership_type || 'individual',
-        joint_owner_id: this.account.joint_owner_id || null,
+        // The viewer's co-owner (either owner may change a joint account).
+        joint_owner_id: coOwnerId(this.account),
         joint_owner_name: this.account.joint_owner_name || '',
         beneficiary_id: this.account.beneficiary_id || '',
         beneficiary_name: this.account.beneficiary_name || '',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Http\Traits\ValidatesSharedOwnership;
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -60,7 +61,7 @@ class StorePropertyRequest extends FormRequest
             'joint_ownership_type' => ['nullable', Rule::in(['joint_tenancy', 'tenants_in_common'])],
             'country' => ['nullable', 'string', 'max:255'],
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'joint_owner_id' => ['nullable', 'exists:users,id'],
+            'joint_owner_id' => ['nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
             // W-0368 — nullable with NO default: absent means "never asked", which the
             // Inheritance Tax valuation treats differently from an explicit false.
@@ -118,7 +119,7 @@ class StorePropertyRequest extends FormRequest
             'mortgage_monthly_interest_portion' => ['nullable', 'numeric', 'min:0'],
             'mortgage_ownership_type' => ['nullable', Rule::in(['individual', 'joint'])],
             'mortgage_original_loan_amount' => ['nullable', 'numeric', 'min:0'],
-            'mortgage_joint_owner_id' => ['nullable', 'exists:users,id'],
+            'mortgage_joint_owner_id' => ['nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'mortgage_joint_owner_name' => ['nullable', 'string', 'max:255'],
             'mortgage_ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             // W-0483 — the declared borrowing share, where it differs from the share

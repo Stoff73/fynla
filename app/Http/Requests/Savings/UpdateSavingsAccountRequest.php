@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Savings;
 
 use App\Http\Traits\ValidatesSharedOwnership;
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -56,7 +57,7 @@ class UpdateSavingsAccountRequest extends FormRequest
             'is_isa' => 'sometimes|boolean',
             'ownership_type' => ['sometimes', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
-            'joint_owner_id' => 'sometimes|nullable|exists:users,id',
+            'joint_owner_id' => ['sometimes', 'nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'sometimes|nullable|exists:trusts,id',
             'country' => 'sometimes|nullable|string|max:255',

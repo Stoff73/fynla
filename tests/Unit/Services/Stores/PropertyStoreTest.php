@@ -12,7 +12,6 @@ use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
@@ -86,7 +85,8 @@ it('PropertyStore::find is joint-aware (joint owner sees the same property)', fu
     expect($store->find($property->id, $jointOwner)->id)->toBe($property->id);
 });
 
-it('PropertyStore::update is primary-owner-only — joint owner cannot mutate', function () {
+// Both owners of a joint property own it (CSJ 2026-10-08); the record keeps its owner.
+it('PropertyStore::update lets the joint owner change a joint property, which keeps its owner', function () {
     $owner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $jointOwner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $store = app(PropertyStore::class);
@@ -100,8 +100,11 @@ it('PropertyStore::update is primary-owner-only — joint owner cannot mutate', 
         'current_value' => 400000,
     ], $owner, IngestSource::FORM);
 
-    expect(fn () => $store->update($property->id, ['current_value' => 999999], $jointOwner, IngestSource::FORM))
-        ->toThrow(ModelNotFoundException::class);
+    $updated = $store->update($property->id, ['current_value' => 999999], $jointOwner, IngestSource::FORM);
+
+    expect((float) $updated->current_value)->toBe(999999.0)
+        ->and($updated->user_id)->toBe($owner->id)
+        ->and($updated->joint_owner_id)->toBe($jointOwner->id);
 });
 
 it('PropertyStore::forUser returns properties where user is primary or joint owner', function () {

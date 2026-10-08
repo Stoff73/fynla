@@ -113,7 +113,8 @@ it('soft-deletes a mortgage via DELETE', function () {
     $this->assertSoftDeleted('mortgages', ['id' => $mortgage->id]);
 });
 
-it('rejects update from non-owner (joint owner is read-only)', function () {
+// Both owners of a joint mortgage own it (CSJ 2026-10-08); the record keeps its owner.
+it('lets the joint owner update a joint mortgage, which keeps its owner', function () {
     $spouse = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $mortgage = Mortgage::factory()->create([
         'user_id' => $this->user->id,
@@ -132,7 +133,11 @@ it('rejects update from non-owner (joint owner is read-only)', function () {
         'ownership_percentage' => 50.00,
     ]);
 
-    $response->assertStatus(404);
+    $response->assertOk();
+    $fresh = $mortgage->fresh();
+    expect((float) $fresh->outstanding_balance)->toBe(999999.0)
+        ->and($fresh->user_id)->toBe($this->user->id)
+        ->and($fresh->joint_owner_id)->toBe($spouse->id);
 });
 
 it('returns 422 on invalid mortgage_type', function () {

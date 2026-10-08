@@ -106,7 +106,9 @@ it('leaves a solely-borrowed mortgage on a shared property at 100', function () 
 it('defaults to 50/50 when the property itself has no share to inherit', function () {
     // A jointly-owned property carries the 50/50 default, and the mortgage
     // takes that same 50 — inherited from one source, not invented beside it.
-    $spouse = User::factory()->create(['is_preview_user' => false]);
+    // Linked both ways, as an accepted invitation leaves them: a co-owner must
+    // be the user's reciprocal spouse (LinkedCoOwner, User::hasReciprocalSpouseLink).
+    $spouse = User::factory()->create(['is_preview_user' => false, 'spouse_id' => $this->user->id]);
     $this->user->update(['spouse_id' => $spouse->id]);
 
     $this->postJson('/api/properties', manchesterProperty([

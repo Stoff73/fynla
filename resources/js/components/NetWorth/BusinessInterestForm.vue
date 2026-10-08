@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="">
+  <div class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
     <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
       <div class="overflow-y-auto max-h-[90vh]">
         <!-- Header -->
@@ -584,6 +584,7 @@
 
 <script>
 import { mapState } from 'vuex';
+import { coOwnerId, isSharedRecord, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'BusinessInterestForm',
@@ -739,8 +740,12 @@ export default {
       this.form.trading_status = this.business.trading_status || 'trading';
       this.form.description = this.business.description || '';
       this.form.ownership_type = this.business.ownership_type || 'individual';
-      this.form.ownership_percentage = this.business.ownership_percentage || 100;
-      this.form.joint_owner_id = this.business.joint_owner_id || null;
+      // The viewer's own share and co-owner (either owner may change a joint
+      // business interest); the server turns them back (SharedOwnership::fromEditor).
+      this.form.ownership_percentage = isSharedRecord(this.business)
+        ? userSharePercent(this.business)
+        : (this.business.ownership_percentage || 100);
+      this.form.joint_owner_id = coOwnerId(this.business);
       this.form.current_valuation = this.business.current_valuation || null;
       this.form.valuation_date = this.formatDateForInput(this.business.valuation_date);
       this.form.valuation_method = this.business.valuation_method || '';
@@ -776,7 +781,7 @@ export default {
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     },
