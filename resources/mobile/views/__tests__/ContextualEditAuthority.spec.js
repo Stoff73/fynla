@@ -9,28 +9,26 @@ import Savings from '../modules/Savings.vue';
 import SavingsAccount from '../modules/SavingsAccount.vue';
 
 describe('/m contextual edit authority', () => {
-  it('does not build an edit request for a read-only joint savings account', () => {
+  // Both owners of a joint account own it (CSJ 2026-10-08).
+  it('builds an edit request for the joint owner of a savings account', () => {
     const request = SavingsAccount.computed.contextualRequest.call({
       accountId: '41',
       account: { is_primary_owner: false },
     });
 
-    expect(request).toBeNull();
+    expect(request).not.toBeNull();
   });
 
-  it('does not build an edit request for a read-only joint investment account', () => {
+  it('builds an edit request for the joint owner of an investment account', () => {
     const request = InvestmentAccountDetail.computed.contextualRequest.call({
       accountId: '42',
       account: { is_primary_owner: false },
     });
 
-    expect(request).toBeNull();
+    expect(request).not.toBeNull();
   });
 
-  it('hides joint goal edits and uses the canonical goals fallback', () => {
-    expect(Goals.methods.canEditGoal({ is_primary_owner: false })).toBe(false);
-    expect(Goals.methods.canEditGoal({ is_primary_owner: true })).toBe(true);
-
+  it('uses the canonical goals fallback for a goal edit', () => {
     const request = Goals.methods.goalRequest('edit', 43);
     expect(request.current_destination.fallback).toBe('goals');
   });

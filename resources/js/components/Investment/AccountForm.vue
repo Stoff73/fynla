@@ -213,6 +213,7 @@ import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { isaAllowanceMixin } from '@/mixins/isaAllowanceMixin';
+import { coOwnerId } from '@/utils/ownership';
 import logger from '@/utils/logger';
 
 const HOLDABLE_ACCOUNT_TYPES = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
@@ -740,7 +741,8 @@ export default {
             // Use isa_subscription_current_year directly (backend stores this field)
             isa_subscription_current_year: newAccount.isa_subscription_current_year || null,
             ownership_type: newAccount.ownership_type || 'individual',
-            joint_owner_id: newAccount.joint_owner_id || null,
+            // The viewer's co-owner (either owner may change a joint account).
+            joint_owner_id: coOwnerId(newAccount),
             joint_owner_name: newAccount.joint_owner_name || '',
             trust_id: newAccount.trust_id || null,
             platform_fee_type: newAccount.platform_fee_type || 'percentage',
@@ -783,7 +785,7 @@ export default {
             isa_type: this.account.isa_type || 'stocks_and_shares',
             isa_subscription_current_year: this.account.isa_subscription_current_year || null,
             ownership_type: this.account.ownership_type || 'individual',
-            joint_owner_id: this.account.joint_owner_id || null,
+            joint_owner_id: coOwnerId(this.account),
             joint_owner_name: this.account.joint_owner_name || '',
             trust_id: this.account.trust_id || null,
             risk_preference: this.account.risk_preference || null,

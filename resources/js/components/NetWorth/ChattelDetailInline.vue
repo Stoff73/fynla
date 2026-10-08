@@ -28,7 +28,7 @@
                 Capital Gains Tax Exempt
               </span>
               <span v-if="chattel.is_shared" class="badge badge-indigo">
-                {{ chattel.ownership_percentage }}% Ownership
+                {{ sharePercent }}% Ownership
               </span>
             </div>
             <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ chattel.name }}</h1>
@@ -36,7 +36,6 @@
           </div>
           <div class="flex space-x-2 w-full sm:w-auto">
             <button
-              v-if="chattel.is_primary_owner !== false"
               v-preview-disabled="'edit'"
               @click="$emit('edit', chattel)"
               class="px-4 py-2 bg-pink-600 text-white rounded-button hover:bg-pink-700 transition-colors"
@@ -44,7 +43,6 @@
               Edit
             </button>
             <button
-              v-if="chattel.is_primary_owner !== false"
               v-preview-disabled="'delete'"
               @click="confirmDelete"
               class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
@@ -60,7 +58,7 @@
             <p class="text-sm text-neutral-500">Current Value</p>
             <p class="text-2xl font-bold text-pink-600">{{ formatCurrency(chattel.full_value || chattel.current_value) }}</p>
             <p v-if="chattel.is_shared" class="text-sm text-pink-600 mt-1">
-              Your {{ chattel.ownership_percentage }}% share: {{ formatCurrency(chattel.user_share) }}
+              Your {{ sharePercent }}% share: {{ formatCurrency(chattel.user_share) }}
             </p>
           </div>
           <div class="bg-savannah-100 rounded-lg p-4">
@@ -395,6 +393,11 @@ export default {
   },
 
   computed: {
+    // The viewer's own share: the joint owner's is the other side of the
+    // stored split, which is the primary owner's (Rule 6, W-0016).
+    sharePercent() {
+      return userSharePercent(this.chattel).toFixed(2);
+    },
     vehicleDescription() {
       if (this.chattel?.chattel_type !== 'vehicle') return null;
       const parts = [];

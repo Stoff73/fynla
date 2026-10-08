@@ -183,6 +183,31 @@ export function coOwnerName(item, viewerId = null) {
 }
 
 /**
+ * The id of the OTHER party on a shared record — never the viewer's own.
+ *
+ * A form's "joint owner" is the viewer's co-owner. The stored `joint_owner_id`
+ * is that only for the primary owner; for the joint owner it is themselves, and
+ * a form filled with it lost the co-owner on save. Either owner may change a
+ * joint record (CSJ 2026-10-08); the server turns the answer back
+ * (SharedOwnership::fromEditor).
+ *
+ * @param {Object} item - The asset item
+ * @param {number|null} viewerId - The logged-in user's id, when known
+ * @returns {number|null}
+ */
+export function coOwnerId(item, viewerId = null) {
+  if (!item) return null;
+
+  // Flat ids where the payload has them, the nested relations otherwise (the
+  // savings list sends `user` and `joint_owner`, as coOwnerName reads them).
+  const id = isPrimaryOwner(item, viewerId)
+    ? (item.joint_owner_id ?? item.joint_owner?.id)
+    : (item.user_id ?? item.user?.id);
+
+  return id == null ? null : Number(id);
+}
+
+/**
  * Readable name from a nested user relation, as chattels and some other
  * resources return it instead of a flat `*_name` string.
  *

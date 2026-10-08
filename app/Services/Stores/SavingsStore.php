@@ -110,25 +110,6 @@ class SavingsStore
     }
 
     /**
-     * User-scoped id-based read for primary-owner-only actions.
-     *
-     * Contextual Edit conversations must mirror the store's mutation
-     * authority: joint owners can view an account, but only the primary owner
-     * may start a workflow that can update it.
-     */
-    public function findManyPrimary(array $ids, User $user): Collection
-    {
-        if ($ids === []) {
-            return new Collection;
-        }
-
-        return SavingsAccount::query()
-            ->whereIn('id', $ids)
-            ->where('user_id', $user->id)
-            ->get();
-    }
-
-    /**
      * Gate-accurate count of the user's savings accounts: primary-owner rows
      * only, matching what canCreate enforces (joint-owned accounts don't count
      * toward the cap). Single source for both create() and the free-tier cap
@@ -199,7 +180,8 @@ class SavingsStore
      */
     public function update(int $id, array $data, User $user, IngestSource $source): SavingsAccount
     {
-        $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $account = SavingsAccount::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $account->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
         $this->validateCanonical($data);
         $this->validateOwnershipLinks(array_merge(
             $account->only(['account_type', 'is_isa', 'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id']),
@@ -235,10 +217,10 @@ class SavingsStore
         return $this->create(array_merge($match, $data), $user, $source);
     }
 
-    // Primary owner only — joint owners cannot delete. Matches pre-store contract.
     public function delete(int $id, User $user, string $reason): void
     {
-        $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $account = SavingsAccount::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $account->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
 
         DB::transaction(function () use ($account, $id, $user, $reason) {
             $account->delete();

@@ -23,6 +23,7 @@ use App\Services\Goals\LifeEventService;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\GoalStore;
 use App\Services\Stores\IngestSource;
+use App\Support\SharedOwnership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -240,9 +241,8 @@ class GoalsController extends Controller
     {
         $user = $request->user();
 
-        $goal = Goal::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
+        // Either owner may change a joint goal (HasJointOwnership::scopeForUserOrJoint).
+        $goal = Goal::whereKey($id)->forUserOrJoint($user->id)->first();
 
         if (! $goal) {
             return response()->json([
@@ -252,7 +252,9 @@ class GoalsController extends Controller
         }
 
         try {
-            $data = $request->validated();
+            // The form speaks from the editor's side; the joint owner's answers
+            // are turned into the stored columns.
+            $data = SharedOwnership::fromEditor($request->validated(), $goal, (int) $user->id);
 
             // Handle status change to completed
             if (($data['status'] ?? null) === 'completed' && $goal->status !== 'completed') {
@@ -283,9 +285,7 @@ class GoalsController extends Controller
 
             $goal->update($data);
 
-            // Clear cache
-            $this->goalsAgent->clearCache($user->id);
-            $this->projectionService->clearCache($user->id);
+            $this->clearOwnersCaches($goal);
 
             return response()->json([
                 'success' => true,
@@ -304,9 +304,8 @@ class GoalsController extends Controller
     {
         $user = $request->user();
 
-        $goal = Goal::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
+        // Either owner may delete a joint goal (HasJointOwnership::scopeForUserOrJoint).
+        $goal = Goal::whereKey($id)->forUserOrJoint($user->id)->first();
 
         if (! $goal) {
             return response()->json([
@@ -318,9 +317,7 @@ class GoalsController extends Controller
         try {
             $goal->delete();
 
-            // Clear cache
-            $this->goalsAgent->clearCache($user->id);
-            $this->projectionService->clearCache($user->id);
+            $this->clearOwnersCaches($goal);
 
             return response()->json([
                 'success' => true,
@@ -633,8 +630,7 @@ class GoalsController extends Controller
     {
         $user = $request->user();
 
-        $goal = Goal::where('id', $id)
-            ->where('user_id', $user->id)
+        $goal = Goal::whereKey($id)->forUserOrJoint($user->id)
             ->with(['dependsOn:id,goal_name,goal_type,status,target_amount,current_amount,target_date',
                 'dependedOnBy:id,goal_name,goal_type,status,target_amount,current_amount,target_date'])
             ->first();
@@ -685,10 +681,9 @@ class GoalsController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $goal = Goal::where('id', $id)->where('user_id', $user->id)->first();
-        $dependsOnGoal = Goal::where('id', $request->input('depends_on_goal_id'))
-            ->where('user_id', $user->id)
-            ->first();
+        // Both goals the user's, on either side of a joint goal.
+        $goal = Goal::whereKey($id)->forUserOrJoint($user->id)->first();
+        $dependsOnGoal = Goal::whereKey($request->input('depends_on_goal_id'))->forUserOrJoint($user->id)->first();
 
         if (! $goal || ! $dependsOnGoal) {
             return response()->json([
@@ -721,7 +716,7 @@ class GoalsController extends Controller
                 ],
             ]);
 
-            $this->goalsAgent->clearCache($user->id);
+            $this->clearOwnersCaches($goal);
 
             return response()->json([
                 'success' => true,
@@ -739,7 +734,7 @@ class GoalsController extends Controller
     {
         $user = $request->user();
 
-        $goal = Goal::where('id', $id)->where('user_id', $user->id)->first();
+        $goal = Goal::whereKey($id)->forUserOrJoint($user->id)->first();
 
         if (! $goal) {
             return response()->json([
@@ -749,12 +744,23 @@ class GoalsController extends Controller
         }
 
         $goal->dependsOn()->detach($dependsOnId);
-        $this->goalsAgent->clearCache($user->id);
+        $this->clearOwnersCaches($goal);
 
         return response()->json([
             'success' => true,
             'message' => 'Dependency removed successfully.',
         ]);
+    }
+
+    /**
+     * Both owners' goal caches, whichever of them changed the goal.
+     */
+    private function clearOwnersCaches(Goal $goal): void
+    {
+        foreach (array_filter([(int) $goal->user_id, $goal->joint_owner_id === null ? null : (int) $goal->joint_owner_id]) as $ownerId) {
+            $this->goalsAgent->clearCache($ownerId);
+            $this->projectionService->clearCache($ownerId);
+        }
     }
 
     /**

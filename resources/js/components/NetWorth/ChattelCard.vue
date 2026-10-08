@@ -10,7 +10,7 @@
         </span>
       </div>
       <span v-if="isJoint" class="ownership-badge">
-        {{ chattel.ownership_percentage }}%
+        {{ sharePercent }}%
       </span>
     </div>
 
@@ -37,6 +37,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'ChattelCard',
@@ -74,6 +75,12 @@ export default {
 
     isVehicle() {
       return this.chattel.chattel_type === 'vehicle';
+    },
+
+    // The viewer's own share: the joint owner's is the other side of the
+    // stored split, which is the primary owner's (Rule 6).
+    sharePercent() {
+      return userSharePercent(this.chattel).toFixed(2);
     },
 
     displayValue() {

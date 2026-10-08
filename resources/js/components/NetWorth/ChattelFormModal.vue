@@ -305,6 +305,7 @@
 
 <script>
 import { mapState } from 'vuex';
+import { coOwnerId, isSharedRecord, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'ChattelFormModal',
@@ -436,8 +437,12 @@ export default {
         name: this.chattel.name || '',
         description: this.chattel.description || '',
         ownership_type: this.chattel.ownership_type || 'individual',
-        ownership_percentage: this.chattel.ownership_percentage || 100,
-        joint_owner_id: this.chattel.joint_owner_id || null,
+        // The viewer's own share and co-owner (either owner may change a joint
+        // chattel); the server turns them back (SharedOwnership::fromEditor).
+        ownership_percentage: isSharedRecord(this.chattel)
+          ? userSharePercent(this.chattel)
+          : (this.chattel.ownership_percentage || 100),
+        joint_owner_id: coOwnerId(this.chattel),
         joint_owner_name: this.chattel.joint_owner_name || '',
         current_value: this.chattel.current_value || null,
         valuation_date: this.formatDateForInput(this.chattel.valuation_date),

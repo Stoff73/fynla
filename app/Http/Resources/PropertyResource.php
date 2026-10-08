@@ -72,6 +72,10 @@ class PropertyResource extends JsonResource
 
             // Relationships
             'mortgages' => MortgageResource::collection($this->whenLoaded('mortgages')),
+            // Both owner ids whatever is loaded, so a form can name the viewer's
+            // co-owner (ownership.js coOwnerId).
+            'user_id' => $this->user_id,
+            'joint_owner_id' => $this->joint_owner_id,
             'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
             'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
 

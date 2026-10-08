@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Http\Traits\ValidatesSharedOwnership;
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -92,7 +93,7 @@ class StoreMortgageRequest extends FormRequest
 
             // Ownership
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint'])],
-            'joint_owner_id' => ['nullable', 'exists:users,id'],
+            'joint_owner_id' => ['nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
             // W-0483 — the share of this borrowing the mortgage's own owner carries,
             // where it is not the share of the property. Nullable and with no default:

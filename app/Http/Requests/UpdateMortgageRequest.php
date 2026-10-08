@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -74,7 +75,7 @@ class UpdateMortgageRequest extends FormRequest
             // where it is not the share of the property. Nullable and with no default:
             // absent means nobody has said, and the property stays authoritative.
             'declared_liability_percentage' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
-            'joint_owner_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'joint_owner_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => ['sometimes', 'nullable', 'string', 'max:255'],
 
             // Notes

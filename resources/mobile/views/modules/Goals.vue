@@ -149,7 +149,6 @@ export default {
   async created() { await this.load(); },
   methods: {
     fmt(v) { return formatCurrency(v); },
-    canEditGoal(goal) { return goal?.is_primary_owner !== false; },
     barWidth(goal) {
       const pct = Number(goal.progress_percentage) || 0;
       return `${Math.min(pct, 100)}%`;
