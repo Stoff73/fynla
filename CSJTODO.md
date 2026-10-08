@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-10-01 session 5. The order of work is `todoCurrent/TODO.md`; this file is the detail record. Item 7 (retirement) is on `feat/retirement-decumulation-and-care-costs`, deployed to csjones, not merged.*
+*Last updated: 2026-10-08 session 3. The order of work is `todoCurrent/TODO.md`; this file is the detail record. Item 17a (Fyn on OpenAI GPT-6 Luna) and the joint-ownership work (#1151) are merged to dev and walked on csjones, not released; the walk's open findings are under 17a in TODO.md.*
 
 ## The board position
 
@@ -250,7 +250,7 @@ Three small decisions, all optional:
 
 ## Deploy state
 
-- **2026-10-07: prod (fynla.org) = main `7c9f30899` (release u, #1122, item 9 Estate).** csjones = dev `01ad5b76e`. Scripts in session ac9c551a scratchpad (`release-prod-2026-10-07-u.sh`).
+- **2026-10-08: prod (fynla.org) = main `8f2a91341` (releases w/x/y, #1132/#1135/#1139), AI provider xAI.** csjones = dev `3e7be5889` (#1148 OpenAI, #1149, #1151 joint ownership, #1152, #1153), AI provider OpenAI GPT `gpt-6-luna` (switched in the admin panel; a deploy's `cache:clear` resets it to `.env` `AI_PROVIDER`, which CSJ will set to `openai`).
 
 ## Tech debt deferred
 

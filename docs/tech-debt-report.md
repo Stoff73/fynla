@@ -1,33 +1,34 @@
-# Tech Debt Report — Session 2026-10-07 (session 3)
+# Tech Debt Report — Session 2026-10-08
 
-**Files analysed:** 22 (the session's changes, `7c9f30899..f26970f14`, released as #1127)
+**Files analysed:** 103 (`git diff ed4835677..origin/dev -- app resources tests config`: PRs #1148, #1149, #1151, #1152, #1153)
 **Issues found:** 5
-**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
+**Severity breakdown:** 0 critical, 3 warnings, 2 suggestions
 
 ## Critical Issues
 
-None.
+None. No debug output, empty catches, hex colours, banned colour classes or missing strict types introduced.
 
 ## Warnings
 
-1. **`app/Services/Tax/Strategies/NonEarnerSpousePensionStrategy.php:108` and `:199` — Convention (Rule 2).** Both descriptions say "a separate 25%% tax-free lump sum" as typed text. The rate is `pension.pcls_rate` in tax config (`TaxConfigService.php:192`, `calculatePCLS`). The lines were reworded this session (item 13) and kept the literal.
-   *Fix:* read the rate from tax config (`getPensionAllowances()['pcls_rate']`) and format it into both sentences.
+1. **Two rules for "which records a joint owner may change" (Category 6).**
+   - `app/Agents/CoordinatingAgent.php:152` names the ruled set explicitly (`JOINT_OWNER_EDITABLE`).
+   - `app/Services/AI/ContextualConversation/ContextualResourceResolver.php:224` decides by `HasJointOwnership` on the model.
+   - They agree today only because the resolver reaches no life events. A life event added to the resolver would open it to the joint owner in one path and not the other.
+   - Fix: one list in one home (for example a constant on `HasJointOwnership` or `SharedOwnership`), read by both.
 
-2. **`app/Services/Onboarding/SpouseHoldingTransfer.php` (`otherIncomeCopiedAtLink`, `inviterPensionIncome`) — Duplicate code.** Both run the same lookup for the inviter's transferred holding row (`liveSpouse()` then `TaxStrategyHouseholdInput::where('user_id', …)->whereNotNull('spouse_holding_transferred_at')->first()`). `inviterPensionIncome` also works out the earnings share inline, where `payAtLink` (same class) already holds that rule.
-   *Fix:* one private `transferredHolding(User $spouse): ?TaxStrategyHouseholdInput`, and `inviterPensionIncome` via `payAtLink($income, $earnings, 'retired')`.
+2. **Two entity-to-store maps in one class (Category 1).**
+   - `CoordinatingAgent::handleUpdateRecord` (`$stored = match`, line 6625) and `handleDeleteRecord` (`$jointStores`, line 6855) each map the same five joint entities to their stores.
+   - Fix: one private map, used by both.
+
+3. **"Clear both owners' caches" copied across controllers (Category 1).**
+   - `SavingsController`, `InvestmentController` (3 times), `BusinessInterestController` (2), `ChattelController` (2) inline the same two-owner invalidation.
+   - `GoalsController::clearOwnersCaches` is the only helper.
+   - Fix: one shared helper (for example on `CacheInvalidationService`), taking the record.
 
 ## Suggestions
 
-3. **`app/Agents/CoordinatingAgent.php` (`handleCreateEstateGift`, `handleDeleteRecord` estate_gift branch) — Redundant.** `GiftStore` already clears the user's caches (`CacheInvalidationService::invalidateForUser`), and the handlers call `invalidateUserCache` again afterwards. No defect; one call is enough.
-   *Fix:* drop the handler-side call for gifts, or document why the agent cache needs its own.
-
-4. **`app/Agents/CoordinatingAgent.php` `handleCreateEstateGift` — Redundant work.** It calls `GiftStore::validateNew` before the duplicate check, then `GiftStore::create` validates again.
-   *Fix:* acceptable as is (the check must run before `guardRecapture`); or let `create` take a pre-validated flag. Low value.
-
-5. **`app/Services/Investment/Recommendation/SpouseOptimisationService.php` — Duplicate engine (Rule 20).** The Investment plan's partner top-up and `NonEarnerSpousePensionStrategy` (Tax Strategy) are two engines for one suggestion. They now share figures (`TaxStrategyMath::nonEarnerPensionContribution`) and wording, but not the affordability cap or the age rule the Tax Strategy card applies.
-   *Fix:* have the plan read the Tax Strategy recommendation, as the Holistic Plan follows the actions list (item 41 is the same class of problem).
-
-Not reported (grandfathered or ruled): the `fa-info-circle` icon font at `GiftForm.vue` (Rule 15, forward-only); `CaptureForms.php` length (CSJ ruling 53, do not split).
+4. **`config/services.php` has no `declare(strict_types=1)` (Category 3).** It predates today (absent at `ed4835677`); 17a touched the file. Add it when next edited.
+5. **`InvestmentAccountStore::moveDividendTotal` (Category 4).** It now reads the stored total from the database and syncs the instance's original before `update()`, because a joint owner's change runs as the record's owner on a different `User` instance. Correct, but subtle; an atomic `increment`-style write would be simpler if model events on `users.annual_dividend_income` are not needed.
 
 ---
 *Generated by tech-debt-session skill*
