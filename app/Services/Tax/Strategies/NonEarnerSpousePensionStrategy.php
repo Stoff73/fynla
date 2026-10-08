@@ -120,6 +120,9 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 'net_contribution' => $netContribution,
                 'gross_contribution' => $netContribution + $governmentUplift,
                 'government_uplift' => $governmentUplift,
+                // The whole benefit is the relief HMRC adds to the pot, so the
+                // action row says so (CSJ 2026-10-08: "if it is pensions, then yes").
+                'benefit_wording' => 'hmrc_adds',
                 'spouse_existing_pension_balance' => round($existingBalance, 2),
                 'spouse_age' => $spouseAge,
             ],
@@ -213,6 +216,7 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
                 'gross_capacity' => $grossCapacity,
                 'net_cost' => $netCost,
                 'government_uplift' => $uplift,
+                'benefit_wording' => 'hmrc_adds',
                 'basic_rate' => $basicRate,
                 'spouse_age' => $spouseAge,
             ],

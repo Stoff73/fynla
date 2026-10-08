@@ -148,7 +148,7 @@ final class ActionCardService
             'what_this_changes' => $isRecommendation
                 ? $howTo['outcome']
                 : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
-            'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null),
+            'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null, $card['benefit_wording'] ?? null),
             'how_to' => $howTo['steps'],
             'learn_more' => $howTo['learn'],
             'conflict_note' => $card['conflict_note'] ?? null,
@@ -344,11 +344,12 @@ final class ActionCardService
     /**
      * The key figure from the action's benefit. An estate benefit is a one-off
      * Inheritance Tax saving (EstateRecommendationAdapter), never "a year";
-     * every other module's benefit is an annual tax saving.
+     * every other module's benefit is an annual tax saving, except relief HMRC
+     * adds to a pension pot, which says so (CSJ 2026-10-08).
      *
      * @return array{label: string, value: string, sub: string|null}|null
      */
-    public static function keyFigureFor(string $module, mixed $benefit, ?string $type = null): ?array
+    public static function keyFigureFor(string $module, mixed $benefit, ?string $type = null, ?string $wording = null): ?array
     {
         if (! is_numeric($benefit) || (float) $benefit < 1) {
             return null;
@@ -358,6 +359,7 @@ final class ActionCardService
 
         return match (true) {
             $module === 'estate' => ['label' => 'Could reduce Inheritance Tax by about', 'value' => $pounds, 'sub' => null],
+            $wording === 'hmrc_adds' => ['label' => 'HMRC adds', 'value' => $pounds.' a year', 'sub' => null],
             in_array($type, ActionCardFigures::ONE_OFF_TYPES, true) => ['label' => 'Saves about', 'value' => $pounds, 'sub' => null],
             default => ['label' => 'Saves about', 'value' => $pounds.' a year', 'sub' => null],
         };
