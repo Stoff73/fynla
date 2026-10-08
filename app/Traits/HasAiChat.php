@@ -2096,6 +2096,18 @@ trait HasAiChat
             return null;
         }
 
+        // Values that already matched wrote nothing (update_record's
+        // no-change result, updated: false). Saying "saved" let the model
+        // narrate "Updated the existing account" for a write that never
+        // happened (csjones walk 2026-10-08; SPEC-crud-handler-contract C5).
+        if (isset($result['updated']) && $result['updated'] === false) {
+            return 'CAPTURE_TURN_COMPLETE: nothing was changed, because what the '
+                .'user gave already matches the record on file. Do not call any '
+                .'create_ or update_ tool again in this turn. Reply with one short '
+                .'sentence saying it is already on file; never say it was updated '
+                .'or saved, then end your turn.';
+        }
+
         return 'CAPTURE_TURN_COMPLETE: this record is saved (or already '
             .'existed and was skipped). Do not call any create_ or update_ '
             .'tool again in this turn. Reply with at most one short '
