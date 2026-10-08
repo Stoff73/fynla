@@ -80,3 +80,25 @@ it('does not continue after a capture turn that already wrote', function () {
 
     expect(continuationIntent($conversation, 'Thanks, looks right'))->toBeNull();
 });
+
+it('takes the answer to the duplicate guard\'s form question as about that record', function () {
+    // csjones, Alex, 2026-10-08: a savings form saved outside the setup walk
+    // matched his joint account; the guard asked "a separate savings account …,
+    // or the same one?" and "It's the same one" reopened a blank form. The
+    // question row (OnboardingChatDirector::emitFormProblem) is a capture still
+    // asking about record 893, and the answer continues it, naming that record.
+    $conversation = conversationWith([
+        ['role' => 'user', 'content' => 'Add my Santander easy access savings account, £24,000 at 4%, joint with Jamie 50/50'],
+        ['role' => 'assistant', 'content' => 'Fill this in and save, and I\'ll add it to your records.', 'metadata' => ['turn_intent' => 'verify_prompt']],
+        ['role' => 'user', 'content' => 'Santander easy access savings, balance £24,000, 4% interest, joint.'],
+        ['role' => 'assistant', 'persona' => 'data_capture',
+            'content' => 'You already have a savings account recorded as "Santander easy access savings", with exactly these details. Is this a separate savings account you also hold, or the same one?',
+            'metadata' => ['turn_intent' => 'capture_clarification', 'capture_write_failed' => true, 'capture_write_landed' => false, 'capture_record_id' => 893]],
+    ]);
+
+    $intent = continuationIntent($conversation, "It's the same one");
+
+    expect($intent)->not->toBeNull()
+        ->and($intent['entity_type'])->toBe('savings_account')
+        ->and($intent['pending_record_id'])->toBe(893);
+});
