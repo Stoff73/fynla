@@ -17,7 +17,6 @@ use App\Services\Coordination\RecommendationCompletionService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\RecordEditForms;
 use App\ValueObjects\CaptureContext;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -871,14 +870,14 @@ final class AdviceFyn
     /** @return list<string> */
     public function buildToolList(User $user): array
     {
-        $provider = Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
-        $definitions = $provider === 'xai' ? $this->xaiToolDefinitions : $this->toolDefinitions;
+        $provider = AiProvider::active();
+        $definitions = AiProvider::speaksOpenAiFormat($provider) ? $this->xaiToolDefinitions : $this->toolDefinitions;
         $allTools = $definitions->getTools((bool) $user->is_preview_user);
 
         // S0.5.r — expose handoffTools (delegate_to_capture, capture_complete)
         // alongside the base catalogue so the LLM can route writes through
         // the handoff. handoffTools is provider-aware.
-        $handoffTools = $definitions->handoffTools($provider === 'xai' ? 'xai' : 'anthropic');
+        $handoffTools = $definitions->handoffTools(AiProvider::toolFormat($provider));
         $allTools = array_merge($allTools, $handoffTools);
 
         $names = array_filter(array_map(

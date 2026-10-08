@@ -8,7 +8,6 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\ProposedSemanticFact;
 use App\Services\AI\Learning\ProposedFactSynthesiser;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -42,8 +41,6 @@ use RuntimeException;
  */
 class ConversationSummariser
 {
-    private const ENDPOINT = 'https://api.x.ai/v1/chat/completions';
-
     private const MAX_MESSAGES = 50;
 
     private const MAX_TOKENS = 800;
@@ -126,15 +123,13 @@ class ConversationSummariser
      */
     private function callProvider(string $transcript): ?array
     {
-        $apiKey = config('services.xai.api_key');
+        $connection = AiProvider::helperConnection();
 
-        if (empty($apiKey)) {
-            Log::warning('[ConversationSummariser] XAI_API_KEY is not configured — skipping summarisation');
+        if (! AiProvider::isConfigured($connection)) {
+            Log::warning('[ConversationSummariser] '.strtoupper($connection).'_API_KEY is not configured — skipping summarisation');
 
             return null;
         }
-
-        $model = config('services.xai.vision_model', 'grok-4.3');
 
         $systemPrompt = <<<'PROMPT'
 You compress a Fynla financial-planning chat transcript into a structured index entry. Output strict JSON matching this schema:
@@ -156,25 +151,19 @@ Rules:
 PROMPT;
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.$apiKey,
-                'Content-Type' => 'application/json',
-            ])
-                ->timeout(self::TIMEOUT_SECONDS)
-                ->post(self::ENDPOINT, [
-                    'model' => $model,
-                    'max_completion_tokens' => self::MAX_TOKENS,
-                    'temperature' => 0,
-                    'reasoning_effort' => 'none',
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $transcript],
-                    ],
-                ]);
+            $response = AiProvider::postChatCompletion($connection, [
+                'max_completion_tokens' => self::MAX_TOKENS,
+                'temperature' => 0,
+                'reasoning_effort' => 'none',
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $transcript],
+                ],
+            ], self::TIMEOUT_SECONDS);
 
             if (! $response->successful()) {
-                Log::warning('[ConversationSummariser] xAI API error', [
+                Log::warning('[ConversationSummariser] '.AiProvider::name($connection).' API error', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);

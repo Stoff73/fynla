@@ -9,7 +9,6 @@ use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\Memory\Procedural\Procedure;
 use App\Services\AI\Pointers\Pointer;
 use App\Services\AI\Pointers\PointerRegistry;
-use Illuminate\Support\Facades\Cache;
 
 class AiToolDefinitions
 {
@@ -51,7 +50,7 @@ class AiToolDefinitions
         // The HasAiChat trait handles provider-specific wrapping:
         // - xAI/OpenAI: wraps in {type: "function", function: {name, description, parameters}}
         // - Anthropic: converts parameters → input_schema
-        if (Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai') {
+        if (AiProvider::speaksOpenAiFormat(AiProvider::active())) {
             return $tools; // Already in the right shape for OpenAI wrapping
         }
 

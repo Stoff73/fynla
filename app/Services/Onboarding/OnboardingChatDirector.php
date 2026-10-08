@@ -22,6 +22,7 @@ use App\Models\OnboardingProgress;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\AiProvider;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
@@ -54,7 +55,6 @@ use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -3163,13 +3163,11 @@ final class OnboardingChatDirector
 
         $toolDefinitions = app(AiToolDefinitions::class);
         // Match the active provider so the tools ship in the correct
-        // format. xAI expects the OpenAI function-calling wrapper,
+        // format. xAI and OpenAI expect the OpenAI function-calling wrapper,
         // Anthropic expects the flattened input_schema shape.
-        $provider = Cache::get(
-            'ai_provider',
-            config('services.ai_provider', 'anthropic')
+        $allExtractionTools = $toolDefinitions->onboardingExtractionTools(
+            provider: AiProvider::toolFormat(AiProvider::active()),
         );
-        $allExtractionTools = $toolDefinitions->onboardingExtractionTools(provider: $provider);
 
         // Filter to the single tool this state needs. The filter key
         // lookup differs between providers — xAI wraps the name inside
@@ -5396,10 +5394,11 @@ PROMPT;
     private function verifyEditToolDefinitions(User $user, string $section, string $message = '', ?string $providerSnapshot = null): array
     {
         $provider = $providerSnapshot ?? $this->verifyEditProviderSnapshot();
-        $tools = $provider === 'xai'
+        $openAiFormat = AiProvider::speaksOpenAiFormat($provider);
+        $tools = $openAiFormat
             ? app(XaiToolDefinitions::class)->getTools(false)
             : app(AiToolDefinitions::class)->getTools(false);
-        if ($provider !== 'xai') {
+        if (! $openAiFormat) {
             $tools = array_map(static function (array $tool): array {
                 if (isset($tool['parameters']) && ! isset($tool['input_schema'])) {
                     return [
@@ -5530,11 +5529,7 @@ PROMPT;
 
     private function verifyEditProviderSnapshot(): string
     {
-        $providerVersion = (int) Cache::get('ai_provider_version', 0);
-
-        return (string) ($providerVersion > 0
-            ? Cache::get('ai_provider:v'.$providerVersion, config('services.ai_provider', 'anthropic'))
-            : Cache::get('ai_provider', config('services.ai_provider', 'anthropic')));
+        return AiProvider::active();
     }
 
     /**

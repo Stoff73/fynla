@@ -11,8 +11,8 @@ use Anthropic\Messages\RawContentBlockStartEvent;
 use Anthropic\Messages\ToolUseBlock;
 use App\Services\AI\Actions\Action;
 use App\Services\AI\Actions\ActionType;
+use App\Services\AI\AiProvider;
 use App\Services\AI\XaiClient;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Log;
  * carries that variant's typed fields.
  *
  * Provider-agnostic, exactly like the reasoner: {@see plan()} resolves the active
- * provider (xAI / Anthropic) the same way HasAiGuardrails::getAiProviderForLoop
+ * provider (xAI or OpenAI / Anthropic) the same way HasAiGuardrails::getAiProviderForLoop
  * does, and forces the `plan` tool over that provider's streaming API — xAI via
  * `XaiClient->chat()->createStreamed` (OpenAI-shaped tool calls), Anthropic via
  * `app(Client::class)->messages->createStream`. The two paths differ only in
@@ -82,8 +82,8 @@ final class Planner
         // did before the planner existed — rather than letting the exception
         // propagate and error the whole chat.
         try {
-            $input = $provider === 'xai'
-                ? $this->planViaXai($system, $messages, $model)
+            $input = AiProvider::speaksOpenAiFormat($provider)
+                ? $this->planViaXai($system, $messages, $model, $provider)
                 : $this->planViaAnthropic($system, $messages, $model);
         } catch (\Throwable $e) {
             Log::warning('[Planner] plan call failed — degrading to default reason', [
@@ -138,7 +138,7 @@ final class Planner
      * @param  array<int, array<string, mixed>>  $messages
      * @return array<string, mixed>
      */
-    private function planViaXai(string $system, array $messages, string $model): array
+    private function planViaXai(string $system, array $messages, string $model, string $provider): array
     {
         $params = [
             'model' => $model,
@@ -149,9 +149,10 @@ final class Planner
             'stream_options' => ['include_usage' => true],
             'tools' => [self::planToolOpenAi()],
             'tool_choice' => ['type' => 'function', 'function' => ['name' => 'plan']],
+            ...AiProvider::chatCompletionsOptions($provider),
         ];
 
-        $stream = app(XaiClient::class)->chat()->createStreamed($params);
+        $stream = app(XaiClient::class)->chat($provider)->createStreamed($params);
 
         $accumulatedJson = '';
 
@@ -196,20 +197,12 @@ final class Planner
      */
     private function resolveProvider(): string
     {
-        $version = (int) Cache::get('ai_provider_version', 0);
-
-        if ($version > 0) {
-            return (string) Cache::get("ai_provider:v{$version}", config('services.ai_provider', 'anthropic'));
-        }
-
-        return (string) Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
+        return AiProvider::active();
     }
 
     private function resolveModel(string $provider): string
     {
-        return $provider === 'xai'
-            ? (string) config('services.xai.chat_model', 'grok-4.3')
-            : (string) config('services.anthropic.chat_model', 'claude-haiku-4-5-20251001');
+        return AiProvider::chatModel($provider);
     }
 
     /**

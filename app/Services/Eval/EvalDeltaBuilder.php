@@ -6,6 +6,7 @@ namespace App\Services\Eval;
 
 use App\Models\EvalProviderRun;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\AiProvider;
 use App\Services\AI\QueryClassifier;
 use Tests\Feature\Fyn\Eval\AssertionHelpers;
 
@@ -456,8 +457,8 @@ final class EvalDeltaBuilder
 
         if (isset($failures['tool_calls'])) {
             $hints[] = 'Required tool sequence missing or mismatched. Check QuerySchemas::REQUIRED_TOOLS for the expected primary.';
-            if ($run->provider === 'xai') {
-                $fixes[] = 'For xAI: verify XaiToolDefinitions exposes the same tool list as AiToolDefinitions and the request includes a non-empty tools array.';
+            if (AiProvider::speaksOpenAiFormat((string) $run->provider)) {
+                $fixes[] = 'For xAI or OpenAI: verify XaiToolDefinitions exposes the same tool list as AiToolDefinitions and the request includes a non-empty tools array.';
             }
             $fixes[] = 'Inspect actual_tool_calls below — if a result_path is success_false, the agent\'s secondary profile gate fired (e.g. ProtectionAgent line 72, RetirementAgent line 101).';
         }

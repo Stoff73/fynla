@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
-use Illuminate\Support\Facades\Http;
+use App\Services\AI\AiProvider;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -26,8 +26,6 @@ use Illuminate\Support\Facades\Validator;
  */
 final class TypedFormFill
 {
-    private const ENDPOINT = 'https://api.x.ai/v1/chat/completions';
-
     /**
      * @param  array{schema: array<string, mixed>, answers: array<string, array<string, mixed>>, record?: array<string, mixed>|null, label?: string}  $form  RecordEditForms::formFor, or a walk step's form
      * @return array<string, mixed>|null the form with `answers` filled in and `filled` naming the fields
@@ -137,8 +135,8 @@ final class TypedFormFill
      */
     private function extract(array $forms, array $sectionsByForm, string $message): array
     {
-        $apiKey = config('services.xai.api_key');
-        if (empty($apiKey)) {
+        $connection = AiProvider::helperConnection();
+        if (! AiProvider::isConfigured($connection)) {
             return [];
         }
 
@@ -180,19 +178,16 @@ Rules:
 PROMPT;
 
         try {
-            $response = Http::withHeaders(['Authorization' => 'Bearer '.$apiKey])
-                ->timeout(30)
-                ->post(self::ENDPOINT, [
-                    'model' => config('services.xai.vision_model', 'grok-4.3'),
-                    'max_completion_tokens' => 600,
-                    'temperature' => 0,
-                    'reasoning_effort' => 'none',
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        ['role' => 'system', 'content' => $system],
-                        ['role' => 'user', 'content' => json_encode(['forms' => $catalogue, 'message' => $message], JSON_UNESCAPED_UNICODE)],
-                    ],
-                ]);
+            $response = AiProvider::postChatCompletion($connection, [
+                'max_completion_tokens' => 600,
+                'temperature' => 0,
+                'reasoning_effort' => 'none',
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    ['role' => 'system', 'content' => $system],
+                    ['role' => 'user', 'content' => json_encode(['forms' => $catalogue, 'message' => $message], JSON_UNESCAPED_UNICODE)],
+                ],
+            ], 30);
 
             if (! $response->successful()) {
                 return [];
