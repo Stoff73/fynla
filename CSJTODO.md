@@ -78,12 +78,11 @@ Released 2026-09-29 and walked live on fynla.org: #966 (#960 Ask Fyn grounding +
 - [ ] **Old wizard invents a mortgage** (`OnboardingService.php:598-613`: "Mortgage Provider", 3.5%, 5 years in, 20 left) for any property balance; only reachable by typing `/onboarding/full`.
 - [ ] **Open, not fixed:** the Apple bridge (`services/apple_store_bridge` + `.venv`) is not installed on fynla.org (`route:list` fails `invalid_configuration`); prod `vendor/` carries dev packages.
 - [ ] **Protection still has two engines:** `RecommendationEngine` still feeds `ProtectionAgent::analyze()['recommendations']` (the plan page's own recommendations section and the composed-flag-off rollback path); the cards no longer use it.
-- [ ] **Savings market rates fall back to an invented 4.00%** (`RateComparator::getMarketBenchmarks`, `getBenchmarkForAccount`) when no stored rate exists; the card can fire from it (Rule 23).
+- [ ] **PRODUCTION ERROR: retirement plan fails** "Undefined variable $potentialSaving" (`RetirementActionDefinitionService.php:2746`, `evaluateHighPensionFundFees`; from `8adf7e213`, released #1047) for pensions with funds charging above 0.5%; seen on fynla.org 2026-10-08. Drop the unsourced saving sentence from the trace.
 - [ ] **Tax plan items carry no working, so Fyn invents it (Rule 23).** "Talk me through my tax plan" → "£60,000 − £50,270 = £9,730 taxed at 40%"; the plan's £3,700 is adjusted net income £54,000 − £50,270. The composed item (`pension_tax_relief`) has no figures behind `suggested_contribution`.
 - [ ] **Ask Fyn from a card while mid-onboarding is swallowed:** a user with `onboarding_completed = 0` and a step set goes to the onboarding director, which greets "Welcome back… continue?" and never answers the card's question (csjones user 419, 2026-09-29).
 - [ ] **/m cannot mark an emergency fund account** (no control; Fyn cannot set `is_emergency_fund`: `UpdateRecordAllowlist`, `CaptureForms`, `RecordEditForms::savingsAnswers`). The how-to names the web Savings page.
 - [ ] **Savings cards that duplicate tax actions** can sit on one list (`psa_breached`/`cash_isa_recommended` vs `isa_topup_vs_psa`, `spouse_psa_shift` vs `savings_to_spouse`, `child_no_jisa` vs `junior_isa`, `excess_cash_pension` vs `pension_tax_relief`).
-- [ ] **Savings how-tos with no verified source yet:** `offset_mortgage_better`, `excess_cash_bond`, `excess_cash_gia` (MoneyHelper blocks automated fetch). CSJ to supply a source.
 - [ ] **Regular saver claim** ("usually pays more") has no stored rate behind it.
 - [ ] **Rule 2: hardcoded tax fallbacks in `PSACalculator::determineTaxBand`** (`?? 12570`, `?? 37700`, `?? 125140`).
 - [ ] **Tool-result depth cap hides nested rows from Fyn** (`HasAiChat::trimForModel`, depth 3).
