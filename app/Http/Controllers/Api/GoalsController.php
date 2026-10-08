@@ -757,7 +757,7 @@ class GoalsController extends Controller
      */
     private function clearOwnersCaches(Goal $goal): void
     {
-        foreach (array_filter([(int) $goal->user_id, $goal->joint_owner_id === null ? null : (int) $goal->joint_owner_id]) as $ownerId) {
+        foreach (SharedOwnership::ownerIds($goal) as $ownerId) {
             $this->goalsAgent->clearCache($ownerId);
             $this->projectionService->clearCache($ownerId);
         }

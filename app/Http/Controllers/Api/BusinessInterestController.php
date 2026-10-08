@@ -110,10 +110,8 @@ class BusinessInterestController extends Controller
         $resource['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
         $resource['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
-        // Invalidate net worth cache
-        $this->netWorthService->invalidateCache($user->id);
-        if ($business->joint_owner_id) {
-            $this->netWorthService->invalidateCache($business->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($business) as $ownerId) {
+            $this->netWorthService->invalidateCache($ownerId);
         }
 
         return response()->json($resource, 201);
@@ -252,10 +250,8 @@ class BusinessInterestController extends Controller
         $businessData['bpr_eligible'] = $business->bpr_eligible ?? false;
         $businessData['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
-        // Invalidate both owners' net worth caches, whichever of them changed it
-        $this->netWorthService->invalidateCache((int) $business->user_id);
-        if ($business->joint_owner_id) {
-            $this->netWorthService->invalidateCache($business->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($business) as $ownerId) {
+            $this->netWorthService->invalidateCache($ownerId);
         }
 
         return response()->json([

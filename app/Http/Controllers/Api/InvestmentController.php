@@ -672,10 +672,8 @@ class InvestmentController extends Controller
             }
         }
 
-        // Clear both owners' caches, whichever of them changed it
-        $this->investmentAgent->clearCache((int) $account->user_id);
-        if ($account->joint_owner_id) {
-            $this->investmentAgent->clearCache($account->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($account) as $ownerId) {
+            $this->investmentAgent->clearCache($ownerId);
         }
 
         // If old joint owner was removed, clear their cache too
@@ -723,10 +721,8 @@ class InvestmentController extends Controller
             IngestSource::FORM
         );
 
-        // Clear both owners' caches
-        $this->investmentAgent->clearCache((int) $account->user_id);
-        if ($account->joint_owner_id) {
-            $this->investmentAgent->clearCache($account->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($account) as $ownerId) {
+            $this->investmentAgent->clearCache($ownerId);
         }
 
         return response()->json([
@@ -806,12 +802,8 @@ class InvestmentController extends Controller
         // Auto-adjust Cash holding allocation
         $this->adjustCashHolding($account);
 
-        // Clear cache
-        $this->investmentAgent->clearCache($user->id);
-
-        // If joint owner, clear their cache too
-        if ($account->joint_owner_id) {
-            $this->investmentAgent->clearCache($account->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($account) as $ownerId) {
+            $this->investmentAgent->clearCache($ownerId);
         }
 
         // Clear optimization caches (efficient frontier, correlation matrix)
@@ -879,13 +871,9 @@ class InvestmentController extends Controller
             $this->adjustCashHolding($holding->investmentAccount);
         }
 
-        // Clear cache
-        $this->investmentAgent->clearCache($user->id);
-
-        // If joint owner, clear their cache too
         $holdingAccount = $holding->investmentAccount;
-        if ($holdingAccount && $holdingAccount->joint_owner_id) {
-            $this->investmentAgent->clearCache($holdingAccount->joint_owner_id);
+        foreach ($holdingAccount ? SharedOwnership::ownerIds($holdingAccount) : [$user->id] as $ownerId) {
+            $this->investmentAgent->clearCache($ownerId);
         }
 
         // Clear optimization caches (efficient frontier, correlation matrix)
@@ -916,12 +904,8 @@ class InvestmentController extends Controller
         // Auto-adjust Cash holding allocation after deletion
         $this->adjustCashHolding($account);
 
-        // Clear cache
-        $this->investmentAgent->clearCache($user->id);
-
-        // If joint owner, clear their cache too
-        if ($account->joint_owner_id) {
-            $this->investmentAgent->clearCache($account->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($account) as $ownerId) {
+            $this->investmentAgent->clearCache($ownerId);
         }
 
         // Clear optimization caches (efficient frontier, correlation matrix)
