@@ -164,7 +164,7 @@ class SavingsActionDefinitionService
 
             // Debt vs Savings
             'debt_rate_exceeds_savings_rate' => $this->evaluateDebtRateExceedsSavings($definition, $userId, $savingsAccounts, $config, $priority),
-            'mortgage_rate_exceeds_after_tax_savings_rate' => $this->evaluateMortgageRateComparison($definition, $userId, $savingsAccounts, $priority),
+            'mortgage_rate_exceeds_after_tax_savings_rate' => $this->evaluateMortgageRateComparison($definition, $savingsAnalysis, $userId, $savingsAccounts, $priority),
 
             // Cash vs Investment
             'excess_cash_and_isa_remaining' => $this->evaluateConsiderStocksSharesISA($definition, $savingsAnalysis, $investmentAnalysis, $userId, $priority),
@@ -1754,6 +1754,7 @@ class SavingsActionDefinitionService
      */
     private function evaluateMortgageRateComparison(
         SavingsActionDefinition $definition,
+        array $savingsAnalysis,
         int $userId,
         Collection $savingsAccounts,
         int $priority
@@ -1765,11 +1766,17 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        // Only trigger if user has surplus above emergency fund levels
-        $nonEmergencyAccounts = $savingsAccounts->where('is_emergency_fund', false);
-        $nonEmergencyBalance = $nonEmergencyAccounts->sum('current_balance');
+        // Only cash above the user's own emergency fund target, the measure
+        // every excess-cash card uses. Counting the accounts not ticked as
+        // emergency fund told a household with none ticked that all £169,180
+        // sat outside it, beside a card saying £36,763 was spare (2026-10-08).
+        $targetMonths = $this->emergencyTargetMonths($savingsAnalysis, $userId);
+        $monthlyExpenditure = (float) ($savingsAnalysis['summary']['monthly_expenditure'] ?? 0);
+        $totalSavings = (float) ($savingsAnalysis['summary']['total_savings'] ?? 0);
+        $emergencyTarget = $monthlyExpenditure * $targetMonths;
+        $surplus = $totalSavings - $emergencyTarget;
 
-        if ($nonEmergencyBalance <= 0) {
+        if ($surplus <= 0) {
             return [];
         }
 
@@ -1787,17 +1794,14 @@ class SavingsActionDefinitionService
         // 1. User profile
         $trace[] = $this->buildUserProfileTrace($user);
 
-        // 2. Non-emergency savings listing
-        $userName = $this->getUserName($user);
-        $nonEmergencyDetails = $nonEmergencyAccounts->map(fn ($a) => $this->formatAccountDescription($a))->implode('; ');
-
+        // 2. Cash above the emergency fund target
         $trace[] = [
-            'question' => 'What non-emergency savings are available?',
-            'data_field' => 'non_emergency_balance',
-            'data_value' => '£'.number_format($nonEmergencyBalance, 0).' across '.$nonEmergencyAccounts->count().' account(s)',
+            'question' => 'How much cash is held above the emergency fund target?',
+            'data_field' => 'surplus',
+            'data_value' => '£'.number_format($surplus, 0),
             'threshold' => 'Greater than £0',
             'passed' => true,
-            'explanation' => 'Non-emergency savings accounts: '.$nonEmergencyDetails.'. Total: £'.number_format($nonEmergencyBalance, 0).'.',
+            'explanation' => '£'.number_format($totalSavings, 0).' total cash − £'.number_format($emergencyTarget, 0).' emergency target ('.number_format($targetMonths, 0).' months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($surplus, 0).'.',
         ];
 
         // 3. Mortgage vs savings rate comparison
@@ -1805,7 +1809,7 @@ class SavingsActionDefinitionService
         $mortgageLender = $highestMortgage->lender_name ?? 'unknown lender';
         $mortgageBalance = (float) ($highestMortgage->outstanding_balance ?? $highestMortgage->current_balance ?? 0);
         $rateDiff = $highestMortgageRate - $averageSavingsRate;
-        $effectiveSaving = $nonEmergencyBalance * $rateDiff / 100;
+        $effectiveSaving = $surplus * $rateDiff / 100;
 
         $trace[] = [
             'question' => 'Does the mortgage rate meaningfully exceed the average savings rate?',
@@ -1813,13 +1817,13 @@ class SavingsActionDefinitionService
             'data_value' => 'Mortgage '.number_format($highestMortgageRate, 2).'% vs savings avg '.number_format($averageSavingsRate, 2).'%',
             'threshold' => 'Mortgage rate must exceed average savings rate by > 0.5%',
             'passed' => true,
-            'explanation' => 'Highest mortgage: '.$mortgageLender.' at '.number_format($highestMortgageRate, 2).'% (£'.number_format($mortgageBalance, 0).' outstanding). Average savings rate: '.number_format($averageSavingsRate, 2).'%. Rate gap: '.number_format($rateDiff, 2).' percentage points. Overpaying with the £'.number_format($nonEmergencyBalance, 0).' non-emergency savings could save approximately £'.number_format($effectiveSaving, 0).'/year in net interest.',
+            'explanation' => 'Highest mortgage: '.$mortgageLender.' at '.number_format($highestMortgageRate, 2).'% (£'.number_format($mortgageBalance, 0).' outstanding). Average savings rate: '.number_format($averageSavingsRate, 2).'%. Rate gap: '.number_format($rateDiff, 2).' percentage points. Overpaying with the £'.number_format($surplus, 0).' above the emergency target could save approximately £'.number_format($effectiveSaving, 0).'/year in net interest.',
         ];
 
         $vars = [
             'mortgage_rate' => number_format($highestMortgageRate, 2),
             'average_savings_rate' => number_format($averageSavingsRate, 2),
-            'non_emergency_balance' => $this->formatCurrency($nonEmergencyBalance),
+            'surplus_amount' => $this->formatCurrency($surplus),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);

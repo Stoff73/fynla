@@ -303,10 +303,10 @@ outcome:
 ## offset_mortgage_better
 status: approved
 source: HMRC Business Income Manual BIM45695 (offset accounts combine loans, savings and current accounts; "Interest is computed on the net borrowing from the bank") https://www.gov.uk/hmrc-internal-manuals/business-income-manual/bim45695; Income Tax (Trading and Other Income) Act 2005 s369 ("Income tax is charged on interest") https://www.legislation.gov.uk/ukpga/2005/5/section/369; FCA Handbook MCOB 12.3.1R (an early repayment charge must be able to be expressed as a cash value and be a reasonable pre-estimate of the lender's costs) https://www.handbook.fca.org.uk/handbook/MCOB/12/3.html; MCOB 7.5.3R(4)(d) (the mortgage statement shows "the early repayment charge that applies, expressed as a monetary amount") https://www.handbook.fca.org.uk/handbook/MCOB/7/5.html; the card's own figures (`evaluateMortgageRateComparison`)
-figures: mortgage_rate, average_savings_rate, non_emergency_balance
+figures: mortgage_rate, average_savings_rate, surplus_amount
 why:
 1. Your mortgage costs {mortgage_rate}% a year. Your savings earn {average_savings_rate}% on average, and interest on savings can be taxed.
-2. You hold {non_emergency_balance} in savings outside your emergency fund.
+2. You hold {surplus_amount} in savings above your emergency fund target.
 always:
 1. Keep your emergency fund where it is.
 2. Ask your mortgage lender whether they offer an offset mortgage. With one, your savings sit in an account linked to the mortgage, and interest is charged on the mortgage less those savings.

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\SavingsAgent;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
@@ -20,6 +21,7 @@ use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\SavingsActionDefinitionSeeder;
 use Database\Seeders\TaxActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Support\Facades\Cache;
 
 /*
  * A savings card's how-to names the same account, rate and balance its title
@@ -144,19 +146,26 @@ it('gives the General Investment Account steps the dividend and Capital Gains Ta
         ->and($steps)->toContain('gains above your {cgt_allowance} Capital Gains Tax allowance');
 });
 
-it('fills the offset mortgage how-to with the card\'s mortgage and savings rates', function () {
+it('fills the offset mortgage how-to with the card\'s rates and the cash above the emergency fund target', function () {
     SavingsActionDefinition::where('key', 'offset_mortgage_better')->update(['how_to_status' => 'approved']);
     $user = zeroRateSaver();
     Mortgage::factory()->create(['user_id' => $user->id, 'interest_rate' => 5.25, 'outstanding_balance' => 180000]);
-
-    $item = collect(app(NextActionsService::class)->buildAll($user->id))
+    $offset = fn (): ?array => collect(app(NextActionsService::class)->buildAll($user->id))
         ->first(fn (array $i): bool => ($i['card']['definition_key'] ?? null) === 'offset_mortgage_better');
-    expect($item)->not->toBeNull();
 
+    // £4,500 is below a six-month target: nothing is spare, so no card (2026-10-08:
+    // every account not ticked as emergency fund used to count as spare).
+    expect($offset())->toBeNull();
+
+    SavingsAccount::query()->where('user_id', $user->id)->update(['current_balance' => 40000]);
+    Cache::flush();
+    $analysis = app(SavingsAgent::class)->analyze($user->id);
+    $spare = 40000 - 6 * (float) (($analysis['data'] ?? $analysis)['summary']['monthly_expenditure']);
+    $item = $offset();
     $card = app(ActionCardService::class)->for($user, $item['id']);
 
     expect(implode(' ', $card['why']))->toContain('Your mortgage costs 5.25% a year. Your savings earn 0.00% on average')
-        ->and(implode(' ', $card['why']))->toContain('You hold £4,500 in savings outside your emergency fund.')
+        ->and(implode(' ', $card['why']))->toContain('You hold £'.number_format($spare, 0).' in savings above your emergency fund target.')
         ->and(implode(' ', $card['how_to']))->toContain('interest is charged on the mortgage less those savings')
         ->and(implode(' ', $card['how_to']))->not->toContain('{');
 });
