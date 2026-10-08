@@ -49,7 +49,21 @@ return [
         'base_url' => env('XAI_BASE_URL', 'https://api.x.ai/v1'),
     ],
 
-    // Active AI provider: 'anthropic' or 'xai'
+    // OpenAI GPT over Chat Completions: the same client, catalogue and request
+    // shape as xAI (App\Services\AI\AiProvider). Model id from
+    // https://developers.openai.com/api/docs/models/gpt-6-luna
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY', ''),
+        'chat_model' => env('OPENAI_CHAT_MODEL', 'gpt-6-luna'),
+        'advanced_chat_model' => env('OPENAI_ADVANCED_CHAT_MODEL', 'gpt-6-luna'),
+        // Cheaper tier for the weekly-budget soft-degrade; defaults to the
+        // standard chat model so chat stays open (as for xAI).
+        'degrade_chat_model' => env('OPENAI_DEGRADE_CHAT_MODEL'),
+        'vision_model' => env('OPENAI_VISION_MODEL', 'gpt-6-luna'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+    ],
+
+    // Active AI provider: 'anthropic', 'xai' or 'openai'
     // Runtime override via admin panel stored in cache; falls back to .env
     'ai_provider' => env('AI_PROVIDER', 'anthropic'),
 

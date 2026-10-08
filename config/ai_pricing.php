@@ -77,6 +77,18 @@ return [
             'cache_write' => 0.00237,
             'cache_read' => 0.000593,
         ],
+
+        // ── OpenAI ─────────────────────────────────────────────────────
+        // GPT-6 Luna — list $0.10 in / $0.01 cached in / $0.125 cache
+        // write / $0.50 out per 1M, prompts up to 272K input tokens
+        // (https://developers.openai.com/api/docs/pricing, 2026-10-08).
+        // Above 272K input tokens the list is $0.20 / $0.02 / $0.25 / $0.75.
+        'gpt-6-luna' => [
+            'input' => 0.000079,
+            'output' => 0.000395,
+            'cache_write' => 0.00009875,
+            'cache_read' => 0.0000079,
+        ],
     ],
 
     // Fallback when a model has no explicit entry. The calculator flags

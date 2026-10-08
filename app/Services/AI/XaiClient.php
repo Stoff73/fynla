@@ -10,59 +10,64 @@ use OpenAI\Client;
 use OpenAI\Resources\Chat;
 
 /**
- * Singleton wrapper for the OpenAI PHP SDK configured for xAI Grok API.
+ * Singleton wrapper for the OpenAI PHP SDK, the one client for every provider
+ * that speaks the OpenAI Chat Completions format: xAI Grok and OpenAI GPT
+ * ({@see AiProvider::speaksOpenAiFormat()}). The connection (API key and base
+ * URL) is the provider's `config/services.php` block; it defaults to the
+ * active provider's, and a chat loop passes its own provider snapshot.
  *
- * Uses the OpenAI SDK with a custom base URI pointing to xAI's API.
- * All xAI models are OpenAI-compatible, so the SDK works directly.
- *
- * Guzzle is configured with a 120-second timeout. The chat path runs on
- * grok-4.3 (the successor to the retired grok-4-1-fast family) which
- * streams within a few seconds; the generous timeout exists in case
- * XAI_CHAT_MODEL is overridden to a slower variant for evals or one-off
- * testing.
+ * Guzzle is configured with a 120-second timeout. The chat models stream
+ * within a few seconds; the generous timeout exists in case a slower model is
+ * configured for evals or one-off testing.
  */
 class XaiClient
 {
     private Client $client;
 
+    /** The OpenAI-format provider whose key and base URL the client uses. */
+    private string $connection;
+
     private ?string $conversationId = null;
 
     public function __construct()
     {
-        $apiKey = config('services.xai.api_key');
-        $baseUrl = config('services.xai.base_url', 'https://api.x.ai/v1');
-
-        if (empty($apiKey)) {
-            throw new \RuntimeException('XAI_API_KEY is not configured. Set it in your .env file.');
-        }
-
-        $this->client = $this->buildClient($apiKey, $baseUrl);
+        $this->connection = AiProvider::openAiFormatConnection(AiProvider::active());
+        $this->client = $this->buildClient();
     }
 
     /**
-     * Set the conversation ID for prompt cache routing.
+     * Set the conversation for prompt cache routing, and the provider to talk
+     * to (the chat loop's provider snapshot; null keeps the current one).
      *
      * xAI uses the x-grok-conv-id header to route requests to the same server,
      * dramatically increasing cache hit rates (75% discount on cached input tokens).
      * Must be called before chat() for each conversation.
      */
-    public function forConversation(int|string $conversationId): self
+    public function forConversation(int|string $conversationId, ?string $provider = null): self
     {
         $this->conversationId = (string) $conversationId;
 
-        $apiKey = config('services.xai.api_key');
-        $baseUrl = config('services.xai.base_url', 'https://api.x.ai/v1');
+        if ($provider !== null) {
+            $this->connection = AiProvider::openAiFormatConnection($provider);
+        }
 
-        $this->client = $this->buildClient($apiKey, $baseUrl, $this->conversationId);
+        $this->client = $this->buildClient();
 
         return $this;
     }
 
     /**
-     * Build an OpenAI client instance, optionally with a conversation cache header.
+     * Build an OpenAI client for the current connection, with the xAI
+     * conversation cache header when there is a conversation.
      */
-    private function buildClient(string $apiKey, string $baseUrl, ?string $conversationId = null): Client
+    private function buildClient(): Client
     {
+        $apiKey = (string) AiProvider::setting($this->connection, 'api_key');
+
+        if ($apiKey === '') {
+            throw new \RuntimeException(strtoupper($this->connection).'_API_KEY is not configured. Set it in your .env file.');
+        }
+
         $httpClient = new GuzzleClient([
             'timeout' => 120,
             'connect_timeout' => 10,
@@ -70,11 +75,11 @@ class XaiClient
 
         $factory = OpenAI::factory()
             ->withApiKey($apiKey)
-            ->withBaseUri($baseUrl)
+            ->withBaseUri((string) AiProvider::setting($this->connection, 'base_url'))
             ->withHttpClient($httpClient);
 
-        if ($conversationId !== null) {
-            $factory = $factory->withHttpHeader('x-grok-conv-id', $conversationId);
+        if ($this->conversationId !== null && $this->connection === AiProvider::XAI) {
+            $factory = $factory->withHttpHeader('x-grok-conv-id', $this->conversationId);
         }
 
         return $factory->make();
@@ -89,34 +94,16 @@ class XaiClient
     }
 
     /**
-     * Access the chat completions API.
+     * Access the chat completions API, on the given provider's connection
+     * when one is named (null keeps the current one).
      */
-    public function chat(): Chat
+    public function chat(?string $provider = null): Chat
     {
+        if ($provider !== null && AiProvider::openAiFormatConnection($provider) !== $this->connection) {
+            $this->connection = AiProvider::openAiFormatConnection($provider);
+            $this->client = $this->buildClient();
+        }
+
         return $this->client->chat();
-    }
-
-    /**
-     * Get the configured chat model name.
-     */
-    public static function chatModel(): string
-    {
-        return config('services.xai.chat_model', 'grok-4.3');
-    }
-
-    /**
-     * Get the configured advanced/complex model name.
-     */
-    public static function advancedModel(): string
-    {
-        return config('services.xai.advanced_chat_model', 'grok-4.3');
-    }
-
-    /**
-     * Get the configured vision model name.
-     */
-    public static function visionModel(): string
-    {
-        return config('services.xai.vision_model', 'grok-4.3');
     }
 }

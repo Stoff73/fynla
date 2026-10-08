@@ -7,7 +7,7 @@ namespace App\Services\Documents;
 use App\Models\Document;
 use App\Models\DocumentExtraction;
 use App\Models\DocumentExtractionLog;
-use Illuminate\Support\Facades\Cache;
+use App\Services\AI\AiProvider;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -18,8 +18,6 @@ class AIExtractionService
     private const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
     private const ANTHROPIC_MODEL = 'claude-3-5-haiku-20241022';
-
-    private const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
 
     private const MAX_TOKENS = 4096;
 
@@ -64,7 +62,7 @@ class AIExtractionService
     }
 
     /**
-     * Extract data from a document using AI Vision API (Anthropic or xAI).
+     * Extract data from a document using AI Vision API (Anthropic, xAI or OpenAI).
      */
     public function extract(Document $document): DocumentExtraction
     {
@@ -124,9 +122,7 @@ class AIExtractionService
             $extraction = DocumentExtraction::create([
                 'document_id' => $document->id,
                 'extraction_version' => $version,
-                'model_used' => $response['model'] ?? (Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai'
-                    ? config('services.xai.vision_model', 'grok-4.3')
-                    : self::ANTHROPIC_MODEL),
+                'model_used' => $response['model'] ?? self::modelInUse(),
                 'input_tokens' => $response['usage']['input_tokens'] ?? null,
                 'output_tokens' => $response['usage']['output_tokens'] ?? null,
                 'raw_response' => json_encode($response),
@@ -182,11 +178,23 @@ class AIExtractionService
     }
 
     /**
-     * Call the vision API (supports both Anthropic and xAI providers).
+     * The model extraction runs on for the active provider.
+     */
+    public static function modelInUse(): string
+    {
+        $provider = AiProvider::active();
+
+        return AiProvider::speaksOpenAiFormat($provider)
+            ? AiProvider::visionModel($provider)
+            : self::ANTHROPIC_MODEL;
+    }
+
+    /**
+     * Call the vision API (Anthropic, or an OpenAI-format provider: xAI or OpenAI).
      */
     private function callClaudeAPI(string $base64, string $mediaType, string $prompt): array
     {
-        $isXai = Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
+        $provider = AiProvider::active();
 
         // For images, resize if exceeds API limits
         $processedData = $base64;
@@ -205,36 +213,33 @@ class AIExtractionService
             }
         }
 
-        if ($isXai) {
-            return $this->callXaiVisionAPI($processedData, $processedMediaType, $prompt);
+        if (AiProvider::speaksOpenAiFormat($provider)) {
+            return $this->callOpenAiFormat($provider, [
+                ['type' => 'image_url', 'image_url' => ['url' => "data:{$processedMediaType};base64,{$processedData}"]],
+                ['type' => 'text', 'text' => $prompt],
+            ]);
         }
 
         return $this->callAnthropicVisionAPI($processedData, $processedMediaType, $prompt);
     }
 
     /**
-     * Call xAI vision API (OpenAI-compatible format).
+     * Call an OpenAI-format provider (xAI or OpenAI) on Chat Completions with
+     * one user message, normalised to the Anthropic shape parseResponse() reads.
+     *
+     * @param  string|list<array<string, mixed>>  $content
      */
-    private function callXaiVisionAPI(string $base64, string $mediaType, string $prompt): array
+    private function callOpenAiFormat(string $provider, string|array $content): array
     {
-        $apiKey = config('services.xai.api_key');
+        $connection = AiProvider::openAiFormatConnection($provider);
+        $apiKey = AiProvider::setting($connection, 'api_key');
         if (! $apiKey) {
-            throw new RuntimeException('XAI_API_KEY is not configured');
+            throw new RuntimeException(strtoupper($connection).'_API_KEY is not configured');
         }
 
-        $model = config('services.xai.vision_model', 'grok-4.3');
+        $model = AiProvider::visionModel($connection);
 
-        // Build image content block in OpenAI format
-        $imageUrl = "data:{$mediaType};base64,{$base64}";
-        $content = [
-            ['type' => 'image_url', 'image_url' => ['url' => $imageUrl]],
-            ['type' => 'text', 'text' => $prompt],
-        ];
-
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
-            'Content-Type' => 'application/json',
-        ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
+        $response = AiProvider::postChatCompletion($connection, [
             'model' => $model,
             'max_completion_tokens' => self::MAX_TOKENS,
             'temperature' => 0,
@@ -242,17 +247,16 @@ class AIExtractionService
             'messages' => [
                 ['role' => 'user', 'content' => $content],
             ],
-        ]);
+        ], self::TIMEOUT_SECONDS);
 
         if (! $response->successful()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['error']['message'] ?? $response->body();
-            throw new RuntimeException('xAI API error: '.$errorMessage);
+            throw new RuntimeException(AiProvider::name($connection).' API error: '.$errorMessage);
         }
 
         $json = $response->json();
 
-        // Normalise response to common format for parseResponse()
         return [
             'content' => [['text' => $json['choices'][0]['message']['content'] ?? '']],
             'usage' => [
@@ -310,46 +314,11 @@ class AIExtractionService
      */
     private function callClaudeAPIWithText(string $textContent, string $prompt): array
     {
-        $isXai = Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
+        $provider = AiProvider::active();
         $fullPrompt = "Here is the spreadsheet data:\n\n{$textContent}\n\n{$prompt}";
 
-        if ($isXai) {
-            $apiKey = config('services.xai.api_key');
-            if (! $apiKey) {
-                throw new RuntimeException('XAI_API_KEY is not configured');
-            }
-
-            $model = config('services.xai.vision_model', 'grok-4.3');
-
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer {$apiKey}",
-                'Content-Type' => 'application/json',
-            ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
-                'model' => $model,
-                'max_completion_tokens' => self::MAX_TOKENS,
-                'temperature' => 0,
-                'reasoning_effort' => 'none',
-                'messages' => [
-                    ['role' => 'user', 'content' => $fullPrompt],
-                ],
-            ]);
-
-            if (! $response->successful()) {
-                $errorBody = $response->json();
-                $errorMessage = $errorBody['error']['message'] ?? $response->body();
-                throw new RuntimeException('xAI API error: '.$errorMessage);
-            }
-
-            $json = $response->json();
-
-            return [
-                'content' => [['text' => $json['choices'][0]['message']['content'] ?? '']],
-                'usage' => [
-                    'input_tokens' => $json['usage']['prompt_tokens'] ?? 0,
-                    'output_tokens' => $json['usage']['completion_tokens'] ?? 0,
-                ],
-                'model' => $json['model'] ?? $model,
-            ];
+        if (AiProvider::speaksOpenAiFormat($provider)) {
+            return $this->callOpenAiFormat($provider, $fullPrompt);
         }
 
         // Anthropic path

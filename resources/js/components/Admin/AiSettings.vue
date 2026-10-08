@@ -13,7 +13,7 @@
 
     <div v-else class="space-y-4">
       <!-- Provider Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           v-for="provider in providers"
           :key="provider.id"
@@ -37,9 +37,9 @@
           <div class="flex items-start space-x-3">
             <div :class="[
               'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm',
-              provider.id === 'xai' ? 'bg-horizon-500' : 'bg-violet-500'
+              providerTiles[provider.id]?.colour || 'bg-violet-500'
             ]">
-              {{ provider.id === 'xai' ? 'X' : 'A' }}
+              {{ providerTiles[provider.id]?.letter || provider.name.charAt(0) }}
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="text-sm font-semibold text-horizon-500">{{ provider.name }}</h3>
@@ -75,7 +75,7 @@
           </svg>
           <div class="text-sm text-horizon-600">
             <p class="font-medium">Switching providers</p>
-            <p class="mt-1">Changes take effect immediately for all new AI conversations. Existing conversations will continue using the provider they started with. Both providers are always available for instant rollback.</p>
+            <p class="mt-1">Changes take effect immediately for all new AI conversations. Existing conversations will continue using the provider they started with. Every configured provider stays available for instant rollback.</p>
           </div>
         </div>
       </div>
@@ -91,6 +91,12 @@ export default {
 
   data() {
     return {
+      // Letter tile per provider card (CSJ 2026-10-08: "O" for OpenAI).
+      providerTiles: {
+        anthropic: { letter: 'A', colour: 'bg-violet-500' },
+        xai: { letter: 'X', colour: 'bg-horizon-500' },
+        openai: { letter: 'O', colour: 'bg-neutral-500' },
+      },
       loading: true,
       activeProvider: 'anthropic',
       providers: [],

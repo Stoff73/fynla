@@ -28,6 +28,7 @@ use App\Services\AI\Actions\ActionDispatcher;
 use App\Services\AI\Actions\SurfaceAllowlist;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\AiProvider;
 use App\Services\AI\AuditChainService;
 use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\Fyn\CertaintyFilter;
@@ -450,9 +451,15 @@ trait HasAiChat
             );
         }
 
+        // One provider snapshot for the whole loop (INV-2.9.4), the model
+        // included. xAI and OpenAI share the OpenAI wire format: catalogue,
+        // client and message shape.
+        $provider = $this->providerOverride ?? $this->getAiProvider();
+        $isXai = AiProvider::speaksOpenAiFormat($provider);
+
         // Model selection
         $complexity = $this->classifyComplexity($message, $conversation->message_count);
-        $model = $this->getAiModel($user, $complexity);
+        $model = $this->getAiModel($user, $complexity, $provider);
 
         // Soft-degrade notice (PR 6 — Rule #16: plain text only, no icon/emoji/glyph).
         // Prepend to the system prompt so the AI knows to keep responses shorter and
@@ -462,7 +469,6 @@ trait HasAiChat
                 ."\n\n".$systemPrompt;
         }
         $maxTokens = $this->getAiMaxTokens($user);
-        $isXai = ($this->providerOverride ?? $this->getAiProvider()) === 'xai';
         $toolDefinitions = $isXai
             ? app(XaiToolDefinitions::class)
             : $this->toolDefinitions;
@@ -496,7 +502,7 @@ trait HasAiChat
                 // change to capture (walked 2026-10-05, conversations 325-326).
                 $pool = array_merge(
                     $tools,
-                    $this->toolDefinitions->onboardingExtractionTools($isXai ? 'xai' : 'anthropic'),
+                    $this->toolDefinitions->onboardingExtractionTools(AiProvider::toolFormat($provider)),
                     $toolDefinitions->handoffTools(),
                 );
 
@@ -599,7 +605,7 @@ trait HasAiChat
                 if ($isXai) {
                     // ── xAI / OpenAI streaming ──────────────────────────────
                     $xaiClient = app(XaiClient::class)
-                        ->forConversation($conversation->id);
+                        ->forConversation($conversation->id, $provider);
                     $xaiMessages = array_merge(
                         [['role' => 'system', 'content' => $systemPrompt]],
                         $messages
@@ -613,9 +619,10 @@ trait HasAiChat
                         'reasoning_effort' => 'none',
                         'stream' => true,
                         'stream_options' => ['include_usage' => true],
+                        ...AiProvider::chatCompletionsOptions($provider),
                     ];
                     if (! empty($xaiTools)) {
-                        $params['tools'] = $xaiTools;
+                        $params['tools'] = AiProvider::toolsFor($provider, $xaiTools);
                         $params['tool_choice'] = 'auto';
                     }
 
@@ -861,7 +868,7 @@ trait HasAiChat
                     }
                 }
             } catch (\Exception $e) {
-                $provider = $isXai ? 'xAI' : 'Anthropic';
+                $providerName = AiProvider::name($provider);
 
                 // April30Updates F-13 — retry once per turn on transient
                 // errors. 429 (rate limit), 529 (overloaded), and network
@@ -875,7 +882,7 @@ trait HasAiChat
                 $turnRetried = $turnRetried ?? false;
 
                 if ($retryable && ! $turnRetried && $toolCallCount === 0 && $fullResponse === '') {
-                    Log::warning("[CoordinatingAgent] {$provider} transient error — retrying once", [
+                    Log::warning("[CoordinatingAgent] {$providerName} transient error — retrying once", [
                         'conversation_id' => $conversation->id,
                         'user_id' => $user->id,
                         'error' => $e->getMessage(),
@@ -886,7 +893,7 @@ trait HasAiChat
                     continue;
                 }
 
-                Log::error("[CoordinatingAgent] {$provider} API streaming failed", [
+                Log::error("[CoordinatingAgent] {$providerName} API streaming failed", [
                     'conversation_id' => $conversation->id,
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
