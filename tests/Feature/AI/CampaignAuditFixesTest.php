@@ -6,11 +6,13 @@ use Anthropic\Client;
 use App\Models\AiConversation;
 use App\Models\PendingRegistration;
 use App\Models\PensionInputHistory;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Services\TaxConfigService;
 use App\ValueObjects\CaptureContext;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -247,8 +249,18 @@ it('clears active_campaign and fully resets a completed re-entrant on the restar
 
 it('skips campaign_pension_history when contribution history is already on file', function (): void {
     $user = makeAuditFixUser([
-        'annual_employment_income' => 100000, // higher-rate: income gate alone would ASK
+        'annual_employment_income' => 150000,
     ]);
+    // Spare cash beyond this year's pension and ISA allowances: the carry
+    // forward gate alone would ASK.
+    $config = app(TaxConfigService::class);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'account_type' => 'easy_access',
+        'ownership_type' => 'individual', 'joint_owner_id' => null,
+        'current_balance' => (float) $config->getPensionAllowances()['annual_allowance']
+            + (float) $config->getISAAllowances()['annual_allowance'] + 1000,
+    ]);
+    $user->refresh();
 
     expect(OnboardingStateMachine::skipIfPensionHistoryNotApplicable($user))->toBeFalse();
 

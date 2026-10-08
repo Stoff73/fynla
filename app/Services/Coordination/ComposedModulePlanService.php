@@ -43,9 +43,7 @@ final class ComposedModulePlanService
         $locked = [];
         foreach ($rows as $row) {
             $required = (array) ($row->required_data ?? []);
-            // A strategy that needs data which does not apply to this user
-            // (null) cannot apply to them, so it is not waiting on anything.
-            if (array_filter($required, fn (string $key): bool => array_key_exists($key, $availability) && $availability[$key] === null) !== []) {
+            if (self::cannotApply($required, $availability)) {
                 continue;
             }
             $missing = array_values(array_filter(
@@ -58,6 +56,20 @@ final class ComposedModulePlanService
         }
 
         return $this->composer->compose($recommendations, $metadata, $locked);
+    }
+
+    /**
+     * A strategy that needs data which does not apply to this user (null in
+     * availability) cannot apply to them, so it is not waiting on anything.
+     * The one rule for the locked list and for Fyn's strategy knowledge
+     * (HouseViewApplicability).
+     *
+     * @param  list<string>  $required
+     * @param  array<string, bool|null>  $availability
+     */
+    public static function cannotApply(array $required, array $availability): bool
+    {
+        return array_filter($required, fn (string $key): bool => array_key_exists($key, $availability) && $availability[$key] === null) !== [];
     }
 
     /**

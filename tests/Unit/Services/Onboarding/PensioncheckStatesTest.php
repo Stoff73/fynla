@@ -789,36 +789,28 @@ it('age-only second turn merges parked income and writes both to retirement_prof
     expect(array_key_exists('retirement_goals', $parked))->toBeFalse();
 });
 
-// ── 11. campaign_pension_history — higher-rate income gate ────────────────────
+// ── 11. campaign_pension_history — the carry forward gate ─────────────────────
 //
-// The pension-contribution-history question is only surfaced for higher-rate
-// taxpayers; basic-rate users have no carry-forward optimisation to surface.
-// Gross income = annual_employment_income + annual_self_employment_income.
-// Gate uses TaxConfigService 'income_tax.higher_rate_threshold' (never a literal).
+// The pension-contribution-history question is asked only when carry forward
+// could be used (CSJ 2026-10-08): earnings above this year's Annual Allowance
+// and spare cash beyond what this year's pension AND ISA allowances can take.
+// One gate, TaxStrategyMath::carryForwardCouldApply; the full cases live in
+// tests/Unit/Services/Tax/CarryForwardQuestionGateTest.php.
 
 it('campaign_pension_history is present in the transition table', function (): void {
     expect(array_key_exists(SM::STATE_CAMPAIGN_PENSION_HISTORY, SM::states()))->toBeTrue();
 });
 
 it('skipIfPensionHistoryNotApplicable returns true for a basic-rate user', function (): void {
-    // Income below the higher-rate threshold (default £50,270).
     $user = pensioncheckUser(['annual_employment_income' => 35000]);
     expect(SM::skipIfPensionHistoryNotApplicable($user))->toBeTrue();
 });
 
-it('skipIfPensionHistoryNotApplicable returns false for a higher-rate user', function (): void {
-    // Income above the higher-rate threshold.
+it('skipIfPensionHistoryNotApplicable returns true for a higher-rate user with no spare cash', function (): void {
+    // Above the higher-rate threshold but nothing to pay in beyond this
+    // year's allowances: carry forward cannot help, so never ask.
     $user = pensioncheckUser(['annual_employment_income' => 65000]);
-    expect(SM::skipIfPensionHistoryNotApplicable($user))->toBeFalse();
-});
-
-it('skipIfPensionHistoryNotApplicable sums employment and self-employment income', function (): void {
-    // Combined income crosses the higher-rate threshold even though each field alone does not.
-    $user = pensioncheckUser([
-        'annual_employment_income' => 30000,
-        'annual_self_employment_income' => 25000, // combined = £55,000
-    ]);
-    expect(SM::skipIfPensionHistoryNotApplicable($user))->toBeFalse();
+    expect(SM::skipIfPensionHistoryNotApplicable($user))->toBeTrue();
 });
 
 it('campaign_pension_history state is skipped when savetax walk exhausts the pensions section', function (): void {
