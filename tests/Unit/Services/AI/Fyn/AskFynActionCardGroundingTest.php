@@ -127,6 +127,7 @@ it('grounds a question about how an action\'s figure was reached on that action,
     expect($card['working'])->not->toBe([])
         ->and($out)->toContain('<action_grounding>')
         ->toContain('The user is asking how a figure in one of their actions was worked out.')
+        ->toContain('the card does not show it, so never say it is on the card')
         ->toContain($card['working'][0])
         ->toContain(end($card['working']))
         ->and(app(ActionCardService::class)->forFigureQuestion($user, 'What is my pension worth?'))->toBeNull()
