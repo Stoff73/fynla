@@ -105,14 +105,30 @@ final class TaxStrategyMath
         // Blind Person's Allowance comes off net income with the Personal
         // Allowance (ITA 2007 s23 Step 3, s38), so in net-income terms each
         // rate starts that much higher too.
-        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
-        $extension = (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0)
-            + $this->taxConfig->blindPersonsAllowanceFor($user);
+        $extension = array_sum($this->bandExtensionParts($user));
         $raw = $this->bandThresholds();
 
         return [
             'higher' => $raw['higher'] > 0 ? $raw['higher'] + $extension : 0.0,
             'additional' => $raw['additional'] > 0 ? $raw['additional'] + $extension : 0.0,
+        ];
+    }
+
+    /**
+     * What raises this user's basic and higher rate limits, part by part, so a
+     * working names only the parts that are there (csjones 2026-10-08: Gift Aid
+     * alone was described as "your Gift Aid and personal pension payments").
+     *
+     * @return array{gift_aid: float, personal_pension: float, blind_persons_allowance: float}
+     */
+    public function bandExtensionParts(User $user): array
+    {
+        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
+
+        return [
+            'gift_aid' => (float) ($deductions['gift_aid_gross'] ?? 0),
+            'personal_pension' => (float) ($deductions['relief_at_source_gross'] ?? 0),
+            'blind_persons_allowance' => $this->taxConfig->blindPersonsAllowanceFor($user),
         ];
     }
 
@@ -1103,9 +1119,9 @@ final class TaxStrategyMath
      */
     private function bandExtensionFor(User $user): float
     {
-        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
+        $parts = $this->bandExtensionParts($user);
 
-        return (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
+        return $parts['gift_aid'] + $parts['personal_pension'];
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\RecommendationTracking;
 use App\Models\User;
+use App\Services\Actions\ActionCardService;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Mobile\NextActionsService;
 use App\Services\Mobile\RecommendationRouting;
@@ -350,4 +351,23 @@ it('gives a retiree drawing their pension the drawing view line, and a saver the
 
     expect($line($retiree))->toBe('See your income this year and how long your pension lasts.')
         ->and($line($saver))->toBe('Close your projected income gap — small increases now compound.');
+});
+
+it('gives each recommendation the card\'s own Ask Fyn prompt', function () {
+    // /m wrapped every title as 'How do I "…"?', which read 'How do I "You have
+    // no will recorded"?' (csjones 2026-10-08). The prompt is the card's own,
+    // which Fyn grounds on that action's card (ActionCardService::forAskFynMessage).
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $aggregator = Mockery::mock(RecommendationsAggregatorService::class);
+    $aggregator->shouldReceive('aggregateRecommendations')->with($user->id)->andReturn([[
+        'recommendation_id' => 'estate_no_will', 'module' => 'estate',
+        'recommendation_text' => 'You have no will recorded', 'priority_score' => 98.0,
+        'category' => 'warning', 'potential_benefit' => null, 'status' => 'pending',
+    ]]);
+    app()->instance(RecommendationsAggregatorService::class, $aggregator);
+
+    $rec = collect(app(NextActionsService::class)->build($user->id))->firstWhere('id', 'estate_no_will');
+
+    expect($rec['ask_fyn_prompt'])->toBe(ActionCardService::ASK_FYN_PREFIX.'You have no will recorded');
+    Mockery::close();
 });

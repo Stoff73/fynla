@@ -546,7 +546,9 @@ export default {
       return top
         .filter((a) => a.type === 'recommendation' && !a.done)
         .slice(0, 3)
-        .map((a) => `How do I "${a.title}"?`);
+        // The server's own prompt, which Fyn grounds on the action's card.
+        .map((a) => a.ask_fyn_prompt)
+        .filter(Boolean);
     },
     // Advice prompt pills must not render until the user's onboarding state is
     // actually known. onboardingActive is false both when onboarding is genuinely
@@ -941,7 +943,7 @@ export default {
     },
     async openRecChat(rec) {
       await this.openFyn();
-      this.send(`How do I "${rec.title}"?`);
+      if (rec.ask_fyn_prompt) this.send(rec.ask_fyn_prompt);
     },
     // Populate store.user so the greeting / drawer show the real name. The mobile
     // store only sets user during the in-app verify flow; on a token-only arrival
