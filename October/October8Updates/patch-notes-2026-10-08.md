@@ -7,6 +7,7 @@ Spare cash now leads to the right next step. If you hold a General Investment Ac
 - **About 08:30:** release #1132 (#1130 and #1131: spare cash suggestions and their steps).
 - **About 09:15:** release #1135 (#1134: "HMRC adds £720" on the action row and card).
 - **About 09:40:** release #1139 (#1138: no savings rate comparison without a stored market rate).
+- **About 10:20 and 10:55:** releases #1142 and #1144 (#1141 and #1143: Fyn explains how a plan figure was worked out).
 
 All were walked on the test site first, on the desktop web app (full-size window) and the mobile web app, and then checked on fynla.org.
 
@@ -61,4 +62,22 @@ All were walked on the test site first, on the desktop web app (full-size window
 - **The Investment page's "switch to a better savings rate" suggestion can never show:** it looks for a rating the savings comparison does not send.
 
 **Behind the scenes.** App code only. Each account is now compared once per analysis, not twice.
+
+## Fyn explains how a plan figure was worked out, from the plan's own working (8 October, about 10:20 and 10:55, releases #1142 and #1144)
+
+**This is live on fynla.org** through releases #1142 (#1141) and #1144 (#1143), UK time.
+
+- **The pension suggestion carries its working,** and Fyn gives it rather than doing its own sums. Before, asked to talk through a plan, Fyn worked "£60,000 − £50,270 = £9,730 taxed at 40%", while the plan's £3,700 starts from income after the pension paid through pay. Now: "Your income this year is £60,000. £6,000 of it goes into your pension from your pay before tax, which leaves £54,000 taxed as income. The higher rate starts at £50,270. So £3,730 of your income is taxed at 40%. Rounded down to the nearest £100 that is £3,700, and 40% of £3,700 is £1,480 of tax saved."
+- **A question about how one of your figures was reached is answered from that action,** for example "How did you work out the £3,700 pension figure?". Before, such a question went unanswered from the plan, and Fyn once gave a made-up meaning.
+- **A question asked again after a reply failed** is treated as a first ask. Before, Fyn said "I answered that a moment ago" when it had not.
+
+**What we checked.**
+- **On the test site and live on fynla.org, desktop and mobile web apps:** walk accounts made through Save Tax (earning £60,000, 10% into a workplace pension through pay, £2,000 a month spending), plan "Pay £3,700 more into your pension and save £1,480 in tax". Both apps gave the working above. The accounts were deleted afterwards. No new errors in the log.
+
+**Still to do:**
+- **On the desktop app Fyn can still say the working is "shown on the card".** It is not shown there. Next.
+- **The salary sacrifice suggestion carries no working yet;** Fyn said the switch comes "with no change to your take-home pay", where the National Insurance saving raises it.
+- **The retirement plan fails for someone whose pension holds funds charging above 0.5%** ("Undefined variable", from a change released on 2 October). Next after the line above.
+
+**Behind the scenes.** App code only.
 

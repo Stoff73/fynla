@@ -16,21 +16,21 @@ branch: dev
   - x #1135: item 13 follow-up, "HMRC adds £720";
   - y #1139: item 17, no invented 4.00% market rate;
   - z #1142: item 18, plan items carry their working, figure questions grounded, failed turns not repeats.
-- **Release z2 (#1144, main `63b1d63b5`) is merged to main but NOT deployed.** It is one line of Fyn grounding: "the card does not show the working". It is walked on csjones web only.
-- **Item 18 stays open** until z2 is deployed and walked on fynla.org.
+- **Release z2 (#1144, main `63b1d63b5`) is DEPLOYED** (~10:55 BST, checksum matches, no new errors). Walked on fynla.org:
+  - /m is correct;
+  - web still opens "The £3,700 figure comes directly from the working shown on the card". The card does not show it, so item 18 stays open.
 - **A production error was found that is not from today's work** (see priority 2).
 
 ## Priorities for the next session
 
-1. **Release z2, then close item 18.** This needs CSJ to run the script.
-   - CSJ runs `! bash /private/tmp/claude-501/-Users-CSJ-Desktop-fynla/aa7bbf85-c4d8-43f7-a9e6-ca7b45a8a4b4/scratchpad/release-prod-2026-10-08-z2.sh`. The release PR is already merged, so the main == local guard passes.
-   - Then walk fynla.org with a new Save Tax walk account, as before:
-     - choices: full-time, £50,271–£100,000, no spouse, Pension;
-     - Fyn setup: Aviva workplace pension, 10%, not salary sacrifice; £2,000 a month spending.
-   - Ask on web "How did you work out the £3,700 pension figure?" (new conversation). On /m ask "Where does the £3,700 in my pension action come from?".
-   - Expected: £60,000 → £6,000 through pay → £54,000 → higher rate from £50,270 → £3,730 at 40% → £3,700 → £1,480, and no mention of "the card".
-   - Purge the account. Codes come from `PendingRegistration` via the `ssh-fynla` MCP; purge with `RetentionPurgeService` + `forceDelete`, as walk accounts 802 and 804 were today.
-   - Add release z and z2 to the patch notes (`October/October8Updates/patch-notes-2026-10-08.md` + PDF). Cross off item 18.
+1. **Close item 18: Fyn still says the working is "shown on the card" (web, fynla.org, after z2).**
+   - Cause: the instruction added in #1143 alone is not reliable. `FynContextAssembler::actionGrounding` frames everything as "the card" ("Explain that action from the card below", "When the card below has working").
+   - Fix: present the working as the plan's own. For example, field `how_the_plan_worked_it_out`, and an intro naming "the action and how the plan worked out its figure", with the card fields separate. Keep `tapped:`.
+   - Test the grounding text, then walk csjones web + /m several times (it is non-deterministic). Then own PR, release (merge the dev→main PR BEFORE handing CSJ the `!` line), and fynla.org walk with a new Save Tax walk account:
+     - full-time, £50,271–£100,000, no spouse, Pension;
+     - Aviva workplace 10%, not salary sacrifice; £2,000 spending;
+     - ask "How did you work out the £3,700 pension figure?" on web (new conversation) and "Where does the £3,700 in my pension action come from?" on /m.
+   - Purge the account. Patch notes go in `October/October8Updates/` (z and z2 are already added), then cross off item 18.
 2. **PRODUCTION ERROR: the retirement plan fails** for anyone whose pension holds funds charging above 0.5%.
    - Log line: "Undefined variable $potentialSaving", `app/Services/Retirement/RetirementActionDefinitionService.php:2746` (`evaluateHighPensionFundFees`). Seen twice on fynla.org on 2026-10-08 (10:15, 10:19).
    - Cause: commit `8adf7e213` (1 October, released #1047) removed `$potentialSaving`, which rested on a typed-in 0.25% index-fund assumption. The decision-trace sentence still reads it.
@@ -46,7 +46,7 @@ branch: dev
   - items 15 and 17 are crossed off with evidence.
 - `app/Services/Retirement/RetirementActionDefinitionService.php:2700` — the failing evaluator (priority 2).
 - `app/Services/AI/Fyn/FynContextAssembler.php` — `planGroundingDirective`, `actionGrounding` (now takes `tapped:`) and `repeatedQuestionBlock` (now counts only answered sends). These are the Fyn paths changed today.
-- `October/October8Updates/patch-notes-2026-10-08.md` — today's running patch notes. Releases z and z2 still need adding.
+- `October/October8Updates/patch-notes-2026-10-08.md` — today's running patch notes; z and z2 are added, with the card wording as still to do.
 
 ## Completed this session
 
@@ -106,5 +106,5 @@ branch: dev
 ## Branch and deploy state
 
 - **Branch:** `dev` at `9a7e7b166`, synced with origin. CSJ's own uncommitted files were left untouched.
-- **fynla.org:** main `91121fe74` (release z) deployed. main `63b1d63b5` (z2) is merged but not deployed.
+- **fynla.org:** main `63b1d63b5` (release z2) deployed. Walk accounts 802, 804 and 805 were purged.
 - **csjones:** on dev `9a7e7b166`.
