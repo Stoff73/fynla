@@ -6,6 +6,7 @@ use App\Agents\SavingsAgent;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Actions\ActionCardService;
 use App\Services\Mobile\NextActionsService;
 use Database\Seeders\ActionHowToSeeder;
 use Database\Seeders\EstateActionDefinitionSeeder;
@@ -124,4 +125,21 @@ it('offers no pension card from 75, and the General Investment Account card abov
             'target_amount' => '£'.number_format(3 * $monthly, 0),
             'surplus_amount' => '£'.number_format(20000 - 3 * $monthly, 0),
         ]);
+});
+
+it('gives a holder the approved steps, filled from their own account and tax config', function () {
+    $user = excessCashSaver(cash: 60000);
+    useIsaAllowance($user);
+    InvestmentAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'gia', 'provider' => 'Vanguard', 'current_value' => 5000]);
+    InvestmentAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'offshore_bond', 'provider' => 'Utmost', 'current_value' => 50000]);
+
+    $cards = excessCashCards($user);
+    $gia = app(ActionCardService::class)->for($user, $cards['excess_cash_gia']['id']);
+    $bond = app(ActionCardService::class)->for($user, $cards['excess_cash_bond']['id']);
+
+    expect($gia['why'])->toContain('Your ISA allowance is used for this year.')
+        ->and($gia['how_to'])->toContain('You can add to your General Investment Account with Vanguard.')
+        ->and($gia['how_to'])->toContain('Dividends above your £500 dividend allowance are taxed each year.')
+        ->and($bond['how_to'])->toContain('You can add to your bond with Utmost, if it takes further payments.')
+        ->and(implode(' ', $bond['how_to']))->not->toContain('Before you buy');
 });
