@@ -210,6 +210,7 @@ class RecommendationsAggregatorService
                     'category' => $item['category'],
                     'potential_benefit' => $item['estimated_annual_tax_saved'],
                     'benefit_wording' => $item['benefit_wording'] ?? null,
+                    'working' => $item['working'] ?? null,
                     'claim_tier' => $item['claim_tier'],
                     'sequence_position' => $item['sequence_position'],
                     'conflict_note' => $item['conflict_note'],
@@ -271,6 +272,9 @@ class RecommendationsAggregatorService
             // 'hmrc_adds' when the benefit is relief HMRC adds to a pension pot,
             // not tax the user saves (CSJ 2026-10-08).
             'benefit_wording' => $rec['benefit_wording'] ?? null,
+            // How the item's figure was reached, from the strategy that sized it,
+            // for Fyn to give rather than redo the sums (item 18).
+            'working' => $rec['working'] ?? null,
             'status' => $statuses[$rec['recommendation_id'] ?? $rec['id'] ?? ''] ?? $rec['status'] ?? 'pending',
             'claim_tier' => $rec['claim_tier'] ?? null,
             'sequence_position' => $rec['sequence_position'] ?? null,

@@ -119,6 +119,38 @@ final class ActionCardService
         return $done === null ? null : $this->completed($user, $done);
     }
 
+    /**
+     * The open action a question about a figure means: the message asks how or
+     * why a figure was reached and quotes a pound amount that one of the user's
+     * open actions has in its title ("How did you work out the £3,700 pension
+     * figure?"). Null when no action's title carries the amount, or the message
+     * does not ask about working. Item 18: without this, Fyn answered such a
+     * question from nothing and invented the figure's meaning.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function forFigureQuestion(User $user, string $message): ?array
+    {
+        if (preg_match('/\b(how|why|explain|work(ed|ing)? out|calculat\w*|figure|come from|arrive)\b/i', $message) !== 1
+            || preg_match_all('/£\s?(\d{1,3}(?:,\d{3})+|\d+)/', $message, $matches) < 1) {
+            return null;
+        }
+        $amounts = array_map(static fn (string $a): string => '£'.number_format((int) str_replace(',', '', $a)), $matches[1]);
+
+        $item = collect($this->actions->buildAll($user->id))->first(function (array $i) use ($amounts): bool {
+            $title = (string) ($i['title'] ?? '');
+            foreach ($amounts as $amount) {
+                if (preg_match('/'.preg_quote($amount, '/').'(?![\d,])/', $title) === 1) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        return is_array($item) ? $this->open($user, $item) : null;
+    }
+
     /** @param  array<string, mixed>  $item */
     private function open(User $user, array $item): array
     {
@@ -150,6 +182,8 @@ final class ActionCardService
                 : [self::UNLOCK_CONSEQUENCES[$module] ?? self::UNLOCK_CONSEQUENCES['tax']],
             'key_figure' => self::keyFigureFor($module, $card['potential_benefit'] ?? null, $taxItem['type'] ?? null, $card['benefit_wording'] ?? null),
             'how_to' => $howTo['steps'],
+            // How the figure was reached, from the strategy that sized it (item 18).
+            'working' => array_values(array_filter((array) ($taxItem['working'] ?? $card['working'] ?? []), 'is_string')),
             'learn_more' => $howTo['learn'],
             'conflict_note' => $card['conflict_note'] ?? null,
             // For Fyn's grounding: this action and its alternatives are one

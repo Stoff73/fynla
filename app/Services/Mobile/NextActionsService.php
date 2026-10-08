@@ -496,6 +496,7 @@ class NextActionsService
                     'alternatives_note' => $rec['alternatives_note'] ?? null,
                     'potential_benefit' => $benefit,
                     'benefit_wording' => $rec['benefit_wording'] ?? null,
+                    'working' => $rec['working'] ?? null,
                     'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
                     'definition_key' => $rec['definition_key'] ?? null,
                     'figures' => (array) ($rec['figures'] ?? []),
