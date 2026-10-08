@@ -361,25 +361,37 @@ final class FynContextAssembler
         $current = $normalise($ctx->message);
 
         $recent = $ctx->conversation->messages()
-            ->where('role', 'user')
+            ->whereIn('role', ['user', 'assistant'])
             ->latest('id')
-            ->limit(6)
-            ->pluck('content')
-            ->map(static fn ($content): string => $normalise((string) $content))
+            ->limit(12)
+            ->get(['role', 'content'])
+            ->map(static fn ($row): array => ['role' => (string) $row->role, 'text' => $normalise((string) $row->content)])
             ->values()
             ->all();
 
         // Drop the current turn's own row, then count how many earlier sends
-        // in a row were this same message.
-        if (($recent[0] ?? null) === $current) {
+        // in a row were this same message AND got a reply. A send whose turn
+        // failed has no reply after it: it is not a repeat (csjones 2026-10-08,
+        // item 18: one failed turn made the next ask a "third send", and Fyn
+        // stopped explaining; the history drops it too, HasAiChat).
+        if (($recent[0]['role'] ?? null) === 'user' && $recent[0]['text'] === $current) {
             array_shift($recent);
         }
         $repeats = 0;
-        foreach ($recent as $earlier) {
-            if ($earlier !== $current) {
+        $answered = false;
+        foreach ($recent as $row) {
+            if ($row['role'] === 'assistant') {
+                $answered = true;
+
+                continue;
+            }
+            if ($row['text'] !== $current) {
                 break;
             }
-            $repeats++;
+            if ($answered) {
+                $repeats++;
+            }
+            $answered = false;
         }
 
         if ($repeats === 0) {
