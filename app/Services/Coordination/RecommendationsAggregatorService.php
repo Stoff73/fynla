@@ -209,6 +209,7 @@ class RecommendationsAggregatorService
                     'priority' => $item['priority'],
                     'category' => $item['category'],
                     'potential_benefit' => $item['estimated_annual_tax_saved'],
+                    'benefit_wording' => $item['benefit_wording'] ?? null,
                     'claim_tier' => $item['claim_tier'],
                     'sequence_position' => $item['sequence_position'],
                     'conflict_note' => $item['conflict_note'],
@@ -267,6 +268,9 @@ class RecommendationsAggregatorService
             'impact' => $rec['impact_label'],
             'estimated_cost' => $rec['estimated_cost'] ?? $rec['cost'] ?? null,
             'potential_benefit' => $rec['potential_benefit'] ?? $rec['benefit'] ?? null,
+            // 'hmrc_adds' when the benefit is relief HMRC adds to a pension pot,
+            // not tax the user saves (CSJ 2026-10-08).
+            'benefit_wording' => $rec['benefit_wording'] ?? null,
             'status' => $statuses[$rec['recommendation_id'] ?? $rec['id'] ?? ''] ?? $rec['status'] ?? 'pending',
             'claim_tier' => $rec['claim_tier'] ?? null,
             'sequence_position' => $rec['sequence_position'] ?? null,

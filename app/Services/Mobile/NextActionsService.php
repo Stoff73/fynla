@@ -451,7 +451,7 @@ class NextActionsService
                 // shows it (CSJ 2026-09-09: the full sentence cluttered the screen).
                 'detail' => $detail,
                 'meta' => $benefit !== null
-                    ? 'You could save £'.number_format($benefit)
+                    ? (($rec['benefit_wording'] ?? null) === 'hmrc_adds' ? 'HMRC adds £' : 'You could save £').number_format($benefit)
                     // The card's one topic rule (ActionCardService::topicFor): an
                     // engine bucket such as "lifecycle" or "warning" is not a topic.
                     // Always a string, never null — the native dashboard decodes it strictly.
@@ -495,6 +495,7 @@ class NextActionsService
                     // so Fyn voices it from the list it reads (audit item 50).
                     'alternatives_note' => $rec['alternatives_note'] ?? null,
                     'potential_benefit' => $benefit,
+                    'benefit_wording' => $rec['benefit_wording'] ?? null,
                     'requires_advice' => (bool) ($rec['requires_advice'] ?? false),
                     'definition_key' => $rec['definition_key'] ?? null,
                     'figures' => (array) ($rec['figures'] ?? []),
