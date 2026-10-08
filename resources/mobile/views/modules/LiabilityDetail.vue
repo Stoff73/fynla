@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome :title="heading" subtitle="Liability details" :loading="loading" loading-label="this liability" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome :title="heading" subtitle="Liability details" :loading="loading" loading-label="this liability" edit-details :contextual-request="contextualRequest" back @back="goBack">
     <div v-if="error" class="m-card m-state"><p class="m-err">{{ error }}</p><button class="m-btn" @click="load">Try again</button></div>
     <template v-else-if="liability">
       <div class="m-card m-hero"><p class="m-sub m-label">Current balance</p><p class="m-metric">{{ fmt(liability.current_balance) }}</p><p class="m-hero-sub">{{ label(liability.liability_type) }}</p></div>
@@ -23,8 +23,9 @@ const date = (value) => { if (!value) return '—'; const parsed = new Date(valu
 export default {
   name: 'MobileLiabilityDetail', components: { MobileChrome }, data: () => ({ loading: true, error: '', liability: null }),
   computed: {
-    recordId() { return Number(this.$route.params.id); }, heading() { return this.liability?.liability_name || 'Liability'; }, canEdit() { return this.liability?.is_primary_owner !== false; },
-    contextualRequest() { if (!this.canEdit || !Number.isInteger(this.recordId) || this.recordId < 1) return null; return buildContextualConversationRequest({ action: 'edit', resourceType: 'liability', resourceId: this.recordId, currentDestination: { screen: 'liability_detail', params: { liability_id: this.recordId }, fallback: 'net_worth' }, origin: { kind: 'surface_action' } }); },
+    recordId() { return Number(this.$route.params.id); }, heading() { return this.liability?.liability_name || 'Liability'; },
+    // Either owner of a joint liability may change it (CSJ 2026-10-08).
+    contextualRequest() { if (!Number.isInteger(this.recordId) || this.recordId < 1) return null; return buildContextualConversationRequest({ action: 'edit', resourceType: 'liability', resourceId: this.recordId, currentDestination: { screen: 'liability_detail', params: { liability_id: this.recordId }, fallback: 'net_worth' }, origin: { kind: 'surface_action' } }); },
     rows() { return [
       { key: 'Type', value: label(this.liability.liability_type) }, { key: 'Ownership', value: label(this.liability.ownership_type) }, { key: 'Monthly repayment', value: fmt(this.liability.monthly_payment) }, { key: 'Interest rate', value: this.rate(this.liability.interest_rate) }, { key: 'Maturity date', value: date(this.liability.maturity_date) }, { key: 'Secured against', value: this.liability.secured_against || 'Unsecured' }, { key: 'Rate fixed until', value: date(this.liability.fixed_until) },
     ]; },

@@ -60,10 +60,8 @@ class LiabilityStore
 
     public function update(int $id, array $canonical, User $user, IngestSource $source): Liability
     {
-        $liability = Liability::query()
-            ->where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        $liability = Liability::query()->whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $liability->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
         $this->validateCanonical($canonical, partial: true);
 
         return AuditLog::withContext(
@@ -85,10 +83,8 @@ class LiabilityStore
 
     public function delete(int $id, User $user, IngestSource $source, bool $force = false): void
     {
-        $liability = Liability::query()
-            ->where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        $liability = Liability::query()->whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $liability->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
 
         AuditLog::withContext(
             ['ingest_source' => $source->value],

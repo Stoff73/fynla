@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Chattel;
 
 use App\Http\Traits\ValidatesSharedOwnership;
+use App\Rules\LinkedCoOwner;
 use App\Support\SharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -43,7 +44,7 @@ class StoreChattelRequest extends FormRequest
             // Ownership
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'joint_owner_id' => ['nullable', 'exists:users,id'],
+            'joint_owner_id' => ['nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
             'household_id' => ['nullable', 'exists:households,id'],
             'trust_id' => ['nullable', 'exists:trusts,id'],

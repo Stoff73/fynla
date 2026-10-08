@@ -29,6 +29,7 @@ use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
+use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -405,11 +406,15 @@ class SavingsController extends Controller
             // boundary is locked and says every joint-aware read funnels through
             // SavingsStore, which is also where the owner guard lives.
             $existing = $this->savingsStore->find($id, $user);
+            // The form speaks from the editor's side; the joint owner's answers
+            // are turned into the stored columns.
+            $validated = $existing === null ? $request->validated() : SharedOwnership::fromEditor($request->validated(), $existing, (int) $user->id);
 
-            $canonical = $this->normaliser->fromForm($request->validated(), partial: true, existing: $existing);
+            $canonical = $this->normaliser->fromForm($validated, partial: true, existing: $existing);
             $account = $this->savingsStore->update($id, $canonical, $user, IngestSource::FORM);
 
-            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
+            // Both owners' views hold the account, whichever of them changed it.
+            $this->cacheInvalidation->invalidateForUserAndSpouse((int) $account->user_id, $account->joint_owner_id);
 
             $accountData = (new SavingsAccountResource($account))->toArray($request);
             $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
@@ -442,14 +447,14 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
+            // Either owner may remove a joint account (HasJointOwnership::scopeForUserOrJoint).
             $account = $this->savingsStore->find($id, $user);
-            if (! $account || $account->user_id !== $user->id) {
+            if (! $account) {
                 return response()->json(['success' => false, 'message' => 'Account not found or unauthorized'], 404);
             }
-            $jointOwnerId = $account->joint_owner_id;
 
             $this->savingsStore->delete($id, $user, 'user_requested');
-            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $jointOwnerId);
+            $this->cacheInvalidation->invalidateForUserAndSpouse((int) $account->user_id, $account->joint_owner_id);
 
             return response()->json(['success' => true, 'message' => 'Savings account deleted successfully']);
         } catch (ModelNotFoundException $e) {
@@ -481,7 +486,7 @@ class SavingsController extends Controller
                 IngestSource::FORM
             );
 
-            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $updated->joint_owner_id);
+            $this->cacheInvalidation->invalidateForUserAndSpouse((int) $updated->user_id, $updated->joint_owner_id);
 
             return response()->json([
                 'success' => true,

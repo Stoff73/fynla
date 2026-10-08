@@ -129,7 +129,7 @@ class ChattelController extends Controller
     /**
      * Update a chattel
      *
-     * Only primary owner (user_id) can update.
+     * Either owner may change a joint chattel.
      * Single-record pattern: Update the single record directly.
      *
      * PUT /api/chattels/{id}
@@ -138,12 +138,12 @@ class ChattelController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can update
-        $chattel = Chattel::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        // Either owner may change a joint chattel (HasJointOwnership::scopeForUserOrJoint).
+        $chattel = Chattel::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
 
-        $validated = $request->validated();
+        // The form speaks from the editor's side; the joint owner's answers are
+        // turned into the stored columns.
+        $validated = SharedOwnership::fromEditor($request->validated(), $chattel, (int) $user->id);
 
         // Single-record pattern: Handle ownership percentage when changing to/from joint
         $ownershipType = $validated['ownership_type'] ?? $chattel->ownership_type;
@@ -164,8 +164,8 @@ class ChattelController extends Controller
         $chattel->update($validated);
         $chattel->load(['jointOwner', 'trust']);
 
-        // Invalidate net worth cache
-        $this->netWorthService->invalidateCache($user->id);
+        // Invalidate both owners' net worth caches, whichever of them changed it
+        $this->netWorthService->invalidateCache((int) $chattel->user_id);
         if ($chattel->joint_owner_id) {
             $this->netWorthService->invalidateCache($chattel->joint_owner_id);
         }
@@ -180,7 +180,7 @@ class ChattelController extends Controller
     /**
      * Delete a chattel
      *
-     * Only primary owner (user_id) can delete.
+     * Either owner may delete a joint chattel.
      * Single-record pattern: Delete the single record.
      *
      * DELETE /api/chattels/{id}
@@ -189,18 +189,16 @@ class ChattelController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can delete
-        $chattel = Chattel::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        // Either owner may delete a joint chattel (HasJointOwnership::scopeForUserOrJoint).
+        $chattel = Chattel::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
 
         // Capture joint owner before delete
         $jointOwnerId = $chattel->joint_owner_id;
 
         $chattel->delete();
 
-        // Invalidate net worth cache
-        $this->netWorthService->invalidateCache($user->id);
+        // Invalidate both owners' net worth caches
+        $this->netWorthService->invalidateCache((int) $chattel->user_id);
         if ($jointOwnerId) {
             $this->netWorthService->invalidateCache($jointOwnerId);
         }

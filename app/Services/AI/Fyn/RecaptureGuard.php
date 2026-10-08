@@ -100,10 +100,13 @@ final class RecaptureGuard
      *   provider  optional column distinguishing two same-named records
      *   match     columns that must be exactly equal for it to be the same record
      *   owner     the ownership column, or null when `match` scopes it instead
+     *   joint     true when the record can be held jointly: a record joint with
+     *             the user (`joint_owner_id`) is theirs too, so their partner's
+     *             entry of it is recognised (Rule 6: one record per joint asset)
      *   fields    model column => tool-input key, for handlers whose canonical
      *             payload is renamed on the way in. Omitted means keys match
      *
-     * @var array<string, array{model: class-string<Model>, name: string|list<string>|null, noun: string, provider?: string, match?: list<string>, owner?: string|null, fields?: array<string, string>}>
+     * @var array<string, array{model: class-string<Model>, name: string|list<string>|null, noun: string, provider?: string, match?: list<string>, owner?: string|null, joint?: bool, fields?: array<string, string>}>
      */
     private const ENTITIES = [
         'dc_pension' => [
@@ -125,12 +128,14 @@ final class RecaptureGuard
             'name' => 'account_name',
             'noun' => 'savings account',
             'provider' => 'institution',
+            'joint' => true,
         ],
         'investment_account' => [
             'model' => InvestmentAccount::class,
             'name' => 'account_name',
             'noun' => 'investment account',
             'provider' => 'provider',
+            'joint' => true,
         ],
         // A holding belongs to its account, not directly to the user, so the
         // account is what scopes it.
@@ -145,12 +150,14 @@ final class RecaptureGuard
             'model' => Property::class,
             'name' => 'address_line_1',
             'noun' => 'property',
+            'joint' => true,
         ],
         'mortgage' => [
             'model' => Mortgage::class,
             'name' => 'lender_name',
             'noun' => 'mortgage',
             'match' => ['property_id'],
+            'joint' => true,
         ],
         'life_insurance_policy' => [
             'model' => LifeInsurancePolicy::class,
@@ -173,6 +180,7 @@ final class RecaptureGuard
             'model' => Goal::class,
             'name' => 'goal_name',
             'noun' => 'goal',
+            'joint' => true,
         ],
         'life_event' => [
             'model' => LifeEvent::class,
@@ -188,6 +196,7 @@ final class RecaptureGuard
             'model' => Liability::class,
             'name' => 'liability_name',
             'noun' => 'liability',
+            'joint' => true,
         ],
         // Two gifts to the same person on different dates are two gifts.
         'estate_gift' => [
@@ -300,9 +309,16 @@ final class RecaptureGuard
      * that already matches. The two that bite are a date column, cast to Carbon
      * on the model but arriving as "2018-05-12", and a decimal cast, stored as
      * "45000.00" against an incoming 45000.
+     *
+     * Nothing stored is never equal to something supplied: "never asked" (null)
+     * becoming 0 or "no" is a write, though PHP's `null == 0` says otherwise.
      */
-    private static function differs(mixed $current, mixed $incoming): bool
+    public static function differs(mixed $current, mixed $incoming): bool
     {
+        if (($current === null) !== ($incoming === null)) {
+            return true;
+        }
+
         if ($current instanceof DateTimeInterface || $incoming instanceof DateTimeInterface) {
             return self::asDate($current) !== self::asDate($incoming);
         }
@@ -349,7 +365,14 @@ final class RecaptureGuard
 
         $owner = array_key_exists('owner', $entity) ? $entity['owner'] : 'user_id';
         if ($owner !== null) {
-            $query->where($owner, $user->id);
+            // A record joint with the user is theirs too: the partner who added
+            // it holds it as `user_id`, the user as `joint_owner_id`.
+            $query->where(static function ($scope) use ($owner, $entity, $user): void {
+                $scope->where($owner, $user->id);
+                if ($entity['joint'] ?? false) {
+                    $scope->orWhere('joint_owner_id', $user->id);
+                }
+            });
         }
 
         foreach ($entity['match'] ?? [] as $column) {

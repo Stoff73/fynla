@@ -396,3 +396,22 @@ it('rejects delete from non-owner (404)', function () {
     $this->deleteJson("/api/investment/accounts/{$account->id}")
         ->assertStatus(404);
 });
+
+// Both owners of a joint account own it (CSJ 2026-10-08). The form normaliser
+// stamps user_id, so a joint owner's save used to be able to take the account.
+it('lets the joint owner update a joint account, which keeps its owner', function () {
+    $partner = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium', 'spouse_id' => $this->user->id]);
+    $this->user->update(['spouse_id' => $partner->id]);
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $this->user->id, 'joint_owner_id' => $partner->id,
+        'ownership_type' => 'joint', 'ownership_percentage' => 50, 'current_value' => 40000,
+    ]);
+    Sanctum::actingAs($partner);
+
+    $this->putJson("/api/investment/accounts/{$account->id}", ['current_value' => 42000])->assertOk();
+
+    $fresh = $account->fresh();
+    expect((float) $fresh->current_value)->toBe(42000.0)
+        ->and($fresh->user_id)->toBe($this->user->id)
+        ->and($fresh->joint_owner_id)->toBe($partner->id);
+});

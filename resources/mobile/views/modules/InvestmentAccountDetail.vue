@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="this account" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome title="Investments" subtitle="Your investment accounts, holdings and allowances" :loading="loading" loading-label="this account" edit-details :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ account ? (account.provider || account.platform || 'Investment account') : 'Investment account' }}</h1>
       <p class="m-sub">{{ account ? accountTypeLabel(account) : 'Account detail' }}</p>
@@ -90,9 +90,8 @@ export default {
     sharePercent() { return `${userSharePercent(this.account).toFixed(2)}%`; },
     coOwner() { return coOwnerName(this.account); },
     accountId() { return this.$route.params.id; },
-    canEdit() { return this.account?.is_primary_owner !== false; },
+    // Either owner of a joint account may change it (CSJ 2026-10-08).
     contextualRequest() {
-      if (!this.canEdit) return null;
       const accountId = Number(this.accountId);
       if (!Number.isInteger(accountId) || accountId < 1) return null;
       return buildContextualConversationRequest({

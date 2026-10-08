@@ -165,7 +165,7 @@ function storeUseMap(string $source): array
  * @param  array<string, string>  $useMap
  * @return array<int, string>|null
  */
-function resolveInList(string $line, array $useMap): ?array
+function resolveInList(string $line, array $useMap, string $storeClass): ?array
 {
     if (preg_match('/\bin:([a-z0-9_,]+)/i', $line, $m) === 1) {
         return explode(',', $m[1]);
@@ -179,13 +179,20 @@ function resolveInList(string $line, array $useMap): ?array
 
     $values = [];
     foreach ($refs as [, $short, $constant]) {
-        $fqn = $useMap[$short] ?? $short;
+        // `self::` is the Store's own constant, often private
+        // (GiftStore::TYPES, 2026-10-07), so it is read by reflection.
+        $fqn = in_array($short, ['self', 'static'], true) ? $storeClass : ($useMap[$short] ?? $short);
 
-        if (! defined($fqn.'::'.$constant)) {
+        if (! class_exists($fqn) || ! (new ReflectionClass($fqn))->hasConstant($constant)) {
             return null;
         }
 
-        $resolved = constant($fqn.'::'.$constant);
+        $resolved = (new ReflectionClass($fqn))->getConstant($constant);
+
+        // A constant may hold the list itself ('a,b,c') as well as an array.
+        if (is_string($resolved)) {
+            $resolved = explode(',', $resolved);
+        }
 
         if (! is_array($resolved)) {
             return null;
@@ -245,7 +252,7 @@ function storeEnumRules(): array
                 $method = $declaration[1][0];
             }
 
-            $found[] = [$store, $match[1][0], resolveInList($match[2][0], $useMap), $method];
+            $found[] = [$store, $match[1][0], resolveInList($match[2][0], $useMap, 'App\\Services\\Stores\\'.$store), $method];
         }
     }
 
