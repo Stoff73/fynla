@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="">
+  <div class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
     <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
       <div class="overflow-y-auto max-h-[90vh]">
         <!-- Header -->
@@ -781,7 +781,7 @@ export default {
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     },
