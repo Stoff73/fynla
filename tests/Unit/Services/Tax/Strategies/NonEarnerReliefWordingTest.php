@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Actions\ActionCardService;
 use App\Services\Investment\Recommendation\SpouseOptimisationService;
 use App\Services\Mobile\NextActionsService;
 use App\Services\Tax\TaxStrategyCalculator;
@@ -64,5 +65,8 @@ it('says "HMRC adds £720" on the action row for the partner top-up, not "You co
         ->first(fn (array $i): bool => $i['id'] === 'tax_non_earner_spouse_pension');
 
     expect($row)->not->toBeNull()
-        ->and($row['meta'])->toBe('HMRC adds £720');
+        ->and($row['meta'])->toBe('HMRC adds £720')
+        // The card's figure box says the same (it read "Saves about £720 a year").
+        ->and(app(ActionCardService::class)->for($user, $row['id'])['key_figure'])
+        ->toBe(['label' => 'HMRC adds', 'value' => '£720 a year', 'sub' => null]);
 });
