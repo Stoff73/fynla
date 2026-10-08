@@ -18,7 +18,7 @@ use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
-use App\Traits\HasJointOwnership;
+use App\Support\SharedOwnership;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -221,7 +221,9 @@ final class ContextualResourceResolver
 
         $query = $modelClass::query()->whereIn('id', $resourceIds);
 
-        return (in_array(HasJointOwnership::class, class_uses_recursive($modelClass), true)
+        // The one list of records the joint owner may change (CSJ 2026-10-08);
+        // a trait check here opened anything joint-capable, life events included.
+        return (SharedOwnership::jointOwnerMayEdit($modelClass)
             ? $query->forUserOrJoint($user->id)
             : $query->where('user_id', $user->id))->get();
     }

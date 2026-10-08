@@ -85,10 +85,8 @@ class ChattelController extends Controller
         $chattel = Chattel::create($validated);
         $chattel->load(['jointOwner', 'trust']);
 
-        // Invalidate net worth cache
-        $this->netWorthService->invalidateCache($user->id);
-        if ($chattel->joint_owner_id) {
-            $this->netWorthService->invalidateCache($chattel->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($chattel) as $ownerId) {
+            $this->netWorthService->invalidateCache($ownerId);
         }
 
         return response()->json(new ChattelResource($chattel), 201);
@@ -164,10 +162,8 @@ class ChattelController extends Controller
         $chattel->update($validated);
         $chattel->load(['jointOwner', 'trust']);
 
-        // Invalidate both owners' net worth caches, whichever of them changed it
-        $this->netWorthService->invalidateCache((int) $chattel->user_id);
-        if ($chattel->joint_owner_id) {
-            $this->netWorthService->invalidateCache($chattel->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($chattel) as $ownerId) {
+            $this->netWorthService->invalidateCache($ownerId);
         }
 
         return response()->json([

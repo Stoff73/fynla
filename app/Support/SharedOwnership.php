@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\Estate\Liability;
+use App\Models\Goal;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
+
 /**
  * The one home for the joint-ownership share rules (CLAUDE.md Rule 6, Rule 20).
  *
@@ -39,6 +48,42 @@ final class SharedOwnership
 
     /** Ownership types whose value is split between two parties. */
     public const SHARED_TYPES = ['joint', 'tenants_in_common'];
+
+    /**
+     * The records either owner of a joint record may change or remove (CSJ
+     * 2026-10-08: "for joint accounts, both parties have ownership", extended to
+     * goals, chattels and business interests; life events stay the primary
+     * owner's). The one list for Fyn's record lookup (CoordinatingAgent) and the
+     * contextual-conversation resolver.
+     *
+     * @var list<class-string>
+     */
+    public const JOINT_OWNER_EDITABLE = [
+        SavingsAccount::class, InvestmentAccount::class, Property::class, Mortgage::class,
+        Liability::class, Goal::class, Chattel::class, BusinessInterest::class,
+    ];
+
+    /**
+     * The users who own a record: its primary owner and any joint owner. Each
+     * one's caches go stale when either changes it, so callers clear them for
+     * these ids, never for whoever made the change (a joint owner's edit left
+     * the primary owner's figures stale).
+     *
+     * @return list<int>
+     */
+    public static function ownerIds(object $record): array
+    {
+        return array_values(array_unique(array_filter([
+            (int) ($record->user_id ?? 0),
+            (int) ($record->joint_owner_id ?? 0),
+        ])));
+    }
+
+    /** May the joint owner of a record of this class change or remove it? */
+    public static function jointOwnerMayEdit(string $modelClass): bool
+    {
+        return in_array($modelClass, self::JOINT_OWNER_EDITABLE, true);
+    }
 
     /**
      * Is this ownership type split between a primary and a joint owner?

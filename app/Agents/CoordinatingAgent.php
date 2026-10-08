@@ -142,15 +142,27 @@ class CoordinatingAgent extends BaseAgent
     use HasAiGuardrails;
 
     /**
+     * The stores for joint records, which find them for either owner
+     * (HasJointOwnership::scopeForUserOrJoint). One map for update_record's
+     * no-change check and delete_record.
+     *
+     * @var array<string, class-string>
+     */
+    private const JOINT_RECORD_STORES = [
+        'savings_account' => SavingsStore::class,
+        'investment_account' => InvestmentAccountStore::class,
+        'property' => PropertyStore::class,
+        'mortgage' => MortgageStore::class,
+        'estate_liability' => LiabilityStore::class,
+    ];
+
+    /**
      * Canonical savings account_type whitelist. Single source of truth for
      * both the create_savings_account coercion guard and its Rule::in
      * validation in handleCreateSavingsAccount() — keep them from drifting.
      *
      * @var list<string>
      */
-    /** Record types either owner of a joint record may change or remove (CSJ 2026-10-08). */
-    private const JOINT_OWNER_EDITABLE = ['savings_account', 'investment_account', 'property', 'mortgage', 'estate_liability', 'goal', 'chattel', 'business_interest'];
-
     private const SAVINGS_ACCOUNT_TYPES = [
         'easy_access', 'notice', 'fixed', 'fixed_term',
         'regular_saver', 'cash_isa', 'junior_isa', 'current_account',
@@ -6622,17 +6634,14 @@ class CoordinatingAgent extends BaseAgent
         // confirming "the same one" sent the stored values back and was refused
         // as "not found" by the primary-owner rule (full Luna run 2026-10-08,
         // turn 1744). Any real change still goes through its store and owner guard.
-        $stored = match ($entityType) {
-            'savings_account' => app(SavingsStore::class)->find($entityId, $user),
-            'investment_account' => app(InvestmentAccountStore::class)->find($entityId, $user),
-            'estate_liability' => app(LiabilityStore::class)->find($entityId, $user),
-            'property' => app(PropertyStore::class)->find($entityId, $user),
-            'mortgage' => app(MortgageStore::class)->find($entityId, $user),
-            'dc_pension' => app(PensionStore::class)->find($entityId, 'dc', $user),
-            'db_pension' => app(PensionStore::class)->find($entityId, 'db', $user),
-            'estate_gift' => null,
-            default => $this->resolveModel($entityType, $entityId, $user->id),
-        };
+        $stored = isset(self::JOINT_RECORD_STORES[$entityType])
+            ? app(self::JOINT_RECORD_STORES[$entityType])->find($entityId, $user)
+            : match ($entityType) {
+                'dc_pension' => app(PensionStore::class)->find($entityId, 'dc', $user),
+                'db_pension' => app(PensionStore::class)->find($entityId, 'db', $user),
+                'estate_gift' => null,
+                default => $this->resolveModel($entityType, $entityId, $user->id),
+            };
         if ($stored instanceof Model && ! collect($fields)->contains(
             fn (mixed $value, string $column): bool => RecaptureGuard::differs($stored->{$column}, $value)
         )) {
@@ -6852,15 +6861,8 @@ class CoordinatingAgent extends BaseAgent
         // and moves what hangs off them, such as an account's dividends in the
         // owner's taxable total (InvestmentAccountStore::delete). A direct
         // delete here refused the joint owner and skipped both.
-        $jointStores = [
-            'savings_account' => SavingsStore::class,
-            'investment_account' => InvestmentAccountStore::class,
-            'property' => PropertyStore::class,
-            'mortgage' => MortgageStore::class,
-            'estate_liability' => LiabilityStore::class,
-        ];
-        if (isset($jointStores[$entityType])) {
-            $store = app($jointStores[$entityType]);
+        if (isset(self::JOINT_RECORD_STORES[$entityType])) {
+            $store = app(self::JOINT_RECORD_STORES[$entityType]);
             $record = $store->find($entityId, $user);
             if ($record === null) {
                 return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
@@ -6938,10 +6940,9 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
         }
 
-        // Either owner of a joint record may change it (HasJointOwnership::scopeForUserOrJoint):
-        // CSJ 2026-10-08, accounts, property, mortgages, liabilities, goals,
-        // chattels and business interests. Nothing else opens to the joint owner.
-        $model = in_array($entityType, self::JOINT_OWNER_EDITABLE, true)
+        // Either owner of a joint record may change it (SharedOwnership::JOINT_OWNER_EDITABLE,
+        // CSJ 2026-10-08). Nothing else opens to the joint owner.
+        $model = SharedOwnership::jointOwnerMayEdit($modelClass)
             ? $modelClass::whereKey($entityId)->forUserOrJoint($userId)->first()
             : $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
 

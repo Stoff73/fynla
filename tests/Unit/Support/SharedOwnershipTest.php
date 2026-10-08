@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Chattel;
+use App\Models\Goal;
+use App\Models\LifeEvent;
 use App\Support\SharedOwnership;
 
 it('treats joint and tenants in common as shared, and nothing else', function () {
@@ -142,4 +145,18 @@ it('never takes the joint owner off a record still shared when their form names 
     expect(SharedOwnership::fromEditor(['joint_owner_id' => null], $record, 2)['joint_owner_id'])->toBe(2)
         ->and(SharedOwnership::fromEditor(['joint_owner_id' => null, 'ownership_type' => 'individual'], $record, 2)['joint_owner_id'])->toBeNull()
         ->and(SharedOwnership::fromEditor(['joint_owner_id' => null], $record, 1)['joint_owner_id'])->toBeNull();
+});
+
+it('names a record\'s owners, primary first, once each', function () {
+    expect(SharedOwnership::ownerIds((object) ['user_id' => 502, 'joint_owner_id' => 503]))->toBe([502, 503])
+        ->and(SharedOwnership::ownerIds((object) ['user_id' => 502, 'joint_owner_id' => null]))->toBe([502])
+        ->and(SharedOwnership::ownerIds((object) ['user_id' => 502, 'joint_owner_id' => 502]))->toBe([502]);
+});
+
+it('opens the ruled records to the joint owner, and nothing else', function () {
+    // CSJ 2026-10-08: accounts, property, mortgages, liabilities, goals,
+    // chattels and business interests; life events stay the primary owner's.
+    expect(SharedOwnership::jointOwnerMayEdit(Goal::class))->toBeTrue()
+        ->and(SharedOwnership::jointOwnerMayEdit(Chattel::class))->toBeTrue()
+        ->and(SharedOwnership::jointOwnerMayEdit(LifeEvent::class))->toBeFalse();
 });
