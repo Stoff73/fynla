@@ -227,7 +227,7 @@ outcome:
 1. Money that would have gone in tax goes into your pension instead.
 
 ## excess_cash_bond
-status: draft
+status: approved
 source: HMRC Insurance Policyholder Taxation Manual IPTM2005 (an investment bond is "generally a unit-linked, single premium whole of life or endowment policy … An investment rather than insurance in the general sense") https://www.gov.uk/hmrc-internal-manuals/insurance-policyholder-taxation-manual/iptm2005; HMRC helpsheet HS320 Gains on UK life insurance policies (2026) (gains are taxable as income when a chargeable event happens: a full or part surrender, maturity, death or assignment; single premium policies, "although additional premiums may be allowed"; part surrenders are set against "unused one twentieth of the premiums paid in the year and each previous year", up to 100%; "Tax at basic rate may be treated as paid on the gain in which case further tax will only be due from higher, or additional rate, taxpayers"; top slicing relief) https://www.gov.uk/government/publications/gains-on-uk-life-insurance-policies-hs320-self-assessment-helpsheet/hs320-gains-on-uk-life-insurance-policies-2026; HMRC helpsheet HS321 Gains on foreign life insurance policies (2026) ("unlike gains on UK policies, do not attract a non-repayable basic rate tax credit") https://www.gov.uk/government/publications/gains-on-foreign-life-insurance-policies-hs321-self-assessment-helpsheet/hs321-gains-on-foreign-life-insurance-policies-2026; https://www.fscs.org.uk/what-we-cover/investments/ ("their value can go down as well as up"); https://www.gov.uk/individual-savings-accounts (no tax on interest, income or gains in an ISA); ISA room from `TaxStrategyMath::estimateIsaSubscriptionsThisYear`; the card's own figures (`evaluateCashDragRisk`)
 figures: surplus_amount, total_savings
 why:
@@ -250,7 +250,7 @@ outcome:
 1. Growth inside the bond is not taxed until you cash it in, or take out more than the yearly one twentieth.
 
 ## excess_cash_gia
-status: draft
+status: approved
 source: https://www.gov.uk/tax-sell-shares (Capital Gains Tax on shares and fund units not in an ISA, when total gains are above the allowance); https://www.gov.uk/capital-gains-tax/allowances (the tax-free allowance, "called the Annual Exempt Amount"); https://www.gov.uk/tax-on-dividends (dividend allowance; "You do not pay tax on dividends from shares in an ISA"); Income Tax Act 2007 s13A (dividend nil rate) https://www.legislation.gov.uk/ukpga/2007/3/section/13A; Taxation of Chargeable Gains Act 1992 s1K (annual exempt amount) https://www.legislation.gov.uk/ukpga/1992/12/section/1K; https://www.fscs.org.uk/what-we-cover/investments/ (compensation when the provider has gone out of business; no claims "for poor investment performance"); allowances from tax config (`dividend_tax.allowance`, `capital_gains_tax.annual_exempt_amount`); ISA room from `TaxStrategyMath::estimateIsaSubscriptionsThisYear`; the card's own figures (`evaluateSurplusAboveEmergencyFund`)
 figures: surplus_amount, target_amount
 why:
@@ -301,7 +301,7 @@ outcome:
 1. You stop paying {debt_rate}% on the amount repaid.
 
 ## offset_mortgage_better
-status: draft
+status: approved
 source: HMRC Business Income Manual BIM45695 (offset accounts combine loans, savings and current accounts; "Interest is computed on the net borrowing from the bank") https://www.gov.uk/hmrc-internal-manuals/business-income-manual/bim45695; Income Tax (Trading and Other Income) Act 2005 s369 ("Income tax is charged on interest") https://www.legislation.gov.uk/ukpga/2005/5/section/369; FCA Handbook MCOB 12.3.1R (an early repayment charge must be able to be expressed as a cash value and be a reasonable pre-estimate of the lender's costs) https://www.handbook.fca.org.uk/handbook/MCOB/12/3.html; MCOB 7.5.3R(4)(d) (the mortgage statement shows "the early repayment charge that applies, expressed as a monetary amount") https://www.handbook.fca.org.uk/handbook/MCOB/7/5.html; the card's own figures (`evaluateMortgageRateComparison`)
 figures: mortgage_rate, average_savings_rate, non_emergency_balance
 why:
