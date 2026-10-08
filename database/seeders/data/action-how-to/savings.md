@@ -6,13 +6,12 @@ This file is the one source for the steps on each savings action's detail card. 
 
 **The figures.** Each card's own figures reach its steps: the ones its title and description were written from (`SavingsActionDefinitionService`, `buildRecommendation`), listed under each entry. They arrive already written, for example `{balance}` as "£4,500" and `{account_rate}` as "1.10" (add the % in the step). A step whose figure is missing is left out.
 
-**Also available:** everything in `tax.md` ("What you can branch on", "What you can fill in"), plus the savings figures from tax config: `{psa}` (this user's Personal Savings Allowance), `{psa_basic}`, `{psa_higher}`, `{psa_additional}`, `{starting_rate_band}`, `{fscs_limit}`, `{fscs_joint_limit}`, `{fscs_high_balance_limit}`, `{fscs_high_balance_months}`, `{parental_settlement_limit}`; and the household: `isa_full` and `{isa_left}` (the user's own ISA room this tax year, one sum for cash and stocks and shares: `TaxStrategyMath::estimateIsaSubscriptionsThisYear`), `has_spouse` and `{spouse_start}`, `has_children` and `{children}` (under 18: `DependantsReach::minorChildrenOf`).
+**Also available:** everything in `tax.md` ("What you can branch on", "What you can fill in"), plus the savings figures from tax config: `{psa}` (this user's Personal Savings Allowance), `{psa_basic}`, `{psa_higher}`, `{psa_additional}`, `{starting_rate_band}`, `{fscs_limit}`, `{fscs_joint_limit}`, `{fscs_high_balance_limit}`, `{fscs_high_balance_months}`, `{parental_settlement_limit}`, `{dividend_allowance}`, `{cgt_allowance}`; `has_bond` and `{bond}` (an onshore or offshore bond recorded on the Investment page); and the household: `isa_full` and `{isa_left}` (the user's own ISA room this tax year, one sum for cash and stocks and shares: `TaxStrategyMath::estimateIsaSubscriptionsThisYear`), `has_spouse` and `{spouse_start}`, `has_children` and `{children}` (under 18: `DependantsReach::minorChildrenOf`).
 
 **Not written, on purpose (the card still shows):**
 - `strategy_build_emergency_fund`, `strategy_move_to_high_interest`, `strategy_regular_savings_habit`: internal fallback types (`SavingsRecommendationAdapter`), never a card.
 - `missing_date_of_birth`, `missing_income`, `missing_expenditure`, `missing_employment_status`: data prompts; the card's "Add it now" opens Fyn's form.
 - `cash_isa_not_needed`, `goal_nearly_achieved`, `psa_headroom_available`: information with nothing to do.
-- `offset_mortgage_better`, `excess_cash_bond`, `excess_cash_gia`: no source could be verified yet (Rule 23); CSJ to supply or approve one.
 
 Rules for these steps:
 - **Every step rests on the sources named under its heading** (Rule 23), or on the card's own figures.
@@ -227,6 +226,52 @@ always:
 outcome:
 1. Money that would have gone in tax goes into your pension instead.
 
+## excess_cash_bond
+status: draft
+source: HMRC Insurance Policyholder Taxation Manual IPTM2005 (an investment bond is "generally a unit-linked, single premium whole of life or endowment policy … An investment rather than insurance in the general sense") https://www.gov.uk/hmrc-internal-manuals/insurance-policyholder-taxation-manual/iptm2005; HMRC helpsheet HS320 Gains on UK life insurance policies (2026) (gains are taxable as income when a chargeable event happens: a full or part surrender, maturity, death or assignment; single premium policies, "although additional premiums may be allowed"; part surrenders are set against "unused one twentieth of the premiums paid in the year and each previous year", up to 100%; "Tax at basic rate may be treated as paid on the gain in which case further tax will only be due from higher, or additional rate, taxpayers"; top slicing relief) https://www.gov.uk/government/publications/gains-on-uk-life-insurance-policies-hs320-self-assessment-helpsheet/hs320-gains-on-uk-life-insurance-policies-2026; HMRC helpsheet HS321 Gains on foreign life insurance policies (2026) ("unlike gains on UK policies, do not attract a non-repayable basic rate tax credit") https://www.gov.uk/government/publications/gains-on-foreign-life-insurance-policies-hs321-self-assessment-helpsheet/hs321-gains-on-foreign-life-insurance-policies-2026; https://www.fscs.org.uk/what-we-cover/investments/ ("their value can go down as well as up"); https://www.gov.uk/individual-savings-accounts (no tax on interest, income or gains in an ISA); ISA room from `TaxStrategyMath::estimateIsaSubscriptionsThisYear`; the card's own figures (`evaluateCashDragRisk`)
+figures: surplus_amount, total_savings
+why:
+1. You hold {total_savings} in cash, {surplus_amount} of it above your emergency fund target.
+why when isa_full:
+2. Your ISA allowance is used for this year.
+why when not isa_full:
+2. You still have {isa_left} of ISA allowance this year. Interest, income and gains inside an ISA are not taxed.
+always:
+1. An investment bond is a single premium life insurance policy that holds investments. Its value can go down as well as up.
+2. Gains are not taxed while they stay in the bond. They are taxed as income when you cash the bond in, in full or in part, or when it ends.
+3. Each insurance year you can take out up to one twentieth (5%) of what you paid in without a gain arising at the time, up to the whole amount you paid in. Any part you do not take carries forward.
+4. With a UK bond, tax at the basic rate can be treated as already paid on a gain, so only higher and additional rate taxpayers pay more. A bond from a provider outside the UK carries no such credit.
+5. If a gain would take your income into a higher tax band, top slicing relief can reduce the tax on it.
+when has_bond:
+6. You can add to your bond with {bond}, if it takes further payments.
+when not has_bond:
+6. Before you buy, ask the provider for the bond's charges.
+outcome:
+1. Growth inside the bond is not taxed until you cash it in, or take out more than the yearly one twentieth.
+
+## excess_cash_gia
+status: draft
+source: https://www.gov.uk/tax-sell-shares (Capital Gains Tax on shares and fund units not in an ISA, when total gains are above the allowance); https://www.gov.uk/capital-gains-tax/allowances (the tax-free allowance, "called the Annual Exempt Amount"); https://www.gov.uk/tax-on-dividends (dividend allowance; "You do not pay tax on dividends from shares in an ISA"); Income Tax Act 2007 s13A (dividend nil rate) https://www.legislation.gov.uk/ukpga/2007/3/section/13A; Taxation of Chargeable Gains Act 1992 s1K (annual exempt amount) https://www.legislation.gov.uk/ukpga/1992/12/section/1K; https://www.fscs.org.uk/what-we-cover/investments/ (compensation when the provider has gone out of business; no claims "for poor investment performance"); allowances from tax config (`dividend_tax.allowance`, `capital_gains_tax.annual_exempt_amount`); ISA room from `TaxStrategyMath::estimateIsaSubscriptionsThisYear`; the card's own figures (`evaluateSurplusAboveEmergencyFund`)
+figures: surplus_amount, target_amount
+why:
+1. You hold {surplus_amount} in cash above your emergency fund target of {target_amount}.
+why when isa_full:
+2. Your ISA allowance is used for this year.
+why when not isa_full:
+2. You still have {isa_left} of ISA allowance this year. Dividends and gains inside an ISA are not taxed.
+always:
+1. A General Investment Account holds shares and funds outside an ISA or pension, so the dividends and gains they make can be taxed.
+when has_gia:
+2. You can add to your General Investment Account with {gia}.
+when not has_gia:
+2. Choose a provider and compare its charges before you open one.
+always:
+3. Dividends above your {dividend_allowance} dividend allowance are taxed each year.
+4. When you sell, gains above your {cgt_allowance} Capital Gains Tax allowance for the tax year are taxed.
+5. The value of investments can go down as well as up. The Financial Services Compensation Scheme can pay compensation if the firm holding your investments goes out of business, not if their value falls.
+outcome:
+1. Money above your emergency fund is invested rather than held as cash.
+
 ## fscs_breach, fscs_approaching
 status: approved
 source: https://www.fscs.org.uk/check/check-your-money-is-protected/ (limit per person per banking licence; brands sharing a licence count as one); https://www.fscs.org.uk/making-a-claim/claims-process/temporary-high-balances/ (temporary high balances); limits from tax config (`savings.fscs_*`)
@@ -254,6 +299,21 @@ always:
 3. Repay from savings above your emergency fund, starting with the highest-rate debt.
 outcome:
 1. You stop paying {debt_rate}% on the amount repaid.
+
+## offset_mortgage_better
+status: draft
+source: HMRC Business Income Manual BIM45695 (offset accounts combine loans, savings and current accounts; "Interest is computed on the net borrowing from the bank") https://www.gov.uk/hmrc-internal-manuals/business-income-manual/bim45695; Income Tax (Trading and Other Income) Act 2005 s369 ("Income tax is charged on interest") https://www.legislation.gov.uk/ukpga/2005/5/section/369; FCA Handbook MCOB 12.3.1R (an early repayment charge must be able to be expressed as a cash value and be a reasonable pre-estimate of the lender's costs) https://www.handbook.fca.org.uk/handbook/MCOB/12/3.html; MCOB 7.5.3R(4)(d) (the mortgage statement shows "the early repayment charge that applies, expressed as a monetary amount") https://www.handbook.fca.org.uk/handbook/MCOB/7/5.html; the card's own figures (`evaluateMortgageRateComparison`)
+figures: mortgage_rate, average_savings_rate, non_emergency_balance
+why:
+1. Your mortgage costs {mortgage_rate}% a year. Your savings earn {average_savings_rate}% on average, and interest on savings can be taxed.
+2. You hold {non_emergency_balance} in savings outside your emergency fund.
+always:
+1. Keep your emergency fund where it is.
+2. Ask your mortgage lender whether they offer an offset mortgage. With one, your savings sit in an account linked to the mortgage, and interest is charged on the mortgage less those savings.
+3. Check your latest mortgage statement for the early repayment charge that applies. It is shown as a cash amount. Ask your lender whether moving to an offset mortgage before your current deal ends would trigger it.
+4. If you keep your current mortgage, ask your lender how much you can overpay each year without an early repayment charge, and overpay from savings above your emergency fund.
+outcome:
+1. Savings above your emergency fund cut the interest you pay at {mortgage_rate}%, where in savings they earn {average_savings_rate}%.
 
 ## goal_off_track, goal_no_contribution, goal_underfunded, goal_deadline_approaching
 status: approved

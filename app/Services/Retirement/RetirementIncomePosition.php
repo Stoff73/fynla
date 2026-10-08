@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\User;
-use App\Services\Stores\PensionStore;
-use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\Tax\PensionAffordability;
 use App\Services\TaxConfigService;
 
@@ -43,7 +41,7 @@ class RetirementIncomePosition
         private readonly RetirementProjectionContractService $contract,
         private readonly PensionAffordability $affordability,
         private readonly TaxConfigService $taxConfig,
-        private readonly IncomeDefinitionsService $incomeDefinitions,
+        private readonly AnnualAllowanceChecker $allowanceChecker,
     ) {}
 
     /**
@@ -138,38 +136,14 @@ class RetirementIncomePosition
     }
 
     /**
-     * The most that can still attract relief this year: remaining Annual
-     * Allowance plus carry forward, and no more than relevant UK earnings less
-     * what the member already pays (s190 caps the year's total). The basic
-     * amount lifts the earnings cap only where the payment can go by relief at
-     * source: a personal pension held, or one to open (s190(2), s191(7)). The
-     * Money Purchase Annual Allowance once a pension has been flexibly
-     * accessed (s227G).
+     * The most that can still attract relief this year: one rule for every
+     * engine (AnnualAllowanceChecker::reliefRoomThisYear).
      *
      * @param  array<string, mixed>  $allowance  RetirementAgent::analyze() annual_allowance
      */
     private function reliefLimit(User $user, array $allowance): float
     {
-        $headroom = (float) ($allowance['remaining_allowance'] ?? 0) + (float) ($allowance['carry_forward_available'] ?? 0);
-        $earnings = (float) ($user->annual_employment_income ?? 0) + (float) ($user->annual_self_employment_income ?? 0);
-
-        $user->loadMissing(['dcPensions', 'dbPensions']);
-        $reliefAtSourceRoute = ($user->dcPensions->isEmpty() && $user->dbPensions->isEmpty())
-            || $user->dcPensions->contains(fn ($pension): bool => ! PensionContributionRule::isWorkplace($pension));
-        $cap = $reliefAtSourceRoute ? max($earnings, (float) $this->taxConfig->get('pension.relevant_earnings_minimum')) : $earnings;
-
-        // Member contributions only: employer and sacrificed pay are not limited by s190.
-        $deductions = (array) ($this->incomeDefinitions->calculate($user->id)['deductions'] ?? []);
-        $memberPaid = (float) ($deductions['employee_pension_contributions'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
-
-        $limit = min($headroom, max(0.0, $cap - $memberPaid));
-
-        if ((bool) ($allowance['mpaa_applies'] ?? app(PensionStore::class)->hasFlexiblyAccessedDcPension($user))) {
-            $paying = (float) ($allowance['total_contributions'] ?? $allowance['allowance_used'] ?? 0);
-            $limit = min($limit, max(0.0, (float) $this->taxConfig->get('pension.mpaa') - $paying));
-        }
-
-        return max(0.0, $limit);
+        return $this->allowanceChecker->reliefRoomThisYear($user, $allowance);
     }
 
     /**

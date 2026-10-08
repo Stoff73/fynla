@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\SavingsAccount;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\Actions\ActionCardService;
+use App\Services\Actions\ActionHowTo;
 use App\Services\Actions\ActionHowToFacts;
 use App\Services\Mobile\NextActionsService;
 use Database\Seeders\ActionHowToSeeder;
@@ -128,4 +130,33 @@ it('gives a list row the same topic as its card, so no engine bucket like "Lifec
     expect(strtolower((string) $item['card']['category']))->toBe('lifecycle')
         ->and($item['meta'])->toBe('')
         ->and($item['meta'])->toBe((string) ActionCardService::topicFor($item['card']['category']));
+});
+
+it('gives the General Investment Account steps the dividend and Capital Gains Tax allowances from tax config', function () {
+    // Item 15 (2026-10-07): the steps name both allowances; neither may be typed in (Rule 2).
+    ['text' => $text] = app(ActionHowToFacts::class)->for(zeroRateSaver(), []);
+    $steps = collect(ActionHowTo::parse((string) file_get_contents(database_path('seeders/data/action-how-to/savings.md')))['excess_cash_gia']['steps'])
+        ->pluck('text')->implode(' ');
+
+    expect($text['dividend_allowance'])->toBe('£500')
+        ->and($text['cgt_allowance'])->toBe('£3,000')
+        ->and($steps)->toContain('Dividends above your {dividend_allowance} dividend allowance')
+        ->and($steps)->toContain('gains above your {cgt_allowance} Capital Gains Tax allowance');
+});
+
+it('fills the offset mortgage how-to with the card\'s mortgage and savings rates', function () {
+    SavingsActionDefinition::where('key', 'offset_mortgage_better')->update(['how_to_status' => 'approved']);
+    $user = zeroRateSaver();
+    Mortgage::factory()->create(['user_id' => $user->id, 'interest_rate' => 5.25, 'outstanding_balance' => 180000]);
+
+    $item = collect(app(NextActionsService::class)->buildAll($user->id))
+        ->first(fn (array $i): bool => ($i['card']['definition_key'] ?? null) === 'offset_mortgage_better');
+    expect($item)->not->toBeNull();
+
+    $card = app(ActionCardService::class)->for($user, $item['id']);
+
+    expect(implode(' ', $card['why']))->toContain('Your mortgage costs 5.25% a year. Your savings earn 0.00% on average')
+        ->and(implode(' ', $card['why']))->toContain('You hold £4,500 in savings outside your emergency fund.')
+        ->and(implode(' ', $card['how_to']))->toContain('interest is charged on the mortgage less those savings')
+        ->and(implode(' ', $card['how_to']))->not->toContain('{');
 });
