@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace App\Services\Savings;
 
 use App\Models\User;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesIncome;
-use Illuminate\Support\Collection;
 
 class PSACalculator
 {
     use ResolvesIncome;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly IncomeDefinitionsService $incomeDefinitions,
     ) {}
 
     /**
@@ -23,8 +24,13 @@ class PSACalculator
     public function assessPSAPosition(User $user): array
     {
         $taxBand = $this->determineTaxBand($user);
-        $accounts = $user->savingsAccounts()->where('is_isa', false)->get();
-        $annualInterest = $this->calculateAnnualInterest($accounts);
+        // The user's own share of their non-ISA interest, joint accounts
+        // included, from the one home every surface reads (ITA 2007 s836: each
+        // joint owner is taxed on their share). This summed whole balances of
+        // the rows the user is primary owner of, so the primary owner of a
+        // joint account was told the whole interest breached their allowance
+        // and the joint owner had none (csjones 2026-10-08, Alex and Jamie).
+        $annualInterest = $this->incomeDefinitions->estimatedAnnualInterest($user);
 
         // Non-taxpayers pay no tax on savings interest — PSA is effectively unlimited.
         // We use PHP_INT_MAX as a sentinel; downstream code should check tax_band first.
@@ -63,19 +69,6 @@ class PSACalculator
             'is_breached' => $breachAmount > 0,
             'is_approaching' => $utilisationPercent >= 75 && $breachAmount <= 0,
         ];
-    }
-
-    /**
-     * Calculate total annual interest from non-ISA savings accounts
-     */
-    public function calculateAnnualInterest(Collection $accounts): float
-    {
-        return $accounts->sum(function ($account) {
-            $balance = (float) ($account->current_balance ?? 0);
-            $rate = (float) ($account->interest_rate ?? 0);
-
-            return $balance * ($rate / 100); // rate stored as percentage
-        });
     }
 
     /**
