@@ -24,10 +24,12 @@ use App\Services\AI\Prompts\CoreIdentity;
 use App\Services\AI\Prompts\FcaProcessInstructions;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
+use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Goals\LifeEventService;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Plans\DisposableIncomeAccessor;
 use App\Services\PrerequisiteGateService;
 use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
@@ -431,6 +433,18 @@ PROMPT;
             $formatted = number_format($totalExpenditure, 2);
             $lines[] = "- Monthly expenditure: £{$formatted}";
         }
+
+        // The plan's own monthly surplus, the one server figure the plan and the
+        // actions list read (CashFlowCoordinator::calculateAvailableSurplus; CSJ
+        // 2026-10-01). Without it Fyn subtracted spending from take-home itself and
+        // left out the pension payment (csjones, Jamie, 2026-10-08).
+        $commitments = (float) app(DisposableIncomeAccessor::class)->getForUser($user)['expenditure_composition']['commitments_annual'] / 12;
+        if ($commitments > 0) {
+            $lines[] = '- Financial commitments each month, on top of the expenditure above (pension payments from take-home, protection premiums, regular saving, loan repayments): £'.number_format($commitments, 2);
+        }
+        $surplus = app(CashFlowCoordinator::class)->calculateAvailableSurplus($user->id);
+        $lines[] = '- Left over each month after take-home, expenditure and commitments (the plan\'s figure; quote it, never work it out again): '
+            .($surplus < 0 ? '−£' : '£').number_format(abs($surplus), 2);
 
         // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED;
         // it is not evidence that they named back, and this reads their financial data.
