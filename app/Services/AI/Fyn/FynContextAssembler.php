@@ -14,6 +14,7 @@ use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
+use App\Services\AI\Memory\HouseViewApplicability;
 use App\Services\AI\Memory\Procedural\ProceduralContributionCollector;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\Memory\Procedural\Procedure;
@@ -55,6 +56,7 @@ final class FynContextAssembler
         private readonly TaxConfigService $taxConfig,
         private readonly FynMemoryStore $memoryStore,
         private readonly SemanticRetriever $semantic,
+        private readonly HouseViewApplicability $houseViews,
         private readonly PointerRegistry $pointers,
         private readonly FetchDispatcher $dispatcher,
         private readonly ProceduralCorpusLoader $proceduralLoader,
@@ -125,7 +127,13 @@ final class FynContextAssembler
         // at runtime we degrade to no knowledge block (the backbone still covers
         // the user). Sparse, effective-dated to today.
         try {
-            $knowledgeFacts = $this->semantic->retrieveForUser($ctx->user->id, $ctx->message);
+            // A strategy that cannot apply to this user never reaches the
+            // model (it read the carry forward guide as "the plan needs your
+            // pension history"; csjones, 2026-10-08).
+            $knowledgeFacts = $this->houseViews->filter(
+                $this->semantic->retrieveForUser($ctx->user->id, $ctx->message),
+                $ctx->user,
+            );
         } catch (\Throwable $e) {
             report($e);
             $knowledgeFacts = [];

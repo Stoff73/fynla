@@ -345,10 +345,14 @@ final class TaxStrategyMath
      * allowance, so it applies only when both hold (CSJ 2026-09-28):
      * - earnings above this year's allowance: relief is capped at relevant
      *   UK earnings (FA 2004 s190, https://www.legislation.gov.uk/ukpga/2004/12/section/190);
-     * - cash savings above what they can still pay in this year: carry
-     *   forward starts once this year's allowance is used (FA 2004 s228A,
-     *   https://www.legislation.gov.uk/ukpga/2004/12/section/228A).
-     * Anyone else is never asked for past pension payments.
+     * - cash savings above what they can still pay into a pension AND an ISA
+     *   this year: carry forward starts once this year's allowance is used
+     *   (FA 2004 s228A, https://www.legislation.gov.uk/ukpga/2004/12/section/228A),
+     *   and the whole ISA allowance comes before it (CSJ 2026-10-08: "if a
+     *   user does not have more than £80,000 spare cash to invest, we NEVER
+     *   ask for the contribution history").
+     * Anyone else is never asked for past pension payments: this is the one
+     * gate for the plan, the onboarding question and Fyn's knowledge.
      */
     public function carryForwardCouldApply(User $user): bool
     {
@@ -359,8 +363,9 @@ final class TaxStrategyMath
 
         $cash = app(SavingsStore::class)->forUser($user)
             ->sum(fn ($account): float => $this->calculateUserShare($account, (int) $user->id));
+        $isaStillToUse = (float) app(ISATracker::class)->usedThisTaxYear($user)['remaining'];
 
-        return $cash > $this->availableAnnualAllowance($user, null);
+        return $cash > $this->availableAnnualAllowance($user, null) + $isaStillToUse;
     }
 
     public function availableAnnualAllowance(User $user, ?TaxStrategyOverridesDTO $overrides): float
