@@ -4,15 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
-use App\Models\CriticalIllnessPolicy;
-use App\Models\DisabilityPolicy;
-use App\Models\IncomeProtectionPolicy;
-use App\Models\LifeInsurancePolicy;
-use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Services\Plans\DisposableIncomeAccessor;
-use App\Services\Stores\PensionStore;
-use App\Services\Stores\SavingsStore;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
 
@@ -28,9 +21,12 @@ class CashFlowCoordinator
     use ResolvesIncome;
 
     /**
-     * Calculate available monthly surplus using the same disposable income
-     * figure shown on the user's income tab (net income minus expenditure),
-     * then deducting committed contributions.
+     * Available monthly surplus: the disposable income the Income tab shows,
+     * take-home less spending. Spending already includes the financial
+     * commitments (pension payments, protection premiums, regular saving;
+     * UserProfileService::getFinancialCommitments, W-0140), so nothing is
+     * taken off again here. This deducted them a second time (Jamie, csjones
+     * 2026-10-08: "−£266.70" for −£136.70).
      *
      * @return float Monthly surplus after all expenses and contributions
      */
@@ -41,11 +37,7 @@ class CashFlowCoordinator
             return 0.0;
         }
 
-        $disposableAccessor = app(DisposableIncomeAccessor::class);
-        $monthlyDisposable = $disposableAccessor->getMonthlyForUser($user);
-        $committedContributions = $this->calculateCommittedContributions($userId);
-
-        return round($monthlyDisposable - $committedContributions, 2);
+        return round(app(DisposableIncomeAccessor::class)->getMonthlyForUser($user), 2);
     }
 
     /**
@@ -214,80 +206,6 @@ class CashFlowCoordinator
         $annualIncome = $this->resolveGrossAnnualIncome($user);
 
         return round($annualIncome / 12, 2);
-    }
-
-    /**
-     * Calculate total committed monthly contributions across all modules.
-     */
-    private function calculateCommittedContributions(int $userId): float
-    {
-        $total = 0.0;
-
-        // Pension contributions (DC pensions with monthly contributions).
-        // Non-existent user → 0 (parity with the pre-store DCPension::where + sum semantics).
-        $user = User::find($userId);
-        if ($user !== null) {
-            $total += (float) app(PensionStore::class)
-                ->forUserByType($user, 'dc')
-                ->sum('monthly_contribution_amount');
-        }
-
-        // Protection premiums (convert to monthly based on frequency)
-        $total += $this->sumMonthlyPremiums(LifeInsurancePolicy::class, $userId);
-        $total += $this->sumMonthlyPremiums(CriticalIllnessPolicy::class, $userId);
-        $total += $this->sumMonthlyPremiums(IncomeProtectionPolicy::class, $userId);
-        $total += $this->sumMonthlyPremiums(DisabilityPolicy::class, $userId);
-        $total += $this->sumMonthlyPremiums(SicknessIllnessPolicy::class, $userId);
-
-        // Regular savings contributions (monthly equivalent) — single-owner.
-        // collect() reproduces the empty-Builder result for a missing user (PR 5f).
-        $user = User::find($userId);
-        $savingsAccounts = $user
-            ? app(SavingsStore::class)->forUser($user)
-                ->where('user_id', $userId)
-                ->whereNotNull('regular_contribution_amount')
-                ->where('regular_contribution_amount', '>', 0)
-            : collect();
-
-        foreach ($savingsAccounts as $account) {
-            $total += $this->toMonthly(
-                (float) $account->regular_contribution_amount,
-                $account->contribution_frequency ?? 'monthly'
-            );
-        }
-
-        return round($total, 2);
-    }
-
-    /**
-     * Sum monthly-equivalent premiums for a protection policy model.
-     */
-    private function sumMonthlyPremiums(string $modelClass, int $userId): float
-    {
-        $policies = $modelClass::where('user_id', $userId)->get();
-        $total = 0.0;
-
-        foreach ($policies as $policy) {
-            $amount = (float) ($policy->premium_amount ?? 0);
-            $frequency = $policy->premium_frequency ?? 'monthly';
-            $total += $this->toMonthly($amount, $frequency);
-        }
-
-        return $total;
-    }
-
-    /**
-     * Convert an amount to monthly based on payment frequency.
-     */
-    private function toMonthly(float $amount, string $frequency): float
-    {
-        return match ($frequency) {
-            'monthly' => $amount,
-            'quarterly' => $amount / 3,
-            'annually', 'annual' => $amount / 12,
-            'weekly' => $amount * 52 / 12,
-            default => $amount,
-        };
     }
 
     /**
