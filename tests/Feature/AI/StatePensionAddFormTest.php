@@ -7,6 +7,7 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
+use App\Services\Onboarding\CaptureForms;
 use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\Fyn\FynStreamHarness;
@@ -33,7 +34,11 @@ it('opens the State Pension form for an add and records it', function (): void {
         'origin' => ['kind' => 'surface_action', 'recommendation_id' => null],
     ])->assertCreated()->json('data.conversation.id');
 
-    expect(AiConversation::findOrFail($id)->messages()->first()->metadata['capture_form']['name'])->toBe('state_pension');
+    $opening = AiConversation::findOrFail($id)->messages()->first();
+    // An add: the add prompt and the form's own button, not "Change what needs changing" / "Save changes".
+    expect($opening->metadata['capture_form']['name'])->toBe('state_pension')
+        ->and($opening->content)->toBe(CaptureForms::ADD_PROMPT)
+        ->and($opening->metadata['capture_form']['submit_label'])->toBe('Save');
 
     $this->withHeader('X-Fynla-Forms', '1')
         ->postJson("/api/ai-chat/conversations/{$id}/messages", ['form' => ['name' => 'state_pension', 'answers' => ['_lead' => [
