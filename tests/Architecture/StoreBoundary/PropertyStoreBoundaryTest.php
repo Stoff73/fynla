@@ -169,6 +169,9 @@ $propertyConsumers = [
     //    this stays a pure valuation helper on the same footing as the three
     //    above.
     'App\Services\Estate\UndividedShareDiscount',
+    //  - SharedOwnership: names Property::class in JOINT_OWNER_EDITABLE (the
+    //    types a joint owner may change). A class-name list only; no queries.
+    'App\Support\SharedOwnership',
 
     // ---- Out-of-sub-project-1-scope read / infra references ----
     // These were never in the Pass 4 read-consumer migration scope: sibling
