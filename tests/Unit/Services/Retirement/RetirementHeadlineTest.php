@@ -6,10 +6,12 @@ use App\Agents\RetirementAgent;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementDrawdownPosition;
 use App\Services\Retirement\RetirementHeadline;
+use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionContractService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -106,4 +108,16 @@ it('leads someone drawing with the Retirement page\'s own income this year', fun
         ->and($headline['drawing_income'])->toEqual($headline['value'])
         ->and($headline['drawing_per_year'])->toEqual(9000.0)
         ->and($headline['drawing_lasts_to_age'])->toBe($page['pot']['lasts_to_age']['middle']);
+});
+
+it('says the State Pension is left out when none is recorded, and not once it is', function () {
+    // Regression walk 2026-10-09, R13: /m read "You have a shortfall of £10,880 a
+    // year" for a 40-year-old whose State Pension was never asked.
+    $missing = app(RetirementHeadline::class)->for($this->user->fresh());
+    expect($missing['state_pension_note'])->toBe(RetirementIncomeService::STATE_PENSION_MISSING_MESSAGE);
+
+    StatePension::create(['user_id' => $this->user->id, 'state_pension_forecast_annual' => 12000, 'already_receiving' => false]);
+    Cache::flush();
+
+    expect(app(RetirementHeadline::class)->for($this->user->fresh())['state_pension_note'])->toBeNull();
 });

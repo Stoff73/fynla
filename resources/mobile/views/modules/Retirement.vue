@@ -51,6 +51,10 @@
         <p class="m-sub m-label">{{ heroHeadline.label }}</p>
         <p class="m-metric">{{ fmt(heroHeadline.value) }}<span class="mr-hero-per">a year</span></p>
         <p class="m-hero-sub">{{ gapNarrative }}</p>
+        <p v-if="headline && headline.state_pension_note" class="m-hero-sub" data-testid="retirement-state-pension-note">
+          {{ headline.state_pension_note }}
+          <button type="button" class="m-btn-ghost" @click="addStatePension">Add it</button>
+        </p>
         <div class="mr-hero-split">
           <div class="mr-hero-stat">
             <span class="mr-hero-stat__cap">Target income</span>
