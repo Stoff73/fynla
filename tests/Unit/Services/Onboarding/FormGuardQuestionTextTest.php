@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
+use Database\Seeders\TierConfigurationSeeder;
 
 /*
  * The duplicate guard asks; it never refuses (CSJ 2026-10-08: "ask, never
@@ -123,4 +125,24 @@ it('asks the duplicate question with its two answers as bubbles, and a failure a
     expect(collect($events)->firstWhere('type', 'content')['text'])->toBe('the line')
         ->and(collect($events)->firstWhere('type', 'quick_replies'))->toBeNull()
         ->and($saved->metadata['bubbles'] ?? null)->toBeNull();
+});
+
+it('offers only "The same one" when a separate one would pass the plan\'s cap (walk R39)', function (): void {
+    // csjones, Drew (free, two bank accounts): "A separate one" led to "what
+    // would you like to call it?" for an account the cap then refused.
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['tier' => 'free']);
+    $hsbc = SavingsAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'current_account', 'is_isa' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'emitFormProblem');
+    $method->setAccessible(true);
+
+    $gen = $method->invoke($director, $conversation, 'savings', ['easy_access' => ['message' => 'You already have … or the same one?', 'error_type' => 'confirm_duplicate_required', 'entity_type' => 'savings_account', 'entity_id' => $hsbc->id, 'fields' => []]], 'the line', null);
+    $events = iterator_to_array($gen, false);
+    $replies = collect($events)->firstWhere('type', 'quick_replies');
+
+    expect(collect($replies['bubbles'])->pluck('label')->all())->toBe(['The same one'])
+        ->and($replies['prompt_text'])->toBe("the line If it's a separate one, that's the Free plan's limit of 2 bank and savings accounts, so I can't add it here.");
 });
