@@ -163,8 +163,11 @@ class RequiredCapitalCalculator
         // Get total gross income
         $grossIncome = (float) ($incomeOccupation['total_annual_income'] ?? 0);
 
-        // Subtract pension contributions (user won't be making these in retirement)
-        $pensionContributions = (float) ($incomeOccupation['annual_pension_contributions'] ?? 0);
+        // Subtract pension contributions (user won't be making these in
+        // retirement): workplace payments taken from pay, and personal pension
+        // payments gross, which are paid from take-home pay instead (walk R21).
+        $pensionContributions = (float) ($incomeOccupation['annual_pension_contributions'] ?? 0)
+            + (float) ($incomeOccupation['annual_relief_at_source_contributions'] ?? 0);
 
         return max(0, $grossIncome - $pensionContributions);
     }
