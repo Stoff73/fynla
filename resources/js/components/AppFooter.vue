@@ -1,11 +1,11 @@
 <template>
   <footer class="bg-white border-t border-light-gray">
     <div class="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
+      <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0 lg:gap-6">
         <div class="flex items-center gap-4">
           <router-link to="/"><img :src="logoUrl" alt="Fynla" class="h-8 w-auto" /></router-link>
         </div>
-        <div class="text-body-sm text-neutral-500 text-center lg:text-left">
+        <div class="text-body-sm text-neutral-500 text-center lg:text-left lg:flex-1 lg:min-w-0">
           <span class="block sm:inline">&copy; {{ currentYear }} Fynla - Your personal finance platform.</span>
           <span class="hidden sm:inline"> For demonstration purposes only.</span>
           <span class="block sm:hidden text-xs mt-1">For demonstration purposes only.</span>
@@ -18,7 +18,7 @@
             fynla.org
           </a>
         </div>
-        <div class="flex flex-wrap justify-center gap-4 sm:gap-6">
+        <div class="flex flex-wrap lg:flex-nowrap lg:shrink-0 justify-center gap-4 sm:gap-6">
           <router-link to="/privacy" class="text-body-sm text-neutral-500 hover:text-horizon-500">
             Privacy Policy
           </router-link>
