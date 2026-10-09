@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\Mobile\DashboardCards;
+use App\Services\Savings\SavingsPosition;
 
 // The five dashboard cards are built once, here, and rendered as sent by web,
 // /m and iOS (CSJ 2026-10-01: one figure, every surface).
@@ -102,4 +103,18 @@ it('prints the runway as the Savings page does: whole months from ten', function
     ]], $this->netWorth)['savings'];
 
     expect($card['visual']['number'])->toBe('14');
+});
+
+it('asks for spending instead of showing "0 / 6 months" when the runway cannot be worked out', function () {
+    // Regression walk 2026-10-09, R2: £30,000 saved and no spending recorded read
+    // "0 / 6 months … Start your emergency fund" while the Savings page said
+    // "Add your monthly spending" (W-0495).
+    $card = $this->cards->build(['savings' => [
+        'total_savings' => 30000, 'emergency_fund_months' => null, 'emergency_fund_target_months' => 6,
+    ]], $this->netWorth)['savings'];
+
+    expect($card['value'])->toBe(30000.0)
+        ->and($card['caption'])->toBe(SavingsPosition::RUNWAY_UNAVAILABLE_LABEL)
+        ->and($card['visual']['number'])->toBe('')
+        ->and($card['visual']['label'])->not->toContain('months');
 });

@@ -71,8 +71,20 @@ final class DashboardCards
     /** @return array<string, mixed> */
     private function savings(array $module): array
     {
-        $months = (float) ($module['emergency_fund_months'] ?? 0);
         $target = (int) ($module['emergency_fund_target_months'] ?? 0);
+
+        // No spending recorded: the runway cannot be worked out, so the card says
+        // what the Savings page says, never "0 / 6 months" (regression walk
+        // 2026-10-09, R2; W-0495).
+        if (($module['emergency_fund_months'] ?? null) === null) {
+            return $this->card(
+                value: (float) ($module['total_savings'] ?? 0),
+                caption: SavingsPosition::RUNWAY_UNAVAILABLE_LABEL,
+                visual: $this->bar(0, '', ''),
+            );
+        }
+
+        $months = (float) $module['emergency_fund_months'];
 
         $caption = $target > 0 && $months >= $target
             ? 'Emergency fund on track'

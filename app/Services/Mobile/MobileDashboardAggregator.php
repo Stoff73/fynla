@@ -222,7 +222,9 @@ class MobileDashboardAggregator
             'status' => 'active',
             'total_savings' => round((float) ($summary['total_savings'] ?? 0), 2),
             'total_accounts' => (int) ($summary['total_accounts'] ?? 0),
-            'emergency_fund_months' => round((float) ($fund['runway_months'] ?? 0), 1),
+            // Null when no spending is recorded: the runway cannot be worked out,
+            // which is not zero months (W-0495; regression walk 2026-10-09, R2).
+            'emergency_fund_months' => isset($fund['runway_months']) ? round((float) $fund['runway_months'], 1) : null,
             'emergency_fund_target_months' => (int) ($fund['target_months'] ?? 0),
         ];
     }
