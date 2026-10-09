@@ -156,7 +156,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute } from 'vue-router';
 import { resolveModule } from '@/utils/moduleMap';
@@ -188,6 +188,15 @@ export default {
 
     onMounted(fetchData);
     watch(currentModule, fetchData);
+
+    // A Fyn save changes what is filled without a route change; the banner
+    // fetches again on the same signal the page does (fynScreenRefreshMixin;
+    // walk R36: "1 of 7" after the date of birth and pension were saved).
+    const onFynScreenRefresh = () => {
+      store.dispatch('infoGuide/refreshRequirements');
+    };
+    onMounted(() => window.addEventListener('fyn-screen-refresh', onFynScreenRefresh));
+    onBeforeUnmount(() => window.removeEventListener('fyn-screen-refresh', onFynScreenRefresh));
 
     // Info guide getters
     const loading = computed(() => store.state.infoGuide?.loading ?? false);
