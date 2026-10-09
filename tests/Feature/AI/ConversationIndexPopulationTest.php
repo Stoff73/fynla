@@ -499,7 +499,7 @@ it('batches contextual history availability checks by resource type', function (
     $accounts = SavingsAccount::factory()->count(3)->for($user)->create();
 
     foreach ($accounts as $account) {
-        AiConversation::create([
+        $conversation = AiConversation::create([
             'user_id' => $user->id,
             'title' => 'Edit account',
             'status' => 'active',
@@ -512,6 +512,7 @@ it('batches contextual history availability checks by resource type', function (
                 'resource_id' => $account->id,
             ],
         ]);
+        AiMessage::create(['conversation_id' => $conversation->id, 'role' => 'assistant', 'content' => 'What would you like to change?']);
     }
 
     Sanctum::actingAs($user);
@@ -525,4 +526,24 @@ it('batches contextual history availability checks by resource type', function (
         ->filter(fn (string $query): bool => str_contains($query, 'savings_accounts'));
 
     expect($savingsQueries)->toHaveCount(1);
+});
+
+it('leaves conversations with nothing said out of the history (walk R29)', function (): void {
+    // Opening the chat starts a conversation before anything is said; each
+    // reload listed another empty "General Fyn conversation".
+    $user = User::factory()->create();
+    $empty = AiConversation::create([
+        'user_id' => $user->id, 'title' => null, 'status' => 'active', 'model_used' => 'test',
+    ]);
+    $spoken = AiConversation::create([
+        'user_id' => $user->id, 'title' => 'Pension question', 'status' => 'active', 'model_used' => 'test',
+        'last_message_at' => now(),
+    ]);
+    AiMessage::create(['conversation_id' => $spoken->id, 'role' => 'user', 'content' => 'How did you work out the pension figure?']);
+
+    Sanctum::actingAs($user);
+    $ids = collect($this->getJson('/api/ai-chat/conversations')->assertOk()->json('data'))->pluck('id')->all();
+
+    expect($ids)->toBe([$spoken->id])
+        ->and($ids)->not->toContain($empty->id);
 });
