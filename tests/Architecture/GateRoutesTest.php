@@ -13,7 +13,7 @@ it('resolves every canonical gate destination for desktop and mobile', function 
         GateRoutes::INCOME => ['label' => 'Income', 'web' => '/valuable-info?section=income', 'mobile' => '/income'],
         GateRoutes::EXPENDITURE => ['label' => 'Expenditure', 'web' => '/valuable-info?section=expenditure', 'mobile' => '/expenditure'],
         GateRoutes::PROTECTION => ['label' => 'Protection', 'web' => '/protection', 'mobile' => '/protection'],
-        GateRoutes::SAVINGS => ['label' => 'Bank Accounts', 'web' => '/savings', 'mobile' => '/savings'],
+        GateRoutes::SAVINGS => ['label' => 'Bank Accounts', 'web' => '/net-worth/cash', 'mobile' => '/savings'],
         GateRoutes::LIABILITIES => ['label' => 'Liabilities', 'web' => '/net-worth/liabilities', 'mobile' => '/net-worth/liabilities'],
         GateRoutes::RETIREMENT => ['label' => 'Retirement', 'web' => '/retirement', 'mobile' => '/retirement'],
         GateRoutes::INVESTMENT => ['label' => 'Investments', 'web' => '/investment', 'mobile' => '/investment'],

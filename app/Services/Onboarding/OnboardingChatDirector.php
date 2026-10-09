@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
 use App\Exceptions\SpouseCollisionException;
@@ -1329,9 +1330,12 @@ final class OnboardingChatDirector
             $route = is_callable($navigateTo) ? $navigateTo($user) : $navigateTo;
             if (is_string($route) && $route !== '') {
                 $ctx = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
-                yield [
+                yield array_filter([
                     'type' => 'navigation',
                     'route_path' => $route,
+                    // Each client opens its own screen for the section (web
+                    // Bank Accounts is /net-worth/cash, /m's is /savings).
+                    'destination' => GateRoutes::destinationForPath($route),
                     // Never the internal state id — the web store renders a
                     // navigation message's content from `description`, so leaking
                     // the state id here surfaced "campaign_verify_navigate" as a
@@ -1341,7 +1345,7 @@ final class OnboardingChatDirector
                     // The section being verified (income/spouse/…); the /m surface
                     // uses it to label the screen (e.g. income vs spouse income).
                     'section' => ((string) ($ctx['verify_section'] ?? '')) ?: null,
-                ];
+                ], static fn ($value): bool => $value !== null);
             }
         } else {
             // free_text / grouped_extract / terminal — content event(s). A

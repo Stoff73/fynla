@@ -75,7 +75,9 @@ final class GateRoutes
         self::INCOME => ['label' => 'Income', 'web' => '/valuable-info?section=income', 'mobile' => '/income'],
         self::EXPENDITURE => ['label' => 'Expenditure', 'web' => '/valuable-info?section=expenditure', 'mobile' => '/expenditure'],
         self::PROTECTION => ['label' => 'Protection', 'web' => '/protection', 'mobile' => '/protection'],
-        self::SAVINGS => ['label' => 'Bank Accounts', 'web' => '/savings', 'mobile' => '/savings'],
+        // The web Bank Accounts page is /net-worth/cash (the menu's link); /savings
+        // is the savings dashboard. /m's Bank Accounts screen is /savings.
+        self::SAVINGS => ['label' => 'Bank Accounts', 'web' => '/net-worth/cash', 'mobile' => '/savings'],
         self::LIABILITIES => ['label' => 'Liabilities', 'web' => '/net-worth/liabilities', 'mobile' => '/net-worth/liabilities'],
         self::RETIREMENT => ['label' => 'Retirement', 'web' => '/retirement', 'mobile' => '/retirement'],
         self::INVESTMENT => ['label' => 'Investments', 'web' => '/investment', 'mobile' => '/investment'],
@@ -287,6 +289,23 @@ final class GateRoutes
             'params' => $params === [] ? (object) [] : $params,
             'fallback' => $resolvedFallback,
         ];
+    }
+
+    /**
+     * The semantic destination for a path both clients share, or null when the
+     * path names no gate destination, so each client opens its own screen for it
+     * (an onboarding check step sent web users to /savings, which lists accounts
+     * only for demos; regression walk 2026-10-09, R1).
+     *
+     * @return array{screen: string, params: object, fallback: string}|null
+     */
+    public static function destinationForPath(string $route): ?array
+    {
+        try {
+            return self::destination(self::destinationForRoute($route));
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     public static function destinationForRoute(string $route, ?string $fallback = null): string

@@ -15,8 +15,11 @@ const overviewPaths = Object.freeze({
   income: '/valuable-info?section=income',
   expenditure: '/valuable-info?section=expenditure',
   protection: '/protection',
-  savings: '/savings',
+  // Bank Accounts: the menu's page. /savings is the savings dashboard.
+  savings: '/net-worth/cash',
   investment: '/investment',
+  property: '/net-worth/property',
+  liabilities: '/net-worth/liabilities',
   retirement: '/retirement',
   estate: '/estate',
   goals: '/goals',

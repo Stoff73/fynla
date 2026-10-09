@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Constants\GateRoutes;
 use App\Models\AiConversation;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -413,6 +414,12 @@ it('navigation event does not leak the internal state id in its description', fu
     expect($nav['description'] ?? '')->not->toContain('campaign_verify');
     // The route + section still ride the event for the surfaces that navigate.
     expect($nav['route_path'])->toBe('/savings');
+    // Each client opens its own Bank Accounts screen from the named screen
+    // (web /net-worth/cash, /m /savings): web was sent to /savings, which
+    // lists accounts only for demos (regression walk 2026-10-09, R1).
+    expect($nav['destination']['screen'] ?? null)->toBe('savings')
+        ->and(GateRoutes::resolve('savings')['web'])->toBe('/net-worth/cash')
+        ->and(GateRoutes::resolve('savings')['mobile'])->toBe('/savings');
 });
 
 it('the Save Tax income and spouse ends skip the details page; everything else and the pension check keep it', function (): void {
