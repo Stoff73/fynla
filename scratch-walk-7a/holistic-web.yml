@@ -1,0 +1,2139 @@
+- generic [active] [ref=f170e1]:
+  - generic [ref=f170e4]:
+    - generic [ref=f170e5]:
+      - navigation [ref=f170e6]:
+        - generic [ref=f170e8]:
+          - heading "Planning" [level=1] [ref=f170e9]
+          - generic [ref=f170e11]:
+            - link "Sign Up Now" [ref=f170e12] [cursor=pointer]:
+              - /url: /register
+            - button "Support" [ref=f170e16] [cursor=pointer]
+            - button "David Mitchell" [ref=f170e22] [cursor=pointer]
+      - generic [ref=f170e29]:
+        - generic [ref=f170e30]:
+          - generic [ref=f170e31]:
+            - generic [ref=f170e35]: Preview Mode
+            - generic [ref=f170e36]: (David's view)
+          - button "David & Sarah Mitchell" [ref=f170e38] [cursor=pointer]
+          - button "View as Sarah" [ref=f170e44] [cursor=pointer]
+        - generic [ref=f170e48]:
+          - button "Exit Demo" [ref=f170e49] [cursor=pointer]
+          - link "Signup Now" [ref=f170e50] [cursor=pointer]:
+            - /url: /register
+      - alert
+    - main [ref=f170e51]:
+      - generic [ref=f170e54]:
+        - button "Print / Save PDF" [ref=f170e56] [cursor=pointer]
+        - generic [ref=f170e59]:
+          - generic [ref=f170e2508]:
+            - generic [ref=f170e2510]:
+              - heading "Your Cross-Module Plan" [level=2] [ref=f170e2511]
+              - paragraph [ref=f170e2512]: Every recommended action across your modules, ranked against the monthly surplus you have to put to work
+            - generic [ref=f170e2513]:
+              - generic [ref=f170e2514]:
+                - generic [ref=f170e2515]:
+                  - generic [ref=f170e2516]: Monthly surplus available
+                  - generic [ref=f170e2517]: £2,839
+                - generic [ref=f170e2518]:
+                  - generic [ref=f170e2519]: Already committed to your goals
+                  - generic [ref=f170e2520]: −£7,833
+                - generic [ref=f170e2521]:
+                  - generic [ref=f170e2522]: Left to put to work
+                  - generic [ref=f170e2523]: £0
+                - paragraph [ref=f170e2524]: Less £50,000 of expected outgoings in the next 12 months, which your plan keeps in reserve.
+              - generic [ref=f170e2525]:
+                - generic [ref=f170e2527]:
+                  - generic [ref=f170e2528]:
+                    - generic [ref=f170e2529]:
+                      - generic [ref=f170e2530]: High
+                      - generic [ref=f170e2531]: Savings
+                    - heading "Build cash reserve for Kitchen & Extension" [level=4] [ref=f170e2532]
+                    - paragraph [ref=f170e2533]: Kitchen & Extension is expected in 5 months costing £85,000. Consider saving £17,000 per month to prepare.
+                  - paragraph [ref=f170e2535]: Fits within your surplus
+                - generic [ref=f170e2537]:
+                  - generic [ref=f170e2538]:
+                    - generic [ref=f170e2539]:
+                      - generic [ref=f170e2540]: High
+                      - generic [ref=f170e2541]: Estate
+                    - heading "Estate Value Exceeds Nil-Rate Band" [level=4] [ref=f170e2542]
+                    - paragraph [ref=f170e2543]: The estimated estate value of £1,728,780 exceeds the nil-rate band of £856,000. The excess of £872,780 may be subject to Inheritance Tax at 40%, resulting in an estimated liability of £349,112.
+                  - paragraph [ref=f170e2545]: Fits within your surplus
+                - generic [ref=f170e2547]:
+                  - generic [ref=f170e2548]:
+                    - generic [ref=f170e2549]:
+                      - generic [ref=f170e2550]: High
+                      - generic [ref=f170e2551]: Protection
+                    - heading "Your life cover is £322,000 more than you need" [level=4] [ref=f170e2552]
+                    - paragraph [ref=f170e2553]: You need £178,000. Your own policies give £500,000 and your job gives £0. Consider decreasing term life insurance for your mortgage.
+                  - paragraph [ref=f170e2555]: Fits within your surplus
+                - generic [ref=f170e2557]:
+                  - generic [ref=f170e2558]:
+                    - generic [ref=f170e2559]:
+                      - generic [ref=f170e2560]: High
+                      - generic [ref=f170e2561]: Protection
+                    - heading "Your critical illness cover is £235,000 short" [level=4] [ref=f170e2562]
+                    - paragraph [ref=f170e2563]: You need £435,000. Your own policies give £200,000 and your job gives £0. Add critical illness cover for £235,000.
+                  - paragraph [ref=f170e2565]: Fits within your surplus
+                - generic [ref=f170e2567]:
+                  - generic [ref=f170e2568]:
+                    - generic [ref=f170e2569]:
+                      - generic [ref=f170e2570]: High
+                      - generic [ref=f170e2571]: Savings
+                    - heading "David's Current Account Earns No Interest" [level=4] [ref=f170e2572]
+                    - paragraph [ref=f170e2573]: David's Current Account holds £25,000 at 0% interest.
+                  - paragraph [ref=f170e2575]: Fits within your surplus
+                - generic [ref=f170e2577]:
+                  - generic [ref=f170e2578]:
+                    - generic [ref=f170e2579]:
+                      - generic [ref=f170e2580]: High
+                      - generic [ref=f170e2581]: Savings
+                    - heading "Mitchell Current Account Earns No Interest" [level=4] [ref=f170e2582]
+                    - paragraph [ref=f170e2583]: Mitchell Current Account holds £4,500 at 0% interest.
+                  - paragraph [ref=f170e2585]: Fits within your surplus
+                - generic [ref=f170e2587]:
+                  - generic [ref=f170e2588]:
+                    - generic [ref=f170e2589]:
+                      - generic [ref=f170e2590]: High
+                      - generic [ref=f170e2591]: Savings
+                    - heading "Use Your ISA Allowance for Excess Savings" [level=4] [ref=f170e2592]
+                    - paragraph [ref=f170e2593]: You have £10,000 above your emergency fund target — consider using your remaining ISA allowance.
+                  - paragraph [ref=f170e2595]: Fits within your surplus
+                - generic [ref=f170e2597]:
+                  - generic [ref=f170e2598]:
+                    - generic [ref=f170e2599]:
+                      - generic [ref=f170e2600]: High
+                      - generic [ref=f170e2601]: Retirement
+                    - heading "Your retirement income is about £11,405 a year short of your target" [level=4] [ref=f170e2602]
+                    - paragraph [ref=f170e2603]: At 60 your retirement income is on course for about £63,595 a year, against your target of £75,000.
+                  - paragraph [ref=f170e2605]: Fits within your surplus
+                - generic [ref=f170e2607]:
+                  - generic [ref=f170e2608]:
+                    - generic [ref=f170e2609]:
+                      - generic [ref=f170e2610]: Medium
+                      - generic [ref=f170e2611]: Protection
+                    - heading "Review your existing protection policies" [level=4] [ref=f170e2612]
+                    - paragraph [ref=f170e2613]: You have 2 existing protection policies. A review could identify whether your current cover is still appropriate for your circumstances and whether you could achieve better value.
+                  - paragraph [ref=f170e2615]: Fits within your surplus
+                - generic [ref=f170e2617]:
+                  - generic [ref=f170e2618]:
+                    - generic [ref=f170e2619]:
+                      - generic [ref=f170e2620]: Medium
+                      - generic [ref=f170e2621]: Savings
+                    - heading "Consider a regular saver ISA for David's Cash ISA" [level=4] [ref=f170e2622]
+                    - paragraph [ref=f170e2623]: £250 a month goes into David's Cash ISA at 4.25%. A regular saver ISA typically pays more on regular monthly deposits.
+                  - paragraph [ref=f170e2625]: Fits within your surplus
+                - generic [ref=f170e2627]:
+                  - generic [ref=f170e2628]:
+                    - generic [ref=f170e2629]:
+                      - generic [ref=f170e2630]: Medium
+                      - generic [ref=f170e2631]: Savings
+                    - heading "Consider an Offset Mortgage Arrangement" [level=4] [ref=f170e2632]
+                    - paragraph [ref=f170e2633]: Your mortgage rate of 5.49% exceeds your after-tax savings rate — consider an offset mortgage arrangement.
+                  - paragraph [ref=f170e2635]: Fits within your surplus
+                - generic [ref=f170e2637]:
+                  - generic [ref=f170e2638]:
+                    - generic [ref=f170e2639]:
+                      - generic [ref=f170e2640]: Medium
+                      - generic [ref=f170e2641]: Savings
+                    - heading "Consider a Junior ISA for Charlotte" [level=4] [ref=f170e2642]
+                    - paragraph [ref=f170e2643]: Consider opening a Junior ISA for Charlotte.
+                  - paragraph [ref=f170e2645]: Fits within your surplus
+                - generic [ref=f170e2647]:
+                  - generic [ref=f170e2648]:
+                    - generic [ref=f170e2649]:
+                      - generic [ref=f170e2650]: Medium
+                      - generic [ref=f170e2651]: Tax
+                    - heading "Reclaim £750 on your Gift Aid donations via Self Assessment" [level=4] [ref=f170e2652]
+                    - paragraph [ref=f170e2653]: You give around £2,400 a year through Gift Aid. The charity already reclaims basic-rate tax — but as a additional-rate taxpayer you can claim back another £750 yourself when you file your Self Assessment.
+                  - paragraph [ref=f170e2655]: Fits within your surplus
+                - generic [ref=f170e2657]:
+                  - generic [ref=f170e2658]:
+                    - generic [ref=f170e2659]:
+                      - generic [ref=f170e2660]: Medium
+                      - generic [ref=f170e2661]: Tax
+                    - heading "Bed & ISA — potentially shelter £1,588 of gains this year" [level=4] [ref=f170e2662]
+                    - paragraph [ref=f170e2663]: You hold £5,556 of unrealised gains outside your ISA. Selling around £10,000 of holdings and rebuying them inside an ISA could crystallise up to £1,588 within the annual exempt amount and could avoid roughly £381 of tax on a future sale, but only if you have not already used the allowance. Confirm gains and losses elsewhere this tax year, ISA subscriptions, dealing costs and market risk before acting; future growth inside the ISA is sheltered.
+                  - paragraph [ref=f170e2665]: Fits within your surplus
+                - generic [ref=f170e2667]:
+                  - generic [ref=f170e2668]:
+                    - generic [ref=f170e2669]:
+                      - generic [ref=f170e2670]: Medium
+                      - generic [ref=f170e2671]: Tax
+                    - heading "Save around £232 a year by moving your pension contributions to salary sacrifice" [level=4] [ref=f170e2672]
+                    - paragraph [ref=f170e2673]: Switching your £11,600 annual workplace pension contribution to salary sacrifice saves £232 in National Insurance every year, with no change to your take-home pay.
+                  - paragraph [ref=f170e2675]: Fits within your surplus
+                - generic [ref=f170e2677]:
+                  - generic [ref=f170e2678]:
+                    - generic [ref=f170e2679]:
+                      - generic [ref=f170e2680]: Medium
+                      - generic [ref=f170e2681]: Tax
+                    - heading "You have 1 child under 18 in your household — up to £9,000 of Junior ISA capacity a year" [level=4] [ref=f170e2682]
+                    - paragraph [ref=f170e2683]: Each child under 18 has a £9,000 annual Junior ISA allowance — separate from your own £20,000. All interest, dividends and capital gains inside the wrapper are tax-free until they turn 18.
+                  - paragraph [ref=f170e2685]: Fits within your surplus
+                - generic [ref=f170e2687]:
+                  - generic [ref=f170e2688]:
+                    - generic [ref=f170e2689]:
+                      - generic [ref=f170e2690]: Medium
+                      - generic [ref=f170e2691]: Tax
+                    - heading "Open a pension for each child — instant £720 a year of free money" [level=4] [ref=f170e2692]
+                    - paragraph [ref=f170e2693]: Anyone, including a child with no income, can hold a personal pension. £2,880 contributed per child is topped up to £3,600 by the government — that's £720 of free money per child, every year. Decades of compounding sheltered from tax.
+                  - paragraph [ref=f170e2695]: Fits within your surplus
+                - generic [ref=f170e2697]:
+                  - generic [ref=f170e2698]:
+                    - generic [ref=f170e2699]:
+                      - generic [ref=f170e2700]: Medium
+                      - generic [ref=f170e2701]: Investment
+                    - heading "Rebalance Portfolio" [level=4] [ref=f170e2702]
+                    - paragraph [ref=f170e2703]: Your current allocation deviates significantly from your risk profile. Rebalancing will bring your portfolio back in line with your target allocation.
+                  - paragraph [ref=f170e2705]: Fits within your surplus
+                - generic [ref=f170e2707]:
+                  - generic [ref=f170e2708]:
+                    - generic [ref=f170e2709]:
+                      - generic [ref=f170e2710]: Medium
+                      - generic [ref=f170e2711]: Investment
+                    - heading "Losses you could use against gains" [level=4] [ref=f170e2712]
+                    - paragraph [ref=f170e2713]: "1 holdings have unrealised losses. Potential tax saving: £0."
+                  - paragraph [ref=f170e2715]: Fits within your surplus
+                - generic [ref=f170e2717]:
+                  - generic [ref=f170e2718]:
+                    - generic [ref=f170e2719]:
+                      - generic [ref=f170e2720]: Medium
+                      - generic [ref=f170e2721]: Investment
+                    - heading "Use Your ISA Allowance" [level=4] [ref=f170e2722]
+                    - paragraph [ref=f170e2723]: You have £10,000 ISA allowance remaining this tax year. Consider moving General Investment Account holdings (£47,500) into your ISA before 5 April.
+                  - paragraph [ref=f170e2725]: Fits within your surplus
+                - generic [ref=f170e2727]:
+                  - generic [ref=f170e2728]:
+                    - generic [ref=f170e2729]:
+                      - generic [ref=f170e2730]: Medium
+                      - generic [ref=f170e2731]: Estate
+                    - heading "Gifts Within Seven-Year Window" [level=4] [ref=f170e2732]
+                    - paragraph [ref=f170e2733]: 1 gift(s) totalling £150,000 are within the seven-year Potentially Exempt Transfer window. If the individual were to pass away within this period, these gifts may be subject to taper relief and could affect the Inheritance Tax calculation.
+                  - paragraph [ref=f170e2735]: Fits within your surplus
+                - generic [ref=f170e2737]:
+                  - generic [ref=f170e2738]:
+                    - generic [ref=f170e2739]:
+                      - generic [ref=f170e2740]: Medium
+                      - generic [ref=f170e2741]: Estate
+                    - heading "Trust Arrangement Review Due" [level=4] [ref=f170e2742]
+                    - paragraph [ref=f170e2743]: The trust "Mitchell Children's Education Trust" was last reviewed on never. Regular review ensures the trust still meets its objectives and complies with current legislation.
+                  - paragraph [ref=f170e2745]: Fits within your surplus
+                - generic [ref=f170e2747]:
+                  - generic [ref=f170e2748]:
+                    - generic [ref=f170e2749]:
+                      - generic [ref=f170e2750]: Low
+                      - generic [ref=f170e2751]: Savings
+                    - heading "Review Your Excess Emergency Fund" [level=4] [ref=f170e2752]
+                    - paragraph [ref=f170e2753]: Your emergency fund of 14.4 months exceeds your target by 8.4 months.
+                  - paragraph [ref=f170e2755]: Fits within your surplus
+                - generic [ref=f170e2757]:
+                  - generic [ref=f170e2758]:
+                    - generic [ref=f170e2759]:
+                      - generic [ref=f170e2760]: Low
+                      - generic [ref=f170e2761]: Savings
+                    - heading "Designate an Emergency Fund Account" [level=4] [ref=f170e2762]
+                    - paragraph [ref=f170e2763]: None of your savings accounts is marked as your emergency fund.
+                  - paragraph [ref=f170e2765]: Fits within your surplus
+                - generic [ref=f170e2767]:
+                  - generic [ref=f170e2768]:
+                    - generic [ref=f170e2769]:
+                      - generic [ref=f170e2770]: Low
+                      - generic [ref=f170e2771]: Savings
+                    - heading "Cash ISA Not a Priority" [level=4] [ref=f170e2772]
+                    - paragraph [ref=f170e2773]: As a basic rate taxpayer with comfortable Personal Savings Allowance headroom, a Cash ISA is not a priority.
+                  - paragraph [ref=f170e2775]: Fits within your surplus
+                - generic [ref=f170e2777]:
+                  - generic [ref=f170e2778]:
+                    - generic [ref=f170e2779]:
+                      - generic [ref=f170e2780]: Low
+                      - generic [ref=f170e2781]: Tax
+                    - heading "You have £500 of unused Dividend Allowance" [level=4] [ref=f170e2782]
+                    - paragraph [ref=f170e2783]: The first £500 of dividend income each year is tax-free, and you have £500 of it unused. Dividends from shares held outside an ISA use it first, so up to that amount they pay no tax; above it they are taxed at 39.35% at your tax band.
+                  - paragraph [ref=f170e2785]: Fits within your surplus
+                - generic [ref=f170e2787]:
+                  - generic [ref=f170e2788]:
+                    - generic [ref=f170e2789]:
+                      - generic [ref=f170e2790]: Low
+                      - generic [ref=f170e2791]: Estate
+                    - heading "Beneficiary Designations Review" [level=4] [ref=f170e2792]
+                    - paragraph [ref=f170e2793]: Beneficiary designations on pension and insurance policies should be reviewed periodically to ensure they reflect current wishes, especially after life events such as marriage, divorce, or the birth of a child.
+                  - paragraph [ref=f170e2795]: Fits within your surplus
+              - generic [ref=f170e2796]:
+                - heading "Unlock more of your plan" [level=4] [ref=f170e2797]
+                - paragraph [ref=f170e2798]: These strategies need a little more detail before we can rank them.
+                - list [ref=f170e2799]:
+                  - listitem [ref=f170e2800]: "Tax: Pension Annual Allowance carry forward — add more detail in your Tax module"
+                  - listitem [ref=f170e2801]: "Tax: General Investment Account to spouse — add more detail in your Tax module"
+                  - listitem [ref=f170e2802]: "Tax: General Investment Account rebalance — add more detail in your Tax module"
+                  - listitem [ref=f170e2803]: "Tax: Tapered annual allowance — add more detail in your Tax module"
+                  - listitem [ref=f170e2804]: "Retirement: Carry forward unused allowance — add more detail in your Retirement module"
+          - generic [ref=f170e60]:
+            - generic [ref=f170e61]:
+              - generic [ref=f170e63]:
+                - heading "Executive Summary" [level=2] [ref=f170e64]
+                - paragraph [ref=f170e65]: Your holistic financial plan overview
+              - generic [ref=f170e66]:
+                - paragraph [ref=f170e67]: Dear David Mitchell,
+                - paragraph [ref=f170e68]: This holistic financial plan brings together your individual module plans into a single unified view. It covers Protection, Investment & Savings, Retirement and Estate Planning, allowing you to see how recommendations across different areas of your financial life interact and compete for your available resources.
+                - generic [ref=f170e69]:
+                  - heading "Plans Included" [level=4] [ref=f170e70]
+                  - generic [ref=f170e71]:
+                    - generic [ref=f170e72]: Protection
+                    - generic [ref=f170e73]: Investment & Savings
+                    - generic [ref=f170e74]: Retirement
+                    - generic [ref=f170e75]: Estate Planning
+            - generic [ref=f170e76]:
+              - generic [ref=f170e77]:
+                - heading "Personal Information" [level=3] [ref=f170e78]
+                - paragraph [ref=f170e79]: A summary of your personal and financial details used in this plan
+              - generic [ref=f170e80]:
+                - generic [ref=f170e81]:
+                  - heading "Personal Details" [level=3] [ref=f170e82]
+                  - generic [ref=f170e83]:
+                    - generic [ref=f170e84]:
+                      - generic [ref=f170e85]: "Full Name:"
+                      - generic [ref=f170e86]: David Mitchell
+                    - generic [ref=f170e87]:
+                      - generic [ref=f170e88]: "Date of Birth:"
+                      - generic [ref=f170e89]: 8 November 1976
+                    - generic [ref=f170e90]:
+                      - generic [ref=f170e91]: "Age:"
+                      - generic [ref=f170e92]: "49"
+                    - generic [ref=f170e93]:
+                      - generic [ref=f170e94]: "Marital Status:"
+                      - generic [ref=f170e95]: married
+                - generic [ref=f170e96]:
+                  - heading "Family" [level=3] [ref=f170e97]
+                  - generic [ref=f170e98]:
+                    - generic [ref=f170e99]:
+                      - generic [ref=f170e100]: "Spouse:"
+                      - generic [ref=f170e101]: Sarah Mitchell
+                    - generic [ref=f170e102]:
+                      - generic [ref=f170e103]: "Children:"
+                      - generic [ref=f170e104]: William Mitchell, Charlotte Mitchell
+              - generic [ref=f170e105]:
+                - generic [ref=f170e106]:
+                  - heading "Financial Overview" [level=3] [ref=f170e107]
+                  - generic [ref=f170e108]:
+                    - generic [ref=f170e109]:
+                      - generic [ref=f170e110]: "Gross Income:"
+                      - generic [ref=f170e111]: £156,806
+                    - generic [ref=f170e112]:
+                      - generic [ref=f170e113]: "Net Income:"
+                      - generic [ref=f170e114]: £101,879
+                    - generic [ref=f170e115]:
+                      - generic [ref=f170e116]: "Annual Expenditure:"
+                      - generic [ref=f170e117]: £62,290
+                    - generic [ref=f170e118]:
+                      - generic [ref=f170e119]:
+                        - generic [ref=f170e120]: "Recorded Expenditure:"
+                        - generic [ref=f170e121]: £14,700
+                      - generic [ref=f170e122]:
+                        - generic [ref=f170e123]: "Financial Commitments:"
+                        - generic [ref=f170e124]: £47,590
+                    - generic [ref=f170e125]:
+                      - generic [ref=f170e126]: "Disposable Income (annual):"
+                      - generic [ref=f170e127]: £39,589
+                    - generic [ref=f170e128]:
+                      - generic [ref=f170e129]: "Disposable Income (monthly):"
+                      - generic [ref=f170e130]: £3,299
+                - generic [ref=f170e131]:
+                  - heading "Risk Profile" [level=3] [ref=f170e132]
+                  - generic [ref=f170e134]:
+                    - generic [ref=f170e135]: "Risk Level:"
+                    - generic [ref=f170e136]: upper_medium
+            - generic [ref=f170e137]:
+              - generic [ref=f170e139]:
+                - heading "Protection — Current Situation" [level=2] [ref=f170e140]
+                - paragraph [ref=f170e141]: Your insurance coverage overview
+              - generic [ref=f170e142]:
+                - generic [ref=f170e144]:
+                  - heading "Current Situation" [level=2] [ref=f170e145]
+                  - paragraph [ref=f170e146]: Your protection coverage overview
+                - generic [ref=f170e147]:
+                  - generic [ref=f170e148]:
+                    - heading "Coverage Analysis" [level=3] [ref=f170e149]
+                    - generic [ref=f170e150]:
+                      - generic [ref=f170e151]:
+                        - generic [ref=f170e152]:
+                          - paragraph [ref=f170e153]: Life Insurance
+                          - generic [ref=f170e154]: Excellent
+                        - generic [ref=f170e155]:
+                          - generic [ref=f170e156]:
+                            - paragraph [ref=f170e157]: Need
+                            - paragraph [ref=f170e158]: £178,000
+                          - generic [ref=f170e159]:
+                            - paragraph [ref=f170e160]: Have
+                            - paragraph [ref=f170e161]: £500,000
+                          - generic [ref=f170e162]:
+                            - paragraph [ref=f170e163]: Gap
+                            - paragraph [ref=f170e164]: £0
+                        - generic [ref=f170e167]:
+                          - paragraph [ref=f170e168]: How we calculated your need
+                          - generic [ref=f170e169]:
+                            - generic [ref=f170e170]:
+                              - generic [ref=f170e171]: Outstanding debts (mortgage + other)
+                              - generic [ref=f170e172]: £170,500
+                            - generic [ref=f170e173]:
+                              - generic [ref=f170e174]: Final expenses (funeral and administration)
+                              - generic [ref=f170e175]: £7,500
+                            - generic [ref=f170e176]:
+                              - generic [ref=f170e177]: Total need
+                              - generic [ref=f170e178]: £178,000
+                            - generic [ref=f170e179]:
+                              - generic [ref=f170e180]: "Less: existing life cover"
+                              - generic [ref=f170e181]: "-£500,000"
+                      - generic [ref=f170e182]:
+                        - generic [ref=f170e183]:
+                          - paragraph [ref=f170e184]: Critical Illness
+                          - generic [ref=f170e185]: Fair
+                        - generic [ref=f170e186]:
+                          - generic [ref=f170e187]:
+                            - paragraph [ref=f170e188]: Need
+                            - paragraph [ref=f170e189]: £435,000
+                          - generic [ref=f170e190]:
+                            - paragraph [ref=f170e191]: Have
+                            - paragraph [ref=f170e192]: £200,000
+                          - generic [ref=f170e193]:
+                            - paragraph [ref=f170e194]: Gap
+                            - paragraph [ref=f170e195]: £235,000
+                        - generic [ref=f170e198]:
+                          - paragraph [ref=f170e199]: How we calculated your need
+                          - generic [ref=f170e200]:
+                            - generic [ref=f170e201]:
+                              - generic [ref=f170e202]: 3 × your gross annual income of £145,000
+                              - generic [ref=f170e203]: £435,000
+                            - generic [ref=f170e204]:
+                              - generic [ref=f170e205]: Total need
+                              - generic [ref=f170e206]: £435,000
+                            - generic [ref=f170e207]:
+                              - generic [ref=f170e208]: "Less: existing critical illness cover"
+                              - generic [ref=f170e209]: "-£200,000"
+                            - generic [ref=f170e210]:
+                              - generic [ref=f170e211]: Shortfall
+                              - generic [ref=f170e212]: £235,000
+                          - paragraph [ref=f170e213]: A lump sum to cover living costs and treatment if diagnosed with a serious illness.
+                      - generic [ref=f170e214]:
+                        - generic [ref=f170e215]:
+                          - paragraph [ref=f170e216]: Income Protection
+                          - generic [ref=f170e217]: Excellent
+                        - generic [ref=f170e218]:
+                          - generic [ref=f170e219]:
+                            - paragraph [ref=f170e220]: Need
+                            - paragraph [ref=f170e221]: £7,250/month
+                          - generic [ref=f170e222]:
+                            - paragraph [ref=f170e223]: Have
+                            - paragraph [ref=f170e224]: £7,250/month
+                          - generic [ref=f170e225]:
+                            - paragraph [ref=f170e226]: Gap
+                            - paragraph [ref=f170e227]: £0/month
+                        - generic [ref=f170e230]:
+                          - paragraph [ref=f170e231]: How we calculated your need
+                          - generic [ref=f170e232]:
+                            - generic [ref=f170e233]:
+                              - generic [ref=f170e234]: 70% of your net monthly income (£7,386/month)
+                              - generic [ref=f170e235]: £7,250/month
+                            - generic [ref=f170e236]:
+                              - generic [ref=f170e237]: Monthly need
+                              - generic [ref=f170e238]: £7,250/month
+                            - generic [ref=f170e239]:
+                              - generic [ref=f170e240]: "Less: existing income protection"
+                              - generic [ref=f170e241]: "-£7,250/month"
+                          - paragraph [ref=f170e242]: Replaces your income if you are unable to work due to illness or injury.
+                  - generic [ref=f170e243]:
+                    - heading "Existing Policies" [level=3] [ref=f170e244]
+                    - generic [ref=f170e245]:
+                      - generic [ref=f170e246]:
+                        - generic [ref=f170e247]:
+                          - paragraph [ref=f170e248]: Life Insurance - Level term
+                          - paragraph [ref=f170e249]: Vitality
+                        - paragraph [ref=f170e250]: £500,000
+                      - generic [ref=f170e251]:
+                        - generic [ref=f170e252]:
+                          - paragraph [ref=f170e253]: Critical Illness - Standalone
+                          - paragraph [ref=f170e254]: Legal & General
+                        - paragraph [ref=f170e255]: £200,000
+                    - generic [ref=f170e256]:
+                      - generic [ref=f170e257]: Total Monthly Premiums
+                      - generic [ref=f170e258]: £210
+                  - generic [ref=f170e259]:
+                    - heading "Debt Exposure" [level=3] [ref=f170e260]
+                    - generic [ref=f170e261]:
+                      - generic [ref=f170e262]:
+                        - generic [ref=f170e263]: Mortgage
+                        - generic [ref=f170e264]: £170,500
+                      - generic [ref=f170e265]:
+                        - generic [ref=f170e266]: Other Debts
+                        - generic [ref=f170e267]: £0
+                      - generic [ref=f170e268]:
+                        - generic [ref=f170e269]: Total Debt
+                        - generic [ref=f170e270]: £170,500
+            - generic [ref=f170e271]:
+              - generic [ref=f170e273]:
+                - heading "Investment — Current Situation" [level=2] [ref=f170e274]
+                - paragraph [ref=f170e275]: Your investment portfolio overview
+              - generic [ref=f170e276]:
+                - generic [ref=f170e277]:
+                  - heading "Investment Accounts" [level=3] [ref=f170e278]
+                  - generic [ref=f170e279]:
+                    - generic [ref=f170e280]:
+                      - generic [ref=f170e281]:
+                        - paragraph [ref=f170e282]: David's Stocks & Shares ISA
+                        - paragraph [ref=f170e283]: ISA · Hargreaves Lansdown · 3 holding(s)
+                      - paragraph [ref=f170e284]: £95,000
+                    - generic [ref=f170e285]:
+                      - generic [ref=f170e286]:
+                        - paragraph [ref=f170e287]: Joint General Investment Account
+                        - paragraph [ref=f170e288]: General Investment Account · AJ Bell · 3 holding(s)
+                      - paragraph [ref=f170e289]: £95,000
+                    - generic [ref=f170e290]:
+                      - generic [ref=f170e291]:
+                        - paragraph [ref=f170e292]: Venture Capital Trust Holdings
+                        - paragraph [ref=f170e293]: Venture Capital Trust · Various · 0 holding(s)
+                      - paragraph [ref=f170e294]: £30,000
+                  - generic [ref=f170e295]:
+                    - generic [ref=f170e296]: Total Investment Value
+                    - generic [ref=f170e297]: £220,000
+                - generic [ref=f170e298]:
+                  - generic [ref=f170e299]:
+                    - paragraph [ref=f170e300]: ISA Used
+                    - paragraph [ref=f170e301]: £10,000
+                  - generic [ref=f170e302]:
+                    - paragraph [ref=f170e303]: ISA Remaining
+                    - paragraph [ref=f170e304]: £10,000
+            - generic [ref=f170e305]:
+              - generic [ref=f170e307]:
+                - heading "Savings — Current Situation" [level=2] [ref=f170e308]
+                - paragraph [ref=f170e309]: Your savings and emergency fund overview
+              - generic [ref=f170e310]:
+                - generic [ref=f170e311]:
+                  - heading "Savings Accounts" [level=3] [ref=f170e312]
+                  - generic [ref=f170e313]:
+                    - generic [ref=f170e314]:
+                      - generic [ref=f170e315]:
+                        - paragraph [ref=f170e316]: HSBC
+                        - paragraph [ref=f170e317]: Current Account · 0% interest
+                      - paragraph [ref=f170e318]: £25,000
+                    - generic [ref=f170e319]:
+                      - generic [ref=f170e320]:
+                        - paragraph [ref=f170e321]: Nationwide
+                        - paragraph [ref=f170e322]: Current Account · 0% interest
+                      - paragraph [ref=f170e323]: £4,500
+                    - generic [ref=f170e324]:
+                      - generic [ref=f170e325]:
+                        - paragraph [ref=f170e326]: Nationwide
+                        - paragraph [ref=f170e327]: Cash ISA · 4.25% interest
+                      - paragraph [ref=f170e328]: £22,500
+                    - generic [ref=f170e329]:
+                      - generic [ref=f170e330]:
+                        - paragraph [ref=f170e331]: NS&I
+                        - paragraph [ref=f170e332]: Premium Bonds · 0% interest
+                      - paragraph [ref=f170e333]: £50,000
+                  - generic [ref=f170e334]:
+                    - generic [ref=f170e335]: Total Savings Value
+                    - generic [ref=f170e336]: £102,000
+                - generic [ref=f170e338]:
+                  - paragraph [ref=f170e339]: Emergency Fund
+                  - paragraph [ref=f170e340]: 14 months
+                  - paragraph [ref=f170e341]: of 6 months needed
+            - generic [ref=f170e342]:
+              - generic [ref=f170e344]:
+                - heading "Retirement — Current Situation" [level=2] [ref=f170e345]
+                - paragraph [ref=f170e346]: Your pension and retirement overview
+              - generic [ref=f170e347]:
+                - generic [ref=f170e349]:
+                  - heading "Your Pension Plans" [level=2] [ref=f170e350]
+                  - paragraph [ref=f170e351]: Your pension and retirement overview
+                - generic [ref=f170e352]:
+                  - generic [ref=f170e353]:
+                    - heading "Pensions" [level=3] [ref=f170e354]
+                    - generic [ref=f170e355]:
+                      - generic [ref=f170e356]:
+                        - generic [ref=f170e357]:
+                          - paragraph [ref=f170e358]: Global Finance Corp Pension
+                          - paragraph [ref=f170e359]: Fidelity · £967/month + £967 employer
+                        - paragraph [ref=f170e360]: £180,000
+                      - generic [ref=f170e361]:
+                        - generic [ref=f170e362]:
+                          - paragraph [ref=f170e363]: David's Self-Invested Personal Pension (SIPP)
+                          - paragraph [ref=f170e364]: AJ Bell
+                        - paragraph [ref=f170e365]: £320,000
+                  - generic [ref=f170e366]:
+                    - heading "State Pension" [level=3] [ref=f170e367]
+                    - generic [ref=f170e368]:
+                      - generic [ref=f170e369]:
+                        - paragraph [ref=f170e370]: Weekly Amount
+                        - paragraph [ref=f170e371]: £221
+                      - generic [ref=f170e372]:
+                        - paragraph [ref=f170e373]: Annual Amount
+                        - paragraph [ref=f170e374]: £11,502
+                      - generic [ref=f170e375]:
+                        - paragraph [ref=f170e376]: National Insurance Years
+                        - paragraph [ref=f170e377]: "30"
+                      - generic [ref=f170e378]:
+                        - paragraph [ref=f170e379]: State Pension Age
+                        - paragraph [ref=f170e380]: "67"
+                  - generic [ref=f170e381]:
+                    - generic [ref=f170e382]:
+                      - paragraph [ref=f170e383]: Years to Retirement
+                      - paragraph [ref=f170e384]: "11"
+                    - generic [ref=f170e385]:
+                      - paragraph [ref=f170e386]: Income Gap at Retirement
+                      - paragraph [ref=f170e387]: £11,405/year
+                      - paragraph [ref=f170e388]: £10,676/year from age 67
+                    - generic [ref=f170e389]:
+                      - paragraph [ref=f170e390]: Pension Value at Retirement
+                      - paragraph [ref=f170e391]: £1,320,549
+            - generic [ref=f170e392]:
+              - generic [ref=f170e394]:
+                - heading "Estate Planning — Current Situation" [level=2] [ref=f170e395]
+                - paragraph [ref=f170e396]: Your Inheritance Tax position
+              - generic [ref=f170e397]:
+                - generic [ref=f170e399]:
+                  - heading "Current Situation" [level=2] [ref=f170e400]
+                  - paragraph [ref=f170e401]: Your estate and Inheritance Tax overview
+                - generic [ref=f170e402]:
+                  - generic [ref=f170e403]:
+                    - heading "Inheritance Tax Calculation" [level=3] [ref=f170e404]
+                    - generic [ref=f170e405]:
+                      - button "Expand All" [ref=f170e407] [cursor=pointer]
+                      - table [ref=f170e410]:
+                        - rowgroup [ref=f170e411]:
+                          - row [ref=f170e412]:
+                            - columnheader "Asset / Liability" [ref=f170e413]
+                            - columnheader "Now" [ref=f170e414]
+                            - columnheader "Age 85 Life expectancy" [ref=f170e415]:
+                              - generic [ref=f170e416]: Age 85
+                              - generic [ref=f170e417]: Life expectancy
+                        - rowgroup [ref=f170e418]:
+                          - row [ref=f170e419] [cursor=pointer]:
+                            - cell "David's Assets" [ref=f170e420]
+                            - cell "£1,135,000" [ref=f170e424]
+                            - cell "£3,433,008" [ref=f170e425]
+                          - row [ref=f170e426] [cursor=pointer]:
+                            - cell "Sarah's Assets" [ref=f170e427]
+                            - cell "£886,780" [ref=f170e431]
+                            - cell "£2,761,863" [ref=f170e432]
+                          - row [ref=f170e433]:
+                            - cell "Total Gross Assets" [ref=f170e434]
+                            - cell "£2,021,780" [ref=f170e435]
+                            - cell "£6,194,871" [ref=f170e436]
+                          - row [ref=f170e437] [cursor=pointer]:
+                            - cell "David's Liabilities" [ref=f170e438]
+                            - cell "-£170,500" [ref=f170e442]
+                            - cell "£0" [ref=f170e443]
+                          - row [ref=f170e444] [cursor=pointer]:
+                            - cell "Sarah's Liabilities" [ref=f170e445]
+                            - cell "-£122,500" [ref=f170e449]
+                            - cell "£0" [ref=f170e450]
+                          - row [ref=f170e451]:
+                            - 'cell "Less: Total Liabilities" [ref=f170e452]'
+                            - cell "-£293,000" [ref=f170e453]
+                            - cell "£0" [ref=f170e454]
+                          - row [ref=f170e455]:
+                            - cell "Net Estate" [ref=f170e456]
+                            - cell "£1,728,780" [ref=f170e457]
+                            - cell "£6,194,871" [ref=f170e458]
+                          - row [ref=f170e459] [cursor=pointer]:
+                            - 'cell "Less: Tax-Free Allowances" [ref=f170e460]'
+                            - cell "-£856,000" [ref=f170e464]
+                            - cell "-£650,000" [ref=f170e465]
+                          - row [ref=f170e466]:
+                            - cell "Taxable Estate" [ref=f170e467]
+                            - cell "£872,780" [ref=f170e468]
+                            - cell "£5,544,871" [ref=f170e469]
+                          - row [ref=f170e470]:
+                            - cell "Inheritance Tax Liability" [ref=f170e471]
+                            - cell "£349,112" [ref=f170e472]
+                            - cell "£2,217,948" [ref=f170e473]
+                    - generic [ref=f170e474]:
+                      - paragraph [ref=f170e475]: Standard Inheritance Tax rate of 40% applies.
+                      - paragraph [ref=f170e476]: "Nil Rate Band: Combined Nil Rate Band of £506,000 applied: £325,000 each, less £144,000 of allowance used by gifts made within the last 7 years. Your spouse's £325,000 is modelled on second death — there is no transferable allowance while you are both alive. Transfers between spouses are exempt from Inheritance Tax on the first death."
+                      - paragraph [ref=f170e477]: "Residence Nil Rate Band: Full Residence Nil Rate Band of £350,000 available (£175,000 each). Your combined estate is below the £2,000,000 taper threshold."
+                      - paragraph [ref=f170e478]: "Residence Nil Rate Band at age 85: Residence Nil Rate Band fully tapered away. Your estate before reliefs of £6,194,871 exceeds the taper threshold of £2,000,000 by £4,194,871, eliminating all £350,000 of it."
+                  - generic [ref=f170e479]:
+                    - heading "Asset Breakdown" [level=3] [ref=f170e480]
+                    - generic [ref=f170e481]:
+                      - generic [ref=f170e482]:
+                        - paragraph [ref=f170e483]: Liquid Assets
+                        - paragraph [ref=f170e484]: £74,750
+                      - generic [ref=f170e485]:
+                        - paragraph [ref=f170e486]: Semi-Liquid Assets
+                        - paragraph [ref=f170e487]: £172,500
+                      - generic [ref=f170e488]:
+                        - paragraph [ref=f170e489]: Illiquid Assets
+                        - paragraph [ref=f170e490]: £887,750
+                  - generic [ref=f170e491]:
+                    - heading "Life Cover" [level=3] [ref=f170e492]
+                    - generic [ref=f170e493]:
+                      - generic [ref=f170e494]:
+                        - paragraph [ref=f170e495]: Cover in Trust
+                        - paragraph [ref=f170e496]: £500,000
+                      - generic [ref=f170e497]:
+                        - paragraph [ref=f170e498]: Cover Not in Trust
+                        - paragraph [ref=f170e499]: £0
+                      - generic [ref=f170e500]:
+                        - paragraph [ref=f170e501]: Total Policies
+                        - paragraph [ref=f170e502]: "1"
+                  - generic [ref=f170e503]:
+                    - heading "Charitable Giving" [level=3] [ref=f170e504]
+                    - generic [ref=f170e505]:
+                      - generic [ref=f170e506]:
+                        - paragraph [ref=f170e507]: Current Charitable Rate
+                        - paragraph [ref=f170e508]: 0%
+                      - generic [ref=f170e509]:
+                        - paragraph [ref=f170e510]: Threshold for 36% Rate
+                        - paragraph [ref=f170e511]: 10%
+                      - generic [ref=f170e512]:
+                        - paragraph [ref=f170e513]: Shortfall to Qualify
+                        - paragraph [ref=f170e514]: £122,278
+                      - generic [ref=f170e515]:
+                        - paragraph [ref=f170e516]: Potential Saving
+                        - paragraph [ref=f170e517]: £78,931
+                    - paragraph [ref=f170e518]: These figures are for Sarah's will. The 10% test that decides the reduced rate looks only at the will operating on the second death.
+            - generic [ref=f170e519]:
+              - heading "Protection — Recommended Actions" [level=2] [ref=f170e522]
+              - generic [ref=f170e523]:
+                - generic [ref=f170e525]:
+                  - heading "Recommended Actions" [level=2] [ref=f170e526]
+                  - paragraph [ref=f170e527]: 5 of 5 actions enabled
+                - generic [ref=f170e528]:
+                  - generic [ref=f170e530]:
+                    - generic [ref=f170e531]:
+                      - generic [ref=f170e532]: Life Insurance
+                      - heading "Your life cover is £322,000 more than you need" [level=4] [ref=f170e535]
+                      - paragraph [ref=f170e536]: You need £178,000. Your own policies give £500,000 and your job gives £0. Consider decreasing term life insurance for your mortgage.
+                    - switch [checked] [ref=f170e538] [cursor=pointer]
+                  - generic [ref=f170e541]:
+                    - generic [ref=f170e542]:
+                      - generic [ref=f170e543]: Critical Illness
+                      - heading "Your critical illness cover is £235,000 short" [level=4] [ref=f170e546]
+                      - paragraph [ref=f170e547]: You need £435,000. Your own policies give £200,000 and your job gives £0. Add critical illness cover for £235,000.
+                    - switch [checked] [ref=f170e549] [cursor=pointer]
+                  - generic [ref=f170e552]:
+                    - generic [ref=f170e553]:
+                      - generic [ref=f170e554]: Policy Review
+                      - heading "Review your existing protection policies" [level=4] [ref=f170e557]
+                      - paragraph [ref=f170e558]: You have 2 existing protection policies. A review could identify whether your current cover is still appropriate for your circumstances and whether you could achieve better value.
+                    - switch [checked] [ref=f170e560] [cursor=pointer]
+                  - generic [ref=f170e563]:
+                    - generic [ref=f170e564]:
+                      - generic [ref=f170e565]: Employer Benefits
+                      - heading "Record your employer benefits" [level=4] [ref=f170e568]
+                      - paragraph [ref=f170e569]: You appear to be employed but have not recorded any employer-provided protection benefits such as death in service, group income protection, or group critical illness cover. Recording these helps us calculate your protection gaps more accurately.
+                    - switch [checked] [ref=f170e571] [cursor=pointer]
+                  - generic [ref=f170e574]:
+                    - generic [ref=f170e575]:
+                      - generic [ref=f170e576]: Life Insurance
+                      - heading "Consider a joint life policy" [level=4] [ref=f170e579]
+                      - paragraph [ref=f170e580]: You are married but your life insurance policy with Vitality is a single-life policy. A joint life policy can provide cover for both partners, often at a lower combined premium than two separate single-life policies.
+                    - switch [checked] [ref=f170e582] [cursor=pointer]
+              - generic [ref=f170e584]:
+                - generic [ref=f170e586]:
+                  - heading "What-If Comparison" [level=2] [ref=f170e587]
+                  - paragraph [ref=f170e588]: See how your plan changes with recommended actions
+                - generic [ref=f170e589]:
+                  - generic [ref=f170e593]:
+                    - img [ref=f170e594]:
+                      - generic [ref=f170e596]:
+                        - generic [ref=f170e610]:
+                          - generic "Life Insurance Cover" [ref=f170e611]
+                          - generic "Critical Illness Cover" [ref=f170e612]
+                          - generic "Income Protection Cover" [ref=f170e613]
+                        - generic [ref=f170e615]:
+                          - generic "£500.0K" [ref=f170e616]
+                          - generic "£450.0K" [ref=f170e617]
+                          - generic "£400.0K" [ref=f170e618]
+                          - generic "£350.0K" [ref=f170e619]
+                          - generic "£300.0K" [ref=f170e620]
+                          - generic "£250.0K" [ref=f170e621]
+                          - generic "£200.0K" [ref=f170e622]
+                          - generic "£150.0K" [ref=f170e623]
+                          - generic "£100.0K" [ref=f170e624]
+                          - generic "£50.0K" [ref=f170e625]
+                          - generic "£0" [ref=f170e626]
+                    - generic [ref=f170e627]:
+                      - generic [ref=f170e628] [cursor=pointer]: Current
+                      - generic [ref=f170e631] [cursor=pointer]: With Actions
+                    - generic: ● ●
+                  - generic [ref=f170e634]:
+                    - generic [ref=f170e635]:
+                      - heading "Current Position" [level=3] [ref=f170e636]
+                      - generic [ref=f170e637]:
+                        - generic [ref=f170e638]:
+                          - generic [ref=f170e639]: Total Coverage Gap
+                          - generic [ref=f170e640]: £235,000
+                        - generic [ref=f170e642]:
+                          - generic [ref=f170e643]: Life Insurance Gap
+                          - generic [ref=f170e644]: £0
+                        - generic [ref=f170e646]:
+                          - generic [ref=f170e647]: Critical Illness Gap
+                          - generic [ref=f170e648]: £235,000
+                        - generic [ref=f170e650]:
+                          - generic [ref=f170e651]: Income Protection Gap
+                          - generic [ref=f170e652]: £0
+                    - generic [ref=f170e654]:
+                      - heading "With Actions" [level=3] [ref=f170e655]
+                      - generic [ref=f170e656]:
+                        - generic [ref=f170e657]:
+                          - generic [ref=f170e658]: Total Coverage Gap
+                          - generic [ref=f170e659]: £0
+                        - generic [ref=f170e661]:
+                          - generic [ref=f170e662]: Life Insurance Gap
+                          - generic [ref=f170e663]: £0
+                        - generic [ref=f170e665]:
+                          - generic [ref=f170e666]: Critical Illness Gap
+                          - generic [ref=f170e667]: £0
+                        - generic [ref=f170e669]:
+                          - generic [ref=f170e670]: Income Protection Gap
+                          - generic [ref=f170e671]: £0
+            - generic [ref=f170e673]:
+              - heading "Investment & Savings — Recommended Actions" [level=2] [ref=f170e676]
+              - generic [ref=f170e677]:
+                - generic [ref=f170e679]:
+                  - heading "Recommended Actions" [level=2] [ref=f170e680]
+                  - paragraph [ref=f170e681]: 18 of 18 actions enabled
+                - generic [ref=f170e682]:
+                  - heading "David's Stocks & Shares ISA" [level=3] [ref=f170e683]
+                  - generic [ref=f170e684]:
+                    - generic [ref=f170e686]:
+                      - generic [ref=f170e687]:
+                        - generic [ref=f170e688]: Fees
+                        - heading "Review fees on David's Stocks & Shares ISA" [level=4] [ref=f170e691]
+                        - paragraph [ref=f170e692]: Total fees on this account are 1.73% (£1,645 per year). Reducing fees could significantly improve long-term returns.
+                        - paragraph [ref=f170e693]: "Estimated impact: £658"
+                      - switch [checked] [ref=f170e695] [cursor=pointer]
+                    - generic [ref=f170e697]:
+                      - generic [ref=f170e698]:
+                        - paragraph [ref=f170e699]: 11-year projection · impact of this action
+                        - generic [ref=f170e700]: +£9,815 at retirement
+                      - generic [ref=f170e702]:
+                        - img [ref=f170e703]:
+                          - generic [ref=f170e706]:
+                            - generic "£400.0K" [ref=f170e707]
+                            - generic "£350.0K" [ref=f170e708]
+                            - generic "£300.0K" [ref=f170e709]
+                            - generic "£250.0K" [ref=f170e710]
+                            - generic "£200.0K" [ref=f170e711]
+                          - generic [ref=f170e720]:
+                            - generic "Year 0" [ref=f170e721]
+                            - generic "Year 1" [ref=f170e722]
+                            - generic "Year 2" [ref=f170e723]
+                            - generic "Year 3" [ref=f170e724]
+                            - generic "Year 4" [ref=f170e725]
+                            - generic "Year 5" [ref=f170e726]
+                            - generic "Year 6" [ref=f170e727]
+                            - generic "Year 7" [ref=f170e728]
+                            - generic "Year 8" [ref=f170e729]
+                            - generic "Year 9" [ref=f170e730]
+                            - generic "Year 10" [ref=f170e731]
+                            - generic "Year 11" [ref=f170e732]
+                        - generic [ref=f170e733]:
+                          - generic [ref=f170e734] [cursor=pointer]: Before
+                          - generic [ref=f170e737] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e740]:
+                    - generic [ref=f170e742]:
+                      - generic [ref=f170e743]:
+                        - generic [ref=f170e744]: High Fees
+                        - heading "Review high-fee holdings in David's Stocks & Shares ISA" [level=4] [ref=f170e747]
+                        - paragraph [ref=f170e748]: The weighted fund charge on this account is 0.52%. Consider switching to lower-cost index funds.
+                      - switch [checked] [ref=f170e750] [cursor=pointer]
+                    - generic [ref=f170e752]:
+                      - paragraph [ref=f170e754]: 11-year projection · impact of this action
+                      - generic [ref=f170e756]:
+                        - img [ref=f170e757]:
+                          - generic [ref=f170e760]:
+                            - generic "£500.0K" [ref=f170e761]
+                            - generic "£400.0K" [ref=f170e762]
+                            - generic "£300.0K" [ref=f170e763]
+                            - generic "£200.0K" [ref=f170e764]
+                          - generic [ref=f170e773]:
+                            - generic "Year 0" [ref=f170e774]
+                            - generic "Year 1" [ref=f170e775]
+                            - generic "Year 2" [ref=f170e776]
+                            - generic "Year 3" [ref=f170e777]
+                            - generic "Year 4" [ref=f170e778]
+                            - generic "Year 5" [ref=f170e779]
+                            - generic "Year 6" [ref=f170e780]
+                            - generic "Year 7" [ref=f170e781]
+                            - generic "Year 8" [ref=f170e782]
+                            - generic "Year 9" [ref=f170e783]
+                            - generic "Year 10" [ref=f170e784]
+                            - generic "Year 11" [ref=f170e785]
+                        - generic [ref=f170e786]:
+                          - generic [ref=f170e787] [cursor=pointer]: Before
+                          - generic [ref=f170e790] [cursor=pointer]: After this action
+                        - generic: ● ●
+                - generic [ref=f170e793]:
+                  - heading "Joint General Investment Account" [level=3] [ref=f170e794]
+                  - generic [ref=f170e795]:
+                    - generic [ref=f170e797]:
+                      - generic [ref=f170e798]:
+                        - generic [ref=f170e799]: Fees
+                        - heading "Review fees on Joint General Investment Account" [level=4] [ref=f170e802]
+                        - paragraph [ref=f170e803]: Total fees on this account are 1.17% (£1,113 per year). Reducing fees could significantly improve long-term returns.
+                        - paragraph [ref=f170e804]: "Estimated impact: £445"
+                      - switch [checked] [ref=f170e806] [cursor=pointer]
+                    - generic [ref=f170e808]:
+                      - generic [ref=f170e809]:
+                        - paragraph [ref=f170e810]: 11-year projection · impact of this action
+                        - generic [ref=f170e811]: +£6,644 at retirement
+                      - generic [ref=f170e813]:
+                        - img [ref=f170e814]:
+                          - generic [ref=f170e817]:
+                            - generic "£400.0K" [ref=f170e818]
+                            - generic "£350.0K" [ref=f170e819]
+                            - generic "£300.0K" [ref=f170e820]
+                            - generic "£250.0K" [ref=f170e821]
+                            - generic "£200.0K" [ref=f170e822]
+                          - generic [ref=f170e831]:
+                            - generic "Year 0" [ref=f170e832]
+                            - generic "Year 1" [ref=f170e833]
+                            - generic "Year 2" [ref=f170e834]
+                            - generic "Year 3" [ref=f170e835]
+                            - generic "Year 4" [ref=f170e836]
+                            - generic "Year 5" [ref=f170e837]
+                            - generic "Year 6" [ref=f170e838]
+                            - generic "Year 7" [ref=f170e839]
+                            - generic "Year 8" [ref=f170e840]
+                            - generic "Year 9" [ref=f170e841]
+                            - generic "Year 10" [ref=f170e842]
+                            - generic "Year 11" [ref=f170e843]
+                        - generic [ref=f170e844]:
+                          - generic [ref=f170e845] [cursor=pointer]: Before
+                          - generic [ref=f170e848] [cursor=pointer]: After this action
+                        - generic: ● ●
+                - generic [ref=f170e851]:
+                  - heading "Portfolio Actions" [level=3] [ref=f170e852]
+                  - generic [ref=f170e853]:
+                    - generic [ref=f170e855]:
+                      - generic [ref=f170e856]:
+                        - generic [ref=f170e857]: General
+                        - heading "Coordinate ISA contributions between partners" [level=4] [ref=f170e860]
+                        - paragraph [ref=f170e861]: "£20,000 of combined ISA allowance remains this tax year (primary: £10,000 remaining, Sarah Mitchell: £10,000 remaining). Coordinating contributions maximises the household's tax-free investment capacity of £40,000 per year."
+                      - switch [checked] [ref=f170e863] [cursor=pointer]
+                    - generic [ref=f170e865]:
+                      - generic [ref=f170e866]:
+                        - paragraph [ref=f170e867]: 11-year projection · impact of this action
+                        - generic [ref=f170e868]: +£32,817 at retirement
+                      - generic [ref=f170e870]:
+                        - img [ref=f170e871]:
+                          - generic [ref=f170e874]:
+                            - generic "£500.0K" [ref=f170e875]
+                            - generic "£400.0K" [ref=f170e876]
+                            - generic "£300.0K" [ref=f170e877]
+                            - generic "£200.0K" [ref=f170e878]
+                          - generic [ref=f170e887]:
+                            - generic "Year 0" [ref=f170e888]
+                            - generic "Year 1" [ref=f170e889]
+                            - generic "Year 2" [ref=f170e890]
+                            - generic "Year 3" [ref=f170e891]
+                            - generic "Year 4" [ref=f170e892]
+                            - generic "Year 5" [ref=f170e893]
+                            - generic "Year 6" [ref=f170e894]
+                            - generic "Year 7" [ref=f170e895]
+                            - generic "Year 8" [ref=f170e896]
+                            - generic "Year 9" [ref=f170e897]
+                            - generic "Year 10" [ref=f170e898]
+                            - generic "Year 11" [ref=f170e899]
+                        - generic [ref=f170e900]:
+                          - generic [ref=f170e901] [cursor=pointer]: Before
+                          - generic [ref=f170e904] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e907]:
+                    - generic [ref=f170e909]:
+                      - generic [ref=f170e910]:
+                        - generic [ref=f170e911]: General
+                        - heading "Transfer holdings from General Investment Account to ISA" [level=4] [ref=f170e914]
+                        - paragraph [ref=f170e915]: Sarah Mitchell holds £95,000 in General Investment Account(s) and has £10,000 of ISA allowance remaining. A Bed and ISA transfer moves holdings into a tax-free wrapper — future growth and income become exempt from Capital Gains Tax and income tax.
+                      - switch [checked] [ref=f170e917] [cursor=pointer]
+                    - generic [ref=f170e919]:
+                      - generic [ref=f170e920]:
+                        - paragraph [ref=f170e921]: 11-year projection · impact of this action
+                        - generic [ref=f170e922]: +£32,817 at retirement
+                      - generic [ref=f170e924]:
+                        - img [ref=f170e925]:
+                          - generic [ref=f170e928]:
+                            - generic "£500.0K" [ref=f170e929]
+                            - generic "£400.0K" [ref=f170e930]
+                            - generic "£300.0K" [ref=f170e931]
+                            - generic "£200.0K" [ref=f170e932]
+                          - generic [ref=f170e941]:
+                            - generic "Year 0" [ref=f170e942]
+                            - generic "Year 1" [ref=f170e943]
+                            - generic "Year 2" [ref=f170e944]
+                            - generic "Year 3" [ref=f170e945]
+                            - generic "Year 4" [ref=f170e946]
+                            - generic "Year 5" [ref=f170e947]
+                            - generic "Year 6" [ref=f170e948]
+                            - generic "Year 7" [ref=f170e949]
+                            - generic "Year 8" [ref=f170e950]
+                            - generic "Year 9" [ref=f170e951]
+                            - generic "Year 10" [ref=f170e952]
+                            - generic "Year 11" [ref=f170e953]
+                        - generic [ref=f170e954]:
+                          - generic [ref=f170e955] [cursor=pointer]: Before
+                          - generic [ref=f170e958] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e961]:
+                    - generic [ref=f170e963]:
+                      - generic [ref=f170e964]:
+                        - generic [ref=f170e965]: General
+                        - heading "Deploy excess cash to investment accounts" [level=4] [ref=f170e968]
+                        - paragraph [ref=f170e969]: Sarah Mitchell holds £28,032 in cash after allowing for the emergency fund target (£31,145) and a 3-month buffer (£15,573). This excess cash could be working harder in a tax-efficient investment wrapper.
+                      - switch [checked] [ref=f170e971] [cursor=pointer]
+                    - generic [ref=f170e973]:
+                      - generic [ref=f170e974]:
+                        - paragraph [ref=f170e975]: 11-year projection · impact of this action
+                        - generic [ref=f170e976]: +£32,817 at retirement
+                      - generic [ref=f170e978]:
+                        - img [ref=f170e979]:
+                          - generic [ref=f170e982]:
+                            - generic "£500.0K" [ref=f170e983]
+                            - generic "£400.0K" [ref=f170e984]
+                            - generic "£300.0K" [ref=f170e985]
+                            - generic "£200.0K" [ref=f170e986]
+                          - generic [ref=f170e995]:
+                            - generic "Year 0" [ref=f170e996]
+                            - generic "Year 1" [ref=f170e997]
+                            - generic "Year 2" [ref=f170e998]
+                            - generic "Year 3" [ref=f170e999]
+                            - generic "Year 4" [ref=f170e1000]
+                            - generic "Year 5" [ref=f170e1001]
+                            - generic "Year 6" [ref=f170e1002]
+                            - generic "Year 7" [ref=f170e1003]
+                            - generic "Year 8" [ref=f170e1004]
+                            - generic "Year 9" [ref=f170e1005]
+                            - generic "Year 10" [ref=f170e1006]
+                            - generic "Year 11" [ref=f170e1007]
+                        - generic [ref=f170e1008]:
+                          - generic [ref=f170e1009] [cursor=pointer]: Before
+                          - generic [ref=f170e1012] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1015]:
+                    - generic [ref=f170e1017]:
+                      - generic [ref=f170e1018]:
+                        - generic [ref=f170e1019]: General
+                        - heading "Share Capital Gains Tax exemptions between partners" [level=4] [ref=f170e1022]
+                        - paragraph [ref=f170e1023]: Each partner has a £3,000 annual Capital Gains Tax exemption — £6,000 combined. With £95,000 in General Investment Accounts, transferring assets between spouses (Capital Gains Tax-free) allows both exemptions to be used. This enables crystallising up to £6,000 of gains tax-free each year.
+                      - switch [checked] [ref=f170e1025] [cursor=pointer]
+                    - generic [ref=f170e1027]:
+                      - generic [ref=f170e1028]:
+                        - paragraph [ref=f170e1029]: 11-year projection · impact of this action
+                        - generic [ref=f170e1030]: +£32,818 at retirement
+                      - generic [ref=f170e1032]:
+                        - img [ref=f170e1033]:
+                          - generic [ref=f170e1036]:
+                            - generic "£600.0K" [ref=f170e1037]
+                            - generic "£500.0K" [ref=f170e1038]
+                            - generic "£400.0K" [ref=f170e1039]
+                            - generic "£300.0K" [ref=f170e1040]
+                            - generic "£200.0K" [ref=f170e1041]
+                          - generic [ref=f170e1050]:
+                            - generic "Year 0" [ref=f170e1051]
+                            - generic "Year 1" [ref=f170e1052]
+                            - generic "Year 2" [ref=f170e1053]
+                            - generic "Year 3" [ref=f170e1054]
+                            - generic "Year 4" [ref=f170e1055]
+                            - generic "Year 5" [ref=f170e1056]
+                            - generic "Year 6" [ref=f170e1057]
+                            - generic "Year 7" [ref=f170e1058]
+                            - generic "Year 8" [ref=f170e1059]
+                            - generic "Year 9" [ref=f170e1060]
+                            - generic "Year 10" [ref=f170e1061]
+                            - generic "Year 11" [ref=f170e1062]
+                        - generic [ref=f170e1063]:
+                          - generic [ref=f170e1064] [cursor=pointer]: Before
+                          - generic [ref=f170e1067] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1070]:
+                    - generic [ref=f170e1072]:
+                      - generic [ref=f170e1073]:
+                        - generic [ref=f170e1074]: General
+                        - heading "Use your annual Capital Gains Tax exemption before tax year end" [level=4] [ref=f170e1077]
+                        - paragraph [ref=f170e1078]: The tax year ends on 5 April 2027 (6 months away). Sarah Mitchell's £3,000 annual Capital Gains Tax exemption cannot be carried forward. With £95,000 in General Investment Accounts, consider crystallising gains within the exemption by selling and repurchasing in an ISA.
+                      - switch [checked] [ref=f170e1080] [cursor=pointer]
+                    - generic [ref=f170e1082]:
+                      - generic [ref=f170e1083]:
+                        - paragraph [ref=f170e1084]: 11-year projection · impact of this action
+                        - generic [ref=f170e1085]: +£32,817 at retirement
+                      - generic [ref=f170e1087]:
+                        - img [ref=f170e1088]:
+                          - generic [ref=f170e1091]:
+                            - generic "£600.0K" [ref=f170e1092]
+                            - generic "£500.0K" [ref=f170e1093]
+                            - generic "£400.0K" [ref=f170e1094]
+                            - generic "£300.0K" [ref=f170e1095]
+                            - generic "£200.0K" [ref=f170e1096]
+                          - generic [ref=f170e1105]:
+                            - generic "Year 0" [ref=f170e1106]
+                            - generic "Year 1" [ref=f170e1107]
+                            - generic "Year 2" [ref=f170e1108]
+                            - generic "Year 3" [ref=f170e1109]
+                            - generic "Year 4" [ref=f170e1110]
+                            - generic "Year 5" [ref=f170e1111]
+                            - generic "Year 6" [ref=f170e1112]
+                            - generic "Year 7" [ref=f170e1113]
+                            - generic "Year 8" [ref=f170e1114]
+                            - generic "Year 9" [ref=f170e1115]
+                            - generic "Year 10" [ref=f170e1116]
+                            - generic "Year 11" [ref=f170e1117]
+                        - generic [ref=f170e1118]:
+                          - generic [ref=f170e1119] [cursor=pointer]: Before
+                          - generic [ref=f170e1122] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1125]:
+                    - generic [ref=f170e1127]:
+                      - generic [ref=f170e1128]:
+                        - generic [ref=f170e1129]: General
+                        - heading "General Investment Account dividends may exceed allowance" [level=4] [ref=f170e1132]
+                        - paragraph [ref=f170e1133]: Sarah Mitchell's General Investment Account holdings of £95,000 may generate estimated dividends of £2,850, exceeding the £500 annual dividend allowance by £2,350. Consider Bed and ISA transfers or switching to accumulation units to reduce taxable dividend income.
+                      - switch [checked] [ref=f170e1135] [cursor=pointer]
+                    - generic [ref=f170e1137]:
+                      - generic [ref=f170e1138]:
+                        - paragraph [ref=f170e1139]: 11-year projection · impact of this action
+                        - generic [ref=f170e1140]: +£32,817 at retirement
+                      - generic [ref=f170e1142]:
+                        - img [ref=f170e1143]:
+                          - generic [ref=f170e1146]:
+                            - generic "£600.0K" [ref=f170e1147]
+                            - generic "£500.0K" [ref=f170e1148]
+                            - generic "£400.0K" [ref=f170e1149]
+                            - generic "£300.0K" [ref=f170e1150]
+                            - generic "£200.0K" [ref=f170e1151]
+                          - generic [ref=f170e1160]:
+                            - generic "Year 0" [ref=f170e1161]
+                            - generic "Year 1" [ref=f170e1162]
+                            - generic "Year 2" [ref=f170e1163]
+                            - generic "Year 3" [ref=f170e1164]
+                            - generic "Year 4" [ref=f170e1165]
+                            - generic "Year 5" [ref=f170e1166]
+                            - generic "Year 6" [ref=f170e1167]
+                            - generic "Year 7" [ref=f170e1168]
+                            - generic "Year 8" [ref=f170e1169]
+                            - generic "Year 9" [ref=f170e1170]
+                            - generic "Year 10" [ref=f170e1171]
+                            - generic "Year 11" [ref=f170e1172]
+                        - generic [ref=f170e1173]:
+                          - generic [ref=f170e1174] [cursor=pointer]: Before
+                          - generic [ref=f170e1177] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1180]:
+                    - generic [ref=f170e1182]:
+                      - generic [ref=f170e1183]:
+                        - generic [ref=f170e1184]: Asset Allocation
+                        - heading "Rebalance Portfolio" [level=4] [ref=f170e1187]
+                        - paragraph [ref=f170e1188]: Your current allocation deviates significantly from your risk profile. Rebalancing will bring your portfolio back in line with your target allocation.
+                      - switch [checked] [ref=f170e1190] [cursor=pointer]
+                    - generic [ref=f170e1192]:
+                      - generic [ref=f170e1193]:
+                        - paragraph [ref=f170e1194]: 11-year projection · impact of this action
+                        - generic [ref=f170e1195]: +£32,817 at retirement
+                      - generic [ref=f170e1197]:
+                        - img [ref=f170e1198]:
+                          - generic [ref=f170e1201]:
+                            - generic "£800.0K" [ref=f170e1202]
+                            - generic "£600.0K" [ref=f170e1203]
+                            - generic "£400.0K" [ref=f170e1204]
+                            - generic "£200.0K" [ref=f170e1205]
+                          - generic [ref=f170e1214]:
+                            - generic "Year 0" [ref=f170e1215]
+                            - generic "Year 1" [ref=f170e1216]
+                            - generic "Year 2" [ref=f170e1217]
+                            - generic "Year 3" [ref=f170e1218]
+                            - generic "Year 4" [ref=f170e1219]
+                            - generic "Year 5" [ref=f170e1220]
+                            - generic "Year 6" [ref=f170e1221]
+                            - generic "Year 7" [ref=f170e1222]
+                            - generic "Year 8" [ref=f170e1223]
+                            - generic "Year 9" [ref=f170e1224]
+                            - generic "Year 10" [ref=f170e1225]
+                            - generic "Year 11" [ref=f170e1226]
+                        - generic [ref=f170e1227]:
+                          - generic [ref=f170e1228] [cursor=pointer]: Before
+                          - generic [ref=f170e1231] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1234]:
+                    - generic [ref=f170e1236]:
+                      - generic [ref=f170e1237]:
+                        - generic [ref=f170e1238]: Tax Planning
+                        - heading "Losses you could use against gains" [level=4] [ref=f170e1241]
+                        - paragraph [ref=f170e1242]: "1 holdings have unrealised losses. Potential tax saving: £0."
+                      - switch [checked] [ref=f170e1244] [cursor=pointer]
+                    - generic [ref=f170e1246]:
+                      - generic [ref=f170e1247]:
+                        - paragraph [ref=f170e1248]: 11-year projection · impact of this action
+                        - generic [ref=f170e1249]: +£98,453 at retirement
+                      - generic [ref=f170e1251]:
+                        - img [ref=f170e1252]:
+                          - generic [ref=f170e1255]:
+                            - generic "£800.0K" [ref=f170e1256]
+                            - generic "£600.0K" [ref=f170e1257]
+                            - generic "£400.0K" [ref=f170e1258]
+                            - generic "£200.0K" [ref=f170e1259]
+                          - generic [ref=f170e1268]:
+                            - generic "Year 0" [ref=f170e1269]
+                            - generic "Year 1" [ref=f170e1270]
+                            - generic "Year 2" [ref=f170e1271]
+                            - generic "Year 3" [ref=f170e1272]
+                            - generic "Year 4" [ref=f170e1273]
+                            - generic "Year 5" [ref=f170e1274]
+                            - generic "Year 6" [ref=f170e1275]
+                            - generic "Year 7" [ref=f170e1276]
+                            - generic "Year 8" [ref=f170e1277]
+                            - generic "Year 9" [ref=f170e1278]
+                            - generic "Year 10" [ref=f170e1279]
+                            - generic "Year 11" [ref=f170e1280]
+                        - generic [ref=f170e1281]:
+                          - generic [ref=f170e1282] [cursor=pointer]: Before
+                          - generic [ref=f170e1285] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1288]:
+                    - generic [ref=f170e1290]:
+                      - generic [ref=f170e1291]:
+                        - generic [ref=f170e1292]: General
+                        - heading "Consider transferring Cash ISA to Stocks and Shares ISA" [level=4] [ref=f170e1295]
+                        - paragraph [ref=f170e1296]: Sarah Mitchell has a upper_medium risk profile and 11 years to retirement. Transferring Cash ISA balances to a Stocks and Shares ISA could improve long-term growth potential while maintaining the tax-free wrapper.
+                      - switch [checked] [ref=f170e1298] [cursor=pointer]
+                    - generic [ref=f170e1300]:
+                      - generic [ref=f170e1301]:
+                        - paragraph [ref=f170e1302]: 11-year projection · impact of this action
+                        - generic [ref=f170e1303]: +£32,817 at retirement
+                      - generic [ref=f170e1305]:
+                        - img [ref=f170e1306]:
+                          - generic [ref=f170e1309]:
+                            - generic "£800.0K" [ref=f170e1310]
+                            - generic "£600.0K" [ref=f170e1311]
+                            - generic "£400.0K" [ref=f170e1312]
+                            - generic "£200.0K" [ref=f170e1313]
+                          - generic [ref=f170e1322]:
+                            - generic "Year 0" [ref=f170e1323]
+                            - generic "Year 1" [ref=f170e1324]
+                            - generic "Year 2" [ref=f170e1325]
+                            - generic "Year 3" [ref=f170e1326]
+                            - generic "Year 4" [ref=f170e1327]
+                            - generic "Year 5" [ref=f170e1328]
+                            - generic "Year 6" [ref=f170e1329]
+                            - generic "Year 7" [ref=f170e1330]
+                            - generic "Year 8" [ref=f170e1331]
+                            - generic "Year 9" [ref=f170e1332]
+                            - generic "Year 10" [ref=f170e1333]
+                            - generic "Year 11" [ref=f170e1334]
+                        - generic [ref=f170e1335]:
+                          - generic [ref=f170e1336] [cursor=pointer]: Before
+                          - generic [ref=f170e1339] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1342]:
+                    - generic [ref=f170e1344]:
+                      - generic [ref=f170e1345]:
+                        - generic [ref=f170e1346]: General
+                        - heading "Consolidate investment platforms" [level=4] [ref=f170e1349]
+                        - paragraph [ref=f170e1350]: "Sarah Mitchell's investments are spread across 3 platforms (Hargreaves Lansdown, AJ Bell, Various). Total portfolio value: £220,000. Consolidating to fewer platforms can reduce total platform fees and simplify management."
+                      - switch [checked] [ref=f170e1352] [cursor=pointer]
+                    - generic [ref=f170e1354]:
+                      - generic [ref=f170e1355]:
+                        - paragraph [ref=f170e1356]: 11-year projection · impact of this action
+                        - generic [ref=f170e1357]: +£32,817 at retirement
+                      - generic [ref=f170e1359]:
+                        - img [ref=f170e1360]:
+                          - generic [ref=f170e1363]:
+                            - generic "£800.0K" [ref=f170e1364]
+                            - generic "£600.0K" [ref=f170e1365]
+                            - generic "£400.0K" [ref=f170e1366]
+                            - generic "£200.0K" [ref=f170e1367]
+                          - generic [ref=f170e1376]:
+                            - generic "Year 0" [ref=f170e1377]
+                            - generic "Year 1" [ref=f170e1378]
+                            - generic "Year 2" [ref=f170e1379]
+                            - generic "Year 3" [ref=f170e1380]
+                            - generic "Year 4" [ref=f170e1381]
+                            - generic "Year 5" [ref=f170e1382]
+                            - generic "Year 6" [ref=f170e1383]
+                            - generic "Year 7" [ref=f170e1384]
+                            - generic "Year 8" [ref=f170e1385]
+                            - generic "Year 9" [ref=f170e1386]
+                            - generic "Year 10" [ref=f170e1387]
+                            - generic "Year 11" [ref=f170e1388]
+                        - generic [ref=f170e1389]:
+                          - generic [ref=f170e1390] [cursor=pointer]: Before
+                          - generic [ref=f170e1393] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1396]:
+                    - generic [ref=f170e1398]:
+                      - generic [ref=f170e1399]:
+                        - generic [ref=f170e1400]: General
+                        - heading "Review uninvested cash in investment accounts" [level=4] [ref=f170e1403]
+                        - paragraph [ref=f170e1404]: Sarah Mitchell's investment accounts may hold uninvested cash that reduces long-term returns. With a portfolio of £220,000, review each account for cash balances that could be deployed into the target asset allocation.
+                      - switch [checked] [ref=f170e1406] [cursor=pointer]
+                    - generic [ref=f170e1408]:
+                      - generic [ref=f170e1409]:
+                        - paragraph [ref=f170e1410]: 11-year projection · impact of this action
+                        - generic [ref=f170e1411]: +£32,817 at retirement
+                      - generic [ref=f170e1413]:
+                        - img [ref=f170e1414]:
+                          - generic [ref=f170e1417]:
+                            - generic "£1.0M" [ref=f170e1418]
+                            - generic "£800.0K" [ref=f170e1419]
+                            - generic "£600.0K" [ref=f170e1420]
+                            - generic "£400.0K" [ref=f170e1421]
+                            - generic "£200.0K" [ref=f170e1422]
+                          - generic [ref=f170e1431]:
+                            - generic "Year 0" [ref=f170e1432]
+                            - generic "Year 1" [ref=f170e1433]
+                            - generic "Year 2" [ref=f170e1434]
+                            - generic "Year 3" [ref=f170e1435]
+                            - generic "Year 4" [ref=f170e1436]
+                            - generic "Year 5" [ref=f170e1437]
+                            - generic "Year 6" [ref=f170e1438]
+                            - generic "Year 7" [ref=f170e1439]
+                            - generic "Year 8" [ref=f170e1440]
+                            - generic "Year 9" [ref=f170e1441]
+                            - generic "Year 10" [ref=f170e1442]
+                            - generic "Year 11" [ref=f170e1443]
+                        - generic [ref=f170e1444]:
+                          - generic [ref=f170e1445] [cursor=pointer]: Before
+                          - generic [ref=f170e1448] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1451]:
+                    - generic [ref=f170e1453]:
+                      - generic [ref=f170e1454]:
+                        - generic [ref=f170e1455]: Tax Efficiency
+                        - heading "Use Your ISA Allowance" [level=4] [ref=f170e1458]
+                        - paragraph [ref=f170e1459]: You have £10,000 ISA allowance remaining this tax year. Consider moving General Investment Account holdings (£47,500) into your ISA before 5 April.
+                      - switch [checked] [ref=f170e1461] [cursor=pointer]
+                    - generic [ref=f170e1463]:
+                      - generic [ref=f170e1464]:
+                        - paragraph [ref=f170e1465]: 11-year projection · impact of this action
+                        - generic [ref=f170e1466]: +£98,453 at retirement
+                      - generic [ref=f170e1468]:
+                        - img [ref=f170e1469]:
+                          - generic [ref=f170e1472]:
+                            - generic "£1.0M" [ref=f170e1473]
+                            - generic "£800.0K" [ref=f170e1474]
+                            - generic "£600.0K" [ref=f170e1475]
+                            - generic "£400.0K" [ref=f170e1476]
+                            - generic "£200.0K" [ref=f170e1477]
+                          - generic [ref=f170e1486]:
+                            - generic "Year 0" [ref=f170e1487]
+                            - generic "Year 1" [ref=f170e1488]
+                            - generic "Year 2" [ref=f170e1489]
+                            - generic "Year 3" [ref=f170e1490]
+                            - generic "Year 4" [ref=f170e1491]
+                            - generic "Year 5" [ref=f170e1492]
+                            - generic "Year 6" [ref=f170e1493]
+                            - generic "Year 7" [ref=f170e1494]
+                            - generic "Year 8" [ref=f170e1495]
+                            - generic "Year 9" [ref=f170e1496]
+                            - generic "Year 10" [ref=f170e1497]
+                            - generic "Year 11" [ref=f170e1498]
+                        - generic [ref=f170e1499]:
+                          - generic [ref=f170e1500] [cursor=pointer]: Before
+                          - generic [ref=f170e1503] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1506]:
+                    - generic [ref=f170e1508]:
+                      - generic [ref=f170e1509]:
+                        - generic [ref=f170e1510]: ISA Allowance
+                        - heading "Use Remaining ISA Allowance" [level=4] [ref=f170e1513]
+                        - paragraph [ref=f170e1514]: You have £10,000 of ISA allowance remaining this tax year. Use it for tax-free growth.
+                        - generic [ref=f170e1515]:
+                          - generic [ref=f170e1516]:
+                            - generic [ref=f170e1517]: Fund from
+                            - combobox [ref=f170e1518]:
+                              - option "David's Current Account (£25,000)" [selected]
+                              - option "Mitchell Current Account (£2,250)"
+                              - option "Joint General Investment Account (£47,500)"
+                          - paragraph [ref=f170e1519]: Withdrawing would reduce your emergency fund below 6 months of expenditure.
+                      - switch [checked] [ref=f170e1521] [cursor=pointer]
+                    - generic [ref=f170e1523]:
+                      - generic [ref=f170e1524]:
+                        - paragraph [ref=f170e1525]: 11-year projection · impact of this action
+                        - generic [ref=f170e1526]: +£177,167 at retirement
+                      - generic [ref=f170e1528]:
+                        - img [ref=f170e1529]:
+                          - generic [ref=f170e1532]:
+                            - generic "£1.5M" [ref=f170e1533]
+                            - generic "£1.0M" [ref=f170e1534]
+                            - generic "£500.0K" [ref=f170e1535]
+                            - generic "£0" [ref=f170e1536]
+                          - generic [ref=f170e1545]:
+                            - generic "Year 0" [ref=f170e1546]
+                            - generic "Year 1" [ref=f170e1547]
+                            - generic "Year 2" [ref=f170e1548]
+                            - generic "Year 3" [ref=f170e1549]
+                            - generic "Year 4" [ref=f170e1550]
+                            - generic "Year 5" [ref=f170e1551]
+                            - generic "Year 6" [ref=f170e1552]
+                            - generic "Year 7" [ref=f170e1553]
+                            - generic "Year 8" [ref=f170e1554]
+                            - generic "Year 9" [ref=f170e1555]
+                            - generic "Year 10" [ref=f170e1556]
+                            - generic "Year 11" [ref=f170e1557]
+                        - generic [ref=f170e1558]:
+                          - generic [ref=f170e1559] [cursor=pointer]: Before
+                          - generic [ref=f170e1562] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1565]:
+                    - generic [ref=f170e1567]:
+                      - generic [ref=f170e1568]:
+                        - generic [ref=f170e1569]: Emergency Fund Surplus
+                        - heading "Move Surplus to ISA" [level=4] [ref=f170e1572]
+                        - paragraph [ref=f170e1573]: Your emergency fund exceeds 6 months. Move £10,000 into an ISA for tax-free growth. You have £10,000 of ISA allowance remaining this tax year.
+                        - paragraph [ref=f170e1574]: "Estimated impact: £10,000"
+                        - generic [ref=f170e1575]:
+                          - generic [ref=f170e1576]:
+                            - generic [ref=f170e1577]: Fund from
+                            - combobox [ref=f170e1578]:
+                              - option "David's Current Account (£25,000)" [selected]
+                              - option "Mitchell Current Account (£2,250)"
+                              - option "Joint General Investment Account (£47,500)"
+                          - paragraph [ref=f170e1579]: Withdrawing would reduce your emergency fund below 6 months of expenditure.
+                      - switch [checked] [ref=f170e1581] [cursor=pointer]
+                    - generic [ref=f170e1583]:
+                      - generic [ref=f170e1584]:
+                        - paragraph [ref=f170e1585]: 11-year projection · impact of this action
+                        - generic [ref=f170e1586]: +£177,167 at retirement
+                      - generic [ref=f170e1588]:
+                        - img [ref=f170e1589]:
+                          - generic [ref=f170e1592]:
+                            - generic "£1.5M" [ref=f170e1593]
+                            - generic "£1.0M" [ref=f170e1594]
+                            - generic "£500.0K" [ref=f170e1595]
+                            - generic "£0" [ref=f170e1596]
+                          - generic [ref=f170e1605]:
+                            - generic "Year 0" [ref=f170e1606]
+                            - generic "Year 1" [ref=f170e1607]
+                            - generic "Year 2" [ref=f170e1608]
+                            - generic "Year 3" [ref=f170e1609]
+                            - generic "Year 4" [ref=f170e1610]
+                            - generic "Year 5" [ref=f170e1611]
+                            - generic "Year 6" [ref=f170e1612]
+                            - generic "Year 7" [ref=f170e1613]
+                            - generic "Year 8" [ref=f170e1614]
+                            - generic "Year 9" [ref=f170e1615]
+                            - generic "Year 10" [ref=f170e1616]
+                            - generic "Year 11" [ref=f170e1617]
+                        - generic [ref=f170e1618]:
+                          - generic [ref=f170e1619] [cursor=pointer]: Before
+                          - generic [ref=f170e1622] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1625]:
+                    - generic [ref=f170e1627]:
+                      - generic [ref=f170e1628]:
+                        - generic [ref=f170e1629]: Emergency Fund Surplus
+                        - heading "Contribute Surplus to Pension" [level=4] [ref=f170e1632]
+                        - paragraph [ref=f170e1633]: Consider contributing £33,605 to your pension. You will receive tax relief, boosting the value of your contribution.
+                        - paragraph [ref=f170e1634]: "Estimated impact: £33,605"
+                        - generic [ref=f170e1635]:
+                          - generic [ref=f170e1636]:
+                            - generic [ref=f170e1637]: Fund from
+                            - combobox [ref=f170e1638]:
+                              - option "David's Current Account (£25,000)" [selected]
+                              - option "Mitchell Current Account (£2,250)"
+                              - option "Joint General Investment Account (£47,500)"
+                          - paragraph [ref=f170e1639]: Withdrawing would reduce your emergency fund below 6 months of expenditure.
+                      - switch [checked] [ref=f170e1641] [cursor=pointer]
+                    - generic [ref=f170e1643]:
+                      - generic [ref=f170e1644]:
+                        - paragraph [ref=f170e1645]: 11-year projection · impact of this action
+                        - generic [ref=f170e1646]: +£177,167 at retirement
+                      - generic [ref=f170e1648]:
+                        - img [ref=f170e1649]:
+                          - generic [ref=f170e1652]:
+                            - generic "£1.5M" [ref=f170e1653]
+                            - generic "£1.0M" [ref=f170e1654]
+                            - generic "£500.0K" [ref=f170e1655]
+                            - generic "£0" [ref=f170e1656]
+                          - generic [ref=f170e1665]:
+                            - generic "Year 0" [ref=f170e1666]
+                            - generic "Year 1" [ref=f170e1667]
+                            - generic "Year 2" [ref=f170e1668]
+                            - generic "Year 3" [ref=f170e1669]
+                            - generic "Year 4" [ref=f170e1670]
+                            - generic "Year 5" [ref=f170e1671]
+                            - generic "Year 6" [ref=f170e1672]
+                            - generic "Year 7" [ref=f170e1673]
+                            - generic "Year 8" [ref=f170e1674]
+                            - generic "Year 9" [ref=f170e1675]
+                            - generic "Year 10" [ref=f170e1676]
+                            - generic "Year 11" [ref=f170e1677]
+                        - generic [ref=f170e1678]:
+                          - generic [ref=f170e1679] [cursor=pointer]: Before
+                          - generic [ref=f170e1682] [cursor=pointer]: After this action
+                        - generic: ● ●
+                - generic [ref=f170e1686]:
+                  - generic [ref=f170e1687]:
+                    - heading "Current Position" [level=5] [ref=f170e1688]
+                    - generic [ref=f170e1689]:
+                      - generic [ref=f170e1690]:
+                        - generic [ref=f170e1691]: Total Wealth
+                        - generic [ref=f170e1692]: £322,000
+                      - generic [ref=f170e1694]:
+                        - generic [ref=f170e1695]: Annual Fees
+                        - generic [ref=f170e1696]: £1,135
+                      - generic [ref=f170e1698]:
+                        - generic [ref=f170e1699]: Emergency Fund
+                        - generic [ref=f170e1700]: 14.4 months
+                      - generic [ref=f170e1702]:
+                        - generic [ref=f170e1703]: At Retirement
+                        - generic [ref=f170e1704]: £380,880
+                  - generic [ref=f170e1706]:
+                    - heading "With Actions" [level=5] [ref=f170e1707]
+                    - generic [ref=f170e1708]:
+                      - generic [ref=f170e1709]:
+                        - generic [ref=f170e1710]: Total Wealth
+                        - generic [ref=f170e1711]: £361,589
+                      - generic [ref=f170e1713]:
+                        - generic [ref=f170e1714]: Annual Fees
+                        - generic [ref=f170e1715]: £0
+                      - generic [ref=f170e1717]:
+                        - generic [ref=f170e1718]: Emergency Fund
+                        - generic [ref=f170e1719]: 16.4 months
+                      - generic [ref=f170e1721]:
+                        - generic [ref=f170e1722]: Additional Monthly Savings
+                        - generic [ref=f170e1723]: £3,299
+                      - generic [ref=f170e1725]:
+                        - generic [ref=f170e1726]: At Retirement
+                        - generic [ref=f170e1727]: £959,889
+            - generic [ref=f170e1729]:
+              - heading "Retirement — Recommended Actions" [level=2] [ref=f170e1732]
+              - generic [ref=f170e1733]:
+                - generic [ref=f170e1735]:
+                  - heading "Recommended Actions" [level=2] [ref=f170e1736]
+                  - paragraph [ref=f170e1737]: 2 of 2 actions enabled
+                - generic [ref=f170e1738]:
+                  - heading "Portfolio Actions" [level=3] [ref=f170e1739]
+                  - generic [ref=f170e1740]:
+                    - generic [ref=f170e1742]:
+                      - generic [ref=f170e1743]:
+                        - generic [ref=f170e1744]: Goal
+                        - heading "Max Pension Contributions is behind schedule" [level=4] [ref=f170e1747]
+                        - paragraph [ref=f170e1748]: Max Pension Contributions is currently 75% complete but behind schedule. Increasing your monthly contribution by £0 would bring it back on track.
+                      - switch [checked] [ref=f170e1750] [cursor=pointer]
+                    - generic [ref=f170e1752]:
+                      - generic [ref=f170e1753]:
+                        - paragraph [ref=f170e1754]: 11-year projection · impact of this action
+                        - generic [ref=f170e1755]: +£177,167 at retirement
+                      - generic [ref=f170e1757]:
+                        - img [ref=f170e1758]:
+                          - generic [ref=f170e1761]:
+                            - generic "£1.5M" [ref=f170e1762]
+                            - generic "£1.0M" [ref=f170e1763]
+                            - generic "£500.0K" [ref=f170e1764]
+                          - generic [ref=f170e1772]:
+                            - generic "Year 0" [ref=f170e1773]
+                            - generic "Year 1" [ref=f170e1774]
+                            - generic "Year 2" [ref=f170e1775]
+                            - generic "Year 3" [ref=f170e1776]
+                            - generic "Year 4" [ref=f170e1777]
+                            - generic "Year 5" [ref=f170e1778]
+                            - generic "Year 6" [ref=f170e1779]
+                            - generic "Year 7" [ref=f170e1780]
+                            - generic "Year 8" [ref=f170e1781]
+                            - generic "Year 9" [ref=f170e1782]
+                            - generic "Year 10" [ref=f170e1783]
+                            - generic "Year 11" [ref=f170e1784]
+                        - generic [ref=f170e1785]:
+                          - generic [ref=f170e1786] [cursor=pointer]: Before
+                          - generic [ref=f170e1789] [cursor=pointer]: After this action
+                        - generic: ● ●
+                  - generic [ref=f170e1792]:
+                    - generic [ref=f170e1794]:
+                      - generic [ref=f170e1795]:
+                        - generic [ref=f170e1796]: Retirement Income
+                        - heading "Your retirement income is about £11,405 a year short of your target" [level=4] [ref=f170e1799]
+                        - paragraph [ref=f170e1800]: At 60 your retirement income is on course for about £63,595 a year, against your target of £75,000.
+                      - switch [checked] [ref=f170e1802] [cursor=pointer]
+                    - generic [ref=f170e1804]:
+                      - generic [ref=f170e1805]:
+                        - paragraph [ref=f170e1806]: 11-year projection · impact of this action
+                        - generic [ref=f170e1807]: +£177,167 at retirement
+                      - generic [ref=f170e1809]:
+                        - img [ref=f170e1810]:
+                          - generic [ref=f170e1813]:
+                            - generic "£2.0M" [ref=f170e1814]
+                            - generic "£1.5M" [ref=f170e1815]
+                            - generic "£1.0M" [ref=f170e1816]
+                            - generic "£500.0K" [ref=f170e1817]
+                          - generic [ref=f170e1826]:
+                            - generic "Year 0" [ref=f170e1827]
+                            - generic "Year 1" [ref=f170e1828]
+                            - generic "Year 2" [ref=f170e1829]
+                            - generic "Year 3" [ref=f170e1830]
+                            - generic "Year 4" [ref=f170e1831]
+                            - generic "Year 5" [ref=f170e1832]
+                            - generic "Year 6" [ref=f170e1833]
+                            - generic "Year 7" [ref=f170e1834]
+                            - generic "Year 8" [ref=f170e1835]
+                            - generic "Year 9" [ref=f170e1836]
+                            - generic "Year 10" [ref=f170e1837]
+                            - generic "Year 11" [ref=f170e1838]
+                        - generic [ref=f170e1839]:
+                          - generic [ref=f170e1840] [cursor=pointer]: Before
+                          - generic [ref=f170e1843] [cursor=pointer]: After this action
+                        - generic: ● ●
+                - generic [ref=f170e1847]:
+                  - generic [ref=f170e1848]:
+                    - heading "Current Position" [level=5] [ref=f170e1849]
+                    - generic [ref=f170e1850]:
+                      - generic [ref=f170e1851]:
+                        - generic [ref=f170e1852]: Projected Annual Income
+                        - generic [ref=f170e1853]: £63,595
+                      - generic [ref=f170e1855]:
+                        - generic [ref=f170e1856]: Income Gap
+                        - generic [ref=f170e1857]: £11,405
+                      - generic [ref=f170e1859]:
+                        - generic [ref=f170e1860]: Total Pension Value
+                        - generic [ref=f170e1861]: £500,000
+                      - generic [ref=f170e1863]:
+                        - generic [ref=f170e1864]: At Retirement
+                        - generic [ref=f170e1865]: £1,320,549
+                  - generic [ref=f170e1867]:
+                    - heading "With Actions" [level=5] [ref=f170e1868]
+                    - generic [ref=f170e1869]:
+                      - generic [ref=f170e1870]:
+                        - generic [ref=f170e1871]: Projected Annual Income
+                        - generic [ref=f170e1872]: £77,491
+                      - generic [ref=f170e1874]:
+                        - generic [ref=f170e1875]: Income Gap
+                        - generic [ref=f170e1876]: £0
+                      - generic [ref=f170e1878]:
+                        - generic [ref=f170e1879]: Total Pension Value
+                        - generic [ref=f170e1880]: £500,000
+                      - generic [ref=f170e1882]:
+                        - generic [ref=f170e1883]: At Retirement
+                        - generic [ref=f170e1884]: £1,667,955
+                      - generic [ref=f170e1886]:
+                        - generic [ref=f170e1887]: Additional Monthly Contribution
+                        - generic [ref=f170e1888]: £1,979
+            - generic [ref=f170e1890]:
+              - heading "Estate Planning — Recommended Actions" [level=2] [ref=f170e1893]
+              - generic [ref=f170e1894]:
+                - generic [ref=f170e1896]:
+                  - heading "Recommended Actions" [level=2] [ref=f170e1897]
+                  - paragraph [ref=f170e1898]: 6 of 6 actions enabled
+                - generic [ref=f170e1899]:
+                  - generic [ref=f170e1900]:
+                    - generic [ref=f170e1902]:
+                      - generic [ref=f170e1903]:
+                        - generic [ref=f170e1904]:
+                          - generic [ref=f170e1905]: High
+                          - generic [ref=f170e1906]: charitable_bequest
+                        - heading "Charitable Bequest Opportunity" [level=4] [ref=f170e1907]
+                        - paragraph [ref=f170e1908]: Increase charitable giving in Sarah's will by £122,278 to qualify for the reduced 36% Inheritance Tax rate and save £78,931.
+                        - paragraph [ref=f170e1909]: "Estimated impact: £78,931"
+                        - generic [ref=f170e1910]: "Funding: May require restructuring assets or phasing the strategy over time. (£74,750 liquid assets available)"
+                        - button "Show step-by-step guidance" [ref=f170e1912] [cursor=pointer]
+                      - 'switch "Disable action: Charitable Bequest Opportunity" [checked] [ref=f170e1916] [cursor=pointer]'
+                    - generic [ref=f170e1919]:
+                      - generic [ref=f170e1920]:
+                        - generic [ref=f170e1921]:
+                          - generic [ref=f170e1922]: High
+                          - generic [ref=f170e1923]: liquidity
+                        - heading "Liquidity Risk Identified" [level=4] [ref=f170e1924]
+                        - paragraph [ref=f170e1925]: David's liquid assets of £74,750 may not cover the Inheritance Tax liability of £349,112.
+                        - button "Show step-by-step guidance" [ref=f170e1927] [cursor=pointer]
+                      - 'switch "Disable action: Liquidity Risk Identified" [checked] [ref=f170e1931] [cursor=pointer]'
+                    - generic [ref=f170e1934]:
+                      - generic [ref=f170e1935]:
+                        - generic [ref=f170e1936]:
+                          - generic [ref=f170e1937]: High
+                          - generic [ref=f170e1938]: annual_gifting
+                        - heading "Annual Gifting Strategy" [level=4] [ref=f170e1939]
+                        - paragraph [ref=f170e1940]: Using David's annual gift exemption of £3,000/year could fully offset the Inheritance Tax liability over 32 years.
+                        - paragraph [ref=f170e1941]: "Estimated impact: £19,612"
+                        - generic [ref=f170e1942]: "Funding: Can be funded from existing liquid assets (savings and investments). (£74,750 liquid assets available)"
+                        - generic [ref=f170e1944]:
+                          - generic [ref=f170e1945]:
+                            - paragraph [ref=f170e1946]: Annual Amount
+                            - paragraph [ref=f170e1947]: £3,000
+                          - generic [ref=f170e1948]:
+                            - paragraph [ref=f170e1949]: Over
+                            - paragraph [ref=f170e1950]: 32 years
+                          - generic [ref=f170e1951]:
+                            - paragraph [ref=f170e1952]: Total Gifted
+                            - paragraph [ref=f170e1953]: £96,000
+                          - generic [ref=f170e1954]:
+                            - paragraph [ref=f170e1955]: Inheritance Tax Saved
+                            - paragraph [ref=f170e1956]: £38,400
+                        - button "Show step-by-step guidance" [ref=f170e1958] [cursor=pointer]
+                      - 'switch "Disable action: Annual Gifting Strategy" [checked] [ref=f170e1962] [cursor=pointer]'
+                    - generic [ref=f170e1965]:
+                      - generic [ref=f170e1966]:
+                        - generic [ref=f170e1967]:
+                          - generic [ref=f170e1968]: Medium
+                          - generic [ref=f170e1969]: will_trust_setup
+                        - heading "Will Wishes Require Trust Structures" [level=4] [ref=f170e1970]
+                        - paragraph [ref=f170e1971]: 2 wishes in David's will may require trust arrangements
+                        - button "Show step-by-step guidance" [ref=f170e1973] [cursor=pointer]
+                      - 'switch "Disable action: Will Wishes Require Trust Structures" [checked] [ref=f170e1977] [cursor=pointer]'
+                    - generic [ref=f170e1980]:
+                      - generic [ref=f170e1981]:
+                        - generic [ref=f170e1982]:
+                          - generic [ref=f170e1983]: Medium
+                          - generic [ref=f170e1984]: will_review
+                        - heading "Will Review Recommended" [level=4] [ref=f170e1985]
+                        - paragraph [ref=f170e1986]: David's will has not been reviewed recently. It is recommended to review your will every 3-5 years or after significant life events.
+                        - button "Show step-by-step guidance" [ref=f170e1988] [cursor=pointer]
+                      - 'switch "Disable action: Will Review Recommended" [checked] [ref=f170e1992] [cursor=pointer]'
+                    - generic [ref=f170e1995]:
+                      - generic [ref=f170e1996]:
+                        - generic [ref=f170e1997]:
+                          - generic [ref=f170e1998]: Low
+                          - generic [ref=f170e1999]: life_cover
+                        - heading "Existing Life Cover Available" [level=4] [ref=f170e2000]
+                        - paragraph [ref=f170e2001]: David has £329,500 in life cover that can offset Inheritance Tax.
+                        - button "Show step-by-step guidance" [ref=f170e2003] [cursor=pointer]
+                      - 'switch "Disable action: Existing Life Cover Available" [checked] [ref=f170e2007] [cursor=pointer]'
+                  - generic [ref=f170e2010]:
+                    - generic [ref=f170e2011]:
+                      - heading "Current Position" [level=5] [ref=f170e2012]
+                      - generic [ref=f170e2013]:
+                        - generic [ref=f170e2014]:
+                          - generic [ref=f170e2015]: Inheritance Tax Liability
+                          - generic [ref=f170e2016]: £349,112
+                        - generic [ref=f170e2018]:
+                          - generic [ref=f170e2019]: Effective Tax Rate
+                          - generic [ref=f170e2020]: 30.8%
+                        - generic [ref=f170e2022]:
+                          - generic [ref=f170e2023]: Estate to Beneficiaries
+                          - generic [ref=f170e2024]: £615,388
+                    - generic [ref=f170e2026]:
+                      - heading "With Actions" [level=5] [ref=f170e2027]
+                      - generic [ref=f170e2028]:
+                        - generic [ref=f170e2029]:
+                          - generic [ref=f170e2030]: Inheritance Tax Liability
+                          - generic [ref=f170e2031]: £250,569
+                        - generic [ref=f170e2033]:
+                          - generic [ref=f170e2034]: Effective Tax Rate
+                          - generic [ref=f170e2035]: 22.1%
+                        - generic [ref=f170e2037]:
+                          - generic [ref=f170e2038]: Estate to Beneficiaries
+                          - generic [ref=f170e2039]: £713,931
+                        - generic [ref=f170e2041]:
+                          - generic [ref=f170e2042]: Total Mitigation Savings
+                          - generic [ref=f170e2043]: £98,543
+            - generic [ref=f170e2045]:
+              - generic [ref=f170e2047]:
+                - heading "Priority Area" [level=2] [ref=f170e2048]
+                - paragraph [ref=f170e2049]: All actions ranked and allocated against your shared monthly disposable income
+              - generic [ref=f170e2050]:
+                - generic [ref=f170e2051]:
+                  - generic [ref=f170e2052]:
+                    - generic [ref=f170e2053]: Monthly Disposable Income
+                    - generic [ref=f170e2054]: £3,299
+                  - generic [ref=f170e2055]:
+                    - generic [ref=f170e2056]: Total Allocated (enabled actions)
+                    - generic [ref=f170e2057]: £16,186
+                  - generic [ref=f170e2060]:
+                    - generic [ref=f170e2061]: 100% allocated
+                    - generic [ref=f170e2062]: £12,887 over budget
+                - generic [ref=f170e2063]:
+                  - generic [ref=f170e2064]:
+                    - generic [ref=f170e2065]:
+                      - generic [ref=f170e2066]:
+                        - generic [ref=f170e2067]: High
+                        - generic [ref=f170e2068]: Retirement
+                        - generic [ref=f170e2069]: Goal
+                      - heading "Max Pension Contributions is behind schedule" [level=4] [ref=f170e2070]
+                    - paragraph [ref=f170e2072]: £990/mo
+                  - generic [ref=f170e2073]:
+                    - generic [ref=f170e2074]:
+                      - generic [ref=f170e2075]:
+                        - generic [ref=f170e2076]: Critical
+                        - generic [ref=f170e2077]: Investment & Savings
+                      - heading "Review fees on David's Stocks & Shares ISA" [level=4] [ref=f170e2078]
+                    - paragraph [ref=f170e2080]: £55/mo
+                  - generic [ref=f170e2081]:
+                    - generic [ref=f170e2082]:
+                      - generic [ref=f170e2083]:
+                        - generic [ref=f170e2084]: High
+                        - generic [ref=f170e2085]: Investment & Savings
+                      - heading "Coordinate ISA contributions between partners" [level=4] [ref=f170e2086]
+                    - paragraph [ref=f170e2088]: £183/mo
+                  - generic [ref=f170e2089]:
+                    - generic [ref=f170e2090]:
+                      - generic [ref=f170e2091]:
+                        - generic [ref=f170e2092]: High
+                        - generic [ref=f170e2093]: Investment & Savings
+                      - heading "Transfer holdings from General Investment Account to ISA" [level=4] [ref=f170e2094]
+                    - paragraph [ref=f170e2096]: £183/mo
+                  - generic [ref=f170e2097]:
+                    - generic [ref=f170e2098]:
+                      - generic [ref=f170e2099]:
+                        - generic [ref=f170e2100]: High
+                        - generic [ref=f170e2101]: Investment & Savings
+                      - heading "Review high-fee holdings in David's Stocks & Shares ISA" [level=4] [ref=f170e2102]
+                    - paragraph [ref=f170e2104]: £0/mo
+                  - generic [ref=f170e2105]:
+                    - generic [ref=f170e2106]:
+                      - generic [ref=f170e2107]:
+                        - generic [ref=f170e2108]: Medium
+                        - generic [ref=f170e2109]: Investment & Savings
+                      - heading "Share Capital Gains Tax exemptions between partners" [level=4] [ref=f170e2110]
+                    - paragraph [ref=f170e2112]: £183/mo
+                  - generic [ref=f170e2113]:
+                    - generic [ref=f170e2114]:
+                      - generic [ref=f170e2115]:
+                        - generic [ref=f170e2116]: Medium
+                        - generic [ref=f170e2117]: Investment & Savings
+                      - heading "Use your annual Capital Gains Tax exemption before tax year end" [level=4] [ref=f170e2118]
+                    - paragraph [ref=f170e2120]: £183/mo
+                  - generic [ref=f170e2121]:
+                    - generic [ref=f170e2122]:
+                      - generic [ref=f170e2123]:
+                        - generic [ref=f170e2124]: Medium
+                        - generic [ref=f170e2125]: Investment & Savings
+                      - heading "General Investment Account dividends may exceed allowance" [level=4] [ref=f170e2126]
+                    - paragraph [ref=f170e2128]: £183/mo
+                  - generic [ref=f170e2129]:
+                    - generic [ref=f170e2130]:
+                      - generic [ref=f170e2131]:
+                        - generic [ref=f170e2132]: Medium
+                        - generic [ref=f170e2133]: Investment & Savings
+                      - heading "Losses you could use against gains" [level=4] [ref=f170e2134]
+                    - paragraph [ref=f170e2136]: £550/mo
+                  - generic [ref=f170e2137]:
+                    - generic [ref=f170e2138]:
+                      - generic [ref=f170e2139]:
+                        - generic [ref=f170e2140]: Low
+                        - generic [ref=f170e2141]: Investment & Savings
+                      - heading "Consider transferring Cash ISA to Stocks and Shares ISA" [level=4] [ref=f170e2142]
+                    - paragraph [ref=f170e2144]: £183/mo
+                  - generic [ref=f170e2145]:
+                    - generic [ref=f170e2146]:
+                      - generic [ref=f170e2147]:
+                        - generic [ref=f170e2148]: Low
+                        - generic [ref=f170e2149]: Investment & Savings
+                      - heading "Use Your ISA Allowance" [level=4] [ref=f170e2150]
+                    - paragraph [ref=f170e2152]: £550/mo
+                  - generic [ref=f170e2153]:
+                    - generic [ref=f170e2154]:
+                      - generic [ref=f170e2155]:
+                        - generic [ref=f170e2156]: Low
+                        - generic [ref=f170e2157]: Investment & Savings
+                      - heading "Use Remaining ISA Allowance" [level=4] [ref=f170e2158]
+                    - generic [ref=f170e2159]:
+                      - paragraph [ref=f170e2160]: £990/mo
+                      - paragraph [ref=f170e2161]: Exceeds available income
+                  - generic [ref=f170e2162]:
+                    - generic [ref=f170e2163]:
+                      - generic [ref=f170e2164]:
+                        - generic [ref=f170e2165]: Low
+                        - generic [ref=f170e2166]: Investment & Savings
+                      - heading "Move Surplus to ISA" [level=4] [ref=f170e2167]
+                    - generic [ref=f170e2168]:
+                      - paragraph [ref=f170e2169]: £990/mo
+                      - paragraph [ref=f170e2170]: Exceeds available income
+                  - generic [ref=f170e2171]:
+                    - generic [ref=f170e2172]:
+                      - generic [ref=f170e2173]:
+                        - generic [ref=f170e2174]: Critical
+                        - generic [ref=f170e2175]: Investment & Savings
+                      - heading "Review fees on Joint General Investment Account" [level=4] [ref=f170e2176]
+                    - generic [ref=f170e2177]:
+                      - paragraph [ref=f170e2178]: £37/mo
+                      - paragraph [ref=f170e2179]: Exceeds available income
+                  - generic [ref=f170e2180]:
+                    - generic [ref=f170e2181]:
+                      - generic [ref=f170e2182]:
+                        - generic [ref=f170e2183]: High
+                        - generic [ref=f170e2184]: Protection
+                      - heading "Your life cover is £322,000 more than you need" [level=4] [ref=f170e2185]
+                    - generic [ref=f170e2186]:
+                      - paragraph [ref=f170e2187]: £0/mo
+                      - paragraph [ref=f170e2188]: Exceeds available income
+                  - generic [ref=f170e2189]:
+                    - generic [ref=f170e2190]:
+                      - generic [ref=f170e2191]:
+                        - generic [ref=f170e2192]: High
+                        - generic [ref=f170e2193]: Protection
+                      - heading "Your critical illness cover is £235,000 short" [level=4] [ref=f170e2194]
+                    - generic [ref=f170e2195]:
+                      - paragraph [ref=f170e2196]: £0/mo
+                      - paragraph [ref=f170e2197]: Exceeds available income
+                  - generic [ref=f170e2198]:
+                    - generic [ref=f170e2199]:
+                      - generic [ref=f170e2200]:
+                        - generic [ref=f170e2201]: High
+                        - generic [ref=f170e2202]: Protection
+                      - heading "Review your existing protection policies" [level=4] [ref=f170e2203]
+                    - generic [ref=f170e2204]:
+                      - paragraph [ref=f170e2205]: £0/mo
+                      - paragraph [ref=f170e2206]: Exceeds available income
+                  - generic [ref=f170e2207]:
+                    - generic [ref=f170e2208]:
+                      - generic [ref=f170e2209]:
+                        - generic [ref=f170e2210]: High
+                        - generic [ref=f170e2211]: Protection
+                      - heading "Record your employer benefits" [level=4] [ref=f170e2212]
+                    - generic [ref=f170e2213]:
+                      - paragraph [ref=f170e2214]: £0/mo
+                      - paragraph [ref=f170e2215]: Exceeds available income
+                  - generic [ref=f170e2216]:
+                    - generic [ref=f170e2217]:
+                      - generic [ref=f170e2218]:
+                        - generic [ref=f170e2219]: High
+                        - generic [ref=f170e2220]: Protection
+                      - heading "Consider a joint life policy" [level=4] [ref=f170e2221]
+                    - generic [ref=f170e2222]:
+                      - paragraph [ref=f170e2223]: £0/mo
+                      - paragraph [ref=f170e2224]: Exceeds available income
+                  - generic [ref=f170e2225]:
+                    - generic [ref=f170e2226]:
+                      - generic [ref=f170e2227]:
+                        - generic [ref=f170e2228]: High
+                        - generic [ref=f170e2229]: Retirement
+                      - heading "Your retirement income is about £11,405 a year short of your target" [level=4] [ref=f170e2230]
+                    - generic [ref=f170e2231]:
+                      - paragraph [ref=f170e2232]: £990/mo
+                      - paragraph [ref=f170e2233]: Exceeds available income
+                  - generic [ref=f170e2234]:
+                    - generic [ref=f170e2235]:
+                      - generic [ref=f170e2236]:
+                        - generic [ref=f170e2237]: High
+                        - generic [ref=f170e2238]: Estate
+                      - heading "Charitable Bequest Opportunity" [level=4] [ref=f170e2239]
+                    - generic [ref=f170e2240]:
+                      - paragraph [ref=f170e2241]: £6,578/mo
+                      - paragraph [ref=f170e2242]: Exceeds available income
+                  - generic [ref=f170e2243]:
+                    - generic [ref=f170e2244]:
+                      - generic [ref=f170e2245]:
+                        - generic [ref=f170e2246]: High
+                        - generic [ref=f170e2247]: Estate
+                      - heading "Liquidity Risk Identified" [level=4] [ref=f170e2248]
+                    - generic [ref=f170e2249]:
+                      - paragraph [ref=f170e2250]: £0/mo
+                      - paragraph [ref=f170e2251]: Exceeds available income
+                  - generic [ref=f170e2252]:
+                    - generic [ref=f170e2253]:
+                      - generic [ref=f170e2254]:
+                        - generic [ref=f170e2255]: High
+                        - generic [ref=f170e2256]: Estate
+                      - heading "Annual Gifting Strategy" [level=4] [ref=f170e2257]
+                    - generic [ref=f170e2258]:
+                      - paragraph [ref=f170e2259]: £1,634/mo
+                      - paragraph [ref=f170e2260]: Exceeds available income
+                  - generic [ref=f170e2261]:
+                    - generic [ref=f170e2262]:
+                      - generic [ref=f170e2263]:
+                        - generic [ref=f170e2264]: Medium
+                        - generic [ref=f170e2265]: Investment & Savings
+                      - heading "Deploy excess cash to investment accounts" [level=4] [ref=f170e2266]
+                    - generic [ref=f170e2267]:
+                      - paragraph [ref=f170e2268]: £183/mo
+                      - paragraph [ref=f170e2269]: Exceeds available income
+                  - generic [ref=f170e2270]:
+                    - generic [ref=f170e2271]:
+                      - generic [ref=f170e2272]:
+                        - generic [ref=f170e2273]: Medium
+                        - generic [ref=f170e2274]: Investment & Savings
+                      - heading "Rebalance Portfolio" [level=4] [ref=f170e2275]
+                    - generic [ref=f170e2276]:
+                      - paragraph [ref=f170e2277]: £183/mo
+                      - paragraph [ref=f170e2278]: Exceeds available income
+                  - generic [ref=f170e2279]:
+                    - generic [ref=f170e2280]:
+                      - generic [ref=f170e2281]:
+                        - generic [ref=f170e2282]: Medium
+                        - generic [ref=f170e2283]: Estate
+                      - heading "Will Wishes Require Trust Structures" [level=4] [ref=f170e2284]
+                    - generic [ref=f170e2285]:
+                      - paragraph [ref=f170e2286]: £0/mo
+                      - paragraph [ref=f170e2287]: Exceeds available income
+                  - generic [ref=f170e2288]:
+                    - generic [ref=f170e2289]:
+                      - generic [ref=f170e2290]:
+                        - generic [ref=f170e2291]: Medium
+                        - generic [ref=f170e2292]: Estate
+                      - heading "Will Review Recommended" [level=4] [ref=f170e2293]
+                    - generic [ref=f170e2294]:
+                      - paragraph [ref=f170e2295]: £0/mo
+                      - paragraph [ref=f170e2296]: Exceeds available income
+                  - generic [ref=f170e2297]:
+                    - generic [ref=f170e2298]:
+                      - generic [ref=f170e2299]:
+                        - generic [ref=f170e2300]: Low
+                        - generic [ref=f170e2301]: Investment & Savings
+                      - heading "Consolidate investment platforms" [level=4] [ref=f170e2302]
+                    - generic [ref=f170e2303]:
+                      - paragraph [ref=f170e2304]: £183/mo
+                      - paragraph [ref=f170e2305]: Exceeds available income
+                  - generic [ref=f170e2306]:
+                    - generic [ref=f170e2307]:
+                      - generic [ref=f170e2308]:
+                        - generic [ref=f170e2309]: Low
+                        - generic [ref=f170e2310]: Investment & Savings
+                      - heading "Review uninvested cash in investment accounts" [level=4] [ref=f170e2311]
+                    - generic [ref=f170e2312]:
+                      - paragraph [ref=f170e2313]: £183/mo
+                      - paragraph [ref=f170e2314]: Exceeds available income
+                  - generic [ref=f170e2315]:
+                    - generic [ref=f170e2316]:
+                      - generic [ref=f170e2317]:
+                        - generic [ref=f170e2318]: Low
+                        - generic [ref=f170e2319]: Investment & Savings
+                      - heading "Contribute Surplus to Pension" [level=4] [ref=f170e2320]
+                    - generic [ref=f170e2321]:
+                      - paragraph [ref=f170e2322]: £990/mo
+                      - paragraph [ref=f170e2323]: Exceeds available income
+                  - generic [ref=f170e2324]:
+                    - generic [ref=f170e2325]:
+                      - generic [ref=f170e2326]:
+                        - generic [ref=f170e2327]: Low
+                        - generic [ref=f170e2328]: Estate
+                      - heading "Existing Life Cover Available" [level=4] [ref=f170e2329]
+                    - generic [ref=f170e2330]:
+                      - paragraph [ref=f170e2331]: £0/mo
+                      - paragraph [ref=f170e2332]: Exceeds available income
+            - generic [ref=f170e2333]:
+              - generic [ref=f170e2335]:
+                - heading "Conclusion" [level=2] [ref=f170e2336]
+                - paragraph [ref=f170e2337]: Aggregated summary across all plans
+              - generic [ref=f170e2338]:
+                - paragraph [ref=f170e2339]: This holistic plan brings together recommendations from 4 areas of your financial life. Below is a consolidated view of the actions that matter most.
+                - generic [ref=f170e2340]:
+                  - heading "Priority Actions" [level=4] [ref=f170e2341]
+                  - list [ref=f170e2342]:
+                    - listitem [ref=f170e2343]:
+                      - generic [ref=f170e2344]: "1"
+                      - generic [ref=f170e2345]: Review fees on David's Stocks & Shares ISA (Investment & Savings)
+                    - listitem [ref=f170e2346]:
+                      - generic [ref=f170e2347]: "2"
+                      - generic [ref=f170e2348]: Review fees on Joint General Investment Account (Investment & Savings)
+                    - listitem [ref=f170e2349]:
+                      - generic [ref=f170e2350]: "3"
+                      - generic [ref=f170e2351]: Your life cover is £322,000 more than you need (Protection)
+                    - listitem [ref=f170e2352]:
+                      - generic [ref=f170e2353]: "4"
+                      - generic [ref=f170e2354]: Your critical illness cover is £235,000 short (Protection)
+                    - listitem [ref=f170e2355]:
+                      - generic [ref=f170e2356]: "5"
+                      - generic [ref=f170e2357]: Review your existing protection policies (Protection)
+                    - listitem [ref=f170e2358]:
+                      - generic [ref=f170e2359]: "6"
+                      - generic [ref=f170e2360]: Record your employer benefits (Protection)
+                    - listitem [ref=f170e2361]:
+                      - generic [ref=f170e2362]: "7"
+                      - generic [ref=f170e2363]: Consider a joint life policy (Protection)
+                    - listitem [ref=f170e2364]:
+                      - generic [ref=f170e2365]: "8"
+                      - generic [ref=f170e2366]: Coordinate ISA contributions between partners (Investment & Savings)
+                    - listitem [ref=f170e2367]:
+                      - generic [ref=f170e2368]: "9"
+                      - generic [ref=f170e2369]: Transfer holdings from General Investment Account to ISA (Investment & Savings)
+                    - listitem [ref=f170e2370]:
+                      - generic [ref=f170e2371]: "10"
+                      - generic [ref=f170e2372]: Review high-fee holdings in David's Stocks & Shares ISA (Investment & Savings)
+                    - listitem [ref=f170e2373]:
+                      - generic [ref=f170e2374]: "11"
+                      - generic [ref=f170e2375]: Max Pension Contributions is behind schedule (Retirement)
+                    - listitem [ref=f170e2376]:
+                      - generic [ref=f170e2377]: "12"
+                      - generic [ref=f170e2378]: Your retirement income is about £11,405 a year short of your target (Retirement)
+                    - listitem [ref=f170e2379]:
+                      - generic [ref=f170e2380]: "13"
+                      - generic [ref=f170e2381]: Charitable Bequest Opportunity (Estate)
+                    - listitem [ref=f170e2382]:
+                      - generic [ref=f170e2383]: "14"
+                      - generic [ref=f170e2384]: Liquidity Risk Identified (Estate)
+                    - listitem [ref=f170e2385]:
+                      - generic [ref=f170e2386]: "15"
+                      - generic [ref=f170e2387]: Annual Gifting Strategy (Estate)
+                - generic [ref=f170e2388]:
+                  - heading "Optional Improvements" [level=4] [ref=f170e2389]
+                  - list [ref=f170e2390]:
+                    - listitem [ref=f170e2391]:
+                      - generic [ref=f170e2392]: —
+                      - generic [ref=f170e2393]: Deploy excess cash to investment accounts (Investment & Savings)
+                    - listitem [ref=f170e2394]:
+                      - generic [ref=f170e2395]: —
+                      - generic [ref=f170e2396]: Share Capital Gains Tax exemptions between partners (Investment & Savings)
+                    - listitem [ref=f170e2397]:
+                      - generic [ref=f170e2398]: —
+                      - generic [ref=f170e2399]: Use your annual Capital Gains Tax exemption before tax year end (Investment & Savings)
+                    - listitem [ref=f170e2400]:
+                      - generic [ref=f170e2401]: —
+                      - generic [ref=f170e2402]: General Investment Account dividends may exceed allowance (Investment & Savings)
+                    - listitem [ref=f170e2403]:
+                      - generic [ref=f170e2404]: —
+                      - generic [ref=f170e2405]: Rebalance Portfolio (Investment & Savings)
+                    - listitem [ref=f170e2406]:
+                      - generic [ref=f170e2407]: —
+                      - generic [ref=f170e2408]: Losses you could use against gains (Investment & Savings)
+                    - listitem [ref=f170e2409]:
+                      - generic [ref=f170e2410]: —
+                      - generic [ref=f170e2411]: Consider transferring Cash ISA to Stocks and Shares ISA (Investment & Savings)
+                    - listitem [ref=f170e2412]:
+                      - generic [ref=f170e2413]: —
+                      - generic [ref=f170e2414]: Consolidate investment platforms (Investment & Savings)
+                    - listitem [ref=f170e2415]:
+                      - generic [ref=f170e2416]: —
+                      - generic [ref=f170e2417]: Review uninvested cash in investment accounts (Investment & Savings)
+                    - listitem [ref=f170e2418]:
+                      - generic [ref=f170e2419]: —
+                      - generic [ref=f170e2420]: Use Your ISA Allowance (Investment & Savings)
+                    - listitem [ref=f170e2421]:
+                      - generic [ref=f170e2422]: —
+                      - generic [ref=f170e2423]: Use Remaining ISA Allowance (Investment & Savings)
+                    - listitem [ref=f170e2424]:
+                      - generic [ref=f170e2425]: —
+                      - generic [ref=f170e2426]: Move Surplus to ISA (Investment & Savings)
+                    - listitem [ref=f170e2427]:
+                      - generic [ref=f170e2428]: —
+                      - generic [ref=f170e2429]: Contribute Surplus to Pension (Investment & Savings)
+                    - listitem [ref=f170e2430]:
+                      - generic [ref=f170e2431]: —
+                      - generic [ref=f170e2432]: Will Wishes Require Trust Structures (Estate)
+                    - listitem [ref=f170e2433]:
+                      - generic [ref=f170e2434]: —
+                      - generic [ref=f170e2435]: Will Review Recommended (Estate)
+                    - listitem [ref=f170e2436]:
+                      - generic [ref=f170e2437]: —
+                      - generic [ref=f170e2438]: Existing Life Cover Available (Estate)
+    - contentinfo [ref=f170e2439]:
+      - generic [ref=f170e2440]:
+        - generic [ref=f170e2441]:
+          - link [ref=f170e2443] [cursor=pointer]:
+            - /url: /
+            - img "Fynla" [ref=f170e2444]
+          - generic [ref=f170e2445]:
+            - text: © 2026 Fynla - Your personal finance platform. For demonstration purposes only. |
+            - link "v1.0" [ref=f170e2446] [cursor=pointer]:
+              - /url: /version
+            - text: "|"
+            - link "fynla.org" [ref=f170e2447] [cursor=pointer]:
+              - /url: https://fynla.org
+          - generic [ref=f170e2448]:
+            - link "Privacy Policy" [ref=f170e2449] [cursor=pointer]:
+              - /url: /privacy
+            - link "Terms of Service" [ref=f170e2450] [cursor=pointer]:
+              - /url: /terms
+            - link "Help" [ref=f170e2451] [cursor=pointer]:
+              - /url: /help
+            - link "Sitemap" [ref=f170e2452] [cursor=pointer]:
+              - /url: /sitemap
+        - paragraph [ref=f170e2454]: This system is for demonstration purposes only and does not constitute regulated financial advice.
+  - navigation [ref=f170e2455]:
+    - link [ref=f170e2457] [cursor=pointer]:
+      - /url: /dashboard
+      - img "Fynla" [ref=f170e2458]
+    - button "Collapse menu" [ref=f170e2459] [cursor=pointer]
+    - generic [ref=f170e2462]:
+      - generic [ref=f170e2464]:
+        - link "Dashboard" [ref=f170e2465] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Net Worth" [ref=f170e2469] [cursor=pointer]:
+          - /url: /net-worth/wealth-summary
+      - button "Cash Management" [ref=f170e2474] [cursor=pointer]
+      - button "Finances" [ref=f170e2479] [cursor=pointer]
+      - button "Family" [ref=f170e2484] [cursor=pointer]
+      - button "Planning" [ref=f170e2489] [cursor=pointer]
+    - link "Sign Up Now" [ref=f170e2494] [cursor=pointer]:
+      - /url: /register
+    - generic [ref=f170e2498]:
+      - link "Account" [ref=f170e2499] [cursor=pointer]:
+        - /url: /settings
+      - button "Sign Out" [ref=f170e2504] [cursor=pointer]
