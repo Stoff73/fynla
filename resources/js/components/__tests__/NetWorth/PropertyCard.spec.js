@@ -110,7 +110,7 @@ describe('PropertyCard.vue', () => {
     expect(ownershipBadge.exists()).toBe(true);
     // Two decimals everywhere on the card, matching the share label beneath it
     // and what the decimal column actually returns from the API.
-    expect(ownershipBadge.text()).toBe('Joint (50.00%)');
+    expect(ownershipBadge.text()).toBe('Joint (50%)');
   });
 
   it('does not show ownership badge for individual properties', () => {

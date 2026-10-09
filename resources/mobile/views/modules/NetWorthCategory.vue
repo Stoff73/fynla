@@ -74,7 +74,7 @@ import { formatCurrency } from '../../utils/currency.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
-import { isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { isSharedRecord, sharePercentText, userSharePercent } from '../../../js/utils/ownership.js';
 
 function titleCase(value) {
   if (!value) return '';
@@ -202,7 +202,7 @@ export default {
       if (!isSharedRecord(it) || it.full_value == null) return '';
       // "Your 50% of £…", not "50.00%": at most two decimals, and only when
       // the share has them (a 33.33% tenancy in common keeps its decimals).
-      const pct = Number(userSharePercent(it).toFixed(2));
+      const pct = sharePercentText(it);
       return `Your ${pct}% of ${this.fmt(it.full_value)}`;
     },
     liabilityItems() {

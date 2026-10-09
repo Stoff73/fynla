@@ -94,7 +94,7 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 import { issueWebHandoff } from '../../navigation/webHandoff.js';
 // The ONE ownership home, shared with the desktop SPA (Rule 19 + Rule 20).
 // /m has its own bundle but not its own ownership arithmetic.
-import { calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { calculateUserShare, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
 
 export default {
   name: 'MobileInvestment',
@@ -153,7 +153,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     isShared(a) { return isSharedRecord(a); },
     userShareOf(a) { return calculateUserShare(a, { valueField: 'current_value' }); },
-    sharePercent(a) { return `${userSharePercent(a).toFixed(2)}%`; },
+    sharePercent(a) { return `${sharePercentText(a)}%`; },
     accountTypeLabel(a) { return accountTypeLabel(a); },
     isIsa(a) { return isIsaAccount(a); },
     typeMentionsIsa(a) { return accountTypeLabel(a).toLowerCase().includes('isa'); },
