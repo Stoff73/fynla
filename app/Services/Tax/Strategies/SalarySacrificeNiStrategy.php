@@ -78,8 +78,11 @@ final class SalarySacrificeNiStrategy implements TaxStrategy
                 number_format((int) round($totalSaving)),
                 (int) round($rebatePct * 100),
             )
+            // The National Insurance saved is pay the user keeps: take-home pay
+            // rises by it (the approved how-to's outcome). This said "with no change
+            // to your take-home pay" (regression walk 2026-10-09, R5).
             : sprintf(
-                'Switching your £%s annual workplace pension contribution to salary sacrifice saves £%s in National Insurance every year, with no change to your take-home pay.',
+                'Switching your £%s annual workplace pension contribution to salary sacrifice saves £%s in National Insurance every year, so your take-home pay rises by that much while the same amount still goes into your pension.',
                 number_format((int) $annualContribution),
                 number_format((int) round($totalSaving)),
             );
