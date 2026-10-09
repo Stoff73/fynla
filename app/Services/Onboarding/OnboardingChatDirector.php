@@ -7668,6 +7668,14 @@ PROMPT;
         $recordsFilled = array_filter($filled, static fn (int $index): bool => $index < $firstBlank, ARRAY_FILTER_USE_KEY);
         $blankFilled = array_values(array_diff_key($filled, $recordsFilled))[0] ?? null;
         $hasBlank = count($forms) > $firstBlank;
+        // A message that restates a record already on file ("Add my Barclays
+        // easy access savings, £10,000 at 4%") is read onto that record's form,
+        // where nothing changes, and the blank form opened empty: what the user
+        // typed was lost (walk R38). Read it again onto the blank form alone, so
+        // it opens filled and its save asks whether it is the same account.
+        if ($recordsFilled === [] && $blankFilled === null && $hasBlank && $firstBlank > 0) {
+            $blankFilled = array_values(app(TypedFormFill::class)->fillAny(array_slice($forms, $firstBlank), $message))[0] ?? null;
+        }
 
         if ($recordsFilled === [] && $blankFilled === null && (! $openAnyway || ($candidates === [] && ! $hasBlank))) {
             return false;
