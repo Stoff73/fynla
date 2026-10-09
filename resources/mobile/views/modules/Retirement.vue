@@ -53,7 +53,7 @@
         <p class="m-hero-sub">{{ gapNarrative }}</p>
         <p v-if="headline && headline.state_pension_note" class="m-hero-sub" data-testid="retirement-state-pension-note">
           {{ headline.state_pension_note }}
-          <button type="button" class="m-btn-ghost" @click="addStatePension">Add it</button>
+          <button type="button" class="mr-hero-link" @click="addStatePension">Add it</button>
         </p>
         <div class="mr-hero-split">
           <div class="mr-hero-stat">
@@ -669,6 +669,8 @@ export default {
 .mr-hero-stat__val { display: block; font-size: 18px; font-weight: 900; color: var(--white); }
 .mr-pos { color: var(--spring-400); }
 .mr-neg { color: var(--raspberry-300); }
+/* A text action on the dark hero; the ghost button's dark text did not show on it (R13). */
+.mr-hero-link { background: none; border: none; padding: 0; margin-left: 4px; font: inherit; font-weight: 700; color: var(--raspberry-300); text-decoration: underline; cursor: pointer; }
 
 .mr-pension { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--horizon-100); padding: 14px 0; cursor: pointer; }
 .mr-pension:last-child { border-bottom: 0; padding-bottom: 0; }
