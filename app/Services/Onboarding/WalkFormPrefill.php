@@ -10,6 +10,7 @@ use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Coordination\HouseholdFinancialContext;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -40,6 +41,8 @@ use App\Services\Stores\SavingsStore;
  *   record holds earnings: their income and earnings, filled in for the user
  *   to confirm (HouseholdFinancialContext::linkedSpouseEarnings). A figure
  *   the user already gave for their spouse is left alone.
+ * - The spending form, when that partner has already given the household's
+ *   spending and the household shares it: the household figure, to confirm.
  */
 final class WalkFormPrefill
 {
@@ -49,6 +52,7 @@ final class WalkFormPrefill
         private readonly SavingsStore $savings,
         private readonly PensionStore $pensions,
         private readonly SpouseHoldingTransfer $transfer,
+        private readonly HouseholdExpenditureWriter $expenditure,
     ) {}
 
     /**
@@ -62,6 +66,7 @@ final class WalkFormPrefill
             CaptureForms::SAVINGS, CaptureForms::ISA, CaptureForms::INVESTMENT,
             CaptureForms::PENSION => $this->existingRecord($user, $conversation, $formName),
             CaptureForms::PENSION_PERSONAL => $this->withPensionIncomeLeft($user, $conversation, $this->existingRecord($user, $conversation, $formName)),
+            CaptureForms::EXPENDITURE, CaptureForms::EXPENDITURE_TAX => $this->householdSpending($user),
             default => null,
         };
     }
@@ -200,6 +205,31 @@ final class WalkFormPrefill
         }
 
         return $lead === [] ? null : ['values' => [CaptureForms::LEAD => $lead], 'record' => null];
+    }
+
+    /**
+     * The spending form, when the household shares its spending with a
+     * financially-shared linked partner who has already given it: the
+     * household's figure, for the user to confirm (ruling 50; walk R22, where
+     * Sam was asked it blank although Morgan had given £3,500). The two rows
+     * hold the household between them, whether it sits whole on the partner
+     * who gave it before the link or as two halves after a shared save.
+     *
+     * @return array{values: array<string, array<string, mixed>>, record: null}|null
+     */
+    private function householdSpending(User $user): ?array
+    {
+        $partner = $this->household->partnerWithOwnRecords($user);
+        if ($partner === null || ! $this->expenditure->dividesFor($user)) {
+            return null;
+        }
+
+        $household = (float) ($user->monthly_expenditure ?? 0) + (float) ($partner->monthly_expenditure ?? 0);
+        if ($household <= 0) {
+            return null;
+        }
+
+        return ['values' => [CaptureForms::LEAD => ['monthly_total' => round($household, 2)]], 'record' => null];
     }
 
     /** A form of this name already posted in this conversation — the next one is another record. */
