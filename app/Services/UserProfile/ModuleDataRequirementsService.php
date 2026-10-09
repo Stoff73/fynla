@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\UserProfile;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Service for determining what data each module needs.
@@ -766,11 +767,11 @@ class ModuleDataRequirementsService
     {
         return match ($relationKey) {
             // Properties is "filled" if user has properties OR is paying rent (renter, not owner)
-            'properties' => $user->properties()->exists() || ($user->rent > 0),
-            'mortgages' => $user->mortgages()->exists(),
-            'liabilities' => $user->liabilities()->exists(),
-            'savings_accounts' => $user->savingsAccounts()->exists(),
-            'investment_accounts' => $user->investmentAccounts()->exists(),
+            'properties' => $this->ownsOrJointlyOwns($user->properties(), $user) || ($user->rent > 0),
+            'mortgages' => $this->ownsOrJointlyOwns($user->mortgages(), $user),
+            'liabilities' => $this->ownsOrJointlyOwns($user->liabilities(), $user),
+            'savings_accounts' => $this->ownsOrJointlyOwns($user->savingsAccounts(), $user),
+            'investment_accounts' => $this->ownsOrJointlyOwns($user->investmentAccounts(), $user),
             // DC pensions: filled if user has them, OR if user has DB pensions (may legitimately not have DC), OR if retired
             'dc_pensions' => $user->dcPensions()->exists() || $user->dbPensions()->exists() || $user->employment_status === 'retired',
             'db_pensions' => $user->dbPensions()->exists(),
@@ -778,14 +779,26 @@ class ModuleDataRequirementsService
             'family_members' => $user->familyMembers()->exists(),
             'spouse' => $this->isSpouseRequirementFilled($user),
             'trusts' => $user->trusts()->exists(),
-            'business_interests' => $user->businessInterests()->exists(),
-            'chattels' => $user->chattels()->exists(),
+            'business_interests' => $this->ownsOrJointlyOwns($user->businessInterests(), $user),
+            'chattels' => $this->ownsOrJointlyOwns($user->chattels(), $user),
             'goals' => $user->goals()->exists(),
             'protection_policies' => $user->lifeInsurancePolicies()->exists()
                 || $user->criticalIllnessPolicies()->exists()
                 || $user->incomeProtectionPolicies()->exists(),
             default => false,
         };
+    }
+
+    /**
+     * Whether the user owns a record of this kind outright or jointly. A joint
+     * record is one row on its primary owner (Rule 6), so the relation alone
+     * (`user_id`) never finds the joint owner's: Sam, joint owner of the
+     * Nationwide account, was told his savings accounts were outstanding
+     * while looking at it (walk R24).
+     */
+    private function ownsOrJointlyOwns(HasMany $relation, User $user): bool
+    {
+        return $relation->getRelated()->newQuery()->forUserOrJoint($user->id)->exists();
     }
 
     /**
