@@ -81,3 +81,31 @@ All were walked on the test site first, on the desktop web app (full-size window
 
 **Behind the scenes.** App code only.
 
+
+## Fyn on GPT-6 Luna, joint records for both owners, and figures that agree (9 October, about 07:15, release #1162)
+
+**This is live on fynla.org** through release #1162, UK time.
+
+- **Fyn now runs on OpenAI's GPT-6 Luna.** It can be chosen in the admin panel beside the existing providers. Every call tells OpenAI not to keep the conversation.
+- **Both owners of a joint record can change or remove it.** This covers bank and savings accounts, investments, property, mortgages, liabilities, goals, valuables and business interests, on the desktop and mobile web apps and through Fyn. The record stays the first owner's. A partner who adds an account the other has already added is asked whether it is the same one, rather than getting a second copy.
+- **Fyn's edit form saves only what you changed.** Before, saving it unchanged could rename an account (for example "Premium Bonds" to "NS&I easy access savings") or change its type.
+- **Your past pension contributions are asked for only when they could matter.** That means when you could fill this year's pension allowance and your whole ISA allowance and still have money left over: more than £80,000 of spare cash at today's allowances. Before, Fyn could tell someone earning £26,000 that "the plan needs your pension contribution history".
+- **The Personal Savings Allowance suggestions use your own share of a joint account's interest.** Before, the first owner was told "Your estimated annual savings interest of £960 exceeds your £500 Personal Savings Allowance" for an account whose interest is split £480 each. The partner was counted as having none.
+- **The monthly amount left over counts your pension payments once.** Before, payments into a pension from take-home pay, protection premiums and regular saving were taken off twice. One user was shown a shortfall of £266.70 where the right figure is £136.70. Fyn now quotes the plan's figure rather than working it out itself.
+- **Clearer wording in the pension working:** it names only what raised the higher-rate limit, for example "raised to £50,870 by your £600 Gift Aid".
+- **Clearer wording on a possible duplicate account:** the question no longer starts "I couldn't save".
+- **Clearer wording on shared spending:** a shared household's spending is acknowledged as "your half of the £3,800 your household spends".
+- **Clearer suggested questions on the mobile web app:** they read "Tell me more about: …" instead of `How do I "You have no will recorded"?`.
+- **A partner's earnings now sit inside their income on the partner form.** Before, it could show income of £79,440 with £84,000 of it from work.
+
+**What we checked.**
+- **On the test site, desktop and mobile web apps:** a Save Tax walk household (earning £84,000 and £26,000, a joint £24,000 account), with the partner invited, accepted and set up. Each change above was checked against figures worked out by hand.
+- **Live on fynla.org, mobile web app, as the John Morgan demo:** the suggested questions read "Tell me more about: You have no will recorded"; "Why is there no pension recommendation for me?" was answered with no mention of past contributions; "What monthly surplus does my plan show for me?" gave £206.76, the plan's own figure.
+- **Live on fynla.org, desktop web app:** a walk account made through Save Tax (earning £84,000). "What pension details will you need from me?" asked for no past contributions. The account was deleted afterwards.
+- On fynla.org every answer came from GPT-6 Luna. No errors in the log.
+
+**Still to do:**
+- **After saving an account that matches one you already have,** answering "It's the same one" now carries on correctly, but Fyn can still try to add it again and ask for an ownership share. Nothing is saved twice.
+- **Joint-owner edits of valuables, business interests and investment holdings now refresh both owners' figures.** This could not be seen on the test household, which holds none of those.
+
+**Behind the scenes.** App code, two settings files, one of Fyn's knowledge files, and the desktop and mobile web app files. No database change.
