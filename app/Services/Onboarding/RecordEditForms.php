@@ -11,6 +11,7 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\ProtectionProfile;
+use App\Models\StatePension;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\Fyn\RecaptureGuard;
@@ -77,6 +78,8 @@ final class RecordEditForms
         'employer_benefits' => 'employer_benefits',
         // TODO item 6: "is it being paid?" has to be answerable from /m.
         'state_pension' => 'state_pension',
+        // The Retirement page's "Add it" when no State Pension is recorded (R13).
+        'state_pension_forecast' => 'state_pension',
         // /m Expenditure's "Edit details": the spending form, as it was entered.
         'expenditure' => 'expenditure',
         // /m Personal Information's "Edit details": date of birth, gender and
@@ -988,7 +991,8 @@ final class RecordEditForms
             'expenditure', 'personal', 'other_income' => $user,
             'employer_benefits' => ProtectionProfile::firstOrNew(['user_id' => $user->id], ProtectionProfile::blankFor($user->id)),
             // One per user, so the user is the key (formForResource passes the user id).
-            'state_pension' => $user->statePension()->first(),
+            // A blank one when none is recorded, so "Add it" opens the form (R13).
+            'state_pension' => $user->statePension()->first() ?? new StatePension(['user_id' => $user->id]),
             default => null,
         };
     }
