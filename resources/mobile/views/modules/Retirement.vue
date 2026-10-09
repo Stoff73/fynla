@@ -510,8 +510,9 @@ export default {
           origin: { kind: 'surface_action' },
         }
         : {
+          // The State Pension form, not the general pension form (R13).
           action: 'add',
-          resourceType: 'retirement',
+          resourceType: 'state_pension_forecast',
           currentDestination: { screen: 'retirement', params: {}, fallback: 'dashboard' },
           origin: { kind: 'surface_action' },
         }));

@@ -532,3 +532,19 @@ describe('mobile Retirement State Pension update (TODO item 6)', () => {
     }));
   });
 });
+
+describe('mobile Retirement State Pension add (regression walk 2026-10-09, R13)', () => {
+  it('opens Fyn on the State Pension form when none is recorded', () => {
+    const openContextualFyn = vi.fn();
+    Retirement.methods.addStatePension.call({
+      drawing: null,
+      statePension: null,
+      $refs: { chrome: { openContextualFyn } },
+    });
+
+    expect(openContextualFyn).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'add',
+      resource_type: 'state_pension_forecast',
+    }));
+  });
+});
