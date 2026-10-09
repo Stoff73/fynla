@@ -61,7 +61,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { calculateUserShare, coOwnerName, userSharePercent } from '@/utils/ownership';
+import { calculateUserShare, coOwnerName, sharePercentText } from '@/utils/ownership';
 
 export default {
   name: 'PropertyCard',
@@ -127,7 +127,7 @@ export default {
       return this.property.property_type === 'buy_to_let' ? (parseFloat(this.property.monthly_rental_income) || 0) : 0;
     },
     sharePercent() {
-      return userSharePercent(this.property).toFixed(2);
+      return sharePercentText(this.property);
     },
 
     coOwner() {
