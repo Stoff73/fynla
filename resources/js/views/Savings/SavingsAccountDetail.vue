@@ -66,7 +66,7 @@
             </div>
             <div class="bg-eggshell-500 rounded-lg p-4">
               <p class="text-sm text-neutral-500">Annual Interest</p>
-              <p class="text-2xl font-bold text-spring-600">{{ formatCurrency(annualInterest) }}</p>
+              <p class="text-2xl font-bold text-spring-600">{{ annualInterest === null ? 'Not recorded' : formatCurrency(annualInterest) }}</p>
             </div>
           </div>
         </div>
@@ -121,7 +121,7 @@
                 </div>
                 <div class="flex justify-between">
                   <dt class="text-sm text-neutral-500">Annual Interest:</dt>
-                  <dd class="text-sm font-medium text-spring-600">{{ formatCurrency(annualInterest) }}</dd>
+                  <dd class="text-sm font-medium text-spring-600">{{ annualInterest === null ? 'Not recorded' : formatCurrency(annualInterest) }}</dd>
                 </div>
               </dl>
             </div>
@@ -197,6 +197,7 @@
 </template>
 
 <script>
+import { formatInterestRate } from '@/utils/interestRate';
 import { mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
@@ -245,7 +246,9 @@ export default {
     },
 
     annualInterest() {
-      return Number(this.account?.annual_interest) || 0;
+      // Null when no rate was given: unknown, not £0 (R10).
+      const v = this.account?.annual_interest;
+      return v === null || v === undefined ? null : Number(v);
     },
 
     isMatured() {
@@ -367,11 +370,7 @@ export default {
       return types[type] || type;
     },
 
-    formatInterestRate(rate) {
-      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
-      // Display directly without multiplying
-      return `${parseFloat(rate || 0).toFixed(2)}%`;
-    },
+    formatInterestRate,
   },
 };
 </script>

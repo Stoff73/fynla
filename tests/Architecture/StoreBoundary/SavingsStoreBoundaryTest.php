@@ -127,6 +127,10 @@ arch('SavingsAccount mutations and reads only happen inside the savings canonica
         //    findCashAccountModel plus an instanceof check; all query sites
         //    migrated.
         'App\Services\Goals\LifeEventAllocationService',
+        //  - SharedOwnership: names SavingsAccount::class in
+        //    JOINT_OWNER_EDITABLE (the types a joint owner may change). A
+        //    class-name list only; no queries.
+        'App\Support\SharedOwnership',
 
         // ---- Out-of-sub-project-1-scope read / infra references ----
         // These were never in the 5x read-consumer migration scope: they are

@@ -108,13 +108,33 @@ describe('mobile bank accounts', () => {
     expect(wrapper.vm.runwayBarWidth).toBe('100%');
   });
 
+  it('shows no target, rather than £0, when no spending is recorded', async () => {
+    // Regression walk 2026-10-09, R15: "Target (6 months) £0" beside the hint
+    // asking for spending; the web emergency fund hides the target then.
+    apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { data: { ...coOwnerPayload, position: { ...coOwnerPayload.position, emergency_fund: {
+        ...coOwnerPayload.position.emergency_fund, runway_months: null, runway_label: '', target_amount: 0,
+        runway_hint: 'Add your monthly spending before we can work out how long your cash would last.',
+      } } } },
+    });
+
+    const wrapper = mountSavings();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Add your monthly spending');
+    expect(wrapper.text()).not.toContain('Target (6 months)');
+  });
+
   it('names the share on the row rather than showing the full balance alone', async () => {
     const wrapper = mountSavings();
     await flushPromises();
 
     // Mirrors the `/m` investment list: the headline is what the viewer owns and
     // the line beneath gives the full balance it came out of.
-    expect(wrapper.text()).toContain('Your 30.00% of');
+    // No trailing zeros (regression walk 2026-10-09, R14: "Your 50.00% of £40,000").
+    expect(wrapper.text()).toContain('Your 30% of');
   });
 
   it('gives the primary owner the complementary share of the same record', async () => {
@@ -136,6 +156,6 @@ describe('mobile bank accounts', () => {
     await flushPromises();
 
     expect(wrapper.vm.totalCash).toBe(14000);
-    expect(wrapper.text()).toContain('Your 70.00% of');
+    expect(wrapper.text()).toContain('Your 70% of');
   });
 });

@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" edit-details :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome title="Bank Accounts" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" edit-details :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ headerTitle }}</h1>
       <p class="m-sub">{{ headerSub }}</p>
@@ -159,8 +159,9 @@ export default {
     // `balance * (rate / 100)` and `/ 12` in the client; the model appends both
     // now, so this screen and the Personal Savings Allowance work cannot disagree
     // about what an account earns (Rule 20).
-    annualInterest() { return Number(this.account?.annual_interest ?? 0); },
-    monthlyInterest() { return Number(this.account?.monthly_interest ?? 0); },
+    // Null when no rate was given: unknown, not £0 (R10).
+    annualInterest() { return this.account?.annual_interest == null ? null : Number(this.account.annual_interest); },
+    monthlyInterest() { return this.account?.monthly_interest == null ? null : Number(this.account.monthly_interest); },
     tags() {
       const out = [];
       if (this.account?.is_emergency_fund) out.push({ label: 'Emergency fund', cls: 'msa-tag--ef' });
@@ -175,8 +176,8 @@ export default {
         rows.push({ key: `Your share (${this.sharePercent})`, value: this.fmt(this.userShare) });
       }
       rows.push({ key: 'Interest rate', value: this.rate(this.account.interest_rate) });
-      rows.push({ key: 'Monthly interest', value: this.fmt(this.monthlyInterest) });
-      rows.push({ key: 'Annual interest', value: this.fmt(this.annualInterest) });
+      rows.push({ key: 'Monthly interest', value: this.monthlyInterest === null ? 'Not recorded' : this.fmt(this.monthlyInterest) });
+      rows.push({ key: 'Annual interest', value: this.annualInterest === null ? 'Not recorded' : this.fmt(this.annualInterest) });
       return rows;
     },
     infoRows() {
@@ -211,7 +212,8 @@ export default {
   methods: {
     fmt(v) { return formatCurrency(v); },
     rate(r) {
-      if (r == null || isNaN(Number(r))) return '—';
+      // A rate never given is null: "Not recorded", never 0% (R10).
+      if (r == null || r === '' || isNaN(Number(r))) return 'Not recorded';
       return `${Number(r).toFixed(2)}%`;
     },
     accountTypeLabel(t) { return ACCOUNT_TYPES[t] || (t ? String(t).replace(/_/g, ' ') : '—'); },

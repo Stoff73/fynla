@@ -21,11 +21,10 @@ class SavingsAccountDerivedColumnCalculator
         $balanceGbp = (float) $account->current_balance;
 
         $annualInterestGbp = null;
-        // savings_accounts.interest_rate is NOT NULL DEFAULT 0.0000, so a row
-        // created without a rate presents as null in-memory (pre-DB-default)
-        // but 0.0000 after a ->fresh() reload. Treat null AND 0 identically as
-        // "no projected interest" so create() and update() materialise the
-        // same value for the same logical state (no £0.00 snapshot noise).
+        // A rate never given is null (R10); older rows may hold 0. Treat null
+        // AND 0 identically as "no projected interest" so create() and update()
+        // materialise the same value for the same logical state (no £0.00
+        // snapshot noise).
         if ($account->interest_rate !== null && (float) $account->interest_rate > 0) {
             $annualInterestGbp = round($balanceGbp * SavingsInterestRate::fraction($account->interest_rate), 2);
         }

@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <!-- Real Users: Account Cards + Open Banking -->
+      <!-- Real Users: Account Cards -->
       <div v-else class="space-y-6 pt-6">
         <!-- Account Cards - 4 Column Grid -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -250,56 +250,6 @@
             </template>
           </div>
         </div>
-
-        <!-- Open Banking Card — shown only when the Premium affordance flag is true. -->
-        <div v-if="openApiAffordance" class="bg-light-blue-100 rounded-lg border border-light-blue-100 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2.5">
-              <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
-              <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
-            </div>
-            <button disabled class="px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-100 border border-neutral-200 rounded-lg cursor-not-allowed">
-              Connect via Open Banking — coming soon
-            </button>
-          </div>
-          <p class="text-sm text-neutral-500 mb-4">
-            Securely connect your bank accounts to unlock powerful financial insights and automated tracking.
-          </p>
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p class="font-medium text-horizon-500">Real-time Balances</p>
-              <p class="text-neutral-500">Auto-sync all accounts</p>
-            </div>
-            <div>
-              <p class="font-medium text-horizon-500">Budget Tracking</p>
-              <p class="text-neutral-500">Set and monitor budgets</p>
-            </div>
-            <div>
-              <p class="font-medium text-horizon-500">Credit Card Spending</p>
-              <p class="text-neutral-500">Track and categorise</p>
-            </div>
-            <div>
-              <p class="font-medium text-horizon-500">Cash Flow Forecast</p>
-              <p class="text-neutral-500">Predict future balances</p>
-            </div>
-            <div>
-              <p class="font-medium text-horizon-500">Spending Insights</p>
-              <p class="text-neutral-500">Where your money goes</p>
-            </div>
-            <div>
-              <p class="font-medium text-horizon-500">Payday Tracking</p>
-              <p class="text-neutral-500">Income detection</p>
-            </div>
-            <div>
-              <p class="font-medium text-horizon-500">Bill Reminders</p>
-              <p class="text-neutral-500">Never miss a payment</p>
-            </div>
-            <div>
-              <p class="font-medium text-horizon-500">Bank-Grade Security</p>
-              <p class="text-neutral-500">Read-only access</p>
-            </div>
-          </div>
-        </div>
       </div>
     </template>
 
@@ -376,7 +326,6 @@ export default {
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
-    ...mapGetters('auth', ['openApiAffordance']),
 
     // Filter accounts by type for real users view
     currentAccounts() {

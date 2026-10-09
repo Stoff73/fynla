@@ -21,6 +21,10 @@ final class CreateContextualConversationRequest extends FormRequest
         // The cover the user's job provides, on the Protection screen; the
         // conversation opens with its form (CSJ 2026-09-29).
         'employer_benefits',
+        // The State Pension when none is recorded: the Retirement page's "Add it"
+        // opens its form (regression walk 2026-10-09, R13). A recorded one is
+        // the state_pension entity, with its id.
+        'state_pension_forecast',
         'goals',
         'income',
         'expenditure',

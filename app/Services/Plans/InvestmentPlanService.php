@@ -526,7 +526,7 @@ class InvestmentPlanService extends BasePlanService
                 'institution' => $account->institution,
                 'type' => $account->account_type,
                 'balance' => $this->roundToPenny((float) $account->current_balance),
-                'interest_rate' => (float) ($account->interest_rate ?? 0),
+                'interest_rate' => $account->interest_rate === null ? null : (float) $account->interest_rate,
             ];
         })->toArray();
 

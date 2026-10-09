@@ -267,6 +267,19 @@ describe('Savings API', function () {
             expect($account->fresh()->current_balance)->toBe('15000.00');
         });
 
+        it('clears a rate to not recorded when the edit form sends it empty', function () {
+            // Regression walk 2026-10-09, R10: clearing the rate on the edit form
+            // was refused with "Failed to update account" (the rule was not nullable).
+            $user = User::factory()->create();
+            $account = SavingsAccount::factory()->create(['user_id' => $user->id, 'interest_rate' => 0]);
+
+            $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
+                'interest_rate' => null,
+            ])->assertOk();
+
+            expect($account->fresh()->interest_rate)->toBeNull();
+        });
+
         it('prevents updating other users accounts', function () {
             $user = User::factory()->create();
             $otherUser = User::factory()->create();

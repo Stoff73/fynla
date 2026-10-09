@@ -612,11 +612,18 @@ export default {
         // Index of the most recent quick_replies message in the message
         // list. Used to disable historical bubble sets so the user cannot
         // click an earlier answer after they have moved past it. Returns
-        // -1 if no quick_replies messages exist.
+        // -1 if no quick_replies messages exist, or once the user has said
+        // anything after the newest set: answered chips followed only by
+        // forms stayed live, so "Yes, that's right" could be sent twice
+        // (regression walk 2026-10-09). /m removes answered bubbles instead.
         latestQuickRepliesIndex() {
             for (let i = this.messages.length - 1; i >= 0; i--) {
-                if (this.messages[i]?.role === 'quick_replies') {
+                const role = this.messages[i]?.role;
+                if (role === 'quick_replies') {
                     return i;
+                }
+                if (role === 'user') {
+                    return -1;
                 }
             }
             return -1;

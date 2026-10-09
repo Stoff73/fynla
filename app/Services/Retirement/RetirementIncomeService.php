@@ -34,6 +34,9 @@ class RetirementIncomeService
 
     private const PROJECTION_END_AGE = 100;
 
+    /** Said wherever a projection leaves the State Pension out because none is recorded (R13). */
+    public const STATE_PENSION_MISSING_MESSAGE = 'No State Pension forecast entered. Your projections do not include State Pension income.';
+
     private const STATE_PENSION_GOV_UK = 'https://www.gov.uk/check-state-pension';
 
     private const BOND_TAX_FREE_RATE = 0.05; // 5% cumulative tax-free allowance
@@ -599,7 +602,7 @@ class RetirementIncomeService
                 'already_receiving' => false,
                 'starts_at_retirement' => false,
                 'years_until_state_pension' => max(0, $defaultSPA - $retirementAge),
-                'message' => 'No State Pension forecast entered. Your projections do not include State Pension income.',
+                'message' => self::STATE_PENSION_MISSING_MESSAGE,
                 'link' => self::STATE_PENSION_GOV_UK,
                 'link_text' => 'Check your State Pension forecast on GOV.UK',
             ];

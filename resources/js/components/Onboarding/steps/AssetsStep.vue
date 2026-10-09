@@ -520,6 +520,7 @@
 </template>
 
 <script>
+import { formatInterestRate as formatRate } from '@/utils/interestRate';
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
@@ -1228,9 +1229,7 @@ export default {
     };
 
     const formatInterestRate = (rate) => {
-      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
-      // Display directly without multiplying
-      return `${parseFloat(rate || 0).toFixed(2)}%`;
+      return formatRate(rate);
     };
 
     // Common ownership helper functions

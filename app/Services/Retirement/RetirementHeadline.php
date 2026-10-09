@@ -81,6 +81,14 @@ class RetirementHeadline
             'dc_value_today' => round($dcToday, 2),
             'dc_value_at_retirement' => round((float) $dc->sum('projected_value'), 2),
             'required_capital' => isset($required['required_capital_at_retirement']) ? round((float) $required['required_capital_at_retirement'], 2) : null,
+            // A saver with no State Pension forecast recorded: the projection and
+            // the shortfall leave it out, and every surface says so beside them
+            // (regression walk 2026-10-09, R13: /m said "a shortfall of £10,880"
+            // with nothing to say the State Pension was not counted).
+            'state_pension_note' => $kind !== 'drawing'
+                && $products->where('resource_type', 'state_pension')->where('annual_income', '>', 0)->isEmpty()
+                ? RetirementIncomeService::STATE_PENSION_MISSING_MESSAGE
+                : null,
         ];
     }
 }

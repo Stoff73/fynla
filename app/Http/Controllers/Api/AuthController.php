@@ -307,7 +307,14 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if (! Auth::attempt($request->only('email', 'password'))) {
+        // Check the password WITHOUT signing anything in. Auth::attempt logged the
+        // web session in at this step, before the emailed code or the
+        // authenticator was checked, and API calls are session-authenticated
+        // on our own domain: the password alone then reached the account, and
+        // a later sign-in or registration in the same browser kept acting as
+        // this user (regression walk 2026-10-09, R17: an invited partner
+        // registered and landed in the inviter's account).
+        if (! Auth::validate($request->only('email', 'password'))) {
             // Record failed attempt
             $this->lockoutService->recordFailedAttempt($email, LoginAttempt::REASON_INVALID_CREDENTIALS);
 

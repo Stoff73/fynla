@@ -114,7 +114,7 @@ class DCPension extends Model
     public function getContributionIncludesReliefAttribute(): bool
     {
         return ! PensionContributionRule::isWorkplace($this)
-            && PensionContributionRule::monthlyEmployee($this) > 0;
+            && PensionContributionRule::monthlyEmployee($this, $this->ownerSalary()) > 0;
     }
 
     public function getMonthlyContributionAttribute(): float

@@ -70,6 +70,7 @@
 <script>
 import { ref, onMounted } from 'vue';
 import { getConsentStatus, acceptCookies, declineCookies } from '@/utils/cookieConsent';
+import { getTokenSync } from '@/services/tokenStorage';
 import { COOKIE_DECLINE_TITLE as declineTitle, COOKIE_DECLINE_TEXT as declineText } from '@/constants/cookieCopy';
 
 export default {
@@ -80,7 +81,12 @@ export default {
     const showWarning = ref(false);
 
     onMounted(() => {
-      visible.value = getConsentStatus() === null;
+      // Never for someone signed in: signing in needs the cookies accepted, and
+      // registration records that consent on the account (CookieConsentService
+      // ::claimFor). A browser that has lost the cookie asked a signed-in user
+      // again, over the dashboard (CSJ 2026-10-09: "this should NEVER show in
+      // the dashboard").
+      visible.value = getConsentStatus() === null && !getTokenSync();
     });
 
     // Both record the decision server-side before the banner closes, so the

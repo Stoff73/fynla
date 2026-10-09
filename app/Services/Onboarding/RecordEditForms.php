@@ -219,6 +219,12 @@ final class RecordEditForms
      */
     public static function createFormsFor(string $entityType): array
     {
+        // The Retirement page's "Add it" when no State Pension is recorded opens
+        // the State Pension form as an add, not the general pension form (R13).
+        if ($entityType === 'state_pension_forecast') {
+            return [CaptureForms::STATE_PENSION];
+        }
+
         $forms = self::CREATE_FORMS[self::sectionForEntityType($entityType) ?? ''] ?? [];
         if (str_contains($entityType, 'isa') && in_array(CaptureForms::ISA, $forms, true)) {
             $forms = [CaptureForms::ISA, ...array_diff($forms, [CaptureForms::ISA])];
