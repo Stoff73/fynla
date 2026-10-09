@@ -237,8 +237,8 @@ it('names the interest the Personal Savings Allowance covers, so the working add
             '£3,600 of it goes into your pension from your pay before tax, which leaves £69,165 taxed as income.',
             sprintf('The higher rate starts at %s.', $pounds($threshold)),
             sprintf('%s of your savings interest above that is covered by your Personal Savings Allowance, so it is taxed at 0%%.', $pounds($covered)),
-            sprintf('The other %s of your interest is taxed at %d%%, but paying into a pension does not move it: interest is taxed on top of your other income, so it is left out.', $pounds($taxedInterest), $rate),
-            sprintf('So %s of your income is taxed at %d%%.', $pounds($slice), $rate),
+            sprintf('The other %s of your interest is taxed at %d%%. Paying in up to the amount below does not change that, because interest is taxed on top of the rest of your income apart from dividends, so it is left out.', $pounds($taxedInterest), $rate),
+            sprintf('So %s of your income other than interest is taxed at %d%%, and that is what a pension payment relieves at %d%%.', $pounds($slice), $rate, $rate),
         ]);
 });
 

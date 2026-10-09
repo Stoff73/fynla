@@ -961,11 +961,14 @@ final class TaxStrategyMath
      * (ITA 2007 s16), so interest above the limit stays above it while the
      * payment is within this slice: interest the Personal Savings Allowance
      * covers is taxed at 0% (s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B)
-     * and the rest stays at the higher rate. Counting that rest in the slice
-     * promised 40% on money relieved at 20% at most (walk R25: £10,400 on
-     * £26,000 where the tax engine gives £10,346). Dividends are taxed at the
-     * dividend rates (s8). Both pension cards that relieve at the higher rate
-     * size from here (PensionTaxReliefStrategy, IncomeBandStrategy).
+     * and the rest stays at the higher rate. This slice is the stretch where
+     * every pound paid in is relieved at the higher rate; the next pounds,
+     * as many as the interest the allowance covers, are relieved at the basic
+     * rate only, so counting the taxed interest in the slice overstated it
+     * (walk R25: £10,400 on £26,000 where the tax engine gives £10,346).
+     * Dividends are taxed at the dividend rates (s8). Both pension cards that
+     * relieve at the higher rate size from here (PensionTaxReliefStrategy,
+     * IncomeBandStrategy).
      */
     public function higherRateSlice(User $user, float $taxable, float $limit): float
     {
