@@ -1777,16 +1777,40 @@ final class OnboardingChatDirector
             $lines[] = $bullet;
         }
 
-        $total = (float) ($plan['combined_annual_saving'] ?? 0.0);
-        if ($total > 0) {
+        $totalLine = $this->planTotalLine($plan['items'], (float) ($plan['combined_annual_saving'] ?? 0.0));
+        if ($totalLine !== null) {
             $lines[] = '';
-            $lines[] = sprintf('Together these are worth roughly £%s a year.', number_format((int) round($total)));
+            $lines[] = $totalLine;
         }
 
         $lines[] = '';
         $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The line under the plan's bullets. The total is tax saved, so it speaks
+     * for every bullet only when each one saves tax; a bullet that does not
+     * (the Lifetime ISA's £1,000 bonus) left "Together these are worth roughly
+     * £220 a year" under a list worth more (walk R23).
+     *
+     * @param  list<array<string, mixed>>  $items
+     */
+    private function planTotalLine(array $items, float $total): ?string
+    {
+        if ($total <= 0) {
+            return null;
+        }
+
+        $amount = number_format((int) round($total));
+        foreach ($items as $item) {
+            if (trim((string) ($item['title'] ?? '')) !== '' && (float) ($item['estimated_annual_tax_saved'] ?? 0) <= 0) {
+                return sprintf('The tax saved comes to roughly £%s a year.', $amount);
+            }
+        }
+
+        return sprintf('Together these are worth roughly £%s a year.', $amount);
     }
 
     /**
