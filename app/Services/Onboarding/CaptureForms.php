@@ -1134,6 +1134,18 @@ final class CaptureForms
     }
 
     /**
+     * The gender as it reads after "I'm" or in a list ("male", "female").
+     * Null for "other", which reads wrongly there ("I'm other", "born on
+     * 20 July 1991, other and single": walk R34), so each sentence words it
+     * its own way. The one home for both the user's sentence and Fyn's
+     * repeat-back (OnboardingChatDirector::personalAck).
+     */
+    public static function genderWords(string $gender): ?string
+    {
+        return in_array($gender, ['male', 'female'], true) ? $gender : null;
+    }
+
+    /**
      * @param  array<string, mixed>  $input
      */
     private static function personalSentence(array $input): string
@@ -1143,7 +1155,8 @@ final class CaptureForms
             $parts[] = 'I was born on '.Carbon::parse($input['date_of_birth'])->format('j F Y');
         }
         if (isset($input['gender'])) {
-            $parts[] = "I'm ".$input['gender'];
+            $words = self::genderWords((string) $input['gender']);
+            $parts[] = $words !== null ? "I'm ".$words : 'I describe my gender as other';
         }
         if (isset($input['marital_status'])) {
             $parts[] = "I'm ".self::maritalWords($input['marital_status']);
