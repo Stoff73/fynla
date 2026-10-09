@@ -268,7 +268,7 @@
     <Teleport to="body">
       <LimitReachedModal
         :show="showLimitModal"
-        entity-key="savings_account"
+        :entity-key="limitEntityKey"
         @close="showLimitModal = false"
       />
     </Teleport>
@@ -280,7 +280,7 @@ import { mapState, mapActions, mapGetters } from 'vuex';
 import estateService from '@/services/estateService';
 import userProfileService from '@/services/userProfileService';
 import currencyMixin from '@/mixins/currencyMixin';
-import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import { tierCapBlocks, tierLimitMixin } from '@/mixins/tierLimitMixin';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import AccountSummaryPanel from '@/components/Cash/AccountSummaryPanel.vue';
 import CashInsightsPanel from '@/components/Cash/CashInsightsPanel.vue';
@@ -312,6 +312,8 @@ export default {
       selectedAccount: null,
       showAccountModal: false,
       showLimitModal: false,
+      // Which cap the limit modal names: bank accounts or investments (ISAs).
+      limitEntityKey: 'savings_account',
       editingAccount: null,
       defaultAccountType: '',
       // Financial commitments from user profile API
@@ -320,7 +322,7 @@ export default {
   },
 
   computed: {
-    ...mapState('savings', ['accounts', 'loading', 'error', 'expenditureProfile']),
+    ...mapState('savings', ['accounts', 'accountCaps', 'loading', 'error', 'expenditureProfile']),
     ...mapState('userProfile', ['incomeOccupation']),
     ...mapGetters('savings', ['totalSavings', 'groupTotals']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
@@ -572,11 +574,24 @@ export default {
     },
 
     openAddAccountModal(accountType) {
-      // All cash products (current / savings / ISA / NS&I) count against the
-      // single `savings_account` cap. At cap, show the upgrade modal instead of
-      // an add form that would fail server-side. Preview users bypass (their
-      // writes are intercepted separately).
-      if (this.guardTierCap('savings_account', this.accounts.length)) return;
+      // A bank account counts against the `savings_account` cap and a cash ISA
+      // with the investments (CSJ 2026-09-15, SavingsStore::create), each on
+      // the gate's own count from the server (walk R37: one bank account and a
+      // Cash ISA were refused as "2 of 2"). At cap, the upgrade modal shows
+      // instead of a form that would fail server-side. An add with no type yet
+      // (Fyn's prefill) is refused only when neither kind can be added.
+      // Preview users bypass (their writes are intercepted separately).
+      const { bank, isa } = this.accountCaps;
+      if (['cash_isa', 'junior_isa'].includes(accountType)) {
+        this.limitEntityKey = 'investment';
+        if (this.guardTierCap('investment', isa.count)) return;
+      } else if (accountType) {
+        this.limitEntityKey = 'savings_account';
+        if (this.guardTierCap('savings_account', bank.count)) return;
+      } else if (tierCapBlocks(this.$store, 'savings_account', bank.count)) {
+        this.limitEntityKey = 'investment';
+        if (this.guardTierCap('investment', isa.count)) return;
+      }
       this.editingAccount = null;
       this.defaultAccountType = accountType;
       this.showAccountModal = true;

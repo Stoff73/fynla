@@ -14,6 +14,9 @@ const state = {
     goalsSummary: null,
     canProceed: true,
     readinessChecks: null,
+    // The gate's own counts from GET /api/savings: bank accounts against the
+    // savings_account cap, cash ISAs with the investments (walk R37).
+    accountCaps: { bank: { count: 0, limit: null }, isa: { count: 0, limit: null } },
     loading: false,
     error: null,
 };
@@ -110,6 +113,10 @@ const actions = {
             commit('SET_CAN_PROCEED', true);
             commit('SET_READINESS_CHECKS', null);
             commit('setAccounts', data.accounts || []);
+            commit('setAccountCaps', {
+                bank: { count: Number(data.account_count) || 0, limit: data.account_limit ?? null },
+                isa: { count: Number(data.isa_count) || 0, limit: data.isa_limit ?? null },
+            });
             commit('setExpenditureProfile', data.expenditure_profile || null);
             commit('setAnalysis', data.analysis || null);
             commit('setPosition', data.position || null);
@@ -305,6 +312,9 @@ const actions = {
 };
 
 const mutations = {
+    setAccountCaps(state, caps) {
+        state.accountCaps = caps;
+    },
     setAccounts(state, accounts) {
         state.accounts = accounts;
     },
