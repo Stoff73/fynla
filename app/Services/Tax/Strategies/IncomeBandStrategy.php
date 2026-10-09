@@ -113,7 +113,13 @@ final class IncomeBandStrategy implements TaxStrategy
                 // agrees the part below the threshold is all at that rate; taxed
                 // interest or dividends at the top can put some of it at another
                 // rate (ITA 2007 s12B, s16), and then the sentence is left out.
-                $saysBelow = $reachesBelow && $atHigherRate;
+                // The sentence's floor is the higher-rate threshold, which
+                // holds only when nothing but pay sits above it: interest or
+                // dividends above it keep the 40% stretch short of the
+                // threshold (ITA 2007 s16, s12A(4); walk R25 tax review).
+                $onlyPayAbove = $this->math->higherRateSliceParts($user, $taxableIncome, $higherRateThreshold);
+                $saysBelow = $reachesBelow && $atHigherRate
+                    && $onlyPayAbove['interest_covered'] + $onlyPayAbove['interest_taxed'] + $onlyPayAbove['dividends'] < 1;
                 $directLine = $atHigherRate
                     ? sprintf("Reduce your income tax at %d%% by £%s.\n\n", (int) round($higherRate * 100), number_format($directRelief))
                     : sprintf("Reduce the rest of your income tax by £%s.\n\n", number_format($directRelief));
