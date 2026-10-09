@@ -1936,9 +1936,40 @@ final class OnboardingChatDirector
             return null;
         }
 
+        return $this->capReached($user, $entityKey, $count, $noun);
+    }
+
+    /** @return array{limit: int, noun: string}|null */
+    private function capReached(User $user, string $entityKey, int $count, string $noun): ?array
+    {
         $limit = app(TierGate::class)->hardLimit($user, $entityKey);
 
         return $limit !== null && $count >= $limit ? ['limit' => $limit, 'noun' => $noun] : null;
+    }
+
+    /**
+     * The plan's cap for another record like the one a duplicate question is
+     * about, when it is reached (a cash ISA counts with the investments, CSJ
+     * 2026-09-15). Null when another could be added.
+     *
+     * @return array{limit: int, noun: string}|null
+     */
+    private function capReachedForRecord(User $user, string $entityType, ?int $recordId): ?array
+    {
+        if ($entityType === 'savings_account') {
+            $isIsa = (bool) app(SavingsStore::class)->forUser($user)->firstWhere('id', $recordId)?->is_isa;
+
+            return $isIsa
+                ? $this->capReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts')
+                : $this->capReached($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts');
+        }
+
+        return match ($entityType) {
+            'investment_account' => $this->capReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'),
+            'dc_pension', 'db_pension' => $this->capReached($user, PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'),
+            'property' => $this->capReached($user, PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'),
+            default => null,
+        };
     }
 
     private function filterBubbles(User $user, string $stateId, array $state): array
@@ -4278,6 +4309,17 @@ PROMPT;
         // 2026-10-09, R19: CSJ "why no bubble on the duplicate message?").
         $asksDuplicate = collect($errors)->contains(static fn (array $e): bool => in_array($e['error_type'] ?? null, ['confirm_duplicate_required', 'confirm_edit_required'], true));
         $bubbles = $asksDuplicate ? self::DUPLICATE_ANSWER_BUBBLES : null;
+        // At the plan's cap a separate one cannot be added, so it is not
+        // offered: "A separate one" led to "what would you like to call it?"
+        // for a record the cap then refused (walk R39).
+        $exact = collect($errors)->first(static fn (array $e): bool => ($e['error_type'] ?? null) === 'confirm_duplicate_required');
+        if ($exact !== null && $conversation->user !== null) {
+            $cap = $this->capReachedForRecord($conversation->user, (string) ($exact['entity_type'] ?? ''), isset($exact['entity_id']) ? (int) $exact['entity_id'] : null);
+            if ($cap !== null) {
+                $bubbles = [self::DUPLICATE_ANSWER_BUBBLES[0]];
+                $text .= " If it's a separate one, that's the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add it here.";
+            }
+        }
         if ($bubbles !== null) {
             yield ['type' => 'quick_replies', 'prompt_text' => $text, 'bubbles' => $bubbles];
         } else {
