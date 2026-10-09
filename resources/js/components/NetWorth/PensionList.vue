@@ -213,6 +213,11 @@
                       <span class="planner-metric-value" :class="targetIncome > 0 ? (projectedNetIncome >= targetIncome * 0.9 ? 'green' : 'red') : ''">{{ formatCurrency(projectedNetIncome) }}</span>
                     </div>
                   </div>
+                  <!-- R13: the projection leaves out a State Pension nobody has recorded; say so. -->
+                  <p v-if="headline && headline.state_pension_note" class="mt-3 text-sm text-neutral-500" data-testid="retirement-state-pension-note">
+                    {{ headline.state_pension_note }}
+                    <button type="button" class="font-semibold text-raspberry-500 hover:text-raspberry-600" @click.stop="openStatePensionForm">Add State Pension</button>
+                  </p>
                 </div>
 
                 <!-- Capital Adequacy Planner Card -->
