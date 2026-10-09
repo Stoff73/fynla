@@ -34,8 +34,8 @@
 - [x] B1. Home page "Save tax now" with partner = yes (partner income band) → estimate → register.
 - [!] B2. Onboarding started on web (income), then sign out and continue on /m: Fyn resumes at the right step ("Welcome back …"), not from the start; on /m: a **joint** savings account (saved as joint, "Your 50% of …" on Bank Accounts), pension, spouse form, spending.
 - [ ] B3. Plan: partner pension top-up and own pension figures checked by hand; Personal Savings Allowance uses the user's own share of joint interest.
-- [ ] B4. Invite the partner from Fyn ("Yes, invite them" → name + email) → invitation created.
-- [ ] B5. Partner opens the invite link → register page prefilled → account created → both accounts linked; invitation accepted.
+- [x] B4. Invite the partner from Fyn ("Yes, invite them" → name + email) → invitation created.
+- [!] B5. Partner opens the invite link → register page prefilled → account created → both accounts linked; invitation accepted.
 - [ ] B6. Partner onboarding: the work form prefilled from the inviter's spouse form; the joint account is not added twice (the "same one?" question); spending is shared (each half shown and named as half).
 - [ ] B7. Partner's plan and Tax Strategy page: their own Personal Savings Allowance, pension and surplus figures checked by hand.
 - [ ] B8. Both owners can see and edit the joint account; the owner stays the inviter.
@@ -83,13 +83,14 @@
 
 ---
 
-## Where the walk stopped (2026-10-09, session 2)
+## Where the walk stopped (2026-10-09, session 2, paused for CSJ)
 
-- **A done** (A1–A10). A10 found R13.
-- **Fixed and retested on csjones this session:** R4, R5, R6 (+R6b), R7, R8 (retest pending in an onboarding walk), R10 (+R10b, R10c), R12, R13 (+3 follow-ups). Dev `0774827a8`. PRs #1166, #1168–#1177.
-- **Open:** R3 (check in walk F), R9 and R11 (DECISION, CSJ), R2 on /m (needs an account with no spending; do it in walk B before spending is entered), R8 retest.
-- **Next:** walk B on fynla.org (couple, partner by invite), then C–H.
-- **Release needs:** migration `2026_10_09_100000_make_savings_interest_rate_nullable`; both bundles.
+- **A done; B1–B4 done; B5 found R17 (security).** Paused at B5/B6 on fynla.org: Sam (809) cannot be walked until R17 is released.
+- **Fixed and retested on csjones this session:** R2 (/m), R4–R8, R10, R12–R18. Dev `71cbec1c2`. PRs #1166, #1168–#1182.
+- **Waiting on CSJ:** R17 hotfix release and session clearing; R9 and R11 decisions.
+- **Open, mine:** R3 (walk F); B6–B8, C–H.
+- **Release needs:** migration `2026_10_09_100000_make_savings_interest_rate_nullable`; both bundles; (CSJ) clear `storage/framework/sessions/`.
+- **Walk accounts:** fynla.org Ellis 807, Morgan 808, Sam 809; csjones Rory 504, Quinn 505, Pat 506, Alex (r17-partner2).
 
 ## Results
 
@@ -132,6 +133,9 @@
 - **R14. /m share label "Your 50.00% of £40,000".** **Fixed:** #1179 (dev `ed158b60a`): "Your 50% of". **Retested on csjones /m (Quinn):** "Your 50% of £40,000" (`shots/R14-R15-retest-m-bank-accounts.png`).
 - **R15. /m Bank Accounts "Target (6 months) £0" with no spending recorded.** **Fixed:** #1179: the target row and bar hide until spending is known, as the web emergency fund does. **Retested on csjones /m (Quinn):** no target row; "Add your monthly spending" shows.
 - **R16. A percentage pension saved through Fyn's form took nothing off spending, so the pension suggestion offered money already paid in** (B3 hand check, Morgan). The plan's working: slice £26,030, capped at "what you can afford … £21,546" = 12 × £1,436.45 ÷ 0.8; the surplus was take-home £59,237.40 less £42,000, with the £4,000 a year already paid in left in. `getFinancialCommitments` called `PensionContributionRule::monthlyEmployee` without the owner's pay, and Fyn's form saves no scheme salary, so the rule gave £0 (`PensionContributionRule.php:49-53`). **Fixed:** #1178 (dev `f0b0855b6`), the owner's pay passed (also `DCPension::getContributionIncludesReliefAttribute`); `AvailableSurplusOneCountTest` (red before). Morgan's plan after release: about £16,500 / £6,600. **Retested on csjones (Rory, second pension added through Fyn on /m with no scheme salary, D3):** commitments £7,200 a year (£600 a month on /m and web Expenditure), take-home £55,856.40 by hand, spare £12,656.40; the plan stays slice-capped at £14,795 → £14,700 / £5,880; salary sacrifice £144; total £6,130 (`shots/R16-retest-*.png`). **Fynla.org retest: after the release (Morgan).**
+- **B4 (fynla.org, Morgan, /m):** "Shall I send them an invitation?" → "Yes, invite them" → "What's their first name and email address?" (the corpus's free-text step `campaign_spouse_invite_details`) → "Sam, slaterjoneschris+walk-b2@gmail.com" → "Done. I've sent an invitation…"; invitation 7 created (`shots/B4-04-m-invite-sent.png`).
+- **R17 (SECURITY). The password step signs the browser session in before the emailed code; an invited partner registered into the inviter's account** (B5, fynla.org). After Morgan signed out of /m, Sam opened the invite link in the same browser and registered: register page prefilled (Sam, invited email, "Morgan has invited you to plan together"), account 809 created and linked both ways, invitation accepted, but the dashboard showed **Morgan Walker** and Morgan's plan, and `/api/ai-chat/onboarding/start` returned 409 (`shots/B5-04-sam-dashboard.png`). Cause: `AuthController::login` checked the password with `Auth::attempt()` (`:310`, since the initial commit), which signs the web session in; Sanctum authenticates requests from our own domain by that session before the bearer token, and the session outlives sign-out. Proven on csjones: (1) password only, code box open, no token stored → `/api/auth/user` and `/api/savings` 200 (verification bypass; the authenticator check follows the same line); (2) Rory signs in and out on web and /m, Pat registers from Rory's invite → Pat's token (1116) is never used and every call answers as Rory (`shots/R17-repro-csjones-after-verify.png`). **Fixed:** #1182 (dev `71cbec1c2`), `Auth::validate()`; `LoginDoesNotSignInSessionTest` (red before); auth tests 36 passed. **Retested on csjones:** password only → 401 on both (`shots/R17-retest-01-password-only-refused.png`); normal sign-in with the code works; Quinn signs in and out on web and /m, Alex registers from Quinn's invite → Alex's own account and onboarding (`shots/R17-retest-02-partner-own-account.png`). **Production still has this until released. Sessions already signed in stay so until they expire (file sessions): clearing `storage/framework/sessions/` at release ends them without signing anyone out of the apps (bearer tokens). DECISION (CSJ): hotfix release now, and clear sessions?** Walk account Sam (809) is affected; B6 on fynla.org waits for the release.
+- **R18. The cookie banner showed over the signed-in dashboard** (CSJ 2026-10-09: "this should NEVER show in the dashboard, because a user can not log in without accepting cookies"). Seen on csjones after the walk cleared the browser's cookies with a sign-in token still held: `CookieBanner` read only the `fyn_cookie_consent` cookie. **Fixed:** #1181 (dev `7bd92a057`): never shown to someone signed in; consent is on the account (`CookieConsentService::claimFor`). `CookieBanner.test.js` (red before). **Retested on csjones:** signed in as Quinn, consent cookie deleted, dashboard reloaded → no banner (`shots/R18-retest-01-no-banner-signed-in.png`); signed out, the /m sign-in page still asks first, as it must.
 - Observation (not a defect): /m loaded one minute after the pension was added showed Level 4 "2 of 4"; web two minutes later showed Level 6 "1 of 4", and /m matched on reload.
 - Observation: R3's spending case. Rory's Savings card now reads "10 / 6 months, on track" (£30,000 ÷ £3,000) on /m. R2 on /m (no spending recorded) still to see, with a new csjones account.
 
