@@ -124,6 +124,7 @@
 </template>
 
 <script>
+import { formatInterestRate } from '@/utils/interestRate';
 import { mapState, mapGetters, mapActions } from 'vuex';
 import ISAAllowanceTracker from './ISAAllowanceTracker.vue';
 import SaveAccountModal from './SaveAccountModal.vue';
@@ -251,11 +252,7 @@ export default {
       return classes[type] || 'bg-eggshell-5000 text-white';
     },
 
-    formatInterestRate(rate) {
-      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
-      // Display directly without multiplying
-      return `${parseFloat(rate || 0).toFixed(2)}%`;
-    },
+    formatInterestRate,
 
     // Modal handlers
     handleCloseModal() {
