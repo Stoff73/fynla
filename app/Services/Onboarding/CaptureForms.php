@@ -882,7 +882,7 @@ final class CaptureForms
                 'current_account_interest_rate' => ['type' => 'percent', 'label' => 'Interest rate %', 'required' => false, 'min' => 0, 'max' => 20, 'step' => 0.01,
                     'hint' => 'Leave blank if it pays none'],
                 'ownership_type' => ['type' => 'choice', 'label' => 'Ownership', 'required' => true,
-                    'hint' => 'Joint means held 50/50 with your spouse or partner', 'options' => [
+                    'hint' => 'Joint means held 50/50 with another person, such as your spouse or partner', 'options' => [
                         ['value' => 'individual', 'label' => 'Individual'],
                         ['value' => 'joint', 'label' => 'Joint'],
                     ]],
