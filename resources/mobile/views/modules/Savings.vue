@@ -161,7 +161,7 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 // The one home for the ownership-share rule, shared with the desktop bundle
 // (Rule 20). `/m` reaches it by relative path, as the investment, property and
 // savings-account screens already do.
-import { calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { calculateUserShare, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
 
 export default {
   name: 'MobileSavings',
@@ -238,7 +238,7 @@ export default {
     userShareOf(a) { return calculateUserShare(a, { valueField: 'current_balance' }); },
     isShared(a) { return isSharedRecord(a); },
     // "50%", "33.33%": no trailing zeros (R14 read "Your 50.00% of £40,000").
-    sharePercent(a) { return `${Number(userSharePercent(a).toFixed(2))}%`; },
+    sharePercent(a) { return `${sharePercentText(a)}%`; },
     openAccount(id) { this.$router.push(`/savings/account/${id}`); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     async load() {

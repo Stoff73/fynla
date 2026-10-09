@@ -374,7 +374,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { userSharePercent } from '@/utils/ownership';
+import { sharePercentText } from '@/utils/ownership';
 
 import logger from '@/utils/logger';
 export default {
@@ -419,7 +419,7 @@ export default {
     // The viewer's own share: the joint owner's is the other side of the
     // stored split, which is the primary owner's (Rule 6, W-0016).
     sharePercent() {
-      return userSharePercent(this.property).toFixed(2);
+      return sharePercentText(this.property);
     },
     mortgageList() {
       // Use mortgages from prop, or fallback to property.mortgages

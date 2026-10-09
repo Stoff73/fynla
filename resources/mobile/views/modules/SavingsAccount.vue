@@ -80,7 +80,7 @@ import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
-import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { calculateUserShare, coOwnerName, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
 
 const ACCOUNT_TYPES = {
   savings_account: 'Savings account',
@@ -149,7 +149,7 @@ export default {
       return calculateUserShare(this.account, { valueField: 'current_balance' });
     },
     sharePercent() {
-      return `${userSharePercent(this.account).toFixed(2)}%`;
+      return `${sharePercentText(this.account)}%`;
     },
     coOwner() {
       return coOwnerName(this.account);

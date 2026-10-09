@@ -50,7 +50,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { calculateUserShare, getOwnershipLabel, isSharedRecord, userSharePercent } from '@/utils/ownership';
+import { calculateUserShare, getOwnershipLabel, isSharedRecord, sharePercentText } from '@/utils/ownership';
 
 export default {
   name: 'AccountGroupList',
@@ -121,7 +121,7 @@ export default {
     },
 
     formatSharePercent(account) {
-      return `${userSharePercent(account).toFixed(2)}%`;
+      return `${sharePercentText(account)}%`;
     },
 
     getUserShare(account) {
