@@ -70,15 +70,13 @@ export default {
             // Italic: *text*
             text = text.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
 
-            // Unordered lists: lines starting with - or *
-            text = text.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
-            // Strip the newlines the list consumed so the later \n→<br> pass
-            // doesn't inject a stray <br> between items (which double-spaced the
-            // list); spacing comes from space-y-1 alone.
-            text = wrapListItems(text, ' class="list-disc ml-4 my-2 space-y-1"');
-
-            // Numbered lists: lines starting with 1. 2. etc.
-            text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+            // Lists: "- " / "* " lines into <ul>, "1. " lines into <ol>, the
+            // newlines they consumed dropped so no stray <br> sits between
+            // items; spacing comes from space-y-1 alone. One wrapper with /m.
+            text = wrapListItems(text, {
+                ul: ' class="list-disc ml-4 my-2 space-y-1"',
+                ol: ' class="list-decimal ml-5 my-2 space-y-1"',
+            });
 
             // Convert leaked route paths to clickable links (e.g. "/estate" or "/valuable-info?section=expenditure")
             text = text.replace(/(?:\()(\/[a-z][-a-z0-9/]*(?:\?[a-z0-9_=&]+)?)(?:\))/gi, (match, path) => {
@@ -195,6 +193,10 @@ export default {
 .ai-message-content :deep(ul) {
   list-style-type: disc;
   margin-left: 1rem;
+}
+.ai-message-content :deep(ol) {
+  list-style-type: decimal;
+  margin-left: 1.25rem;
 }
 .ai-message-content :deep(li) {
   margin-bottom: 0.25rem;

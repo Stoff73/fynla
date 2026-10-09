@@ -13,9 +13,9 @@ export function renderFynText(text) {
 
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
-  // Markdown "- " bullets → <ul><li>; strip the newlines the list consumed so
-  // they don't become stray <br> inside the list.
-  html = wrapListItems(html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>'));
+  // Markdown "- " bullets → <ul>, "1. " lines → <ol>; the newlines the list
+  // consumed are stripped so they don't become stray <br> inside the list.
+  html = wrapListItems(html);
 
   return html.replace(/\n/g, '<br>');
 }
