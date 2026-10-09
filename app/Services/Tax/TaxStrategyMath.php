@@ -955,15 +955,17 @@ final class TaxStrategyMath
     }
 
     /**
-     * Income actually taxed at the higher rate: non-savings income above the
-     * limit, plus interest above it that the Personal Savings Allowance does
-     * not cover. The allowance is a nil rate on the first slice of savings
-     * income (ITA 2007 s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B),
-     * and savings income sits above non-savings income (s16). Dividends are
-     * taxed at the dividend rates (s8), never the higher rate, so they are
-     * left out: the slice can only understate, never overstate, the relief.
-     * Both pension cards that relieve at the higher rate size from here
-     * (PensionTaxReliefStrategy, IncomeBandStrategy).
+     * Income a pension payment relieves at the higher rate: non-savings income
+     * above the limit. A payment comes off pay (FA 2004 s193(2)) or extends
+     * the bands (s192(4)), and savings income sits above non-savings income
+     * (ITA 2007 s16), so interest above the limit stays above it while the
+     * payment is within this slice: interest the Personal Savings Allowance
+     * covers is taxed at 0% (s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B)
+     * and the rest stays at the higher rate. Counting that rest in the slice
+     * promised 40% on money relieved at 20% at most (walk R25: £10,400 on
+     * £26,000 where the tax engine gives £10,346). Dividends are taxed at the
+     * dividend rates (s8). Both pension cards that relieve at the higher rate
+     * size from here (PensionTaxReliefStrategy, IncomeBandStrategy).
      */
     public function higherRateSlice(User $user, float $taxable, float $limit): float
     {
@@ -973,9 +975,10 @@ final class TaxStrategyMath
     /**
      * The higher-rate slice with the income above the limit it leaves out, so
      * a working can show every step: interest the Personal Savings Allowance
-     * covers (taxed at 0%) and dividends (taxed at the dividend rates).
+     * covers (taxed at 0%), interest still taxed at the higher rate that a
+     * pension payment does not move, and dividends (the dividend rates).
      *
-     * @return array{slice: float, interest_covered: float, dividends: float}
+     * @return array{slice: float, interest_covered: float, interest_taxed: float, dividends: float}
      */
     public function higherRateSliceParts(User $user, float $taxable, float $limit): array
     {
@@ -984,13 +987,13 @@ final class TaxStrategyMath
         $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
         $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
         $allowanceLeft = max(0.0, $this->psaForBand('higher') - ($interest - $interestAbove));
-        $slice = max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
-        $covered = min($interestAbove, $allowanceLeft);
+        $slice = max(0.0, $nonSavings - $limit);
 
         return [
             'slice' => $slice,
-            'interest_covered' => $covered,
-            'dividends' => max(0.0, max(0.0, $taxable - $limit) - $slice - $covered),
+            'interest_covered' => min($interestAbove, $allowanceLeft),
+            'interest_taxed' => max(0.0, $interestAbove - $allowanceLeft),
+            'dividends' => max(0.0, max(0.0, $taxable - $limit) - $slice - $interestAbove),
         ];
     }
 

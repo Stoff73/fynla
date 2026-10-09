@@ -183,6 +183,9 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             if ($sliceParts['interest_covered'] >= 1) {
                 $lines[] = sprintf('%s of your savings interest above that is covered by your Personal Savings Allowance, so it is taxed at 0%%.', $pounds($sliceParts['interest_covered']));
             }
+            if ($sliceParts['interest_taxed'] >= 1) {
+                $lines[] = sprintf('The other %s of your interest is taxed at %d%%, but paying into a pension does not move it: interest is taxed on top of your other income, so it is left out.', $pounds($sliceParts['interest_taxed']), $ratePct);
+            }
             if ($sliceParts['dividends'] >= 1) {
                 $lines[] = sprintf('%s of dividends above that are taxed at the dividend rates, not %d%%.', $pounds($sliceParts['dividends']), $ratePct);
             }

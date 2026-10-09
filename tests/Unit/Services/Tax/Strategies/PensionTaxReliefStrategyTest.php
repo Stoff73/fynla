@@ -222,17 +222,22 @@ it('names the interest the Personal Savings Allowance covers, so the working add
     $threshold = $math->bandThresholds()['higher'];
     $covered = $math->psaForBand('higher');
     $rate = (int) round($math->bandRateForBand('higher') * 100);
-    $slice = 72000 + 765 - 3600 - $threshold - $covered;
+    // Walk R25: the £265 of interest above the allowance stays at 40% after
+    // a pension payment (savings income sits on top, ITA 2007 s16), so the
+    // slice is the pay above the threshold and the interest gets its own line.
+    $slice = 72000 - 3600 - $threshold;
+    $taxedInterest = 765 - $covered;
     $pounds = static fn (float $v): string => '£'.number_format((int) floor($v));
 
     $rec = reliefRecs($user)['higher'] ?? null;
 
     expect($rec)->not->toBeNull()
-        ->and(array_slice($rec['working'], 0, 5))->toBe([
+        ->and(array_slice($rec['working'], 0, 6))->toBe([
             'Your income this year is £72,765.',
             '£3,600 of it goes into your pension from your pay before tax, which leaves £69,165 taxed as income.',
             sprintf('The higher rate starts at %s.', $pounds($threshold)),
             sprintf('%s of your savings interest above that is covered by your Personal Savings Allowance, so it is taxed at 0%%.', $pounds($covered)),
+            sprintf('The other %s of your interest is taxed at %d%%, but paying into a pension does not move it: interest is taxed on top of your other income, so it is left out.', $pounds($taxedInterest), $rate),
             sprintf('So %s of your income is taxed at %d%%.', $pounds($slice), $rate),
         ]);
 });
@@ -281,4 +286,29 @@ it('names only what raised the higher-rate limit', function () {
     $limit = $raw + 600.0 + 1500.0;
 
     expect($rec['working'])->toContain(sprintf('The higher rate starts at %s, raised to %s by your Gift Aid (%s) and your personal pension payments (%s).', $pounds($raw), $pounds($limit), '£600', '£1,500'));
+});
+
+it('promises only the saving the tax engine gives when interest above the allowance stays at 40% (walk R25)', function () {
+    // fynla.org 2026-10-09, Morgan: £80,000 pay, 5% through pay, £820 of
+    // interest. The card said "Pay £26,000 ... save £10,400" from a slice
+    // that counted £320 of interest; the tax engine gives £10,346 for it.
+    $user = reliefUser(80000);
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'employer_contribution_percent' => 5,
+        'salary_sacrifice' => false,
+    ]);
+    SavingsAccount::factory()->for($user)->create([
+        'current_balance' => 20500, 'interest_rate' => 4, 'is_isa' => false,
+        'ownership_type' => 'individual', 'joint_owner_id' => null,
+    ]);
+    $math = app(TaxStrategyMath::class);
+    $display = floor((80000 - 4000 - $math->bandThresholds()['higher']) / 100) * 100;
+
+    $rec = reliefRecs($user)['higher'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['suggested_contribution'])->toBe((float) $display)
+        ->and($rec['estimated_annual_tax_saved'])->toBe(round($math->pensionContributionSaving($user, $display), 2));
 });

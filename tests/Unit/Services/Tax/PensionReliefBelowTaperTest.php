@@ -159,17 +159,24 @@ it('counts the Blind Person\'s Allowance in where the higher rate starts (tax re
         ->and($math->incomeTaxNow($user))->toBeLessThan($math->incomeTaxNow(taperEarner()));
 });
 
-it('leaves out the 40% sentence when taxed interest puts part of it at another rate (tax review F4)', function (): void {
+it('stops the part below the threshold at the pay taxed at 40%, so taxed interest never puts it at another rate (tax review F4, walk R25)', function (): void {
+    // Interest sits on top of pay (ITA 2007 s16), so a pension payment does
+    // not move the interest taxed at 40%. Sized from pay alone (walk R25),
+    // the part below the threshold is all relieved at 40% and the engine
+    // agrees, so the sentence holds.
     $user = taperEarner(100000);
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'current_balance' => 100000, 'interest_rate' => 4.0, 'is_isa' => false,
         'ownership_type' => 'individual', 'joint_owner_id' => null,
     ]);
-    $card = trapCard($user->fresh(), 1000000.0);
+    $user = $user->fresh();
+    $card = trapCard($user, 1000000.0);
+    $math = app(TaxStrategyMath::class);
 
     expect($card)->not->toBeNull()
-        ->and($card->description)->not->toContain('each £1,000 you pay in still saves')
-        ->and($card->extra['below_taper'])->toBeFalse();
+        ->and($card->extra['suggested_contribution'])->toBeLessThanOrEqual(100000 - $math->bandThresholds()['higher'])
+        ->and($card->estimatedAnnualTaxSaved)->toBe((float) round($math->pensionContributionSaving($user, $card->extra['suggested_contribution'])))
+        ->and($card->extra['below_taper'])->toBeTrue();
 });
 
 it('puts what pay can carry through payroll and the rest in as a one-off (CSJ 2026-10-01)', function (): void {

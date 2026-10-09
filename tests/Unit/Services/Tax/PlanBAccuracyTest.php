@@ -143,10 +143,11 @@ it('sizes the higher-rate pension item on today\'s income; the ISA wrap is price
 
     $recs = accRecs($user);
     $math = app(TaxStrategyMath::class);
-    // The Personal Savings Allowance is a 0% rate (ITA 2007 s12B), so the
-    // interest it covers is not part of the slice taxed at the higher rate.
-    $slice = $math->taxableIncomeFor($user) - $math->bandThresholdsFor($user)['higher']
-        - $math->psaForBand('higher');
+    // Interest sits on top of pay (ITA 2007 s16): the part the Personal
+    // Savings Allowance covers is taxed at 0% (s12B) and the rest stays at
+    // 40% after a pension payment, so the slice is the pay above the
+    // threshold (walk R25).
+    $slice = 60000 - $math->bandThresholdsFor($user)['higher'];
     $contribution = floor($slice / 100) * 100;
     $wrapped = (float) $recs['isa_topup_vs_psa']['interest_removed_from_income'];
 
