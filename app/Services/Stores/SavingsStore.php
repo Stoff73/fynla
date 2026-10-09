@@ -141,8 +141,35 @@ class SavingsStore
 
     // ---------- Writes ----------
 
+    /**
+     * The ISA type an ISA account type implies, filled when none is given.
+     * The web form set it in the browser from the account type; Fyn's form
+     * never did, so its Cash ISAs showed "ISA Type:" blank (walk R32). It
+     * lives here so every path gets it.
+     */
+    private const ISA_TYPE_FOR_ACCOUNT_TYPE = [
+        'cash_isa' => 'cash',
+        'junior_isa' => 'junior',
+    ];
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withIsaType(array $data, ?SavingsAccount $existing = null): array
+    {
+        $accountType = $data['account_type'] ?? $existing?->account_type;
+        $given = array_key_exists('isa_type', $data) ? $data['isa_type'] : $existing?->isa_type;
+        if (($given === null || $given === '') && isset(self::ISA_TYPE_FOR_ACCOUNT_TYPE[$accountType])) {
+            $data['isa_type'] = self::ISA_TYPE_FOR_ACCOUNT_TYPE[$accountType];
+        }
+
+        return $data;
+    }
+
     public function create(array $data, User $user, IngestSource $source): SavingsAccount
     {
+        $data = $this->withIsaType($data);
         $this->validateCanonical($data);
         $this->validateOwnershipLinks($data, $user);
 
@@ -182,6 +209,7 @@ class SavingsStore
     {
         $account = SavingsAccount::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
         $user = $account->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
+        $data = $this->withIsaType($data, $account);
         $this->validateCanonical($data);
         $this->validateOwnershipLinks(array_merge(
             $account->only(['account_type', 'is_isa', 'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id']),
