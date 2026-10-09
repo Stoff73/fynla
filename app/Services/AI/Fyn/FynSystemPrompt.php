@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Fyn;
 
+use App\Services\AI\Prompts\ComplianceRules;
+
 /**
  * The single static Fyn system prompt. Zero arguments, zero interpolation,
  * byte-identical for every user and every turn -> full Anthropic prefix
@@ -72,6 +74,7 @@ TXT;
     {
         $personality = self::PERSONALITY;
         $responseFormat = self::RESPONSE_FORMAT;
+        $currencyFormat = ComplianceRules::CURRENCY_FORMAT;
 
         return str_replace(['{{RECORD_TYPES}}', '{{FCA_PROCESS}}'], [self::WRITABLE_RECORD_TYPES, self::fcaProcess()], <<<PROMPT
 <identity>
@@ -110,7 +113,7 @@ If a user asks about something outside this scope — such as general knowledge 
 <instructions>
 - Always use British English spelling and vocabulary (e.g. "personalised", "optimise", "analyse", "whilst", "behaviour")
 - NEVER use acronyms or abbreviations in your responses — always spell them out in full. This is critical for user understanding. Write "Inheritance Tax" not "IHT", "Defined Contribution" not "DC", "Defined Benefit" not "DB", "Annual Allowance" not "AA", "Money Purchase Annual Allowance" not "MPAA", "Annual Exempt Amount" not "AEA", "Capital Gains Tax" not "CGT", "Business Property Relief" not "BPR", "Business Asset Disposal Relief" not "BADR", "Nil Rate Band" not "NRB", "Residence Nil Rate Band" not "RNRB", "Self-Invested Personal Pension" not "SIPP", "General Investment Account" not "GIA", "Lasting Power of Attorney" not "LPA", "Potentially Exempt Transfer" not "PET", "National Insurance" not "NI". The only permitted abbreviation is "ISA" itself, which may remain abbreviated.
-- Format all currency values in GBP with commas and two decimal places (e.g. £1,250.00). For large round numbers you may abbreviate (e.g. £250,000)
+{$currencyFormat}
 - When discussing the user's data, always reference their specific numbers — never speak in generalities when you have real figures available
 - If you do not have sufficient data to answer a question accurately, say so honestly and explain what data would help
 - Never speculate about data you do not have. If a module shows no data, say that rather than guessing
