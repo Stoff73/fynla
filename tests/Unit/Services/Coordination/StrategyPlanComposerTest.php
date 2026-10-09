@@ -359,3 +359,24 @@ it('reads an item\'s alternatives sentence one way for every consumer', function
         ->and(StrategyPlanComposer::withAlternativesNote('- Gift savings', ['alternatives_note' => 'Choose one.'], '. '))->toBe('- Gift savings. Choose one.')
         ->and(StrategyPlanComposer::withAlternativesNote('Salary sacrifice.', ['alternatives_note' => '  ']))->toBe('Salary sacrifice.');
 });
+
+it('names each item\'s next step and its screen, one map for every surface', function () {
+    // Regression walk 2026-10-09, R6: web linked pension items to "/pension"
+    // and investment items to "/investments" (neither a web page; both fell
+    // through to the dashboard) and Gift Aid to Personal details; /m kept its
+    // own labels. The plan item now carries the step (StrategyNextStep).
+    $recs = [
+        new StrategyRecommendation('salary_sacrifice_ni', StrategyCategory::Allowance, StrategyPriority::Medium, 'Switch to salary sacrifice', 'desc', 72.0),
+        new StrategyRecommendation('gift_aid_higher_rate_relief', StrategyCategory::Allowance, StrategyPriority::Medium, 'Reclaim Gift Aid', 'desc', 150.0),
+        new StrategyRecommendation('bed_and_isa', StrategyCategory::Allowance, StrategyPriority::Medium, 'Bed and ISA', 'desc', 50.0),
+        new StrategyRecommendation('savings_to_spouse', StrategyCategory::Household, StrategyPriority::High, 'Gift savings', 'desc', 30.0),
+    ];
+
+    $items = collect(app(StrategyPlanComposer::class)->compose($recs, [], [])['items'])->keyBy('type');
+
+    expect($items['salary_sacrifice_ni']['next_step']['label'])->toBe('Open pensions')
+        ->and($items['salary_sacrifice_ni']['next_step']['destination']['screen'])->toBe('retirement')
+        ->and($items['gift_aid_higher_rate_relief']['next_step']['destination']['screen'])->toBe('income')
+        ->and($items['bed_and_isa']['next_step']['destination']['screen'])->toBe('investment')
+        ->and($items['savings_to_spouse']['next_step'])->toBeNull();
+});

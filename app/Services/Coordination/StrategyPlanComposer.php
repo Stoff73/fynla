@@ -6,6 +6,7 @@ namespace App\Services\Coordination;
 
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Services\Tax\IsaAllowanceAllocator;
+use App\Support\StrategyNextStep;
 
 /**
  * Composes eligible strategy recommendations into ONE ordered, conflict-aware plan:
@@ -222,6 +223,8 @@ final class StrategyPlanComposer
                 'counted_in_total' => ! isset($excluded[$rec->type]),
                 'alternatives' => array_map(fn (string $type): string => $titleByType[$type], $alternatives),
                 'alternatives_note' => $this->alternativesNote($rec->type, $alternatives, $excluded, $titleByType),
+                // The page that helps act on it, one map for every surface (R6).
+                'next_step' => StrategyNextStep::for($rec->type),
             ]);
         }
 

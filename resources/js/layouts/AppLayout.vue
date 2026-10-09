@@ -226,9 +226,11 @@ export default {
     },
 
     contentMarginClass() {
-      return this.sideMenuCollapsed
-        ? 'sm:ml-16'
-        : 'sm:ml-56';
+      const left = this.sideMenuCollapsed ? 'sm:ml-16' : 'sm:ml-56';
+      // The collapsed Fyn rail (w-10, fixed right, desktop) sat over the page's
+      // right edge: "Sorted by potential savings" and the right-hand cards were
+      // cut off (regression walk 2026-10-09, R4). Leave its width free.
+      return this.showDockedChat && this.chatCollapsed ? `${left} lg:mr-10` : left;
     },
 
     showDockedChat() {

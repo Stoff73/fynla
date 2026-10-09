@@ -105,27 +105,8 @@
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import PlanItemAlternativeNote from './PlanItemAlternativeNote.vue';
+import { resolveWebDestination } from '@/utils/semanticDestinations';
 
-const NEXT_STEPS = {
-  pa_taper_rescue: { label: 'Open a pension', path: '/pension' },
-  additional_rate_avoidance: { label: 'Open a pension', path: '/pension' },
-  pension_aa_carry_forward: { label: 'Open a pension', path: '/pension' },
-  salary_sacrifice_ni: { label: 'Open a pension', path: '/pension' },
-  isa_topup_vs_psa: { label: 'Open savings & ISAs', path: '/savings' },
-  bed_and_isa: { label: 'Open investments', path: '/investments' },
-  dividend_allowance_harvest: { label: 'Open investments', path: '/investments' },
-  gift_aid_higher_rate_relief: { label: 'See income & tax', path: '/profile' },
-  joint_savings_split: { label: 'Open savings & ISAs', path: '/savings' },
-  marriage_allowance_transfer: { label: 'See income & tax', path: '/profile' },
-  asset_shifting_savings: { label: 'Open savings & ISAs', path: '/savings' },
-  asset_shifting_isa: { label: 'Open savings & ISAs', path: '/savings' },
-  cross_spouse_dividends: { label: 'Open investments', path: '/investments' },
-  non_earner_spouse_pension: { label: 'Open a pension', path: '/pension' },
-  lifetime_isa: { label: 'Open savings & ISAs', path: '/savings' },
-  junior_isa: { label: 'Open savings & ISAs', path: '/savings' },
-  junior_pension: { label: 'Open a pension', path: '/pension' },
-  tapered_annual_allowance: { label: 'Open a pension', path: '/pension' },
-};
 
 export default {
   name: 'StrategyRecommendationList',
@@ -184,8 +165,12 @@ export default {
     },
   },
   methods: {
+    // The server names the step and its screen (StrategyNextStep): one map for
+    // web, /m and iOS. This page kept its own, and two of its links were not
+    // web pages (regression walk 2026-10-09, R6).
     nextStep(rec) {
-      return NEXT_STEPS[rec.type] || null;
+      const path = resolveWebDestination(rec.next_step?.destination);
+      return path ? { label: rec.next_step.label, path } : null;
     },
     goToNextStep(rec) {
       const step = this.nextStep(rec);

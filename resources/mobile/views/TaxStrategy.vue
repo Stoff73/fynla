@@ -146,19 +146,8 @@ import { formatCurrency } from '../utils/currency.js';
 import { apiGet, apiPost } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import { resolveMobileDestination } from '../navigation/semanticDestinations.js';
 
-// Maps a recommendation type to the mobile module screen that helps act on it.
-// Mirrors the desktop StrategyRecommendationList NEXT_STEPS, repointed at the
-// real mobile module detail routes.
-const NEXT_STEPS = {
-  pa_taper_rescue: { label: 'Open retirement', route: '/retirement' },
-  additional_rate_avoidance: { label: 'Open retirement', route: '/retirement' },
-  pension_aa_carry_forward: { label: 'Open retirement', route: '/retirement' },
-  salary_sacrifice_ni: { label: 'Open retirement', route: '/retirement' },
-  isa_topup_vs_psa: { label: 'Open savings', route: '/savings' },
-  bed_and_isa: { label: 'Open investment', route: '/investment' },
-  dividend_allowance: { label: 'Open investment', route: '/investment' },
-};
 
 export default {
   name: 'MobileTaxStrategy',
@@ -237,7 +226,12 @@ export default {
         default: return 'Fully used';
       }
     },
-    nextStep(rec) { return NEXT_STEPS[rec.type] || null; },
+    // The server names the step and its screen (StrategyNextStep), one map for
+    // every surface; this page kept its own copy (regression walk 2026-10-09, R6).
+    nextStep(rec) {
+      if (!rec.next_step?.destination) return null;
+      return { label: rec.next_step.label, route: resolveMobileDestination({ destination: rec.next_step.destination }) };
+    },
     goToNextStep(rec) {
       const step = this.nextStep(rec);
       if (step) this.$router.push(step.route);

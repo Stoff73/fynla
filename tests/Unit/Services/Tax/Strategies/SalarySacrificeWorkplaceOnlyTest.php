@@ -76,3 +76,20 @@ it('never suggests salary sacrifice for a SIPP or personal pension', function (s
     'sipp' => ['sipp', 'sipp'],
     'personal' => ['personal', 'personal'],
 ]);
+
+it('says the National Insurance saved raises take-home pay', function () {
+    // Regression walk 2026-10-09, R5: the card said "with no change to your
+    // take-home pay"; the saving is pay the user keeps (the approved how-to's
+    // outcome: "Your take-home pay rises by ...").
+    $user = ssUser();
+    DCPension::factory()->for($user)->create([
+        'scheme_type' => 'workplace', 'pension_type' => 'occupational',
+        'monthly_contribution_amount' => null, 'annual_salary' => null,
+        'employee_contribution_percent' => 5, 'salary_sacrifice' => false,
+    ]);
+
+    $rec = ssRec($user);
+
+    expect($rec['description'])->toContain('take-home pay rises')
+        ->and($rec['description'])->not->toContain('no change to your take-home pay');
+});
