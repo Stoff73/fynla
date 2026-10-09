@@ -88,13 +88,17 @@
             <span class="ms-ef__label">Cash held</span>
             <span class="ms-ef__value">{{ fmt(totalCash) }}</span>
           </div>
-          <div class="ms-ef__row">
-            <span class="ms-ef__label">Target ({{ targetMonths }} {{ targetMonths === 1 ? 'month' : 'months' }})</span>
-            <span class="ms-ef__value">{{ fmt(emergencyTarget) }}</span>
-          </div>
-          <div class="mts-bar" style="margin:8px 0">
-            <div class="mts-bar__fill" :class="`mts-bar__fill--${runwayStatus}`" :style="{ width: runwayBarWidth }"></div>
-          </div>
+          <!-- No spending recorded: no target to show (it read "£0"), as the web
+               emergency fund hides it (regression walk 2026-10-09, R15). -->
+          <template v-if="!runwayHint">
+            <div class="ms-ef__row">
+              <span class="ms-ef__label">Target ({{ targetMonths }} {{ targetMonths === 1 ? 'month' : 'months' }})</span>
+              <span class="ms-ef__value">{{ fmt(emergencyTarget) }}</span>
+            </div>
+            <div class="mts-bar" style="margin:8px 0">
+              <div class="mts-bar__fill" :class="`mts-bar__fill--${runwayStatus}`" :style="{ width: runwayBarWidth }"></div>
+            </div>
+          </template>
           <div class="ms-ef__row">
             <span class="ms-ef__runway" :class="`ms-ef__runway--${runwayStatus}`">{{ runwayLabel }}</span>
             <span class="ms-ef__label">{{ runwayCovered }}</span>
@@ -233,7 +237,8 @@ export default {
     // falls back to the share arithmetic only for payloads without it.
     userShareOf(a) { return calculateUserShare(a, { valueField: 'current_balance' }); },
     isShared(a) { return isSharedRecord(a); },
-    sharePercent(a) { return `${userSharePercent(a).toFixed(2)}%`; },
+    // "50%", "33.33%": no trailing zeros (R14 read "Your 50.00% of £40,000").
+    sharePercent(a) { return `${Number(userSharePercent(a).toFixed(2))}%`; },
     openAccount(id) { this.$router.push(`/savings/account/${id}`); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     async load() {
