@@ -843,6 +843,10 @@ class UserProfileService
             // write null over the answer.
             'employment_income_basis' => $user->employment_income_basis,
             'annual_pension_contributions' => $pensionContributions,
+            // Personal pension and SIPP payments, gross (FA 2004 s192): not a
+            // deduction from pay, so not in the figure above, but money that
+            // stops at retirement all the same (RequiredCapitalCalculator).
+            'annual_relief_at_source_contributions' => (float) $definitions['deductions']['relief_at_source_gross'],
             'annual_salary_sacrificed' => $salarySacrificed,
             'total_annual_income' => $totalAnnualIncome,
             // The same calculation as `net_income`: one engine for this section.
