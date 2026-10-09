@@ -28,8 +28,16 @@ final class StrategyNextStep
 
     private const INCOME = ['label' => 'See income & tax', 'screen' => GateRoutes::INCOME];
 
-    /** @var array<string, array{label: string, screen: string}> */
+    /**
+     * Keyed on every type a tax strategy emits (app/Services/Tax/Strategies);
+     * StrategyNextStepTest fails on a type with no step or a key no strategy
+     * emits (the first map carried four names nothing emits and missed six that
+     * are, among them the main pension relief item).
+     *
+     * @var array<string, array{label: string, screen: string}>
+     */
     private const MAP = [
+        'pension_tax_relief' => self::PENSIONS,
         'pa_taper_rescue' => self::PENSIONS,
         'additional_rate_avoidance' => self::PENSIONS,
         'pension_aa_carry_forward' => self::PENSIONS,
@@ -38,14 +46,16 @@ final class StrategyNextStep
         'junior_pension' => self::PENSIONS,
         'tapered_annual_allowance' => self::PENSIONS,
         'isa_topup_vs_psa' => self::SAVINGS,
-        'joint_savings_split' => self::SAVINGS,
-        'asset_shifting_savings' => self::SAVINGS,
-        'asset_shifting_isa' => self::SAVINGS,
+        'joint_savings_psa_split' => self::SAVINGS,
+        'savings_to_spouse' => self::SAVINGS,
+        'isa_topup_spouse' => self::SAVINGS,
+        'isa_coordination' => self::SAVINGS,
         'lifetime_isa' => self::SAVINGS,
         'junior_isa' => self::SAVINGS,
         'bed_and_isa' => self::INVESTMENTS,
         'dividend_allowance_harvest' => self::INVESTMENTS,
-        'cross_spouse_dividends' => self::INVESTMENTS,
+        'gia_to_spouse' => self::INVESTMENTS,
+        'gia_rebalance' => self::INVESTMENTS,
         'gift_aid_higher_rate_relief' => self::INCOME,
         'marriage_allowance_transfer' => self::INCOME,
     ];
