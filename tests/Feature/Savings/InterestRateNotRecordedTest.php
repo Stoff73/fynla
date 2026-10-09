@@ -66,3 +66,15 @@ it('describes a stored rate as the percentage it is, and a missing one as not re
     expect(callPrivate($service, 'formatAccountDescription', [$known->fresh()]))->toContain('£18,000, 4.25%')
         ->and(callPrivate($service, 'formatAccountDescription', [$unknown->fresh()]))->toContain('£12,000, rate not recorded');
 });
+
+it('gives no interest figure, rather than £0, for an account with no rate', function () {
+    // Web and /m showed "Annual interest £0" beside "Interest rate: Not recorded".
+    $user = User::factory()->create();
+    $unknown = SavingsAccount::factory()->create(['user_id' => $user->id, 'interest_rate' => null, 'current_balance' => 12000]);
+    $known = SavingsAccount::factory()->create(['user_id' => $user->id, 'interest_rate' => 4.25, 'current_balance' => 18000]);
+
+    expect($unknown->fresh()->annual_interest)->toBeNull()
+        ->and($unknown->fresh()->monthly_interest)->toBeNull()
+        ->and($known->fresh()->annual_interest)->toBe(765.0)
+        ->and($known->fresh()->monthly_interest)->toBe(63.75);
+});
