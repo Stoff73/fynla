@@ -159,8 +159,9 @@ export default {
     // `balance * (rate / 100)` and `/ 12` in the client; the model appends both
     // now, so this screen and the Personal Savings Allowance work cannot disagree
     // about what an account earns (Rule 20).
-    annualInterest() { return Number(this.account?.annual_interest ?? 0); },
-    monthlyInterest() { return Number(this.account?.monthly_interest ?? 0); },
+    // Null when no rate was given: unknown, not £0 (R10).
+    annualInterest() { return this.account?.annual_interest == null ? null : Number(this.account.annual_interest); },
+    monthlyInterest() { return this.account?.monthly_interest == null ? null : Number(this.account.monthly_interest); },
     tags() {
       const out = [];
       if (this.account?.is_emergency_fund) out.push({ label: 'Emergency fund', cls: 'msa-tag--ef' });
@@ -175,8 +176,8 @@ export default {
         rows.push({ key: `Your share (${this.sharePercent})`, value: this.fmt(this.userShare) });
       }
       rows.push({ key: 'Interest rate', value: this.rate(this.account.interest_rate) });
-      rows.push({ key: 'Monthly interest', value: this.fmt(this.monthlyInterest) });
-      rows.push({ key: 'Annual interest', value: this.fmt(this.annualInterest) });
+      rows.push({ key: 'Monthly interest', value: this.monthlyInterest === null ? 'Not recorded' : this.fmt(this.monthlyInterest) });
+      rows.push({ key: 'Annual interest', value: this.annualInterest === null ? 'Not recorded' : this.fmt(this.annualInterest) });
       return rows;
     },
     infoRows() {

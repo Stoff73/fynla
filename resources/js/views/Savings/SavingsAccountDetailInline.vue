@@ -133,7 +133,7 @@
               </div>
               <div class="flex justify-between">
                 <dt class="text-sm text-neutral-500">Annual Interest:</dt>
-                <dd class="text-sm font-medium text-spring-600">{{ formatCurrency(annualInterest) }}</dd>
+                <dd class="text-sm font-medium text-spring-600">{{ annualInterest === null ? 'Not recorded' : formatCurrency(annualInterest) }}</dd>
               </div>
               <div class="flex justify-between">
                 <dt class="text-sm text-neutral-500">Emergency Fund:</dt>
@@ -344,7 +344,9 @@ export default {
     },
 
     annualInterest() {
-      return Number(this.account?.annual_interest) || 0;
+      // Null when no rate was given: unknown, not £0 (R10).
+      const v = this.account?.annual_interest;
+      return v === null || v === undefined ? null : Number(v);
     },
 
     isMatured() {

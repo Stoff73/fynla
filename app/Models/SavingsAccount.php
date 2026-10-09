@@ -131,14 +131,24 @@ class SavingsAccount extends Model
             });
     }
 
-    public function getAnnualInterestAttribute(): float
+    /**
+     * Null when no rate was given: the interest is unknown, not £0 (regression
+     * walk 2026-10-09, R10).
+     */
+    public function getAnnualInterestAttribute(): ?float
     {
-        return round((float) ($this->current_balance ?? 0) * ((float) ($this->interest_rate ?? 0) / 100), 2);
+        if ($this->interest_rate === null) {
+            return null;
+        }
+
+        return round((float) ($this->current_balance ?? 0) * ((float) $this->interest_rate / 100), 2);
     }
 
-    public function getMonthlyInterestAttribute(): float
+    public function getMonthlyInterestAttribute(): ?float
     {
-        return round($this->annual_interest / 12, 2);
+        $annual = $this->annual_interest;
+
+        return $annual === null ? null : round($annual / 12, 2);
     }
 
     /**
