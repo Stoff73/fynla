@@ -7,9 +7,18 @@
 
 import aiChatService from '@/services/aiChatService';
 import { stripTags } from '@/utils/stripTags';
+import { resolveWebDestination } from '@/utils/semanticDestinations';
 
 import logger from '@/utils/logger';
 import { FYN_INTERRUPTED_MESSAGE, TURN_SETTLE_MS, isDroppedConnection, newTurnId, readFynEvents } from '../../../mobile/utils/fynStream.js';
+
+// A navigation event may name a screen ({screen, params, fallback}) beside its
+// path: an onboarding check step sends the path both clients share, and the
+// web screen for it can differ (Bank Accounts is /net-worth/cash on web,
+// /savings on /m). The named screen wins; the path is the fallback.
+function navigationTarget(event) {
+    return resolveWebDestination(event.destination) || event.route_path;
+}
 /**
  * One message shape for every entity write event, used by both stream paths.
  *
@@ -834,13 +843,13 @@ const actions = {
                                 role: 'navigation',
                                 content: event.description,
                                 metadata: {
-                                    route_path: event.route_path,
+                                    route_path: navigationTarget(event),
                                     description: event.description,
                                 },
                                 created_at: new Date().toISOString(),
                             });
                         }
-                        commit('SET_PENDING_NAVIGATION', event.route_path);
+                        commit('SET_PENDING_NAVIGATION', navigationTarget(event));
                         break;
 
                     case 'fill_form':
@@ -1220,11 +1229,11 @@ const actions = {
                                 id: 'nav_' + Date.now(),
                                 role: 'navigation',
                                 content: event.description,
-                                metadata: { route_path: event.route_path, description: event.description },
+                                metadata: { route_path: navigationTarget(event), description: event.description },
                                 created_at: new Date().toISOString(),
                             });
                         }
-                        commit('SET_PENDING_NAVIGATION', event.route_path);
+                        commit('SET_PENDING_NAVIGATION', navigationTarget(event));
                         break;
                     case 'entity_created':
                     case 'entity_updated':
@@ -1529,13 +1538,13 @@ const actions = {
                                 role: 'navigation',
                                 content: event.description,
                                 metadata: {
-                                    route_path: event.route_path,
+                                    route_path: navigationTarget(event),
                                     description: event.description,
                                 },
                                 created_at: new Date().toISOString(),
                             });
                         }
-                        commit('SET_PENDING_NAVIGATION', event.route_path);
+                        commit('SET_PENDING_NAVIGATION', navigationTarget(event));
                         break;
 
                     case 'level_up':

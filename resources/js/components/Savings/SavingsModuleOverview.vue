@@ -6,116 +6,71 @@
         <h3 class="section-title">Account Overview</h3>
       </div>
 
-      <!-- Preview Mode: Show full dashboard -->
-      <template v-if="isPreviewMode">
-        <div v-if="accounts.length > 0" class="accounts-grid">
-          <div
-            v-for="account in accounts"
-            :key="account.id"
-            @click="viewAccountDetail(account.id)"
-            class="account-card"
-          >
-            <div class="card-header">
-              <span
-                :class="getOwnershipBadgeClass(account.ownership_type)"
-                class="ownership-badge"
-              >
-                {{ formatOwnershipType(account.ownership_type) }}
+      <div v-if="accounts.length > 0" class="accounts-grid">
+        <div
+          v-for="account in accounts"
+          :key="account.id"
+          @click="viewAccountDetail(account.id)"
+          class="account-card"
+        >
+          <div class="card-header">
+            <span
+              :class="getOwnershipBadgeClass(account.ownership_type)"
+              class="ownership-badge"
+            >
+              {{ formatOwnershipType(account.ownership_type) }}
+            </span>
+            <div class="badge-group">
+              <span v-if="account.is_emergency_fund" class="badge badge-emergency">
+                Emergency Fund
               </span>
-              <div class="badge-group">
-                <span v-if="account.is_emergency_fund" class="badge badge-emergency">
-                  Emergency Fund
-                </span>
-                <span v-if="account.is_isa" class="badge badge-isa">
-                  ISA
-                </span>
-              </div>
+              <span v-if="account.is_isa" class="badge badge-isa">
+                ISA
+              </span>
             </div>
+          </div>
 
-            <div class="card-content">
-              <h4 class="account-institution">{{ account.institution }}</h4>
-              <p class="account-type">{{ formatAccountType(account.account_type) }}</p>
+          <div class="card-content">
+            <h4 class="account-institution">{{ account.institution }}</h4>
+            <p class="account-type">{{ formatAccountType(account.account_type) }}</p>
 
-              <div class="account-details">
-                <div class="detail-row">
-                  <span class="detail-label">{{ getBalanceLabel(account) }}</span>
-                  <span class="detail-value">{{ formatCurrency(getFullBalance(account)) }}</span>
-                </div>
+            <div class="account-details">
+              <div class="detail-row">
+                <span class="detail-label">{{ getBalanceLabel(account) }}</span>
+                <span class="detail-value">{{ formatCurrency(getFullBalance(account)) }}</span>
+              </div>
 
-                <div v-if="isSharedRecord(account)" class="detail-row">
-                  <span class="detail-label">Your Share ({{ formatSharePercent(account) }})</span>
-                  <span class="detail-value">{{ formatCurrency(getUserShare(account)) }}</span>
-                </div>
-                <div v-if="coOwnerOf(account)" class="detail-row">
-                  <span class="detail-label">Held with</span>
-                  <span class="detail-value">{{ coOwnerOf(account) }}</span>
-                </div>
+              <div v-if="isSharedRecord(account)" class="detail-row">
+                <span class="detail-label">Your Share ({{ formatSharePercent(account) }})</span>
+                <span class="detail-value">{{ formatCurrency(getUserShare(account)) }}</span>
+              </div>
+              <div v-if="coOwnerOf(account)" class="detail-row">
+                <span class="detail-label">Held with</span>
+                <span class="detail-value">{{ coOwnerOf(account) }}</span>
+              </div>
 
-                <div v-if="account.interest_rate > 0" class="detail-row">
-                  <span class="detail-label">Interest Rate</span>
-                  <span class="detail-value interest">{{ formatInterestRate(account.interest_rate) }}</span>
-                </div>
+              <div v-if="account.interest_rate > 0" class="detail-row">
+                <span class="detail-label">Interest Rate</span>
+                <span class="detail-value interest">{{ formatInterestRate(account.interest_rate) }}</span>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div v-else class="empty-state">
-          <p class="empty-message">No savings accounts added yet.</p>
-          <button @click="handleAddAccount" class="add-account-button">
-            Add Your First Account
-          </button>
-        </div>
-      </template>
-
-      <!-- Real Users: Show Open Banking promotion -->
-      <div v-else class="open-banking-promo">
-        <div class="promo-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
-          </svg>
-        </div>
-        <h3 class="promo-title">Connect to Open Banking</h3>
-        <p class="promo-description">
-          Link your bank accounts securely to unlock powerful insights:
-        </p>
-        <ul class="promo-features">
-          <li>
-            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Real-time balance tracking across all accounts
-          </li>
-          <li>
-            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Automatic spending categorisation
-          </li>
-          <li>
-            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Payday tracking and cash flow forecasting
-          </li>
-          <li>
-            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Personalised savings recommendations
-          </li>
-        </ul>
-        <div class="promo-badge">Coming Soon</div>
+      <div v-else class="empty-state">
+        <p class="empty-message">No savings accounts added yet.</p>
+        <button @click="handleAddAccount" class="add-account-button">
+          Add Your First Account
+        </button>
       </div>
     </div>
 
-    <!-- Preview Mode Only: ISA Allowance Tracker -->
-    <div v-if="isPreviewMode" class="mt-8">
+    <div class="mt-8">
       <ISAAllowanceTracker />
     </div>
 
-    <!-- Preview Mode Only: Total Savings Summary -->
-    <div v-if="isPreviewMode" class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
       <div class="bg-eggshell-500 rounded-lg p-6 border border-light-gray">
         <h3 class="text-sm font-medium text-neutral-500 mb-2">Total Savings</h3>
         <p class="text-3xl font-bold text-horizon-500">
@@ -204,9 +159,6 @@ export default {
     ...mapGetters('savings', ['totalSavings', 'emergencyFund']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
-    isPreviewMode() {
-      return this.$store.getters['preview/isPreviewMode'];
-    },
 
     // The server's status against the user's own target (SavingsPosition).
     runwayColour() {
@@ -559,71 +511,6 @@ export default {
   @apply bg-horizon-600;
 }
 
-/* Open Banking Promo Card */
-.open-banking-promo {
-  background: linear-gradient(135deg, theme('colors.sky.50') 0%, theme('colors.sky.100') 100%);
-  @apply border-2 border-sky-500;
-  border-radius: 16px;
-  padding: 40px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.promo-icon {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-  @apply text-sky-600;
-}
-
-.promo-title {
-  font-size: 24px;
-  font-weight: 700;
-  @apply text-sky-900;
-  margin: 0 0 12px 0;
-}
-
-.promo-description {
-  font-size: 16px;
-  @apply text-sky-700;
-  margin: 0 0 24px 0;
-}
-
-.promo-features {
-  list-style: none;
-  padding: 0;
-  margin: 0 auto 24px auto;
-  max-width: 400px;
-  text-align: left;
-}
-
-.promo-features li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-  font-size: 15px;
-  @apply text-sky-900;
-}
-
-.feature-icon {
-  width: 20px;
-  height: 20px;
-  @apply text-sky-500;
-  flex-shrink: 0;
-}
-
-.promo-badge {
-  display: inline-block;
-  padding: 8px 20px;
-  @apply bg-sky-500;
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 20px;
-}
-
 @media (max-width: 768px) {
   .section-header-row {
     flex-direction: column;
@@ -637,14 +524,6 @@ export default {
 
   .accounts-grid {
     grid-template-columns: 1fr;
-  }
-
-  .open-banking-promo {
-    padding: 24px;
-  }
-
-  .promo-title {
-    font-size: 20px;
   }
 }
 </style>
