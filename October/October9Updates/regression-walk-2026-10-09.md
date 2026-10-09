@@ -45,14 +45,14 @@
 - [x] C1. Home page "Get started for free" → register → code → dashboard.
 - [!] C2. Fyn onboarding starts and follows the same route (same steps, same forms) as Save Tax, where the flows share steps; any differences are noted.
 - [x] C3. Fyn answers a question during onboarding and comes back to the step.
-- [ ] C4. Onboarding finishes → plan and dashboard show; Fyn is available on web and /m.
+- [x] C4. Onboarding finishes → plan and dashboard show; Fyn is available on web and /m.
 
 ## D. Additions (web and /m)
 
-- [ ] D1. Web: add a savings account through the module page's "Add" form → appears on the page with the right figures.
-- [ ] D2. Web: add through Fyn ("add my … account") → form opens filled → Save → read-back → appears on the page.
-- [ ] D3. /m: add a pension or investment through Fyn → form → Save → appears on the /m screen.
-- [ ] D4. Adding a record that already exists is asked about ("the same one?"), not added twice.
+- [!] D1. Web: add a savings account through the module page's "Add" form → appears on the page with the right figures.
+- [x] D2. Web: add through Fyn ("add my … account") → form opens filled → Save → read-back → appears on the page.
+- [x] D3. /m: add a pension or investment through Fyn → form → Save → appears on the /m screen.
+- [!] D4. Adding a record that already exists is asked about ("the same one?"), not added twice.
 
 ## E. Edits (web and /m)
 
@@ -83,14 +83,14 @@
 
 ---
 
-## Where the walk stopped (2026-10-09, session 2, context clear)
+## Where the walk stopped (2026-10-09, session 3, context clear)
 
-- **A done; B1–B5 done; B6 in progress** on fynla.org as Sam (809): stopped at "Do you have another account to add?" (answer "No, that's everything", then pension, spending, plan).
-- **Released (ab, main `f45bc67fd`):** R17 security fix + R1, R2, R4–R8, R10, R12–R16, R18. **Retest each on fynla.org** (only R17 done there).
-- **On dev, not released:** R19 (#1185).
-- **Waiting on CSJ:** R9 and R11 decisions.
-- **Still to walk:** B6–B8, C–H; R3 (walk F); "A separate one" answer to the duplicate question.
-- **Walk accounts:** fynla.org Ellis 807, Morgan 808, Sam 809; csjones Rory 504, Quinn 505, Pat 506, Alex (r17-partner2). Purge all at the end.
+- **Done:** A; B1–B8; C1–C4; D1–D4. Retested on fynla.org from release ab: R1, R2 (web and /m), R4, R5, R6 (all four links), R7, R8, R10, R12, R13 (web), R14, R15, R16, R17, R18. Not yet on fynla.org: R13 on /m.
+- **Fixed on dev, NOT released (next release):** R19, R20 (caption), R21–R39 (except R30, not a defect). **Release needs migration `2026_10_09_140000_fill_isa_type_from_savings_account_type`** (and `2026_10_09_100000` already ran in ab). Both bundles needed (web: R20, R26, R28, R33, R35/R36, R37; /m: R26, R28).
+- **csjones:** dev `ea11f2898` server-side; web bundle built at `7d5805727` (has R37, not R20's caption #1204); /m bundle built at `8cb4b25f3`. Rebuild both bundles from dev before the next csjones walk.
+- **Waiting on CSJ:** R9 (which pot figure; with R20's remaining card questions and the Portfolio Projection's assumed contribution), R11.
+- **Still to walk:** E (edits), F (actions; R3 there), G (how-tos), H (model and logs, purge accounts). Then one release, retest every fixed flow on fynla.org, purge walk accounts.
+- **Walk accounts:** fynla.org Ellis 807, Morgan 808, Sam 809, Casey 810; csjones Rory 504, Quinn 505, Pat 506, Alex 507, Drew 508. Purge all at the end.
 
 ## Results
 
@@ -180,6 +180,16 @@
 - **R33. The same dashboard card read "Savings" on web and "Bank Accounts" on /m** (Casey). It opens `/net-worth/cash`, which the menu and `GateRoutes` call Bank Accounts. **Fixed:** #1199 (dev `eb869eb5b`): web says "Bank Accounts" (the focus tab "Savings", the savings module's actions, is unchanged on both). **Retested on csjones (Drew):** "BANK ACCOUNTS £0 · Add your monthly spending" (`shots/R33-retest-01-dashboard-csjones.png`).
 - **R34. A gender of "Other" read "I was born on 20 July 1991 and I'm other" and "born on 20 July 1991, other and single"** (Casey). **Fixed:** #1200 (dev `017177f4b`): `CaptureForms::genderWords`, one home for both sentences. **Retested on csjones (Drew):** "I was born on 11 February 1993 and I describe my gender as other." / "Thanks — I've noted you're born on 11 February 1993 and single." (`shots/R34-retest-01-gender-other-csjones.png`).
 - **R35. Bank Accounts' "What powers this view" showed the net-worth list ("1 of 7": properties, mortgages, debts)** (Casey; the same page had shown its own 2/3 list earlier). Cause: `router/index.js` kept a second route-to-module map with no `/net-worth/cash`, so it fetched `net_worth` into the shared store and raced `ModuleStatusBar`'s `savings` fetch. **R36. The banner never refreshed after a Fyn save** (date of birth and pension listed missing minutes after they were saved): the store skips a module already loaded. **Fixed:** #1201 (dev `23d4f0075`): the router reads the one map (`utils/moduleMap.js`); the banner calls the existing (unused) `refreshRequirements` on `fyn-screen-refresh`. **Retested on csjones (Drew):** Bank Accounts "2 of 3" (income, savings; spending outstanding); Retirement "3 of 7" → spending saved through Fyn on the same page → "4 of 7, Your monthly spending" completed with no reload (`shots/R36-retest-01-banner-refreshed-csjones.png`). R23 seen again: "The tax saved comes to roughly £600 a year" (Drew: £45,000 ÷ 10 = £4,500 − £1,500 gross in = £3,000 → £600).
+
+- **C4 (fynla.org, Casey):** spending £2,800 with £50 a month to charity under Gift Aid → plan: pension £10,700 / £4,280 (£65,000 − £3,250 + £400 interest = £62,150; higher rate from £50,270 + £750 Gift Aid gross = £51,020; £10,730 of pay at 40% → £10,700; £400 interest inside the £500 allowance), Gift Aid reclaim £150 (£750 × 20%), salary sacrifice £65 (£3,250 × 2%), Lifetime ISA (35); total £4,495 (R23 wording still on prod, fixed on dev). Annual Allowance £5,850 used (5% + 4% of £65,000); headroom £16,572 = spare £13,257.40 ÷ 0.8; Income page net £50,107, expenditure £36,850, disposable £13,257 (`shots/C4-01..02`). **R6 "See income & tax" on fynla.org:** opens Income (`shots/R6-prod-03-see-income-tax.png`). /m dashboard after onboarding: Level 5, top actions, Bank Accounts "5.4 / 6 months" (£15,000 ÷ £2,800); /m Fyn "How did you work out the £10,700 pension figure?" gave the plan's working (`shots/C4-03..04`). C done.
+- **R37. Bank Accounts' "Add Account" refused a second bank account** (fynla.org, Casey, free: Barclays + a Cash ISA → "Your Free plan includes up to 2 bank accounts"). The web gate counted every cash product (`CashOverview.vue:579`); the server counts a Cash ISA with the investments (CSJ 2026-09-15, `SavingsStore::create`). **Fixed:** #1203 (dev `7d5805727`): `GET /api/savings` also returns `isa_count` / `isa_limit` (the gate's own count); the web store keeps both; bank adds gate on the bank count, Cash ISA adds on the investment count; the limit modal names the cap that blocked. `FreemiumCapsTest`. **Retested on csjones (Drew, free, HSBC):** Cash ISA added from the Cash ISAs card (Marcus £3,000); then with one bank account + one ISA the current-account form opened (was the limit modal) → Monzo £1,200 saved; a third bank account → "up to 2 bank accounts" (`shots/R37-retest-01..03`).
+
+- **D (fynla.org, Casey, free):** D1 web Bank Accounts "Add Account" refused (R37, fixed on dev; D1 walked on csjones in R37's retest: the form saves and the account appears). D2 web Fyn "Add my Vanguard stocks and shares ISA, it is worth £3,000" → form filled ("I've filled in what you told me") → £1,000 paid in added → "Saved — …" → Investments shows Vanguard £3,000, ISA used £1,000 (`shots/D2-01..02`). D3 /m Fyn "Add my Aviva personal pension, it is worth £5,000 and I pay in £600 a year" → form filled → Save → "Saved — …" → /m Retirement lists Aviva £5,000 beside Legal & General; the plan moved to £9,900 / £3,960 (£600 net = £750 gross raises the higher-rate start to £51,770; £61,750 − £51,770 = £9,980) (`shots/D3-01..03`). D4 /m "Add my Barclays easy access savings account, £10,000 at 4%" (on file) → a blank savings form: R38.
+  - Seen, a walk mistake, not a defect: my first D3 "Save" click matched the suggestion chip "…and save £4,280 in tax".
+  - Seen: the Portfolio Projection assumes £142.86 a month going in (£1,000 paid in this tax year over the seven months since 6 April, `ContributionEstimatorService`), shown on the Projections tab (`InvestmentProjections.vue:124`) but not on this card. Goes with R9/R20 for CSJ.
+- **R20 (part fixed):** the shared caption said "The line shows the middle outcome" under charts that draw the 75%–90% bands only (pension and investment). **Fixed:** #1204 (dev `4bc7594ee`): "The middle outcome grows a little slower than this rate because returns vary from year to year." Still with CSJ's R9 answer: which pot figure leads, the heading "(using high probability of 80% of achieving …)", showing the assumed contribution. Web bundle not yet on csjones.
+- **R38. "Add my Barclays … £10,000 at 4%" with Barclays on file opened a blank add form** (fynla.org, Casey, /m). `TypedFormFill::fillAny` read the values onto the Barclays record's form, where they changed nothing and were dropped, so the blank form got none. **Fixed:** #1205 (dev `e7ecde2cd`): `offerTypedForm` reads the message again onto the blank form alone when no record changed. `RestatedRecordFillsAddFormTest` (red before). **Retested on csjones (Drew, web):** "Add my HSBC easy access savings account, £6,000 at 3%" → form filled (HSBC, £6,000, 3%) → Save → "You already have … Is this a separate savings account you also hold, or the same one?" with "The same one" / "A separate one" (R19) (`shots/R38-retest-01..02`).
+- **R39. At the Free plan's cap "A separate one" led to "what would you like to call this one?"** (csjones, Drew, two bank accounts) for an account the cap then refuses. **Fixed:** #1206 + #1207 (dev `ea11f2898`): `emitFormProblem` checks the cap for another record of that kind (a cash ISA with the investments) and offers only "The same one", adding "If it's a separate one, that's the Free plan's limit of 2 bank and savings accounts, so I can't add it here." (the loop step's wording); the first fix never ran live because `writeFormRecords` dropped the error's `entity_type` (its test passed it by hand) — #1207 carries it, with an end-to-end test (red before). **Retested on csjones (Drew):** the cap sentence and one bubble → "The same one" → "Understood — it's the same account, so I haven't added a duplicate." (`shots/R39-retest-02-at-cap-csjones.png`). R19 "A separate one" walked below the cap path only through R39's first live attempt (`shots/R19-retest-05-separate-one-at-cap-csjones.png`).
 
 ## Walk accounts used
 
