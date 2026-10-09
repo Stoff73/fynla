@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" edit-details :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome title="Bank Accounts" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" edit-details :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ headerTitle }}</h1>
       <p class="m-sub">{{ headerSub }}</p>
