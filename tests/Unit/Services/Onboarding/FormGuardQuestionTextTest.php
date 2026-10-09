@@ -89,3 +89,38 @@ it('saves the guard question outside the walk as a capture still asking about it
     expect($inside->persona)->toBeNull()
         ->and($inside->metadata)->not->toHaveKey('capture_record_id');
 });
+
+it('asks the duplicate question with its two answers as bubbles, and a failure as plain text', function () {
+    // Regression walk 2026-10-09, R19 (CSJ: "why no bubble on the duplicate
+    // message?"): the two-way question came with no bubbles, so the answer had
+    // to be typed.
+    $user = User::factory()->create();
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'emitFormProblem');
+    $method->setAccessible(true);
+
+    $run = function (array $errors) use ($method, $director, $conversation): array {
+        $gen = $method->invoke($director, $conversation, 'savings', $errors, 'the line', 'base_savings');
+        $events = [];
+        foreach ($gen as $event) {
+            $events[] = $event;
+        }
+
+        return [$events, $gen->getReturn()];
+    };
+
+    [$events, $saved] = $run(['easy_access' => ['message' => 'You already have … or the same one?', 'error_type' => 'confirm_duplicate_required', 'entity_id' => 893, 'fields' => []]]);
+    $replies = collect($events)->firstWhere('type', 'quick_replies');
+
+    expect($replies['prompt_text'])->toBe('the line')
+        ->and(collect($replies['bubbles'])->pluck('label')->all())->toBe(['The same one', 'A separate one'])
+        ->and(collect($events)->where('type', 'content')->all())->toBe([])
+        ->and($saved->metadata['bubbles'])->toBe($replies['bubbles']);
+
+    [$events, $saved] = $run(['easy_access' => ['message' => 'The balance must be a number.', 'error_type' => 'validation_failed', 'fields' => []]]);
+
+    expect(collect($events)->firstWhere('type', 'content')['text'])->toBe('the line')
+        ->and(collect($events)->firstWhere('type', 'quick_replies'))->toBeNull()
+        ->and($saved->metadata['bubbles'] ?? null)->toBeNull();
+});

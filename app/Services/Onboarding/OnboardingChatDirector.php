@@ -88,6 +88,12 @@ use Illuminate\Support\Facades\Log;
 final class OnboardingChatDirector
 {
     /** A capture form saved with nothing in it. */
+    /** The two answers to the duplicate guard's "separate one, or the same one?" (R19). */
+    private const DUPLICATE_ANSWER_BUBBLES = [
+        ['id' => 'duplicate_same', 'label' => 'The same one'],
+        ['id' => 'duplicate_separate', 'label' => 'A separate one'],
+    ];
+
     private const EMPTY_FORM_LINE = 'Fill in at least one before saving.';
 
     /**
@@ -4241,7 +4247,18 @@ PROMPT;
     private function emitFormProblem(AiConversation $conversation, string $formName, array $errors, string $text, ?string $stateId): \Generator
     {
         yield ['type' => 'capture_form_errors', 'form' => $formName, 'errors' => $errors];
-        yield ['type' => 'content', 'text' => $text];
+
+        // The duplicate guard's question is a two-way choice, so it is asked
+        // with its two answers as bubbles; each sends its words as the reply,
+        // the path a typed "It's the same one" takes (regression walk
+        // 2026-10-09, R19: CSJ "why no bubble on the duplicate message?").
+        $asksDuplicate = collect($errors)->contains(static fn (array $e): bool => in_array($e['error_type'] ?? null, ['confirm_duplicate_required', 'confirm_edit_required'], true));
+        $bubbles = $asksDuplicate ? self::DUPLICATE_ANSWER_BUBBLES : null;
+        if ($bubbles !== null) {
+            yield ['type' => 'quick_replies', 'prompt_text' => $text, 'bubbles' => $bubbles];
+        } else {
+            yield ['type' => 'content', 'text' => $text];
+        }
 
         // Outside the setup walk nothing holds a step, so a duplicate guard's
         // question is marked as a capture still asking about its record: the
@@ -4260,6 +4277,7 @@ PROMPT;
                 'turn_intent' => FynTurnIntent::CaptureClarification->value,
                 'capture_write_landed' => $guardRecordId !== null ? false : null,
                 'capture_record_id' => $guardRecordId,
+                'bubbles' => $bubbles,
             ], static fn ($value): bool => $value !== null),
         ]));
     }
