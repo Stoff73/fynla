@@ -1,3 +1,5 @@
+import { wrapListItems } from '../../js/utils/fynListItems.js';
+
 // Render a Fyn chat message: escape HTML, then turn **bold** into <strong>,
 // "- " lines into a <ul> list, and remaining newlines into <br>. Mirrors the
 // web AiMessageContent renderer so onboarding bubbles read identically on both
@@ -13,9 +15,7 @@ export function renderFynText(text) {
 
   // Markdown "- " bullets → <ul><li>; strip the newlines the list consumed so
   // they don't become stray <br> inside the list.
-  html = html
-    .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
-    .replace(/(?:<li>.*<\/li>\n?)+/g, m => '<ul>' + m.replace(/\n/g, '') + '</ul>');
+  html = wrapListItems(html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>'));
 
   return html.replace(/\n/g, '<br>');
 }
