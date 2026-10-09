@@ -49,7 +49,8 @@ class UpdateSavingsAccountRequest extends FormRequest
                 },
             ],
             'current_balance' => 'sometimes|numeric|min:0',
-            'interest_rate' => 'sometimes|numeric|min:0|max:20',
+            // Null clears a rate to "not recorded" (R10); the column and StoreSavingsAccountRequest allow it.
+            'interest_rate' => 'sometimes|nullable|numeric|min:0|max:20',
             'access_type' => 'sometimes|in:immediate,notice,fixed',
             'notice_period_days' => 'nullable|integer|min:0',
             'maturity_date' => 'nullable|date',
