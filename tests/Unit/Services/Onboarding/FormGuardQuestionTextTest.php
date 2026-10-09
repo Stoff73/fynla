@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
+use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 
 /*
@@ -145,4 +146,29 @@ it('offers only "The same one" when a separate one would pass the plan\'s cap (w
 
     expect(collect($replies['bubbles'])->pluck('label')->all())->toBe(['The same one'])
         ->and($replies['prompt_text'])->toBe("the line If it's a separate one, that's the Free plan's limit of 2 bank and savings accounts, so I can't add it here.");
+});
+
+it('says the cap on a real duplicate form save at the cap (walk R39, end to end)', function (): void {
+    // The first R39 fix read the kind from the error, which the form's write
+    // path did not carry: live, both bubbles still showed.
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['tier' => 'free', 'onboarding_completed' => true]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'HSBC', 'account_name' => 'HSBC easy access savings', 'account_type' => 'easy_access',
+        'current_balance' => 6000, 'interest_rate' => 3, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null,
+    ]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'institution' => 'Monzo', 'account_type' => 'current_account', 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'handleCreateFormTurn');
+    $method->setAccessible(true);
+
+    $form = ['name' => 'savings', 'answers' => ['easy_access' => ['provider' => 'HSBC', 'current_value' => 6000, 'interest_rate' => 3, 'ownership_type' => 'individual']]];
+    $events = iterator_to_array($method->invoke($director, $user, $conversation, 'HSBC easy access savings, balance £6,000, 3% interest, individual.', $form), false);
+    $replies = collect($events)->firstWhere('type', 'quick_replies');
+
+    expect($replies)->not->toBeNull()
+        ->and(collect($replies['bubbles'])->pluck('label')->all())->toBe(['The same one'])
+        ->and($replies['prompt_text'])->toContain("that's the Free plan's limit of 2 bank and savings accounts");
 });

@@ -4282,6 +4282,9 @@ PROMPT;
                 // The record the duplicate guard's question is about, so the
                 // answer can be taken as about it (emitFormProblem).
                 'entity_id' => isset($result['entity_id']) ? (int) $result['entity_id'] : null,
+                // Its kind, so the question can tell whether another would
+                // pass the plan's cap (walk R39).
+                'entity_type' => (string) ($result['entity_type'] ?? $definition['entity_type'] ?? ''),
                 'fields' => is_array($result['errors'] ?? null)
                     ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])
                     : [],
