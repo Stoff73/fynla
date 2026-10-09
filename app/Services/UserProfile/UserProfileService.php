@@ -1188,7 +1188,12 @@ class UserProfileService
             // W-0424 — the one home for "how much does this pension take each
             // month", so a percentage-only record is no longer invisible to the
             // spending side. `monthly_contribution_amount > 0` was the whole gate.
-            $monthlyContribution = PensionContributionRule::monthlyEmployee($pension);
+            // The owner's pay stands in for a scheme salary the onboarding form
+            // leaves blank, as on the tax side; without it a percentage pension
+            // took nothing off spending, so money already paid in counted as
+            // spare for the plan's pension suggestion (regression walk
+            // 2026-10-09, R16: £4,000 a year at 5% of £80,000).
+            $monthlyContribution = PensionContributionRule::monthlyEmployee($pension, (float) ($user->annual_employment_income ?? 0));
 
             // Salary sacrifice is pay never received: it comes off before tax and
             // National Insurance, so take-home already excludes it, and counting it
