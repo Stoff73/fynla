@@ -36,7 +36,6 @@
           </div>
           <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
             <button
-              v-if="business.is_primary_owner !== false"
               v-preview-disabled="'edit'"
               @click="$emit('edit', business)"
               class="w-full sm:w-auto px-4 py-2 bg-violet-600 text-white rounded-button hover:bg-violet-700 transition-colors"
@@ -44,7 +43,6 @@
               Edit
             </button>
             <button
-              v-if="business.is_primary_owner !== false"
               v-preview-disabled="'delete'"
               @click="confirmDelete"
               class="w-full sm:w-auto px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
@@ -60,7 +58,7 @@
             <p class="text-sm text-neutral-500">Current Valuation</p>
             <p class="text-2xl font-bold text-violet-600">{{ formatCurrency(business.full_value || business.current_valuation) }}</p>
             <p v-if="business.is_shared" class="text-sm text-violet-600 mt-1">
-              Your {{ business.ownership_percentage }}% share: {{ formatCurrency(business.user_share) }}
+              Your {{ sharePercent }}% share: {{ formatCurrency(business.user_share) }}
             </p>
           </div>
           <div class="bg-savannah-100 rounded-lg p-4">
@@ -379,6 +377,7 @@
 import { mapState, mapActions } from 'vuex';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { userSharePercent } from '@/utils/ownership';
 
 import logger from '@/utils/logger';
 export default {
@@ -415,6 +414,11 @@ export default {
   },
 
   computed: {
+    // The viewer's own share: the joint owner's is the other side of the
+    // stored split, which is the primary owner's (Rule 6, W-0016).
+    sharePercent() {
+      return userSharePercent(this.business).toFixed(2);
+    },
     ...mapState('businessInterests', ['selectedBusiness', 'taxDeadlines', 'exitCalculation', 'loading']),
 
     business() {

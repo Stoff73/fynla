@@ -147,7 +147,8 @@ class InvestmentAccountStore
      */
     public function update(int $id, array $canonical, User $user, IngestSource $source): InvestmentAccount
     {
-        $account = InvestmentAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $account = InvestmentAccount::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $account->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
         $this->validateCanonical($canonical, partial: true);
         $dividendsBefore = $this->taxableDividends($account);
 
@@ -228,7 +229,8 @@ class InvestmentAccountStore
 
     public function delete(int $id, User $user, IngestSource $source, bool $force = false): void
     {
-        $account = InvestmentAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $account = InvestmentAccount::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
+        $user = $account->user; // Either owner may change a joint record; it changes as the record's own (HasJointOwnership::scopeForUserOrJoint).
 
         AuditLog::withContext(
             ['ingest_source' => $source->value],
@@ -290,8 +292,14 @@ class InvestmentAccountStore
             return;
         }
 
+        // From the database, not the instance: a joint owner's change runs as
+        // the record's owner (HasJointOwnership::scopeForUserOrJoint), so the
+        // instance here may not be the one that last moved the total.
+        $current = User::whereKey($user->id)->value('annual_dividend_income');
+        $user->annual_dividend_income = $current;
+        $user->syncOriginalAttribute('annual_dividend_income');
         $user->update([
-            'annual_dividend_income' => max(0.0, round((float) ($user->annual_dividend_income ?? 0) + $change, 2)),
+            'annual_dividend_income' => max(0.0, round((float) ($current ?? 0) + $change, 2)),
         ]);
     }
 
@@ -409,6 +417,7 @@ class InvestmentAccountStore
             'country' => 'sometimes|nullable|string|max:255',
             'isa_type' => 'sometimes|nullable|in:stocks_and_shares,lifetime,innovative_finance',
             'contributions_ytd' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
+            'isa_subscription_current_year' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'monthly_contribution_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
             // W-0042 — a shared record may name an off-platform co-owner, the same

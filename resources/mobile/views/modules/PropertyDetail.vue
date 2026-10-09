@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome :title="heading" subtitle="Property details" :loading="loading" loading-label="this property" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
+  <MobileChrome :title="heading" subtitle="Property details" :loading="loading" loading-label="this property" edit-details :contextual-request="contextualRequest" back @back="goBack">
     <div v-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>
@@ -106,17 +106,16 @@ export default {
     // holds no account. A LINKED co-owner is already known to be the spouse or not,
     // and asking again would invite a contradiction of the account link.
     showSpouseQuestion() {
-      return this.canEdit
-        && this.isShared
+      return this.isShared
         && !this.property?.joint_owner_id
         && !this.coOwnerSpouseAnswered;
     },
 
     recordId() { return Number(this.$route.params.id); },
     heading() { return this.property?.address_line_1 || 'Property'; },
-    canEdit() { return this.property?.is_primary_owner !== false; },
+    // Either owner of a joint property may change it (CSJ 2026-10-08).
     contextualRequest() {
-      if (!this.canEdit || !Number.isInteger(this.recordId) || this.recordId < 1) return null;
+      if (!Number.isInteger(this.recordId) || this.recordId < 1) return null;
       return buildContextualConversationRequest({ action: 'edit', resourceType: 'property', resourceId: this.recordId, currentDestination: { screen: 'property_detail', params: { property_id: this.recordId }, fallback: 'net_worth' }, origin: { kind: 'surface_action' } });
     },
     rows() {

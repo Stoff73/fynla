@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Learning;
 
-use Illuminate\Support\Facades\Http;
+use App\Services\AI\AiProvider;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -15,13 +15,11 @@ use Illuminate\Support\Facades\Log;
  */
 final class ProposedFactSynthesiser
 {
-    private const ENDPOINT = 'https://api.x.ai/v1/chat/completions';
-
     /** @return list<array{fact_id: string, title: string, body: string, valid_from: ?string, valid_to: ?string}> */
     public function synthesise(int $conversationId, string $transcript): array
     {
-        $apiKey = config('services.xai.api_key');
-        if (empty($apiKey)) {
+        $connection = AiProvider::helperConnection();
+        if (! AiProvider::isConfigured($connection)) {
             return [];
         }
 
@@ -36,19 +34,16 @@ Rules:
 PROMPT;
 
         try {
-            $response = Http::withHeaders(['Authorization' => 'Bearer '.$apiKey])
-                ->timeout(60)
-                ->post(self::ENDPOINT, [
-                    'model' => config('services.xai.vision_model', 'grok-4.3'),
-                    'max_completion_tokens' => 600,
-                    'temperature' => 0,
-                    'reasoning_effort' => 'none',
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        ['role' => 'system', 'content' => $system],
-                        ['role' => 'user', 'content' => $transcript],
-                    ],
-                ]);
+            $response = AiProvider::postChatCompletion($connection, [
+                'max_completion_tokens' => 600,
+                'temperature' => 0,
+                'reasoning_effort' => 'none',
+                'response_format' => ['type' => 'json_object'],
+                'messages' => [
+                    ['role' => 'system', 'content' => $system],
+                    ['role' => 'user', 'content' => $transcript],
+                ],
+            ], 60);
 
             if (! $response->successful()) {
                 return [];

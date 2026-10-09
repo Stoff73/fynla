@@ -446,6 +446,11 @@ class NextActionsService
                 'type' => 'recommendation',
                 'module' => (string) ($rec['module'] ?? 'general'),
                 'title' => $title,
+                // What "ask Fyn" sends for this action: the card's own prompt, which
+                // Fyn grounds on this action's card (ActionCardService::ASK_FYN_PREFIX).
+                // /m wrapped every title in 'How do I "…"?', which reads wrongly for a
+                // finding ('How do I "You have no will recorded"?', csjones 2026-10-08).
+                'ask_fyn_prompt' => ActionCardService::ASK_FYN_PREFIX.$title,
                 // Everything after the headline's dash — the explanation Fyn
                 // carries when the row opens a capture; the row itself never
                 // shows it (CSJ 2026-09-09: the full sentence cluttered the screen).

@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Chattel;
+use App\Models\Goal;
+use App\Models\LifeEvent;
 use App\Support\SharedOwnership;
 
 it('treats joint and tenants in common as shared, and nothing else', function () {
@@ -119,4 +122,41 @@ it('rejects a shared asset that names nobody', function () {
         ->and(SharedOwnership::namesCounterparty(['joint_owner_name' => '']))->toBeFalse()
         ->and(SharedOwnership::namesCounterparty(['joint_owner_name' => '   ']))->toBeFalse()
         ->and(SharedOwnership::namesCounterparty(['joint_owner_id' => null, 'joint_owner_name' => null]))->toBeFalse();
+});
+
+it("stores the joint owner's stated share as the other side of the split, and leaves the primary owner's as stated", function () {
+    $record = (object) ['user_id' => 1, 'joint_owner_id' => 2, 'ownership_percentage' => 60];
+
+    expect(SharedOwnership::fromEditor(['ownership_percentage' => 30], $record, 2)['ownership_percentage'])->toBe(70.0)
+        ->and(SharedOwnership::fromEditor(['ownership_percentage' => 60], $record, 1)['ownership_percentage'])->toBe(60)
+        ->and(SharedOwnership::fromEditor(['current_value' => 1], $record, 2))->toBe(['current_value' => 1]);
+});
+
+it('reads the joint owner naming their co-owner, the primary owner, as the link already stored', function () {
+    $record = (object) ['user_id' => 1, 'joint_owner_id' => 2];
+
+    expect(SharedOwnership::fromEditor(['joint_owner_id' => 1], $record, 2)['joint_owner_id'])->toBe(2)
+        ->and(SharedOwnership::fromEditor(['joint_owner_id' => 2], $record, 1)['joint_owner_id'])->toBe(2);
+});
+
+it('never takes the joint owner off a record still shared when their form names no co-owner', function () {
+    $record = (object) ['user_id' => 1, 'joint_owner_id' => 2, 'ownership_type' => 'joint'];
+
+    expect(SharedOwnership::fromEditor(['joint_owner_id' => null], $record, 2)['joint_owner_id'])->toBe(2)
+        ->and(SharedOwnership::fromEditor(['joint_owner_id' => null, 'ownership_type' => 'individual'], $record, 2)['joint_owner_id'])->toBeNull()
+        ->and(SharedOwnership::fromEditor(['joint_owner_id' => null], $record, 1)['joint_owner_id'])->toBeNull();
+});
+
+it('names a record\'s owners, primary first, once each', function () {
+    expect(SharedOwnership::ownerIds((object) ['user_id' => 502, 'joint_owner_id' => 503]))->toBe([502, 503])
+        ->and(SharedOwnership::ownerIds((object) ['user_id' => 502, 'joint_owner_id' => null]))->toBe([502])
+        ->and(SharedOwnership::ownerIds((object) ['user_id' => 502, 'joint_owner_id' => 502]))->toBe([502]);
+});
+
+it('opens the ruled records to the joint owner, and nothing else', function () {
+    // CSJ 2026-10-08: accounts, property, mortgages, liabilities, goals,
+    // chattels and business interests; life events stay the primary owner's.
+    expect(SharedOwnership::jointOwnerMayEdit(Goal::class))->toBeTrue()
+        ->and(SharedOwnership::jointOwnerMayEdit(Chattel::class))->toBeTrue()
+        ->and(SharedOwnership::jointOwnerMayEdit(LifeEvent::class))->toBeFalse();
 });

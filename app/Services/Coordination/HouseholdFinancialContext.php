@@ -237,8 +237,16 @@ final class HouseholdFinancialContext
             return null;
         }
 
+        // `components.employment` is pay before any salary sacrifice, and
+        // `total_income` has the sacrifice taken off once
+        // (IncomeDefinitionsService, W-0204). The form asks for earnings as
+        // part "of that" income, so they go on the same footing: an £84,000
+        // salary sacrificing £5,040 showed "£79,440, of that £84,000 from
+        // work" (csjones walk 2026-10-08).
+        $sacrificed = max(0.0, array_sum(array_map('floatval', $components)) - (float) $definition['total_income']);
+
         return [
-            'earnings' => round($earnings, 2),
+            'earnings' => round(max(0.0, $earnings - $sacrificed), 2),
             'total_income' => round((float) $definition['total_income'], 2),
         ];
     }

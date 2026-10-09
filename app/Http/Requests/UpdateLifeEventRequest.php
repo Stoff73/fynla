@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateLifeEventRequest extends FormRequest
@@ -39,7 +40,7 @@ class UpdateLifeEventRequest extends FormRequest
             'show_in_projection' => 'nullable|boolean',
             'show_in_household_view' => 'nullable|boolean',
             'ownership_type' => 'nullable|string|in:individual,joint',
-            'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_id' => ['nullable', 'integer', 'exists:users,id', new LinkedCoOwner($this->user())],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'status' => 'nullable|string|in:expected,confirmed,completed,cancelled',
         ];

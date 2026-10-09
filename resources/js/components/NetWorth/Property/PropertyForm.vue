@@ -1131,6 +1131,7 @@
 import { mapState } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { coOwnerId, isSharedRecord, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'PropertyForm',
@@ -1617,8 +1618,14 @@ export default {
       this.form.lease_remaining_years = this.property.lease_remaining_years || null;
       this.form.lease_expiry_date = this.formatDateForInput(this.property.lease_expiry_date);
       this.form.country = this.property.country || 'United Kingdom';
-      this.form.ownership_percentage = this.property.ownership_percentage || 100;
-      this.form.joint_owner_id = this.property.joint_owner_id || null;
+      // "Your Ownership Share" is the viewer's own: the joint owner's is the other
+      // side of the stored split, which is the primary owner's (Rule 6). The
+      // server turns it back (SharedOwnership::fromEditor).
+      this.form.ownership_percentage = isSharedRecord(this.property)
+        ? userSharePercent(this.property)
+        : (this.property.ownership_percentage || 100);
+      // The viewer's co-owner (either owner may change a joint property).
+      this.form.joint_owner_id = coOwnerId(this.property);
       this.form.joint_owner_name = this.property.joint_owner_name || '';
       this.form.household_id = this.property.household_id || null;
       this.form.trust_id = this.property.trust_id || null;

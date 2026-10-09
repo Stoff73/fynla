@@ -13,16 +13,20 @@ use App\Models\Mortgage;
 use App\Models\ProtectionProfile;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\AI\Fyn\RecaptureGuard;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Income\EmploymentIncomeService;
 use App\Services\Retirement\PensionContributionRule;
 use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tiers\TeaserGate;
 use App\Support\SharedExpenditure;
+use App\Support\SharedOwnership;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -41,6 +45,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class RecordEditForms
 {
+    use CalculatesOwnershipShare;
+
     /** Section id => the capture forms whose records live in it. */
     public const SECTION_LABELS = [
         'savings' => 'bank and savings accounts',
@@ -454,7 +460,7 @@ final class RecordEditForms
         }
 
         $result = match ($type) {
-            'savings_account', 'investment_account', 'dc_pension', 'life_insurance', 'critical_illness', 'income_protection' => $this->updateRecord($user, $type, $id, $this->recordFields($type, $form), $conversationId),
+            'savings_account', 'investment_account', 'dc_pension', 'life_insurance', 'critical_illness', 'income_protection' => $this->updateRecord($user, $type, $id, $this->changedFields($user, $type, $id, $model, $form), $conversationId),
             'property' => $this->updateProperty($user, $model, $form, $conversationId),
             'employment' => $this->updateEmployment($user, $model, $form),
             'spouse_household' => $this->runTool('capture_spouse_household_data', CaptureForms::toolInputs($form)[CaptureForms::LEAD] ?? [], $user, $conversationId),
@@ -472,9 +478,87 @@ final class RecordEditForms
             return ['success' => false, 'message' => (string) ($result['message'] ?? 'The change could not be saved.')];
         }
 
-        $summary = CaptureForms::summarise($form);
+        $summary = $this->transcriptLine($user, $form);
+        // A save that wrote nothing says so (SPEC-crud-handler-contract C5).
+        if (($result['updated'] ?? null) === false) {
+            return ['success' => true, 'message' => 'Already on file — '.($summary !== '' ? $summary : 'nothing changed.')];
+        }
 
         return ['success' => true, 'message' => 'Updated — '.($summary !== '' ? $summary : 'saved.')];
+    }
+
+    /**
+     * What the user changed: the posted form's fields set against the same
+     * form opened on the stored record. The form derives fields the user never
+     * sees (a name from the provider, a type from the kind), and writing those
+     * renamed "Premium Bonds" to "NS&I easy access savings", turned a Junior
+     * ISA into easy access and "David's SIPP" into "AJ Bell personal pension or
+     * SIPP" on a save with nothing changed (51 of 67 local accounts, 2026-10-08).
+     * A derived name is written only over the form's own name, so a name the
+     * user typed elsewhere survives a change of provider.
+     *
+     * @param  array<string, mixed>  $form
+     * @return array<string, mixed>
+     */
+    private function changedFields(User $user, string $type, int $id, Model $model, array $form): array
+    {
+        $posted = $this->recordFields($type, $form);
+        $opened = $this->formFor($user, $type, $id);
+        $before = $opened === null ? [] : $this->recordFields($type, $opened);
+
+        $changed = array_filter(
+            $posted,
+            static fn (mixed $value, string $column): bool => ! array_key_exists($column, $before) || RecaptureGuard::differs($before[$column], $value),
+            ARRAY_FILTER_USE_BOTH,
+        );
+        foreach (['account_name', 'scheme_name'] as $name) {
+            if (array_key_exists($name, $changed) && ($before[$name] ?? null) !== $model->getAttribute($name)) {
+                unset($changed[$name]);
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * A posted form in the user's words: the line saved as their message and
+     * the sentence the read-back repeats. An edit form names the record's real
+     * ownership (withStoredOwnership); any other form is CaptureForms' line.
+     *
+     * @param  array<string, mixed>  $form
+     */
+    public function transcriptLine(User $user, array $form): string
+    {
+        $record = $form['record'] ?? null;
+        $model = is_array($record) ? $this->find($user, (string) ($record['type'] ?? ''), (int) ($record['id'] ?? 0)) : null;
+
+        return CaptureForms::summarise($model === null ? $form : $this->withStoredOwnership($user, $model, $form));
+    }
+
+    /**
+     * The read-back names the record's real ownership. The edit form carries
+     * no ownership fields (editSchema), so the summary otherwise took the
+     * capture form's "individual" default and called a joint account
+     * individual. The share is the user's own (Rule 6: the stored percentage
+     * is the primary owner's).
+     *
+     * @param  array<string, mixed>  $form
+     * @return array<string, mixed>
+     */
+    private function withStoredOwnership(User $user, Model $model, array $form): array
+    {
+        $ownership = $model->getAttribute('ownership_type');
+        $kind = array_key_first((array) ($form['answers'] ?? []));
+        if ($ownership === null || ! is_string($kind) || ! is_array($form['answers'][$kind])) {
+            return $form;
+        }
+
+        $form['answers'][$kind]['ownership_type'] = $ownership;
+        if (SharedOwnership::isShared($ownership)) {
+            $form['answers'][$kind]['ownership_percentage'] = round($this->userShareFraction($model, (int) $user->id) * 100, 2);
+        }
+
+        return $form;
     }
 
     /** @return array{success: bool, message: string} */
@@ -762,7 +846,9 @@ final class RecordEditForms
                 'provider' => $input['provider'] ?? null,
                 'account_name' => $input['account_name'] ?? null,
                 'current_value' => $input['current_value'] ?? null,
-                'contributions_ytd' => $input['isa_subscription_current_year'] ?? null,
+                // The column the form reads and the ISA allowance counts
+                // (ISAContributionLedger), not contributions_ytd.
+                'isa_subscription_current_year' => $input['isa_subscription_current_year'] ?? null,
                 'annual_dividend_income' => $input['annual_dividend_income'] ?? null,
                 'investment_amount' => $input['investment_amount'] ?? null,
                 'bond_purchase_date' => $input['bond_purchase_date'] ?? null,
@@ -800,7 +886,7 @@ final class RecordEditForms
     private function updateRecord(User $user, string $type, int $id, array $fields, int $conversationId): array
     {
         if ($fields === []) {
-            return ['error' => true, 'message' => 'Nothing changed.'];
+            return ['success' => true, 'updated' => false];
         }
 
         return $this->runTool('update_record', ['entity_type' => $type, 'entity_id' => $id, 'fields' => $fields], $user, $conversationId);
@@ -825,6 +911,7 @@ final class RecordEditForms
         if (($result['error'] ?? false) === true) {
             return $result;
         }
+        $wrote = ($result['updated'] ?? null) !== false;
 
         $mortgage = $property->mortgages()->orderBy('id')->first();
         $balance = ($input['has_mortgage'] ?? false) ? (float) $input['mortgage_outstanding_balance'] : null;
@@ -836,8 +923,12 @@ final class RecordEditForms
         } elseif ($mortgage === null && $balance !== null) {
             $result = $this->runTool('create_mortgage', ['property_id' => (int) $property->id, 'outstanding_balance' => $balance], $user, $conversationId);
         }
+        if (($result['error'] ?? false) === true) {
+            return $result;
+        }
 
-        return $result;
+        // Two records behind one form: the save wrote if either did.
+        return ['updated' => $wrote || ($result['updated'] ?? null) !== false] + $result;
     }
 
     /** @return array<string, mixed> */
@@ -888,7 +979,7 @@ final class RecordEditForms
             'dc_pension' => app(PensionStore::class)->find($id, 'dc', $user),
             'db_pension' => app(PensionStore::class)->find($id, 'db', $user),
             'property' => app(PropertyStore::class)->find($id, $user),
-            'mortgage' => Mortgage::where('id', $id)->where('user_id', $user->id)->first(),
+            'mortgage' => app(MortgageStore::class)->find($id, $user),
             'life_insurance' => LifeInsurancePolicy::where('id', $id)->where('user_id', $user->id)->first(),
             'critical_illness' => CriticalIllnessPolicy::where('id', $id)->where('user_id', $user->id)->first(),
             'income_protection' => IncomeProtectionPolicy::where('id', $id)->where('user_id', $user->id)->first(),

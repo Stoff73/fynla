@@ -11,6 +11,7 @@ use App\Http\Resources\BusinessInterestResource;
 use App\Models\BusinessInterest;
 use App\Services\Business\BusinessInterestService;
 use App\Services\NetWorth\NetWorthService;
+use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -109,10 +110,8 @@ class BusinessInterestController extends Controller
         $resource['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
         $resource['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
-        // Invalidate net worth cache
-        $this->netWorthService->invalidateCache($user->id);
-        if ($business->joint_owner_id) {
-            $this->netWorthService->invalidateCache($business->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($business) as $ownerId) {
+            $this->netWorthService->invalidateCache($ownerId);
         }
 
         return response()->json($resource, 201);
@@ -191,12 +190,12 @@ class BusinessInterestController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can update
-        $business = BusinessInterest::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        // Either owner may change a joint business interest (HasJointOwnership::scopeForUserOrJoint).
+        $business = BusinessInterest::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
 
-        $validated = $request->validated();
+        // The form speaks from the editor's side; the joint owner's answers are
+        // turned into the stored columns.
+        $validated = SharedOwnership::fromEditor($request->validated(), $business, (int) $user->id);
 
         // Single-record pattern: Handle ownership percentage when changing to/from joint
         $ownershipType = $validated['ownership_type'] ?? $business->ownership_type;
@@ -229,7 +228,7 @@ class BusinessInterestController extends Controller
         // Add calculated fields
         $businessData['user_share'] = $this->businessService->calculateUserShare($business, $user->id);
         $businessData['full_value'] = (float) $business->current_valuation;
-        $businessData['is_primary_owner'] = true;
+        $businessData['is_primary_owner'] = $this->isPrimaryOwner($business, $user->id);
         // For business interests, is_shared is true when ownership < 100% (partial shareholding)
         $businessData['is_shared'] = ((float) ($business->ownership_percentage ?? 100)) < 100;
 
@@ -251,10 +250,8 @@ class BusinessInterestController extends Controller
         $businessData['bpr_eligible'] = $business->bpr_eligible ?? false;
         $businessData['business_type_label'] = $this->getBusinessTypeLabel($business->business_type);
 
-        // Invalidate net worth cache
-        $this->netWorthService->invalidateCache($user->id);
-        if ($business->joint_owner_id) {
-            $this->netWorthService->invalidateCache($business->joint_owner_id);
+        foreach (SharedOwnership::ownerIds($business) as $ownerId) {
+            $this->netWorthService->invalidateCache($ownerId);
         }
 
         return response()->json([
@@ -269,7 +266,7 @@ class BusinessInterestController extends Controller
     /**
      * Delete a business interest.
      *
-     * Only primary owner (user_id) can delete.
+     * Either owner may delete a joint business interest.
      * Single-record pattern: Delete the single record.
      *
      * DELETE /api/business-interests/{id}
@@ -278,18 +275,16 @@ class BusinessInterestController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can delete
-        $business = BusinessInterest::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        // Either owner may delete a joint business interest (HasJointOwnership::scopeForUserOrJoint).
+        $business = BusinessInterest::whereKey($id)->forUserOrJoint($user->id)->firstOrFail();
 
         // Capture joint owner before delete
         $jointOwnerId = $business->joint_owner_id;
 
         $business->delete();
 
-        // Invalidate net worth cache
-        $this->netWorthService->invalidateCache($user->id);
+        // Invalidate both owners' net worth caches
+        $this->netWorthService->invalidateCache((int) $business->user_id);
         if ($jointOwnerId) {
             $this->netWorthService->invalidateCache($jointOwnerId);
         }

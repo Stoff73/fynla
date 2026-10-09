@@ -1882,6 +1882,14 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "isa_subscription_current_year": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false

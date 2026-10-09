@@ -17,7 +17,7 @@ use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\PrerequisiteGateService;
 use App\Services\Stores\PensionStore;
-use App\Services\TaxConfigService;
+use App\Services\Tax\TaxStrategyMath;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -790,9 +790,9 @@ final class OnboardingStateMachine
             // "no I don't have one" advances without a tool call.
             self::STATE_CAMPAIGN2_PENSION_DB => [
             ],
-            // Pension contribution history — pensioncheck only. Shown only when the
-            // user's gross income exceeds the higher-rate threshold (skipIfPensionHistory
-            // NotApplicable gates it). Captures the last three tax years' gross pension
+            // Pension contribution history — pensioncheck only. Shown only when
+            // carry forward could be used (skipIfPensionHistoryNotApplicable gates
+            // it on TaxStrategyMath::carryForwardCouldApply). Captures the last three tax years' gross pension
             // inputs so the engine can compute unused Annual Allowance carry-forward.
             // clarify_single_figure enabled: mirrors the savetax path ambiguity guard
             // (total vs per-year) that already exists for savetax users.
@@ -2763,12 +2763,10 @@ final class OnboardingStateMachine
     }
 
     /**
-     * Skip campaign_pension_history for pensioncheck users whose gross annual
-     * income does not exceed the higher-rate threshold.
-     *
-     * The carry-forward history question is only meaningful for higher-rate
-     * taxpayers — basic-rate users have no annual-allowance optimisation to
-     * surface via it. Gross income = employment + self-employment income.
+     * Skip campaign_pension_history unless carry forward could be used: the
+     * one gate, TaxStrategyMath::carryForwardCouldApply (CSJ 2026-10-08:
+     * asked only of someone who can fill this year's pension and ISA
+     * allowances and still have spare cash left over).
      */
     public static function skipIfPensionHistoryNotApplicable(User $user): bool
     {
@@ -2779,13 +2777,7 @@ final class OnboardingStateMachine
             return true;
         }
 
-        $grossIncome = ((float) ($user->annual_employment_income ?? 0))
-            + ((float) ($user->annual_self_employment_income ?? 0));
-
-        $threshold = (float) app(TaxConfigService::class)
-            ->get('income_tax.higher_rate_threshold', 50270);
-
-        return $grossIncome <= $threshold;
+        return ! app(TaxStrategyMath::class)->carryForwardCouldApply($user);
     }
 
     /**

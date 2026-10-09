@@ -118,6 +118,7 @@ use App\Support\SharedOwnership;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
@@ -139,6 +140,21 @@ class CoordinatingAgent extends BaseAgent
 {
     use HasAiChat;
     use HasAiGuardrails;
+
+    /**
+     * The stores for joint records, which find them for either owner
+     * (HasJointOwnership::scopeForUserOrJoint). One map for update_record's
+     * no-change check and delete_record.
+     *
+     * @var array<string, class-string>
+     */
+    private const JOINT_RECORD_STORES = [
+        'savings_account' => SavingsStore::class,
+        'investment_account' => InvestmentAccountStore::class,
+        'property' => PropertyStore::class,
+        'mortgage' => MortgageStore::class,
+        'estate_liability' => LiabilityStore::class,
+    ];
 
     /**
      * Canonical savings account_type whitelist. Single source of truth for
@@ -6612,6 +6628,33 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
+        // Values that match the stored record change nothing, so nothing is
+        // written, ownership never comes into it (SPEC-crud-handler-contract C2),
+        // and the result says so rather than claiming a write (C5). A joint owner
+        // confirming "the same one" sent the stored values back and was refused
+        // as "not found" by the primary-owner rule (full Luna run 2026-10-08,
+        // turn 1744). Any real change still goes through its store and owner guard.
+        $stored = isset(self::JOINT_RECORD_STORES[$entityType])
+            ? app(self::JOINT_RECORD_STORES[$entityType])->find($entityId, $user)
+            : match ($entityType) {
+                'dc_pension' => app(PensionStore::class)->find($entityId, 'dc', $user),
+                'db_pension' => app(PensionStore::class)->find($entityId, 'db', $user),
+                'estate_gift' => null,
+                default => $this->resolveModel($entityType, $entityId, $user->id),
+            };
+        if ($stored instanceof Model && ! collect($fields)->contains(
+            fn (mixed $value, string $column): bool => RecaptureGuard::differs($stored->{$column}, $value)
+        )) {
+            return [
+                'success' => true,
+                'updated' => false,
+                'entity_type' => $entityType,
+                'entity_id' => $stored->id,
+                'fields_updated' => [],
+                'message' => 'Already on file, nothing to change.',
+            ];
+        }
+
         // Pension mutations route through PensionStore (canonical write path
         // for SP1 Pass 3). Holdings + ancillary pension models continue to
         // route through resolveModel until their own stores land.
@@ -6650,13 +6693,15 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        if (in_array($entityType, ['savings_account', 'investment_account', 'estate_liability', 'estate_gift'], true)) {
+        if (in_array($entityType, ['savings_account', 'investment_account', 'property', 'mortgage', 'estate_liability', 'estate_gift'], true)) {
             // An investment account's dividends move the user's taxable dividend
             // total inside InvestmentAccountStore::update.
             try {
                 $record = match ($entityType) {
                     'savings_account' => app(SavingsStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
                     'investment_account' => app(InvestmentAccountStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                    'property' => app(PropertyStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
+                    'mortgage' => app(MortgageStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
                     'estate_liability' => app(LiabilityStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
                     'estate_gift' => app(GiftStore::class)->update($entityId, $fields, $user, IngestSource::FYN_AI),
                 };
@@ -6811,21 +6856,30 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        if ($entityType === 'estate_liability') {
-            $liability = app(LiabilityStore::class)->find($entityId, $user);
-            if ($liability === null || $liability->user_id !== $user->id) {
+        // Records either owner may hold jointly go through their Store, which
+        // finds them for both owners (HasJointOwnership::scopeForUserOrJoint)
+        // and moves what hangs off them, such as an account's dividends in the
+        // owner's taxable total (InvestmentAccountStore::delete). A direct
+        // delete here refused the joint owner and skipped both.
+        if (isset(self::JOINT_RECORD_STORES[$entityType])) {
+            $store = app(self::JOINT_RECORD_STORES[$entityType]);
+            $record = $store->find($entityId, $user);
+            if ($record === null) {
                 return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
             }
 
-            $name = $liability->liability_name ?? "#{$entityId}";
-            app(LiabilityStore::class)->delete($entityId, $user, IngestSource::FYN_AI);
+            $name = $record->account_name ?? $record->liability_name ?? $record->address_line_1 ?? $record->lender_name ?? "#{$entityId}";
+            match ($entityType) {
+                'savings_account', 'property' => $store->delete($entityId, $user, 'user_requested'),
+                default => $store->delete($entityId, $user, IngestSource::FYN_AI),
+            };
 
             return [
                 'success' => true,
                 'deleted' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,
-                'message' => "Estate liability \"{$name}\" deleted.",
+                'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted.",
             ];
         }
 
@@ -6886,7 +6940,11 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
         }
 
-        $model = $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
+        // Either owner of a joint record may change it (SharedOwnership::JOINT_OWNER_EDITABLE,
+        // CSJ 2026-10-08). Nothing else opens to the joint owner.
+        $model = SharedOwnership::jointOwnerMayEdit($modelClass)
+            ? $modelClass::whereKey($entityId)->forUserOrJoint($userId)->first()
+            : $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
 
         if (! $model) {
             return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)).' not found or does not belong to you.'];

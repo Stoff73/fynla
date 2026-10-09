@@ -213,11 +213,11 @@ class MortgageController extends Controller
             ], 400);
         }
 
-        // Authorisation check — only primary owner may update.
-        // MortgageStore::update enforces this too via firstOrFail, but we surface a
-        // cleaner 404 here before building the canonical payload.
+        // Either owner may change a joint mortgage (HasJointOwnership::scopeForUserOrJoint).
+        // MortgageStore::update finds it the same way; this surfaces a cleaner 404
+        // before building the canonical payload.
         $mortgage = $this->mortgageStore->find($id, $user);
-        if ($mortgage === null || $mortgage->user_id !== $user->id) {
+        if ($mortgage === null) {
             return $this->notFoundResponse('Mortgage');
         }
 
@@ -228,9 +228,11 @@ class MortgageController extends Controller
             $this->logJointMortgageUpdate($user, $mortgage, $validated);
         }
 
+        // The record's own owner: the normaliser stamps user_id, and a joint
+        // owner's save must not hand the mortgage to them.
         $canonical = MortgageNormaliser::fromForm(
             array_merge($validated, ['property_id' => $mortgage->property_id]),
-            $user
+            $mortgage->user
         );
 
         try {
@@ -242,7 +244,7 @@ class MortgageController extends Controller
         $mortgageResource = (new MortgageResource($fresh))->additional([
             'user_share' => $this->calculateUserMortgageShare($fresh, $user->id),
             'full_balance' => (float) $fresh->outstanding_balance,
-            'is_primary_owner' => true,
+            'is_primary_owner' => $this->isPrimaryOwner($fresh, $user->id),
         ]);
 
         return response()->json([
@@ -277,8 +279,9 @@ class MortgageController extends Controller
             ], 400);
         }
 
+        // Either owner may remove a joint mortgage (HasJointOwnership::scopeForUserOrJoint).
         $mortgage = $this->mortgageStore->find($id, $user);
-        if ($mortgage === null || $mortgage->user_id !== $user->id) {
+        if ($mortgage === null) {
             return $this->notFoundResponse('Mortgage');
         }
 

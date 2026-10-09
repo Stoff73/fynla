@@ -11,7 +11,7 @@
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
             <div class="hidden group-hover:block absolute z-10 w-64 p-3 mt-1 text-xs text-white bg-horizon-500 rounded-lg shadow-lg left-0">
-              Enter 100% of all property costs. The system will automatically calculate your share ({{ property.ownership_percentage }}%) based on your ownership percentage.
+              Enter 100% of all property costs. The system will automatically calculate your share ({{ sharePercent }}%) based on your ownership percentage.
             </div>
           </div>
         </div>
@@ -78,7 +78,7 @@
           <dd class="text-base font-bold text-horizon-500">{{ formatCurrency(totalMonthlyCosts) }}</dd>
         </div>
         <div v-if="isSharedOwnership" class="flex justify-between py-2">
-          <dt class="text-base font-semibold text-violet-700">Your Share ({{ property.ownership_percentage }}%):</dt>
+          <dt class="text-base font-semibold text-violet-700">Your Share ({{ sharePercent }}%):</dt>
           <dd class="text-base font-bold text-violet-600">{{ formatCurrency(userMonthlyCosts) }}</dd>
         </div>
       </dl>
@@ -374,6 +374,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { userSharePercent } from '@/utils/ownership';
 
 import logger from '@/utils/logger';
 export default {
@@ -415,6 +416,11 @@ export default {
   },
 
   computed: {
+    // The viewer's own share: the joint owner's is the other side of the
+    // stored split, which is the primary owner's (Rule 6, W-0016).
+    sharePercent() {
+      return userSharePercent(this.property).toFixed(2);
+    },
     mortgageList() {
       // Use mortgages from prop, or fallback to property.mortgages
       return this.mortgages && this.mortgages.length > 0

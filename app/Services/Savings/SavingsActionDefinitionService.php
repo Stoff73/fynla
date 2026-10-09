@@ -13,8 +13,11 @@ use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Shared\DependantsReach;
+use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\SavingsInterestRate;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\FormatsCurrency;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
@@ -31,6 +34,7 @@ use Illuminate\Support\Collection;
  */
 class SavingsActionDefinitionService
 {
+    use CalculatesOwnershipShare;
     use FormatsCurrency;
     use ResolvesExpenditure;
     use ResolvesIncome;
@@ -695,14 +699,19 @@ class SavingsActionDefinitionService
             'explanation' => $userName.' is a '.$psaPosition['tax_band'].' rate taxpayer (gross income £'.number_format($grossIncome, 0).'), giving a Personal Savings Allowance of £'.number_format($psaPosition['psa_amount'], 0).'. Basic rate = £1,000, higher rate = £500, additional rate = £0.',
         ];
 
-        // 3. Interest vs allowance
-        $nonIsaAccounts = $user->savingsAccounts()->where('is_isa', false)->get();
-        $accountInterestDetails = $nonIsaAccounts->map(function ($account) {
+        // 3. Interest vs allowance: the same accounts and shares the allowance
+        // figure is built from (IncomeDefinitionsService::estimatedAnnualInterest).
+        // The rate column holds a percentage; this printed 4% as "400.00%".
+        $nonIsaAccounts = app(SavingsStore::class)->forUser($user)->where('is_isa', false);
+        $accountInterestDetails = $nonIsaAccounts->map(function ($account) use ($user) {
             $balance = (float) ($account->current_balance ?? 0);
-            $rate = (float) ($account->interest_rate ?? 0);
-            $interest = $balance * $rate;
+            $share = $this->calculateUserShare($account, (int) $user->id);
+            $rate = SavingsInterestRate::fraction($account->interest_rate);
+            $whose = $share < $balance && $balance > 0
+                ? 'your '.number_format($share / $balance * 100, 0).'% of £'.number_format($balance, 0)
+                : '£'.number_format($balance, 0);
 
-            return ($account->account_name ?? 'Unnamed').' at '.($account->institution ?? 'unknown').' — £'.number_format($balance, 0).' × '.number_format($rate * 100, 2).'% = £'.number_format($interest, 0);
+            return ($account->account_name ?? 'Unnamed').' at '.($account->institution ?? 'unknown').' — '.$whose.' × '.number_format($rate * 100, 2).'% = £'.number_format($share * $rate, 0);
         })->implode('; ');
 
         $trace[] = [

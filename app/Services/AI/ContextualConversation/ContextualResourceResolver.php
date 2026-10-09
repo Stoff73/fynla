@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Support\SharedOwnership;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -190,8 +191,10 @@ final class ContextualResourceResolver
      */
     private function modelsFor(User $user, string $resourceType, array $resourceIds): Collection
     {
+        // Either owner of a joint record may open it to change it
+        // (HasJointOwnership::scopeForUserOrJoint).
         if ($resourceType === 'savings_account') {
-            return $this->savingsStore->findManyPrimary($resourceIds, $user);
+            return $this->savingsStore->findMany($resourceIds, $user);
         }
 
         if (in_array($resourceType, ['dc_pension', 'db_pension', 'state_pension'], true)) {
@@ -216,10 +219,13 @@ final class ContextualResourceResolver
             throw (new ModelNotFoundException)->setModel($resourceType);
         }
 
-        return $modelClass::query()
-            ->where('user_id', $user->id)
-            ->whereIn('id', $resourceIds)
-            ->get();
+        $query = $modelClass::query()->whereIn('id', $resourceIds);
+
+        // The one list of records the joint owner may change (CSJ 2026-10-08);
+        // a trait check here opened anything joint-capable, life events included.
+        return (SharedOwnership::jointOwnerMayEdit($modelClass)
+            ? $query->forUserOrJoint($user->id)
+            : $query->where('user_id', $user->id))->get();
     }
 
     /**

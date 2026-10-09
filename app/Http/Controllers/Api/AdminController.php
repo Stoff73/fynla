@@ -17,12 +17,12 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Services\Admin\DatabaseMetricsService;
 use App\Services\Admin\UserModuleTrackingService;
+use App\Services\AI\AiProvider;
 use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -650,31 +650,17 @@ class AdminController extends Controller
     public function getAiProvider(): JsonResponse
     {
         // S0.11.4 — read via the versioned-key path so the admin UI sees
-        // the same provider as in-flight chat loops resolved through
-        // HasAiGuardrails::getAiProviderForLoop().
-        $version = (int) Cache::get('ai_provider_version', 0);
-        $provider = $version > 0
-            ? Cache::get("ai_provider:v{$version}", config('services.ai_provider', 'anthropic'))
-            : Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
-
+        // the same provider as in-flight chat loops.
         return response()->json([
             'success' => true,
             'data' => [
-                'provider' => $provider,
-                'available_providers' => [
-                    [
-                        'id' => 'anthropic',
-                        'name' => 'Anthropic Claude',
-                        'model' => config('services.anthropic.chat_model', 'claude-haiku-4-5-20251001'),
-                        'configured' => ! empty(config('services.anthropic.api_key')),
-                    ],
-                    [
-                        'id' => 'xai',
-                        'name' => 'xAI Grok',
-                        'model' => config('services.xai.chat_model', 'grok-4.3'),
-                        'configured' => ! empty(config('services.xai.api_key')),
-                    ],
-                ],
+                'provider' => AiProvider::active(),
+                'available_providers' => array_map(fn (string $id): array => [
+                    'id' => $id,
+                    'name' => AiProvider::name($id),
+                    'model' => AiProvider::chatModel($id),
+                    'configured' => AiProvider::isConfigured($id),
+                ], AiProvider::ALL),
             ],
         ]);
     }
@@ -685,31 +671,20 @@ class AdminController extends Controller
     public function setAiProvider(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:anthropic,xai',
+            'provider' => ['required', 'string', Rule::in(AiProvider::ALL)],
         ]);
 
         $provider = $validated['provider'];
 
         // Verify the selected provider has an API key configured
-        $configKey = $provider === 'xai' ? 'services.xai.api_key' : 'services.anthropic.api_key';
-        if (empty(config($configKey))) {
+        if (! AiProvider::isConfigured($provider)) {
             return response()->json([
                 'success' => false,
-                'message' => "Cannot switch to {$provider}: API key is not configured in .env",
+                'message' => 'Cannot switch to '.AiProvider::name($provider).': API key is not configured in .env',
             ], 422);
         }
 
-        // S0.11.4 — bump the version counter and write the new value
-        // under the versioned key. In-flight chat loops captured the OLD
-        // version's value at their entry, so they finish on their original
-        // provider; new requests see the new provider atomically.
-        // Also keep writing the legacy unversioned key for backward
-        // compatibility with any reader that hasn't migrated yet.
-        $currentVersion = (int) Cache::get('ai_provider_version', 0);
-        $newVersion = $currentVersion + 1;
-        Cache::forever("ai_provider:v{$newVersion}", $provider);
-        Cache::forever('ai_provider_version', $newVersion);
-        Cache::forever('ai_provider', $provider);
+        $newVersion = AiProvider::switchTo($provider);
 
         Log::info('[Admin] AI provider switched', [
             'provider' => $provider,
@@ -719,7 +694,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "AI provider switched to {$provider}",
+            'message' => 'AI provider switched to '.AiProvider::name($provider),
             'data' => ['provider' => $provider],
         ]);
     }

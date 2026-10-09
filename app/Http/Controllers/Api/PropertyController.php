@@ -24,6 +24,7 @@ use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\PropertyStore;
 use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -289,9 +290,12 @@ class PropertyController extends Controller
         $validated = $request->validated();
 
         // Resolve ownership defaults before passing to the normaliser.
-        // PropertyStore::update fetches the existing record itself (owner-only guard).
-        // We need the current state to apply the 50/50 default logic.
-        $existingProperty = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        // We need the current state to apply the 50/50 default logic. Either
+        // owner may change a joint property (HasJointOwnership::scopeForUserOrJoint),
+        // and the joint owner's "Your Ownership Share" is the other side of the
+        // stored split.
+        $existingProperty = $this->propertyStore->find($id, $user) ?? throw (new ModelNotFoundException)->setModel(Property::class, [$id]);
+        $validated = SharedOwnership::fromEditor($validated, $existingProperty, (int) $user->id);
 
         $ownershipType = $validated['ownership_type'] ?? $existingProperty->ownership_type;
 
@@ -339,7 +343,7 @@ class PropertyController extends Controller
         // Add calculated fields
         $propertyData['user_share'] = $this->calculateUserShare($property, $user->id);
         $propertyData['full_value'] = (float) $property->current_value;
-        $propertyData['is_primary_owner'] = true;
+        $propertyData['is_primary_owner'] = $this->isPrimaryOwner($property, $user->id);
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
         return response()->json([
@@ -354,7 +358,7 @@ class PropertyController extends Controller
     /**
      * Delete a property
      *
-     * Only primary owner (user_id) can delete.
+     * Either owner may delete a joint property (HasJointOwnership::scopeForUserOrJoint).
      * SP1 Pass 4 PR 2: Property delete is routed through PropertyStore::delete.
      *
      * DELETE /api/properties/{id}
@@ -367,16 +371,18 @@ class PropertyController extends Controller
         // not soft-delete, so we must cascade manually). Each mortgage is routed
         // through MortgageStore::delete (SP1 Pass 5 PR 4) so audit + event semantics
         // mirror the per-record delete path.
-        $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $property = $this->propertyStore->find($id, $user) ?? throw (new ModelNotFoundException)->setModel(Property::class, [$id]);
+        // The cascade runs as the property's own owner, whichever owner removes it.
+        $owner = $property->user;
 
-        // Atomic cascade: primary-only filter (joint owners are READ-ONLY in MortgageStore).
+        // Atomic cascade over the owner's mortgages on this property.
         // Wrapped in DB::transaction so the property never lingers if a mortgage delete
         // fails midway through the loop.
-        \DB::transaction(function () use ($property, $user, $id) {
-            $primaryMortgages = $this->mortgageStore->forProperty($property->id, $user)
-                ->where('user_id', $user->id);
+        \DB::transaction(function () use ($property, $user, $owner, $id) {
+            $primaryMortgages = $this->mortgageStore->forProperty($property->id, $owner)
+                ->where('user_id', $owner->id);
             foreach ($primaryMortgages as $mortgage) {
-                $this->mortgageStore->delete($mortgage->id, $user, IngestSource::FORM);
+                $this->mortgageStore->delete($mortgage->id, $owner, IngestSource::FORM);
             }
 
             // Route Property soft-delete through PropertyStore (SP1 Pass 4 PR 2).

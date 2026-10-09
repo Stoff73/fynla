@@ -2,7 +2,7 @@
 fact_id: hv-pension-aa-carry-forward
 category: house_view
 title: Pension Annual Allowance carry-forward — unused allowance from earlier years
-version: 2
+version: 3
 valid_to: null
 ---
 
@@ -13,9 +13,13 @@ HM Revenue and Customs allows unused allowance from the previous three tax
 years to be carried forward and used once the current year's allowance is
 spent. Someone who contributed below the allowance in past years can
 therefore make a much larger contribution this year with full tax relief.
-The strategy applies to higher and additional-rate taxpayers who have
-captured their pension contribution history, have not already filled this
-year's allowance, and have genuine unused allowance inside the exact
+The strategy applies only to higher and additional-rate taxpayers who earn
+more than this year's allowance and hold more spare cash than they can still
+pay into a pension and an ISA this year: carry forward is used only once
+this year's allowance is full, and the whole ISA allowance comes first.
+Anyone else is never asked for their past pension contributions, and the
+plan never waits on them. For those it does apply to, it needs their
+contribution history and genuine unused allowance inside the exact
 three-year lookback window. Relief is always capped by relevant UK earnings,
 so a large carry-forward figure means nothing to someone whose earnings
 cannot support the contribution.

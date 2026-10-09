@@ -406,6 +406,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import { mapState, mapGetters, mapActions } from 'vuex';
 
 import logger from '@/utils/logger';
+import { coOwnerId } from '@/utils/ownership';
 export default {
   name: 'GoalFormModal',
   mixins: [currencyMixin],
@@ -623,7 +624,8 @@ export default {
           show_in_household_view: this.goal.show_in_household_view ?? true,
           is_essential: this.goal.is_essential ?? false,
           ownership_type: this.goal.ownership_type || 'individual',
-          joint_owner_id: this.goal.joint_owner_id || null,
+          // The viewer's co-owner (either owner may change a joint goal).
+          joint_owner_id: coOwnerId(this.goal),
         };
       } else {
         this.form = this.getDefaultForm();

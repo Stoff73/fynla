@@ -6,6 +6,7 @@ namespace App\Traits;
 
 use App\Models\AiDailyUsage;
 use App\Models\User;
+use App\Services\AI\AiProvider;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
 use Illuminate\Support\Facades\Cache;
@@ -17,13 +18,9 @@ use Illuminate\Support\Facades\DB;
  */
 trait HasAiGuardrails
 {
-    private const DEFAULT_MODEL_ANTHROPIC = 'claude-haiku-4-5-20251001';
-
-    private const DEFAULT_MODEL_XAI = 'grok-4.3';
-
     /**
      * Cheapest tier used when the rolling weekly budget is exceeded.
-     * Matches DEFAULT_MODEL_ANTHROPIC — kept as a named constant so the
+     * Matches Anthropic's default chat model — kept as a named constant so the
      * soft-degrade test can assert by name rather than by string literal.
      */
     public const SOFT_DEGRADE_MODEL = 'claude-haiku-4-5-20251001';
@@ -44,38 +41,17 @@ trait HasAiGuardrails
     /**
      * Resolve the active AI provider for an in-flight chat() call.
      *
-     * Reads the versioned cache key written by AdminController::setAiProvider.
      * Callers that span an entire chat loop (HasAiChat::chat) MUST capture
      * the result ONCE at the top and reuse the local snapshot for every
      * iteration — otherwise a mid-stream admin toggle can swap the
      * provider mid-loop and cause Anthropic prompt-cache markers to leak
-     * into xAI (or vice versa), producing a 400 from the wrong endpoint
-     * (S0.11.4 / INV-2.9.4).
-     *
-     * Lookup order (first match wins):
-     *  1. Versioned key `ai_provider:v{N}` where N is `ai_provider_version`
-     *     (the canonical post-S0.11.4 path — admin toggle bumps the version
-     *     atomically so any in-flight reader never sees a torn write).
-     *  2. Legacy unversioned `ai_provider` key (kept for backward
-     *     compatibility with existing tests / fixtures that wrote the old
-     *     key directly via `Cache::forever('ai_provider', ...)`).
-     *  3. The `services.ai_provider` config default ('anthropic').
+     * into an OpenAI-format provider (or vice versa), producing a 400 from
+     * the wrong endpoint (S0.11.4 / INV-2.9.4). The lookup order lives in
+     * {@see AiProvider::active()}.
      */
     protected static function getAiProviderForLoop(): string
     {
-        $version = (int) Cache::get('ai_provider_version', 0);
-
-        if ($version > 0) {
-            return Cache::get(
-                "ai_provider:v{$version}",
-                config('services.ai_provider', 'anthropic')
-            );
-        }
-
-        return Cache::get(
-            'ai_provider',
-            config('services.ai_provider', 'anthropic')
-        );
+        return AiProvider::active();
     }
 
     // ─── Tier-store helpers (PR 6) ────────────────────────────────────────
@@ -139,36 +115,33 @@ trait HasAiGuardrails
     }
 
     /**
-     * Get the appropriate model for this user and query complexity.
-     * Supports both Anthropic and xAI providers via AI_PROVIDER config.
+     * Get the appropriate model for this user and query complexity, on the
+     * given provider (a chat loop's snapshot) or the active one ({@see AiProvider}).
      */
-    protected function getAiModel(User $user, string $complexity = 'standard'): string
+    protected function getAiModel(User $user, string $complexity = 'standard', ?string $provider = null): string
     {
-        $provider = static::getAiProvider();
-        $configKey = $provider === 'xai' ? 'services.xai' : 'services.anthropic';
-        $defaultModel = $provider === 'xai' ? self::DEFAULT_MODEL_XAI : self::DEFAULT_MODEL_ANTHROPIC;
+        $provider ??= static::getAiProvider();
 
         // Soft-degrade: rolling weekly budget exceeded → cheapest model.
         // Chat stays open; the system prompt prepends a plain-text notice.
         // MUST be provider-aware: SOFT_DEGRADE_MODEL is an Anthropic model name,
-        // so returning it under AI_PROVIDER=xai sends an invalid model to the
-        // xAI endpoint ("model ... does not exist") and BREAKS chat instead of
-        // degrading it. Under xAI, degrade to a configured xAI model (defaulting
-        // to the standard xAI chat model so the conversation stays open).
+        // so returning it under an OpenAI-format provider sends an invalid model
+        // to that endpoint ("model ... does not exist") and BREAKS chat instead of
+        // degrading it. There, degrade to the provider's configured degrade model
+        // (defaulting to its standard chat model so the conversation stays open).
         if ($this->isWeeklyBudgetExceeded($user)) {
-            // ?: (not the config default arg) so an explicitly null/empty
-            // services.xai.degrade_chat_model still falls back to a valid model.
-            return $provider === 'xai'
-                ? (config('services.xai.degrade_chat_model') ?: self::DEFAULT_MODEL_XAI)
+            // ?: so an explicitly null/empty degrade_chat_model still falls
+            // back to a valid model.
+            return AiProvider::speaksOpenAiFormat($provider)
+                ? (AiProvider::setting($provider, 'degrade_chat_model') ?: AiProvider::chatModel($provider))
                 : self::SOFT_DEGRADE_MODEL; // terser/cheaper until the rolling week resets
         }
 
-        $configModel = config("{$configKey}.chat_model");
         if ($complexity === 'complex' && $this->getUserPlan($user) === 'premium') {
-            return config("{$configKey}.advanced_chat_model") ?: ($configModel ?: $defaultModel);
+            return AiProvider::advancedChatModel($provider);
         }
 
-        return $configModel ?: $defaultModel;
+        return AiProvider::chatModel($provider);
     }
 
     /**

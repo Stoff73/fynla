@@ -22,6 +22,7 @@ use App\Models\OnboardingProgress;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\AiProvider;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
@@ -42,6 +43,7 @@ use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\PlanSources\RetirementStrategySource;
 use App\Services\Coordination\StrategyPlanComposer;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
@@ -52,9 +54,9 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Support\SharedExpenditure;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -3163,13 +3165,11 @@ final class OnboardingChatDirector
 
         $toolDefinitions = app(AiToolDefinitions::class);
         // Match the active provider so the tools ship in the correct
-        // format. xAI expects the OpenAI function-calling wrapper,
+        // format. xAI and OpenAI expect the OpenAI function-calling wrapper,
         // Anthropic expects the flattened input_schema shape.
-        $provider = Cache::get(
-            'ai_provider',
-            config('services.ai_provider', 'anthropic')
+        $allExtractionTools = $toolDefinitions->onboardingExtractionTools(
+            provider: AiProvider::toolFormat(AiProvider::active()),
         );
-        $allExtractionTools = $toolDefinitions->onboardingExtractionTools(provider: $provider);
 
         // Filter to the single tool this state needs. The filter key
         // lookup differs between providers — xAI wraps the name inside
@@ -4214,6 +4214,9 @@ PROMPT;
             $errors[$kind] = [
                 'message' => (string) ($result['message'] ?? $result['reason'] ?? 'The write failed.'),
                 'error_type' => (string) ($result['error_type'] ?? ''),
+                // The record the duplicate guard's question is about, so the
+                // answer can be taken as about it (emitFormProblem).
+                'entity_id' => isset($result['entity_id']) ? (int) $result['entity_id'] : null,
                 'fields' => is_array($result['errors'] ?? null)
                     ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])
                     : [],
@@ -4236,24 +4239,48 @@ PROMPT;
         yield ['type' => 'capture_form_errors', 'form' => $formName, 'errors' => $errors];
         yield ['type' => 'content', 'text' => $text];
 
-        return $this->saveMessage($conversation, 'assistant', $text, ['metadata' => array_filter([
-            'onboarding_step' => $stateId,
-            'capture_write_failed' => true,
-            'turn_intent' => FynTurnIntent::CaptureClarification->value,
-        ])]);
+        // Outside the setup walk nothing holds a step, so a duplicate guard's
+        // question is marked as a capture still asking about its record: the
+        // reply ("It's the same one") is then taken as the answer about that
+        // record (AdviceFyn::captureContinuationIntent), not as a new request
+        // that reopened a blank form (csjones, Alex, 2026-10-08).
+        $guardRecordId = $stateId === null
+            ? collect($errors)->first(static fn (array $e): bool => in_array($e['error_type'] ?? null, ['confirm_duplicate_required', 'confirm_edit_required'], true))['entity_id'] ?? null
+            : null;
+
+        return $this->saveMessage($conversation, 'assistant', $text, array_filter([
+            'persona' => $guardRecordId !== null ? 'data_capture' : null,
+            'metadata' => array_filter([
+                'onboarding_step' => $stateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+                'capture_write_landed' => $guardRecordId !== null ? false : null,
+                'capture_record_id' => $guardRecordId,
+            ], static fn ($value): bool => $value !== null),
+        ]));
     }
 
     /**
      * "I couldn't save …", one sentence per kind that failed, after a recap of
-     * any that were saved.
+     * any that were saved; then any question the duplicate guard asks.
      *
-     * @param  array<string, array{message: string}>  $errors
+     * @param  array<string, array{message: string, error_type?: string}>  $errors
      * @param  list<array<string, mixed>>  $recordsCreated
      */
     private function formErrorText(string $formName, array $errors, array $recordsCreated): string
     {
+        // The duplicate guard asks; it never refuses (CSJ 2026-10-08). Its
+        // question is in Fyn's voice already, so it is asked as written, not
+        // under "I couldn't save" (Jamie read "I couldn't save Easy access
+        // savings: You already have …" as a failure).
+        $questions = [];
         $lines = [];
         foreach ($errors as $kind => $error) {
+            if (in_array($error['error_type'] ?? null, ['confirm_duplicate_required', 'confirm_edit_required'], true)) {
+                $questions[] = rtrim($error['message']);
+
+                continue;
+            }
             // A guard's own refusal (RecaptureGuard's "...or a separate
             // one?") already ends in terminal punctuation — gluing on
             // another full stop produced "?." live. A period-ending
@@ -4269,8 +4296,9 @@ PROMPT;
             $lines[] = CaptureForms::kindLabel($formName, $kind).': '.$reason.$fullStop;
         }
 
-        return ($recordsCreated !== [] ? rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. ' : '')
-            ."I couldn't save ".implode(' ', $lines);
+        return trim(($recordsCreated !== [] ? rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. ' : '')
+            .($lines !== [] ? "I couldn't save ".implode(' ', $lines).' ' : '')
+            .implode(' ', $questions));
     }
 
     /** @param  array<string, array{error_type?: string}>  $errors */
@@ -5396,10 +5424,11 @@ PROMPT;
     private function verifyEditToolDefinitions(User $user, string $section, string $message = '', ?string $providerSnapshot = null): array
     {
         $provider = $providerSnapshot ?? $this->verifyEditProviderSnapshot();
-        $tools = $provider === 'xai'
+        $openAiFormat = AiProvider::speaksOpenAiFormat($provider);
+        $tools = $openAiFormat
             ? app(XaiToolDefinitions::class)->getTools(false)
             : app(AiToolDefinitions::class)->getTools(false);
-        if ($provider !== 'xai') {
+        if (! $openAiFormat) {
             $tools = array_map(static function (array $tool): array {
                 if (isset($tool['parameters']) && ! isset($tool['input_schema'])) {
                     return [
@@ -5530,11 +5559,7 @@ PROMPT;
 
     private function verifyEditProviderSnapshot(): string
     {
-        $providerVersion = (int) Cache::get('ai_provider_version', 0);
-
-        return (string) ($providerVersion > 0
-            ? Cache::get('ai_provider:v'.$providerVersion, config('services.ai_provider', 'anthropic'))
-            : Cache::get('ai_provider', config('services.ai_provider', 'anthropic')));
+        return AiProvider::active();
     }
 
     /**
@@ -6696,7 +6721,14 @@ PROMPT;
         }
         $parts = [];
         if ((float) ($user->monthly_expenditure ?? 0) > 0) {
-            $parts[] = 'monthly spending of '.$this->wholePounds((float) $user->monthly_expenditure);
+            // A shared household's account holds its half (SharedExpenditure);
+            // say so, or the figure reads as a mistake (Jamie typed £3,800 and
+            // was told £1,900, csjones 2026-10-08).
+            $monthly = (float) $user->monthly_expenditure;
+            $parts[] = 'monthly spending of '.$this->wholePounds($monthly)
+                .(app(HouseholdExpenditureWriter::class)->dividesFor($user)
+                    ? ', your half of the '.$this->wholePounds((float) SharedExpenditure::householdOf(['monthly_expenditure' => $monthly])['monthly_expenditure']).' your household spends'
+                    : '');
         }
         if ((float) ($user->childcare ?? 0) > 0) {
             $parts[] = 'childcare of '.$this->wholePounds((float) $user->childcare).' a month';
@@ -7890,7 +7922,7 @@ PROMPT;
     {
         $forms = app(RecordEditForms::class);
         $record = (array) $form['record'];
-        yield ['type' => 'form_received', 'text' => ($form['delete'] ?? false) ? 'Remove this record.' : CaptureForms::summarise($form)];
+        yield ['type' => 'form_received', 'text' => ($form['delete'] ?? false) ? 'Remove this record.' : $forms->transcriptLine($user, $form)];
 
         $result = ($form['delete'] ?? false) === true
             ? $forms->delete($user, (string) ($record['type'] ?? ''), (int) ($record['id'] ?? 0), $conversation->id)
@@ -7929,7 +7961,7 @@ PROMPT;
             $ack = $this->buildCaptureAck($user->refresh(), $currentStateId, []) ?? $result['message'];
             yield ['type' => 'content', 'text' => $ack];
             $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
-            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, CaptureForms::summarise($form), (string) ($user->onboarding_fyn_selection ?? 'savetax'));
+            yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $forms->transcriptLine($user, $form), (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
             return;
         }

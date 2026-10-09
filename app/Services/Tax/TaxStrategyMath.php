@@ -105,14 +105,30 @@ final class TaxStrategyMath
         // Blind Person's Allowance comes off net income with the Personal
         // Allowance (ITA 2007 s23 Step 3, s38), so in net-income terms each
         // rate starts that much higher too.
-        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
-        $extension = (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0)
-            + $this->taxConfig->blindPersonsAllowanceFor($user);
+        $extension = array_sum($this->bandExtensionParts($user));
         $raw = $this->bandThresholds();
 
         return [
             'higher' => $raw['higher'] > 0 ? $raw['higher'] + $extension : 0.0,
             'additional' => $raw['additional'] > 0 ? $raw['additional'] + $extension : 0.0,
+        ];
+    }
+
+    /**
+     * What raises this user's basic and higher rate limits, part by part, so a
+     * working names only the parts that are there (csjones 2026-10-08: Gift Aid
+     * alone was described as "your Gift Aid and personal pension payments").
+     *
+     * @return array{gift_aid: float, personal_pension: float, blind_persons_allowance: float}
+     */
+    public function bandExtensionParts(User $user): array
+    {
+        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
+
+        return [
+            'gift_aid' => (float) ($deductions['gift_aid_gross'] ?? 0),
+            'personal_pension' => (float) ($deductions['relief_at_source_gross'] ?? 0),
+            'blind_persons_allowance' => $this->taxConfig->blindPersonsAllowanceFor($user),
         ];
     }
 
@@ -345,10 +361,14 @@ final class TaxStrategyMath
      * allowance, so it applies only when both hold (CSJ 2026-09-28):
      * - earnings above this year's allowance: relief is capped at relevant
      *   UK earnings (FA 2004 s190, https://www.legislation.gov.uk/ukpga/2004/12/section/190);
-     * - cash savings above what they can still pay in this year: carry
-     *   forward starts once this year's allowance is used (FA 2004 s228A,
-     *   https://www.legislation.gov.uk/ukpga/2004/12/section/228A).
-     * Anyone else is never asked for past pension payments.
+     * - cash savings above what they can still pay into a pension AND an ISA
+     *   this year: carry forward starts once this year's allowance is used
+     *   (FA 2004 s228A, https://www.legislation.gov.uk/ukpga/2004/12/section/228A),
+     *   and the whole ISA allowance comes before it (CSJ 2026-10-08: "if a
+     *   user does not have more than £80,000 spare cash to invest, we NEVER
+     *   ask for the contribution history").
+     * Anyone else is never asked for past pension payments: this is the one
+     * gate for the plan, the onboarding question and Fyn's knowledge.
      */
     public function carryForwardCouldApply(User $user): bool
     {
@@ -359,8 +379,9 @@ final class TaxStrategyMath
 
         $cash = app(SavingsStore::class)->forUser($user)
             ->sum(fn ($account): float => $this->calculateUserShare($account, (int) $user->id));
+        $isaStillToUse = (float) app(ISATracker::class)->usedThisTaxYear($user)['remaining'];
 
-        return $cash > $this->availableAnnualAllowance($user, null);
+        return $cash > $this->availableAnnualAllowance($user, null) + $isaStillToUse;
     }
 
     public function availableAnnualAllowance(User $user, ?TaxStrategyOverridesDTO $overrides): float
@@ -946,13 +967,31 @@ final class TaxStrategyMath
      */
     public function higherRateSlice(User $user, float $taxable, float $limit): float
     {
+        return $this->higherRateSliceParts($user, $taxable, $limit)['slice'];
+    }
+
+    /**
+     * The higher-rate slice with the income above the limit it leaves out, so
+     * a working can show every step: interest the Personal Savings Allowance
+     * covers (taxed at 0%) and dividends (taxed at the dividend rates).
+     *
+     * @return array{slice: float, interest_covered: float, dividends: float}
+     */
+    public function higherRateSliceParts(User $user, float $taxable, float $limit): array
+    {
         $parts = $this->incomePartsFor($user);
         $interest = $parts['interest'];
         $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
         $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
         $allowanceLeft = max(0.0, $this->psaForBand('higher') - ($interest - $interestAbove));
+        $slice = max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
+        $covered = min($interestAbove, $allowanceLeft);
 
-        return max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
+        return [
+            'slice' => $slice,
+            'interest_covered' => $covered,
+            'dividends' => max(0.0, max(0.0, $taxable - $limit) - $slice - $covered),
+        ];
     }
 
     /**
@@ -1080,9 +1119,9 @@ final class TaxStrategyMath
      */
     private function bandExtensionFor(User $user): float
     {
-        $deductions = $this->incomeDefinitionsFor($user)['deductions'] ?? [];
+        $parts = $this->bandExtensionParts($user);
 
-        return (float) ($deductions['gift_aid_gross'] ?? 0) + (float) ($deductions['relief_at_source_gross'] ?? 0);
+        return $parts['gift_aid'] + $parts['personal_pension'];
     }
 
     /**

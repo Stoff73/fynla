@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Http\Traits\ValidatesSharedOwnership;
+use App\Rules\LinkedCoOwner;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -44,7 +45,7 @@ class UpdatePropertyRequest extends FormRequest
             'joint_ownership_type' => ['sometimes', 'nullable', Rule::in(['joint_tenancy', 'tenants_in_common'])],
             'country' => ['sometimes', 'nullable', 'string', 'max:255'],
             'ownership_percentage' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'joint_owner_id' => ['sometimes', 'nullable', 'exists:users,id'],
+            'joint_owner_id' => ['sometimes', 'nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             // W-0368 — see StorePropertyRequest. NULL is a meaningful third state.
             'joint_owner_is_spouse' => ['sometimes', 'nullable', 'boolean'],

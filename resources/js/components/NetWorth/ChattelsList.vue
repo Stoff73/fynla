@@ -4,6 +4,7 @@
     <!-- Detail View -->
     <ChattelDetailInline
       v-if="selectedChattelId"
+      :key="`${selectedChattelId}-${detailVersion}`"
       :chattel-id="selectedChattelId"
       @back="closeDetail"
       @edit="openEditModal"
@@ -138,6 +139,8 @@ export default {
       editingChattel: null,
       deletingChattel: null,
       selectedChattelId: null,
+      // Bumped after a save so the open detail reloads the record it shows.
+      detailVersion: 0,
       showImportDropdown: false,
     };
   },
@@ -269,6 +272,7 @@ export default {
       try {
         if (this.editingChattel) {
           await this.updateChattel({ id: this.editingChattel.id, data: formData });
+          this.detailVersion += 1;
         } else {
           await this.createChattel(formData);
         }

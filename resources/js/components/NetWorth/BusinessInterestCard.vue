@@ -39,7 +39,7 @@
 
         <div v-if="isJoint" class="detail-row">
           <span class="detail-label">Ownership</span>
-          <span class="detail-value">{{ business.ownership_percentage }}%</span>
+          <span class="detail-value">{{ sharePercent }}%</span>
         </div>
 
         <div v-if="hasRevenue" class="detail-row">
@@ -69,6 +69,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'BusinessInterestCard',
@@ -85,6 +86,11 @@ export default {
   emits: ['click', 'edit', 'delete'],
 
   computed: {
+    // The viewer's own share: the joint owner's is the other side of the
+    // stored split, which is the primary owner's (Rule 6, W-0016).
+    sharePercent() {
+      return userSharePercent(this.business).toFixed(2);
+    },
     /**
      * The next Companies House filing, surfaced on the card only once it is
      * close enough to act on. next_filing comes from the server so the card,

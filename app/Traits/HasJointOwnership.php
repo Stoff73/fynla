@@ -16,6 +16,13 @@ trait HasJointOwnership
 {
     /**
      * Scope to get records where user is owner or joint owner.
+     *
+     * Both owners of a joint record own it (CSJ 2026-10-08: "for joint
+     * accounts, both parties have ownership"), so the Stores find a record to
+     * change or remove with this scope, then carry on as its primary owner
+     * (`user_id`): the change is the record's, and everything derived from it
+     * (ownership links, the dividend total, events) moves exactly as it does
+     * when the primary owner makes it.
      */
     public function scopeForUserOrJoint(Builder $query, int $userId): Builder
     {

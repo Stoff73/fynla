@@ -57,6 +57,10 @@ final class UpdateRecordAllowlist
             // An investment bond's form (item 8, 2026-10-06): what was paid
             // in, when it started and the 5% withdrawals taken so far.
             'investment_amount', 'bond_purchase_date', 'bond_withdrawal_taken',
+            // A Stocks and Shares ISA's "paid in this tax year", the column the
+            // ISA allowance counts (ISAContributionLedger); an edit of it
+            // went to contributions_ytd (2026-10-08).
+            'isa_subscription_current_year',
         ],
         'dc_pension' => [
             'scheme_name', 'provider', 'current_fund_value',

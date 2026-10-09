@@ -4,7 +4,7 @@
     :subtitle="goalName"
     :loading="loading"
     loading-label="this goal"
-    :edit-details="canEdit"
+    edit-details
     :contextual-request="contextualRequest"
     back
     @back="goBack"
@@ -77,9 +77,9 @@ export default {
   computed: {
     goalId() { return Number(this.$route.params.id); },
     goalName() { return this.goal?.name || this.goal?.goal_name || 'Goal'; },
-    canEdit() { return this.goal?.is_primary_owner !== false; },
     contextualRequest() {
-      if (!this.canEdit || !Number.isInteger(this.goalId) || this.goalId < 1) return null;
+      // Either owner of a joint goal may change it (CSJ 2026-10-08).
+      if (!Number.isInteger(this.goalId) || this.goalId < 1) return null;
       return buildContextualConversationRequest({
         action: 'edit',
         resourceType: 'goal',

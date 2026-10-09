@@ -62,6 +62,11 @@ class GoalResource extends JsonResource
             // Ownership
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            // Both owner ids, so a form can name the viewer's co-owner
+            // (ownership.js coOwnerId); without them the joint owner's edit
+            // sent no co-owner and unlinked the goal (2026-10-08).
+            'user_id' => $this->user_id,
+            'joint_owner_id' => $this->joint_owner_id,
             'is_primary_owner' => $request->user()?->id === $this->user_id,
             'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
 
