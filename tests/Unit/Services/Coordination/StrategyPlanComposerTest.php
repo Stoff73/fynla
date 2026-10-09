@@ -378,5 +378,5 @@ it('names each item\'s next step and its screen, one map for every surface', fun
         ->and($items['salary_sacrifice_ni']['next_step']['destination']['screen'])->toBe('retirement')
         ->and($items['gift_aid_higher_rate_relief']['next_step']['destination']['screen'])->toBe('income')
         ->and($items['bed_and_isa']['next_step']['destination']['screen'])->toBe('investment')
-        ->and($items['savings_to_spouse']['next_step'])->toBeNull();
+        ->and($items['savings_to_spouse']['next_step']['destination']['screen'])->toBe('savings');
 });
