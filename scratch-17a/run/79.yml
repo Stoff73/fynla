@@ -1,0 +1,56 @@
+- iframe [active] [ref=f142e3]:
+  - generic [ref=f143e2]:
+    - generic [ref=f143e4]:
+      - generic [ref=f143e5]:
+        - generic [ref=f143e6]:
+          - link [ref=f143e8] [cursor=pointer]:
+            - /url: /
+            - img "Fynla" [ref=f143e9]
+          - heading "Create your account" [level=2] [ref=f143e10]
+          - paragraph [ref=f143e11]:
+            - text: Already have an account?
+            - link "Sign in" [ref=f143e12] [cursor=pointer]:
+              - /url: /login
+        - generic [ref=f143e13]:
+          - paragraph [ref=f143e14]: Sam has invited you to plan together. Your details are filled in — set a password to get started.
+          - generic [ref=f143e15]:
+            - generic [ref=f143e16]:
+              - generic [ref=f143e17]: First Name *
+              - textbox "First Name *" [ref=f143e18]:
+                - /placeholder: John
+                - text: Jordan
+            - generic [ref=f143e19]:
+              - generic [ref=f143e20]: Last Name *
+              - textbox "Last Name *" [ref=f143e21]:
+                - /placeholder: Smith
+            - generic [ref=f143e22]:
+              - generic [ref=f143e23]: Email address *
+              - textbox "Email address *" [ref=f143e24]:
+                - /placeholder: you@example.com
+                - text: slaterjoneschris+luna-c@gmail.com
+            - generic [ref=f143e25]:
+              - generic [ref=f143e26]: Password *
+              - textbox "Password *" [ref=f143e27]:
+                - /placeholder: ••••••••
+              - paragraph [ref=f143e28]: Must be at least 8 characters with one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)
+            - generic [ref=f143e29]:
+              - generic [ref=f143e30]: Confirm Password *
+              - textbox "Confirm Password *" [ref=f143e31]:
+                - /placeholder: ••••••••
+          - button "Create Account" [ref=f143e33] [cursor=pointer]
+          - paragraph [ref=f143e34]:
+            - text: By creating an account, you agree to our
+            - link "Terms of Service" [ref=f143e35] [cursor=pointer]:
+              - /url: /terms
+            - text: and
+            - link "Privacy Policy" [ref=f143e36] [cursor=pointer]:
+              - /url: /privacy
+      - link "Go to Fynla homepage" [ref=f143e38] [cursor=pointer]:
+        - /url: /
+    - generic [ref=f143e41]:
+      - generic [ref=f143e45]:
+        - heading "Without optional cookies" [level=3] [ref=f143e46]
+        - paragraph [ref=f143e47]: Declining switches off Google Analytics and our affiliate tracking, and nothing else. Registration, signing in and every feature work as normal.
+      - generic [ref=f143e48]:
+        - button "Accept Cookies" [ref=f143e49] [cursor=pointer]
+        - button "Continue Without Cookies" [ref=f143e50] [cursor=pointer]

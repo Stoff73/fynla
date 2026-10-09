@@ -1,0 +1,19 @@
+- generic [ref=f123e1]:
+  - link "Skip to main content" [ref=f123e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f123e3]:
+    - banner [ref=f123e4]:
+      - generic [ref=f123e5]:
+        - button "Go back" [ref=f123e41] [cursor=pointer]
+        - link "Fynla home" [ref=f123e6] [cursor=pointer]:
+          - /url: /
+          - img "Fynla" [ref=f123e7]
+        - generic [ref=f123e8]: 3 of 4
+      - progressbar "Question progress" [ref=f123e9]
+    - main [ref=f123e11]:
+      - region [ref=f123e74]:
+        - heading "Do you have a spouse or civil partner?" [active] [level=2] [ref=f123e75]
+        - paragraph [ref=f123e76]: Couples may be able to transfer allowances and split income to reduce their overall tax bill.
+        - group "Spouse or civil partner options" [ref=f123e77]:
+          - button "Yes" [ref=f123e78] [cursor=pointer]
+          - button "No" [ref=f123e83] [cursor=pointer]

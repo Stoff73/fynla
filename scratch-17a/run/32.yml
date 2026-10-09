@@ -1,0 +1,274 @@
+- iframe [active] [ref=f131e3]:
+  - generic [ref=f132e3]:
+    - generic [ref=f132e575]:
+      - banner [ref=f132e576]:
+        - button "Open menu" [ref=f132e577] [cursor=pointer]
+        - paragraph [ref=f132e581]: Good afternoon, Robin
+      - main [ref=f132e582]:
+        - generic [ref=f132e583]:
+          - heading "Investments" [level=1] [ref=f132e584]
+          - paragraph [ref=f132e585]: Your investment accounts, holdings and allowances
+        - button "Add investment account" [ref=f132e837] [cursor=pointer]
+        - generic [ref=f132e838]:
+          - paragraph [ref=f132e839]: Total portfolio value
+          - paragraph [ref=f132e840]: £35,000
+          - paragraph [ref=f132e841]: Across 1 account.
+        - generic [ref=f132e842]:
+          - paragraph [ref=f132e843]: Risk profile
+          - generic [ref=f132e844]:
+            - generic [ref=f132e845]: Attitude to risk
+            - generic [ref=f132e846]: Upper Medium
+          - paragraph [ref=f132e847]: The nine factors behind this — and how to change any you don't agree with — are on the web app.
+          - button "See how this was worked out" [ref=f132e848] [cursor=pointer]
+        - generic [ref=f132e849]:
+          - generic [ref=f132e850]:
+            - paragraph [ref=f132e851]: Investment accounts
+            - generic [ref=f132e852]:
+              - generic [ref=f132e853]: 1 of 2 accounts used
+              - button "Upgrade" [ref=f132e854] [cursor=pointer]
+          - button "Vanguard Stocks & Shares ISA £35,000 View" [ref=f132e856] [cursor=pointer]:
+            - generic [ref=f132e857]:
+              - generic [ref=f132e858]: Vanguard
+              - generic [ref=f132e859]: Stocks & Shares ISA
+            - generic [ref=f132e861]:
+              - generic [ref=f132e862]: £35,000
+              - generic [ref=f132e863]: View
+      - button "Chat with Fyn" [ref=f132e609] [cursor=pointer]:
+        - generic [ref=f132e611]:
+          - generic [ref=f132e612]: Fyn
+          - generic [ref=f132e613]: Your financial companion
+      - region "Chat with Fyn" [ref=f132e626]:
+        - generic [ref=f132e627]:
+          - generic [ref=f132e630]:
+            - paragraph [ref=f132e631]: Fyn
+            - paragraph [ref=f132e632]: Your financial companion
+          - generic [ref=f132e633]:
+            - button "Report a problem" [ref=f132e634] [cursor=pointer]
+            - button "Close Fyn chat" [ref=f132e635] [cursor=pointer]
+        - generic [ref=f132e638]:
+          - generic [ref=f132e639]:
+            - paragraph [ref=f132e640]:
+              - text: "Hi Robin, I'm Fyn — thanks for those answers. Here's what you've told me:"
+              - list [ref=f132e641]:
+                - listitem [ref=f132e642]: Working full-time
+                - listitem [ref=f132e643]: Earning £50,271–£100,000
+                - listitem [ref=f132e644]: You have savings, a pension and an ISA
+              - text: I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about 5 minutes.
+              - strong [ref=f132e645]: Let's start with your income.
+              - text: Tell me your gross annual income (this includes bonuses and commissions).
+            - generic [ref=f132e647]:
+              - generic [ref=f132e648]:
+                - generic [ref=f132e649]: Employer or trading name *
+                - textbox "Employer or trading name *" [disabled] [ref=f132e650]: Northgate Logistics
+              - generic [ref=f132e651]:
+                - generic [ref=f132e652]: Job title or role
+                - textbox "Job title or role" [disabled] [ref=f132e653]: Operations manager
+              - generic [ref=f132e654]:
+                - generic [ref=f132e655]: Gross annual income *
+                - generic [ref=f132e656]:
+                  - generic [ref=f132e657]: £
+                  - spinbutton "Gross annual income *" [disabled] [ref=f132e658]: "72000"
+                - paragraph [ref=f132e659]: Before tax, including bonuses and commissions
+          - paragraph [ref=f132e661]: My job is Operations manager at Northgate Logistics and I earn £72,000 a year.
+          - paragraph [ref=f132e663]: Got it — £72,000 a year, noted.
+          - paragraph [ref=f132e665]: Do you have any other roles or sources of earned income to add?
+          - paragraph [ref=f132e667]: Welcome back, Robin. Last time we were noting whether you have another role to add. Would you like to continue from where we left off, or is there something else I can help with?
+          - paragraph [ref=f132e669]: Do you have any other roles or sources of earned income to add?
+          - paragraph [ref=f132e671]: No, that's everything
+          - paragraph [ref=f132e673]: Thanks Robin for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your ISAs, bank and savings accounts and pensions, is that okay?
+          - paragraph [ref=f132e675]: Okay
+          - generic [ref=f132e676]:
+            - paragraph [ref=f132e677]: Now your ISAs.
+            - generic [ref=f132e678]:
+              - generic [ref=f132e680]:
+                - button "Cash ISA" [disabled] [ref=f132e681]
+                - button "Stocks and Shares ISA" [disabled] [pressed] [ref=f132e682]
+              - generic [ref=f132e683]:
+                - paragraph [ref=f132e684]: Stocks and Shares ISA
+                - generic [ref=f132e685]:
+                  - generic [ref=f132e686]: Who is it with *
+                  - textbox "Who is it with * Who is it with *" [disabled] [ref=f132e687]: Vanguard
+                - generic [ref=f132e688]:
+                  - generic [ref=f132e689]: Current balance *
+                  - generic [ref=f132e690]:
+                    - generic [ref=f132e691]: £
+                    - spinbutton "Current balance * Current balance *" [disabled] [ref=f132e692]: "35000"
+                - generic [ref=f132e693]:
+                  - generic [ref=f132e694]: Paid in this tax year
+                  - generic [ref=f132e695]:
+                    - generic [ref=f132e696]: £
+                    - spinbutton "Paid in this tax year Paid in this tax year" [disabled] [ref=f132e697]: "8000"
+                  - paragraph [ref=f132e698]: Leave blank if none
+          - paragraph [ref=f132e700]: I have a Stocks and Shares ISA with Vanguard worth £35,000 and I've paid £8,000 into it this tax year
+          - generic [ref=f132e701]:
+            - paragraph [ref=f132e702]: I've filled in what you told me — check it, add anything missing and save.
+            - generic [ref=f132e703]:
+              - generic [ref=f132e705]:
+                - button "Cash ISA" [disabled] [ref=f132e706]
+                - button "Stocks and Shares ISA" [disabled] [pressed] [ref=f132e707]
+              - generic [ref=f132e708]:
+                - paragraph [ref=f132e709]: Stocks and Shares ISA
+                - generic [ref=f132e710]:
+                  - generic [ref=f132e711]: Who is it with *
+                  - textbox [disabled] [ref=f132e712]: Vanguard
+                - generic [ref=f132e713]:
+                  - generic [ref=f132e714]: Current balance *
+                  - generic [ref=f132e715]:
+                    - generic [ref=f132e716]: £
+                    - spinbutton [disabled] [ref=f132e717]: "35000"
+                - generic [ref=f132e718]:
+                  - generic [ref=f132e719]: Paid in this tax year
+                  - generic [ref=f132e720]:
+                    - generic [ref=f132e721]: £
+                    - spinbutton [disabled] [ref=f132e722]: "8000"
+                  - paragraph [ref=f132e723]: Leave blank if none
+          - paragraph [ref=f132e725]: Stocks and Shares ISA with Vanguard, balance £35,000, £8,000 paid in this year.
+          - paragraph [ref=f132e727]: "You have 1 ISA or investment account on file: Vanguard Stocks and Shares ISA.Do you have another ISA to add?"
+          - paragraph [ref=f132e729]: No, that's everything
+          - generic [ref=f132e730]:
+            - paragraph [ref=f132e731]: Now your bank and savings accounts.
+            - generic [ref=f132e732]:
+              - generic [ref=f132e733]:
+                - paragraph [ref=f132e734]: A current account is for day-to-day money. Easy access, fixed rate and notice accounts are savings that pay interest.
+                - generic [ref=f132e735]:
+                  - button "Current account" [disabled] [ref=f132e736]
+                  - button "Easy access savings" [disabled] [pressed] [ref=f132e737]
+                  - button "Fixed rate savings" [disabled] [ref=f132e738]
+                  - button "Notice account" [disabled] [ref=f132e739]
+              - generic [ref=f132e740]:
+                - paragraph [ref=f132e741]: Easy access savings
+                - generic [ref=f132e742]:
+                  - generic [ref=f132e743]: Who is it with *
+                  - textbox "Who is it with *" [disabled] [ref=f132e744]: Nationwide
+                - generic [ref=f132e745]:
+                  - generic [ref=f132e746]: Balance *
+                  - generic [ref=f132e747]:
+                    - generic [ref=f132e748]: £
+                    - spinbutton "Balance *" [disabled] [ref=f132e749]: "18000"
+                - generic [ref=f132e750]:
+                  - generic [ref=f132e751]: Interest rate % *
+                  - spinbutton "Interest rate % *" [disabled] [ref=f132e752]: "4.25"
+                - generic [ref=f132e753]:
+                  - generic [ref=f132e754]: Ownership *
+                  - radiogroup "Ownership *" [ref=f132e755]:
+                    - generic [ref=f132e756]:
+                      - radio "Individual" [checked] [disabled] [ref=f132e757]
+                      - text: Individual
+                    - generic [ref=f132e758]:
+                      - radio "Joint" [disabled] [ref=f132e759]
+                      - text: Joint
+                  - paragraph [ref=f132e760]: Joint means held 50/50 with your spouse or partner
+          - paragraph [ref=f132e762]: Nationwide easy access savings, balance £18,000, 4.25% interest, individual.
+          - paragraph [ref=f132e764]: "You have 1 bank or savings account on file: Nationwide easy access savings.Do you have another account to add?"
+          - paragraph [ref=f132e766]: No, that's everything
+          - paragraph [ref=f132e768]:
+            - text: "Here's your savings and ISA accounts page — take a look and check everything's correct, then tell me:"
+            - strong [ref=f132e769]: does it look right?
+          - paragraph [ref=f132e771]: Yes, that's right
+          - generic [ref=f132e772]:
+            - paragraph [ref=f132e773]: Now your investments.
+            - generic [ref=f132e775]:
+              - paragraph [ref=f132e776]: Choose any you have. If you have no investments, save with none chosen.
+              - generic [ref=f132e777]:
+                - button "General Investment Account" [disabled] [ref=f132e778]
+                - button "Other investment" [disabled] [ref=f132e779]
+                - button "Onshore investment bond" [disabled] [ref=f132e780]
+                - button "Offshore investment bond" [disabled] [ref=f132e781]
+          - paragraph [ref=f132e783]: I have none of these.
+          - paragraph [ref=f132e785]: Noted — nothing to add here.
+          - paragraph [ref=f132e787]:
+            - text: "Here's your investments page — take a look and check everything's correct, then tell me:"
+            - strong [ref=f132e788]: does it look right?
+          - paragraph [ref=f132e790]: Yes, that's right
+          - generic [ref=f132e791]:
+            - paragraph [ref=f132e792]: Now let's look at pensions and retirement — for that I need your date of birth and your gender.
+            - generic [ref=f132e794]:
+              - generic [ref=f132e795]:
+                - generic [ref=f132e796]: Your date of birth *
+                - textbox "Your date of birth * Your date of birth *" [disabled] [ref=f132e815]
+              - generic [ref=f132e798]:
+                - generic [ref=f132e799]: Gender *
+                - radiogroup "Gender *" [ref=f132e800]:
+                  - generic [ref=f132e801]:
+                    - radio "Male" [disabled] [ref=f132e802]
+                    - text: Male
+                  - generic [ref=f132e803]:
+                    - radio "Female" [disabled] [ref=f132e804]
+                    - text: Female
+                  - generic [ref=f132e805]:
+                    - radio "Other" [disabled] [ref=f132e806]
+                    - text: Other
+          - paragraph [ref=f132e817]: I was born on 14 March 1984 and I'm female
+          - generic [ref=f132e818]:
+            - paragraph [ref=f132e819]: I've filled in what you told me — check it, add anything missing and save.
+            - generic [ref=f132e821]:
+              - generic [ref=f132e822]:
+                - generic [ref=f132e823]: Your date of birth *
+                - textbox [disabled] [ref=f132e824]: 1984-03-14
+              - generic [ref=f132e825]:
+                - generic [ref=f132e826]: Gender *
+                - radiogroup "Gender *" [ref=f132e827]:
+                  - generic [ref=f132e828]:
+                    - radio "Male" [disabled] [ref=f132e829]
+                    - text: Male
+                  - generic [ref=f132e830]:
+                    - radio "Female" [checked] [disabled] [ref=f132e831]
+                    - text: Female
+                  - generic [ref=f132e832]:
+                    - radio "Other" [disabled] [ref=f132e833]
+                    - text: Other
+          - paragraph [ref=f132e865]: I was born on 14 March 1984 and I'm female.
+          - paragraph [ref=f132e867]: Thanks — I've noted you're born on 14 March 1984, female and single.
+          - generic [ref=f132e868]:
+            - paragraph [ref=f132e869]: Now your pensions.
+            - generic [ref=f132e871]:
+              - paragraph [ref=f132e872]: A SIPP is a Self-Invested Personal Pension.
+              - generic [ref=f132e873]:
+                - button "Workplace pension" [disabled] [ref=f132e874]
+                - button "Personal pension or SIPP" [disabled] [ref=f132e875]
+          - paragraph [ref=f132e879]: I have a workplace pension with Aviva worth £62,000. I pay in 5% of my salary and my employer pays 5%. It is not salary sacrifice.
+          - generic [ref=f132e880]:
+            - paragraph [ref=f132e881]: I've filled in what you told me — check it, add anything missing and save.
+            - generic [ref=f132e882]:
+              - generic [ref=f132e883]:
+                - paragraph [ref=f132e884]: A SIPP is a Self-Invested Personal Pension.
+                - generic [ref=f132e885]:
+                  - button "Workplace pension" [pressed] [ref=f132e886] [cursor=pointer]
+                  - button "Personal pension or SIPP" [ref=f132e887] [cursor=pointer]
+              - generic [ref=f132e888]:
+                - paragraph [ref=f132e889]: Workplace pension
+                - generic [ref=f132e890]:
+                  - generic [ref=f132e891]: Who is it with *
+                  - textbox "Who is it with *" [ref=f132e892]: Aviva
+                - generic [ref=f132e893]:
+                  - generic [ref=f132e894]: Current value
+                  - generic [ref=f132e895]:
+                    - generic [ref=f132e896]: £
+                    - spinbutton "Current value" [ref=f132e897]: "62000"
+                  - paragraph [ref=f132e898]: Leave blank if you don't know
+                - generic [ref=f132e899]:
+                  - generic [ref=f132e900]: You pay % of salary *
+                  - spinbutton "You pay % of salary *" [ref=f132e901]: "5"
+                - generic [ref=f132e902]:
+                  - generic [ref=f132e903]: Your employer pays %
+                  - spinbutton "Your employer pays %" [ref=f132e904]: "5"
+                  - paragraph [ref=f132e905]: Leave blank if none or unknown
+                - generic [ref=f132e906]:
+                  - generic [ref=f132e907]: Salary sacrifice *
+                  - radiogroup "Salary sacrifice *" [ref=f132e908]:
+                    - generic [ref=f132e909]:
+                      - radio "Yes" [ref=f132e910]
+                      - text: "Yes"
+                    - generic [ref=f132e911]:
+                      - radio "No" [checked] [ref=f132e912]
+                      - text: "No"
+                - generic [ref=f132e913]:
+                  - generic [ref=f132e914]: Who you want it to go to if you die
+                  - textbox "Who you want it to go to if you die" [ref=f132e915]
+                  - paragraph [ref=f132e916]: The person you have named to the scheme. Leave blank if you haven't named anyone
+              - button "Save" [ref=f132e918] [cursor=pointer]
+        - generic [ref=f132e809]:
+          - textbox "Ask Fyn a question" [active] [ref=f132e811]:
+            - /placeholder: Ask Fyn anything...
+          - button "Send to Fyn" [ref=f132e812] [cursor=pointer]
+    - button "Report a problem" [ref=f132e188] [cursor=pointer]
