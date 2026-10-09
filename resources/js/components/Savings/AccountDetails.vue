@@ -55,7 +55,7 @@
             <p class="text-2xl font-bold text-horizon-500">
               {{ formatCurrency(account.current_balance) }}
             </p>
-            <p class="text-sm text-neutral-500">{{ formatInterestRate(account.interest_rate) }}% APY</p>
+            <p class="text-sm text-neutral-500">{{ formatInterestRate(account.interest_rate) }}<template v-if="hasInterestRate(account.interest_rate)"> APY</template></p>
           </div>
         </div>
 
@@ -149,6 +149,7 @@
 </template>
 
 <script>
+import { formatInterestRate, hasInterestRate } from '@/utils/interestRate';
 import { mapState, mapActions } from 'vuex';
 import SaveAccountModal from './SaveAccountModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -202,11 +203,8 @@ export default {
       return new Date(dateString).toLocaleDateString('en-GB');
     },
 
-    formatInterestRate(rate) {
-      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
-      // Display directly without multiplying
-      return parseFloat(rate || 0).toFixed(2);
-    },
+    formatInterestRate,
+    hasInterestRate,
 
     // Modal handlers
     handleCloseModal() {

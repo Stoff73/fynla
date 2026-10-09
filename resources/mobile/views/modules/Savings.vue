@@ -221,7 +221,8 @@ export default {
   methods: {
     fmt(v) { return formatCurrency(v); },
     rate(r) {
-      if (r == null || isNaN(Number(r))) return '—';
+      // A rate never given is null: "Not recorded", never 0% (R10).
+      if (r == null || r === '' || isNaN(Number(r))) return 'Not recorded';
       return `${Number(r).toFixed(2)}%`;
     },
     // The FULL balance on the record — the context line only, never a total.

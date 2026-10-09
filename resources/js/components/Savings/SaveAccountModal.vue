@@ -991,7 +991,8 @@ export default {
         account_type: this.account.account_type || '',
         account_number: this.account.account_number || '',
         current_balance: parseFloat(this.account.current_balance) || 0,
-        interest_rate: parseFloat(this.account.interest_rate) || 0, // Rate is already stored as percentage
+        // Stored as a percentage; a rate never given stays empty rather than becoming 0 (R10).
+        interest_rate: this.account.interest_rate == null ? null : parseFloat(this.account.interest_rate),
         access_type: this.account.access_type || 'immediate',
         notice_period_days: this.account.notice_period_days || null,
         maturity_date: this.formatDateForInput(this.account.maturity_date),

@@ -36,7 +36,7 @@
           >
             <div>
               <p class="text-sm font-medium text-horizon-500">{{ account.institution }}</p>
-              <p class="text-xs text-neutral-500">{{ formatAccountType(account.type) }} &middot; {{ account.interest_rate }}% interest</p>
+              <p class="text-xs text-neutral-500">{{ formatAccountType(account.type) }} &middot; {{ hasInterestRate(account.interest_rate) ? `${formatInterestRate(account.interest_rate)} interest` : 'Interest rate not recorded' }}</p>
             </div>
             <p class="text-sm font-semibold text-horizon-500">{{ formatCurrency(account.balance) }}</p>
           </div>
@@ -69,6 +69,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { formatInterestRate, hasInterestRate } from '@/utils/interestRate';
 import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
 
 export default {
@@ -77,6 +78,11 @@ export default {
   components: { PlanSectionHeader },
 
   mixins: [currencyMixin],
+
+  methods: {
+    formatInterestRate,
+    hasInterestRate,
+  },
 
   props: {
     situation: { type: Object, required: true },

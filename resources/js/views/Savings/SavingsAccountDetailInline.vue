@@ -229,6 +229,7 @@
 </template>
 
 <script>
+import { formatInterestRate } from '@/utils/interestRate';
 import { mapActions } from 'vuex';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
@@ -456,11 +457,7 @@ export default {
       return types[type] || type;
     },
 
-    formatInterestRate(rate) {
-      // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
-      // Display directly without multiplying
-      return `${parseFloat(rate || 0).toFixed(2)}%`;
-    },
+    formatInterestRate,
   },
 };
 </script>

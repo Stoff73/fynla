@@ -866,10 +866,11 @@ class SavingsActionDefinitionService
         // 3. Non-ISA accounts listing
         $accountDetails = $accounts->map(function ($account) {
             $balance = (float) ($account->current_balance ?? 0);
-            $rate = (float) ($account->interest_rate ?? 0);
-            $interest = $balance * $rate;
+            // interest_rate is a percentage (4.25 = 4.25%); it was multiplied by
+            // 100 again here ("425.00%") and used as a fraction for the interest.
+            $interest = $balance * SavingsInterestRate::fraction($account->interest_rate);
 
-            return ($account->account_name ?? 'Unnamed').' at '.($account->institution ?? 'unknown').' — £'.number_format($balance, 0).' at '.number_format($rate * 100, 2).'% (£'.number_format($interest, 0).'/year interest)';
+            return ($account->account_name ?? 'Unnamed').' at '.($account->institution ?? 'unknown').' — £'.number_format($balance, 0).' at '.self::rateText($account->interest_rate).' (£'.number_format($interest, 0).'/year interest)';
         })->implode('; ');
 
         $totalNonIsaBalance = $accounts->sum('current_balance');
@@ -1479,7 +1480,11 @@ class SavingsActionDefinitionService
         $results = [];
 
         foreach ($savingsAccounts as $account) {
-            $rate = (float) ($account->interest_rate ?? 0);
+            // A rate the user never gave is not a 0% rate (R10): no "earning 0%" card.
+            if ($account->interest_rate === null) {
+                continue;
+            }
+            $rate = (float) $account->interest_rate;
             $balance = (float) ($account->current_balance ?? 0);
 
             if ($account->account_type === 'premium_bonds') {
@@ -3894,14 +3899,23 @@ class SavingsActionDefinitionService
         $name = $account->display_name;
         $institution = $account->institution ?? 'unknown provider';
         $balance = (float) ($account->current_balance ?? 0);
-        $rate = ((float) ($account->interest_rate ?? 0)) * 100;
         $type = $account->account_type ?? 'savings';
         $isIsa = $account->is_isa ? ' (ISA'.($account->isa_type ? ' — '.$account->isa_type : '').')' : '';
         $access = $account->access_type ? ', '.$account->access_type.' access' : '';
         $emergency = $account->is_emergency_fund ? ', emergency fund' : '';
         $joint = $account->joint_owner_id ? ', joint ('.($account->ownership_percentage ?? 50).'% share)' : '';
 
-        return $name.' at '.$institution.' — £'.number_format($balance, 0).', '.number_format($rate, 2).'%'.$isIsa.$access.$emergency.$joint;
+        return $name.' at '.$institution.' — £'.number_format($balance, 0).', '.self::rateText($account->interest_rate).$isIsa.$access.$emergency.$joint;
+    }
+
+    /**
+     * A stored rate as text. The column holds a percentage (4.25 = 4.25%); it
+     * was multiplied by 100 again ("425.00%"). Null is a rate the user never
+     * gave (regression walk 2026-10-09, R10).
+     */
+    private static function rateText(mixed $storedPercent): string
+    {
+        return $storedPercent === null ? 'rate not recorded' : number_format((float) $storedPercent, 2).'%';
     }
 
     /**
