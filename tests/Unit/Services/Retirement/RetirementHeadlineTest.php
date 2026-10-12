@@ -8,11 +8,14 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\AI\Pointers\FetchContext;
+use App\Services\AI\Pointers\Handlers\RetirementPlanHandler;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementDrawdownPosition;
 use App\Services\Retirement\RetirementHeadline;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionContractService;
+use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -120,4 +123,21 @@ it('says the State Pension is left out when none is recorded, and not once it is
     Cache::flush();
 
     expect(app(RetirementHeadline::class)->for($this->user->fresh())['state_pension_note'])->toBeNull();
+});
+
+it('carries the headline in the retirement plan Fyn fetches', function () {
+    // Walk fix plan T11 (Q6): fetch_retirement_plan had no headline, so Fyn
+    // quoted pots the Retirement page does not show and could not say which.
+    $this->seed(RetirementActionDefinitionSeeder::class);
+    $user = $this->user->fresh();
+    $headline = app(RetirementHeadline::class)->for($user);
+
+    $payload = json_decode(
+        app(RetirementPlanHandler::class)->fetch(new FetchContext($user, 'how much will my pension be worth at 65'))->value,
+        true,
+    );
+
+    expect($payload)->toHaveKey('composed_retirement_plan')
+        ->and($payload['retirement_headline'])->toEqual($headline)
+        ->and($payload['retirement_headline']['dc_value_at_retirement'])->toBeGreaterThan(30000.0);
 });
