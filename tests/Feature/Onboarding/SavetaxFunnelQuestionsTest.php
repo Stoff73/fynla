@@ -463,3 +463,22 @@ it('answers a question typed at a single-choice step and records no answer', fun
         ->and($user->funnel_answers)->not->toHaveKey('spouse')
         ->and($stream)->toContain('a partner you live with counts');
 });
+
+// Walk fix plan T16 (F1): Brett's typed answers (fynla.org, 11 October) were
+// re-asked. Through the chat endpoint, each now answers the step.
+it('takes typed answers at the funnel steps, a figure as its band and a list as the picks', function () {
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'yes']]);
+    ftqStart($user);
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME);
+
+    ftqSay($user, 'I just told you, about 48k');
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+
+    ftqSay($user, 'all of those actually - current account, easy access savings, cash ISA and a stocks & shares ISA, workplace pensions, a GIA, premium bonds and our house');
+
+    $user->refresh();
+    expect($user->funnel_answers)->toMatchArray([
+        'spouseIncome' => 'upto_50270',
+        'assets' => ['bank', 'savings', 'isa', 'pension', 'investments', 'property'],
+    ])->and($user->onboarding_fyn_step)->not->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+});
