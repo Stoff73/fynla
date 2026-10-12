@@ -6828,13 +6828,28 @@ class CoordinatingAgent extends BaseAgent
         $providedToken = (string) ($input['confirmation_token'] ?? '');
 
         if (! hash_equals($expectedToken, $providedToken)) {
+            // T8 (Q22): the preview looks the record up the way the delete
+            // does, so Fyn never asks the user to confirm deleting a record
+            // that is not there ("goal #0").
+            $name = $this->deletableRecordName($entityType, $entityId, $user);
+            if ($name === null) {
+                $label = str_replace('_', ' ', $entityType);
+
+                return [
+                    'error' => true,
+                    'error_type' => 'not_found',
+                    'message' => "No {$label} with id {$entityId} is saved for this user, so there is nothing to delete. "
+                        .'Do not ask the user to confirm. Look the record up with your read tools, then call delete_record with its id.',
+                ];
+            }
+
             return [
                 'requires_confirmation' => true,
                 'confirmation_token' => $expectedToken,
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,
                 'preview_message' => 'This will permanently delete '
-                    .str_replace('_', ' ', $entityType)." #{$entityId}. "
+                    .str_replace('_', ' ', $entityType)." \"{$name}\". "
                     .'Confirm with the user before re-calling delete_record with this confirmation_token.',
             ];
         }
@@ -6938,6 +6953,41 @@ class CoordinatingAgent extends BaseAgent
                 'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted.",
             ];
         });
+    }
+
+    /**
+     * The name of the record a delete would remove, found the way each delete
+     * branch below finds it (pension store, joint-record stores, owned model),
+     * or null when the user has no such record (T8).
+     */
+    private function deletableRecordName(string $entityType, int $entityId, User $user): ?string
+    {
+        if ($entityType === 'dc_pension' || $entityType === 'db_pension') {
+            $pension = app(PensionStore::class)->find($entityId, $entityType === 'dc_pension' ? 'dc' : 'db', $user);
+
+            return $pension === null ? null : (string) ($pension->scheme_name ?? "#{$entityId}");
+        }
+
+        if (isset(self::JOINT_RECORD_STORES[$entityType])) {
+            $record = app(self::JOINT_RECORD_STORES[$entityType])->find($entityId, $user);
+
+            return $record === null ? null
+                : (string) ($record->account_name ?? $record->liability_name ?? $record->address_line_1 ?? $record->lender_name ?? "#{$entityId}");
+        }
+
+        $model = $this->resolveModel($entityType, $entityId, $user->id);
+        if (is_array($model)) {
+            return null;
+        }
+
+        return (string) ($model->goal_name
+            ?? $model->account_name
+            ?? $model->recipient
+            ?? $model->trust_name
+            ?? $model->business_name
+            ?? $model->description
+            ?? $model->first_name
+            ?? "#{$entityId}");
     }
 
     /**
