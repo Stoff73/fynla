@@ -487,6 +487,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked on web and /m as Alex 502: scenarios 1 and 2 were saved through `create_what_if_scenario`.
           - Found: T50 (the comparison is £0 for every figure; `WhatIfScenarioService` is broken) and T51 (a Free user can create a paid-plan scenario through chat).
           - Next: T8.
+        - T8 (2026-10-12, session 4) is ticked to Dev walk. A delete preview refuses a record that does not exist; the model gets the saved records and the user a plain sentence:
+          - PRs #1228, #1229 and #1230.
+          - Walked on web (Alex 502) and /m (Drew 508; Alex reached the new weekly limit): "Delete my round-the-world trip goal" with no goals saved asks for no confirmation and saves "You don't have a goal saved, so there's nothing to delete."
+          - Found: T52 (the live sentence differs from the saved reply on a capture failure).
+          - Next: T9.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.

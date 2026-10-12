@@ -68,7 +68,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T5 | The capture-handoff prompt rule applies to statements only | F20, P5, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T7 | A what-if request reaches the what-if scenario capture | P5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T8 | A delete preview refuses a record that does not exist | Q22 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T8 | A delete preview refuses a record that does not exist | Q22 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T9 | An invite request reaches the existing invite step | Q17 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T10 | Spouse figures always in Fyn's context | P4, P3, F5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T11 | The retirement plan tool carries the Retirement page's headline | Q6 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -108,6 +108,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T49 | On /m, Fyn's reply paragraphs run together with no space or break ("£5,800.Your recorded…"), T48 Dev walk, Rory 504 | T48 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T50 | The what-if comparison is £0 for every figure (T7 walk, scenarios 1 and 2, Alex 502). `WhatIfScenarioService::extractMetrics` reads keys the agents do not return, so every figure defaults to 0; the `pension_contribution` override does nothing (`applyOverrides`); and the user's own row is saved mid-calculation, then reverted. Fyn tells the user the comparison shows £0 | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T51 | A Free user can create a paid-plan what-if scenario through chat (`create_what_if_scenario` has no tier check; the API route is gated by `CheckSubscription` `what_if`), then is sent to the paid-plan teaser (T7 walk, Alex 502) | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T52 | On a capture failure the screen shows the model's own sentence, but the saved reply (History, reload) is the composed failure text, so the two differ ("There isn't a saved goal to delete, so your round-the-world trip goal remains unchanged" live vs "You don't have a goal saved, so there's nothing to delete." saved; T8 walk #22842, #22845) | T8 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T41 | Live checks first, then fix what they show: /m message typed after a page change (M1); silent Saves (F10, Q24); will builder name and warning (Q19, Q20); retirement projection change (Q21); /m dashboard blank area | M1, F10, Q24, Q19, Q20, Q21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T42 | Brett's account 812: the "declared none" flags and the unasked goal written by these bugs. A database change, so done only with your OK | F19, P2 | [ ] | n/a | n/a | [ ] | [ ] | [ ] |
 | T43 | The full test run, once T0–T42 are done (R5) | all | n/a | [ ] | n/a | n/a | n/a | n/a |
@@ -442,6 +443,22 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
     1. Web 1440: signed in, clicked "Chat with Fyn" and sent P5's request ("Run a what-if for me: if I paid an extra £20,000 a year into my pension from now until 60, …"). No pension form opened. Fyn replied "Your what-if scenario is saved", with a "Saved to your records … View" card. Scenario 1 was saved (`created_via: ai_chat`), and the page went to `/teaser?module=what_if` (the Premium guard; T51). Shot `T7-01-…`.
     2. /m 390: clicked "Chat with Fyn" and sent "Run a what-if for me: if I paid an extra £10,000 a year into my pension from now until 62, …". No pension form. Scenario 2 was saved (#22836, persona `data_capture`). Shot `T7-02-…`.
   - Found: on both surfaces Fyn said the comparison "shows £0 for both projections". New task T50. A Free user can create the paid-plan scenario: new task T51.
+- **T8, Code (2026-10-12, session 4):** three PRs, all merged to dev.
+  1. #1228 (`8734153eb`): the delete preview looks the record up the way each delete branch does (`deletableRecordName`). A missing record gets `not_found` and no token, and an existing one is named.
+  2. #1229 (`c83b1bd03`): the first walk showed the model's steer in the saved reply (#22838). The steer moves to an `instruction` key.
+  3. #1230 (`69365a26d`): the second walk showed that the capture model has no read tool, so it guessed goal 0, and the reply read "I couldn't save that — … Give me the missing detail".
+     - The not-found result now carries `saved_records` for the model to retry with a real id (B2.7), plus a `user_facing` sentence: none saved, or "Which goal did you mean: A or B?".
+     - `OnboardingChatDirector::captureFailureText` shows a `user_facing` message as written, as it does a tier-limit message.
+     - `recordName` and `deletableModelClass` are the one home for the name and the model lookup.
+- **T8, Test (2026-10-12):** each PR was red first, then green.
+  - `DeleteRecordConfirmationTest` gained 6 tests.
+  - `DeleteMissingRecordReplyTest` is new; it is also red with only the director change reverted.
+  - With `RecordEditPathwayTest`, `TrustSettlementWithholdsTheEstateBandTest` and the five failure-text files: 150 passed.
+- **T8, Dev (2026-10-12):** csjones pulled `69365a26d` (PHP only).
+- **T8, Dev walk (2026-10-12, repeated from step 1 after each fix):**
+  1. Web 1440, as Alex 502 (no goals saved): clicked "Chat with Fyn" and "New", then sent "Delete my round-the-world trip goal". No confirmation was asked. The screen said "There isn't a saved round-the-world trip goal to delete.", and the saved reply (#22842) is "You don't have a goal saved, so there's nothing to delete." Shot `T8-01-…`.
+  2. /m 390: Alex went over the 750,000 weekly limit mid-walk ("You've reached your weekly Fyn usage limit.", T48 as designed), so I signed out through the /m menu and signed in as Drew 508 (code read from the csjones database). Clicked "Chat with Fyn" and sent the same message. No confirmation; saved reply #22845 is "You don't have a goal saved, so there's nothing to delete." Shot `T8-02-…`.
+  - Found: the live sentence differs from the saved reply on a capture failure; on /m it said the goal "remains unchanged", implying it exists. New task T52.
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
