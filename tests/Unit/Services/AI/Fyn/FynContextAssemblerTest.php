@@ -134,9 +134,9 @@ it('grounds spouse financial questions in the saved campaign household row', fun
 
     expect(app(FynContextAssembler::class)->build($ctx))
         ->toContain('<saved_household_finances>')
-        ->toContain('Spouse annual income: £36,000.00')
-        ->toContain('Spouse ISA balance: £8,000.00')
-        ->toContain('Spouse annual pension contribution: £2,400.00')
+        ->toContain('Spouse annual income: £36,000')
+        ->toContain('Spouse ISA balance: £8,000')
+        ->toContain('Spouse annual pension contribution: £2,400')
         ->toContain('Do not say that a listed field is not recorded');
 });
 
@@ -154,6 +154,7 @@ it('grounds every advice turn in the household row, naming the spouse, with no r
         'spouse_annual_earnings' => 36000,
         'spouse_annual_dividends' => 1200,
         'spouse_unrealised_gains' => 5000,
+        'spouse_annual_savings_interest' => 412.37,
     ]);
 
     $ctx = FynTurnContext::make(
@@ -169,10 +170,12 @@ it('grounds every advice turn in the household row, naming the spouse, with no r
     expect(app(FynContextAssembler::class)->build($ctx))
         ->toContain('<saved_household_finances>')
         ->toContain('- Spouse: <user_provided>Dev</user_provided>')
-        ->toContain('Spouse annual income: £38,000.00')
-        ->toContain('Spouse annual earnings from work: £36,000.00')
-        ->toContain('Spouse annual dividends: £1,200.00')
-        ->toContain('Spouse unrealised gains: £5,000.00');
+        ->toContain('Spouse annual income: £38,000')
+        ->toContain('Spouse annual earnings from work: £36,000')
+        ->toContain('Spouse annual dividends: £1,200')
+        ->toContain('Spouse unrealised gains: £5,000')
+        ->toContain('Spouse annual savings interest: £412.37')
+        ->not->toContain('£38,000.00');
 });
 
 it('emits no household block when no household row exists', function (): void {

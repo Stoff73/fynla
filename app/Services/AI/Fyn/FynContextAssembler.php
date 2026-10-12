@@ -34,6 +34,7 @@ use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 
@@ -612,7 +613,7 @@ final class FynContextAssembler
         foreach ($fields as $field => $label) {
             $value = $household->getAttribute($field);
             if ($value !== null) {
-                $values[] = "- {$label}: £".number_format((float) $value, 2);
+                $values[] = "- {$label}: ".Money::exact((float) $value);
             }
         }
 
@@ -782,7 +783,7 @@ GROUNDING;
         if ($parts === []) {
             return null;
         }
-        $pounds = static fn (float $v): string => '£'.number_format($v, 0);
+        $pounds = static fn (float $v): string => Money::exact($v);
         $described = array_map(static function (array $part) use ($pounds): string {
             $pieces = [];
             if ($part['member_pays'] > 0) {
