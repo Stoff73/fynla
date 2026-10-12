@@ -2384,6 +2384,25 @@ final class OnboardingChatDirector
         yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
     }
 
+    /**
+     * The capture form a classified write intent would add to, so its Free
+     * limit can be read (OnboardingStateMachine::freeLimitForForm). A cash
+     * ISA is a savings_account to the classifier but counts with the ISAs
+     * (CSJ 2026-09-15).
+     *
+     * @param  array<string, mixed>  $intent  WriteIntentClassifier::classify
+     */
+    private function formForWriteIntent(array $intent): string
+    {
+        return match ((string) ($intent['entity_type'] ?? '')) {
+            'savings_account' => str_contains(mb_strtolower((string) ($intent['matched_entity_keyword'] ?? '')), 'isa') ? CaptureForms::ISA : CaptureForms::SAVINGS,
+            'investment_account' => CaptureForms::INVESTMENT,
+            'pension', 'dc_pension', 'db_pension' => CaptureForms::PENSION,
+            'property' => CaptureForms::PROPERTY,
+            default => '',
+        };
+    }
+
     private function handleInformationInterruption(
         User $user,
         AiConversation $conversation,
@@ -2397,7 +2416,23 @@ final class OnboardingChatDirector
             return null;
         }
 
-        return (function () use ($user, $conversation, $currentStateId, $message, $intent): \Generator {
+        return (function () use ($user, $conversation, $currentStateId, $state, $message, $intent): \Generator {
+            // A record past the Free limit could not be saved: say the limit
+            // rather than offer to save it (T18 walk, csjones 2026-10-12).
+            $limit = OnboardingStateMachine::freeLimitForForm($user, $this->formForWriteIntent($intent));
+            if ($limit !== null) {
+                $line = "You've reached your plan's limit of {$limit['limit']} {$limit['noun']}. To add more, upgrade your plan.";
+                yield ['type' => 'content', 'text' => $line];
+                $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
+                    'onboarding_step' => $currentStateId,
+                    'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
+                ]]);
+                yield ['type' => 'done', 'message_id' => $saved->id];
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
             $offer = 'That sounds like something worth saving. Want me to save it to your plan now? We can also come back to it during setup.';
             $bubbles = [
                 ['id' => 'store_now', 'label' => 'Yes, save it'],

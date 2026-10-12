@@ -1578,3 +1578,30 @@ it('the side-answer prompt example is factually correct about employer pension c
     expect($prompt)->toContain('does not include employer pension contributions')
         ->not->toContain('so it includes pension contributions');
 });
+
+// T18 walk (csjones 2026-10-12, Nadia): at the Free limit of 2 bank and
+// savings accounts, "add another account … Shawbrook notice account" was
+// offered "Want me to save it to your plan now?", then refused. At the limit
+// the reply is the limit in words, with no offer to save.
+it('says the Free limit instead of offering to save a record past it', function () {
+    [$user, $conversation] = interruptionUser();
+    SavingsAccount::factory()->count(2)->create(['user_id' => $user->id, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+
+    $received = driveDirector($user->fresh(), $conversation, "Please add another account for me, I've opened a Shawbrook notice account with £5,000 at 4.6%");
+
+    $offer = collect($received)->first(fn ($e) => ($e['type'] ?? '') === 'quick_replies' && in_array('store_now', array_column($e['bubbles'] ?? [], 'id'), true));
+    expect($offer)->toBeNull()
+        ->and(collect($received)->where('type', 'content')->pluck('text')->first())
+        ->toBe("You've reached your plan's limit of 2 bank and savings accounts. To add more, upgrade your plan.")
+        ->and($user->fresh()->onboarding_fyn_context['pending_interruption_store'] ?? null)->toBeNull();
+});
+
+it('still offers to save a cash ISA when only the bank accounts are full', function () {
+    [$user, $conversation] = interruptionUser();
+    SavingsAccount::factory()->count(2)->create(['user_id' => $user->id, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+
+    $received = driveDirector($user->fresh(), $conversation, 'I have a Cash ISA with Barclays with £30,000 in it');
+
+    $offer = collect($received)->firstWhere('type', 'quick_replies');
+    expect(array_column($offer['bubbles'], 'id'))->toBe(['store_now', 'store_later']);
+});
