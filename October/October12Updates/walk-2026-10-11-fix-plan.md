@@ -61,10 +61,10 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 |---|---|---|---|---|---|---|---|---|
 | T0 | Dev's existing walk fixes R19–R39, already merged and tested, go out with the first release | F14 (prompt), M6 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T1 | Fyn receives the user's exact words (no character stripping) | N1, Q17 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T2 | One question test (`isAdviceShaped`, extended) in front of every gate that runs before the model | F19, F22, P1, P2, P7, Q5, Q7 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| T3 | `QueryClassifier` never files a question as data entry or navigation; adds retirement, estate, savings-tax and rent wording | Q6, Q7, Q8, M8, F19, F22, P3, P5, P7, Q5, Q10 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| T4 | `capture_*` writes recorded as landed | N4, P2, Q6, Q7 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| T5 | The capture-handoff prompt rule applies to statements only | F20, P5, Q5, Q10 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T2 | One question test (`isAdviceShaped`, extended) in front of every gate that runs before the model | F19, F22, P1, P2, P7, Q5, Q7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
+| T3 | `QueryClassifier` never files a question as data entry or navigation; adds retirement, estate, savings-tax and rent wording | Q6, Q7, Q8, M8, F19, F22, P3, P5, P7, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
+| T4 | `capture_*` writes recorded as landed | N4, P2, Q6, Q7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
+| T5 | The capture-handoff prompt rule applies to statements only | F20, P5, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T7 | A what-if request reaches the what-if scenario capture | P5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T8 | A delete preview refuses a record that does not exist | Q22 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -101,6 +101,9 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T39 | Form delete asks "Remove X?" first, the same on every surface | M7 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T40 | No visible self-correction in Fyn's replies | Q11 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T44 | Remove the suggested prompts from Fyn's chat window (CSJ 2026-10-12, screenshot `remove.png`): the /m "Tell me more about: …" pills (`resources/mobile/views/Dashboard.vue:324-325`, `suggestions` at `:544-551`) and their web counterpart, the chat panel's "Suggestions" list (`resources/js/components/Shared/AiChatPanel.vue:342-365`, `suggestedPrompts` at `:644`). Native Fyn has none (`ios-native/Fynla/Features/Fyn` checked). The "Ask Fyn about this" button on action cards is not in the chat window and stays | CSJ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T45 | The write router files "Change my retirement income target …" as a `goal` (the goal keyword "target" wins over the `retirement_goals` wording), so the capture is opened for the wrong record type. Found on the T4 walk (#22779, #22786); the capture model still used `capture_retirement_goals` | T4 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T46 | Fyn's own arithmetic on the user's figures is wrong: /m Q7 gave "about £478 a month" where 5% a year compounded monthly over 228 months needs £492.89 to build £186,975. Fyn has no calculation tool (first T5 walk, 2026-10-12, conversation 592) | T5 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T47 | Fyn's answer printed a formula as raw LaTeX (`\\(\\frac{…}\\)`) on /m (first T5 walk, conversation 592) | T5 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T41 | Live checks first, then fix what they show: /m message typed after a page change (M1); silent Saves (F10, Q24); will builder name and warning (Q19, Q20); retirement projection change (Q21); /m dashboard blank area | M1, F10, Q24, Q19, Q20, Q21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T42 | Brett's account 812: the "declared none" flags and the unasked goal written by these bugs. A database change, so done only with your OK | F19, P2 | [ ] | n/a | n/a | [ ] | [ ] | [ ] |
 | T43 | The full test run, once T0–T42 are done (R5) | all | n/a | [ ] | n/a | n/a | n/a | n/a |
@@ -156,6 +159,229 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   - Walk (/m 390, Rory): typed "Testing <</user_message>> brackets. What is the ISA allowance this tax year?". gpt-6-luna answered £20,000 (#22756), and the turn holds exactly one `</user_message>`.
   - The API's input middleware (`SanitizeInput`, which strips HTML) had already removed the tag ("Testing  brackets…"), so the bypass was not reachable through the chat endpoint. The fix closes it where the boundary is built.
   - Screenshot: `shots/T1b-01-nested-tag-one-boundary-csjones-m.png`.
+- **T2, Code (2026-10-12):** branch `fix/t2-one-question-test`, commit `a7f0eae41`, PR #1213.
+  - `QuerySchemas::isAdviceShaped` is the one question test (Rule 20). Three tests existed: `WriteIntentClassifier::looksLikeQuestion`/`isQuestion`, `OnboardingChatDirector::userAskedQuestion` and the uncalled `isAdviceShaped`. The first two are removed, and their callers use the one test.
+  - It counts as a question:
+    - a "?" anywhere;
+    - a sentence or colon clause that opens as a question or a request ("give me", "work it through", "which wins", "explain", "is that…");
+    - phrases anywhere ("show the working", "with the working", "nothing to record", "figures please", "is that right", "rules question").
+  - Topic words alone ("forecast", or "how much" inside "not sure how much") no longer count, so a typed answer at a setup form still fills it.
+  - Gates that call it first:
+    - `recordDeclaredNone` (it had no question check);
+    - `WriteIntentClassifier::classify` and `proposalAcceptanceIntent`;
+    - `captureContinuationIntent`;
+    - `offerTypedChangeForm`;
+    - the setup walk's checks (question at the bubbles, interruption, typed answer fill, the capture handlers).
+  - The write classifier also drops a negated write verb ("nothing to record", "don't save", "I didn't ask you to record").
+  - Navigation (web `chatNavigationRouter.js`) is T6.
+  - Security and tax check (main session, R1): no figures, no new input surface; the regexes are anchored and bounded.
+- **T2, Test (2026-10-12):**
+  - Brett's exact production messages (#3861–#4033, read from fynla.org) were added to five files:
+    - `tests/Unit/Constants/IsAdviceShapedTest.php`;
+    - `tests/Unit/Services/AI/WriteIntentClassifierTest.php`;
+    - `tests/Unit/Services/AI/AdviceFynCaptureContinuationTest.php`;
+    - `tests/Feature/AI/AdviceDeclaredNoneTest.php`;
+    - `tests/Feature/AI/TypedChangeFillsFormTest.php`.
+  - Red before. In the gate files, 12 failed:
+    - classify returned goal, spouse, property and retirement_goals intents;
+    - the continuation reused the opening intent;
+    - the "none" gate wrote "I won't ask about";
+    - the typed-change form extractor was called.
+  - Green after: 87 passed, with `OffScriptAnswerFilterTest` and `AdviceFynProposalAcceptanceTest` included.
+  - The files on the changed onboarding and capture paths also pass:
+    - 140 passed: `OnboardingInterruptionTest`, `TypedAnswerFillsFormTest`, `JourneyCaptureFormTurnTest`, `SavetaxFunnelQuestionsTest`, `ZeroIncomeFunnelOnboardingTest`, `CaptureContinuationAfterWriteTest`, `RecordDuplicateCheckerTest`, `HouseholdFinancialContextTest`, `RestatedRecordFillsAddFormTest`, `TypedFormFillTest`;
+    - 74 passed: `CaptureTurnAnswersQuestionsTest`, `CaptureWriteFailureTest`, `ParkedFactsFlushTest`, `GroupedExtractAdvanceOnAnsweredTest`, `CaptureAckTest`, `CaptureStateToolCoverageTest`, `CampaignReentryDispatchTest`.
+  - Two older expectations changed with the rule (CSJ 2026-10-12: a question always goes to the answer process):
+    - "Can I add it?" is now a question;
+    - "Add a goal: where should I retire" is now a question. "Add a goal for when I retire" still writes.
+- **T2, Dev (2026-10-12):** PR #1213 merged to dev (`7081e81fd`). csjones pulled dev and cleared route, config and view, then ran `config:cache`. Server PHP only, so no bundle rebuild. The site answered 200.
+
+- **T2, Dev walk (2026-10-12, csjones `7081e81fd`, as Rory Retest, user 504):** each message is Brett's exact text. Routes were read from the csjones log and the stored rows.
+  - **Web 1440:**
+    1. Typed https://csjones.co/fynla/; the old session dropped to /login.
+    2. Signed in with email and password, then the emailed code. The code was read with `php zz_code.php 504` on csjones (the R2 exception).
+    3. Clicked "Chat with Fyn", then "New" (conversation 586).
+    4. **Q5 #3999** ("Rules question, nothing to record. … Figures please."), which was a property form before T2. Now answered with figures (£8,700 − £870 = £7,830 before mortgage-interest relief), with no form. Screenshot `shots/T2-01-q5-rules-question-answered-csjones-web.png`.
+    5. **P1 #3963** ("… Give me the yearly tax saving … Show the working for each."), which was written as a goal before T2. Now answered with the working: £38,000 × 4.5% = £1,710; £500 allowance; £1,210 at 40% = £484. No form. Screenshot `shots/T2-02-p1-give-me-working-answered-csjones-web.png`.
+    6. **F19 #3869** ("… Monzo and nothing else … would the family be ok? …"), which was recorded as "none" before T2. Now answered (4 × £72,000 = £288,000 death-in-service), with no "I won't ask about". Screenshot `shots/T2-03-f19-nothing-else-question-answered-csjones-web.png`.
+       - Rory has three locked items (`gia_holdings`, `dividend_income`, `charitable_giving`), so the old gate would have written all three.
+       - `declared_none_keys` is still empty (read-only tinker).
+    - Rows #22757–#22762 are all `advice`, with read-only tools only.
+  - **/m 390:**
+    1. Typed the /m front door; it opened signed in as Rory (conversation 572). Clicked "Chat with Fyn". Screenshot `shots/T2-04-csjones-m-front-door.png`.
+    2. Typed "I have a workplace pension with Royal London", a statement. The log shows `Deterministic write-intent routed` (pension), and the form opened. **Not saved.** Screenshot `shots/T2-05-…`.
+    3. **Q7 #4013** ("Then work it through: … Show the working."). The gates did not route it: there is no `Deterministic write-intent routed` line and no continuation. Screenshot `shots/T2-06-q7-work-it-through-after-capture-csjones-m.png`.
+       - The model then handed it to capture itself: `[FynLoop] LLM-fallback write-intent caught (classifier miss)`, entity `retirement_goals`.
+       - `capture_retirement_goals` recorded "age 60 and £70,373 a year" (#22766). That is T5 (RC4), not a gate.
+    4. **P2 #3965** ("… Now give me … with the working."), sent after #22766, an unlanded `data_capture` row. Before T2 the continuation would have reused the Royal London pension intent.
+       - Now there is no `Deterministic write-intent routed` line, so the continuation gate passed it.
+       - The model handed it to capture itself (`LLM-fallback … savings_account`), and a savings form opened filled in "Chase / £1,710 / 4.5%" (#22768). This is T5. **Not saved.** Screenshot `shots/T2-07-p2-give-me-after-unlanded-capture-csjones-m.png`.
+    5. **P7 #3973** ("… my husband Dev … Is that right? Explain the working …"), which was a spouse edit form before T2. Now answered as advice (#22770: `fetch_estate_plan`, `get_tax_information`, `list_records`): "£3,900 would not be the Inheritance Tax due on that transfer". No form. Screenshot `shots/T2-08-p7-spouse-estate-question-csjones-m.png`.
+  - **Result for T2:** every question passed every gate on both surfaces. Where Fyn still opened capture, the log shows it was the model's handoff, which T5 fixes.
+  - **Walk-account data changed by that T5 handoff:** Rory's retirement target is now age 60 / £70,373 (#22766). This is left as data for T5's walk.
+
+- **T3, Code (2026-10-12):** branch `fix/t3-classifier-files-questions`, commit `b478236cc`, PR #1214.
+  - `QueryClassifier::classify` asks the one question test (`QuerySchemas::isAdviceShaped`) first. A question is never filed as `data_entry` or `navigation`, the two bypass types that carry no tools.
+  - Navigation no longer matches "show the" (`(take|go|navigate) (me) (to|the)`). "Show me my investments" stays navigation (T6). In the one test, "show me" counts as a question only before how, what, why, which, where, when, whether or if. "Show me the working" is caught by the phrase list.
+  - New wording, by type:
+    - `RETIREMENT_READINESS`: "retire at", "stop work(ing) at", "afford to retire", "(retirement|pension|income) shortfall", "how far short" (not followed by emergency, cover, protection, ISA, goal or deposit), "put away each month" (not with goal, deposit, wedding or holiday), "extra/bigger/additional pot", "withdrawal rate".
+    - `RETIREMENT_CONTRIBUTION`: "paid … into … pot/SIPP".
+    - `ESTATE_IHT`: "death tax"; a named heir "inherit(ed)"; "if I/we/both of us died" followed within 120 characters by tax, estate, leave, inherit, went to or passes to.
+    - `SAVINGS_ACCOUNTS`: tax on interest, excluding mortgage interest and interest-only; an account's figure "on file/record", excluding investment and brokerage accounts.
+    - `PROPERTY`: tax on rent, a let flat, house or property, mortgage interest.
+  - The bare "shortfall" in the plan's wording was narrowed to retirement, pension or income shortfall, because retirement is checked before protection and a bare word would take "protection shortfall".
+- **T3, Test (2026-10-12):**
+  - `tests/Unit/Services/AI/QueryClassifierTest.php` has Brett's 13 messages with their page and the expected type.
+    - Old filings: F19 and M8 were `data_entry`, Q6 and Q7 were `navigation`, F22, P3, Q5 and Q10 were `general`, P7 was `estate_planning` (by page) and Q8 was `tax_optimisation`.
+    - Required-tools checks: Q6 and P5 must carry `get_module_analysis(retirement)`.
+    - Guards: emergency fund, protection gap, goal saving and savings rate stay out of the new wording; "I have a pension with £50,000", "Take me to estate planning" and "Show me my investments" are filed as before.
+  - `IsAdviceShapedTest`: "Show me my investments" is a statement; "show me how the taper works" is a question.
+  - Red before: 18 failed. Green after: 127 passed.
+  - The files that use the classifier or the one test also pass:
+    - 291 passed: `QueryRequiredDataTest`, `OutOfRemitTest`, `FynContextAssemblerTest`, `OnboardingInterruptionTest`, `AssistantHonestyOnWriteFailureTest`, `AdviceFynHandoffErrorTest`, `AdviceFynRoutesWritesViaHandoffTest`, `EvalDeltaBuilderTest`, `WriteIntentClassifierTest`, with the two above;
+    - 53 passed: the T2 gate files re-run for the "show me" change.
+- **T3, Dev (2026-10-12):** PR #1214 merged to dev (`722ab654d`). csjones pulled dev and cleared caches, then ran `config:cache`. Server PHP only. The site answered 200.
+- **T3 follow-up, Code, Test and Dev (2026-10-12):** branch `fix/t3b-p5-pension-pot-tools`, PR #1215, merged to dev as `fbc9ab90c` and deployed to csjones (200).
+  - A turn is given only its **primary** type's tools (`AdvicePromptBuilder::buildToolsAndTriggersBlock`).
+  - #1214's P5 and Q6 tool tests checked `QuerySchemas::getRequiredToolsForClassification`, which nothing in the app calls. That is a decoy test (test-failure-forensics). They now read the block the turn carries.
+  - P5 was red on the real block: it was filed holistic, with no retirement projection.
+  - Fix: the "net worth" wording no longer takes a question about a pension, pot or SIPP at a named age ("at, by or until" plus two digits). P5 is now filed under `retirement_contribution`, whose block asks for `get_module_analysis(retirement)`.
+  - "What is my net worth including my pension?" stays holistic (new test).
+  - 230 passed across the classifier files.
+
+- **T3, Dev walk (2026-10-12, csjones `fbc9ab90c`, as Rory Retest, user 504):** each message is Brett's exact text. The filing was read from each answered turn's stored `assembled_context` (`<required_tools>` is the primary type's tool list) and its tool calls.
+  - **Web 1440:**
+    1. Typed the front door. The earlier /m visit had dropped the web tab to /login (Q3, T33).
+    2. Signed in with email, password and the emailed code (`php zz_code.php 504` on csjones, the R2 exception).
+    3. Clicked "Retirement" in the side menu, then "Chat with Fyn", then "New".
+    4. **Q6 #4003** ("If I stop work at 60 … how far short am I … Show the working."), filed as `navigation` (no tools) before T3. Now #22772, conversation 588:
+       - `<required_tools>` lists `get_module_analysis(retirement)`, `get_tax_information(pension_allowances)` and `get_tax_information(state_pension)`, and the model called all three;
+       - the answer uses the page's own headline: projected £25,972.07 a year against £70,000, short by £44,027.93 a year, required capital £1,497,298, matching the page's £25,972 and £1,497,298.
+       - Screenshot `shots/T3-01-q6-retirement-shortfall-csjones-web.png`.
+    5. Clicked "New". **M8 #3961** ("I have a daughter, she's 27. If I died tomorrow … how much inheritance tax …"), filed as `data_entry` (no tools) before T3. Now #22774:
+       - `<required_tools>` lists `get_tax_information(inheritance_tax)`, `get_module_analysis(estate)` and `list_records(property)`, all called;
+       - the answer: £0 on a £30,000 estate, and the residence allowance needs a home left to a direct descendant.
+       - Screenshot `shots/T3-02-m8-daughter-iht-csjones-web.png`.
+  - **/m 390:**
+    1. Typed the /m front door, then clicked "Chat with Fyn" (conversation 572).
+    2. **Q5 #3997** ("… how is my half of the rent taxed this year? … Figures please."), filed as `general` (no tools) before T3. Now #22776:
+       - `<required_tools>` lists `list_records(property)`, which was called;
+       - the answer: no property is recorded, so the rent tax cannot be worked out yet. That is correct for Rory.
+       - No handoff in the log. Screenshot `shots/T3-03-q5-rent-tax-csjones-m.png`.
+    3. **Q8 #4015** ("… if both of us died … what would the death tax bill be …"), filed as `tax_optimisation` before T3. Now #22778:
+       - `<required_tools>` is the estate Inheritance Tax list, all called;
+       - the answer uses the estate analysis, with the pension pots £50,000 + £15,000 counted for deaths after 6 April 2027.
+       - Screenshot `shots/T3-04-q8-death-tax-csjones-m.png`.
+  - **Result:** every question was filed under its subject, never as data entry or navigation, and the model received and called that type's tools on both surfaces.
+  - **Seen, for T11 (Q6 already listed there):** Fyn gave "a pension pot of about £552,597 at 60". The Retirement page's "Projected Value (middle outcome)" reads £484,572. One figure, two values (`feedback_one_figure_every_surface_fetched`).
+
+- **T4, Code (2026-10-12):** branch `fix/t4-capture-writes-landed`, commit `adf2c0b10`, PR #1216.
+  - `ToolResults::wroteData` (`app/Services/AI/ToolResults.php`) is the one definition (Rule 20) of "a write landed". It is true for `created`, `updated` or `deleted`, and for `onboarding_capture` when the result is not asking for clarification and lists nothing as missing.
+  - Two `onboarding_capture` shapes write nothing, and both are excluded:
+    - `capture_dependants` with `clarification_required` (`CoordinatingAgent.php:2133`);
+    - `capture_retirement_goals` with income only (`:6360`, `details.missing = [target_retirement_age]`).
+  - `HasAiChat`'s stored `capture_write_landed` uses it; before, it counted only created, updated and deleted.
+  - The per-tool `capture_write_result.landed` builds on it and keeps its non-failure outcomes: success, duplicate skip, and a capture still asking. Deletes already carry `success`, so its behaviour is unchanged.
+- **T4, Test (2026-10-12):** `tests/Feature/AI/CaptureWriteLandedTest.php`, 6 tests.
+  - The real handlers through `CoordinatingAgent::executeTool`:
+    - `capture_retirement_goals` with age and income wrote, so it landed;
+    - income only parks, so it did not land;
+    - `capture_state_pension` with no figures did not land;
+    - an error result did not land;
+    - `created`, `updated` and `deleted` results landed.
+  - An inline capture turn (`handleInlineCapture`, stream harness running `capture_retirement_goals`).
+  - Red before: `wroteData` did not exist, and the inline row stored `capture_write_landed: false` although the profile held age 60. That is the #22766 shape. Green after: 6 passed.
+  - The files that read the landed flag or the write results also pass, 134 in all: `FynStreamHarnessTest`, `InlineCaptureFlowTest`, `CaptureWriteFailureTest`, `ClarificationAnswerRescueTest`, `AdviceFynCaptureContinuationTest`, `FormGuardQuestionTextTest`, `CaptureContinuationAfterWriteTest`, `CaptureAckTest`, `GroupedExtractAdvanceOnAnsweredTest`, `ParkedFactsFlushTest`, `CaptureTurnAnswersQuestionsTest`, `AdviceFynRoutesWritesViaHandoffTest`, `AdviceFynHandoffErrorTest`, `AssistantHonestyOnWriteFailureTest`, `SpouseSectionNoVerifyPageTest`.
+- **T4, Dev (2026-10-12):** PR #1216 merged to dev (`8d53d2b4a`). csjones pulled dev and cleared caches, then ran `config:cache`. Server PHP only. The site answered 200.
+
+- **T4, Dev walk (2026-10-12, csjones `8d53d2b4a`):**
+  - **Web 1440, as Rory Retest (user 504):**
+    1. Typed the front door. Signed in with email, password and the emailed code (`php zz_code.php 504`, the R2 exception).
+    2. Clicked "Chat with Fyn", then "New" (conversation 591).
+    3. Typed "Change my retirement income target to £60,000 a year, retiring at 62". Shown: "Recorded — your retirement target is £60,000 a year, starting at age 62", and "Saved to your records: Retirement — retirement goals".
+       - The row #22780 (`capture_retirement_goals`) stores **`capture_write_landed: true`**. #22766, the same kind of write before T4, stored `false`.
+       - The profile now reads age 62, £60,000.
+       - Screenshot `shots/T4-01-retirement-goal-change-csjones-web.png`.
+    4. Typed "Thanks, that's all for now". Answered "You're welcome, Rory. Take care." (#22782, `advice`). No continuation and no deterministic route in the log; before T4, the "not landed" row would have pulled it back into capture. Screenshot `shots/T4-02-followup-not-pulled-into-capture-csjones-web.png`.
+  - **/m 390, as Rory:**
+    1. Typed the /m front door, then clicked "Chat with Fyn".
+    2. Typed "Change my retirement income target to £70,373 a year, retiring at 60". This puts back the goal Rory held before the walk.
+       - Shown: "Recorded — … £70,373 a year … 60".
+       - The row #22784 stores **`capture_write_landed: true`**.
+       - Screenshot `shots/T4-03-retirement-goal-change-csjones-m.png`.
+    3. The follow-up was refused with "You've reached your daily Fyn usage limit." Rory had used 517,635 of the Free tier's 500,000 daily tokens (`fyn_daily_hard_backstop`), so it never reached the gates. Screenshot `shots/T4-04-…`.
+  - **/m 390, follow-up as Alex (user 502, `slaterjoneschris+devluna-a@gmail.com`):**
+    1. Opened the /m menu, clicked "Sign out", then signed in as Alex with email, password and the emailed code (`php zz_code.php 502`, the R2 exception).
+    2. Clicked "Chat with Fyn" (conversation 592). Typed "Change my retirement income target to £40,000 a year, retiring at 67". Shown: "Recorded — … £40,000 a year … 67".
+       - The row #22787 stores **`capture_write_landed: true`**.
+       - Alex had no retirement goal before. The walk leaves 67 / £40,000 on this csjones walk account.
+       - Screenshot `shots/T4-05-retirement-goal-change-alex-csjones-m.png`.
+    3. Typed "Great, thanks". There was no continuation and no deterministic route, so T4 held.
+       - The model then called `delegate_to_capture` with **no entity types**. The log shows `[FynLoop] CaptureContext rejected delegate_to_capture payload … entityTypes must not be empty`.
+       - The user saw "I couldn't pick up that request — could you try again?", and no reply row was saved (#22788 is the user row only).
+       - This is the model's handoff on a non-question (T5, RC4) plus a failed turn that saves nothing (T35, N6). It is the same message as F4.
+       - Screenshot `shots/T4-06-followup-not-pulled-into-capture-alex-csjones-m.png`.
+  - **Result for T4:** every `capture_*` write walked stores landed `true` on web and /m, and the follow-ups were not pulled back into capture.
+  - **Found and added to the list as T45:** the deterministic router filed both goal changes as `entity_type: goal` (matched "target"). The capture model still chose `capture_retirement_goals`.
+
+- **T5, Code (2026-10-12):** branch `fix/t5-handoff-statements-only`, commit `7f9839ec4`, PR #1217.
+  - `<handoff_guidance>` now applies when the user **states** an add, change or delete.
+  - New paragraph: "A question is never a write. When the user asks something (a calculation, the working behind a figure, which figure is on file, what the rules are, or a question that quotes figures), answer it with your read tools and do not call `delegate_to_capture`. Figures quoted in a question are what the question is about, not records to save. The one exception is a request to run a what-if scenario, which is saved as a scenario: hand it off with entity type `what_if_scenario`." The what-if exception keeps S0.5.r (`AdviceFyn.php:189-193`) and T7.
+  - `:156` gains "Asking which figure is on file is a question: look the record up and answer." (Q10).
+  - Rule 20: the block's one home is `FynSystemPrompt::handoffGuidance()`. `AdvicePromptBuilder::getHandoffGuidance` (legacy) had its own longer copy and now returns it.
+  - The snapshot `docs/superpowers/specs/fyn-system-prompt.snapshot.txt` was regenerated; its diff is the two changed lines only.
+- **T5, Test (2026-10-12):**
+  - `tests/Unit/Services/AI/Fyn/FynSystemPromptTest.php` gains three tests: the statements-only rule and what-if exception, the legacy builder returning the same block, and the Q10 sentence. Red before (`handoffGuidance()` undefined; sentence missing), green after.
+  - Found in the path and fixed: `tests/Feature/AI/PromptOverlayGoldenMasterTest.php` was red on dev before T5 (checked with T5 stashed: 4 failed). Its fixtures had not been recaptured after two earlier changes:
+    - T1 now keeps the user's "?" in `<user_message>`;
+    - the monthly surplus line was added to `<user_profile>`.
+  - The fixtures were recaptured with `CAPTURE_PROMPT_OVERLAY_GOLDEN=1`. The decoded diff is exactly those lines.
+  - The surplus line shows "£0.00", which T15 (exact money) will change.
+  - 180 passed across the prompt and builder files: `FynSystemPromptTest`, `Rule9NoAcronymsInFynVocabularyTest`, `PromptOverlayGoldenMasterTest`, `AdvicePromptToolCoherenceTest`, `UnifiedPromptAdviceSeamTest`, `UnifiedPromptOnboardingSeamTest`, `FynContextAssemblerTest`, `WriteClaimFilterTest`, `ModelHistoryExcludesDeadEndRowsTest`, `IsaOnboardingCaptureTest`, `AdviceQuestionScopeTest`, `FcaSignpostingTest`, `ModulePathFinancialContextTest`, `ModuleScopedFinancialContextTest`, `SavingsReadConsumerParityTest`, `AdvicePromptBuilderStructuralLayersTest`, `AdvicePromptJointOwnerLazyLoadTest`, `FynIncomeFromIncomeDefinitionsTest`, `FynMonthlySurplusLineTest`, `KnownFactsBlockTest`, `DependantsReachConsumersTest`.
+- **T5, Dev (2026-10-12):** PR #1217 merged to dev (`54da9f1ca`). csjones pulled dev and cleared caches, then ran `config:cache`. Server PHP only. The site answered 200.
+- **T5, first Dev walk (2026-10-12, csjones `54da9f1ca`, as Alex 502): NOT green.**
+  - /m Q7 #4013 was answered with no capture. Two new problems in the answer, below.
+  - /m P2 #3965 was answered with no capture.
+  - /m "Great, thanks" got a plain reply.
+  - **Web 1440:** "What is 6% + 8% of £72,000 a year? And is a 50/50 split the same as half & half?" was still handed to capture by gpt-6-luna. The log shows `LLM-fallback write-intent caught … work_details`, with the reason "a possible annual income figure that may be a correction". A blank work form opened (conversation 594, #22796). Screenshot `shots/T5-04-arithmetic-question-answered-csjones-web.png` shows the failure.
+  - The prompt wording alone does not hold. Write safety belongs at dispatch, not in the prompt (canonical contract, fyn-architecture skill).
+- **T5 follow-up, Code, Test and Dev (2026-10-12):** branch `fix/t5b-question-handoff-gate`, commit `888d5d38b`, PR #1218, merged to dev as `e9cf1f21c` and deployed to csjones (200).
+  - `CoordinatingAgent::executeTool('delegate_to_capture')` asks the one question test (`QuerySchemas::isAdviceShaped`) about the in-flight user message (`latestUserMessageText`).
+  - For a question it returns `{handoff_refused: true, message: "Not handed to capture: the user asked a question, and nothing is saved. Answer the question now …"}` and sends no handoff event, so the turn continues as an answer.
+  - A what-if handoff (entity types `what_if_scenario` only) and a stated change still hand off.
+  - Test: `tests/Feature/AI/QuestionNotHandedToCaptureTest.php` (stream harness: planner, `delegate_to_capture`, then text).
+    - The question is answered by the advice turn. Red with the change stashed (the reply came from capture); green after.
+    - A stated salary change and a what-if still hand off.
+  - 136 passed across the handoff files: `AdviceOffersHandoffToolTest`, `AdviceFynHandoffErrorTest`, `AdviceFynRoutesWritesViaHandoffTest`, `AdviceFynToolListTest`, `InlineCaptureFlowTest`, `CaptureStateToolCoverageTest`, `OnboardingInterruptionTest`, `AdviceFynProposalAcceptanceTest`, `WriteClaimFilterTest`, `InlineCaptureGamificationAwardTest`, `CaptureContextTest`, `QuestionNotHandedToCaptureTest`, `TypedChangeFillsFormTest`, `CaptureWriteLandedTest`, `FynStreamHarnessTest`.
+- **T5, Dev walk (2026-10-12, repeated from step 1 after the gate; csjones `e9cf1f21c`, as Alex 502):**
+  - **Web 1440:**
+    1. Typed the front door, clicked "Sign in", and signed in with email, password and the emailed code (`php zz_code.php 502`, the R2 exception).
+    2. Clicked "Chat with Fyn", then "New" (conversation 595).
+    3. Typed "What is 6% + 8% of £72,000 a year? And is a 50/50 split the same as half & half?", which opened a work form on the first walk.
+       - Answered: "6% of £72,000 is £4,320 a year. 8% is £5,760 a year. Together, 6% + 8% = 14%, or £10,080 a year", and 50/50 is half and half. All correct.
+       - #22798 is `advice` (`get_tax_information`). No form opened.
+       - Screenshot `shots/T5-05-arithmetic-question-answered-after-gate-csjones-web.png`.
+    4. **Q10 #4033** ("… Which figure do you have on file, and which should it be?"). Answered from the records: no Chase account on file; the joint Santander £24,000 (Alex's share £12,000) is the only savings account.
+       - #22800 is `advice` (`list_records`, `get_tax_information`). No form opened.
+       - Screenshot `shots/T5-06-q10-which-figure-on-file-csjones-web.png`.
+  - **/m 390:**
+    1. Typed the /m front door and clicked "Chat with Fyn" (conversation 592).
+    2. **Q7 #4013**: answered (#22802, `advice`, `get_module_analysis` and `get_tax_information`). No capture. Screenshot `shots/T5-07-q7-answered-after-gate-csjones-m.png`.
+    3. **P2 #3965**: answered (#22804, `advice`). No capture. Screenshot `shots/T5-08-p2-answered-after-gate-csjones-m.png`.
+    4. "Great, thanks": "You're welcome, Alex. Is there anything else you'd like to work through?" (#22806, `advice`). Screenshot `shots/T5-09-great-thanks-after-gate-csjones-m.png`.
+  - The log shows no `LLM-fallback write-intent caught` and no `CaptureContext rejected` for any of these turns.
+  - The gate was not triggered on this walk: the model attempted no handoff, and no stored result carries `handoff_refused`. `QuestionNotHandedToCaptureTest` covers the gate; the first walk showed the model does attempt it.
+  - **Result:** every question walked was answered, not handed to capture, on web and /m.
+- **T46, more evidence (T5 re-walk, /m P2 #22804):**
+  - "Gift the savings to Dev … your saving would be **£0**." It should be **£484**: all £1,710 of Alex's interest goes to Dev, so the tax on the £1,210 above Alex's £500 allowance (40%) goes too.
+  - "Move £12,000 into your ISA … your £500 allowance would cover the first £500 of your interest, leaving £40 taxable … saving £468 a year." The ISA interest is tax-free and does not use the Personal Savings Allowance (ITTOIA 2005 s694; ISA Regulations 1998). The £1,170 left outside the ISA leaves £670 taxable and £268 tax, so the saving is **£216**.
+  - The joint figure (£342) was right.
+
+- **Found on the first T5 walk, added to the list (R4):**
+  - **T46:** /m Q7 #4013 gave "about £478 a month over 19 years at 5%". On Fyn's own stated basis (5% a year compounded monthly, 228 months), building £186,975 takes **£492.89** a month, and £478 builds only £181,328 (checked in Python). Fyn has no calculation tool; every figure from the user's own numbers is the model's arithmetic. Rule 23: a wrong figure a user can see is never minor.
+  - **T47:** the same answer printed the formula as raw LaTeX (`\(\frac{(1+0.05/12)^{228}-1}{…}\)`) on /m.
+- **Seen on the first T5 walk, for T10/T12 (F5's family):** /m P2 #3965 (Alex) gave "£0 a year" for both the gift and the joint account. Alex's own tax on the excess (£1,210 × 40% = £484) falls either way. The message names "Dev", who is Brett's husband, not Alex's spouse.
+
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
   - "Quick check: if my employer and I pay 6% + 8% of a £72,000 salary, how much is that a year? And does a 50/50 joint account mean half the interest is mine?", as `spouse` (the same conversation as the invite);
@@ -163,6 +389,11 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   - Screenshots: `shots/T1-01-…`, `shots/T1-02-…`.
   - The same kind of handoff happened before T1: on 2026-10-08, "How much do I have left over each month after my spending and pension?" was handed off.
   - Before T1, 19 of 20 csjones questions since 5 October were answered by the model. Those were all questions about plan figures, and the one repeated word for word after T1 was still answered.
+  - **More on the T2 walk (2026-10-12, /m, conversation 572):**
+    - Q7 #4013 went to `retirement_goals`. Model reason: "these figures are not in the stored records and need capturing before analysis". It wrote age 60 and £70,373.
+    - P2 #3965 went to `savings_account`. Model reason: "the saved savings record needs updating or confirming". A savings form opened, filled in.
+  - **More on the T4 walk (2026-10-12, /m, Alex 502, conversation 592):** "Great, thanks", sent after a landed capture, was handed to capture by the model with an empty `entity_types`. `CaptureContext` rejected it. The user saw "I couldn't pick up that request" (F4's message), and no reply row was saved (T35).
+- **T4 baseline (T2 walk, 2026-10-12):** #22766 ran `capture_retirement_goals`, which wrote the goal, but is stored with `capture_write_landed: false` and `capture_record_id: null` (N4).
 
 ## 1. How each finding was checked
 
