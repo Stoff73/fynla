@@ -548,6 +548,10 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked as Pat 506: /m gave £1,554.40, £26,839.60, £636.63 (#22933); web gave £32,280 and £3,886 (#22935).
           - DECISION (CSJ), T57: the Income page rounds £26,839.60 to £26,840 while Fyn gives the pence. Should the pages show pence too?
           - Next: T16.
+        - T16 (2026-10-12, session 5) is ticked to Dev walk. Onboarding bubble steps read typed answers (`AnswerPolarity`, `matchBubble` by meaning, typed lists at multi-select steps):
+          - PR #1252, dev `8a2a5626c`, on csjones.
+          - Walked with fresh accounts: /m (Priya 510) took Brett's four typed answers word for word; web (Sanjay 511) took "roughly 72k" and a typed list.
+          - Next: T17 (typed facts kept and later forms pre-filled: the £400 of dividends and #4083's ISA).
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.

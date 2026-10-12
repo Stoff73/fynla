@@ -76,7 +76,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T13 | Older turns summarised for the model; search reads the open conversation; recall rule | Q13 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T14 | Corpus entry on gifts within seven years of death; `source:` filled on every entry; Fyn cites it | F17, M5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T15 | Money given to the model written exactly: £100, £100.15, never rounded | F14 (context) | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T16 | Onboarding bubble steps read typed answers | F1 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T16 | Onboarding bubble steps read typed answers | F1 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T17 | Typed facts kept and later forms pre-filled; children open the dependants form | F2, F11, F16, F21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T18 | The cap is checked when a section starts; the at-cap reply is in words | F10, F9 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T19 | "No mortgage" ticks the No mortgage box | M3, Q2 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -584,6 +584,20 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   1. /m 390: "What is my National Insurance this year, my take-home pay, and what's left over each month? Exact figures please." got £1,554.40, £26,839.60 and £636.63 (#22933). Shot `T15-01-exact-figures-m-csjones.png`.
   2. Web 1440: clicked "Income": "Total Annual Income: £32,280", "Net Income (after tax and National Insurance): £26,840". Shot `T15-02-income-page-web-csjones.png`. Then "Expand Fyn chat": "What is my total annual income and my Income Tax this year? Exact figures please." got "£32,280" and "£3,886" (#22935), no ".00". Shot `T15-03-whole-figures-web-csjones.png`.
   - Found: T57 (the page rounds £26,839.60 to £26,840; your decision).
+
+- **T16, Code (2026-10-12, session 5):** #1252 (`8a2a5626c`), branch `fix/t16-bubbles-read-typed-answers`. Brett's turns, read on fynla.org: #3763 "about 48k" at `campaign_funnel_spouse_income`, #3767 a typed list at `campaign_funnel_assets`, #3776 "nope that's it, though…" at `base_employment_more`, #3780 "sure, go ahead" at `campaign_intro` (#4083 is T17).
+  - `AnswerPolarity` is the one yes/no vocabulary; `OnboardingChatDirector::isCompletionDeclaration` (nine callers) delegates to it, "nope"/"nah" added.
+  - `OnboardingStateMachine::matchBubble` = literal match, else by meaning: a figure at an income-band step takes its band (`FunnelIncomeBand::inBand`, configured ranges); a typed yes/no takes the one bubble answering that way. Confirmation steps (verify, recap, family review) take a loose "okay" as nothing (the verify sequence, CSJ 2026-06-17).
+  - `matchBubbles`: a typed list at a multi-select step takes every chip named (label or `BUBBLE_ALIASES`, whole words) and submits.
+  - The director passes the matched bubble's label to the transition when read by meaning.
+- **T16, Test (2026-10-12):** `OnboardingStateMachineTest` (Brett's words, the confirmation guard, the label pass-through) and `SavetaxFunnelQuestionsTest` (through the chat endpoint) red first. The walkthrough test caught the "Okay at verify" case, which led to the confirmation guard. 172 + 31 passed across the onboarding files.
+- **T16, Dev (2026-10-12):** csjones pulled `8a2a5626c`; caches cleared.
+- **T16, Dev walk (2026-10-12):**
+  1. /m 390, fresh account Priya Walk (user 510, `slaterjoneschris+t16typed@gmail.com`): signed out, "Get started for free", registered (code from `PendingRegistration`, the R2 exception). Typed every answer: "full time"; "yep, married to Dev"; "I just told you, about 48k" (moved on: shot `T16-01-48k-taken-m-csjones.png`); Brett's list "all of those actually - current account, easy access savings, cash ISA and a stocks & shares ISA, workplace pensions, a GIA, premium bonds and our house" (one message; funnel answers `spouseIncome: upto_50270`, assets bank, savings, isa, pension, investments, property; shot `T16-02-asset-list-taken-m-csjones.png`); the income form (Delta Ltd, £62,000); "nope that's it, though I get about £400 a year in dividends from the GIA if that counts" (moved on); "sure, go ahead" (moved on to "Now your ISAs", step `campaign_isa_holdings`; shot `T16-03-nope-and-sure-taken-m-csjones.png`).
+  2. Web 1440, fresh account Sanjay Walk (user 511, `slaterjoneschris+t16web@gmail.com`): "register a new account" from the sign-in page; typed "full time", "yeah I am", "roughly 72k a year" (`50271_100000`), "we've got a current account, a cash ISA, workplace pensions and our house" (bank, isa, pension, property), then the work form opened (shot `T16-04-typed-answers-web-csjones.png`).
+  - The "nope" and "sure" gates were walked on /m only; the web takes the same server path.
+  - Seen (T17): the £400 of dividends in the "nope" message is dropped; Brett's #4083 (an ISA typed at a yes/no gate) also waits for T17.
+  - Seen: on both accounts the income step went straight on without the verify screen (as on Robin 509's walk); not investigated here.
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
