@@ -535,3 +535,42 @@ it('flags a word-for-word repeat of the previous user message, and nothing else'
         ->toContain('3 times in a row')
         ->not->toContain('I answered that a moment ago');
 });
+
+// Walk fix plan T13 (Q13): the model sees 20 messages, so it must be told
+// when more are out of view, and how to read them, rather than guess.
+it('says how many earlier messages are out of view and how to read them', function () {
+    $conversation = AiConversation::create([
+        'user_id' => $this->user->id,
+        'title' => 'Long chat',
+        'status' => 'active',
+        'model_used' => 'gpt-6-luna',
+        'summary' => 'The user gave their salary and a bonus.',
+    ]);
+    for ($i = 1; $i <= 31; $i++) {
+        $conversation->messages()->create(['role' => $i % 2 === 1 ? 'user' : 'assistant', 'content' => "Message {$i}"]);
+    }
+
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'Is the bonus I mentioned taxed at 40%?', currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'general', 'related' => []], conversation: $conversation,
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<earlier_in_conversation>')
+        ->toContain('11 earlier messages in this conversation are out of view')
+        ->toContain('<user_provided>The user gave their salary and a bonus.</user_provided>')
+        ->toContain('search_conversation_index');
+});
+
+it('adds nothing about earlier messages when all of them are in view', function () {
+    $conversation = AiConversation::create(['user_id' => $this->user->id, 'title' => 'Short', 'status' => 'active', 'model_used' => 'gpt-6-luna']);
+    $conversation->messages()->create(['role' => 'user', 'content' => 'Hello']);
+
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'Hello', currentRoute: '/dashboard', mode: 'advice', onboardingFocus: null,
+        isPreview: false, classification: ['primary' => 'general', 'related' => []], conversation: $conversation,
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))->not->toContain('<earlier_in_conversation>');
+});

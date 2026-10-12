@@ -30,6 +30,7 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\AiProvider;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\ConversationWindow;
 use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\Fyn\CertaintyFilter;
 use App\Services\AI\Fyn\ClaimTier;
@@ -99,8 +100,6 @@ trait HasAiChat
         'module' => 5,
         'factual' => 3,
     ];
-
-    private const MAX_HISTORY_MESSAGES = 20;
 
     /**
      * Chat overrides used by OnboardingChatDirector during delegated
@@ -1906,10 +1905,8 @@ trait HasAiChat
      */
     private function buildMessageHistory(AiConversation $conversation): array
     {
-        $dbMessages = $conversation->messages()
-            ->whereIn('role', ['user', 'assistant'])
-            ->orderBy('created_at', 'desc')
-            ->limit(self::MAX_HISTORY_MESSAGES)
+        $dbMessages = ConversationWindow::newestFirst($conversation)
+            ->limit(ConversationWindow::MESSAGES)
             ->get()
             ->reverse()
             ->values();

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Actions\ActionCardService;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\ContextualConversation\ContextualResourceResolver;
+use App\Services\AI\ConversationWindow;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
@@ -197,6 +198,14 @@ final class FynContextAssembler
         $householdGrounding = $this->savedHouseholdFinancesDirective($ctx);
         if ($householdGrounding !== null) {
             $lines[] = $householdGrounding;
+        }
+
+        // The model sees the newest ConversationWindow::MESSAGES messages; say
+        // when more are out of view and how to read them, so a figure given
+        // earlier is quoted, not invented (walk fix plan T13, Q13).
+        $earlier = $this->earlierInConversationBlock($ctx);
+        if ($earlier !== null) {
+            $lines[] = $earlier;
         }
 
         // CoALA Phase 4c — procedural prompt overlays + FCA blocks. Additive
@@ -626,6 +635,31 @@ final class FynContextAssembler
             .implode("\n", $values)."\n"
             .'Use the listed values exactly. Do not say that a listed field is not recorded. Do not infer values for fields that are not listed.'
             ."\n</saved_household_finances>";
+    }
+
+    /**
+     * Earlier messages of this conversation the model cannot see: how many,
+     * the app's stored summary of the conversation when there is one (written
+     * by a model from the transcript, so it may not keep exact figures), and
+     * that the search reads the user's own words from them.
+     */
+    private function earlierInConversationBlock(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->conversation === null) {
+            return null;
+        }
+        $count = ConversationWindow::earlierCount($ctx->conversation);
+        if ($count === 0) {
+            return null;
+        }
+
+        $summary = trim((string) ($ctx->conversation->summary ?? ''));
+
+        return "<earlier_in_conversation>\n"
+            ."{$count} earlier messages in this conversation are out of view.\n"
+            .($summary !== '' ? 'A summary of this conversation written by the app (it may not keep exact figures): '.UserContentSanitiser::wrap($summary)."\n" : '')
+            .'To use anything the user said in them, call search_conversation_index with `words` to look for: it returns what they wrote, exactly. Quote it; if it is not found, say that part of the conversation is out of view.'
+            ."\n</earlier_in_conversation>";
     }
 
     /**

@@ -51,6 +51,7 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\ConversationWindow;
 use App\Services\AI\Fyn\RecaptureGuard;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Pointers\FetchContext;
@@ -2846,7 +2847,17 @@ class CoordinatingAgent extends BaseAgent
             ->limit(10)
             ->get(['id', 'title', 'summary', 'topics', 'intents_stated', 'entities_mentioned', 'last_message_at']);
 
+        // The open conversation's earlier messages, out of the model's view:
+        // the user's own words, quoted, for the words asked (walk fix plan
+        // T13). Only the caller's own conversation is read.
+        $words = array_values(array_filter((array) ($input['words'] ?? []), fn ($v) => is_string($v) && trim($v) !== ''));
+        $active = $activeConversationId !== null && $words !== []
+            ? AiConversation::where('id', $activeConversationId)->where('user_id', $user->id)->first()
+            : null;
+        $thisConversation = $active !== null ? ConversationWindow::earlierUserMessagesWith($active, $words) : [];
+
         return [
+            'this_conversation' => $thisConversation,
             'count' => $rows->count(),
             'conversations' => $rows->map(fn ($row) => [
                 'id' => $row->id,
