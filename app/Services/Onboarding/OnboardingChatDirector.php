@@ -480,9 +480,11 @@ final class OnboardingChatDirector
         }
 
         // A typed answer at a step with a form fills the form in (CSJ
-        // 2026-10-05, option A). "None" and a bare "yes" keep their own
-        // handling (handleAssetCaptureTurn's emitNothingToAdd).
-        if (isset($state['form']) && ! self::isCompletionDeclaration($message) && ! self::isBareAffirmative($message)) {
+        // 2026-10-05, option A). The form decides: "None" or a bare "yes"
+        // fills nothing, so it keeps its own handling (handleAssetCaptureTurn's
+        // emitNothingToAdd). A word test here skipped the form for facts that
+        // also said "nothing else in his name" (walk 2026-10-11, #3836, T17).
+        if (isset($state['form'])) {
             $offered = yield from $this->offerTypedAnswerForm($user, $conversation, $message, $currentStateId, $state);
             if ($offered) {
                 return;
