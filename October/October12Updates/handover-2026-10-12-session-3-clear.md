@@ -92,26 +92,40 @@ CSJ: "due to the change in the llm, we can increase the limits … so the test r
 - **They replace both:**
   - `fyn_weekly_token_budget` (Free 100,000, Premium 500,000). Exceeding it only switches to a cheaper model and shows a notice: `HasAiGuardrails::isWeeklyBudgetExceeded` (`:85`), `weeklyTokenUsage` (`:72`), `getAiModel` (`:132`) and `HasAiChat.php:467`.
   - `fyn_daily_hard_backstop` (Free 500,000, Premium 2,000,000). This is the hard stop, "You've reached your daily Fyn usage limit": `isDailyBackstopExceeded` (`:104`) and `:213`.
-- **Period, default until CSJ says otherwise:** per day. Keep the daily stop and its midnight UTC reset, set it to 750,000 / 3,000,000, and remove the weekly switch and its column. If CSJ meant per week, the stop moves to the rolling week instead.
-- **Values live in data, not code:** `tier_configurations`, the same on csjones and production today (read 2026-10-12). `TierConfigurationSeeder` uses `firstOrCreate` (`:20`), so it will not change existing rows. A migration must set the new values on both environments. Also update the seeder (`:62-63`, `:105-106`) for fresh installs.
-- **Remove `fyn_weekly_token_budget` from:**
-  - `app/Models/TierConfiguration.php:19,31`;
+- **Period: per rolling week (CSJ 2026-10-12: "great question, yes per week please").** The weekly limit becomes the one stop:
+  - `isWeeklyBudgetExceeded` stops the turn with the limit message. The rolling week is `weeklyTokenUsage`, today plus the six days before, from `ai_daily_usage` (`HasAiGuardrails.php:72`).
+  - The cheaper-model switch in `getAiModel` (`:132`) and its notice (`HasAiChat.php:467`) go.
+  - The daily stop goes: `isDailyBackstopExceeded` (`:104`), the limit read at `:213` and its callers (`:196`).
+- **Values live in data, not code:** `tier_configurations`, the same on csjones and production today (read 2026-10-12). `TierConfigurationSeeder` uses `firstOrCreate` (`:20`), so it will not change existing rows.
+  - A migration must set `fyn_weekly_token_budget` to 750,000 (free) and 3,000,000 (premium) on both environments, then drop `fyn_daily_hard_backstop`.
+  - Update the seeder (`:62-63`, `:105-106`) for fresh installs.
+- **Remove `fyn_daily_hard_backstop` from:**
+  - `app/Models/TierConfiguration.php:19,32`;
   - `app/Services/Stores/TierConfigurationStore.php:168`;
-  - `app/Http/Resources/TierConfigurationResource.php:27`;
-  - `app/Services/Payment/SubscriptionStatusService.php:81`;
-  - `app/Http/Requests/Admin/UpdateTierConfigurationRequest.php:26`;
-  - the admin page `resources/js/components/Admin/TierConfiguration.vue:125,232`. That is a web bundle rebuild; /m and iOS do not read it.
-  - Then drop the column by migration.
+  - `app/Http/Resources/TierConfigurationResource.php:28`;
+  - `app/Services/Payment/SubscriptionStatusService.php:82`;
+  - `app/Http/Requests/Admin/UpdateTierConfigurationRequest.php:27`;
+  - the admin page `resources/js/components/Admin/TierConfiguration.vue:134,233`.
+- **The stop message says "weekly", from one place (Rule 20):** the server sends "You've reached your weekly Fyn usage limit." (`HasAiChat.php:413`). Then:
+  - the web panel renders the server's message instead of its own heading (`AiChatPanel.vue:291`);
+  - the /m fallback changes (`resources/mobile/mixins/onboardingChat.js:553`);
+  - iOS (`ios-native/Fynla/Features/Fyn/FynEvent.swift:98` fallback) ships with the next iOS build (deferred; CI verifies).
+  - A web and /m bundle rebuild is needed.
 - **Tests to update:**
   - `tests/Feature/Tiers/ApprovedTwoTierMatrixTest.php:62,77`;
   - `tests/Feature/Tiers/TierConfigurationSeederTest.php:25,38`;
   - `tests/Feature/Tiers/TierConfigurationsTableTest.php:16`;
   - `tests/Pest.php:165-166`;
   - `tests/Unit/Services/Payment/SubscriptionStatusServiceTest.php:144-145`;
-  - `tests/Unit/Services/Tiers/FynMeteringTest.php:24`;
+  - `tests/Unit/Services/Tiers/FynMeteringTest.php`;
+  - `tests/Feature/Fyn/FynTierLimitActionTest.php`;
   - `tests/Architecture/StoreBoundary/TierConfigBoundaryTest.php`;
   - `tests/E2E/public/pricing-contract.spec.js:71,90` (fixture only).
-- **Walk:** Rory (504) had used 517,635 tokens on 2026-10-12. Under 750,000 he is no longer stopped. Walk Fyn on web and /m past the old 500,000 point, and check the admin Tier Configuration page shows one limit.
+- **Walk:**
+  - Rory (504) had used 517,635 tokens by 2026-10-12, which counts toward his rolling week. Under 750,000 a week he can go on until the week's total reaches 750,000.
+  - Walk Fyn on web and /m past the old 500,000 daily point.
+  - Check the stop message reads "weekly" when a test account goes over.
+  - Check the admin Tier Configuration page shows one limit.
 - **Release:** needs the migration on production. CSJ runs the release.
 
 ### Then T6

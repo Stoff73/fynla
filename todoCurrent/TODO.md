@@ -473,7 +473,7 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - The `PromptOverlayGoldenMasterTest` fixtures had been stale since T1; recaptured in #1217.
         - **Next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.**
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
-          - Default until CSJ says otherwise: the one limit is per day (the existing daily stop, reset at midnight UTC), and the weekly switch is removed.
+          - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
           - The map of what to change is in the session 3 handover.
         - Then T6: navigation moves to the server, and the web keyword matcher is deleted.
         - Prod boxes for T0 to T5 wait for CSJ's release.
