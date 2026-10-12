@@ -1298,6 +1298,20 @@ final class OnboardingChatDirector
             if ($onFile !== null) {
                 $promptText = $onFile."\n\n".$promptText;
             }
+            // Reached past a form skipped at the limit (skipSectionAtFreeLimit),
+            // the step names its section, as the form would have; otherwise it
+            // repeats the previous section's paragraph with nothing to say which
+            // section this is (T18 walk, csjones /m). After a save in the
+            // section, the user's last message is that section's form.
+            $entry = OnboardingStateMachine::sectionEntryForLoop($stateId);
+            if ($cap !== null && $entry !== null) {
+                $entryState = OnboardingStateMachine::getState($entry) ?? [];
+                $lastPosted = $conversation->messages()->where('role', 'user')->latest('id')->first(['metadata'])?->metadata['form']['name'] ?? null;
+                $leadIn = $entryState['form_prompt_text'] ?? null;
+                if ($lastPosted !== ($entryState['form'] ?? null) && is_string($leadIn) && $leadIn !== '') {
+                    $promptText = $leadIn."\n\n".$promptText;
+                }
+            }
 
             $event = [
                 'type' => 'quick_replies',

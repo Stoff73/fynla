@@ -2424,6 +2424,19 @@ final class OnboardingStateMachine
         return $entityKey === null ? null : self::freeLimitReached($user, $entityKey, $count, $noun);
     }
 
+    /** A capture section's "another?" step, mapped to the form step that opens the section. */
+    public static function sectionEntryForLoop(string $stateId): ?string
+    {
+        return match ($stateId) {
+            self::STATE_CAMPAIGN_ISA_MORE => self::STATE_CAMPAIGN_ISA_HOLDINGS,
+            self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+            self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            self::STATE_CAMPAIGN_PROPERTY_MORE => self::STATE_CAMPAIGN_PROPERTY,
+            self::STATE_CAMPAIGN_PENSION_MORE => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            default => null,
+        };
+    }
+
     /**
      * The Free limit a blank add form's records count against, when reached:
      * the same counts as the walk's sections (freeLimitAt).

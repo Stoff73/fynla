@@ -558,3 +558,27 @@ it('names the ISAs in the investments limit, as the count includes them', functi
     $quick = collect($events)->firstWhere('type', 'quick_replies');
     expect($quick['prompt_text'])->toEndWith("That's the Free plan's limit of 2 ISAs and investment accounts, so I can't add another here. You can upgrade after onboarding to add more.");
 });
+
+// T18 walk (csjones /m, Omar): opened on its limit, the investments step
+// repeated the ISA step's paragraph word for word, with nothing to say it was
+// the investments section. Reached past its skipped form, it opens with the
+// section's own lead-in; straight after a save in the section it does not.
+it('opens a section skipped at the limit with its own lead-in', function (): void {
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE);
+    InvestmentAccount::factory()->isa()->count(2)->create(['user_id' => $user->id, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $conversation = accountConversation($user);
+    AiMessage::create(['conversation_id' => $conversation->id, 'role' => 'assistant', 'content' => 'Does it look right?', 'metadata' => ['onboarding_step' => 'campaign_verify_navigate']]);
+
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE);
+    $events = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE, $state, includeTransitionHeader: false), false);
+    $quick = collect($events)->firstWhere('type', 'quick_replies');
+
+    expect($quick['prompt_text'])->toStartWith("Now your investments.\n\nYou have 2 ISAs and investment accounts on file: ");
+
+    AiMessage::create(['conversation_id' => $conversation->id, 'role' => 'user', 'content' => 'General Investment Account with Vanguard.', 'metadata' => ['form' => ['name' => 'investment', 'answers' => []]]]);
+    $events = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE, $state, includeTransitionHeader: false), false);
+
+    expect(collect($events)->firstWhere('type', 'quick_replies')['prompt_text'])->toStartWith('You have 2 ISAs and investment accounts on file: ');
+});
