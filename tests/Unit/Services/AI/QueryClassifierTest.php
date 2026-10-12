@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Constants\QuerySchemas;
+use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\QueryClassifier;
 
 beforeEach(function () {
@@ -319,16 +320,23 @@ describe('QueryClassifier — a question is filed under its subject (fix plan T3
         'Q10 #4033 (was general)' => ['Hang on, I told you earlier the Chase account was £38,000 but I think I may have said £83,000 at some point. Which figure do you have on file, and which should it be?', QuerySchemas::SAVINGS_ACCOUNTS, null],
     ]);
 
-    it('brings the pension tools to a pension what-if asked with net worth (P5 #3971)', function () {
+    // The model is given the PRIMARY type's tools only
+    // (AdvicePromptBuilder::buildToolsAndTriggersBlock), so these read the
+    // block the turn actually carries.
+    it('gives a pension pot what-if asked with net worth the retirement projection tool (P5 #3971)', function () {
         $result = $this->classifier->classify("Run a what-if for me: if I paid an extra £20,000 a year into my Aviva pot from now until 60, what would the pot and my net worth be at 60 compared with today's projection?");
 
-        expect(QuerySchemas::getRequiredToolsForClassification($result))->toContain('get_module_analysis(retirement)');
+        expect(app(AdvicePromptBuilder::class)->buildToolsAndTriggersBlock($result))->toContain('get_module_analysis(retirement)');
     });
 
     it('gives a retirement question the retirement projection tool (Q6)', function () {
         $result = $this->classifier->classify("If I stop work at 60 and want £70,000 a year after that, how far short am I on what's on file, and what would I need to put away each month from now to close it? Show the working.");
 
-        expect(QuerySchemas::getRequiredToolsForClassification($result))->toContain('get_module_analysis(retirement)');
+        expect(app(AdvicePromptBuilder::class)->buildToolsAndTriggersBlock($result))->toContain('get_module_analysis(retirement)');
+    });
+
+    it('keeps net worth with a pension and no age as the whole picture', function () {
+        expect($this->classifier->classify('What is my net worth including my pension?')['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
     });
 
     it('never files a request for the working as navigation', function () {

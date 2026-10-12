@@ -295,7 +295,11 @@ final class QuerySchemas
             '/\b(which|what)\s+(fynla\s+)?plan\s+(am\s+i|are\s+we)\s+on\b/i',
         ],
         self::HOLISTIC_HEALTH => [
-            '/\bnet\s+worth\b/i',
+            // Not when the question is a pension pot at a named age ("what
+            // would the pot and my net worth be at 60", Brett #3971): the
+            // turn is given its PRIMARY type's tools only, and that needs the
+            // retirement projection (fix plan T3).
+            '/^(?!.*\b(pension|pot|sipp)\b.{0,80}\b(at|by|until)\s+\d{2}\b).*\bnet\s+worth\b/is',
             '/\b(how\s+much|what)\s+(am|are)\s+(i|we)\s+worth\b/i',
             '/\b(total|combined)\s+wealth\b/i',
             '/\bwhat\s+do\s+i\s+own\b/i',
