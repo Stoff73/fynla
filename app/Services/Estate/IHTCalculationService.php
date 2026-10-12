@@ -871,6 +871,16 @@ class IHTCalculationService
                 Money::exact((float) $result['projected_taxable_estate']),
                 Money::exact((float) $result['projected_iht_liability']),
             );
+            // Why the projection is what it is, in this service's own words
+            // (an estate projected at £0 with no reason given, Robin 509).
+            foreach ((array) ($result['projected_cash_assumptions'] ?? []) as $assumption) {
+                if (is_string($assumption) && $assumption !== '') {
+                    $lines[] = $assumption;
+                }
+            }
+            if ((float) ($result['projected_cash_shortfall'] ?? 0) > 0) {
+                $lines[] = sprintf('On those assumptions, spending uses up the cash before then, with %s more needed.', Money::exact((float) $result['projected_cash_shortfall']));
+            }
         }
 
         return $lines;

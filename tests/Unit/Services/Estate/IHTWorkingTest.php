@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AI\Pointers\FetchContext;
 use App\Services\AI\Pointers\Handlers\EstatePlanHandler;
 use App\Services\Estate\IHTCalculationService;
+use App\Support\Money;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -68,7 +69,9 @@ it('carries the projection at the expected age of death', function () {
 
     $calc = app(IHTCalculationService::class)->calculate($user);
 
-    expect(end($calc['working']))->toContain('Looking ahead to age '.$calc['estimated_age_at_death'])
+    $projection = collect($calc['working'])->first(fn (string $line) => str_starts_with($line, 'Looking ahead to age'));
+
+    expect($projection)->toContain('Looking ahead to age '.$calc['estimated_age_at_death'])
         ->toContain('in '.$calc['years_to_death'].' years');
 });
 
@@ -84,4 +87,22 @@ it('carries the same working in the estate plan Fyn fetches', function () {
     expect($payload)->toHaveKey('composed_estate_plan')
         ->and($payload['inheritance_tax']['iht_liability'])->toEqual($calc['iht_liability'])
         ->and($payload['inheritance_tax']['working'])->toBe($calc['working']);
+});
+
+// Robin 509's working said "the estate is projected at £0" with no reason; the
+// engine's own assumptions (no pension or State Pension recorded, spending
+// carries on) and the cash it runs short by explain it.
+it('gives the projection its assumptions and any cash shortfall', function () {
+    $user = ihtWorkingSaver(['marital_status' => 'single', 'monthly_expenditure' => 4000, 'expenditure_entry_mode' => 'simple']);
+
+    $calc = app(IHTCalculationService::class)->calculate($user);
+
+    expect($calc['projected_cash_assumptions'])->not->toBeEmpty()
+        ->and($calc['working'])->toContain(...$calc['projected_cash_assumptions']);
+    if ((float) $calc['projected_cash_shortfall'] > 0) {
+        expect($calc['working'])->toContain(sprintf(
+            'On those assumptions, spending uses up the cash before then, with %s more needed.',
+            Money::exact((float) $calc['projected_cash_shortfall']),
+        ));
+    }
 });
