@@ -27,14 +27,18 @@ final class ArithmeticCheck
     public static function correct(string $text): string
     {
         $money = self::MONEY;
+        // A short label may follow a figure ("£325,000 Nil Rate Band"), and the
+        // result may be bold ("= **£0 taxable estate**"), as Fyn writes them
+        // (csjones #22962).
+        $label = '((?:\s+[A-Za-z][A-Za-z\x{2019}\'\- ]{0,40}?)?)';
         // "*" is not an operator here: it is markdown bold ("**£40,000").
-        $pattern = '/(?<![−\-–+×]\s)(?<![−\-–+×])'.$money
-            .'\s*(−|–|-|\+|×|x)\s*(?:'.$money.'|(\d+(?:\.\d+)?)%)'
-            .'\s*=\s*(−|–|-)?'.$money
+        $pattern = '/(?<![−\-–+×]\s)(?<![−\-–+×])'.$money.$label
+            .'\s*(−|–|-|\+|×|x)\s*(?:'.$money.$label.'|(\d+(?:\.\d+)?)%)'
+            .'\s*=\s*(\*\*)?\s*(−|–|-)?'.$money
             .'(?!\s*[−\-–+×]\s*£)/u';
 
         return preg_replace_callback($pattern, static function (array $m): string {
-            [$whole, $a, $op, $b, $percent, $sign, $c] = $m + array_fill(0, 7, '');
+            [$whole, $a, $labelA, $op, $b, $labelB, $percent, $bold, $sign, $c] = $m + array_fill(0, 10, '');
             $a = self::amount($a);
             $c = self::amount($c) * ($sign !== '' ? -1 : 1);
 
@@ -50,7 +54,7 @@ final class ArithmeticCheck
             } else {
                 $true = round($a - self::amount($b), 2);
                 if ($true < 0 && abs($c) < 0.005) {
-                    return Money::exact($a).' is less than '.Money::exact(self::amount($b)).', so £0';
+                    return Money::exact($a).$labelA.' is less than '.Money::exact(self::amount($b)).$labelB.', so '.$bold.'£0';
                 }
             }
 
@@ -60,7 +64,7 @@ final class ArithmeticCheck
 
             $at = strrpos($whole, '=');
 
-            return substr($whole, 0, $at).'= '.Money::exact($true);
+            return substr($whole, 0, $at).'= '.$bold.Money::exact($true);
         }, $text) ?? $text;
     }
 
