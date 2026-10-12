@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Exceptions\SpouseCollisionException;
+use App\Exceptions\SpouseInviteLimitException;
 use App\Mail\SpouseInvitation;
 use App\Models\FamilyMember;
 use App\Models\SpouseInvitation as SpouseInvitationRecord;
@@ -15,6 +16,7 @@ use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * Shared spouse linking logic used by both the FamilyMembers UI flow
@@ -105,6 +107,27 @@ final class SpouseLinkingService
         }
 
         return $attributes;
+    }
+
+    /** Spouse invitations a user may ask for in an hour (W-0349). */
+    public const INVITES_PER_HOUR = 5;
+
+    /**
+     * The one hourly limit on spouse invitations, for every surface that can
+     * point an email address at someone: Family settings, Fyn's chat and its
+     * spouse tools (W-0349; fix plan T9 security review). Counts the attempt.
+     *
+     * @throws SpouseInviteLimitException
+     */
+    public function guardInviteRate(User $user): void
+    {
+        $key = 'spouse-invite:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($key, self::INVITES_PER_HOUR)) {
+            throw new SpouseInviteLimitException('Too many household invitations. Please try again in an hour.');
+        }
+
+        RateLimiter::hit($key, 3600);
     }
 
     /**

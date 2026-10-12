@@ -9,6 +9,7 @@ use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
 use App\Exceptions\SpouseCollisionException;
+use App\Exceptions\SpouseInviteLimitException;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
@@ -2612,7 +2613,16 @@ final class OnboardingChatDirector
      */
     private function sendSpouseInvitation(User $user, array $details): void
     {
+        // A demo persona is shared; it never invites anyone (the spouse tools
+        // refuse it the same way, CoordinatingAgent::previewBlocked).
+        if ($user->is_preview_user) {
+            $this->rememberSpouseInviteOutcome($user, ['status' => 'preview']);
+
+            return;
+        }
+
         try {
+            $this->spouseLinking->guardInviteRate($user);
             $result = $this->spouseLinking->linkOrCreateSpouse($user, [
                 'first_name' => $details['first_name'],
                 'email' => $details['email'],
@@ -2626,6 +2636,8 @@ final class OnboardingChatDirector
                 default => 'sent',
             };
             $this->rememberSpouseInviteOutcome($user, ['status' => $status, 'first_name' => $details['first_name'], 'email' => $details['email']]);
+        } catch (SpouseInviteLimitException $e) {
+            $this->rememberSpouseInviteOutcome($user, ['status' => 'limited', 'message' => $e->getMessage()]);
         } catch (SpouseCollisionException $e) {
             $this->rememberSpouseInviteOutcome($user, ['status' => 'collision']);
         } catch (\Throwable $e) {
@@ -2707,6 +2719,8 @@ final class OnboardingChatDirector
             'declined' => 'No problem. You can invite them any time from Family in Settings.',
             'collision' => "That email's already registered with another Fynla household, so I haven't sent an invitation. You can try a different address from Family in Settings.",
             'failed' => "I couldn't send the invitation just now. You can try again from Family in Settings.",
+            'limited' => (string) ($outcome['message'] ?? ''),
+            'preview' => "You're in preview mode, so I haven't sent an invitation. Create your own account to invite your spouse.",
             default => null,
         };
     }

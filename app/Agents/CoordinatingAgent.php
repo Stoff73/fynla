@@ -14,6 +14,7 @@ use App\Enums\FynTurnIntent;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
+use App\Exceptions\SpouseInviteLimitException;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\BusinessInterest;
@@ -1957,7 +1958,7 @@ class CoordinatingAgent extends BaseAgent
                 ];
             }
 
-            if ($outcome['kind'] === 'invalid') {
+            if ($outcome['kind'] === 'invalid' || $outcome['kind'] === 'limited') {
                 return ['error' => true, 'message' => $outcome['message']];
             }
 
@@ -2064,7 +2065,11 @@ class CoordinatingAgent extends BaseAgent
         $data['email'] = $email;
 
         try {
+            app(SpouseLinkingService::class)->guardInviteRate($user);
+
             return ['ok' => true, 'result' => app(SpouseLinkingService::class)->linkOrCreateSpouse($user, $data)];
+        } catch (SpouseInviteLimitException $e) {
+            return ['ok' => false, 'kind' => 'limited', 'message' => $e->getMessage()];
         } catch (SpouseCollisionException $e) {
             return ['ok' => false, 'kind' => 'collision', 'message' => $e->getMessage()];
         } catch (\InvalidArgumentException $e) {
@@ -5285,7 +5290,7 @@ class CoordinatingAgent extends BaseAgent
                 'error' => true,
                 'message' => match ($outcome['kind']) {
                     'collision' => 'That email address is already linked to another Fynla household, so I have not saved anything. Ask the user for a different address, or for their spouse to link their own account.',
-                    'invalid' => $outcome['message'],
+                    'invalid', 'limited' => $outcome['message'],
                     default => "I could not link your spouse's account just then, and I have not saved anything.",
                 },
             ];
