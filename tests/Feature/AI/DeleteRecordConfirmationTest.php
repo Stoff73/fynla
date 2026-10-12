@@ -208,7 +208,7 @@ it('returns not_found if entity does not belong to user (after token check)', fu
 // confirmation token for a record that does not exist, so Fyn asked the user
 // to confirm deleting nothing.
 
-it('refuses a delete preview for a record that does not exist, and tells Fyn to look the id up (Q22)', function (): void {
+it('refuses a delete preview for a record that does not exist, and says the user has none (Q22)', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
 
     $result = app(CoordinatingAgent::class)->executeTool('delete_record', [
@@ -219,8 +219,28 @@ it('refuses a delete preview for a record that does not exist, and tells Fyn to 
     expect($result['error'] ?? null)->toBeTrue()
         ->and($result['error_type'] ?? null)->toBe('not_found')
         ->and($result)->not->toHaveKey('confirmation_token')
-        ->and($result['message'])->toBe("There's no saved goal with that id, so nothing was deleted.")
-        ->and($result['instruction'])->toContain('Look the record up with your read tools');
+        ->and($result['message'])->toBe("You don't have a goal saved, so there's nothing to delete.")
+        ->and($result['user_facing'])->toBeTrue()
+        ->and($result['saved_records'])->toBe([]);
+});
+
+it('hands Fyn the saved records when the id is wrong, and asks which one was meant (T8)', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $deposit = Goal::factory()->create(['user_id' => $user->id, 'goal_name' => 'House deposit']);
+    $car = Goal::factory()->create(['user_id' => $user->id, 'goal_name' => 'New car']);
+
+    $result = app(CoordinatingAgent::class)->executeTool('delete_record', [
+        'entity_type' => 'goal',
+        'entity_id' => 0,
+    ], $user);
+
+    expect($result['error_type'])->toBe('not_found')
+        ->and($result['message'])->toBe('Which goal did you mean: House deposit or New car?')
+        ->and($result['saved_records'])->toBe([
+            ['id' => $deposit->id, 'name' => 'House deposit'],
+            ['id' => $car->id, 'name' => 'New car'],
+        ])
+        ->and($result['instruction'])->toContain('saved_records');
 });
 
 it('keeps the steer for the model out of the message a user can see (T8 walk, #22838)', function (): void {

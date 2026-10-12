@@ -6833,16 +6833,7 @@ class CoordinatingAgent extends BaseAgent
             // that is not there ("goal #0").
             $name = $this->deletableRecordName($entityType, $entityId, $user);
             if ($name === null) {
-                $label = str_replace('_', ' ', $entityType);
-
-                // `message` reaches the user (a capture failure shows it), so
-                // the steer for the model has its own key.
-                return [
-                    'error' => true,
-                    'error_type' => 'not_found',
-                    'message' => "There's no saved {$label} with that id, so nothing was deleted.",
-                    'instruction' => 'Do not ask the user to confirm a delete. Look the record up with your read tools, then call delete_record with its id; if the user has no such record, say so.',
-                ];
+                return $this->deleteTargetNotFound($entityType, $user);
             }
 
             return [
@@ -6958,6 +6949,92 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
+     * A delete aimed at a record the user does not have (T8, Q22). The
+     * capture turn has no read tool, so the result carries the user's saved
+     * records of that type for the model to retry with a real id, and a
+     * sentence the user sees as written (`user_facing`): none saved, or which
+     * one they meant.
+     *
+     * @return array<string, mixed>
+     */
+    private function deleteTargetNotFound(string $entityType, User $user): array
+    {
+        $label = self::DELETE_LABELS[$entityType] ?? str_replace('_', ' ', $entityType);
+        $saved = $this->savedRecordsFor($entityType, $user);
+        $names = array_column($saved, 'name');
+        $choices = count($names) > 1
+            ? implode(', ', array_slice($names, 0, -1)).' or '.end($names)
+            : ($names[0] ?? '');
+
+        return [
+            'error' => true,
+            'error_type' => 'not_found',
+            'user_facing' => true,
+            'message' => $saved === []
+                ? "You don't have a {$label} saved, so there's nothing to delete."
+                : "Which {$label} did you mean: {$choices}?",
+            'saved_records' => $saved,
+            'instruction' => 'Do not ask the user to confirm a delete. If the record the user named is in saved_records, call delete_record again with its id; otherwise tell the user which ones are saved.',
+        ];
+    }
+
+    /** How a delete names each kind of record to the user. */
+    private const DELETE_LABELS = [
+        'dc_pension' => 'pension',
+        'db_pension' => 'pension',
+        'estate_asset' => 'asset',
+        'estate_liability' => 'liability',
+        'estate_gift' => 'gift',
+        'life_insurance' => 'life insurance policy',
+        'critical_illness' => 'critical illness policy',
+        'income_protection' => 'income protection policy',
+    ];
+
+    /**
+     * The user's records of a type, as the delete finds them (owned, or
+     * jointly held where SharedOwnership allows), with the name a person
+     * would use.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    private function savedRecordsFor(string $entityType, User $user): array
+    {
+        $modelClass = $this->deletableModelClass($entityType);
+        if ($modelClass === null) {
+            return [];
+        }
+
+        $query = SharedOwnership::jointOwnerMayEdit($modelClass) || isset(self::JOINT_RECORD_STORES[$entityType])
+            ? $modelClass::query()->forUserOrJoint($user->id)
+            : $modelClass::query()->where('user_id', $user->id);
+
+        return $query->orderBy('id')->limit(10)->get()
+            ->map(fn ($record): array => ['id' => (int) $record->id, 'name' => $this->recordName($record, (int) $record->id)])
+            ->values()
+            ->all();
+    }
+
+    /** The name a person would use for a record, else its number. */
+    private function recordName(object $record, int $entityId): string
+    {
+        return (string) ($record->goal_name
+            ?? $record->event_name
+            ?? $record->scheme_name
+            ?? $record->account_name
+            ?? $record->policy_name
+            ?? $record->provider
+            ?? $record->liability_name
+            ?? $record->address_line_1
+            ?? $record->lender_name
+            ?? $record->recipient
+            ?? $record->trust_name
+            ?? $record->business_name
+            ?? $record->description
+            ?? $record->first_name
+            ?? "#{$entityId}");
+    }
+
+    /**
      * The name of the record a delete would remove, found the way each delete
      * branch below finds it (pension store, joint-record stores, owned model),
      * or null when the user has no such record (T8).
@@ -6967,29 +7044,18 @@ class CoordinatingAgent extends BaseAgent
         if ($entityType === 'dc_pension' || $entityType === 'db_pension') {
             $pension = app(PensionStore::class)->find($entityId, $entityType === 'dc_pension' ? 'dc' : 'db', $user);
 
-            return $pension === null ? null : (string) ($pension->scheme_name ?? "#{$entityId}");
+            return $pension === null ? null : $this->recordName($pension, $entityId);
         }
 
         if (isset(self::JOINT_RECORD_STORES[$entityType])) {
             $record = app(self::JOINT_RECORD_STORES[$entityType])->find($entityId, $user);
 
-            return $record === null ? null
-                : (string) ($record->account_name ?? $record->liability_name ?? $record->address_line_1 ?? $record->lender_name ?? "#{$entityId}");
+            return $record === null ? null : $this->recordName($record, $entityId);
         }
 
         $model = $this->resolveModel($entityType, $entityId, $user->id);
-        if (is_array($model)) {
-            return null;
-        }
 
-        return (string) ($model->goal_name
-            ?? $model->account_name
-            ?? $model->recipient
-            ?? $model->trust_name
-            ?? $model->business_name
-            ?? $model->description
-            ?? $model->first_name
-            ?? "#{$entityId}");
+        return is_array($model) ? null : $this->recordName($model, $entityId);
     }
 
     /**
@@ -6997,7 +7063,29 @@ class CoordinatingAgent extends BaseAgent
      */
     private function resolveModel(string $entityType, int $entityId, int $userId): mixed
     {
-        $modelClass = match ($entityType) {
+        $modelClass = $this->deletableModelClass($entityType);
+
+        if (! $modelClass) {
+            return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
+        }
+
+        // Either owner of a joint record may change it (SharedOwnership::JOINT_OWNER_EDITABLE,
+        // CSJ 2026-10-08). Nothing else opens to the joint owner.
+        $model = SharedOwnership::jointOwnerMayEdit($modelClass)
+            ? $modelClass::whereKey($entityId)->forUserOrJoint($userId)->first()
+            : $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
+
+        if (! $model) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)).' not found or does not belong to you.'];
+        }
+
+        return $model;
+    }
+
+    /** @return class-string<Model>|null */
+    private function deletableModelClass(string $entityType): ?string
+    {
+        return match ($entityType) {
             'goal' => Goal::class,
             'life_event' => LifeEvent::class,
             'savings_account' => SavingsAccount::class,
@@ -7018,22 +7106,6 @@ class CoordinatingAgent extends BaseAgent
             'chattel' => Chattel::class,
             default => null,
         };
-
-        if (! $modelClass) {
-            return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
-        }
-
-        // Either owner of a joint record may change it (SharedOwnership::JOINT_OWNER_EDITABLE,
-        // CSJ 2026-10-08). Nothing else opens to the joint owner.
-        $model = SharedOwnership::jointOwnerMayEdit($modelClass)
-            ? $modelClass::whereKey($entityId)->forUserOrJoint($userId)->first()
-            : $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
-
-        if (! $model) {
-            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)).' not found or does not belong to you.'];
-        }
-
-        return $model;
     }
 
     // ─── Profile update handler ─────────────────────────────────────────
