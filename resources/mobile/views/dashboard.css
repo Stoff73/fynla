@@ -1667,6 +1667,7 @@
 .md-fyn__compose .md-fyn-dock__input { cursor: text; }
 /* T58: disabled while answer bubbles wait; the same look as .m-field:disabled. */
 .md-fyn__compose .md-fyn-dock__input:disabled { background: var(--horizon-100); border-color: var(--horizon-200); cursor: not-allowed; }
+.md-fyn__compose .md-fyn-dock__send:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ===================================================================
    v42 OVERRIDES — lock accordion to a fixed height so it never jumps.
