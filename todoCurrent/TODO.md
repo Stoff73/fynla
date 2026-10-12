@@ -447,8 +447,32 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
         - T0 and T1 are ticked to Dev walk:
           - csjones runs dev `cc2ee4437` with both bundles rebuilt;
           - T1 is PR #1209 (Fyn receives the user's exact words).
-        - Next is T2: one question test (`QuerySchemas::isAdviceShaped`, extended) in front of every gate that runs before the model.
-        - Prod boxes for T0 and T1 wait for CSJ's release.
+        - T2 (2026-10-12, session 3) is ticked to Dev walk. It is one question test (`QuerySchemas::isAdviceShaped`) in front of every gate before the model:
+          - PR #1213, dev `7081e81fd`, on csjones;
+          - walked on web (Q5, P1, F19) and /m (Q7, P2, P7): every question passed every gate.
+        - Found on the T2 walk: on /m the model still handed Q7 and P2 to capture itself (`LLM-fallback write-intent caught`). That is T5, with the evidence in the plan's T5 baseline. The landed flag was false on a real write (T4).
+        - T3 (2026-10-12, session 3) is ticked to Dev walk. `QueryClassifier` never files a question as data entry or navigation, and has new retirement, estate, savings-tax and rent wording:
+          - PR #1214, plus the follow-up #1215 for P5's primary-type tools; dev `fbc9ab90c`, on csjones;
+          - walked on web (Q6, M8) and /m (Q5, Q8): each turn carries its type's `<required_tools>`.
+        - Found on the T3 walk: Fyn's pot at 60 (£552,597) is not the Retirement page's middle outcome (£484,572). That is T11.
+        - T4 (2026-10-12, session 3) is ticked to Dev walk:
+          - `ToolResults::wroteData` is the one definition of a landed write;
+          - PR #1216, dev `8d53d2b4a`, on csjones;
+          - rows #22780, #22784 and #22787 store `capture_write_landed: true` on web and /m, and the follow-ups were not pulled into capture.
+        - Found on the T4 walk:
+          - Rory (Free tier) used up the daily Fyn tokens (517,635 of 500,000), so walks continue on other csjones walk accounts (Alex 502 next).
+          - "Great, thanks" on /m: the model handed it to capture with no entity types, and the user saw "I couldn't pick up that request". That is T5 and T35.
+          - The router files "retirement income target" as a goal. New task T45.
+        - T5 (2026-10-12, session 3) is ticked to Dev walk:
+          - the handoff rule applies to statements only, and has one home (`FynSystemPrompt::handoffGuidance`, PR #1217);
+          - the first walk showed the prompt alone did not hold, so a dispatch gate was added: a handoff on a question is refused back to the model (PR #1218, dev `e9cf1f21c`);
+          - re-walked on web and /m: every question was answered.
+        - Found on the T5 walks:
+          - Fyn's arithmetic on the user's own figures is wrong: £478 a month should be £492.89; gift saving £0 should be £484; ISA saving £468 should be £216. New task T46.
+          - Raw LaTeX shows on /m. New task T47.
+          - The `PromptOverlayGoldenMasterTest` fixtures had been stale since T1; recaptured in #1217.
+        - Next is T6: navigation moves to the server; the web keyword matcher is deleted.
+        - Prod boxes for T0 to T5 wait for CSJ's release.
         - T1's security follow-up is PR #1211 (merged).
         - New task T44: remove the suggested prompts from Fyn's chat window (CSJ screenshot `remove.png`).
       - Headline causes:
