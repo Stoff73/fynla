@@ -543,6 +543,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked as Pat 506: web gave who pays with s199(1)(b) and s204(8) (#22929); /m gave taper relief with s7(4) and s3A(4) (#22931).
           - In the path: "harvest" removed from two corpus titles; the savings-to-spouse entry corrected.
           - Next: T15.
+        - T15 (2026-10-12, session 5) is ticked to Dev walk. Every money figure handed to the model is exact (`Money::exact`): no ".00", pence kept, never rounded:
+          - PR #1250, dev `da96f4c98`, on csjones.
+          - Walked as Pat 506: /m gave £1,554.40, £26,839.60, £636.63 (#22933); web gave £32,280 and £3,886 (#22935).
+          - DECISION (CSJ), T57: the Income page rounds £26,839.60 to £26,840 while Fyn gives the pence. Should the pages show pence too?
+          - Next: T16.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
