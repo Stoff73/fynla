@@ -2634,6 +2634,48 @@ final class OnboardingChatDirector
         }
     }
 
+    /**
+     * An invitation asked for in chat (fix plan T9, Q17). The details are read
+     * with the invite step's parser; an email with no name in the message
+     * takes the spouse's name already on file. With both, the invitation goes
+     * through sendSpouseInvitation and the reply is the step's outcome
+     * sentence; without, Fyn asks the step's own question, and the answer
+     * continues this capture.
+     *
+     * @return \Generator<array<string, mixed>>
+     */
+    private function inviteSpouseFromChat(User $user, AiConversation $conversation, string $message): \Generator
+    {
+        $details = OnboardingValueInterpreter::parseSpouseInviteDetails($message);
+        if ($details === null && preg_match('/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/', $message, $email) === 1) {
+            $name = OnboardingStateMachine::knownSpouseFirstName($user, $conversation)
+                ?? FamilyMember::where('user_id', $user->id)->where('relationship', 'spouse')->value('first_name');
+            if (is_string($name) && trim($name) !== '') {
+                $details = ['first_name' => trim($name), 'email' => mb_strtolower($email[0])];
+            }
+        }
+
+        if ($details === null) {
+            $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS) ?? [];
+            $line = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+            yield ['type' => 'content', 'text' => $line];
+            $saved = $this->saveMessage($conversation, 'assistant', $line, [
+                'persona' => 'data_capture',
+                'metadata' => ['turn_intent' => FynTurnIntent::CaptureClarification->value],
+            ]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        $this->sendSpouseInvitation($user, $details);
+        $line = $this->takeSpouseInviteOutcomeText($user->fresh() ?? $user)
+            ?? "I couldn't send the invitation just now. You can try again from Family in Settings.";
+        yield ['type' => 'content', 'text' => $line];
+        $saved = $this->saveMessage($conversation, 'assistant', $line, ['persona' => 'data_capture']);
+        yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
     /** @param  array<string, mixed>  $outcome */
     private function rememberSpouseInviteOutcome(User $user, array $outcome): void
     {
@@ -8636,6 +8678,14 @@ PROMPT;
         // about, else the blank form for that kind of record, filled in from
         // the message. A section with nothing saved and no form says so.
         $entityType = (string) ($context->entityTypes[0] ?? '');
+
+        // "Invite my partner …" runs the invite step's own code (T9, Q17).
+        if ($entityType === 'spouse_invite') {
+            yield from $this->inviteSpouseFromChat($user, $conversation, $message);
+
+            return;
+        }
+
         $editSection = RecordEditForms::sectionForEntityType($entityType);
         if ($editSection !== null && ! $context->isContinuation) {
             $candidates = app(RecordEditForms::class)->candidates($user, $editSection);

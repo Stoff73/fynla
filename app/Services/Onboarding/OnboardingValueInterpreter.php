@@ -396,7 +396,10 @@ final class OnboardingValueInterpreter
         }
         $email = mb_strtolower($m[0]);
         $rest = trim(str_replace($m[0], ' ', $text));
-        $filler = ['her', 'his', 'their', 'name', 'names', 'is', 'and', 'email', 'address', 'it', 'its', "it's", 'the', 'my', 'wife', 'husband', 'partner', 'spouse', 'she', 'he', 'they', 'called', 'first', 'called'];
+        // The request around the details is not a name either: "Please invite
+        // my partner to link accounts" named nobody (fix plan T9, Q17).
+        $filler = ['her', 'his', 'their', 'name', 'names', 'is', 'and', 'email', 'address', 'it', 'its', "it's", 'the', 'my', 'wife', 'husband', 'partner', 'spouse', 'she', 'he', 'they', 'called', 'first',
+            'please', 'invite', 'invitation', 'send', 'an', 'to', 'link', 'linking', 'up', 'account', 'accounts', 'our', 'with', 'them', 'him', 'can', 'could', 'would', 'you', 'fyn', 'hi', 'hello', 'thanks'];
         $words = preg_split('/[\s,;:]+/', $rest) ?: [];
         $plain = null;
         foreach ($words as $word) {
