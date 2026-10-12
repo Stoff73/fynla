@@ -202,3 +202,68 @@ it('returns not_found if entity does not belong to user (after token check)', fu
     expect($result['error'] ?? null)->not->toBeNull();
     expect(Goal::find($goal->id))->not->toBeNull();
 });
+
+// ─── T8 (walk fix plan B2.7, Q22): the preview checks the record exists ──
+// P #4066 issued a delete preview for "goal #0": the first call handed out a
+// confirmation token for a record that does not exist, so Fyn asked the user
+// to confirm deleting nothing.
+
+it('refuses a delete preview for a record that does not exist, and tells Fyn to look the id up (Q22)', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('delete_record', [
+        'entity_type' => 'goal',
+        'entity_id' => 0,
+    ], $user);
+
+    expect($result['error'] ?? null)->toBeTrue()
+        ->and($result['error_type'] ?? null)->toBe('not_found')
+        ->and($result)->not->toHaveKey('confirmation_token')
+        ->and($result['message'])->toContain('Look the record up with your read tools');
+});
+
+it("refuses a delete preview for another user's record", function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $goal = Goal::factory()->create(['user_id' => User::factory()->create()->id]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('delete_record', [
+        'entity_type' => 'goal',
+        'entity_id' => $goal->id,
+    ], $user);
+
+    expect($result['error_type'] ?? null)->toBe('not_found')
+        ->and($result)->not->toHaveKey('confirmation_token');
+});
+
+it('names the record in the delete preview', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $goal = Goal::factory()->create(['user_id' => $user->id, 'goal_name' => 'House deposit']);
+
+    $result = app(CoordinatingAgent::class)->executeTool('delete_record', [
+        'entity_type' => 'goal',
+        'entity_id' => $goal->id,
+    ], $user);
+
+    expect($result['requires_confirmation'])->toBeTrue()
+        ->and($result['preview_message'])->toContain('House deposit');
+});
+
+it('previews a joint account for the joint owner, as the delete allows', function (): void {
+    $owner = User::factory()->create(['is_preview_user' => false]);
+    $partner = User::factory()->create(['is_preview_user' => false]);
+    $account = SavingsAccount::factory()->create([
+        'user_id' => $owner->id,
+        'joint_owner_id' => $partner->id,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+        'account_name' => 'Joint saver',
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('delete_record', [
+        'entity_type' => 'savings_account',
+        'entity_id' => $account->id,
+    ], $partner);
+
+    expect($result['requires_confirmation'] ?? false)->toBeTrue()
+        ->and($result['preview_message'])->toContain('Joint saver');
+});
