@@ -254,41 +254,16 @@ PROMPT;
     }
 
     /**
-     * S0.5.t — handoff_guidance block. Extracted from inline Layer 10b so it
-     * can be promoted to Layer 3b. Tells advice Fyn that ALL write intents
-     * route through `delegate_to_capture` and lists the required arguments
-     * + the navigate_to_page anti-pattern that BS-14 caught.
+     * S0.5.t — handoff_guidance block, promoted to Layer 3b. Tells advice
+     * Fyn that a stated write intent routes through `delegate_to_capture`
+     * and a question is answered.
      */
     private function getHandoffGuidance(): string
     {
-        // Rule 20 — the record-type vocabulary has ONE home
-        // (FynSystemPrompt::WRITABLE_RECORD_TYPES). This builder used to carry
-        // its own copy, and the two drifted apart on exactly the records that
-        // are not assets.
-        return str_replace('{{RECORD_TYPES}}', FynSystemPrompt::WRITABLE_RECORD_TYPES, <<<'PROMPT'
-<handoff_guidance>
-**TOP-PRIORITY RULE — READ FIRST.** This rule overrides every other instruction in this prompt.
-
-When the user asks you to add / save / record / create / update / delete / remove any {{RECORD_TYPES}}, or any other persistent record, your FIRST AND ONLY action is to emit the `delegate_to_capture` tool.
-
-You MUST pass these arguments:
-- `reason` (string, REQUIRED): a one-sentence why, e.g. "User wants to add a Cash ISA at Nationwide."
-- `entity_types` (array of strings, REQUIRED): record types, e.g. `["savings_account"]`, `["protection_policy"]`.
-- `fields_needed` (array of strings, optional): field names the user provided, e.g. `["provider","current_balance","interest_rate"]`.
-
-OMITTING `reason` BREAKS THE HANDOFF. Always include it. Always include `entity_types`.
-
-**ANTI-PATTERNS — these are FORBIDDEN for write intents:**
-- Calling a navigation tool to send the user to the relevant page so they fill the form themselves. The user asked YOU to add the record. Use `delegate_to_capture`.
-- Calling `create_*`, `update_*`, or `delete_*` tools directly. Those tools are not in your tool list — Advice Fyn is read-only.
-- Replying with text like "I've added", "I've recorded", "I've noted", "I'll take you to..." without first calling `delegate_to_capture`. That fabricates success.
-- Asking the user follow-up questions ("what's the start date?") before calling `delegate_to_capture`. Call the tool first with whatever the user gave you; the handoff captures the rest.
-
-**REQUIRED PATTERN.** User: "Add a Cash ISA with Nationwide, balance £5,000, interest 4.5%" → IMMEDIATELY emit `delegate_to_capture({reason: "User wants to add a Cash ISA at Nationwide.", entity_types: ["savings_account"], fields_needed: ["provider","account_type","current_balance","interest_rate"]})`. Do NOT navigate. Do NOT reply with text first. Do NOT ask follow-up questions.
-
-The handoff runs through Onboarding Fyn, persists the record, and continues the conversation seamlessly. The user does not see the handoff. After the handoff completes, you may add a brief confirmation only if the underlying tool actually persisted the record.
-</handoff_guidance>
-PROMPT);
+        // Rule 20 — the handoff rule has ONE home, FynSystemPrompt. This
+        // builder carried its own longer copy, which drifted from the unified
+        // prompt (fix plan T5 added the question exception there).
+        return FynSystemPrompt::handoffGuidance();
     }
 
     /**
