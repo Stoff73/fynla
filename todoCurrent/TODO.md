@@ -508,6 +508,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
             - "You're in preview mode, so I haven't sent an invitation. Create your own account to invite your spouse." (T9).
           - DECISION (CSJ): T50's fix needs a design. The what-if engine (`WhatIfScenarioService`) reads keys the agents do not return, never applies the pension contribution, and saves the user's own row mid-calculation.
           - Walk accounts: Rory 504 and Alex 502 are over the 750,000 weekly limit until 16 October. Drew 508 now has three pending invitations (13 to 15) and is married.
+        - T10 (2026-10-12, session 5) is ticked to Dev walk. The Save Tax household row reaches every advice turn it exists for, with the spouse named:
+          - PR #1236, dev `db75edded`, on csjones (PHP only).
+          - Walked as Pat 506 on web and /m: questions naming Rory with no relationship word got the row's £72,765 income and £72,000 from work (#22857, #22859).
+          - Found: T53 (Fyn's record tools cannot read a linked spouse's own records).
+          - Next: T11.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.

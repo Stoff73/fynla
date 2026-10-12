@@ -70,7 +70,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T7 | A what-if request reaches the what-if scenario capture | P5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T8 | A delete preview refuses a record that does not exist | Q22 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T9 | An invite request reaches the existing invite step | Q17 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T10 | Spouse figures always in Fyn's context | P4, P3, F5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T10 | Spouse figures always in Fyn's context | P4, P3, F5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T11 | The retirement plan tool carries the Retirement page's headline | Q6 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T12 | Published working for the savings-to-spouse, child benefit charge and estate scenarios (item 18) | F5, P3, F6, M8, Q8 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T13 | Older turns summarised for the model; search reads the open conversation; recall rule | Q13 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -109,6 +109,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T50 | The what-if comparison is £0 for every figure (T7 walk, scenarios 1 and 2, Alex 502). `WhatIfScenarioService::extractMetrics` reads keys the agents do not return, so every figure defaults to 0; the `pension_contribution` override does nothing (`applyOverrides`); and the user's own row is saved mid-calculation, then reverted. Fyn tells the user the comparison shows £0 | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T51 | A Free user can create a paid-plan what-if scenario through chat (`create_what_if_scenario` has no tier check; the API route is gated by `CheckSubscription` `what_if`), then is sent to the paid-plan teaser (T7 walk, Alex 502) | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T52 | On a capture failure the screen shows the model's own sentence, but the saved reply (History, reload) is the composed failure text, so the two differ ("There isn't a saved goal to delete, so your round-the-world trip goal remains unchanged" live vs "You don't have a goal saved, so there's nothing to delete." saved; T8 walk #22842, #22845) | T8 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T53 | Fyn's record tools read only the user's own records, never a linked spouse's who shares their data: asked for Rory's dividends and gains, Fyn listed Pat's investment accounts (none), then asked "Do you mean dividends and gains in Rory's own records?" (T10 /m walk, Pat 506, #22859). The answer was right only because Rory has none | T10 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T41 | Live checks first, then fix what they show: /m message typed after a page change (M1); silent Saves (F10, Q24); will builder name and warning (Q19, Q20); retirement projection change (Q21); /m dashboard blank area | M1, F10, Q24, Q19, Q20, Q21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T42 | Brett's account 812: the "declared none" flags and the unasked goal written by these bugs. A database change, so done only with your OK | F19, P2 | [ ] | n/a | n/a | [ ] | [ ] | [ ] |
 | T43 | The full test run, once T0–T42 are done (R5) | all | n/a | [ ] | n/a | n/a | n/a | n/a |
@@ -479,6 +480,18 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
      - Web 1440: signed in from the front page (code read from the csjones database) and clicked "Chat with Fyn". "Invite my husband to link accounts" got the step's question; "Sam, slaterjoneschris+t9walk3@gmail.com" got "Done. …" (invitation 15). Shot `T9-02-…`.
   - Side effect, as the linking service documents: Drew's marital status became married (`inviteUnregisteredSpouse`).
   - The rate limit and the demo-persona refusal are covered by tests, not walked: walking the limit would send 5 more emails.
+
+- **T10, Code (2026-10-12, session 5):** #1236 (`db75edded`), branch `fix/t10-spouse-figures-in-context`.
+  - `FynContextAssembler::savedHouseholdFinancesDirective` no longer waits for a spouse word plus a finance word (the old gate at `:580-584`). The household row reaches every advice turn it exists for; onboarding turns are unchanged.
+  - The block names the spouse (`- Spouse: <name>`) from `SpouseJointRecords::spouseFirstName`, made public as the one home for the name (linked account first, then the spouse row).
+  - It now also carries the row's earnings from work, dividends and unrealised gains, which were saved but never shown to Fyn.
+  - The ".00" money format is left for T15.
+- **T10, Test (2026-10-12):** `FynContextAssemblerTest` "grounds every advice turn in the household row, naming the spouse, with no relationship word" failed first (no `<saved_household_finances>` for "How much tax does Dev pay on the interest?"), then passed: 29 passed. `SpouseJointRecordsTest` and `PromptOverlayGoldenMasterTest`: 14 passed, 1 skipped.
+- **T10, Dev (2026-10-12):** csjones pulled `db75edded` (PHP only, no bundle rebuild); caches cleared, `config:cache`; the site answered 200.
+- **T10, Dev walk (2026-10-12, as Pat 506, household row: Rory, income £72,765, earnings £72,000):**
+  1. Web 1440: typed the front door, clicked "Sign in", signed in with email, password and the emailed code (`php zz_code.php 506`, the R2 exception), clicked "Expand Fyn chat". "What annual income do you have saved for Rory?" (no relationship word) got "Rory's saved annual income is £72,765. Of that, £72,000 is from work." (#22857). No record tool ran; £72,000 is the row's earnings, a field Fyn was never given before. The model's handoff attempt was refused by T5's gate. Shot `T10-01-rory-income-web-csjones.png`.
+  2. /m 390: typed the /m entry, clicked "Chat with Fyn". "How much does Rory earn from work, and what dividends and gains does Rory have on record?" got "Rory earns £72,000 a year from work. The household record shows £72,765 total annual income …" (#22859). Dividends and gains are empty on the row and were not invented. Shot `T10-02-rory-earnings-m-csjones.png`.
+  - Found: T53 (Fyn's record tools cannot read the linked spouse's own records).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
