@@ -862,7 +862,20 @@ class IHTCalculationService
         if (is_string($result['unmodelled_relief_caveat'] ?? null)) {
             $lines[] = $result['unmodelled_relief_caveat'];
         }
-        if ((int) ($result['years_to_death'] ?? 0) > 0) {
+        // The estate at death is given only when the projection rests on the
+        // user's records alone. Where a record is missing the projector fills
+        // the gap with an assumption (an age, no pension, spending carried on);
+        // a figure built on that is a guess, so none is given, only what is
+        // not recorded (CSJ 2026-10-12; CLAUDE.md Rule 23).
+        $missing = [];
+        foreach ((array) ($result['projected_cash_assumptions'] ?? []) as $assumption) {
+            if (is_string($assumption) && $assumption !== '') {
+                $missing[] = trim(explode(', so the projection', $assumption)[0]).'.';
+            }
+        }
+        if ($missing !== []) {
+            $lines[] = 'There is no figure for the estate at death until these are recorded: '.implode(' ', $missing);
+        } elseif ((int) ($result['years_to_death'] ?? 0) > 0) {
             $lines[] = sprintf(
                 'Looking ahead to age %d, in %d years, the estate is projected at %s; %s of it is taxable and the tax is %s.',
                 (int) $result['estimated_age_at_death'],
@@ -871,16 +884,6 @@ class IHTCalculationService
                 Money::exact((float) $result['projected_taxable_estate']),
                 Money::exact((float) $result['projected_iht_liability']),
             );
-            // Why the projection is what it is, in this service's own words
-            // (an estate projected at £0 with no reason given, Robin 509).
-            foreach ((array) ($result['projected_cash_assumptions'] ?? []) as $assumption) {
-                if (is_string($assumption) && $assumption !== '') {
-                    $lines[] = $assumption;
-                }
-            }
-            if ((float) ($result['projected_cash_shortfall'] ?? 0) > 0) {
-                $lines[] = sprintf('On those assumptions, spending uses up the cash before then, with %s more needed.', Money::exact((float) $result['projected_cash_shortfall']));
-            }
         }
 
         return $lines;
