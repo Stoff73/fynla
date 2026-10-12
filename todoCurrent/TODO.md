@@ -533,6 +533,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked: web and /m as Robin 509 (own estate only, spouse not linked, said so: #22897, #22899) and /m as Pat 506 (linked couple: £8,000 + £30,000 = £38,000 against £650,000, £0: #22901).
           - Found for T46: Fyn wrote "£40,000 − £325,000 = £0".
           - Next: T13.
+        - T13 (2026-10-12, session 5) is ticked to Dev walk. Earlier turns out of view are named, searchable and quoted (`ConversationWindow`, `search_conversation_index` `words`, `<earlier_in_conversation>`, the recall rule):
+          - PR #1246, dev `6cab6cd63`, on csjones.
+          - Walked as Pat 506: /m quoted "my bonus this year is £14,500, paid in March." from 22 messages back (#22925); on the web, a new conversation found nothing and Fyn asked instead of inventing (#22927).
+          - Found: T56 (other conversations reach Fyn only through their summaries; a scope question for you).
+          - Next: T14.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
