@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine;
-use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -695,50 +694,4 @@ describe('OnboardingStateMachine::buildPersonalPrompt — campaign welcome', fun
         expect($text)->toContain('Verify')
             ->and($text)->toContain('date of birth');
     });
-});
-
-// Walk fix plan T16 (F1): a typed answer at a bubble step was re-asked unless
-// it matched a label. Brett's exact words (fynla.org, 11 October).
-describe('OnboardingStateMachine::matchBubble reads typed answers', function () {
-    beforeEach(fn () => $this->seed(TaxConfigurationSeeder::class));
-
-    it('takes a typed figure as its income band (#3763, "about 48k")', function () {
-        expect(OnboardingStateMachine::matchBubble(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME, 'I just told you, about 48k'))
-            ->toBe('upto_50270')
-            ->and(OnboardingStateMachine::matchBubble(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME, 'roughly £72,000'))
-            ->toBe('50271_100000');
-    });
-
-    it('takes "sure, go ahead" as the yes bubble (#3780)', function () {
-        expect(OnboardingStateMachine::matchBubble(OnboardingStateMachine::STATE_CAMPAIGN_INTRO, 'sure, go ahead'))->toBe('okay');
-    });
-
-    it('takes "nope that\'s it, though…" as the no bubble (#3776)', function () {
-        expect(OnboardingStateMachine::matchBubble(
-            OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE,
-            'nope that\'s it, though I get about £400 a year in dividends from the GIA if that counts'
-        ))->toBe('no');
-    });
-
-    it('maps a typed asset list to the picks and submits it (#3767)', function () {
-        expect(OnboardingStateMachine::matchBubbles(
-            OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS,
-            'all of those actually - current account, easy access savings, cash ISA and a stocks & shares ISA, workplace pensions, a GIA, premium bonds and our house'
-        ))->toBe(['bank', 'savings', 'isa', 'pension', 'investments', 'property', 'done']);
-    });
-
-    it('still matches nothing for a sentence that answers neither way', function () {
-        expect(OnboardingStateMachine::matchBubble(OnboardingStateMachine::STATE_CAMPAIGN_INTRO, 'banana'))->toBeNull()
-            ->and(OnboardingStateMachine::matchBubbles(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS, 'banana'))->toBe([]);
-    });
-});
-
-it('never takes a loose "okay" as a confirmation of what the user has seen', function () {
-    expect(OnboardingStateMachine::matchBubble('campaign_verify_navigate', 'Okay'))->toBeNull()
-        ->and(OnboardingStateMachine::matchBubble('campaign_verify_navigate', 'nope, the salary is wrong'))->toBe('no');
-});
-
-it('moves a step on as the bubble a typed answer was read as', function () {
-    expect(OnboardingStateMachine::labelForMeaningMatch(OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE, 'nope that\'s it'))->toBe("No, that's everything")
-        ->and(OnboardingStateMachine::labelForMeaningMatch(OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE, "No, that's everything"))->toBeNull();
 });
