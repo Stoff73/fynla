@@ -528,6 +528,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - DECISION (CSJ), T55: how Fyn receives the user's own charge (the threshold position in Fyn's context, an existing tool, or a plan item).
           - Found and fixed in the path: the charge did not round its percentage or amount down (ITEPA 2003 s681C(3)); #1242, dev `97e615a3d`, on csjones; walked as user 325 on web and /m (£3,847 of £5,130).
           - Next: T12 part 3, the estate (M8, Q8).
+        - T12 (2026-10-12, session 5) is ticked to Dev walk (parts 1 and 3; part 2, F6, moved to T55 for your design). Part 3: the Inheritance Tax figure publishes its working (`IHTCalculationService::calculate`), carried by `get_module_analysis(estate)` and `fetch_estate_plan`:
+          - PR #1244, dev `61e5c2c94`, on csjones.
+          - Walked: web and /m as Robin 509 (own estate only, spouse not linked, said so: #22897, #22899) and /m as Pat 506 (linked couple: £8,000 + £30,000 = £38,000 against £650,000, £0: #22901).
+          - Found for T46: Fyn wrote "£40,000 − £325,000 = £0".
+          - Next: T13.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
