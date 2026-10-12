@@ -3257,17 +3257,6 @@ final class OnboardingStateMachine
      */
     public static function matchBubbles(string $stateId, string $userAnswer): array
     {
-        // A list typed in the user's own words rather than the chips' wire
-        // format (Brett, 2026-10-11, #3767): every bubble the sentence names,
-        // and the submit bubble when it names more than one, since a typed
-        // list is the whole answer (walk fix plan T16).
-        if (self::isMultiSelect($stateId) && ! self::isExactBubbleAnswer($stateId, $userAnswer)) {
-            $named = self::bubblesNamedIn($stateId, $userAnswer);
-            if (count($named) > 1) {
-                return [...$named, 'done'];
-            }
-        }
-
         $parts = self::isMultiSelect($stateId)
             ? array_values(array_filter(array_map('trim', explode(trim(self::MULTI_SELECT_SEPARATOR), $userAnswer)), static fn (string $p): bool => $p !== ''))
             : [$userAnswer];
@@ -3334,35 +3323,6 @@ final class OnboardingStateMachine
      */
     public static function matchBubble(string $stateId, string $userAnswer): ?string
     {
-        return self::matchBubbleLiterally($stateId, $userAnswer) ?? self::matchByMeaning($stateId, $userAnswer);
-    }
-
-    /**
-     * The label of the bubble a typed answer was read as, when it was read by
-     * meaning rather than by its words ("sure, go ahead" → "Okay"), so a
-     * transition that reads the answer text sees the answer given. Null when
-     * the words themselves matched, or nothing did.
-     */
-    public static function labelForMeaningMatch(string $stateId, string $userAnswer): ?string
-    {
-        if (self::matchBubbleLiterally($stateId, $userAnswer) !== null) {
-            return null;
-        }
-        $id = self::matchByMeaning($stateId, $userAnswer);
-        if ($id === null) {
-            return null;
-        }
-        foreach (self::bubblesFor($stateId, self::getState($stateId) ?? []) as $bubble) {
-            if ((string) ($bubble['id'] ?? '') === $id) {
-                return (string) ($bubble['label'] ?? $id);
-            }
-        }
-
-        return null;
-    }
-
-    private static function matchBubbleLiterally(string $stateId, string $userAnswer): ?string
-    {
         $state = self::getState($stateId);
         if ($state === null || ($state['turn_type'] ?? '') !== 'bubbles') {
             return null;
@@ -3405,107 +3365,6 @@ final class OnboardingStateMachine
         }
 
         return null;
-    }
-
-    /**
-     * Bubble ids that answer a step yes or no, for a typed answer in the
-     * user's own words (walk fix plan T16).
-     */
-    private const AFFIRMATIVE_BUBBLES = ['yes', 'yes_invite', 'okay', 'continue'];
-
-    /**
-     * Steps that ask the user to confirm what they have seen: a loose "okay"
-     * or "sure" is not a confirmation there, so only the words of the bubble
-     * confirm (the verify sequence, CSJ 2026-06-17). A typed no still opens
-     * the change.
-     */
-    private const CONFIRMATION_STATES = ['campaign_verify_navigate', 'campaign2_existing_recap', 'profile_review_family'];
-
-    private const NEGATIVE_BUBBLES = ['no', 'nope', 'not_now', 'done'];
-
-    /**
-     * Words a typed list uses for a chip that its label does not contain
-     * ("current account", "our house"), per step and bubble id. Matched as
-     * whole words, so "stocks & shares ISA" stays an ISA.
-     *
-     * @var array<string, array<string, list<string>>>
-     */
-    private const BUBBLE_ALIASES = [
-        self::STATE_CAMPAIGN_FUNNEL_ASSETS => [
-            'bank' => ['bank account', 'current account', 'current accounts'],
-            'savings' => ['savings', 'easy access', 'premium bonds', 'fixed rate', 'notice account'],
-            'isa' => ['isa', 'isas'],
-            'pension' => ['pension', 'pensions', 'sipp'],
-            'investments' => ['investments', 'gia', 'general investment account', 'investment account', 'funds'],
-            'property' => ['property', 'house', 'home', 'flat', 'buy to let', 'buy-to-let', 'rental'],
-        ],
-    ];
-
-    /**
-     * After the literal matches: a figure at an income-band step takes its
-     * band (FunnelIncomeBand, the configured ranges), and a typed yes or no
-     * takes the one bubble that answers that way.
-     */
-    private static function matchByMeaning(string $stateId, string $userAnswer): ?string
-    {
-        $state = self::getState($stateId);
-        if ($state === null || ($state['turn_type'] ?? '') !== 'bubbles') {
-            return null;
-        }
-        $ids = array_map(static fn (array $b): string => (string) ($b['id'] ?? ''), self::bubblesFor($stateId, $state));
-
-        if ($ids !== [] && array_filter($ids, static fn (string $id): bool => ! FunnelIncomeBand::isKnown($id)) === []) {
-            $figure = OnboardingValueInterpreter::parseIncomeAmount($userAnswer);
-            if ($figure !== null) {
-                foreach ($ids as $id) {
-                    if (FunnelIncomeBand::inBand($id, $figure)) {
-                        return $id;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        $polar = match (true) {
-            AnswerPolarity::isNegative($userAnswer) => array_values(array_intersect($ids, self::NEGATIVE_BUBBLES)),
-            AnswerPolarity::isAffirmative($userAnswer) && ! in_array($stateId, self::CONFIRMATION_STATES, true) => array_values(array_intersect($ids, self::AFFIRMATIVE_BUBBLES)),
-            default => [],
-        };
-
-        return count($polar) === 1 ? $polar[0] : null;
-    }
-
-    /**
-     * Every bubble a typed sentence names, by label or alias, in bubble order;
-     * the submit bubble is left to the caller.
-     *
-     * @return list<string>
-     */
-    private static function bubblesNamedIn(string $stateId, string $userAnswer): array
-    {
-        $state = self::getState($stateId);
-        if ($state === null) {
-            return [];
-        }
-        $text = ' '.mb_strtolower(preg_replace('/[^\p{L}\p{N}&\-]+/u', ' ', $userAnswer) ?? '').' ';
-
-        $named = [];
-        foreach (self::bubblesFor($stateId, $state) as $bubble) {
-            $id = (string) ($bubble['id'] ?? '');
-            if ($id === '' || in_array($id, self::NEGATIVE_BUBBLES, true)) {
-                continue;
-            }
-            $words = [mb_strtolower(trim((string) ($bubble['label'] ?? ''))), ...(self::BUBBLE_ALIASES[$stateId][$id] ?? [])];
-            foreach ($words as $word) {
-                if ($word !== '' && str_contains($text, ' '.$word.' ')) {
-                    $named[] = $id;
-                    break;
-                }
-            }
-        }
-
-        return $named;
     }
 
     /**
