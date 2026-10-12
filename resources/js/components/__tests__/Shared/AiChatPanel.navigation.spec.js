@@ -6,7 +6,6 @@ import AiChatPanel from '../../Shared/AiChatPanel.vue';
 vi.mock('@/services/analyticsService', () => ({
   default: { trackChatOpened: vi.fn(), trackChatMessageSent: vi.fn() },
 }));
-vi.mock('@/utils/chatNavigationRouter', () => ({ matchNavigationIntent: vi.fn(() => null) }));
 vi.mock('@/constants/fynIcon', () => ({ fynIconUrl: '' }));
 vi.mock('@/utils/subscriptionNavigation', () => ({
   subscriptionOptionsLocation: () => ({ path: '/settings/subscription' }),

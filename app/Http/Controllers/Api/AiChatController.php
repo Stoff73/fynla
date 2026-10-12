@@ -21,6 +21,7 @@ use App\Services\AI\ContextualConversation\ConversationHistoryService;
 use App\Services\AI\ContextualConversation\ConversationModeResolver;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\AI\Loop\ResumptionService;
+use App\Services\AI\NavigationCommand;
 use App\Services\Eval\EvalTraceCollector;
 use App\Services\Gamification\LevelService;
 use App\Services\Gamification\LevelUpCollector;
@@ -60,6 +61,7 @@ class AiChatController extends Controller
         private readonly ResumptionService $resumption,
         private readonly ConversationModeResolver $conversationModes,
         private readonly ContextualResourceResolver $contextualResources,
+        private readonly NavigationCommand $navigationCommand,
     ) {}
 
     /**
@@ -291,12 +293,17 @@ class AiChatController extends Controller
             // names none (7a, CSJ 2026-10-01: all capture through forms).
             || $form !== null;
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form) {
+        $navigateTo = $form === null ? NavigationCommand::match($message) : null;
+        $surface = $this->surface($request);
+
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form, $navigateTo, $surface) {
             try {
                 $this->streamTurn(
-                    fn () => $inOnboarding
-                        ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, true, $form)
-                        : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute),
+                    fn () => match (true) {
+                        $navigateTo !== null => $this->navigationCommand->handle($conversation, $message, $navigateTo, $surface),
+                        $inOnboarding => $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, true, $form),
+                        default => $this->adviceFyn->handle($user, $conversation, $message, $currentRoute),
+                    },
                     $user,
                     hideRecordEvents: $inOnboarding,
                     recheckConsent: true,
@@ -396,13 +403,18 @@ class AiChatController extends Controller
         $currentRoute = $request->input('current_route');
         $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user) || $form !== null;
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form) {
+        $navigateTo = $form === null ? NavigationCommand::match($message) : null;
+        $surface = $this->surface($request);
+
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form, $navigateTo, $surface) {
             try {
                 $this->streamTurn(
                     // persistUserMessage:false — the queued row IS the user turn.
-                    fn () => $inOnboarding
-                        ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, false, $form)
-                        : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute, false),
+                    fn () => match (true) {
+                        $navigateTo !== null => $this->navigationCommand->handle($conversation, $message, $navigateTo, $surface, false),
+                        $inOnboarding => $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, false, $form),
+                        default => $this->adviceFyn->handle($user, $conversation, $message, $currentRoute, false),
+                    },
                     $user,
                     hideRecordEvents: $inOnboarding,
                     recheckConsent: true,
@@ -1014,6 +1026,20 @@ class AiChatController extends Controller
             ob_flush();
         }
         flush();
+    }
+
+    /**
+     * Which client sent the turn, so a navigation command opens that client's
+     * own page (T6): native sends `X-Fynla-Client: ios`, the /m bundle sends
+     * `X-Fynla-Surface: m`, and anything else is the web app.
+     */
+    private function surface(Request $request): string
+    {
+        return match (true) {
+            strtolower(trim((string) $request->header('X-Fynla-Client'))) === 'ios' => NavigationCommand::SURFACE_NATIVE,
+            strtolower(trim((string) $request->header('X-Fynla-Surface'))) === 'm' => NavigationCommand::SURFACE_MOBILE,
+            default => NavigationCommand::SURFACE_WEB,
+        };
     }
 
     /** The web and /m bundles send `X-Fynla-Forms: 1`; native does not yet. */

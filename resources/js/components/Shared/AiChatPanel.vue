@@ -452,7 +452,6 @@ import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 import FynCaptureForm from '@/components/Fyn/FynCaptureForm.vue';
 
 import analyticsService from '@/services/analyticsService';
-import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
 import { fynIconUrl } from '@/constants/fynIcon';
 import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
 
@@ -1193,29 +1192,8 @@ export default {
 
             const message = this.inputMessage.trim();
 
-            // Check for navigation intent — handle locally without LLM call
-            const navMatch = matchNavigationIntent(message);
-            if (navMatch) {
-                this.inputMessage = '';
-                // Add user message to chat
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'user_' + Date.now(),
-                    role: 'user',
-                    content: message,
-                    created_at: new Date().toISOString(),
-                });
-                // Add assistant response locally
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'nav_' + Date.now(),
-                    role: 'assistant',
-                    content: navMatch.response,
-                    created_at: new Date().toISOString(),
-                });
-                // Navigate
-                this.handleNavigation(navMatch.route);
-                return;
-            }
-
+            // "Take me to…" is decided on the server for every surface (T6),
+            // so every message goes there and is saved.
             // Leave the text in the box if we cannot get a conversation, so a
             // failure never silently destroys what the user typed.
             if (!await this.ensureConversation()) return;
@@ -1231,24 +1209,6 @@ export default {
             window.dispatchEvent(new Event('fyn-chat-interaction'));
 
             this.inputMessage = '';
-
-            const navMatch = matchNavigationIntent(message);
-            if (navMatch) {
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'user_' + Date.now(),
-                    role: 'user',
-                    content: message,
-                    created_at: new Date().toISOString(),
-                });
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'nav_' + Date.now(),
-                    role: 'assistant',
-                    content: navMatch.response,
-                    created_at: new Date().toISOString(),
-                });
-                this.handleNavigation(navMatch.route);
-                return;
-            }
 
             if (!await this.ensureConversation()) return;
 
@@ -1266,8 +1226,7 @@ export default {
         //     response, producing a duplicate turn and overwriting the
         //     conversation title via HasAiChat's first-message title hook.
         //   - Regular bubbles: send the bubble's label as if the user had
-        //     typed it. The matchNavigationIntent check is skipped because
-        //     onboarding bubbles are never navigation intents.
+        //     typed it.
         async handleQuickReplySelect(bubble, msg) {
             if (this.streaming || this.loading) return;
             // Navigation bubble (e.g. the terminal "Take me to my tax strategy")
