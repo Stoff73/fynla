@@ -133,9 +133,37 @@ describe('FynCaptureForm', () => {
       const w = mount(FynCaptureForm, { props: { schema }, attachTo: document.body });
       await box(w, 'Buy to let').trigger('click');
       await w.vm.$nextTick();
-      expect(scrolled).toEqual(['fyn-form-buy_to_let-current_value']);
-      expect(document.activeElement && document.activeElement.id).toBe('fyn-form-buy_to_let-current_value');
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0]).toMatch(/^fyn-form-\d+-buy_to_let-current_value$/);
+      expect(document.activeElement && document.activeElement.id).toBe(scrolled[0]);
       w.unmount();
+    } finally {
+      proto.scrollIntoView = original;
+    }
+  });
+
+  // T20: one form per person named, so two forms of one kind sit in the
+  // chat (Maya's, locked, above Arjun's). Ids per kind and field only were
+  // shared: Arjun's labels named Maya's inputs, and opening a kind on his
+  // form focused hers.
+  it('gives each form its own ids, so a second form of the same kind labels and focuses its own fields', async () => {
+    const proto = window.HTMLElement.prototype;
+    const original = proto.scrollIntoView;
+    proto.scrollIntoView = function scrollIntoView() {};
+    try {
+      const first = mount(FynCaptureForm, { props: { schema, values: { buy_to_let: { current_value: 200000 } }, locked: true }, attachTo: document.body });
+      const second = mount(FynCaptureForm, { props: { schema }, attachTo: document.body });
+      await box(second, 'Buy to let').trigger('click');
+      await second.vm.$nextTick();
+
+      expect(second.element.contains(document.activeElement)).toBe(true);
+      const label = second.find('label[for]');
+      expect(second.element.querySelector(`#${label.attributes('for')}`)).not.toBeNull();
+      const firstIds = first.findAll('[id]').map((n) => n.attributes('id'));
+      const secondIds = second.findAll('[id]').map((n) => n.attributes('id'));
+      expect(secondIds.filter((id) => firstIds.includes(id))).toEqual([]);
+      first.unmount();
+      second.unmount();
     } finally {
       proto.scrollIntoView = original;
     }

@@ -3,6 +3,11 @@
 // both the web SFC (resources/js/components/Fyn/FynCaptureForm.vue) and the
 // /m SFC, so a behaviour change is made once, here, for both surfaces.
 
+// Each form's ids carry its own number: several forms of one kind can sit in
+// the chat at once (one per person named, T20), and ids per kind and field
+// alone sent a later form's labels and focus to the first form's inputs.
+let formSequence = 0;
+
 export const captureFormMixin = {
   props: {
     schema: { type: Object, required: true },
@@ -37,7 +42,8 @@ export const captureFormMixin = {
     (this.schema.lead_fields || []).forEach((fieldKey) => {
       if (this.schema.fields[fieldKey]?.type === 'money_or_none' && lead[fieldKey] === null) none._lead[fieldKey] = true;
     });
-    return { open, answers, none };
+    formSequence += 1;
+    return { open, answers, none, formUid: formSequence };
   },
   computed: {
     openKinds() { return (this.schema.kinds || []).filter((k) => this.open[k.key]); },
@@ -84,7 +90,7 @@ export const captureFormMixin = {
         el.focus({ preventScroll: true });
       });
     },
-    inputId(kindKey, fieldKey) { return `fyn-form-${kindKey}-${fieldKey}`; },
+    inputId(kindKey, fieldKey) { return `fyn-form-${this.formUid}-${kindKey}-${fieldKey}`; },
     isNone(kindKey, fieldKey) { return Boolean(this.none[kindKey] && this.none[kindKey][fieldKey]); },
     hasNumber(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'number' && !Number.isNaN(v); },
     hasText(kindKey, fieldKey) { const v = this.answers[kindKey][fieldKey]; return typeof v === 'string' && v.trim() !== ''; },
