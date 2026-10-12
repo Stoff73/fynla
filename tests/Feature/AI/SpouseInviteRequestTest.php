@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\FamilyMember;
 use App\Models\SpouseInvitation;
@@ -11,6 +12,7 @@ use App\Services\GDPR\ConsentService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\Fyn\FynStreamHarness;
 
@@ -62,4 +64,44 @@ it('asks for the first name and email when the request has none, then sends on t
     expect($done)->toContain('angela.walk@example.com')
         ->and($done)->toStartWith('Done.')
         ->and(SpouseInvitation::where('inviter_id', $this->user->id)->where('email', 'angela.walk@example.com')->value('first_name'))->toBe('Angela');
+});
+
+// Security review of #1232: Family settings allows 5 spouse invitations an
+// hour per user (FamilyMembersController, W-0349); the chat path had no
+// limit, so it could email any address on request. Every invite entry point
+// now passes the one limit (SpouseLinkingService::guardInviteRate).
+
+it('stops a chat invitation over the hourly limit Family settings uses', function (): void {
+    foreach (range(1, 5) as $i) {
+        RateLimiter::hit('spouse-invite:'.$this->user->id, 3600);
+    }
+
+    $reply = t9Send($this->conversation, 'Invite my wife Angela, angela.limit@example.com');
+
+    expect($reply)->toBe('Too many household invitations. Please try again in an hour.')
+        ->and(SpouseInvitation::where('inviter_id', $this->user->id)->exists())->toBeFalse();
+});
+
+it('never sends an invitation for a demo persona', function (): void {
+    $this->user->forceFill(['is_preview_user' => true])->save();
+
+    $reply = t9Send($this->conversation, 'Invite my wife Angela, angela.preview@example.com');
+
+    expect($reply)->toContain('preview')
+        ->and(SpouseInvitation::where('inviter_id', $this->user->id)->exists())->toBeFalse();
+});
+
+it('limits the spouse tools the same way', function (): void {
+    foreach (range(1, 5) as $i) {
+        RateLimiter::hit('spouse-invite:'.$this->user->id, 3600);
+    }
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_family_member', [
+        'relationship' => 'spouse',
+        'first_name' => 'Angela',
+        'email' => 'angela.tool@example.com',
+    ], $this->user);
+
+    expect($result['message'] ?? '')->toBe('Too many household invitations. Please try again in an hour.')
+        ->and(SpouseInvitation::where('inviter_id', $this->user->id)->exists())->toBeFalse();
 });
