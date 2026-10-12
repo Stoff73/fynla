@@ -104,8 +104,8 @@ describe('/m Fyn stream event parity', () => {
   it.each([
     [
       'token_limit',
-      { type: 'token_limit', message: "You've reached your daily Fyn usage limit." },
-      "You've reached your daily Fyn usage limit.",
+      { type: 'token_limit', message: "You've reached your weekly Fyn usage limit." },
+      "You've reached your weekly Fyn usage limit.",
     ],
     [
       'consent_required',

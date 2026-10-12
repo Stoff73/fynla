@@ -550,7 +550,7 @@ export default {
       }
       if (ev.type === 'token_limit') {
         cursor.got = true;
-        cursor.reply.text = ev.message || "You've reached your daily Fyn usage limit.";
+        cursor.reply.text = ev.message || "You've reached your weekly Fyn usage limit.";
         this.$nextTick(this.scrollFyn);
         return;
       }

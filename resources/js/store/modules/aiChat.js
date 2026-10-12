@@ -196,6 +196,7 @@ const state = {
     // run again when the user taps "Try again" beside the error.
     retryTurn: null,
     tokenLimitReached: false,
+    tokenLimitMessage: null,
     tokenResetAt: null,
     secondsUntilReset: null,
     showHistory: false,
@@ -242,6 +243,7 @@ const getters = {
     error: (state) => state.error,
     retryTurn: (state) => state.retryTurn,
     tokenLimitReached: (state) => state.tokenLimitReached,
+    tokenLimitMessage: (state) => state.tokenLimitMessage,
     tokenResetAt: (state) => state.tokenResetAt,
     secondsUntilReset: (state) => state.secondsUntilReset,
     showHistory: (state) => state.showHistory,
@@ -352,8 +354,9 @@ const mutations = {
         state.retryTurn = retryTurn;
     },
 
-    SET_TOKEN_LIMIT(state, { reached, resetAt, secondsUntilReset }) {
+    SET_TOKEN_LIMIT(state, { reached, message = null, resetAt, secondsUntilReset }) {
         state.tokenLimitReached = reached;
+        state.tokenLimitMessage = reached ? message : null;
         state.tokenResetAt = resetAt;
         state.secondsUntilReset = secondsUntilReset;
     },
@@ -426,6 +429,7 @@ const mutations = {
         state.loadingConversations = false;
         state.error = null;
         state.tokenLimitReached = false;
+        state.tokenLimitMessage = null;
         state.tokenResetAt = null;
         state.secondsUntilReset = null;
         state.showHistory = false;
@@ -1039,6 +1043,7 @@ const actions = {
                     case 'token_limit':
                         commit('SET_TOKEN_LIMIT', {
                             reached: true,
+                            message: event.message,
                             resetAt: event.reset_at,
                             secondsUntilReset: event.seconds_until_reset,
                         });
@@ -1274,6 +1279,7 @@ const actions = {
                     case 'token_limit':
                         commit('SET_TOKEN_LIMIT', {
                             reached: true,
+                            message: event.message,
                             resetAt: event.reset_at,
                             secondsUntilReset: event.seconds_until_reset,
                         });

@@ -41,10 +41,6 @@ return [
         'api_key' => env('XAI_API_KEY', ''),
         'chat_model' => env('XAI_CHAT_MODEL', 'grok-4.3'),
         'advanced_chat_model' => env('XAI_ADVANCED_CHAT_MODEL', 'grok-4.3'),
-        // Cheaper tier used when a user's rolling weekly budget is exceeded
-        // (HasAiGuardrails soft-degrade). Defaults to the standard chat model so
-        // chat stays OPEN on xAI; set to a cheaper xAI model to actually degrade.
-        'degrade_chat_model' => env('XAI_DEGRADE_CHAT_MODEL'),
         'vision_model' => env('XAI_VISION_MODEL', 'grok-4.3'),
         'base_url' => env('XAI_BASE_URL', 'https://api.x.ai/v1'),
     ],
@@ -58,9 +54,6 @@ return [
         // is barred (tests/Architecture/NoStaleReferencesTest.php).
         'chat_model' => env('OPENAI_MODEL', 'gpt-6-luna'),
         'advanced_chat_model' => env('OPENAI_ADVANCED_CHAT_MODEL', 'gpt-6-luna'),
-        // Cheaper tier for the weekly-budget soft-degrade; defaults to the
-        // standard chat model so chat stays open (as for xAI).
-        'degrade_chat_model' => env('OPENAI_DEGRADE_CHAT_MODEL'),
         'vision_model' => env('OPENAI_VISION_MODEL', 'gpt-6-luna'),
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
     ],

@@ -282,13 +282,13 @@
 
       <!-- Token-limit reached — distinct violet system notice (BS-13).
            v-if takes precedence over the error banner so the legitimate
-           daily-cap message is never overwritten by the empty-response
-           fallback in aiChat.js. -->
+           weekly-limit message is never overwritten by the empty-response
+           fallback in aiChat.js. The heading is the server's message (T48). -->
       <div
         v-if="tokenLimitReached"
         class="p-4 bg-violet-50 border border-violet-200 rounded-lg text-sm text-horizon-500"
       >
-        <p class="font-semibold mb-2">You've reached your daily Fyn usage limit</p>
+        <p class="font-semibold mb-2">{{ tokenLimitMessage }}</p>
         <p class="text-neutral-500">
           Your allowance resets in
           <span class="font-semibold text-violet-600">{{ resetCountdown }}</span>
@@ -507,6 +507,7 @@ export default {
             'error',
             'retryTurn',
             'tokenLimitReached',
+            'tokenLimitMessage',
             'secondsUntilReset',
             'showHistory',
             'pendingNavigation',
@@ -527,7 +528,7 @@ export default {
         },
 
         inputPlaceholder() {
-            if (this.tokenLimitReached) return 'Daily limit reached — resets at midnight';
+            if (this.tokenLimitReached) return `Fyn usage limit reached — resets in ${this.resetCountdown}`;
             return 'Ask Fyn...';
         },
 
@@ -580,8 +581,11 @@ export default {
 
         resetCountdown() {
             if (!this.countdownSeconds || this.countdownSeconds <= 0) return 'shortly';
-            const hours = Math.floor(this.countdownSeconds / 3600);
+            // The limit is per rolling week (T48), so a reset can be days away.
+            const days = Math.floor(this.countdownSeconds / 86400);
+            const hours = Math.floor((this.countdownSeconds % 86400) / 3600);
             const minutes = Math.floor((this.countdownSeconds % 3600) / 60);
+            if (days > 0) return `${days}d ${hours}h`;
             if (hours > 0) return `${hours}h ${minutes}m`;
             return `${minutes}m`;
         },

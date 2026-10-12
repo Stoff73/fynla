@@ -95,7 +95,7 @@ struct FynEventDecoder: Sendable {
                 )
             )
         case "token_limit":
-            return .tokenLimit(frame.message ?? "You've reached your daily Fyn usage limit.")
+            return .tokenLimit(frame.message ?? "You've reached your weekly Fyn usage limit.")
         case "consent_required":
             return .consentRequired
         case "handoff_error":
