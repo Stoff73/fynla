@@ -531,7 +531,7 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
         - T12 (2026-10-12, session 5) is ticked to Dev walk (parts 1 and 3; part 2, F6, moved to T55 for your design). Part 3: the Inheritance Tax figure publishes its working (`IHTCalculationService::calculate`), carried by `get_module_analysis(estate)` and `fetch_estate_plan`:
           - PR #1244, dev `61e5c2c94`, on csjones.
           - Walked: web and /m as Robin 509 (own estate only, spouse not linked, said so: #22897, #22899) and /m as Pat 506 (linked couple: £8,000 + £30,000 = £38,000 against £650,000, £0: #22901).
-          - Found for T46: Fyn wrote "£40,000 − £325,000 = £0".
+          - Found and fixed in the path: Fyn wrote "£40,000 − £325,000 = £0". Every sum Fyn writes is now recomputed in the one output filter (`ArithmeticCheck`, #1254, #1255); re-walked on web (#22964) and /m (#22966).
           - Next: T13.
         - T13 (2026-10-12, session 5) is ticked to Dev walk. Earlier turns out of view are named, searchable and quoted (`ConversationWindow`, `search_conversation_index` `words`, `<earlier_in_conversation>`, the recall rule):
           - PR #1246, dev `6cab6cd63`, on csjones.
