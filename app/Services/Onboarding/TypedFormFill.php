@@ -84,6 +84,17 @@ final class TypedFormFill
                     continue;
                 }
                 $definition = $form['schema']['fields'][$key];
+                // "No mortgage": a money-or-none field the message says there
+                // is none of is null, which both renderers draw as its box
+                // ticked (captureFormState.js). Walk 2026-10-11, M3 / Q2.
+                if ($value === null && $definition['type'] === 'money_or_none') {
+                    if (! array_key_exists($key, (array) ($answers[$sectionKey] ?? [])) || $answers[$sectionKey][$key] !== null) {
+                        $answers[$sectionKey] = array_replace((array) ($answers[$sectionKey] ?? []), [$key => null]);
+                        $filled[] = $key;
+                    }
+
+                    continue;
+                }
                 $value = is_string($value) ? trim($value) : $value;
                 // The field's own rule, less its presence part: a value is given.
                 $rules = array_values(array_filter(
@@ -152,6 +163,7 @@ final class TypedFormFill
                         'label' => $definition['label'] ?? $key,
                         'type' => $definition['type'],
                         'options' => isset($definition['options']) ? array_column($definition['options'], 'value') : null,
+                        'none_label' => $definition['none_label'] ?? null,
                         'current' => $form['answers'][$sectionKey][$key] ?? null,
                     ], static fn ($v): bool => $v !== null);
                 }
@@ -172,7 +184,8 @@ Rules:
 - Fill a form holding a record only when the message is about that record. Never put a different or new record (another provider, a new account) on it.
 - A new record the message describes goes on the blank form, under the section for its kind.
 - Put a value under a kind's section only when the message describes that kind of record. If it is not clear which kind, leave that value out.
-- choice: one of the listed options, exactly. date: YYYY-MM-DD. money and percent: a plain number, no symbols. text: the words given.
+- choice: one of the listed options, exactly. date: YYYY-MM-DD. money, money_or_none and percent: a plain number, no symbols. text: the words given.
+- money_or_none: null only when the message says what the field's none_label says ("No mortgage": there is no mortgage; "I don't know": the user does not know the figure). An amount of nothing that is not the none_label is 0.
 - Never guess or carry a value over from the current one.
 - JSON only, no prose, no markdown fences.
 PROMPT;
