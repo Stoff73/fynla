@@ -147,18 +147,17 @@ class ChildBenefitService
         // Calculate how much income is over the threshold
         $incomeOverThreshold = $adjustedNetIncome - $threshold;
 
-        // Calculate clawback percentage: 1% per £200 over threshold
-        // At £80,000 (£20,000 over), this equals 100%
-        $clawbackPercentage = min(100, ($incomeOverThreshold / $increment));
-
-        // Calculate the charge (amount to be paid back via tax)
-        $charge = ($childBenefitAmount * $clawbackPercentage) / 100;
+        // 1% per £200 over the threshold, at most 100% (ITEPA 2003 s681C(2)).
+        // A percentage that is not a whole number is rounded down, and so is a
+        // charge that is not a whole number of pounds (s681C(3)).
+        $clawbackPercentage = min(100.0, floor($incomeOverThreshold / $increment + 1e-9));
+        $charge = floor($childBenefitAmount * $clawbackPercentage / 100 + 1e-9);
 
         return [
             'applies' => true,
-            'charge' => round($charge, 2),
+            'charge' => $charge,
             'net_benefit' => round($childBenefitAmount - $charge, 2),
-            'clawback_percentage' => round($clawbackPercentage, 1),
+            'clawback_percentage' => $clawbackPercentage,
             'threshold' => $threshold,
             'full_clawback_threshold' => $fullClawback,
             'income_over_threshold' => round($incomeOverThreshold, 2),
