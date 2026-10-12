@@ -95,3 +95,11 @@ it('gives the legacy prompt the same handoff rule, from one place (Rule 20)', fu
 it('treats asking which figure is on file as a question, not a correction (fix plan T5, Q10)', function (): void {
     expect(FynSystemPrompt::text())->toContain('Asking which figure is on file is a question');
 });
+
+// Walk fix plan T13 (Q13): a figure from earlier in the conversation is
+// quoted from what the user wrote, or said to be out of view; never invented.
+it('carries the recall rule', function (): void {
+    expect(FynSystemPrompt::text())
+        ->toContain('call search_conversation_index with the words to look for and quote what they wrote')
+        ->toContain('Never supply a figure the user did not give.');
+});

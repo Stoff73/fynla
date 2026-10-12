@@ -278,3 +278,45 @@ it('XaiToolDefinitions registers search_conversation_index with strict mode', fu
     expect($tool['function']['strict'])->toBeTrue();
     expect($tool['function']['parameters']['additionalProperties'])->toBeFalse();
 });
+
+// Walk fix plan T13 (Q13): Fyn invented a £12,000 bonus the user had given
+// about 80 messages earlier, out of the 20 it sees. The search reads the open
+// conversation's earlier messages and returns the user's own words.
+function t13LongConversation(User $user): AiConversation
+{
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'title' => 'Long chat',
+        'status' => 'active',
+        'model_used' => 'gpt-6-luna',
+    ]);
+    $at = now()->subHours(2);
+    $say = function (string $role, string $content, $when) use ($conversation): void {
+        $conversation->messages()->make(['role' => $role, 'content' => $content])->forceFill(['created_at' => $when])->save();
+    };
+    $say('user', 'My bonus this year is £14,500, paid in March.', $at);
+    for ($i = 1; $i <= 30; $i++) {
+        $say($i % 2 === 1 ? 'assistant' : 'user', $i === 30 ? 'And the bonus I mentioned, is it taxed at 40%?' : "Message {$i}", $at->copy()->addMinutes($i));
+    }
+
+    return $conversation;
+}
+
+it('quotes the user\'s own earlier words from the open conversation, out of view only', function () {
+    $user = User::factory()->create();
+    $conversation = t13LongConversation($user);
+
+    $result = callSearchConversationIndex(['words' => ['bonus']], $user, $conversation->id);
+
+    expect($result['this_conversation'])->toHaveCount(1)
+        ->and($result['this_conversation'][0]['said'])->toBe('My bonus this year is £14,500, paid in March.');
+});
+
+it('never reads another user\'s conversation', function () {
+    $owner = User::factory()->create();
+    $conversation = t13LongConversation($owner);
+
+    $result = callSearchConversationIndex(['words' => ['bonus']], User::factory()->create(), $conversation->id);
+
+    expect($result['this_conversation'] ?? [])->toBe([]);
+});
