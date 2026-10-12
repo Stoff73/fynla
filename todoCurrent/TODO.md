@@ -482,6 +482,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked on web and /m as Alex 502: "ok take me to my tax strategy" opens Tax Strategy on both and the reply is saved (F4). "Show the working" questions are answered, not navigated (F3). On /m a website-only page gets "Will Builder is only on the website for now."
           - Native gets the /m path; its `allowedRoute` list decides which screens open (confirm with the next iOS build).
           - Next: T7.
+        - T7 (2026-10-12, session 4) is ticked to Dev walk. A what-if request reaches the scenario capture, never a pension form; T5's gate already did it:
+          - PR #1226 (test only).
+          - Walked on web and /m as Alex 502: scenarios 1 and 2 were saved through `create_what_if_scenario`.
+          - Found: T50 (the comparison is £0 for every figure; `WhatIfScenarioService` is broken) and T51 (a Free user can create a paid-plan scenario through chat).
+          - Next: T8.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
