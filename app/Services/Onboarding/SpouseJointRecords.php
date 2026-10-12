@@ -156,7 +156,11 @@ final class SpouseJointRecords
         return FamilyMember::where('user_id', $user->id)->where('relationship', 'spouse')->exists();
     }
 
-    private function spouseFirstName(User $user): ?string
+    /**
+     * The spouse's first name: the linked account's, else the spouse row's
+     * (never the "Spouse" placeholder). Null when no name is known.
+     */
+    public function spouseFirstName(User $user): ?string
     {
         if ($user->spouse_id) {
             $linked = User::query()->find($user->spouse_id);

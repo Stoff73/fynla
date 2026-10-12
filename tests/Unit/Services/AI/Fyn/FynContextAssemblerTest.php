@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\FamilyMember;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\Fyn\FynContextAssembler;
@@ -137,6 +138,55 @@ it('grounds spouse financial questions in the saved campaign household row', fun
         ->toContain('Spouse ISA balance: £8,000.00')
         ->toContain('Spouse annual pension contribution: £2,400.00')
         ->toContain('Do not say that a listed field is not recorded');
+});
+
+// T10 (walk 2026-10-11, P4): "Dev" named with no relationship word never
+// reached the household row, so Fyn said Dev's figures were not recorded.
+it('grounds every advice turn in the household row, naming the spouse, with no relationship word', function (): void {
+    FamilyMember::factory()->create([
+        'user_id' => $this->user->id,
+        'relationship' => 'spouse',
+        'first_name' => 'Dev',
+    ]);
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $this->user->id,
+        'spouse_annual_income' => 38000,
+        'spouse_annual_earnings' => 36000,
+        'spouse_annual_dividends' => 1200,
+        'spouse_unrealised_gains' => 5000,
+    ]);
+
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'How much tax does Dev pay on the interest?',
+        currentRoute: '/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'general', 'related' => []],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<saved_household_finances>')
+        ->toContain('- Spouse: <user_provided>Dev</user_provided>')
+        ->toContain('Spouse annual income: £38,000.00')
+        ->toContain('Spouse annual earnings from work: £36,000.00')
+        ->toContain('Spouse annual dividends: £1,200.00')
+        ->toContain('Spouse unrealised gains: £5,000.00');
+});
+
+it('emits no household block when no household row exists', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'What is my spouse\'s income?',
+        currentRoute: '/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'general', 'related' => []],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))->not->toContain('<saved_household_finances>');
 });
 
 it('emits CAPTURE block and NOT position on an onboarding turn', function (): void {
