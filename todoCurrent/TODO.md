@@ -519,6 +519,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - The T3 note was a misreading: £552,597 was Rory's "Projected Capital", a page figure; £484,572 is the separate Monte Carlo card.
           - Found: T54 (`get_module_analysis(retirement)` also sends the `PensionProjector` pot and income, £217,251.58 and £8,690.06 for Pat, and Fyn quoted both incomes). Found for T15: /m rounded £260,978.89 to £260,979.
           - Next: T12.
+        - T12 part 1 of 3 (2026-10-12, session 5): the savings gift and the 50/50 split publish their working (`TaxStrategyMath::savingsMoveWorking`, from the tax engine's own breakdown):
+          - PR #1240, dev `9112c1a35`, on csjones.
+          - Walked with a fresh Save Tax couple (Robin Walk, user 509): /m (#22893) and web "Ask Fyn about this" (#22895) both gave the card's own steps, £518.40 − £59.20 = £459.20, shown as £459.
+          - `App\Support\Money::exact` is now the one exact formatter (for T15).
+          - Next: T12 part 2, the child benefit charge (F6), then part 3, the estate (M8, Q8).
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
