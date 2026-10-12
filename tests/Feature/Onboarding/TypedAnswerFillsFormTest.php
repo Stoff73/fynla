@@ -195,3 +195,40 @@ it('fills in the spouse form from a typed answer that also says "nothing else", 
         ->and($form['values']['isa']['spouse_isa_provider'])->toBe('Nationwide')
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
 });
+
+// T18 (walk 2026-10-11, F9, #3795): at the Free limit, a request to add
+// another got a blank form ("Fill this in and save") that could only fail at
+// Save. At the limit the reply is in words, before any form.
+it('says the limit in words instead of opening a blank form when the plan is full', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'institution' => 'Halifax', 'account_type' => 'easy_access', 'current_balance' => 4000, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'institution' => 'Monzo', 'account_type' => 'current_account', 'current_balance' => 900, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $conversation = directorConversation($user);
+    // Forms 0 and 1 are the two accounts; form 2 the blank bank accounts form.
+    formFillReturns(['2' => ['easy_access' => ['provider' => 'Chase', 'current_value' => 2000]]]);
+
+    $events = iterator_to_array(formsDirector()->handleInlineCapture(
+        $user, $conversation, 'I opened a Chase easy access account with £2,000',
+        CaptureContext::fromArray(['reason' => 'new account', 'entity_types' => ['savings_account'], 'fields_needed' => []]),
+    ), false);
+
+    expect(collect($events)->firstWhere('type', 'capture_form'))->toBeNull()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))
+        ->toBe("You've reached your plan's limit of 2 bank and savings accounts. To add more, upgrade your plan.")
+        ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(2);
+});
+
+it('still opens a saved record\'s form at the limit, since a change adds nothing', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'institution' => 'Halifax', 'account_type' => 'easy_access', 'current_balance' => 4000, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $monzo = SavingsAccount::factory()->create(['user_id' => $user->id, 'institution' => 'Monzo', 'account_type' => 'easy_access', 'current_balance' => 900, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $conversation = directorConversation($user);
+    formFillReturns(['1' => ['easy_access' => ['current_value' => 1200]]]);
+
+    $events = iterator_to_array(formsDirector()->handleInlineCapture(
+        $user, $conversation, 'My Monzo balance is £1,200 now',
+        CaptureContext::fromArray(['reason' => 'balance changed', 'entity_types' => ['savings_account'], 'fields_needed' => []]),
+    ), false);
+
+    expect(collect($events)->firstWhere('type', 'capture_form')['record'])->toEqual(['type' => 'savings_account', 'id' => $monzo->id]);
+});

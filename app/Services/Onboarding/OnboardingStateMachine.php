@@ -16,7 +16,11 @@ use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
+use App\Services\Stores\TierGate;
 use App\Services\Tax\TaxStrategyMath;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -635,8 +639,9 @@ final class OnboardingStateMachine
             // populate the user's tax position from natural-language input.
             // ── Savings section (entry: ISA) ──────────────────────────────
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
-                // Only ask about ISAs if the user ticked "ISA" on the funnel.
-                'skip_if' => [self::class, 'skipIfNoIsa'],
+                // Only ask about ISAs if the user ticked "ISA" on the funnel,
+                // and not at the Free limit (skipSectionAtFreeLimit).
+                'skip_if' => [self::class, 'skipIsaHoldings'],
                 'capture_focus' => 'savings',
             ],
             // After an ISA form save, ask for another or move on to bank
@@ -662,8 +667,9 @@ final class OnboardingStateMachine
                 'record_context' => 'savings',
                 'record_context_mode' => 'reference',
                 // 'next' is corpus DATA now (static: campaign_bank_accounts_more).
-                // Only ask about bank/savings if the user ticked bank or savings.
-                'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
+                // Only ask about bank/savings if the user ticked bank or savings,
+                // and not at the Free limit (skipSectionAtFreeLimit).
+                'skip_if' => [self::class, 'skipBankAccounts'],
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [
                 'next' => self::class.'::nextFromBankAccountsMore',
@@ -672,6 +678,7 @@ final class OnboardingStateMachine
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'capture_focus' => 'investment',
+                'skip_if' => [self::class, 'skipInvestmentAccounts'],
                 // 'next' is corpus DATA now (static: campaign_investment_accounts_more).
             ],
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [
@@ -682,7 +689,7 @@ final class OnboardingStateMachine
                 'capture_focus' => 'property',
                 // 'next' is corpus DATA now (static: campaign_property_more) —
                 // the multi-property loop asks first, see STATE_CAMPAIGN_PROPERTY_MORE.
-                'skip_if' => [self::class, 'skipSectionIfNoProperty'],
+                'skip_if' => [self::class, 'skipPropertySection'],
             ],
             // After a property save, loop back for another or continue to verify
             // (CSJ 2026-09-16) — mirrors STATE_BASE_EMPLOYMENT_MORE.
@@ -723,7 +730,7 @@ final class OnboardingStateMachine
                 // skipIfNotEmployed — byte-identical savetax path guaranteed.
                 // 'next' is corpus DATA now (static: campaign_pension_more) — the
                 // pension form (CSJ 2026-09-16) asks for another first.
-                'skip_if' => [self::class, 'skipIfOccupationalScheme'],
+                'skip_if' => [self::class, 'skipOccupationalSchemeSection'],
                 // Linear scripted step that writes no entity record (workplace
                 // pension details inform retirement advice, not a create_* row).
                 // When the user both answers the scripted question and asks a
@@ -2392,6 +2399,105 @@ final class OnboardingStateMachine
     private static function isJourney(User $user): bool
     {
         return ($user->onboarding_fyn_path ?? '') === 'journey';
+    }
+
+    /**
+     * The Free plan's limit a capture section's records count against, when
+     * it is reached: at the section's entry and at its "another?" step. One
+     * home for the walk (CSJ 2026-09-16: at the limit Fyn says so and offers
+     * the next section). A cash or stocks and shares ISA counts with the
+     * investments (CSJ 2026-09-15), so both those steps name the ISAs.
+     *
+     * @return array{limit: int, noun: string}|null
+     */
+    public static function freeLimitAt(User $user, string $stateId): ?array
+    {
+        [$entityKey, $count, $noun] = match ($stateId) {
+            self::STATE_CAMPAIGN_PROPERTY, self::STATE_CAMPAIGN_PROPERTY_MORE => [PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'],
+            self::STATE_CAMPAIGN_ISA_HOLDINGS, self::STATE_CAMPAIGN_ISA_MORE,
+            self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'],
+            self::STATE_CAMPAIGN_BANK_ACCOUNTS, self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts'],
+            self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, self::STATE_CAMPAIGN_PENSION_MORE => [PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'],
+            default => [null, 0, ''],
+        };
+
+        return $entityKey === null ? null : self::freeLimitReached($user, $entityKey, $count, $noun);
+    }
+
+    /** A capture section's "another?" step, mapped to the form step that opens the section. */
+    public static function sectionEntryForLoop(string $stateId): ?string
+    {
+        return match ($stateId) {
+            self::STATE_CAMPAIGN_ISA_MORE => self::STATE_CAMPAIGN_ISA_HOLDINGS,
+            self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+            self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            self::STATE_CAMPAIGN_PROPERTY_MORE => self::STATE_CAMPAIGN_PROPERTY,
+            self::STATE_CAMPAIGN_PENSION_MORE => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            default => null,
+        };
+    }
+
+    /**
+     * The Free limit a blank add form's records count against, when reached:
+     * the same counts as the walk's sections (freeLimitAt).
+     *
+     * @return array{limit: int, noun: string}|null
+     */
+    public static function freeLimitForForm(User $user, string $formName): ?array
+    {
+        $stateId = match ($formName) {
+            CaptureForms::SAVINGS => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+            CaptureForms::ISA, CaptureForms::INVESTMENT => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            CaptureForms::PENSION, CaptureForms::PENSION_PERSONAL, CaptureForms::DB_PENSION => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            CaptureForms::PROPERTY => self::STATE_CAMPAIGN_PROPERTY,
+            default => null,
+        };
+
+        return $stateId === null ? null : self::freeLimitAt($user, $stateId);
+    }
+
+    /** @return array{limit: int, noun: string}|null */
+    public static function freeLimitReached(User $user, string $entityKey, int $count, string $noun): ?array
+    {
+        $limit = app(TierGate::class)->hardLimit($user, $entityKey);
+
+        return $limit !== null && $count >= $limit ? ['limit' => $limit, 'noun' => $noun] : null;
+    }
+
+    /**
+     * A section already at the Free limit opens on its "another?" step, which
+     * says the limit and offers the next section, not on a blank form that
+     * fails at Save (walk 2026-10-11, F10: #3805 to #3809). Its "another?"
+     * step keeps the section's own skip rule, so it still shows.
+     */
+    private static function skipSectionAtFreeLimit(User $user, string $stateId): bool
+    {
+        return self::freeLimitAt($user, $stateId) !== null;
+    }
+
+    public static function skipIsaHoldings(User $user): bool
+    {
+        return self::skipIfNoIsa($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_ISA_HOLDINGS);
+    }
+
+    public static function skipBankAccounts(User $user): bool
+    {
+        return self::skipIfNoBankOrSavings($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_BANK_ACCOUNTS);
+    }
+
+    public static function skipInvestmentAccounts(User $user): bool
+    {
+        return self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    }
+
+    public static function skipPropertySection(User $user): bool
+    {
+        return self::skipSectionIfNoProperty($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_PROPERTY);
+    }
+
+    public static function skipOccupationalSchemeSection(User $user): bool
+    {
+        return self::skipIfOccupationalScheme($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
     }
 
     public static function skipIfNoIsa(User $user): bool
