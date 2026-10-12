@@ -67,7 +67,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T4 | `capture_*` writes recorded as landed | N4, P2, Q6, Q7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T5 | The capture-handoff prompt rule applies to statements only | F20, P5, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T7 | A what-if request reaches the what-if scenario capture | P5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T7 | A what-if request reaches the what-if scenario capture | P5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T8 | A delete preview refuses a record that does not exist | Q22 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T9 | An invite request reaches the existing invite step | Q17 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T10 | Spouse figures always in Fyn's context | P4, P3, F5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -106,6 +106,8 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T46 | Fyn's own arithmetic on the user's figures is wrong: /m Q7 gave "about £478 a month" where 5% a year compounded monthly over 228 months needs £492.89 to build £186,975. Fyn has no calculation tool (first T5 walk, 2026-10-12, conversation 592) | T5 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T47 | Fyn's answer printed a formula as raw LaTeX (`\\(\\frac{…}\\)`) on /m (first T5 walk, conversation 592) | T5 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T49 | On /m, Fyn's reply paragraphs run together with no space or break ("£5,800.Your recorded…"), T48 Dev walk, Rory 504 | T48 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T50 | The what-if comparison is £0 for every figure (T7 walk, scenarios 1 and 2, Alex 502). `WhatIfScenarioService::extractMetrics` reads keys the agents do not return, so every figure defaults to 0; the `pension_contribution` override does nothing (`applyOverrides`); and the user's own row is saved mid-calculation, then reverted. Fyn tells the user the comparison shows £0 | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T51 | A Free user can create a paid-plan what-if scenario through chat (`create_what_if_scenario` has no tier check; the API route is gated by `CheckSubscription` `what_if`), then is sent to the paid-plan teaser (T7 walk, Alex 502) | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T41 | Live checks first, then fix what they show: /m message typed after a page change (M1); silent Saves (F10, Q24); will builder name and warning (Q19, Q20); retirement projection change (Q21); /m dashboard blank area | M1, F10, Q24, Q19, Q20, Q21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T42 | Brett's account 812: the "declared none" flags and the unasked goal written by these bugs. A database change, so done only with your OK | F19, P2 | [ ] | n/a | n/a | [ ] | [ ] | [ ] |
 | T43 | The full test run, once T0–T42 are done (R5) | all | n/a | [ ] | n/a | n/a | n/a | n/a |
@@ -432,6 +434,14 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
      - Reopened Fyn: the turns were there. "ok take me to my tax strategy" opened Tax Strategy. Shot `T6-07-…`.
   3. Saved rows (read on csjones): web conversation 600 (#22819 to #22826) and /m conversation 601 (#22827 to #22832). Every request has its reply.
   - Found (for T11): the F3c-style answer gave "£1,290,042 at retirement" and "a total defined contribution value of £531,047 across the projection", neither of which is the Retirement page's figure, and said it could not show the working. That is T11 and published working (B3).
+- **T7 (2026-10-12, session 4):** T5's dispatch gate (#1218) already gives a what-if request its designed route (S0.5.r). A pension handoff on the question is refused back to the model, and a `what_if_scenario` handoff saves the scenario through `create_what_if_scenario`. T7 adds no production code.
+  - **Code:** branch `fix/t7-what-if-route`, PR #1226, merged to dev as `5a1c93fa8`. It adds `WhatIfRequestReachesScenarioCaptureTest`.
+  - **Test:** red with the T5 gate disabled: "never opens a pension form" failed, because the request left Advice Fyn for pension capture. Green on dev (2 passed).
+  - **Dev:** csjones pulled `5a1c93fa8`. The PR is test only, with no bundle change.
+  - **Dev walk (csjones, as Alex 502):**
+    1. Web 1440: signed in, clicked "Chat with Fyn" and sent P5's request ("Run a what-if for me: if I paid an extra £20,000 a year into my pension from now until 60, …"). No pension form opened. Fyn replied "Your what-if scenario is saved", with a "Saved to your records … View" card. Scenario 1 was saved (`created_via: ai_chat`), and the page went to `/teaser?module=what_if` (the Premium guard; T51). Shot `T7-01-…`.
+    2. /m 390: clicked "Chat with Fyn" and sent "Run a what-if for me: if I paid an extra £10,000 a year into my pension from now until 62, …". No pension form. Scenario 2 was saved (#22836, persona `data_capture`). Shot `T7-02-…`.
+  - Found: on both surfaces Fyn said the comparison "shows £0 for both projections". New task T50. A Free user can create the paid-plan scenario: new task T51.
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
