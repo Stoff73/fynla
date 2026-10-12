@@ -4586,6 +4586,7 @@ PROMPT;
                 $pendingWriteFailures['gapfill:'.$tool.':'.count($pendingWriteFailures)] = [
                     'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
                     'tier_limit' => (($result['error_type'] ?? '') === 'tier_limit_reached'),
+                    'user_facing' => ($result['user_facing'] ?? false) === true,
                 ];
                 if ($tool !== '' && ! in_array($tool, $failedWriteTools, true)) {
                     $failedWriteTools[] = $tool;
@@ -4688,6 +4689,7 @@ PROMPT;
                         $pendingWriteFailures[$failureKey] = [
                             'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
                             'tier_limit' => (($event['result']['error_type'] ?? '') === 'tier_limit_reached'),
+                            'user_facing' => ($event['result']['user_facing'] ?? false) === true,
                         ];
                         // Remember the tool so the gap-fill never blind-creates
                         // the entity this failed (richer) attempt was refused for.
@@ -5351,11 +5353,13 @@ PROMPT;
      * delegated path appended the missing-detail tail to tier-limit
      * messages, which a plan limit cannot satisfy; live /m msg 19716).
      * A tier-limit message wins and shows verbatim (it carries its own
-     * upgrade call to action); otherwise the first named reason composes the
+     * upgrade call to action), then a message the tool wrote for the user
+     * (`user_facing`, e.g. a delete that found nothing, T8); otherwise the
+     * first named reason composes the
      * missing-detail line. The transport placeholder "The write failed." is
      * not a reason. Returns null when no failure carries a usable message.
      *
-     * @param  list<array{message?: string, tier_limit?: bool}>  $failures
+     * @param  list<array{message?: string, tier_limit?: bool, user_facing?: bool}>  $failures
      */
     private function captureFailureText(array $failures): ?string
     {
@@ -5365,6 +5369,14 @@ PROMPT;
         );
         if ($tier !== null) {
             return (string) $tier['message'];
+        }
+
+        $written = collect($failures)->first(
+            fn (array $failure): bool => ($failure['user_facing'] ?? false) === true
+                && trim((string) ($failure['message'] ?? '')) !== ''
+        );
+        if ($written !== null) {
+            return (string) $written['message'];
         }
 
         $reason = collect($failures)
@@ -8828,6 +8840,7 @@ PROMPT;
                             : 'The information could not be saved.',
                         'content_offset' => $retryContentOffset ?? count($contentEvents),
                         'tier_limit' => ($result['reason'] ?? null) === 'tier_limit_reached',
+                        'user_facing' => ($result['user_facing'] ?? false) === true,
                         'tool' => $tool,
                     ];
                 }
