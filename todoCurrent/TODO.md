@@ -513,6 +513,12 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked as Pat 506 on web and /m: questions naming Rory with no relationship word got the row's £72,765 income and £72,000 from work (#22857, #22859).
           - Found: T53 (Fyn's record tools cannot read a linked spouse's own records).
           - Next: T11.
+        - T11 (2026-10-12, session 5) is ticked to Dev walk. The retirement plan Fyn fetches carries the Retirement page's headline (`RetirementHeadline`):
+          - PR #1238, dev `61e7d40ed`, on csjones (PHP only).
+          - Walked as Pat 506: web (`fetch_retirement_plan`) and /m (`get_module_analysis`) both gave the page's "Projected Capital" £260,978.89 at 67 (#22863, #22861).
+          - The T3 note was a misreading: £552,597 was Rory's "Projected Capital", a page figure; £484,572 is the separate Monte Carlo card.
+          - Found: T54 (`get_module_analysis(retirement)` also sends the `PensionProjector` pot and income, £217,251.58 and £8,690.06 for Pat, and Fyn quoted both incomes). Found for T15: /m rounded £260,978.89 to £260,979.
+          - Next: T12.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
