@@ -1,8 +1,9 @@
 ---
 fact_id: hv-dividend-allowance-harvest
 category: house_view
-title: Dividend Allowance harvest — using the tax-free dividend band outside an ISA
-version: 2
+title: Dividend Allowance — using the tax-free dividend band outside an ISA
+source: "Income Tax Act 2007 s13A (dividend nil rate)"
+version: 3
 valid_to: null
 ---
 
@@ -17,7 +18,7 @@ applies when the user has non-ISA investments and recorded dividend income
 below the allowance; it is for investors whose taxable holdings tilt towards
 growth and who could let the allowance do some work. It is irrelevant once
 dividend income already fills the allowance — at that point the question
-flips to sheltering the excess, not harvesting headroom.
+flips to sheltering the excess, not using up headroom.
 
 ## Why Fynla quantifies it this way
 

@@ -2,7 +2,8 @@
 fact_id: hv-salary-sacrifice-ni
 category: house_view
 title: Salary sacrifice — National Insurance savings on workplace pension contributions
-version: 2
+source: "Income Tax (Earnings and Pensions) Act 2003 s308 (employer contributions to a registered pension scheme exempt); GOV.UK 'Salary sacrifice for employers'"
+version: 3
 valid_to: null
 ---
 

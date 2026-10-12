@@ -2,7 +2,8 @@
 fact_id: hv-marriage-allowance-transfer
 category: house_view
 title: Marriage Allowance transfer — moving unused Personal Allowance between partners
-version: 3
+source: "Income Tax Act 2007 s55B (tax reduction: entitlement), s55C (elections to transfer)"
+version: 4
 valid_to: null
 ---
 

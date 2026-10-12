@@ -2,7 +2,8 @@
 fact_id: hv-non-earner-spouse-pension
 category: house_view
 title: Non-earner spouse pension — government-topped contributions for a non-earning or modest-earning partner
-version: 2
+source: "Finance Act 2004 s188 (relief for contributions), s190 (annual limit: relevant UK earnings or the basic amount), s192 (relief at source)"
+version: 3
 valid_to: null
 ---
 

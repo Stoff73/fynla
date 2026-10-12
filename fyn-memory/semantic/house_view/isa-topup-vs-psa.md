@@ -2,7 +2,8 @@
 fact_id: hv-isa-topup-vs-psa
 category: house_view
 title: ISA top-up — wrapping cash that earns interest beyond the Personal Savings Allowance
-version: 2
+source: "Income Tax Act 2007 s12B (savings allowance); Individual Savings Account Regulations 1998 (SI 1998/1870) reg 22 (income and gains exempt)"
+version: 3
 valid_to: null
 ---
 

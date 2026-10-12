@@ -2,7 +2,8 @@
 fact_id: hv-tapered-annual-allowance
 category: house_view
 title: Tapered Annual Allowance — the pension allowance warning for very high earners
-version: 2
+source: "Finance Act 2004 s228ZA (tapered reduction of annual allowance)"
+version: 3
 valid_to: null
 ---
 

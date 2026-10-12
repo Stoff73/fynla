@@ -2,7 +2,8 @@
 fact_id: hv-joint-savings-psa-split
 category: house_view
 title: Joint savings split — using both partners' tax positions
-version: 3
+source: "Income Tax Act 2007 s836 (joint property of spouses: equal shares), s837 (declarations of unequal interests), s12B (savings allowance)"
+version: 4
 valid_to: null
 ---
 

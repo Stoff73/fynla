@@ -2,7 +2,8 @@
 fact_id: hv-isa-topup-spouse
 category: house_view
 title: Spouse ISA top-up — opening or topping up the partner's own individual ISA
-version: 3
+source: "Individual Savings Account Regulations 1998 (SI 1998/1870) reg 2A (account investor), reg 4ZA (subscription limit per individual); Income Tax (Trading and Other Income) Act 2005 s626 (outright gifts between spouses)"
+version: 4
 valid_to: null
 ---
 

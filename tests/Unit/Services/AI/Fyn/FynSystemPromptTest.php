@@ -103,3 +103,8 @@ it('carries the recall rule', function (): void {
         ->toContain('call search_conversation_index with the words to look for and quote what they wrote')
         ->toContain('Never supply a figure the user did not give.');
 });
+
+// Walk fix plan T14 (M5): Fyn names the source of a <knowledge> fact it uses.
+it('tells Fyn to name the source of a knowledge fact', function (): void {
+    expect(FynSystemPrompt::text())->toContain('When you use a fact from <knowledge>, name its source in plain words');
+});

@@ -115,11 +115,13 @@ it('degrades to no knowledge block when the corpus is malformed (turn still buil
         ->and($out)->toContain('<context>');        // the rest of the prompt still built
 });
 
-it('omits the source suffix for a source-less fact (no "(source: )" noise)', function (): void {
+// Walk fix plan T14 (M5): every entry carries its source, a house view
+// included, and Fyn is given it beside the fact so it can name it.
+it('gives a house view\'s source beside it', function (): void {
     @mkdir("{$this->corpus}/house_view", 0777, true);
     file_put_contents(
         "{$this->corpus}/house_view/efund.md",
-        "---\nfact_id: hv-emergency-fund\ncategory: house_view\ntitle: Emergency fund stance\nversion: 1\nvalid_to: null\n---\n\nFynla suggests building an emergency fund before investing.\n"
+        "---\nfact_id: hv-emergency-fund\ncategory: house_view\ntitle: Emergency fund stance\nsource: \"Fynla house view\"\nversion: 1\nvalid_to: null\n---\n\nFynla suggests building an emergency fund before investing.\n"
     );
     $user = User::factory()->create();
     $ctx = FynTurnContext::make(
@@ -134,7 +136,5 @@ it('omits the source suffix for a source-less fact (no "(source: )" noise)', fun
 
     $out = app(FynContextAssembler::class)->build($ctx);
 
-    expect($out)->toContain('<knowledge>')
-        ->and($out)->toContain('### Emergency fund stance')
-        ->and($out)->not->toContain('(source: )');
+    expect($out)->toContain('### Emergency fund stance (source: Fynla house view)');
 });
