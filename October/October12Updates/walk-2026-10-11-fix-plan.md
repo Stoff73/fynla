@@ -66,7 +66,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T3 | `QueryClassifier` never files a question as data entry or navigation; adds retirement, estate, savings-tax and rent wording | Q6, Q7, Q8, M8, F19, F22, P3, P5, P7, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T4 | `capture_*` writes recorded as landed | N4, P2, Q6, Q7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T5 | The capture-handoff prompt rule applies to statements only | F20, P5, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T7 | A what-if request reaches the what-if scenario capture | P5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T8 | A delete preview refuses a record that does not exist | Q22 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T9 | An invite request reaches the existing invite step | Q17 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -405,6 +405,33 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
      - The stopped turns charged nothing: the week stayed at 755,902.
   - The admin Tier Configuration page was not walked. CSJ (2026-10-12): "dont worry about ttesting these limits now, we will get top that lets move on".
   - Found: on /m, Fyn's paragraphs run together without a space ("£5,800.Your recorded…", "…this year.Would you like…"). New task T49.
+- **T6, Code (2026-10-12, session 4):** branch `fix/t6-server-navigation`, commit `3b1c21dc3`, PR #1224, merged to dev as `bc69c68ed`.
+  - `App\Services\AI\NavigationCommand::match`:
+    - only a plain command ("take me to", "go to", "open", "navigate to", "show me", "bring up") with no question navigates (`?` or `QuerySchemas::isAdviceShaped`);
+    - the whole rest of the message must be a page name from `GateRoutes::NAVIGATION_NAMES`, so words match whole;
+    - Tax Strategy is covered.
+  - `NavigationCommand::handle` runs before the director and Advice Fyn in both `AiChatController` dispatches (send and queued). It saves the request and the reply ("Opening Tax Strategy.") and emits the existing `navigation` event, with the surface's own route and a semantic `destination`. On /m and native, a website-only page gets "Will Builder is only on the website for now." and no navigation.
+  - Surface: `X-Fynla-Client: ios` is native, `X-Fynla-Surface: m` is /m (new, sent by the /m `apiStream`), and anything else is web.
+  - `GateRoutes::MAP` gains the pages the old web matcher opened: actions, security, planning assumptions, letter to spouse, will builder, power of attorney, trusts, life events, the four plans, journeys and what-if. The web and /m destination tables carry them, and `GateRoutesTest` checks every new path against both routers.
+  - `chatNavigationRouter.js` and its test are deleted, and its cases move to `NavigationCommandTest`. Native gets the /m path; `FynEventReducer.allowedRoute` opens only the screens it lists (confirm with the next iOS build).
+- **T6, Test (2026-10-12):**
+  - Red first: `ServerNavigationCommandTest` (6 failed: no `navigation` event, F4's reply missing) and `NavigationCommandTest` (class and pages missing). On the JS side, the web and /m destination specs failed (new screens fell back to the dashboard), and `apiStreamSurfaceHeader.test.js` failed (no header).
+  - Green: `NavigationCommandTest` (29 cases), `ServerNavigationCommandTest`, `GateRoutesTest`, `AdviceDeclaredNoneTest` and `ConcurrentTurnQueueGateTest` pass, 62 in all. JS: 9 files, 53 passed, including every `AiChatPanel.*` spec and `aiChatEvents`.
+- **T6, Dev (2026-10-12):** csjones pulled `bc69c68ed` (PHP live, no migration).
+  - CSJ built both bundles at 12:41 BST from the T6 worktree, whose tree is identical to dev `bc69c68ed`. They were uploaded with rsync and no `--delete`.
+  - The /m bundle carries `X-Fynla-Surface`, and the web bundle no longer has the matcher. The site answers 200.
+- **T6, Dev walk (2026-10-12, csjones `bc69c68ed`, as Alex 502, Free):**
+  1. Web 1440: typed https://csjones.co/fynla/, clicked "Sign in" and signed in (code read from the csjones database, the R2 exception). Clicked "Chat with Fyn".
+     - F4's exact words, "ok take me to my tax strategy": the page went to `/tax-strategy`, and Fyn replied "Opening Tax Strategy." Shot `T6-01-…`.
+     - "take me to my savings" went to `/net-worth/cash` with "Opening Bank Accounts." Shot `T6-02-…`.
+     - F3c-style "My retirement page says I will have about £300,000 at 60. Show the working." did not navigate (stayed on `/net-worth/cash`), and Fyn answered it. Shot `T6-03-…`.
+     - "open the will builder" replied "Opening Will Builder." and the router's existing Premium guard sent this Free account to `/teaser?module=estate`. Shot `T6-04-…`.
+  2. /m 390: typed the /m entry and clicked "Chat with Fyn".
+     - "open the will builder" replied "Will Builder is only on the website for now." and did not navigate. Shot `T6-05-…`.
+     - "take me to my savings" closed Fyn and opened Bank Accounts (`/savings`). Shot `T6-06-…`.
+     - Reopened Fyn: the turns were there. "ok take me to my tax strategy" opened Tax Strategy. Shot `T6-07-…`.
+  3. Saved rows (read on csjones): web conversation 600 (#22819 to #22826) and /m conversation 601 (#22827 to #22832). Every request has its reply.
+  - Found (for T11): the F3c-style answer gave "£1,290,042 at retirement" and "a total defined contribution value of £531,047 across the projection", neither of which is the Retirement page's figure, and said it could not show the working. That is T11 and published working (B3).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
