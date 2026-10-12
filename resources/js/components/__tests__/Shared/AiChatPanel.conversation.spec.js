@@ -10,9 +10,6 @@ vi.mock('@/services/analyticsService', () => ({
 
 // Navigation intents are handled locally and never need a conversation, so the
 // default here is "not a navigation phrase" — the send path under test.
-vi.mock('@/utils/chatNavigationRouter', () => ({
-  matchNavigationIntent: vi.fn(() => null),
-}));
 
 vi.mock('@/constants/fynIcon', () => ({ fynIconUrl: '' }));
 vi.mock('@/utils/subscriptionNavigation', () => ({

@@ -108,6 +108,8 @@ export async function apiStream(path, body, token, onDelta, onEvent, { idempoten
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
       'X-Fynla-Forms': '1',
+      // Names the /m surface, so "take me to…" opens the /m page (T6).
+      'X-Fynla-Surface': 'm',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       // One id per turn, re-sent by "Try again" (IdempotencyKeyMiddleware).
       ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),

@@ -13,6 +13,10 @@ describe('mobile semantic destinations', () => {
     })).toBe('/retirement');
   });
 
+  it('opens Actions, which Fyn can be asked to open (T6)', () => {
+    expect(resolveMobileDestination({ destination: { screen: 'actions', params: {}, fallback: 'dashboard' } })).toBe('/actions');
+  });
+
   it('uses the explicit fallback and reports an unknown screen without parameters', () => {
     const recordUnknown = vi.fn();
 

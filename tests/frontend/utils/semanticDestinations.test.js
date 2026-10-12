@@ -27,6 +27,24 @@ describe('resolveWebDestination', () => {
     expect(resolveWebDestination({ screen: 'savings_account_detail', params: { account_id: '../x' }, fallback: 'savings' })).toBe('/net-worth/cash');
   });
 
+  it('opens every page Fyn can be asked to open, not the dashboard fallback (T6)', () => {
+    const pages = {
+      actions: '/actions',
+      will_builder: '/estate/will-builder',
+      trusts: '/trusts',
+      what_if: '/planning/what-if',
+      retirement_plan: '/plans/retirement',
+      letter_to_spouse: '/valuable-info?section=letter',
+      life_events: '/goals?tab=events',
+      risk_profile: '/risk-profile',
+      chattels: '/net-worth/chattels',
+      business: '/net-worth/business',
+    };
+    for (const [screen, path] of Object.entries(pages)) {
+      expect(resolveWebDestination({ screen, params: {}, fallback: 'dashboard' })).toBe(path);
+    }
+  });
+
   it('returns null for nothing resolvable', () => {
     expect(resolveWebDestination(null)).toBeNull();
     expect(resolveWebDestination({ screen: 'unknown', params: {}, fallback: 'unknown' })).toBeNull();

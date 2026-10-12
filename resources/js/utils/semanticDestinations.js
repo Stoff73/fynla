@@ -28,6 +28,25 @@ const overviewPaths = Object.freeze({
   holistic_plan: '/holistic-plan',
   settings: '/settings',
   subscription: '/settings/subscription',
+  // Pages Fyn opens on request (T6): GateRoutes NAVIGATION_NAMES.
+  risk_profile: '/risk-profile',
+  chattels: '/net-worth/chattels',
+  business: '/net-worth/business',
+  actions: '/actions',
+  security: '/settings/security',
+  planning_assumptions: '/settings/assumptions',
+  letter_to_spouse: '/valuable-info?section=letter',
+  will_builder: '/estate/will-builder',
+  power_of_attorney: '/estate/power-of-attorney',
+  trusts: '/trusts',
+  life_events: '/goals?tab=events',
+  plans: '/plans',
+  investment_plan: '/plans/investment',
+  retirement_plan: '/plans/retirement',
+  protection_plan: '/plans/protection',
+  estate_plan: '/plans/estate',
+  planning_journeys: '/planning/journeys',
+  what_if: '/planning/what-if',
 });
 
 function identifier(value) {
