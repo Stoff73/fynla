@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-10-12 session 4. The order of work is `todoCurrent/TODO.md`; the walk fix plan (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) orders the tasks inside item 18. T0 to T9 and T48 are walked green on csjones, not released.*
+*Last updated: 2026-10-12 session 6. The order of work is `todoCurrent/TODO.md`; the walk fix plan (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) orders the tasks inside item 18. T0 to T15, T17 to T19, T48 and T58 are walked green on csjones, not released; T16 was reverted (#1262). Next: T20.*
 
 ## The board position
 
@@ -255,6 +255,11 @@ Three small decisions, all optional:
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
+
+- **(2026-10-12 session 6, T58 and T17 to T19)**
+  - The Free-limit sentence "You've reached your plan's limit of N … To add more, upgrade your plan." is written twice in `OnboardingChatDirector` (`:2438`, `:7820`) and once per entity in `CoordinatingAgent` (`:3136` to `:4112`); one home beside `OnboardingStateMachine::freeLimitAt`.
+  - The bubble-lock rule exists per surface: web `AiChatPanel.vue:620` (excludes `route` only), /m `onboardingChat.js:92` (excludes route, action, retry, `subscription_options`).
+  - `OnboardingChatDirector.php` is 9,590 lines.
 
 - **(2026-10-12, walk fix plan T48 and T6 to T9)**
   - `HasAiGuardrails::getTodayTokenUsage` is now called only by `TokenBudgetConcurrencyTest` (the limit is weekly).

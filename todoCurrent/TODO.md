@@ -552,6 +552,17 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - PR #1252, dev `8a2a5626c`, on csjones.
           - Walked with fresh accounts: /m (Priya 510) took Brett's four typed answers word for word; web (Sanjay 511) took "roughly 72k" and a typed list.
           - Next: T17 (typed facts kept and later forms pre-filled: the £400 of dividends and #4083's ISA).
+        - Where we stopped (2026-10-12, session 6):
+          - **T16 REVERTED (CSJ: "why is the user typing?").** #1252 matched typed words to bubbles against CSJ's rulings (2026-09-30 only a tap is a pick; 2026-10-01 forms only, no matching) and misread "nothing to change" as "No, change something". Revert #1262 (`4ba517595`). Memory `feedback_bubble_steps_are_taps_never_typed_matching`.
+          - **T58 (CSJ: disable the chat input when a bubble gives the answer):** #1263 (`1688f9eb8`), web `AiChatPanel::awaitingBubbleAnswer`, /m `onboardingChat.js` methods (not computed: the /m stream fills bubbles in place). Walked web + /m (Maya, Leo). Bundles on csjones built from the merged tree.
+          - **T17 narrowed:** F2, F11's spouse answer and F21 were typed at bubble steps (now locked); parking typed facts not built. Fixed #3836: a typed answer at a form step always goes to the form (#1265, `2bb5b9bf0`). Walked web + /m (Asha, Ravi).
+          - **T18:** Free limit checked at section start (form skipped to the "another?" step), said in words before a blank add form and before the save offer, section lead-in when the form was skipped, "ISAs and investment accounts" noun (#1267, `f86a1f96e`). Walked web + /m (Nadia, Omar, Lena, Theo).
+          - **T19:** typed "no mortgage" ticks the No mortgage box (`TypedFormFill` none_label rule; #1269, `da633bb29`). Walked web + /m (Iris).
+          - csjones on dev `da633bb29`; nothing released to fynla.org. Evidence for each task in the plan's log (docs PRs #1264, #1266, #1268, #1270).
+          - Next: T20 (one form per person named in a message, P8).
+          - Found: on /m two sentences run together in Fyn's replies ("Monzo current account.Do you have …"); that is T49.
+          - Found: opening /m signs the web tab out (front door lands on sign-in); that is T33.
+          - Walk accounts on csjones to purge: Maya, Leo (T58); Asha, Ravi (T17); Nadia, Omar, Lena, Theo (T18); Iris (T19); plus Robin 509, Priya 510, Sanjay 511 from session 5.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
