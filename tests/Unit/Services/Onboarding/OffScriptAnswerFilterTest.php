@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Constants\QuerySchemas;
 use App\Services\Onboarding\OnboardingChatDirector;
 
 /**
@@ -25,13 +26,10 @@ function invokeFilter(string $text, string $selection, bool $allowAnswer): strin
     return (string) $ref->invoke($director, $text, $selection, $allowAnswer);
 }
 
+// userAskedQuestion folded into the one question test (fix plan T2).
 function invokeQuestionHeuristic(string $message): bool
 {
-    $director = app(OnboardingChatDirector::class);
-    $ref = new ReflectionMethod($director, 'userAskedQuestion');
-    $ref->setAccessible(true);
-
-    return (bool) $ref->invoke($director, $message);
+    return QuerySchemas::isAdviceShaped($message);
 }
 
 describe('filterOffScriptContent — allowAnswer arm (A1)', function () {
