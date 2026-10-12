@@ -492,6 +492,10 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked on web (Alex 502) and /m (Drew 508; Alex reached the new weekly limit): "Delete my round-the-world trip goal" with no goals saved asks for no confirmation and saves "You don't have a goal saved, so there's nothing to delete."
           - Found: T52 (the live sentence differs from the saved reply on a capture failure).
           - Next: T9.
+        - T9 (2026-10-12, session 4) is ticked to Dev walk. An invite request reaches the invite step's own code:
+          - PR #1232, plus #1233, a security fix from the background review: one hourly spouse-invitation limit for every invite path, and demo personas never invite.
+          - Walked on /m and web as Drew 508: invitations 13 to 15 sent, by asking first and from a request that gives the email.
+          - Next: T10.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.

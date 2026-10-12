@@ -69,7 +69,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T7 | A what-if request reaches the what-if scenario capture | P5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T8 | A delete preview refuses a record that does not exist | Q22 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T9 | An invite request reaches the existing invite step | Q17 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T9 | An invite request reaches the existing invite step | Q17 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T10 | Spouse figures always in Fyn's context | P4, P3, F5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T11 | The retirement plan tool carries the Retirement page's headline | Q6 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T12 | Published working for the savings-to-spouse, child benefit charge and estate scenarios (item 18) | F5, P3, F6, M8, Q8 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -459,6 +459,26 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   1. Web 1440, as Alex 502 (no goals saved): clicked "Chat with Fyn" and "New", then sent "Delete my round-the-world trip goal". No confirmation was asked. The screen said "There isn't a saved round-the-world trip goal to delete.", and the saved reply (#22842) is "You don't have a goal saved, so there's nothing to delete." Shot `T8-01-…`.
   2. /m 390: Alex went over the 750,000 weekly limit mid-walk ("You've reached your weekly Fyn usage limit.", T48 as designed), so I signed out through the /m menu and signed in as Drew 508 (code read from the csjones database). Clicked "Chat with Fyn" and sent the same message. No confirmation; saved reply #22845 is "You don't have a goal saved, so there's nothing to delete." Shot `T8-02-…`.
   - Found: the live sentence differs from the saved reply on a capture failure; on /m it said the goal "remains unchanged", implying it exists. New task T52.
+- **T9, Code (2026-10-12, session 4):**
+  - #1232 (`c0a207ce9`):
+    - `WriteIntentClassifier` files invite, invitation or link accounts plus a spouse word as `spouse_invite` (a question is still answered, T2).
+    - `OnboardingChatDirector::inviteSpouseFromChat` runs the invite step's own code: `parseSpouseInviteDetails`; the spouse's name on file when only an email is given; `sendSpouseInvitation`; and the step's outcome sentence. Missing details get the step's own question, and the answer continues the capture.
+    - `parseSpouseInviteDetails` no longer reads "Please" as the first name.
+  - #1233 (`cb78008e5`), security: the background review found the chat path had no rate limit. Family settings allows 5 spouse invitations an hour (W-0349). The agent's spouse tools, the campaign step and the onboarding save had no limit either, and a demo persona could send real invitations through chat.
+    - `SpouseLinkingService::guardInviteRate` is now the one limit for every entry point.
+    - `sendSpouseInvitation` refuses a demo persona.
+- **T9, Test (2026-10-12):** both PRs were red first, then green.
+  - #1232: 7 failed (classifier, parser, both chat cases). With the campaign invite and state machine tests, 214 passed.
+  - #1233: 3 failed (an invitation over the limit, a demo persona's invitation row, the spouse tool over the limit). With the Family settings 429 test and the spouse-link files, 184 passed.
+  - CSJ asked "why are you guessing?" after the first chat test asserted a row the code does not write. The assertion now reads `SpouseInvitation` (`SpouseLinkingService.php:452-462`). Memory: `feedback_read_before_asserting_never_guess`.
+- **T9, Dev (2026-10-12):** csjones pulled `cb78008e5` (PHP only).
+- **T9, Dev walk (2026-10-12, as Drew 508):**
+  1. /m 390, before the security fix: "Please invite my partner to link accounts" got "What's their first name and email address?". "Sam, slaterjoneschris+t9walk@gmail.com" got "Done. I've sent an invitation to … When Sam accepts …" (invitation 13).
+  2. After the fix, repeated from step 1:
+     - /m: "Please invite my partner to link accounts. Their email is slaterjoneschris+t9walk2@gmail.com." got "Done. …", naming Sam from the spouse record (invitation 14, #22851). Shot `T9-01-…`.
+     - Web 1440: signed in from the front page (code read from the csjones database) and clicked "Chat with Fyn". "Invite my husband to link accounts" got the step's question; "Sam, slaterjoneschris+t9walk3@gmail.com" got "Done. …" (invitation 15). Shot `T9-02-…`.
+  - Side effect, as the linking service documents: Drew's marital status became married (`inviteUnregisteredSpouse`).
+  - The rate limit and the demo-persona refusal are covered by tests, not walked: walking the limit would send 5 more emails.
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
