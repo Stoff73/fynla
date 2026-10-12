@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-10-08 session 3. The order of work is `todoCurrent/TODO.md`; this file is the detail record. Item 17a (Fyn on OpenAI GPT-6 Luna) and the joint-ownership work (#1151) are merged to dev and walked on csjones, not released; the walk's open findings are under 17a in TODO.md.*
+*Last updated: 2026-10-12 session 4. The order of work is `todoCurrent/TODO.md`; the walk fix plan (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) orders the tasks inside item 18. T0 to T9 and T48 are walked green on csjones, not released.*
 
 ## The board position
 
@@ -250,11 +250,18 @@ Three small decisions, all optional:
 
 ## Deploy state
 
-- **2026-10-08: prod (fynla.org) = main `8f2a91341` (releases w/x/y, #1132/#1135/#1139), AI provider xAI.** csjones = dev `3e7be5889` (#1148 OpenAI, #1149, #1151 joint ownership, #1152, #1153), AI provider OpenAI GPT `gpt-6-luna` (switched in the admin panel; a deploy's `cache:clear` resets it to `.env` `AI_PROVIDER`, which CSJ will set to `openai`).
+- **2026-10-12: prod (fynla.org) = main `f45bc67fd` (release ab).** dev = `7fa4470ba`; csjones runs `cb78008e5` (PHP), with the T48 migration run and both bundles built at 12:41 BST from T6's tree. The next release needs T48's migration (`2026_10_12_120000_one_weekly_fyn_limit_per_tier`) and both bundles.
 
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
+
+- **(2026-10-12, walk fix plan T48 and T6 to T9)**
+  - `HasAiGuardrails::getTodayTokenUsage` is now called only by `TokenBudgetConcurrencyTest` (the limit is weekly).
+  - `CoordinatingAgent::handleDeleteRecord` still builds record names inline in its delete branches (`:6915`, `:6935`) beside the new `recordName`.
+  - The email regex is in `OnboardingChatDirector::inviteSpouseFromChat` (`:2662`) and `OnboardingValueInterpreter::parseSpouseInviteDetails` (`:394`).
+  - The demo-mode sentence exists twice (`OnboardingChatDirector:2723`, `CoordinatingAgent::previewBlocked :4870`).
+  - `GateRoutes::NAVIGATION_NAMES` web paths are mirrored by hand in both `semanticDestinations.js` tables.
 
 - **(2026-10-07, item 9)** `GiftForm.vue:114-116` calls every gift above the annual exemption a Potentially Exempt Transfer (wrong for a gift into a trust); the married own-records predicate written twice (`EstateActionDefinitionService.php:158`, `EstateIhtExposureDetector.php:80`); two gift write paths; form-turn refresh not on the queued path (`aiChat.js:1157`). Detail under item 9 in `todoCurrent/TODO.md`.
 

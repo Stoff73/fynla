@@ -496,6 +496,18 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - PR #1232, plus #1233, a security fix from the background review: one hourly spouse-invitation limit for every invite path, and demo personas never invite.
           - Walked on /m and web as Drew 508: invitations 13 to 15 sent, by asking first and from a request that gives the email.
           - Next: T10.
+        - Where we stopped (2026-10-12, session 4, context clear):
+          - T48 and T6 to T9 are ticked to Dev walk. Dev is `7fa4470ba`, and csjones runs `cb78008e5` (PHP). The bundles were last built by CSJ at 12:41 from T6's tree; T7 to T9 changed no frontend.
+          - Next is T10: spouse figures always in Fyn's context (P4, P3, F5; plan section 5, B3).
+          - Prod boxes for T0 to T9 and T48 wait for CSJ's release. The release needs T48's migration (`2026_10_12_120000_one_weekly_fyn_limit_per_tier`) and both bundles.
+          - New tasks T49 to T52 are on the plan's list.
+          - DECISION (CSJ): approve the user-facing wording written this session:
+            - "Opening <page>." and "<page> is only on the website for now." (T6);
+            - the input placeholder "Fyn usage limit reached — resets in 2d 4h" (T48);
+            - "You don't have a <thing> saved, so there's nothing to delete." and "Which goal did you mean: A or B?" (T8);
+            - "You're in preview mode, so I haven't sent an invitation. Create your own account to invite your spouse." (T9).
+          - DECISION (CSJ): T50's fix needs a design. The what-if engine (`WhatIfScenarioService`) reads keys the agents do not return, never applies the pension contribution, and saves the user's own row mid-calculation.
+          - Walk accounts: Rory 504 and Alex 502 are over the 750,000 weekly limit until 16 October. Drew 508 now has three pending invitations (13 to 15) and is married.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
