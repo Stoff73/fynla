@@ -6835,11 +6835,13 @@ class CoordinatingAgent extends BaseAgent
             if ($name === null) {
                 $label = str_replace('_', ' ', $entityType);
 
+                // `message` reaches the user (a capture failure shows it), so
+                // the steer for the model has its own key.
                 return [
                     'error' => true,
                     'error_type' => 'not_found',
-                    'message' => "No {$label} with id {$entityId} is saved for this user, so there is nothing to delete. "
-                        .'Do not ask the user to confirm. Look the record up with your read tools, then call delete_record with its id.',
+                    'message' => "There's no saved {$label} with that id, so nothing was deleted.",
+                    'instruction' => 'Do not ask the user to confirm a delete. Look the record up with your read tools, then call delete_record with its id; if the user has no such record, say so.',
                 ];
             }
 
