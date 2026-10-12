@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | Scope | The whole application at inventory depth: every client, every route file, every backend layer, every background process, every test suite. Per-screen forms, field tables and CRUD tables are deferred to the section maps listed in `INDEX.md`. |
-| Commit | `28194e804` on `dev` |
-| Mapped on | 2026-09-14 |
+| Commit | `f00076906` on `dev` (refreshed from `28194e804`) |
+| Mapped on | 2026-09-14; refreshed 2026-10-12 |
 | Mapped by | Claude Code session, `app-map` skill, first run |
 | Supersedes | `docs/reference/System Map.md` (vault `appMapping/currentState/*`) as the entry point; those documents were not used as evidence |
-| Issues raised | MB-01 to MB-13 in `September/September14Updates/mappingBugs2026-09-14.md` |
+| Issues raised | MB-01 to MB-13 in `September/September14Updates/mappingBugs2026-09-14.md` (MB-07 withdrawn 2026-10-12: it was wrong when raised); MB-60 in `October/October12Updates/mappingBugs2026-10-12.md` |
 
 Every statement below cites a file and line read in this run, a command run in this run, or a browser interaction performed in this run. Where a claim could not be checked it says "I COULD NOT VERIFY".
+
+**Refresh 2026-10-12.** Every `file:line` citation was tracked from `28194e804` to `f00076906` with a line diff of the cited file. Citations whose lines had only moved were re-pointed, and the seven whose lines changed were re-read and rewritten. Every inventory figure was recounted at `f00076906`. Where the 2026-09-14 counting method could be reproduced at `28194e804`, it was used, so the two figures compare like for like. Where it could not, the new figure states its own method. The web reachability sweep was re-run with a corrected method (§ 2.6). The route table is `php artisan route:list --json` (810 routes). Not repeated in the refresh: the browser walks (statuses that say "driven" date from 2026-09-14), the full Architecture and Vitest runs (CSJ 2026-09-27: no full or directory-wide suites locally), and the client-to-route path matching for `/m` and iOS.
 
 ## 1. Overview
 
@@ -34,7 +36,7 @@ Vault copies are in `fynlaBrain/Diagrams/` and listed in the Diagrams Index.
 The screens below were driven in Playwright this run against the local build (`http://localhost:8000`, user `john@example.com`).
 
 ![Server-rendered public homepage](screenshots/overview/web-public-homepage.png)
-*The server-rendered homepage, captured after signing out. Loading `/` while signed in redirected to `/dashboard` (`redirect.authed`, `routes/web.php:96`), which was also observed this run.*
+*The server-rendered homepage, captured after signing out. Loading `/` while signed in redirected to `/dashboard` (`redirect.authed`, `routes/web.php:98`), which was also observed this run.*
 
 ![Web login, verification code step](screenshots/overview/web-login-verification-code.png)
 *Web login: after email and password, a six-digit code is required. The code was read from the database with the tinker command in `CLAUDE.md` and entered; the browser landed on `/dashboard`.*
@@ -60,9 +62,9 @@ Status is at the surface level only. "Working" means it was driven in the browse
 
 | Feature | Web | `/m` | iOS | Notes |
 |---|---|---|---|---|
-| Login with email, password, six-digit code | Working | Working | Present (`ios-native/Fynla/Features/Authentication`) | Web `/login` route `resources/js/router/index.js:443`; `/m` `resources/mobile/router.js:56`; iOS calls `api/auth/verify-code` and `resend-code` |
+| Login with email, password, six-digit code | Working | Working | Present (`ios-native/Fynla/Features/Authentication`) | Web `/login` route `resources/js/router/index.js:444`; `/m` `resources/mobile/router.js:58`; iOS calls `api/auth/verify-code` and `resend-code` |
 | Dashboard with level card and finance tiles | Working | Working | Present (`Features/Dashboard`) | Web composes from stores (`views/Dashboard.vue:1300-1360`); `/m` and iOS call `api/v1/mobile/dashboard` (`routes/api_v1.php:118`) |
-| Fyn chat with resumption prompt | Working (panel opened, "Welcome back" shown) | Working (dock shown with same prompt) | Present (`Features/Fyn`, `Core/Streaming`) | One endpoint for all: `POST api/ai-chat/conversations/{id}/messages` (`routes/api.php:1508`) |
+| Fyn chat with resumption prompt | Working (panel opened, "Welcome back" shown) | Working (dock shown with same prompt) | Present (`Features/Fyn`, `Core/Streaming`) | One endpoint for all: `POST api/ai-chat/conversations/{id}/messages` (`routes/api.php:1517`) |
 | Net worth and its categories | Present (`/net-worth/*`, 15 child routes) | Present (`/net-worth`, `/net-worth/:category`, property, mortgage, liability detail) | Present (`Features/NetWorth`) | |
 | Protection | Present (`/protection`, policy detail) | Present | Present | |
 | Savings (Bank Accounts) | Present | Present | Present | |
@@ -74,7 +76,7 @@ Status is at the surface level only. "Working" means it was driven in the browse
 | Holistic plan | Present (`/holistic-plan`) | Present | Present (`Features/HolisticPlan`) | |
 | Income and expenditure | Present (`/valuable-info?section=…`) | Present (`/income`, `/income/:owner/:source`, `/expenditure`) | Present (`Features/Income`, `Features/Expenditure`) | |
 | Risk profile | Present (`/risk-profile` and two children) | Absent (`app/Constants/GateRoutes.php` maps `RISK_PROFILE` mobile to `null`) | Absent (no feature folder; `/m` test `InvestmentRiskProfileHandoff.spec.js` implies a hand-off to web) | |
-| Plans, Journeys, What-if, Actions | Present (`/plans/*`, `/planning/journeys`, `/planning/what-if/*`, `/actions/*`) | Absent from `resources/mobile/router.js` | Absent (no feature folder) | Web only |
+| Plans, Journeys, What-if, Actions | Present (`/plans/*`, `/planning/journeys`, `/planning/what-if/*`, `/actions/*`) | Actions present since the stamp (`/actions`, `/actions/:id`, `resources/mobile/router.js:72-74`); Plans, Journeys and What-if absent | Actions present (`Features/Actions`, five files); the rest absent | Plans, Journeys and What-if are web only |
 | Achievements and conversation history pages | Absent as routes (level card on dashboard; history via the Fyn panel "History" button) | Present (`/achievements`, `/conversation-history`) | Present (`Features/Achievements`) | |
 | Settings, personal information, family, spouse sharing | Present (`/settings/*`) | Present (`/personal-information`, `/settings`, `/spouse-sharing`, `/notifications`) | Present (`Features/Settings`, `Features/Profile`, `Features/Privacy`) | |
 | Subscription and checkout | Present (`/checkout`, `/teaser`, settings) | Present (`/subscription`) | Present (`Features/Subscription`, StoreKit) via `api/v1/native/*` | iOS purchases have no products in App Store Connect (see memory); I COULD NOT VERIFY the paywall this run |
@@ -112,15 +114,15 @@ Counted from `use App\Services\<Group>\` and `use App\Agents\` imports across `a
 
 | Step | Layer | File | What happens |
 |---|---|---|---|
-| 1 | Web routes | `routes/web.php:96-470` | 60 closure routes wrapped in `redirect.authed` include `public/pages/*.php` and return HTML with a 5-minute cache header. Signed-in users are bounced to the dashboard by the middleware. |
-| 2 | Web routes | `routes/web.php:28-31` | `/insights/{slug}` returns the SPA shell after `InsightsSeoMetaInjector` writes meta tags. |
-| 3 | Web routes | `routes/web.php:35-49`, `:56-75` | Lifecycle magic links (`signed`), web hand-off consume, RSS feeds, newsletter confirm and unsubscribe. |
-| 4 | Web routes | `routes/web.php:77-85` | `/storage/{path}` streams the public disk; refuses `..`. |
-| 5 | Web routes | `routes/web.php:660-749` | Save Tax mockups and dashboard mockups (MB-10). |
-| 6 | Web routes | `routes/web.php:551-558` | `/m` → `mobile-host` blade, `/m/landing` → `mobile-landing`, `/m/app/{any?}` → `mobile-app` (the built `/m` bundle). |
-| 7 | Web routes | `routes/web.php:600-602` | `/{any}` catch-all returns `resources/views/app.blade.php`, which loads `resources/css/app.css` and `resources/js/app.js` (`app.blade.php:93`). |
-| 8 | SPA router | `resources/js/router/index.js` | 161 `path:` entries. Guard at `:1755-1807`: `requiresAuth` sends guests to `Login`; `public` routes send signed-in users to `Dashboard`; `requiresAdmin` checks `auth/isAdmin`; tier-gated routes redirect to `/teaser` with the capability name. |
-| 9 | Mobile router | `resources/mobile/router.js` | 36 entries under base `<VITE_ROUTER_BASE>m/app/`; `meta.auth` routes require `store.token` (`:106-111`). |
+| 1 | Web routes | `routes/web.php:98-472` | 60 closure routes wrapped in `redirect.authed` include `public/pages/*.php` and return HTML with a 5-minute cache header. Signed-in users are bounced to the dashboard by the middleware. |
+| 2 | Web routes | `routes/web.php:30-33` | `/insights/{slug}` returns the SPA shell after `InsightsSeoMetaInjector` writes meta tags. |
+| 3 | Web routes | `routes/web.php:37-51`, `:58-77` | Lifecycle magic links (`signed`), web hand-off consume, RSS feeds, newsletter confirm and unsubscribe. |
+| 4 | Web routes | `routes/web.php:79-87` | `/storage/{path}` streams the public disk; refuses `..`. |
+| 5 | Web routes | `routes/web.php:662-702`, `:752` | Save Tax mockups and dashboard mockups (MB-10, still open). |
+| 6 | Web routes | `routes/web.php:553-560` | `/m` → `mobile-host` blade, `/m/landing` → `mobile-landing`, `/m/app/{any?}` → `mobile-app` (the built `/m` bundle). |
+| 7 | Web routes | `routes/web.php:602-604` | `/{any}` catch-all returns `resources/views/app.blade.php`, which loads `resources/css/app.css` and `resources/js/app.js` (`app.blade.php:93`). |
+| 8 | SPA router | `resources/js/router/index.js` | 164 `path:` entries: 132 top-level and 32 children (161 at the stamp, counted the same way). Guard at `:1827-1879`: `requiresAuth` sends guests to `Login`; `public` routes send signed-in users to `Dashboard`; `requiresAdmin` checks `auth/isAdmin`; tier-gated routes redirect to `/teaser` with the capability name. |
+| 9 | Mobile router | `resources/mobile/router.js` | 39 entries (36 at the stamp; new: `/actions`, `/actions/:id`, `/net-worth/history`) under base `<VITE_ROUTER_BASE>m/app/`; `meta.auth` routes require `store.token` (`:115-120`). |
 
 **Tests:** `tests/E2E/public/*.spec.js` (3), `tests/E2E/smoke/desktop.spec.js`, `mobile.spec.js`, `tests/frontend/router/publicRoutePolicy.test.js`, `tests/frontend/public/pricing.test.js`. Run this session: the Vitest suite (see § 2.11).
 
@@ -138,11 +140,11 @@ Counted from `use App\Services\<Group>\` and `use App\Agents\` imports across `a
 | 2 | `web` group | `Kernel.php:115-124` | Cookies, session, CSRF, `RedirectPhoneToMobile`, `RebasePublicPageUrls`. |
 | 3 | `api` group | `Kernel.php:126-136` | `ApiCacheHeaders` (no-store), Sanctum stateful, throttle `api`, `SanitizeInput`, `TouchSessionActivity`, `AdvisorImpersonationMiddleware`, `PreviewWriteInterceptor`, `CheckSubscription`. |
 | 4 | Priority | `Kernel.php:72-88` | Native client identification runs before Sanctum so malformed native requests get a stable client error. |
-| 5 | Preview | `app/Http/Middleware/PreviewWriteInterceptor.php:49-85` | `EXCLUDED_ROUTES` lists the writes a preview persona may still perform (login, register, verification, password reset, onboarding, document upload, AI chat, device registration, StoreKit, advisor enter and exit, bug report). Everything else is intercepted for preview users. Rule 7 in `CLAUDE.md`. |
+| 5 | Preview | `app/Http/Middleware/PreviewWriteInterceptor.php:49-86` | `EXCLUDED_ROUTES` lists the writes a preview persona may still perform (login, register, verification, password reset, onboarding, document upload, AI chat, device registration, StoreKit, advisor enter and exit, bug report, and since the stamp `api/recommendations/*/mark-done`, kept on the visitor's token only). Everything else is intercepted for preview users. Rule 7 in `CLAUDE.md`. |
 | 6 | Subscription | `app/Http/Middleware/CheckSubscription.php:20-55` | Skipped entirely when `config('app.payment_enabled')` is false (`.env` has `PAYMENT_ENABLED=true` locally). Always-allowed prefixes: payment, auth, webhooks, preview, onboarding, bug-report, gdpr, admin, advisor. Read-only for expired users: `api/user/`, `api/settings/`. `CAPABILITY_ROUTE_MAP` ties eight route prefixes to capabilities such as `holistic_plan` and `what_if`. |
-| 7 | Tier data | `database/seeders/TierConfigurationSeeder.php:28-118` | Two tiers. Free: prices 0, count caps savings 2, investment 2, pension 2, property 1, mortgage 10, goal 2, life event 1, estate `teaser`, Fyn 100k tokens a week. Premium: 699p a month or 5999p a year, no caps, everything `full`, Fyn 500k tokens a week. Resolved at runtime by `app/Services/Tiers/TierResolver.php` and `app/Services/Stores/TierGate.php`. |
-| 8 | Route-level gates | `routes/api.php:915`, `:1095` | `estate.full` (48 routes) and `holistic.full` (10 routes) middleware. `permission:admin.access` guards 143 admin routes; `permission:admin.tax_config` 8; `advisor` 14. |
-| 9 | Auth routes | `routes/api.php:153-231` | Register, registration hand-off, login, verify code, resend, restore soft-deleted account, beacon logout, MFA verify and recovery, password reset (six steps), then authenticated: logout, user, change password, MFA management (5), sessions (3), GDPR consents, export and erasure (13). Each unauthenticated step has its own named throttle (`auth-3`, `auth-5`, `auth-10`). |
+| 7 | Tier data | `database/seeders/TierConfigurationSeeder.php:27-113` | Two tiers. Free: prices 0, count caps savings 2, investment 2, pension 2, property 2 (1 at the stamp, `:55`), mortgage 10, goal 2, life event 1, estate `teaser`, Fyn 100k tokens a week. Premium: 699p a month or 5999p a year, no caps, everything `full`, Fyn 500k tokens a week. Resolved at runtime by `app/Services/Tiers/TierResolver.php` and `app/Services/Stores/TierGate.php`. |
+| 8 | Route-level gates | `routes/api.php:919`, `:1099` | `estate.full` (48 routes) and `holistic.full` (10 routes) middleware. `permission:admin.access` guards 143 admin routes; `permission:admin.tax_config` 8; `advisor` 14. |
+| 9 | Auth routes | `routes/api.php:154-233` | Register, registration hand-off, spouse-invitation prefill (new, `:161`), login, verify code, resend, restore soft-deleted account, beacon logout, MFA verify and recovery, password reset (six steps), then authenticated: logout, user, change password, MFA management (5), sessions (3), GDPR consents, export and erasure (13). Each unauthenticated step has its own named throttle (`auth-3`, `auth-5`, `auth-10`). |
 | 10 | Route loading | `app/Providers/RouteServiceProvider.php:174-184` | `api.php` under `api`, `api_v1.php` under `api/v1`, and `e2e.php` under `__e2e` only when `APP_ENV=e2e`. |
 
 **Unused registrations:** aliases `admin`, `role`, `mfa.verified` are registered but no route uses them (MB-13).
@@ -151,7 +153,7 @@ Counted from `use App\Services\<Group>\` and `use App\Agents\` imports across `a
 
 ### 2.3 Routes and controllers
 
-**In plain English.** The server exposes about eight hundred addresses. Roughly seven hundred are the JSON API the apps use; the rest are the public pages. Each API address is handled by one of 147 controller classes, and every controller on disk is wired to at least one address except the abstract base and a test helper.
+**In plain English.** The server exposes about eight hundred addresses. Roughly seven hundred are the JSON API the apps use; the rest are the public pages. Each API address is handled by one of 148 controller classes, and every controller on disk is wired to at least one address except the abstract base and a test helper.
 
 **Status:** Unverified (inventory read, not executed, except the routes hit during login and dashboard load).
 
@@ -159,16 +161,16 @@ Counted from `use App\Services\<Group>\` and `use App\Agents\` imports across `a
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Effective routes | 805 | `php artisan route:list --json` this run |
-| Under the `api` middleware group | 715 | same, middleware column |
-| Sanctum-protected | 678 | same |
-| Under `web` group | 87 | same |
-| Closure routes | 75, all public pages or health checks | same, action `Closure` |
-| Controllers on disk | 147; 145 routed | `git ls-files app/Http/Controllers` compared with route actions |
+| Effective routes | 810 (805 at the stamp) | `php artisan route:list --json` this run |
+| Under the `api` middleware group | 719 (715) | same, middleware column |
+| Sanctum-protected | 681 (678) | same |
+| Under `web` group | 88 (87) | same |
+| Closure routes | 76 (75), all public pages or health checks | same, action `Closure` |
+| Controllers on disk | 148; 146 routed (147; 145) | `git ls-files app/Http/Controllers` compared with route actions |
 | Not routed | `Controller.php` (abstract base), `TestSupport/E2EController.php` (loaded only under `APP_ENV=e2e`, `RouteServiceProvider.php:181`) | same |
-| Form Requests | 103 | `git ls-files app/Http/Requests` |
+| Form Requests | 105 (103) | `git ls-files app/Http/Requests` |
 | API Resources | 36 | `git ls-files app/Http/Resources` |
-| Largest route groups | admin pipeline 29, `learn` pages 23, admin insights 18, GDPR 15, protection policies 15, investment rebalancing 14, mobile v1 14, retirement pensions 12 | route prefix count this run |
+| Largest route groups (2026-09-14 count, not recounted) | admin pipeline 29, `learn` pages 23, admin insights 18, GDPR 15, protection policies 15, investment rebalancing 14, mobile v1 14, retirement pensions 12 | route prefix count this run |
 
 The full group layout of `routes/api.php` with line numbers is in Appendix D.
 
@@ -184,51 +186,51 @@ The full group layout of `routes/api.php` with line numbers is in Appendix D.
 
 | Piece | Files | What the code shows |
 |---|---|---|
-| Agents | `app/Agents/` 9 files: `BaseAgent`, `Protection`, `Savings`, `Investment`, `Retirement`, `Estate`, `Goals`, `TaxOptimisation`, `Coordinating` | Controllers under `app/Http/Controllers/Api` import all eight concrete agents. Agents import `Stores` 21 times and the module service groups. |
-| Services | 542 files in 47 groups under `app/Services/` | Largest: Estate 34, Investment 27, Retirement 16, Pipeline 15, Documents 14, Payment 13, Goals 12, Plans 12, Savings 11, Tax 10. |
+| Agents | `app/Agents/` 9 files: `BaseAgent`, `Protection`, `Savings`, `Investment`, `Retirement`, `Estate`, `Goals`, `TaxOptimisation`, `Coordinating` | Controllers under `app/Http/Controllers/Api` import all eight concrete agents. Agents import `Stores` 22 times (21 at the stamp) and the module service groups. |
+| Services | 596 files in 49 groups under `app/Services/` (542 in 47 at the stamp, every file counted) | Largest by files at any depth: AI 98, Investment 59, Tax 49, Stores 46, Estate 34, Pipeline 30, Coordination 27, Onboarding 25, Documents 23, Retirement 19. The 2026-09-14 list (Estate 34, Investment 27, …) could not be reproduced by any counting method at the stamp and is replaced. |
 | Stores | `app/Services/Stores/` | `*Store.php` for actuarial tables, currency rates, goals, investment accounts, liabilities, life events, mortgages, pensions, property, savings market rates, savings, retirement profile, tax config, tier configuration; plus `TierGate`, `IngestSource`, `Normalisers/`, `Recalc/`, `ReferenceData/`, `Snapshots/`. Eight `.md` files sit beside the stores as documentation. |
 | Dashboard aggregation | `app/Services/Dashboard/DashboardAggregator.php:17-22` | Injects five agents (Protection, Savings, Investment, Retirement, Estate) and calls `analyze()` on each inside a try/catch. Served by `GET api/dashboard`, which no client calls (MB-08). |
 | Mobile aggregation | `app/Services/Mobile/MobileDashboardAggregator.php` | Imports six agents, Gamification, Coordination and Dashboard; serves `api/v1/mobile/dashboard`, which `/m` and iOS call. |
-| Coordination | `app/Services/Coordination/` 15 files | `RecommendationsAggregatorService`, `PriorityRanker`, `HolisticPlanner`, `CompositePlanService`, `ComposedTaxPlanService`, `CrossModuleStrategyService`, `HouseholdFinancialContext`, `RecommendationPersonaliser`, `RecommendationCompletionService`, `ConflictResolver`, `CashFlowCoordinator`, `StrategyPlanComposer`, `PlanSources/`. |
-| Tax | `app/Services/Tax/` 10 files; `TaxConfigService` is the single source of tax values (Rule 2). `tests/Architecture/HardcodedValuesArchitectureTest.php` enforces it and passed this run. | |
+| Coordination | `app/Services/Coordination/` 27 files at any depth, 14 directly in the folder | `RecommendationsAggregatorService`, `PriorityRanker`, `HolisticPlanner`, `CompositePlanService`, `ComposedTaxPlanService`, `CrossModuleStrategyService`, `HouseholdFinancialContext`, `RecommendationPersonaliser`, `RecommendationCompletionService`, `ConflictResolver`, `CashFlowCoordinator`, `StrategyPlanComposer`, `PlanSources/`. |
+| Tax | `app/Services/Tax/` 49 files at any depth, 14 directly in the folder; `TaxConfigService` is the single source of tax values (Rule 2). `tests/Architecture/HardcodedValuesArchitectureTest.php` enforces it and passed this run. | |
 | Test-only services | `Marketing/PensionEstimateService.php`, `Pipeline/CaptionBuilder.php`, `Stores/CurrencyDisplayService.php` | No production caller (MB-12). |
 
 ### 2.5 Data
 
-**In plain English.** The database holds 170 tables. Most map one-to-one to a model class; the rest are framework tables, snapshots of past values, and audit or log tables.
+**In plain English.** The database holds 172 tables. Most map one-to-one to a model class; the rest are framework tables, snapshots of past values, and audit or log tables.
 
 **Status:** Unverified (schema read from the live local database, not exercised).
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Tables in the local database | 170 | `SHOW TABLES` via tinker this run |
-| Models | 150 (`app/Models`, including `Estate/`, `Investment/`, `Insights/`, `News/`, `Pipeline/` sub-namespaces and two `Concerns` traits) | `git ls-files app/Models` |
-| Migrations | 335 | `git ls-files database/migrations` |
-| Seeders | 29, including `TaxConfigurationSeeder`, `TaxProductReferenceSeeder`, `TierConfigurationSeeder`, `PreviewUserSeeder`, `PremiumTestPersonaSeeder`, `ActuarialLifeTablesSeeder`, `SavingsMarketRatesSeeder`, five `*ActionDefinitionSeeder` | `git ls-files database/seeders` |
+| Tables in the local database | 172 (170) | `SHOW TABLES` via tinker this run |
+| Models | 152, 150 at the stamp (`app/Models`, including `Estate/`, `Investment/`, `Insights/`, `News/`, `Pipeline/` sub-namespaces and two `Concerns` traits) | `git ls-files app/Models` |
+| Migrations | 353 (335; 0 pending locally on 2026-10-12, `php artisan migrate:status`) | `git ls-files database/migrations` |
+| Seeders | 30 (29), including `TaxConfigurationSeeder`, `TaxProductReferenceSeeder`, `TierConfigurationSeeder`, `PreviewUserSeeder`, `PremiumTestPersonaSeeder`, `ActuarialLifeTablesSeeder`, `SavingsMarketRatesSeeder`, five `*ActionDefinitionSeeder` | `git ls-files database/seeders` |
 | Value snapshots | `db_pension`, `dc_pension`, `investment_account`, `liability`, `mortgage`, `property`, `savings_account`, `state_pension` `_value_snapshots` tables | `SHOW TABLES` |
-| Observers | 19 on disk; 13 registered in `app/Providers/EventServiceProvider.php:111-140`, 5 in `AppServiceProvider.php` (`DocumentArticle`, `InsightArticle`, `RecommendationTracking`, `SurvivingSpouseExpenditure`, `UserOnboardingStep`); `RiskRecalculationObserver` registered nowhere (MB-07) | grep this run |
-| `UserDataCacheObserver` | attached to 25 models so any financial write invalidates the user's cached aggregates | `EventServiceProvider.php:113-139` |
+| Observers | 20 on disk (19 at the stamp); 13 registered in `app/Providers/EventServiceProvider.php`, 6 in `AppServiceProvider.php` (`DocumentArticle`, `InsightArticle`, `RecommendationTracking`, `SpouseEstimateStatus` (new), `SurvivingSpouseExpenditure`, `UserOnboardingStep`). `RiskRecalculationObserver` is the base class of the seven registered `*RiskObserver`s (`EventServiceProvider.php:107-125`) and is reached through them. The 2026-09-14 row called it registered nowhere; MB-07 is withdrawn. | grep this run |
+| `UserDataCacheObserver` | attached to 26 models (25 at the stamp) so any financial write invalidates the user's cached aggregates | `EventServiceProvider.php:113-139` |
 | Entity events | 27 `Created/Updated/Deleted/Restored` events for investment accounts, mortgages, DB and DC pensions, state pension, property, savings; mortgage events recalculate the property's outstanding balance, property events sync the owner's rental income | `EventServiceProvider.php:72-106`, `app/Events/` |
 | Broadcast channel | one private channel `App.Models.User.{id}` | `routes/channels.php:16` |
-| Existing ERDs | 13 `docs/diagrams/erd-*.excalidraw` | `ls docs/diagrams` |
+| Existing ERDs | 15 (13) `docs/diagrams/erd-*.excalidraw` | `ls docs/diagrams` |
 
 ### 2.6 Web single-page application
 
 **In plain English.** The desktop site is one Vue application. It loads screens on demand, keeps a copy of the user's data in memory (Vuex), and talks to the server through 62 small service files.
 
-**Status:** Working for login, dashboard and side navigation (driven this run). Dead for 153 files (MB-01).
+**Status:** Working for login, dashboard and side navigation (driven 2026-09-14). Dead for 150 files (MB-01, recounted 2026-10-12).
 
 | Fact | Value | Evidence |
 |---|---|---|
 | Entry | `resources/js/app.js` via `app.blade.php:93` | read |
-| Router entries | 161 | `grep -c "path: '" resources/js/router/index.js` |
+| Router entries | 164 (161) | `grep -c "path: '" resources/js/router/index.js` |
 | Layouts | `AppLayout.vue`, `PublicLayout.vue`, `AdvisorLayout.vue` | `ls resources/js/layouts` |
-| Views | 168 files | `git ls-files resources/js/views` |
-| Components | 546 files | `git ls-files resources/js/components` |
+| Views | 169 files (168) | `git ls-files resources/js/views` |
+| Components | 557 files (546) | `git ls-files resources/js/components` |
 | Services | 62 files; axios base is `<origin><routerBase>/api` | `resources/js/services/api.js:62-64` |
 | Store modules | 35 | `ls resources/js/store/modules` |
-| Reachable from entry | 702 of 855 non-test `.vue`/`.js` files | reachability script this run (imports plus component tags, comments stripped) |
-| Unreachable | 153 files, Appendix A | same |
+| Reachable from entry | 713 of 863 non-test `.vue`/`.js` files | reachability script, 2026-10-12: imports followed by resolved path, plus component tags, with comments stripped. The 2026-09-14 script matched imports by file name, so a live `views/Planning/WhatIfScenarios.vue` hid the dead `components/Protection/WhatIfScenarios.vue`, and `Estate/NetWorth.vue` was hidden the same way (with their children, 5 files). Re-run at the stamp, the corrected script gives 697 of 855. |
+| Unreachable | 150 files (158 at the stamp by the corrected method; 153 reported then), Appendix A | same |
 | Client calls with no route | `/estate/analyze`, `/savings/goals`, `/savings/expenditure-profile`, `/user/spouse`, `/investment/goal-progress/*`, `/investment/performance-attribution/*` | MB-02 to MB-05 |
 | Side navigation, as rendered | Dashboard, Net Worth; Cash Management (Bank Accounts, Income, Expenditure); Finances (Investments, Retirement, Property, Liabilities, Personal Valuables, Risk Profile, Business); Personal Affairs (Protection, Will, Expression of Wishes, Trusts, Estate Planning, Power of Attorney); Planning (Holistic Plan, Tax Strategy, Plans, Journeys, What If Scenarios, Goals, Life Events, Actions); Account, Sign Out | Playwright snapshot this run; `resources/js/components/SideMenu.vue` |
 
@@ -236,18 +238,18 @@ The full group layout of `routes/api.php` with line numbers is in Appendix D.
 
 **In plain English.** The phone version is a separate, smaller build of the same ideas. It is served as pre-built files, so a change to the desktop code does not reach it until the mobile bundle is rebuilt.
 
-**Status:** Working for login, verification, dashboard and menu (driven this run at 390 pixels).
+**Status:** Working for login, verification, dashboard and menu (driven 2026-09-14 at 390 pixels).
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Source | `resources/mobile/` 95 files; entry `main.js`; own `api.js`, `router.js`, `store.js`, `tokens.js` | `ls resources/mobile` |
+| Source | `resources/mobile/` 115 files (95 at the stamp); entry `main.js`; own `api.js`, `router.js`, `store.js`, `tokens.js` | `ls resources/mobile` |
 | Build | `vite.mobile.config.js:36` → `public/m-build/` (present locally: `assets/`, `manifest.json`) | read |
-| Router | 36 entries; `/module/:slug` redirects to the real module view (retired scaffold, comment at `router.js:57-59`) | `resources/mobile/router.js` |
+| Router | 39 entries (36); `/module/:slug` redirects to the real module view (retired scaffold, comment at `router.js:59-61`) | `resources/mobile/router.js` |
 | Views | 18 top-level plus `views/modules/` (NetWorth, NetWorthCategory, PropertyDetail, MortgageDetail, LiabilityDetail, Protection, ProtectionPolicy, Savings, SavingsAccount, Retirement, RetirementPensionDetail, Investment, InvestmentAccountDetail, Estate, EstateBequests, Goals, GoalDetail) | `ls resources/mobile/views` |
-| Reachability | all 58 non-test files reachable | script this run |
-| API paths called | 63 distinct; all match a route (two are parameterised: `spouse-permission/${action}`, `share/${shareType}`) | script this run |
+| Reachability | 64 of 66 non-test files reachable from `main.js` (58 of 58 at the stamp). `tokens.js` has had no importer since `997653dd7` (2026-09-17). `utils/lifeEvents.js` is imported only by web components (`resources/js/components/Goals/LifeEventCard.vue:77`, `LifeEventDetailInline.vue:261`). Both are MB-60. | same script, entry `resources/mobile/main.js` |
+| API paths called | 63 distinct on 2026-09-14, all matching a route (two parameterised: `spouse-permission/${action}`, `share/${shareType}`); not re-matched in the refresh | script, 2026-09-14 |
 | Menu, as rendered | Overview (Dashboard, Achievements, Conversation History); Cash Management (Income, Expenditure); Finances (Net Worth, Bank Accounts, Investments, Retirement); Family (Protection, Estate Planning); Planning (Goals, Tax Strategy, Holistic Plan); Account (Personal Information, Subscription, Settings); Share Fynla, Sign out | Playwright snapshot this run |
-| Shared with web | only `store/modules/auth.js` (per `CLAUDE.md`); I COULD NOT VERIFY the import this run | |
+| Shared with web | `CLAUDE.md` names only `store/modules/auth.js`. The refresh found a second shared file, in the other direction: web imports `resources/mobile/utils/lifeEvents.js` (MB-60). The `auth.js` import itself: I COULD NOT VERIFY. | grep, 2026-10-12 |
 
 ### 2.8 Native iOS
 
@@ -257,11 +259,11 @@ The full group layout of `routes/api.php` with line numbers is in Appendix D.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Files | 423 under `ios-native/` | `git ls-files ios-native` |
+| Files | 440 under `ios-native/` (423 at the stamp) | `git ls-files ios-native` |
 | Server | both `Production.xcconfig` and `Staging.xcconfig` set `FYNLA_API_BASE_URL = https://fynla.org` | `ios-native/Configurations/*.xcconfig:3-4` |
-| Feature folders | Achievements, Authentication, BugReport, Dashboard, Estate, Expenditure, Fyn, Gamification, Goals, HolisticPlan, Income, Investment, Navigation, NetWorth, Privacy, Profile, Protection, Retirement, Savings, Settings, Subscription, TaxStrategy | `ls ios-native/Fynla/Features` |
+| Feature folders | Achievements, Actions (new since the stamp), Authentication, BugReport, Dashboard, Estate, Expenditure, Fyn, Gamification, Goals, HolisticPlan, Income, Investment, Navigation, NetWorth, Privacy, Profile, Protection, Retirement, Savings, Settings, Subscription, TaxStrategy | `ls ios-native/Fynla/Features` |
 | Core folders | API, Authentication, Biometrics, Components, DeepLinks, DesignSystem, Diagnostics, Formatting, FynEditing, Keychain, Migration, Navigation, Push, Sharing, StoreKit, Streaming, VersionPolicy | `ls ios-native/Fynla/Core` |
-| API paths called | 85 distinct `path: "…"` literals; all match a route (one parameterised share path) | script this run |
+| API paths called | 95 distinct `path: "…"` literals on 2026-10-12 (85 on 2026-09-14, when all matched a route); the 95 were not re-matched in the refresh | script |
 | Native-only routes | `routes/api_v1.php:44-116`: health, session exchange and refresh, StoreKit account token, purchase authorisation, entitlement, transactions, reconcile, status; guarded by `native.client`, `native.version`, `native.session` | read |
 | Mobile v1 routes used by both `/m` and iOS | dashboard, achievements (v1, v2, milestones, completed), devices, notification preferences, share, web hand-offs, token refresh | `routes/api_v1.php:118-179` |
 
@@ -269,14 +271,14 @@ The full group layout of `routes/api.php` with line numbers is in Appendix D.
 
 **In plain English.** Fyn is the chat assistant. It has one door for every client. Behind the door it is either in "onboarding" mode, where it can enter and change the user's information, or in "advice" mode, where it can only read and explain. The user never sees the switch.
 
-**Status:** Working for opening the panel and receiving the resumption prompt on web and `/m` this run. The turn itself was not sent (no message was posted to the model).
+**Status:** Working for opening the panel and receiving the resumption prompt on web and `/m` (driven 2026-09-14). The turn itself was not sent (no message was posted to the model).
 
 | Piece | File | What the code shows |
 |---|---|---|
-| One endpoint | `routes/api.php:1501-1522` | `ai-chat` group: token usage, conversations list, create, contextual create, show, delete, send message (`throttle:ai-chat`, `idempotent`), stream queued message, cancel queued, resumption get and clear, action, onboarding status and start. |
-| Dispatch predicate | `app/Services/AI/ContextualConversation/ConversationModeResolver.php:12-29` | Onboarding mode when `onboarding.fyn_flow_enabled` is true, the conversation source is not `surface_action`, and either the source is `fyn_onboarding` or (`onboarding_completed === false` or `active_campaign !== null`) and `onboarding_fyn_step !== null`. Called from `AiChatController.php:267`. |
-| Two states | `AiChatController.php:270-273` | `OnboardingChatDirector::handleUserMessage` or `AdviceFyn::handle`; the same generator loop streams either. |
-| Consent | `AiChatController.php:275-300` | Consent is rechecked at most every `ai_chat.consent_recheck_interval_seconds` during a stream. |
+| One endpoint | `routes/api.php:1510-1533` | `ai-chat` group: token usage, conversations list, create, contextual create, show, delete, send message (`throttle:ai-chat`, `idempotent`), stream queued message, cancel queued, resumption get and clear, action, onboarding status and start. |
+| Dispatch predicate | `app/Services/AI/ContextualConversation/ConversationModeResolver.php:12-35` | Onboarding mode when `onboarding.fyn_flow_enabled` is true and the conversation source is not `surface_action`. For a `fyn_onboarding` conversation, only while the user has a step (`:23-31`, since `fe1fddee7` 2026-09-19; at the stamp, any `fyn_onboarding` conversation went to the director, MB-23). Otherwise when (`onboarding_completed === false` or `active_campaign !== null`) and `onboarding_fyn_step !== null` (`:33-34`). Called from `AiChatController.php:287` (send message), `:397` (stream a queued message; a submitted form also forces onboarding) and `:833` (action). |
+| Two states | `AiChatController.php:298-299` | `OnboardingChatDirector::handleUserMessage` or `AdviceFyn::handle`; the same generator loop streams either. |
+| Consent | `AiChatController.php:945-954` | Consent is rechecked at most every `ai_chat.consent_recheck_interval_seconds` during a stream. |
 | Provider | `.env` `AI_PROVIDER=xai`; `app/Services/AI/XaiClient.php` | Tool catalogue is assembled from the procedural corpus (`XaiToolDefinitions.php:14-20`, `:30-59`): navigation, analysis, tax, plan generation, billing tools always; what-if, creation, modification, profile and Save Tax campaign tools only outside preview; pointer `fetch_*` tools always. An Anthropic-format catalogue `AiToolDefinitions.php` (480 lines) exists beside it; `tests/Architecture/ToolCatalogueParityTest.php` asserts parity and passed this run. |
 | Prompt | `app/Services/AI/Fyn/FynSystemPrompt.php`, `FynContextAssembler.php`, `app/Services/AI/Prompts/` (ComplianceRules, CoreIdentity, EmptyDataGuard, FcaProcessInstructions, QueryKnowledge, UserContentSanitiser) | read at directory level; contents not mapped this run |
 | Memory | `app/Services/AI/Memory/` (Episodic, Procedural, Recall, Semantic), corpus in `fyn-memory/{episodic,procedural,semantic}` | directory listing |
@@ -295,13 +297,13 @@ The canonical contract is `.claude/skills/fyn-architecture/SKILL.md`; this run c
 
 | Kind | Count | Where |
 |---|---|---|
-| Artisan commands | 67 on disk; 36 scheduled; 31 manual | `git ls-files app/Console/Commands`, `app/Console/Kernel.php:20-107` |
+| Artisan commands | 67 on disk; 36 scheduled; 31 manual (2026-09-14). On 2026-10-12: still 67 on disk, and 37 distinct `$schedule->command()` names at both the stamp and `f00076906`, so the schedule is unchanged by name | `git ls-files app/Console/Commands`, `app/Console/Kernel.php:20-107` |
 | Scheduled jobs | `PublishScheduledInsightsJob` every 5 minutes; `AiIdempotencyCleanupJob` daily 03:30; `AiAuditRetentionJob` weekly | `Kernel.php:56-63` |
 | Daily alerts | daily insight 08:00, lifecycle 08:30, policy renewals 09:00, protection 09:15, mortgage rate 09:30, savings 10:00, estate 10:30, business filing 10:45 | `Kernel.php:37-47` |
 | Subscription and account housekeeping | renewal reminders 09:00, expire 00:05, scheduled deletions 00:10, grace deletions 00:15, deletion reminders 00:20, purge monthly, check-overdue 01:00, reconcile pending payments every 10 minutes, Apple notification recovery every 10 minutes | `Kernel.php:20-26`, `:48-53` |
 | Marketing pipeline | four detectors every `pipeline.poll_frequency_minutes` (default 5), drive watch daily, clip auto-approve, schedule posts hourly, optimal times weekly, weekly report, quarterly video audit | `Kernel.php:72-107` |
-| Jobs | 14 (`app/Jobs`): six pipeline jobs, `ConversationSummariserJob`, `FireAwinConversionJob`, `ProcessAppleNotification`, `RunMonteCarloSimulation`, `RecalculateRiskProfileJob` (dead, MB-07), three schedule-only jobs | dispatch-site scan this run |
-| Mail | 38 mailables; every one has a send site except the seven lifecycle mails (MB-06) | scan this run |
+| Jobs | 14 (`app/Jobs`): six pipeline jobs, `ConversationSummariserJob`, `FireAwinConversionJob`, `ProcessAppleNotification`, `RunMonteCarloSimulation`, `RecalculateRiskProfileJob` (live: dispatched by the seven risk observers through `RiskRecalculationObserver::dispatchRecalculation()`, `RiskRecalculationObserver.php:18-36`; MB-07 withdrawn), three schedule-only jobs | dispatch-site scan this run |
+| Mail | 38 mailables; every one has a send site except the seven lifecycle mails (MB-06) and, found in the refresh, `SpouseAccountCreated` and `SpouseAccountLinked` (MB-59) | scan this run; `git grep` 2026-10-12 |
 | Notifications | 9; all sent from the alert commands or spouse permission | scan this run |
 | Lifecycle engine | `config/lifecycle.php`, `app/Services/Lifecycle/LifecycleEngine.php`, two campaigns (churned, lapsed) | read |
 | Queue | `.env` `QUEUE_CONNECTION=sync` locally, so every job runs inline | read |
@@ -312,34 +314,35 @@ The canonical contract is `.claude/skills/fyn-architecture/SKILL.md`; this run c
 
 | Suite | Files | Run this session | Result |
 |---|---|---|---|
-| `tests/Architecture` (Pest) | 48 | yes | `./vendor/bin/pest tests/Architecture` → 153 passed, 1 skipped, 30 deprecated, 4304 assertions, 106s |
-| Vitest (`resources/**/__tests__`, `tests/frontend`) | 143 files | yes | `npx vitest run` → 143 files passed, 1329 tests passed, 223s |
-| `tests/Unit` | 475 | no | |
-| `tests/Feature` | 535 (+10 under `Feature/Fyn/Eval` in the `Eval` suite) | no | |
+| `tests/Architecture` (Pest) | 48 (48 on 2026-10-12) | yes (2026-09-14) | `./vendor/bin/pest tests/Architecture` → 153 passed, 1 skipped, 30 deprecated, 4304 assertions, 106s |
+| Vitest (`resources/**/__tests__`, `tests/frontend`) | 143 files (188 on 2026-10-12) | yes (2026-09-14) | `npx vitest run` → 143 files passed, 1329 tests passed, 223s |
+| `tests/Unit` | 475 (560 on 2026-10-12) | no | |
+| `tests/Feature` | 535 (+10 under `Feature/Fyn/Eval` in the `Eval` suite); 599 `*Test.php` files on 2026-10-12, 5 of them under `Feature/Fyn/Eval` | no | |
 | `tests/Integration` | 4 | no | |
 | `tests/Browser/scenarios` (BS-NN, the Rule 14 contract) | 24 | no | |
 | `tests/E2E` (Playwright) | 24 specs; base URL `http://127.0.0.1:8000` | no | `playwright.config.js:3` |
 | iOS | `FynlaTests`, `FynlaUITests` | no | |
 
-Tests written in this run: none. The overview has no single contract to test beyond the architecture suite, which already exists.
+Tests written in this run: none. The overview has no single contract to test beyond the architecture suite, which already exists. Refresh 2026-10-12: the full Architecture and Vitest runs were not repeated (CSJ 2026-09-27: no full or directory-wide suites locally; CI runs them). The section maps run their own scoped files.
 
 ## 3. Findings
 
 | Id | Status | Where | What is wrong |
 |---|---|---|---|
-| MB-01 | Dead | 153 files under `resources/js` (Appendix A) | Unreachable from the app entry |
-| MB-02 | Dead | `store/modules/estate.js:295`, `services/estateService.js:22` | Calls `POST api/estate/analyze`, which does not exist; never dispatched |
-| MB-03 | Dead | `services/savingsService.js:114-137`, `store/modules/savings.js:356` | Three methods for two routes that do not exist |
+| MB-01 | Dead | 150 files under `resources/js` on 2026-10-12 (153 reported on 2026-09-14; Appendix A is the September list) | Unreachable from the app entry |
+| MB-02 | Dead | `store/modules/estate.js:282`, `services/estateService.js:22` | Calls `POST api/estate/analyze`, which does not exist; never dispatched |
+| MB-03 | Dead | `services/savingsService.js:115-135`, `store/modules/savings.js:296-302` | Three methods for two routes that do not exist |
 | MB-04 | Dead | `services/userProfileService.js:195` | `GET api/user/spouse` does not exist; no caller |
 | MB-05 | Dead + Dead end | `components/Investment/GoalProjection.vue`, `PerformanceAttribution.vue`, `BenchmarkComparison.vue` | Dead components calling unregistered API prefixes |
 | MB-06 | Dead | `app/Mail/Lifecycle/` seven mailables, `config/lifecycle.php:12-15` | No campaign sends them |
-| MB-07 | Dead | `app/Observers/RiskRecalculationObserver.php`, `app/Jobs/RecalculateRiskProfileJob.php` | Never registered or dispatched; still documented in `app/Services/CLAUDE.md` |
-| MB-08 | Dead (route side) | about 35 routes, Appendix C | No caller in any client, including `GET api/dashboard` and its aggregator |
-| MB-09 | Duplicate | `routes/web.php:96-470` and the SPA public routes | Marketing pages rendered two ways |
-| MB-10 | Does not make sense | `routes/web.php:660-702`, `:744-749` | Six mockups live without an environment guard |
+| MB-07 | Withdrawn 2026-10-12 | `app/Observers/RiskRecalculationObserver.php`, `app/Jobs/RecalculateRiskProfileJob.php` | Wrong when raised: the class is the base of seven registered risk observers, which dispatch the job; `app/Services/CLAUDE.md` is correct |
+| MB-08 | Dead (route side) | about 35 routes, Appendix C; the dossier `reports/mb-08-orphan-routes.md` settled on 25 rows | No caller in any client, including `GET api/dashboard` and its aggregator. Corrected 2026-10-12: `GET api/household/death-scenario` has a caller on a page no link reaches (`/planning/what-if/death-of-spouse`); all 25 rows are still registered |
+| MB-09 | Duplicate | `routes/web.php:98-472` and the SPA public routes | Marketing pages rendered two ways |
+| MB-10 | Does not make sense | `routes/web.php:662-704`, `:752-757` | Six mockups live without an environment guard |
 | MB-11 | Does not make sense | Appendix B | Four unreferenced commands; twelve one-off migrations still registered |
 | MB-12 | Dead | three services | Referenced only from tests |
 | MB-13 | Dead | `app/Http/Kernel.php` aliases `admin`, `role`, `mfa.verified` | No route uses them |
+| MB-60 | Dead + Does not make sense | `resources/mobile/tokens.js`, `resources/mobile/utils/lifeEvents.js` | Raised 2026-10-12: one `/m` file with no importer, and one `/m` file used only by web, against `CLAUDE.md`'s "only shared file" |
 
 Categories that came up empty this run: Broken (no failing test, no failed interaction, no runtime error seen).
 
@@ -352,7 +355,8 @@ Categories that came up empty this run: Broken (no failing test, no failed inter
 | Frontend reachability | web and `/m` computed from imports plus component tags with comments stripped | Components registered by a string that is not their file basename; none were found but the method cannot rule them out |
 | Client-to-route matching | web, `/m`, iOS and public pages | Paths built by string concatenation that my regexes did not capture (the web service scan found 444 literal paths) |
 | Playwright | web: homepage, login, code, dashboard, all nav groups, Tax Strategy click, Fyn panel; `/m`: login, code, dashboard, menu | Every other screen; no form was filled beyond login; no Fyn turn was sent |
-| Tests | Architecture and Vitest run | Unit, Feature, Integration, Browser, E2E, iOS not run |
+| Tests | Architecture and Vitest run (2026-09-14) | Unit, Feature, Integration, Browser, E2E, iOS not run; nothing re-run for the overview in the 2026-10-12 refresh |
+| Refresh 2026-10-12 | citations line-tracked; inventory recounted; web and `/m` reachability re-run | Browser walks, `/m` and iOS path matching, route-group sizes |
 | iOS | configuration and API paths read | Nothing built or launched |
 | Vault documents | not used as evidence | |
 
@@ -375,9 +379,9 @@ Categories that came up empty this run: Broken (no failing test, no failed inter
 | LPA | Lasting power of attorney |
 | Dead | Code no reachable path leads to (this run's evidence standard in `.claude/skills/app-map/SKILL.md`) |
 
-## Appendix A — 153 unreachable web SPA files (MB-01)
+## Appendix A — 150 unreachable web SPA files (MB-01), 2026-10-12
 
-Computed from `resources/js/app.js`, `router/index.js` and `App.vue` following imports and component tags, with HTML and JS comments stripped. Test files excluded.
+Computed at `f00076906` from `resources/js/app.js`, `router/index.js` and `App.vue`, following imports by resolved path and component tags, with HTML and JS comments stripped. Test files are excluded. This replaces the 2026-09-14 list of 153: re-run at the stamp, the corrected method finds 158 (§ 2.6 explains the 5 the first method missed).
 
 - `components/Actions/ActionSummaryCard.vue`
 - `components/Actions/RecommendationFilters.vue`
@@ -414,11 +418,10 @@ Computed from `resources/js/app.js`, `router/index.js` and `App.vue` following i
 - `components/Estate/CashFlowProjectionChart.vue`
 - `components/Estate/EstateProjectionComparison.vue`
 - `components/Estate/GiftCard.vue`
-- `components/Estate/GiftForm.vue`
-- `components/Estate/GiftingStrategy.vue`
 - `components/Estate/IHTLiabilityGauge.vue`
-- `components/Estate/LifePolicyStrategy.vue`
 - `components/Estate/NRBRNRBTracker.vue`
+- `components/Estate/NetWorth.vue`
+- `components/Estate/NetWorthWaterfallChart.vue`
 - `components/Estate/PensionAmendmentBanner.vue`
 - `components/Estate/TrustForm.vue`
 - `components/Estate/TrustPlanning.vue`
@@ -489,8 +492,6 @@ Computed from `resources/js/app.js`, `router/index.js` and `App.vue` following i
 - `components/Protection/CoverageGapChart.vue`
 - `components/Protection/CoverageTimelineChart.vue`
 - `components/Protection/PremiumBreakdownChart.vue`
-- `components/Protection/ProtectionOverviewCard.vue`
-- `components/Protection/RecommendationCard.vue`
 - `components/Public/CalculatorCard.vue`
 - `components/Retirement/AccumulationChart.vue`
 - `components/Retirement/AnnualAllowanceTracker.vue`
@@ -518,7 +519,6 @@ Computed from `resources/js/app.js`, `router/index.js` and `App.vue` following i
 - `components/UserProfile/BalanceSheetView.vue`
 - `components/UserProfile/CashFlowTab.vue`
 - `components/UserProfile/CashflowView.vue`
-- `components/UserProfile/DomicileInformation.vue`
 - `components/UserProfile/IncomeStatementTab.vue`
 - `components/UserProfile/LiabilitiesOverview.vue`
 - `components/UserProfile/PersonalAccounts.vue`
@@ -530,8 +530,22 @@ Computed from `resources/js/app.js`, `router/index.js` and `App.vue` following i
 - `services/dashboardService.js`
 - `services/portfolioOptimizationService.js`
 - `store/utils/crudActionFactory.js`
+- `utils/emergencyRunway.js` (new since the stamp)
 - `views/Investment/AccountPerformancePanel.vue`
 - `views/Investment/PortfolioStrategyPanel.vue`
+
+On the stamp's corrected list but not on this one:
+
+- `components/Estate/GiftForm.vue` — now reachable
+- `components/Estate/GiftingStrategy.vue` — now reachable
+- `components/Estate/LifePolicyStrategy.vue` — now reachable
+- `components/Protection/GapAnalysis.vue` — deleted
+- `components/Protection/ProtectionOverviewCard.vue` — deleted
+- `components/Protection/RecommendationCard.vue` — deleted
+- `components/Protection/ScenarioBuilder.vue` — deleted
+- `components/Protection/WhatIfScenarios.vue` — deleted
+- `components/UserProfile/DomicileInformation.vue` — deleted
+
 ## Appendix B — artisan commands not on the schedule (MB-11)
 
 | Signature | Class | References outside its own file |
@@ -676,7 +690,7 @@ Superseded on 2026-09-14 by the route-by-route dossier `docs/app-map/reports/mb-
 
 ## Appendix E — Vue public page routes the router guard never lets render (MB-09)
 
-Paths in `isServerRenderedPage` (`resources/js/router/index.js:1662-1676`) are always served by `public/pages/*.php`; the Vue component named for each is dead.
+Paths in `isServerRenderedPage` (`resources/js/router/index.js:1708-1722`) are always served by `public/pages/*.php`; the Vue component named for each is dead.
 
 | Route | Vue component |
 |---|---|
@@ -735,4 +749,4 @@ Paths in `isServerRenderedPage` (`resources/js/router/index.js:1662-1676`) are a
 | `/compare/fynla-vs-moneyhelper` | `resources/js/views/Public/compare/FynlaVsMoneyHelperPage.vue` |
 | `/advisors` | `resources/js/views/Public/AdvisorsPage.vue` |
 | `/contact` | `resources/js/views/Public/ContactPage.vue` |
-| `/help` | `resources/js/views/Help.vue` |
+| `/help` | `resources/js/views/Help.vue` (deleted since the stamp; 55 of the 56 remain on 2026-10-12) |
