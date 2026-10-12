@@ -86,7 +86,8 @@ describe('ChildBenefitService — HICBC uses Adjusted Net Income', function () {
 
     it('applies partial HICBC based on ANI in taper band', function () {
         // £80k employment, £10k gross pension. ANI = £70k → £10k over threshold
-        // → clawback = £10k / £200 = 50% → charge = £1,406.60 × 0.5 = £703.30.
+        // → clawback = £10k / £200 = 50% → £1,406.60 × 0.5 = £703.30, rounded
+        // down to whole pounds (ITEPA 2003 s681C(3)) → £703.
         $user = User::factory()->create([
             'annual_employment_income' => 80_000,
         ]);
@@ -109,12 +110,13 @@ describe('ChildBenefitService — HICBC uses Adjusted Net Income', function () {
 
         expect($result['hicbc']['applies'])->toBeTrue()
             ->and($result['hicbc']['clawback_percentage'])->toBe(50.0)
-            ->and((float) $result['hicbc']['charge'])->toBe(703.30);
+            ->and((float) $result['hicbc']['charge'])->toBe(703.0);
     });
 
     it('falls through to gross income when there are no deductions (backwards compat)', function () {
         // £75k employment, no pension, no Gift Aid. ANI = £75k → £15k over threshold
-        // → clawback = 75% → charge = £1,406.60 × 0.75 = £1,054.95.
+        // → clawback = 75% → £1,406.60 × 0.75 = £1,054.95, rounded down to
+        // whole pounds (ITEPA 2003 s681C(3)) → £1,054.
         $user = User::factory()->create([
             'annual_employment_income' => 75_000,
         ]);
@@ -128,7 +130,26 @@ describe('ChildBenefitService — HICBC uses Adjusted Net Income', function () {
 
         expect($result['hicbc']['applies'])->toBeTrue()
             ->and($result['hicbc']['clawback_percentage'])->toBe(75.0)
-            ->and((float) $result['hicbc']['charge'])->toBe(1_054.95);
+            ->and((float) $result['hicbc']['charge'])->toBe(1_054.0);
+    });
+
+    it('rounds the percentage and the charge down, as the legislation does', function () {
+        // ITEPA 2003 s681C(2)-(3) (L £60,000 and X £200 from 2024-25, F(No.2)A
+        // 2024 s5): £1,050 over is 5.25 steps of £200; a percentage that is not
+        // a whole number is rounded down, so 5%, and £1,406.60 × 5% = £70.33
+        // is rounded down to £70.
+        $user = User::factory()->create(['annual_employment_income' => 61_050]);
+        FamilyMember::factory()->child()->create([
+            'user_id' => $user->id,
+            'receives_child_benefit' => true,
+            'date_of_birth' => '2020-01-01',
+        ]);
+
+        $result = $this->service->calculateChildBenefitPosition($user->fresh());
+
+        expect($result['hicbc']['clawback_percentage'])->toBe(5.0)
+            ->and((float) $result['hicbc']['charge'])->toBe(70.0)
+            ->and((float) $result['hicbc']['net_benefit'])->toBe(1_336.60);
     });
 
     it('respects override income parameter and skips ANI calculation entirely', function () {
