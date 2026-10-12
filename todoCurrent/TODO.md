@@ -449,6 +449,8 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - T1 is PR #1209 (Fyn receives the user's exact words).
         - Next is T2: one question test (`QuerySchemas::isAdviceShaped`, extended) in front of every gate that runs before the model.
         - Prod boxes for T0 and T1 wait for CSJ's release.
+        - T1's security follow-up is PR #1211 (merged).
+        - New task T44: remove the suggested prompts from Fyn's chat window (CSJ screenshot `remove.png`).
       - Headline causes:
         - Fyn's copy of every message loses "?", "@" and "+" (`FynContextAssembler.php:347`);
         - pre-model gates and the advice `QueryClassifier` file questions as writes, navigation or data entry ("Show the working" matches navigation);

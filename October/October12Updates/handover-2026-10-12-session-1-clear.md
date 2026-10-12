@@ -55,6 +55,12 @@ T1 of the fix plan was finished to its Dev walk and recorded. T2 is next.
 - Docs-only: the plan, shots, TODO and this handover, on `docs/context-handover-2026-10-12-s1`, merged to dev by PR. The SHA is in that PR.
 - Not committed, as they are not this session's: the `brettTest/` screenshot deletions, `brettTest/2026-10-11-prod-fyn-gpt6-luna-walk.docx` (Brett's walk document) and its `~$` lock file, and `workforce/ops/*`. CSJ decides on those.
 
+## Added after the handover was first written
+
+- **T1 security follow-up, shipped to dev:** an automated security review found the single tag pass could rebuild `</user_message>` from `<</user_message>>`. It now repeats until nothing changes: PR #1211, merged `7be2bc5c3`, on csjones and walked on /m. Evidence is in the plan's task log. The next release carries it with T1.
+- **New task T44 (CSJ 2026-10-12, screenshot `/Users/CSJ/Desktop/remove.png`):** remove the suggested prompts from Fyn's chat window: the /m "Tell me more about: …" pills (`resources/mobile/views/Dashboard.vue:324-325`) and the web chat panel's "Suggestions" list (`AiChatPanel.vue:342-365`). Native has none. It is in the plan's task list, in the chat-surfaces group.
+- csjones is now on dev `7be2bc5c3`.
+
 ## Open decisions
 
 - **T42:** clearing the "declared none" flags and the unasked goal 1681 on Brett's production account 812 is a database change. Only with CSJ's OK.
@@ -99,6 +105,6 @@ Current TODO item: **18**; see "Where we stopped (2026-10-12, session 1, context
 
 ## Branch / deploy state
 
-- Branch: dev, at `cc2ee4437` (includes T1), then the docs PR.
+- Branch: dev, at `7be2bc5c3` (includes T1 and its security follow-up #1211), then the docs PRs.
 - fynla.org: main `f45bc67fd` (release ab), unchanged this session. T0 and T1 go out in CSJ's next release, carrying R19–R39 and #1209. No migration beyond `2026_10_09_140000` (already listed for that release). Both bundles are needed.
-- csjones: dev `cc2ee4437`; both bundles rebuilt today from `f00076906`. T1 is server-only, so they are current.
+- csjones: dev `7be2bc5c3`; both bundles rebuilt today from `f00076906`. T1 and #1211 are server-only, so they are current.
