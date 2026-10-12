@@ -91,6 +91,9 @@ it("leaves Brett's statements and everyday answers as statements", function (str
     'do it' => 'Yes, do it',
     'capture answer' => "3% and it's matched",
     'entity statement' => 'Halifax ISA with ten thousand in it',
+    // A display command is navigation (T6), not a question; "show me how…"
+    // and "show me the working" ask for an answer (fix plan T3).
+    'display command' => 'Show me my investments',
 ]);
 
 it('reads the openings users drop the question mark from', function (string $message) {
@@ -99,7 +102,7 @@ it('reads the openings users drop the question mark from', function (string $mes
     'explain salary sacrifice please',
     "what's salary sacrifice",
     'Tell me how the tapered allowance works',
-    'show me my pension',
+    'show me how the taper works',
     'Is that right',
     'Okay, which wins',
     'Talk me through the Inheritance Tax',
