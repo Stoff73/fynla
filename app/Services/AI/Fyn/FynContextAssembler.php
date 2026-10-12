@@ -344,7 +344,7 @@ final class FynContextAssembler
 
         $lines[] = '</context>';
         $lines[] = '<user_message>';
-        $lines[] = UserContentSanitiser::clean($ctx->message);
+        $lines[] = UserContentSanitiser::message($ctx->message);
         $lines[] = '</user_message>';
 
         return implode("\n", $lines);

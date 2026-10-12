@@ -76,4 +76,27 @@ final class UserContentSanitiser
     {
         return '<user_provided>'.self::clean($value).'</user_provided>';
     }
+
+    /** Controls other than tab and line breaks, format (zero-width), private-use and unassigned characters. */
+    private const INVISIBLE_PATTERN = '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]|\p{Cf}|\p{Co}|\p{Cn}/u';
+
+    /** Anything shaped like an opening or closing tag; the capture is its text without the brackets. */
+    private const TAG_PATTERN = '/<\s*(\/?\s*[A-Za-z_][\w:.-]*(?:\s[^<>]*)?)\s*>/u';
+
+    /**
+     * The user's own chat message, as the model reads it in <user_message>
+     * (T1, fix plan 2026-10-12). It stays exactly as typed: every "?", "@",
+     * "+", "/", ":" and "&" is part of what the user said, and clean() above
+     * stripped them all (production message 4060 reached the model as
+     * "isenbretdev1011gmail.com", and every question lost its question mark).
+     * Only two things go: invisible characters, and the angle brackets of
+     * anything shaped like a tag, so a message cannot close the
+     * <user_message> block or open a <context> block of its own.
+     */
+    public static function message(string $value): string
+    {
+        $visible = preg_replace(self::INVISIBLE_PATTERN, '', $value) ?? '';
+
+        return preg_replace(self::TAG_PATTERN, '$1', $visible) ?? '';
+    }
 }
