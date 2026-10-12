@@ -1233,7 +1233,7 @@ class CoordinatingAgent extends BaseAgent
                 // Handoff tools — stubbed so HasAiChat doesn't error. The
                 // synthetic 'handoff' SSE event yielded downstream from this
                 // result is consumed by OnboardingChatDirector::handleInlineCapture.
-                'delegate_to_capture' => [
+                'delegate_to_capture' => $this->questionHandoffRefusal($input, $conversationId) ?? [
                     'action' => 'handoff',
                     'handoff_type' => 'delegate_to_capture',
                     'payload' => $input,
@@ -6045,6 +6045,37 @@ class CoordinatingAgent extends BaseAgent
                 ? sprintf('Captured pension history — the total split evenly across the last three tax years (%s per year).', '£'.number_format($perYear, 2))
                 : sprintf('Captured %d year(s) of pension history.', count($written)),
             'details' => $written,
+        ];
+    }
+
+    /**
+     * A question is answered, never handed to capture (fix plan T5, CSJ
+     * 2026-10-12). The prompt scopes the handoff to statements, but the model
+     * still handed "What is 6% + 8% of £72,000 a year? …" to capture as work
+     * details (csjones, conversation 594). Write safety is enforced at
+     * dispatch, not by prompt wording, so when the in-flight message is a
+     * question (QuerySchemas::isAdviceShaped, the one question test) the
+     * handoff is refused back to the model, which then answers. A request to
+     * run a what-if is saved as a scenario (S0.5.r) and still hands off.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>|null
+     */
+    private function questionHandoffRefusal(array $input, ?int $conversationId): ?array
+    {
+        $message = $this->latestUserMessageText($conversationId);
+        if ($message === null || ! QuerySchemas::isAdviceShaped($message)) {
+            return null;
+        }
+
+        $entityTypes = array_map('strval', (array) ($input['entity_types'] ?? []));
+        if ($entityTypes !== [] && array_diff($entityTypes, ['what_if_scenario']) === []) {
+            return null;
+        }
+
+        return [
+            'handoff_refused' => true,
+            'message' => 'Not handed to capture: the user asked a question, and nothing is saved. Answer the question now from the records and your read tools. Do not say anything was saved or could not be saved.',
         ];
     }
 
