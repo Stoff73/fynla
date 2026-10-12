@@ -28,6 +28,16 @@ abstract class ModulePlanHandler implements FetchHandler
 
     abstract protected function source(): ModuleStrategySource;
 
+    /**
+     * Figures sent beside the plan, keyed by name. None by default.
+     *
+     * @return array<string, mixed>
+     */
+    protected function alongside(FetchContext $ctx): array
+    {
+        return [];
+    }
+
     public function id(): string
     {
         return $this->moduleKey().'-plan';
@@ -40,7 +50,7 @@ abstract class ModulePlanHandler implements FetchHandler
 
         return FetchResult::make(
             (string) json_encode(
-                ['composed_'.$this->moduleKey().'_plan' => $plan],
+                ['composed_'.$this->moduleKey().'_plan' => $plan] + $this->alongside($ctx),
                 JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
             ),
             $this->moduleKey().' plan engine',
