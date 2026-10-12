@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Tax\IncomeTaxBands;
+use App\Support\Money;
 
 /**
  * UK Tax and National Insurance Calculator
@@ -650,10 +651,10 @@ class UKTaxCalculator
         $reclaimInfo = null;
         if ($taxPaidByTrust > 0) {
             $difference = round($taxPaidByTrust - $liability, 2);
-            $paid = 'The trust paid '.$this->pounds($taxPaidByTrust).' ('.round($creditRate * 100, 2).'%). Your own Income Tax on this income is '.$this->pounds($liability);
+            $paid = 'The trust paid '.Money::exact($taxPaidByTrust).' ('.round($creditRate * 100, 2).'%). Your own Income Tax on this income is '.Money::exact($liability);
             $reclaimInfo = match (true) {
-                $difference > 0 => ['type' => 'reclaim', 'amount' => $difference, 'message' => $paid.', so you can reclaim '.$this->pounds($difference).'.'],
-                $difference < 0 => ['type' => 'owe', 'amount' => abs($difference), 'message' => $paid.', so you owe a further '.$this->pounds(abs($difference)).'.'],
+                $difference > 0 => ['type' => 'reclaim', 'amount' => $difference, 'message' => $paid.', so you can reclaim '.Money::exact($difference).'.'],
+                $difference < 0 => ['type' => 'owe', 'amount' => abs($difference), 'message' => $paid.', so you owe a further '.Money::exact(abs($difference)).'.'],
                 default => ['type' => 'none', 'amount' => 0.0, 'message' => $paid.', so there is nothing more to pay or reclaim.'],
             };
         }
@@ -670,11 +671,6 @@ class UKTaxCalculator
             'net_to_beneficiary' => round($trustIncome - $taxPaidByTrust, 2),
             'reclaim_info' => $reclaimInfo,
         ]);
-    }
-
-    private function pounds(float $amount): string
-    {
-        return '£'.(fmod(round($amount, 2), 1.0) === 0.0 ? number_format($amount) : number_format($amount, 2));
     }
 
     /**
