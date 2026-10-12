@@ -1296,11 +1296,14 @@ trait HasAiChat
                     // data_capture turns; the director consumes it and never
                     // re-yields, so no frontend sees it.
                     if (! $isRepeatedToolCall && $this->personaOverride === 'data_capture') {
+                        // Not failed: it wrote (ToolResults::wroteData), or it
+                        // succeeded, found the record already there, or is a
+                        // capture still asking for a detail (`onboarding_capture`
+                        // with nothing written yet is not a failure).
                         $writeLanded = ! $isToolError && (
-                            (isset($toolResult['created']) && $toolResult['created'] === true)
-                            || (isset($toolResult['updated']) && $toolResult['updated'] === true)
-                            || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
-                            || (isset($toolResult['success']) && $toolResult['success'] === true)
+                            ToolResults::wroteData($toolResult)
+                            || ($toolResult['onboarding_capture'] ?? false) === true
+                            || ($toolResult['success'] ?? false) === true
                             || ToolResults::isDuplicateSkip($toolResult)
                         );
                         $toolCallId = (string) ($toolUseBlock['id'] ?? '');
@@ -1527,12 +1530,8 @@ trait HasAiChat
                 ->last();
 
             $messageMetadata['capture_write_landed'] = collect($fullToolResults)
-                ->contains(function (array $result): bool {
-                    $raw = $result['raw'] ?? null;
-
-                    return is_array($raw) && collect(array_keys(self::ENTITY_EVENTS))
-                        ->contains(fn (string $flag): bool => ($raw[$flag] ?? false) === true);
-                });
+                ->contains(fn (array $result): bool => is_array($result['raw'] ?? null)
+                    && ToolResults::wroteData($result['raw']));
         }
 
         $assistantExtra = array_merge([
