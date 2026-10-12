@@ -259,7 +259,9 @@ final class QuerySchemas
             '/\bi\'ve\s+(got|paid|saved|put|deposited)\b/i',
         ],
         self::NAVIGATION => [
-            '/\b(take|go|navigate|show)\s+(me\s+)?(to|the)\b/i',
+            // "Show the working" is not a page (Brett, #4003 and #4009 were
+            // filed here and skipped the answer process; fix plan T3).
+            '/\b(take|go|navigate)\s+(me\s+)?(to|the)\b/i',
             '/\bgo\s+to\b/i',
             '/\bopen\s+(my|the)\b/i',
             // "Show me my X" — exclude wealth-summary phrases so they reach
@@ -310,6 +312,8 @@ final class QuerySchemas
             // "put more into my pension", "pay more into the pension", "top up my pension" (F1)
             '/\b(put|putting|pay|paying|contribute|contributing)\b[^.?!]{0,30}\b(in|into)\b[^.?!]{0,20}\bpensions?\b/i',
             '/\btop(ping)?\s+up\b[^.?!]{0,20}\bpensions?\b/i',
+            // "paid an extra £20,000 a year into my Aviva pot" (Brett, #3971; fix plan T3)
+            '/\b(paid|pay|paying|put|putting)\b[^.?!]{0,40}\binto\b[^.?!]{0,30}\b(pot|sipp)\b/i',
             '/\b(maximis|maximiz)e?\s+(my\s+)?pension/i',
             '/\bhow\s+much\s+.*pension/i',
             '/\bannual\s+allowance\b/i',
@@ -324,6 +328,16 @@ final class QuerySchemas
             '/\bretirement\s+(income|readiness|target|gap)/i',
             '/\bhow\s+much\s+.*need.*retire/i',
             '/\bretirement\s+age\b/i',
+            // Brett's walk, 2026-10-11 (fix plan T3): F22 #3877, Q6 #4003,
+            // Q7 #4009 and #4013 matched no retirement wording.
+            '/\bretire\s+at\b/i',
+            '/\bstop(ping)?\s+work(ing)?\s+at\b/i',
+            '/\bafford\s+to\s+retire\b/i',
+            '/\b(retirement|pension|income)\s+shortfall\b/i',
+            '/\bhow\s+far\s+short\b(?!.{0,40}\b(emergency|cover|protection|isa|goal|deposit)\b)/i',
+            '/^(?!.*\b(goals?|deposit|wedding|holiday)\b).*\bput\s+away\s+(each|every|a|per)\s+month\b/i',
+            '/\b(extra|bigger|larger|additional)\s+(pension\s+)?pot\b/i',
+            '/\bwithdrawal\s+rate\b/i',
         ],
         self::RETIREMENT_DECUMULATION => [
             '/\bdrawdown\b/i',
@@ -375,6 +389,12 @@ final class QuerySchemas
             '/\b(savings?|cash|deposits?|money)\b.{0,20}\b(protect|protected|protection|safe|secure|covered|fscs|guarantee)\b/i',
             '/\b(protect|protected|protection|safe|secure|covered|guarantee)\b.{0,20}\b(savings?|cash|deposits?|money|bank\s+account)\b/i',
             '/\bdeposit\s+protection\b/i',
+            // Tax on savings interest, by owner (Brett, P3 #3967). Mortgage
+            // interest is property (rent questions, Q5).
+            '/\b(tax|taxed|taxable)\b.{0,60}(?<!mortgage\s)\binterest\b(?!-only)/i',
+            '/(?<!mortgage\s)\binterest\b(?!-only).{0,60}\b(tax|taxed|taxable)\b/i',
+            // Which figure is on file for an account (Brett, Q10 #4033).
+            '/(?<!investment\s)(?<!brokerage\s)\baccount\b.{0,120}\bon\s+(file|record)\b/i',
         ],
         self::SAVINGS_DEBT => [
             '/\b(pay\s+off|repay).*mortgage\b.*\b(or|vs|versus)\b.*\b(invest|save)\b/i',
@@ -410,6 +430,10 @@ final class QuerySchemas
             '/\bnil\s+rate\s+band\b/i',
             '/\bestate\s+(value|tax|liability)/i',
             '/\bhow\s+much\s+.*estate\s+.*tax/i',
+            // Brett's walk (fix plan T3): M8 #3961, P7 #3973, Q8 #4015.
+            '/\bdeath\s+tax(es)?\b/i',
+            '/\b(she|he|they|kids|children|daughter|son|wife|husband|partner|spouse)\s+(would\s+|will\s+)?inherit(s|ed)?\b/i',
+            '/\bif\s+(i|we|both\s+of\s+us)\s+(both\s+)?died\b.{0,120}\b(tax|estate|leave|inherit\w*|went\s+to|pass(es|ed)?\s+to)\b/i',
         ],
         self::ESTATE_PLANNING => [
             '/\bwill(s)?\b/i',
@@ -443,6 +467,11 @@ final class QuerySchemas
             '/\brental\s+(income|yield)/i',
             '/\bhouse\s+(price|value)/i',
             '/\bhow\s+much\s+.*property\s+worth/i',
+            // Tax on rent (Brett, Q5 #3997 and #3999; fix plan T3).
+            '/\b(rent|rental\s+(income|profit))\b.{0,60}\btax(ed|able)?\b/i',
+            '/\btax(ed|able)?\b.{0,60}\b(rent|rental)\b/i',
+            '/\b(let|letting)\s+(flat|house|property|properties)\b/i',
+            '/\bmortgage\s+interest\b/i',
         ],
         self::INCOME => [
             '/\bincome\s+(breakdown|source|type|tax\s+position)/i',
@@ -858,7 +887,9 @@ final class QuerySchemas
         '(?:what|whats|what\'s)\s+(?:is|are|was|were|would|should|could|can|will|do|does|did|if|about|happens|else)',
         'whats', 'what\'s',
         '(?:when|where)\s+(?:should|can|could|do|does|did|will|would|is|are)',
-        '(?:tell|show|give)\s+me', 'explain', 'define', 'describe',
+        // "Show me my investments" is a display command (navigation, T6);
+        // "show me how…" asks for an answer.
+        '(?:tell|give)\s+me', 'show\s+me\s+(?:how|what|why|which|where|when|whether|if)', 'explain', 'define', 'describe',
         '(?:talk|walk)\s+me\s+through', 'help\s+me\s+(?:understand|work|decide|choose)',
         'work\s+(?:it\s+|this\s+|that\s+)?(?:through|out)', 'calculate', 'recommend', 'compare',
         'run\s+(?:a|an|the|me|some)',
