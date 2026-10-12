@@ -405,12 +405,13 @@ trait HasAiChat
             $userMessage = $this->saveMessage($conversation, 'user', $message);
         }
 
-        // Check token budget
+        // The tier's one Fyn limit, per rolling week (T48). Every surface
+        // shows this message as sent.
         if (! $this->hasTokenBudget($user)) {
             $usage = $this->getTokenUsageDetails($user);
             yield [
                 'type' => 'token_limit',
-                'message' => "You've reached your daily Fyn usage limit.",
+                'message' => "You've reached your weekly Fyn usage limit.",
                 'reset_at' => $usage['reset_at'],
                 'seconds_until_reset' => $usage['seconds_until_reset'],
             ];
@@ -461,13 +462,6 @@ trait HasAiChat
         $complexity = $this->classifyComplexity($message, $conversation->message_count);
         $model = $this->getAiModel($user, $complexity, $provider);
 
-        // Soft-degrade notice (PR 6 — Rule #16: plain text only, no icon/emoji/glyph).
-        // Prepend to the system prompt so the AI knows to keep responses shorter and
-        // to relay the notice. Chat is NEVER hard-walled by the weekly budget.
-        if ($this->isWeeklyBudgetExceeded($user)) {
-            $systemPrompt = 'Fyn is running in a lighter mode this week — upgrade for full responses.'
-                ."\n\n".$systemPrompt;
-        }
         $maxTokens = $this->getAiMaxTokens($user);
         $toolDefinitions = $isXai
             ? app(XaiToolDefinitions::class)

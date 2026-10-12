@@ -59,7 +59,7 @@ it('seeds the approved Free and Premium commercial matrix exactly', function () 
             'life_event' => 1,
         ])
         ->and($free->document_upload_allowance)->toBe(0)
-        ->and($free->fyn_weekly_token_budget)->toBe(100_000)
+        ->and($free->fyn_weekly_token_budget)->toBe(750_000)
         ->and($free->snapshot_surfacing_window_days)->toBe(90)
         ->and($premium->price_monthly_pence)->toBe(699)
         ->and($premium->price_annual_pence)->toBe(5999)
@@ -74,7 +74,7 @@ it('seeds the approved Free and Premium commercial matrix exactly', function () 
         ])
         ->and($premium->document_upload_allowance)->toBeNull()
         ->and((float) $premium->document_storage_gb)->toBe(1.00)
-        ->and($premium->fyn_weekly_token_budget)->toBe(500_000)
+        ->and($premium->fyn_weekly_token_budget)->toBe(3_000_000)
         ->and($premium->snapshot_surfacing_window_days)->toBeNull();
 
     foreach (array_keys($freeCapabilities) as $capability) {

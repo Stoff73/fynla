@@ -137,7 +137,7 @@ it('no tier-keyed token-budget map literal appears in app/ outside the store/tie
         $allowedPaths
     );
 
-    expect($violations)->toBe(0, 'Hardcoded tier-keyed token-budget map found in app/ outside the store/tiers/seeder. This is the DAILY_TOKEN_LIMITS anti-pattern. Read from TierConfigurationStore::forTier()->fyn_weekly_token_budget / fyn_daily_hard_backstop.');
+    expect($violations)->toBe(0, 'Hardcoded tier-keyed token-budget map found in app/ outside the store/tiers/seeder. This is the DAILY_TOKEN_LIMITS anti-pattern. Read from TierConfigurationStore::forTier()->fyn_weekly_token_budget.');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

@@ -123,7 +123,7 @@
               <li class="plan-card__feature">2 pensions</li>
               <li class="plan-card__feature">1 property</li>
               <li class="plan-card__feature">2 Goals and 1 Life Event</li>
-              <li class="plan-card__feature">100,000 Fyn tokens each week</li>
+              <li class="plan-card__feature">750,000 Fyn tokens each week</li>
               <li class="plan-card__feature">90 days of balance history</li>
             </ul>
           </article>
@@ -150,7 +150,7 @@
             <ul class="plan-card__features" id="premium-features" aria-label="Premium plan highlights">
               <li class="plan-card__feature">Unlimited cash or savings accounts, investments, pensions and properties</li>
               <li class="plan-card__feature">Unlimited Goals and Life Events</li>
-              <li class="plan-card__feature">500,000 Fyn tokens each week</li>
+              <li class="plan-card__feature">3,000,000 Fyn tokens each week</li>
               <li class="plan-card__feature">1 GB document storage</li>
               <li class="plan-card__feature">Full available history</li>
               <li class="plan-card__feature">Detailed planning, projections and exports</li>
@@ -193,7 +193,7 @@
               <tr id="comparison-risk"><th scope="row">Risk profile</th><td id="comparison-free-risk">Included</td><td id="comparison-premium-risk">Included</td></tr>
               <tr id="comparison-goals"><th scope="row">Goals</th><td id="comparison-free-goals">2 Goals</td><td id="comparison-premium-goals">Unlimited Goals</td></tr>
               <tr id="comparison-life-events"><th scope="row">Life Events</th><td id="comparison-free-life-events">1 Life Event</td><td id="comparison-premium-life-events">Unlimited Life Events</td></tr>
-              <tr id="comparison-fyn"><th scope="row">Fyn allowance</th><td id="comparison-free-fyn">100,000 Fyn tokens each week</td><td id="comparison-premium-fyn">500,000 Fyn tokens each week</td></tr>
+              <tr id="comparison-fyn"><th scope="row">Fyn allowance</th><td id="comparison-free-fyn">750,000 Fyn tokens each week</td><td id="comparison-premium-fyn">3,000,000 Fyn tokens each week</td></tr>
               <tr id="comparison-balance-history"><th scope="row">Balance history</th><td id="comparison-free-balance-history">90 days</td><td id="comparison-premium-balance-history">Full available history</td></tr>
               <tr id="comparison-basic-expenditure"><th scope="row">Basic expenditure</th><td id="comparison-free-basic-expenditure">Included</td><td id="comparison-premium-basic-expenditure">Included</td></tr>
               <tr id="comparison-detailed-expenditure"><th scope="row">Detailed expenditure</th><td id="comparison-free-detailed-expenditure">Not included</td><td id="comparison-premium-detailed-expenditure">Included</td></tr>

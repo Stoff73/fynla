@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AI\AiProvider;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -18,13 +19,6 @@ use Illuminate\Support\Facades\DB;
  */
 trait HasAiGuardrails
 {
-    /**
-     * Cheapest tier used when the rolling weekly budget is exceeded.
-     * Matches Anthropic's default chat model — kept as a named constant so the
-     * soft-degrade test can assert by name rather than by string literal.
-     */
-    public const SOFT_DEGRADE_MODEL = 'claude-haiku-4-5-20251001';
-
     /**
      * Get the active AI provider, checking admin toggle (cache) first, then .env.
      *
@@ -78,40 +72,26 @@ trait HasAiGuardrails
     }
 
     /**
-     * True when the user's rolling weekly token total meets or exceeds the
-     * tier's weekly budget. Triggers soft-degrade (cheaper model + plain-text
-     * notice); the chat never hard-walls on this condition.
+     * The tier's one Fyn limit: tokens per rolling week (T48, CSJ 2026-10-12).
      */
-    protected function isWeeklyBudgetExceeded(User $user): bool
+    private function weeklyTokenLimit(User $user): int
     {
-        // Preview personas are seeded demo users — never metered or
-        // soft-degraded, and carry no implicit tier-store dependency.
-        if ($user->is_preview_user) {
-            return false;
-        }
-
-        $budget = $this->tierStore()->forTier($this->userTier($user))->fyn_weekly_token_budget;
-
-        return $this->weeklyTokenUsage($user) >= $budget;
+        return $this->tierStore()->forTier($this->userTier($user))->fyn_weekly_token_budget;
     }
 
     /**
-     * True when today's token total meets or exceeds the tier's daily hard
-     * backstop. This is an abuse ceiling only — normal weekly soft-degrade
-     * never blocks chat. The daily limit is read exclusively from the tier
-     * store (fyn_daily_hard_backstop); no hardcoded constants remain (PR 9).
+     * True when the user's rolling weekly token total meets or exceeds the
+     * tier's weekly limit. This is the only Fyn limit: the turn stops.
      */
-    protected function isDailyBackstopExceeded(User $user): bool
+    protected function isWeeklyBudgetExceeded(User $user): bool
     {
-        // Preview personas are seeded demo users — never metered or
-        // soft-degraded, and carry no implicit tier-store dependency.
+        // Preview personas are seeded demo users — never metered, and carry
+        // no implicit tier-store dependency.
         if ($user->is_preview_user) {
             return false;
         }
 
-        $backstop = $this->tierStore()->forTier($this->userTier($user))->fyn_daily_hard_backstop;
-
-        return $this->getTodayTokenUsage($user) >= $backstop;
+        return $this->weeklyTokenUsage($user) >= $this->weeklyTokenLimit($user);
     }
 
     /**
@@ -121,21 +101,6 @@ trait HasAiGuardrails
     protected function getAiModel(User $user, string $complexity = 'standard', ?string $provider = null): string
     {
         $provider ??= static::getAiProvider();
-
-        // Soft-degrade: rolling weekly budget exceeded → cheapest model.
-        // Chat stays open; the system prompt prepends a plain-text notice.
-        // MUST be provider-aware: SOFT_DEGRADE_MODEL is an Anthropic model name,
-        // so returning it under an OpenAI-format provider sends an invalid model
-        // to that endpoint ("model ... does not exist") and BREAKS chat instead of
-        // degrading it. There, degrade to the provider's configured degrade model
-        // (defaulting to its standard chat model so the conversation stays open).
-        if ($this->isWeeklyBudgetExceeded($user)) {
-            // ?: so an explicitly null/empty degrade_chat_model still falls
-            // back to a valid model.
-            return AiProvider::speaksOpenAiFormat($provider)
-                ? (AiProvider::setting($provider, 'degrade_chat_model') ?: AiProvider::chatModel($provider))
-                : self::SOFT_DEGRADE_MODEL; // terser/cheaper until the rolling week resets
-        }
 
         if ($complexity === 'complex' && $this->getUserPlan($user) === 'premium') {
             return AiProvider::advancedChatModel($provider);
@@ -186,49 +151,64 @@ trait HasAiGuardrails
     }
 
     /**
-     * Check if the user has remaining token budget for today.
-     *
-     * PR 9: fully store-driven. Preview users are never budget-limited
-     * (isDailyBackstopExceeded short-circuits on is_preview_user).
+     * Check if the user has Fyn tokens left this rolling week.
+     * Preview users are never limited (isWeeklyBudgetExceeded short-circuits).
      */
     protected function hasTokenBudget(User $user): bool
     {
-        return ! $this->isDailyBackstopExceeded($user);
+        return ! $this->isWeeklyBudgetExceeded($user);
     }
 
     /**
-     * Get token usage details including reset time.
-     * Resets daily at midnight (00:00 UTC).
+     * Get the rolling week's token usage against the weekly limit, and when
+     * Fyn opens again once the limit is reached.
      *
-     * PR 9: limit is read from the tier store (fyn_daily_hard_backstop).
      * Preview personas are never metered; a sentinel limit of PHP_INT_MAX
      * is returned so callers receive a well-formed shape without a tier-store
      * lookup (preview users have no tier row).
      */
     public function getTokenUsageDetails(User $user): array
     {
-        if ($user->is_preview_user) {
-            $limit = PHP_INT_MAX;
-        } else {
-            $limit = $this->tierStore()->forTier($this->userTier($user))->fyn_daily_hard_backstop;
-        }
+        $limit = $user->is_preview_user ? PHP_INT_MAX : $this->weeklyTokenLimit($user);
+        $used = $this->weeklyTokenUsage($user);
 
-        $used = $this->getTodayTokenUsage($user);
-        $remaining = max(0, $limit - $used);
-
-        // Reset is at midnight tomorrow
-        $resetAt = now()->copy()->addDay()->startOfDay();
-        $secondsUntilReset = now()->diffInSeconds($resetAt);
+        $resetAt = $this->weeklyResetAt($user, $limit);
 
         return [
             'used' => $used,
             'limit' => $limit,
-            'remaining' => $remaining,
+            'remaining' => max(0, $limit - $used),
             'percent_used' => $limit > 0 ? round(($used / $limit) * 100) : 0,
-            'has_budget' => $used < $limit,
+            'has_budget' => $user->is_preview_user || $used < $limit,
             'reset_at' => $resetAt->toIso8601String(),
-            'seconds_until_reset' => $secondsUntilReset,
+            'seconds_until_reset' => (int) now()->diffInSeconds($resetAt),
         ];
+    }
+
+    /**
+     * The first midnight at which the rolling week's total falls under the
+     * limit, counting only usage already recorded. Each midnight drops the
+     * oldest day from the window; by the seventh, today has left it too.
+     */
+    private function weeklyResetAt(User $user, int $limit): CarbonInterface
+    {
+        $byDay = AiDailyUsage::query()
+            ->where('user_id', $user->id)
+            ->where('usage_date', '>=', now()->subDays(6)->toDateString())
+            ->pluck('tokens_used', 'usage_date')
+            ->mapWithKeys(fn ($tokens, $date) => [substr((string) $date, 0, 10) => (int) $tokens]);
+
+        for ($days = 1; $days <= 7; $days++) {
+            $midnight = now()->addDays($days)->startOfDay();
+            $windowStart = $midnight->copy()->subDays(6)->toDateString();
+            $total = $byDay->filter(fn (int $tokens, string $date) => $date >= $windowStart)->sum();
+
+            if ($total < $limit) {
+                return $midnight;
+            }
+        }
+
+        return now()->addDays(7)->startOfDay();
     }
 
     /**

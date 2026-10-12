@@ -118,20 +118,11 @@
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Fyn weekly token budget</label>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Fyn weekly token limit</label>
             <input
               type="number"
               min="0"
               v-model.number="tierEdits[tier.tier].fyn_weekly_token_budget"
-              class="w-full px-3 py-2 border border-horizon-300 rounded-button text-sm text-horizon-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Fyn daily hard backstop (tokens)</label>
-            <input
-              type="number"
-              min="0"
-              v-model.number="tierEdits[tier.tier].fyn_daily_hard_backstop"
               class="w-full px-3 py-2 border border-horizon-300 rounded-button text-sm text-horizon-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
             />
           </div>
@@ -230,7 +221,6 @@ export default {
             price_annual_pence: tier.price_annual_pence,
             document_upload_allowance: tier.document_upload_allowance,
             fyn_weekly_token_budget: tier.fyn_weekly_token_budget,
-            fyn_daily_hard_backstop: tier.fyn_daily_hard_backstop,
             snapshot_surfacing_window_days: tier.snapshot_surfacing_window_days,
             currency_display_mode: tier.currency_display_mode,
             capability_matrix: tier.capability_matrix ?? {},
