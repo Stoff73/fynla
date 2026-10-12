@@ -2456,6 +2456,12 @@ final class OnboardingStateMachine
         return $stateId === null ? null : self::freeLimitAt($user, $stateId);
     }
 
+    /** The Free limit said in words: one sentence for every place a new record meets it. */
+    public static function freeLimitSentence(array $limit): string
+    {
+        return "You've reached your plan's limit of {$limit['limit']} {$limit['noun']}. To add more, upgrade your plan.";
+    }
+
     /** @return array{limit: int, noun: string}|null */
     public static function freeLimitReached(User $user, string $entityKey, int $count, string $noun): ?array
     {

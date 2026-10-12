@@ -130,3 +130,45 @@ it('leaves a money-or-none field alone when the message does not mention it', fu
 
     expect($filled['answers']['main_residence'])->toBe(['current_value' => 400000.0]);
 });
+
+// T20 (walk 2026-10-11, P8 #3977): "Please add my two children: Maya, who is
+// 11, and Arjun, who is 8" opened one form, for Maya; Arjun was dropped. A
+// blank form told about several new records reads one entry per record: the
+// first fills the form, the rest are queued, each to open filled in after Save.
+it('reads one entry per new record on a blank form, the first filled in and the rest queued', function () {
+    typedFillModelReturns(['0' => [
+        ['_lead' => ['relationship' => 'child', 'first_name' => 'Maya']],
+        ['_lead' => ['relationship' => 'child', 'first_name' => 'Arjun', 'date_of_birth' => '2018-09-02', 'is_disabled' => 'no']],
+    ]]);
+
+    $form = ['schema' => CaptureForms::schema(CaptureForms::DEPENDANTS), 'answers' => [], 'record' => null];
+    $filled = app(TypedFormFill::class)->fill($form, 'Please add my two children: Maya, who is 11, and Arjun, born 2 September 2018, no disability.');
+
+    expect($filled['answers'])->toBe([CaptureForms::LEAD => ['relationship' => 'child', 'first_name' => 'Maya']])
+        ->and($filled['queue'])->toBe([[CaptureForms::LEAD => ['relationship' => 'child', 'first_name' => 'Arjun', 'date_of_birth' => '2018-09-02', 'is_disabled' => 'no']]]);
+});
+
+it('never queues records onto a form holding a saved record', function () {
+    $user = User::factory()->create(['date_of_birth' => '1960-08-01', 'gender' => 'female', 'marital_status' => 'single']);
+    typedFillModelReturns(['0' => [
+        ['_lead' => ['date_of_birth' => '1960-08-02']],
+        ['_lead' => ['date_of_birth' => '1970-01-01']],
+    ]]);
+
+    $filled = app(TypedFormFill::class)->fill(personalFormFor($user), 'Actually my date of birth is 2 August 1960');
+
+    expect($filled['answers'][CaptureForms::LEAD]['date_of_birth'])->toBe('1960-08-02')
+        ->and($filled)->not->toHaveKey('queue');
+});
+
+it('tells the reader a blank form takes one entry per new record', function () {
+    typedFillModelReturns([]);
+    $form = ['schema' => CaptureForms::schema(CaptureForms::DEPENDANTS), 'answers' => [], 'record' => null];
+    app(TypedFormFill::class)->fill($form, 'Add Maya and Arjun');
+
+    Http::assertSent(function ($request): bool {
+        $system = json_decode($request->body(), true)['messages'][0]['content'] ?? '';
+
+        return str_contains($system, 'one entry per record');
+    });
+});
