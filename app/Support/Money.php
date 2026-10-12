@@ -10,9 +10,10 @@ namespace App\Support;
  */
 final class Money
 {
-    public static function exact(float $amount): string
+    /** Ints and decimal strings (a database column) are taken as their value. */
+    public static function exact(float|int|string $amount): string
     {
-        $amount = round($amount, 2);
+        $amount = round((float) $amount, 2);
 
         return ($amount < 0 ? '−' : '').'£'.(fmod($amount, 1.0) === 0.0
             ? number_format(abs($amount))
