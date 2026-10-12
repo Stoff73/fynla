@@ -3,13 +3,22 @@
 | | |
 |---|---|
 | Scope | Creating an account, signing in (email code, authenticator app, recovery code), signing out, password reset and change, two-factor setup, active sessions, login lockout, roles and permissions, GDPR consents, data export, account deletion and restoration, cookie consent, and the token models of the three clients. Out of scope: the Save Tax campaign registration hand-off beyond its token (section 02), checkout (section 15), spouse permission (section 04). |
-| Commit | `28194e804` on `dev` |
-| Mapped on | 2026-09-14 |
+| Commit | `f00076906` on `dev` (refreshed from `28194e804`) |
+| Mapped on | 2026-09-14; refreshed 2026-10-12 |
 | Mapped by | Claude Code session, `app-map` skill |
 | Supersedes | none |
-| Issues raised | MB-18 to MB-22, plus notes in § 3 (in `September/September14Updates/mappingBugs2026-09-14.md`) |
+| Issues raised | MB-18 to MB-22, plus notes in § 3 (in `September/September14Updates/mappingBugs2026-09-14.md`). MB-18, MB-19 and MB-20 were fixed on 2026-09-14; MB-21 and MB-22 are open. |
 
 Every statement cites a file and line read this run, a command run this run, or a browser interaction performed this run. Where a claim could not be checked it says "I COULD NOT VERIFY".
+
+**Refresh 2026-10-12.** Every `file:line` citation was tracked from `28194e804` to `f00076906` with a line diff of the cited file; citations whose lines had only moved were re-pointed, and the nine whose lines changed were re-read and rewritten. Changes since the stamp, all read in code:
+
+- **Spouse invitation link.** A new public route `GET api/auth/spouse-invitation/{token}` prefills the registration page (`routes/api.php:161`, `AuthController.php:75-88`). The registration carries the token through (`RegisterRequest.php:133`, `PendingRegistration.php:92-94`), and verification links the accounts (`AuthController.php:662-670`, `SpouseLinkingService::acceptInvitation`).
+- **Login no longer signs in at the password step.** It uses `Auth::validate`, not `Auth::attempt` (`AuthController.php:310-317`). Since 2026-10-09 the password alone no longer authenticates a web session before the code is checked (`LoginDoesNotSignInSessionTest`).
+- **`/m` sign-in.** It gained the authenticator, recovery-code and restore steps (MB-18, MB-19) and a link to the web password reset.
+- **Other changes.** The web restore modal asks for the code (MB-20). After registering, a user with a campaign lands on Fyn. The cookie banner never shows to a signed-in user. Token refresh moves a demo visitor's completed actions to the new token.
+
+Tests run 2026-10-12: map 01's 24 Pest files, 250 passed (1,023 assertions); Vitest `resources/mobile/views/__tests__/Login.spec.js` (6) and `resources/js/components/__tests__/Account/RestoreAccountModal.spec.js` (2) passed. The browser walks of 2026-09-14 were not repeated, so "driven" statuses below date from then.
 
 ## 1. Overview
 
@@ -83,13 +92,13 @@ All screenshots below were taken this run on the local build with a brand-new ac
 
 | Feature | Web | `/m` | iOS | Notes |
 |---|---|---|---|---|
-| Register (form, emailed code) | Working (driven) | Absent: the "Create an account" link goes to the web `/register` (`resources/mobile/views/Login.vue:27,96-97`) | Present (`RegistrationView.swift`, `AuthClient.swift:123-150`) | |
+| Register (form, emailed code) | Working (driven) | Absent: the "Create an account" link goes to the web `/register` (`resources/mobile/views/Login.vue:30,178-179`) | Present (`RegistrationView.swift`, `AuthClient.swift:123-150`) | |
 | Login with emailed code | Working (driven) | Working (driven earlier this session with `john@example.com`) | Present (`AuthClient.swift:164-176`) | |
-| Login with authenticator code | Working (driven) | **Broken** (driven, MB-18) | Present (`MultiFactorView.swift`, `AuthClient.swift:195`) | |
-| Login with recovery code | Working (driven, one attempt failed first, see § 2.3) | Broken (same branch as MB-18) | Present (`AuthClient.swift:207`) | |
+| Login with authenticator code | Working (driven) | Working in test (`Login.spec.js` passed 2026-10-12; fixed MB-18, `resources/mobile/views/Login.vue:212-219,269-270`) | Present (`MultiFactorView.swift`, `AuthClient.swift:195`) | |
+| Login with recovery code | Working (driven, one attempt failed first, see § 2.3) | Working in test (same spec; `Login.vue:269`) | Present (`AuthClient.swift:207`) | |
 | Wrong authenticator or recovery code | **Broken** (driven, MB-21: modal closes, no message) | n/a | I COULD NOT VERIFY | |
 | Account lockout | Unverified (code read) | Unverified | Unverified | `LoginLockoutService.php:12-36` |
-| Password reset (email code, MFA step, new password) | Working (driven) | Absent (no forgot-password link in `resources/mobile/views/Login.vue`) | Present (`PasswordResetFlow.swift`, `AuthClient.swift:230-290`) | |
+| Password reset (email code, MFA step, new password) | Working (driven) | Link to the web flow since `165a88cd4` (2026-09-19): "Forgotten your password?" opens `/login?forgot=1` (`resources/mobile/views/Login.vue:29,175-176`), which opens the reset straight away (`resources/js/views/Login.vue:242-243`). Not driven. | Present (`PasswordResetFlow.swift`, `AuthClient.swift:230-290`) | |
 | Change password (signed in) | Present (`ChangePasswordModal.vue`, `POST auth/change-password`) | Absent | I COULD NOT VERIFY | Not driven |
 | Two-factor setup, disable, regenerate | Working (setup driven); disable and regenerate Unverified | Absent | I COULD NOT VERIFY (no MFA setup view found under `Features/Authentication`) | |
 | Active sessions list and revoke | Present (list driven, one row shown); revoke Unverified | Absent | n/a (native sessions are per device) | |
@@ -97,25 +106,25 @@ All screenshots below were taken this run on the local build with a brand-new ac
 | Consents (marketing) | Working (driven, row written) | Absent | Present (`Features/Privacy`) | |
 | Data export | Working (driven) | Absent | I COULD NOT VERIFY | |
 | Delete data or account | Working (account deletion driven) | Absent | Present (`Features/Privacy`, calls `api/auth/gdpr/*` per overview scan) | |
-| Restore a deleted account | **Broken** for MFA users (driven, MB-20); Unverified for non-MFA users | **Dead end** by code read (MB-19) | Present (`RestoreAccountFlow.swift`, `AuthClient.swift:308-320`) | |
-| Cookie consent banner | Present (`CookieBanner.vue`, `POST api/cookie-consent`) | Present (public page and `/m` per `CookieConsentService.php:34`) | n/a | Not driven |
+| Restore a deleted account | Working in test for MFA users (`RestoreAccountModal.spec.js` passed 2026-10-12; fixed MB-20); Unverified for non-MFA users | Working in test (`Login.spec.js`; fixed MB-19, `Login.vue:202-211,302-313`) | Present (`RestoreAccountFlow.swift`, `AuthClient.swift:308-320`) | |
+| Cookie consent banner | Present (`CookieBanner.vue`, `POST api/cookie-consent`); never shown to a signed-in user since 2026-10-09 (`CookieBanner.vue:84-89`) | Present (public page and `/m` per `CookieConsentService.php:34`) | n/a | Not driven |
 | Native session exchange and refresh | n/a | n/a | Present (`AuthClient.swift:337-371`) | Backend tests green this run (§ 2.10) |
 
 ### Depends on / depended on by
 
 | Direction | Module or service | What crosses the boundary | Evidence |
 |---|---|---|---|
-| Consumes | Mail (`VerificationCode`, `PasswordResetCode`, `DeletionVerificationCode`) | codes to the user | `AuthController.php:137,345,856`, `PasswordResetService.php:19`, `GDPRController.php:651` |
-| Consumes | Tiers (`TierResolver`, `TierConfigurationStore`) | tier flags in the `/auth/user` payload | `AuthController.php:446-500` |
-| Consumes | Gamification (`PointsService::recordLogin`) | login points and streak | `AuthController.php:697,748` |
-| Consumes | Onboarding (`FunnelAnswersMapper`) | seeds the profile from Save Tax funnel answers | `AuthController.php:645` |
-| Consumes | Consent (`ConsentService`, `CookieConsentService`) | consents at registration | `AuthController.php:665-676` |
-| Consumes | Payment (`ReferralService`) | referral link on registration | `AuthController.php:678-689` |
+| Consumes | Mail (`VerificationCode`, `PasswordResetCode`, `DeletionVerificationCode`) | codes to the user | `AuthController.php:160,375,899`, `PasswordResetService.php:19`, `GDPRController.php:651` |
+| Consumes | Tiers (`TierResolver`, `TierConfigurationStore`) | tier flags in the `/auth/user` payload | `AuthController.php:476-530` |
+| Consumes | Gamification (`PointsService::recordLogin`) | login points and streak | `AuthController.php:740,791` |
+| Consumes | Onboarding (`FunnelAnswersMapper`) | seeds the profile from Save Tax funnel answers | `AuthController.php:688` |
+| Consumes | Consent (`ConsentService`, `CookieConsentService`) | consents at registration | `AuthController.php:708-719` |
+| Consumes | Payment (`ReferralService`) | referral link on registration | `AuthController.php:721-732` |
 | Consumes | Account (`AccountDeletionService`) | deletion, scheduling, restoration | `GDPRController.php:551-567`, `RestoreAccountController.php:161` |
 | Consumed by | every authenticated route | `auth:sanctum` and the `TouchSessionActivity` middleware | `app/Http/Kernel.php:126-136` |
 | Consumed by | Admin (`permission:*` middleware, `HasPermission`) | roles and permissions | `HasPermission.php:34-46`, `PermissionService.php` |
 | Consumed by | Advisor impersonation | `AdvisorImpersonationMiddleware` swaps the user | `Kernel.php:133` |
-| Consumed by | Fyn | `ai_chat` consent gates the chat stream | `AiChatController.php:203` (overview § 2.9) |
+| Consumed by | Fyn | `ai_chat` consent gates the chat stream | `AiChatController.php:216` (overview § 2.9) |
 
 ## 2. Detailed sections
 
@@ -129,16 +138,17 @@ All screenshots below were taken this run on the local build with a brand-new ac
 
 | Step | Layer | File | What happens |
 |---|---|---|---|
-| 1 | Route | `routes/api.php:159` | `POST api/auth/register`, throttle `auth-5` (5 per minute per path and IP, `RouteServiceProvider.php:44-46`) |
-| 2 | Validation | `app/Http/Requests/RegisterRequest.php:109-143` | names required, email required, password `min:8`, confirmed, one upper, one lower, one digit, one non-alphanumeric; optional `plan` (`premium`) with `billing_cycle`, `signup_source` from an allowlist, `funnel_answers` with fixed vocabularies |
-| 3 | Controller | `AuthController.php:74-97` | a soft-deleted restorable account with this email returns `account_deleted_restorable` instead of registering; a live account returns 422 `email_exists` |
-| 4 | Controller | `:100-113` | `PendingRegistration::createOrUpdate` (hashed password, 24-hour expiry `PendingRegistration.php:25,91`); re-registering overwrites the pending row |
+| 1 | Route | `routes/api.php:162` | `POST api/auth/register`, throttle `auth-5` (5 per minute per path and IP, `RouteServiceProvider.php:44-46`) |
+| 2 | Validation | `app/Http/Requests/RegisterRequest.php:107-151` | names required, email required, password `min:8`, confirmed, one upper, one lower, one digit, one non-alphanumeric; optional `invite_token` (max 80, `:133`); `funnel_answers.income` now accepts `zero` and `funnel_answers.spouseEmployment` is new (`:15,19,142`); optional `plan` (`premium`) with `billing_cycle`, `signup_source` from an allowlist, `funnel_answers` with fixed vocabularies |
+| 3 | Controller | `AuthController.php:96-119` | a soft-deleted restorable account with this email returns `account_deleted_restorable` instead of registering; a live account returns 422 `email_exists` |
+| 4 | Controller | `:122-135` | `PendingRegistration::createOrUpdate` (hashed password, 24-hour expiry `PendingRegistration.php:25,95`); re-registering overwrites the pending row |
 | 5 | Mail | `:116-128` | `VerificationCode` mail, type `registration`, sent inline |
-| 6 | Response | `:130-142` | 201 with `pending_id`, masked email, and a `handoff_token` when a campaign sent the user |
+| 6 | Response | `:153-165` | 201 with `pending_id`, masked email, and a `handoff_token` when a campaign sent the user |
 | 7 | Verify | `AuthController.php:552-700` | `POST api/auth/verify-code` type `registration`: expired or missing pending row → 422 `registration_unavailable`; five failed attempts delete the row; on success `User::create` with role `user`, `tier = free`, referral code, signup source, funnel answers |
-| 8 | Side effects | `:645-689` | `FunnelAnswersMapper::mapToProfile`; consents `terms`, `privacy`, `data_processing`, `ai_chat` recorded; cookie consent claimed onto the user; referral linked; audit row |
-| 9 | Token | `:906-927` | `createToken('auth_token', ['mfa_verified'])` plus a `user_sessions` row; pending row deleted; login points recorded |
-| 10 | Landing | web `Register.vue` | `/onboarding?newUser=1`, or checkout when the pending row carried a Premium intent (`checkoutIntent()`, `PendingRegistration.php:101`) |
+| 8 | Side effects | `:688-732` | `FunnelAnswersMapper::mapToProfile`; consents `terms`, `privacy`, `data_processing`, `ai_chat` recorded; cookie consent claimed onto the user; referral linked; audit row |
+| 9 | Token | `:949-970` | `createToken('auth_token', ['mfa_verified'])` plus a `user_sessions` row; pending row deleted; login points recorded |
+| 10 | Landing | web `Register.vue` | checkout when the pending row carried a Premium intent (`checkoutIntent()`, `PendingRegistration.php:105`); otherwise the dashboard with Fyn open (`openFyn=journey`) when there is a `from` campaign, a campaign on the account, or a forced campaign (`Register.vue:527-541`); otherwise `/onboarding?newUser=1` (`:543-545`) |
+| 11 | Spouse invitation (refresh 2026-10-12) | `routes/api.php:161`, `AuthController.php:75-88`, `Register.vue:262-265,319-327,413` | `?invite=<token>` on `/register` calls `GET api/auth/spouse-invitation/{token}` (throttle `auth-10`), fills first name and email, and shows "<inviter> has invited you to plan together" (`Register.vue:98-100`); the token is posted as `invite_token`, kept on the pending row, and `acceptInvitation` links the accounts when the code is verified (`AuthController.php:662-670`). `SpouseInvitationRegistrationTest` passed 2026-10-12. |
 
 Observed in the database after the run: user 85, `tier=free`, `role_id=1`, six consent rows (`terms`, `privacy`, `data_processing`, `ai_chat`, `cookies_analytics`, `cookies_affiliate`), one session, one token, no pending row left.
 
@@ -151,9 +161,9 @@ Observed in the database after the run: user 85, `tier=free`, `role_id=1`, six c
 | Email address * | `email` | email | required, email, max 255 | `email` | web, iOS |
 | Password * | `password` | password, autocomplete new-password | as step 2 | hashed | web, iOS |
 | Confirm Password * | `password_confirmation` | password | `confirmed` | | web, iOS |
-| (hidden) | `plan`, `billing_cycle`, `ref`, `signup_source`, `funnel_answers`, `handoff` | from query string or campaign | `:120-143` | `pending_registrations.*` | web |
+| (hidden) | `plan`, `billing_cycle`, `ref`, `signup_source`, `funnel_answers`, `handoff`, `invite_token` | from query string or campaign | `RegisterRequest.php:129-150` | `pending_registrations.*` | web |
 
-The on-screen hint lists the special characters as `@$!%*?&`; the server accepts any non-alphanumeric character (`:117`). Copy and rule differ.
+The on-screen hint lists the special characters as `@$!%*?&`; the server accepts any non-alphanumeric character (`RegisterRequest.php:119`). Copy and rule differ.
 
 **Tests:** `tests/Feature/Auth/RegistrationTest.php`, `RegistrationRulesParityTest.php`, `SignupSourceCaptureTest.php`, `FunnelAnswersCaptureTest.php`, `CampaignRegistrationHandoffTest.php`, `PensioncheckRegistrationPayloadTest.php`; `tests/E2E/auth/registration.spec.js` (five Playwright tests covering free, Premium monthly and annual, and campaign registrations). Feature files run this session, see § 2.10.
 
@@ -165,17 +175,17 @@ The on-screen hint lists the special characters as `@$!%*?&`; the server accepts
 
 | Step | Layer | File | What happens |
 |---|---|---|---|
-| 1 | Route | `routes/api.php:161` | `POST api/auth/login`, throttle `auth-5`; `LoginRequest.php:28-29` requires email and password |
-| 2 | Lockout | `AuthController.php:212-231`, `LoginLockoutService.php:12-36` | account thresholds 3→1 min, 5→5 min, 10→30 min, 15→24 h; IP limit 50 (`config('auth.lockout.*')`); HTTP 423 with `remaining_seconds`; `users.locked_until` written and read (`LoginLockoutService.php:48,73`) |
-| 3 | Deleted account | `:234-257` | wrong password recorded as a failure; right password on a restorable account returns `account_deleted_restorable` with a five-minute `restoration_token` (`:965-974`) |
-| 4 | Credentials | `:260-306` | unknown user or wrong password → `login_attempts` row, audit row, 401 "Invalid email or password." |
-| 5 | Preview persona | `:309-320` | token immediately, no code |
-| 6 | MFA user | `:323-336` | `requires_mfa` with a `mfa_token` cached for 300 seconds (`MFAController.php:114-123`) |
-| 7 | Everyone else | `:339-364` | `EmailVerificationCode::generate` (15 minutes, `EmailVerificationCode.php:107`), `VerificationCode` mail, `requires_verification` with a `challenge_token` |
-| 8 | Verify | `:702-750` | `POST api/auth/verify-code` type `login`, throttle `auth-10`; the challenge token resolves the user; a miss records a failed attempt; success marks the code verified, records the login, issues the token and session |
-| 9 | Resend | `:757-880` | `POST api/auth/resend-code`, `resend_count` on the code row |
+| 1 | Route | `routes/api.php:164` | `POST api/auth/login`, throttle `auth-5`; `LoginRequest.php:28-29` requires email and password |
+| 2 | Lockout | `AuthController.php:235-254`, `LoginLockoutService.php:12-36` | account thresholds 3→1 min, 5→5 min, 10→30 min, 15→24 h; IP limit 50 (`config('auth.lockout.*')`); HTTP 423 with `remaining_seconds`; `users.locked_until` written and read (`LoginLockoutService.php:48,73`) |
+| 3 | Deleted account | `:257-280` | wrong password recorded as a failure; right password on a restorable account returns `account_deleted_restorable` with a five-minute `restoration_token` (`:1008-1017`) |
+| 4 | Credentials | `AuthController.php:310-336` | `Auth::validate` checks the password without signing a session in (`:310-317`, since 2026-10-09; `LoginDoesNotSignInSessionTest` passed 2026-10-12); unknown user or wrong password → `login_attempts` row, audit row, 401 "Invalid email or password." |
+| 5 | Preview persona | `:339-350` | token immediately, no code |
+| 6 | MFA user | `:353-366` | `requires_mfa` with a `mfa_token` cached for 300 seconds (`MFAController.php:114-123`) |
+| 7 | Everyone else | `:369-394` | `EmailVerificationCode::generate` (15 minutes, `EmailVerificationCode.php:107`), `VerificationCode` mail, `requires_verification` with a `challenge_token` |
+| 8 | Verify | `:745-793` | `POST api/auth/verify-code` type `login`, throttle `auth-10`; the challenge token resolves the user; a miss records a failed attempt; success marks the code verified, records the login, issues the token and session |
+| 9 | Resend | `:800-923` | `POST api/auth/resend-code`, `resend_count` on the code row |
 
-**Client behaviour:** web `Login.vue` mounts `VerificationCodeModal`, `MFAVerifyModal`, `ForgotPasswordModal`, `RestoreAccountModal` and `ChangePasswordModal` (`Login.vue:3-40,173-189`); the store's `login` clears every module before authenticating. The `/m` login handles only the token and `requires_verification` branches (`resources/mobile/views/Login.vue:116-129`); any other 200 shows the server message as an error (MB-18, MB-19).
+**Client behaviour:** web `Login.vue` mounts `VerificationCodeModal`, `MFAVerifyModal`, `ForgotPasswordModal`, `RestoreAccountModal` and `ChangePasswordModal` (`Login.vue:3-40,173-189`); the store's `login` clears every module before authenticating. The `/m` login now handles the token, `account_deleted_restorable`, `requires_mfa` and `requires_verification` branches, plus a lockout message (`resources/mobile/views/Login.vue:198-230`). Until the MB-18 and MB-19 fixes it handled only the token and `requires_verification`.
 
 **Form fields** (web `Login.vue`): Email address * (`email`, required, email), Password * (`password`, required). Six single-digit boxes in the code modal, auto-submitting on the sixth digit (observed). On `/m` the six boxes need "Verify and continue" (observed).
 
@@ -212,7 +222,7 @@ The on-screen hint lists the special characters as `@$!%*?&`; the server accepts
 | 3 | `:86`, `:110` | `verify-mfa` (TOTP) or `mfa-recovery` |
 | 4 | `:134-160`, `PasswordResetService.php:200-243` | `reset`: same complexity rule as registration; new hash; `$user->tokens()->delete()` (`:227`); session `used_at` set |
 | resend | `:63` | at most two resends (`MAX_RESEND_COUNT = 2`) |
-| change | `AuthController.php:505-546` | `POST auth/change-password`: current password checked, same complexity rule, `must_change_password` cleared, audit row |
+| change | `AuthController.php:535-576` | `POST auth/change-password`: current password checked, same complexity rule, `must_change_password` cleared, audit row |
 
 **Client:** `ForgotPasswordModal.vue` steps `email`, `verify-email`, `verify-mfa`, `new-password`, `success` (`:24-302`). The modal shows the full email address at step two while the login modal masks it. The modal hint says "at least 8 characters long"; the server also requires the four character classes.
 
@@ -226,8 +236,8 @@ The on-screen hint lists the special characters as `@$!%*?&`; the server accepts
 
 | Client | Token | Lifetime | Storage and renewal | Sign-out | Evidence |
 |---|---|---|---|---|---|
-| Web | Sanctum `auth_token` | 240 minutes (`config/sanctum.php:52`) | `sessionStorage` (`tokenStorage.js:11-20`); no refresh; 15-minute inactivity logout (`sessionLifecycleService.js:25`); `logout-beacon` on tab close (`AuthController.php:404-444`) | `POST auth/logout` deletes the token and its `user_sessions` row (`:367-401`); the store resets every module (`auth.js:122-140`) | |
-| `/m` | Sanctum `mobile-token` | `sanctum.mobile_token_ttl_minutes`, default 240 (`config/sanctum.php:58`) | `localStorage m_scaffold_token`; rotated on boot via `POST api/v1/auth/refresh-token` (`main.js:15-24`, `TokenRefreshController.php:17-45`); any 401 sends the user to `/m/app/login` (`authExpiry.js:20`) | `auth/mobileLogout` clears local state only (`auth.js:143-162`), so the desktop token survives | |
+| Web | Sanctum `auth_token` | 240 minutes (`config/sanctum.php:52`) | `sessionStorage` (`tokenStorage.js:11-20`); no refresh; 15-minute inactivity logout (`sessionLifecycleService.js:25`); `logout-beacon` on tab close (`AuthController.php:434-474`) | `POST auth/logout` deletes the token and its `user_sessions` row (`:397-431`); the store resets every module (`auth.js:122-140`) | |
+| `/m` | Sanctum `mobile-token` | `sanctum.mobile_token_ttl_minutes`, default 240 (`config/sanctum.php:58`) | `localStorage m_scaffold_token`; rotated on boot via `POST api/v1/auth/refresh-token` (`main.js:15-24`, `TokenRefreshController.php:18-55`; since the stamp it moves a demo visitor's completed actions to the new token before revoking the old one, `:40-44`); any 401 sends the user to `/m/app/login` (`authExpiry.js:20`) | `auth/mobileLogout` clears local state only (`auth.js:143-162`), so the desktop token survives | |
 | iOS | bootstrap `auth_token`, then `native-access` (15 min) and a refresh token (30 days), absolute 90 days | `NativeSessionService.php:51-58` | Keychain; refresh credential persisted only after Face ID opt-in (`AuthenticationCoordinator.swift:448-451`); rotation revokes on replay, expiry or revoked session (`:105-220`) | `DELETE api/v1/native/auth/session` | headers `X-Fynla-Client/Version/Build` required (`IdentifyNativeClient.php:20-22`); below minimum version → 426 (`EnforceNativeVersion.php:54-99`) |
 
 **Sessions table:** `user_sessions(user_id, token_id, ip_address, user_agent, device_name, device_id, last_activity_at)`; `TouchSessionActivity` updates `last_activity_at` on every authenticated API call (`Kernel.php:132`, `SessionService.php:99`). `GET auth/sessions` returns id, device name, IP, last activity, created, `is_current` (`SessionController.php:28-47`). `sessions:cleanup` daily removes rows whose token is gone (`Kernel.php:28`). The row observed this run showed "Unknown Device, 127.0.0.1, Current".
@@ -245,8 +255,8 @@ The on-screen hint lists the special characters as `@$!%*?&`; the server accepts
 | Roles `user` (level 0), `advisor` (25), `support` (50), `admin` (100) | `app/Models/Role.php:14-29`, `PermissionService.php:126-157` via `syncDefaultRolesAndPermissions` |
 | Permissions seeded: `admin.access`, `admin.audit.view`, `admin.backup`, `admin.erasure_process`, `admin.tax_config`, `advisor.access`, `settings.edit`, `settings.view`, `users.delete`, `users.edit`, `users.view` | `SELECT name FROM permissions` this run |
 | `HasPermission` middleware: admins (role or legacy `is_admin`) bypass; otherwise 403 | `HasPermission.php:34-46` |
-| Admin promotion only through `/admin/users`; never by email match at login or registration | `AuthController.php:265-269,633-638` |
-| `/auth/user` returns role name, permission names, life-stage completeness and tier flags | `AuthController.php:446-500` |
+| Admin promotion only through `/admin/users`; never by email match at login or registration | `AuthController.php:288-292,676-681` |
+| `/auth/user` returns role name, permission names, life-stage completeness and tier flags | `AuthController.php:476-530` |
 
 ### 2.7 GDPR: consents, export, deletion, restoration
 
@@ -283,14 +293,14 @@ The on-screen hint lists the special characters as `@$!%*?&`; the server accepts
 
 | Piece | File | What the code shows |
 |---|---|---|
-| Endpoint | `routes/api.php:146-147`, `CookieConsentController.php:41-61` | `POST api/cookie-consent` with `status` accepted or declined and an optional affiliate `awc` value; public, throttle `cookie-consent`; `PreviewWriteInterceptor` excludes it |
+| Endpoint | `routes/api.php:147-148`, `CookieConsentController.php:41-61` | `POST api/cookie-consent` with `status` accepted or declined and an optional affiliate `awc` value; public, throttle `cookie-consent`; `PreviewWriteInterceptor` excludes it |
 | Transport | `CookieConsentService.php:28-46` | the `fyn_cookie_consent` cookie is the transport; `allowsTracking()` gates analytics and affiliate |
 | Banner | `CookieBanner.vue` in `App.vue`; copy from `constants/cookieCopy.js` | |
-| Claim | `AuthController.php:673-676` | on registration the anonymous consent row is claimed onto the new user |
+| Claim | `AuthController.php:716-719` | on registration the anonymous consent row is claimed onto the new user |
 
 ### 2.9 Fyn touchpoints
 
-None directly. The `ai_chat` consent recorded at registration is what allows the chat to stream (`AuthController.php:659-671`); withdrawing it goes through the consents endpoint. Registration hand-off tokens (`RegistrationHandoffService.php:26-60`, 15 minutes, encrypted) carry a campaign source into onboarding (section 02).
+None directly. The `ai_chat` consent recorded at registration is what allows the chat to stream (`AuthController.php:702-714`); withdrawing it goes through the consents endpoint. Registration hand-off tokens (`RegistrationHandoffService.php:26-60`, 15 minutes, encrypted) carry a campaign source into onboarding (section 02).
 
 ### 2.10 Background machinery and tests
 
@@ -311,16 +321,24 @@ None directly. The `ai_chat` consent recorded at registration is what allows the
 Tests: 219 passed (900 assertions), 141.65s
 ```
 
-Not run: `tests/E2E/auth/registration.spec.js` (Playwright), `tests/Unit/Services/Account/AccountDeletionServiceTest.php`, iOS tests. Tests written in this run: none. The three defects below have no test that would catch them; MB-18 and MB-21 need Vitest tests on the two login views, MB-20 needs one on `RestoreAccountModal.vue`.
+**Refresh run, 2026-10-12** (`f00076906`). A hook now blocks directory runs, so the same scope was run by naming its 24 files: every `Test.php` under `tests/Feature/Auth` (18; two are new since September: `LoginDoesNotSignInSessionTest` and `SpouseInvitationRegistrationTest`), `tests/Feature/Native/Auth` (2) and `tests/Feature/Consent` (1), plus `RedirectAuthenticatedToDashboardTest.php`, `DeviceRegistrationTest.php` and `tests/Unit/Services/Account/AccountDeletionServiceTest.php`.
+
+```
+Tests: 250 passed (1023 assertions), 64.88s
+```
+
+Vitest, same day: `resources/mobile/views/__tests__/Login.spec.js` 6 passed, `resources/js/components/__tests__/Account/RestoreAccountModal.spec.js` 2 passed.
+
+Not run (September): `tests/E2E/auth/registration.spec.js` (Playwright), `tests/Unit/Services/Account/AccountDeletionServiceTest.php` (run in the refresh), iOS tests. Tests written in this run: none. The three defects below have no test that would catch them; MB-18 and MB-21 need Vitest tests on the two login views, MB-20 needs one on `RestoreAccountModal.vue`.
 
 ## 3. Findings
 
 | Id | Status | Where | What is wrong |
 |---|---|---|---|
-| MB-18 | Broken | `resources/mobile/views/Login.vue:116-129` | a user with two-factor enabled cannot sign in on `/m`: "MFA verification required." is shown as an error and there is no code step |
-| MB-19 | Dead end (by code read) | same file | a deleted, restorable account gets the generic failure message on `/m`; no restore path |
-| MB-20 | Broken | `resources/js/components/Account/RestoreAccountModal.vue:207-235` | the login-path restore never shows the MFA field; the 422 "Authenticator or recovery code required." is displayed as text and the user is stuck |
-| MB-21 | Broken | `resources/js/services/api.js:99-125` | a wrong authenticator or recovery code returns 401, which the global interceptor treats as an expired token: the modal closes, the form clears, no message |
+| MB-18 | Fixed 2026-09-14 | `resources/mobile/views/Login.vue:116-129` (at `28194e804`) | a user with two-factor enabled cannot sign in on `/m`: "MFA verification required." is shown as an error and there is no code step |
+| MB-19 | Fixed 2026-09-14 | same file | a deleted, restorable account gets the generic failure message on `/m`; no restore path |
+| MB-20 | Fixed 2026-09-14 | `resources/js/components/Account/RestoreAccountModal.vue:207-235` (at `28194e804`) | the login-path restore never shows the MFA field; the 422 "Authenticator or recovery code required." is displayed as text and the user is stuck |
+| MB-21 | Broken (open on 2026-10-12) | `resources/js/services/api.js:100-126` (allowlist `:107-111` still lacks `/auth/mfa/*`) | a wrong authenticator or recovery code returns 401, which the global interceptor treats as an expired token: the modal closes, the form clears, no message |
 | MB-22 | Broken (layout) | `resources/js/views/Settings/PrivacySettings.vue` with the Fyn panel open at 1440 px | the marketing consent toggle is covered by the fixed Fyn panel and cannot be clicked |
 
 Also noted, not raised as bugs: `users.email_verified_at` is never written by registration or login (`grep` this run; only the password-reset session has its own column), so it is a dead column that `UserResource` still exposes as null; the password hint on the register form lists seven special characters while the rule accepts any; the forgot-password modal shows the unmasked email; four browser `alert()` dialogs on the privacy page; the `mfa_verified` token ability is never enforced (MB-13); the restore-check API path and the change-password modal were not driven.
