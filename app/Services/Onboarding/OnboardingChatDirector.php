@@ -1288,7 +1288,7 @@ final class OnboardingChatDirector
             // One bubble above the choices, as on a form turn.
             $promptText = str_replace(OnboardingStateMachine::BUBBLE_BREAK, "\n\n", $promptText);
             $onFile = $this->recordsOnFileAtLoop($user, $stateId);
-            $cap = $this->capReachedAtLoop($user, $stateId);
+            $cap = OnboardingStateMachine::freeLimitAt($user, $stateId);
             if ($cap !== null) {
                 $promptText = "That's the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add another here. You can upgrade after onboarding to add more.";
                 $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') === 'continue'));
@@ -1925,31 +1925,6 @@ final class OnboardingChatDirector
         return sprintf('You have %d %s on file: %s.', $count, $count === 1 ? $singular : $plural, $this->joinClauses($names));
     }
 
-    private function capReachedAtLoop(User $user, string $stateId): ?array
-    {
-        [$entityKey, $count, $noun] = match ($stateId) {
-            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE => [PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'],
-            OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'],
-            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts'],
-            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'investment accounts'],
-            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE => [PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'],
-            default => [null, 0, ''],
-        };
-        if ($entityKey === null) {
-            return null;
-        }
-
-        return $this->capReached($user, $entityKey, $count, $noun);
-    }
-
-    /** @return array{limit: int, noun: string}|null */
-    private function capReached(User $user, string $entityKey, int $count, string $noun): ?array
-    {
-        $limit = app(TierGate::class)->hardLimit($user, $entityKey);
-
-        return $limit !== null && $count >= $limit ? ['limit' => $limit, 'noun' => $noun] : null;
-    }
-
     /**
      * The plan's cap for another record like the one a duplicate question is
      * about, when it is reached (a cash ISA counts with the investments, CSJ
@@ -1963,14 +1938,14 @@ final class OnboardingChatDirector
             $isIsa = (bool) app(SavingsStore::class)->forUser($user)->firstWhere('id', $recordId)?->is_isa;
 
             return $isIsa
-                ? $this->capReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts')
-                : $this->capReached($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts');
+                ? OnboardingStateMachine::freeLimitReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts')
+                : OnboardingStateMachine::freeLimitReached($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts');
         }
 
         return match ($entityType) {
-            'investment_account' => $this->capReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'),
-            'dc_pension', 'db_pension' => $this->capReached($user, PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'),
-            'property' => $this->capReached($user, PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'),
+            'investment_account' => OnboardingStateMachine::freeLimitReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'),
+            'dc_pension', 'db_pension' => OnboardingStateMachine::freeLimitReached($user, PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'),
+            'property' => OnboardingStateMachine::freeLimitReached($user, PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'),
             default => null,
         };
     }
@@ -7784,6 +7759,22 @@ PROMPT;
         }
         if ($persistUserMessage) {
             $this->saveMessage($conversation, 'user', $message);
+        }
+
+        // A new record past the Free limit could only fail at Save: say the
+        // limit in words, before any form (walk 2026-10-11, F9, #3795). A
+        // change to a saved record adds nothing, so it still opens.
+        if ($recordsFilled === [] && $hasBlank) {
+            $blankName = (string) (($blankFilled ?? $forms[$firstBlank])['schema']['name'] ?? '');
+            $limit = OnboardingStateMachine::freeLimitForForm($user, $blankName);
+            if ($limit !== null) {
+                $line = "You've reached your plan's limit of {$limit['limit']} {$limit['noun']}. To add more, upgrade your plan.";
+                yield ['type' => 'content', 'text' => $line];
+                $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => ['turn_intent' => FynTurnIntent::InterruptionAnswer->value]]);
+                yield ['type' => 'done', 'message_id' => $saved->id];
+
+                return true;
+            }
         }
 
         if (count($recordsFilled) === 1) {

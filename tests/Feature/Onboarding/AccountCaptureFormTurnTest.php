@@ -516,3 +516,45 @@ it('a spouse whose income the user does not know is saved without an income, not
         ->and($row->spouse_annual_income)->toBeNull()
         ->and((float) $row->spouse_isa_balance)->toBe(12000.0);
 });
+
+// T18 (walk 2026-10-11, F10): Brett had two ISAs, which count with the
+// investments on Free, and the investments step still opened a blank form
+// that failed only at Save (#3805 → #3809). A section already at its limit
+// opens on its "another?" step, which says the limit and offers the next
+// section.
+it('opens a section already at the Free limit on its limit, not a blank form', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE);
+    InvestmentAccount::factory()->isa()->count(2)->create(['user_id' => $user->id, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+
+    expect(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, $user->fresh()))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE)
+        ->and(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS, $user->fresh()))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE);
+
+    SavingsAccount::factory()->count(2)->create(['user_id' => $user->id, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    expect(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS, $user->fresh()))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE);
+});
+
+it('opens a section below the Free limit on its form, as before', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE);
+    InvestmentAccount::factory()->isa()->create(['user_id' => $user->id, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+
+    expect(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, $user->fresh()))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        ->and(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS, $user->fresh()))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
+});
+
+// #3810: the line read "2 ISAs and investment accounts on file … the Free
+// plan's limit of 2 investment accounts"; the limit counts the ISAs too.
+it('names the ISAs in the investments limit, as the count includes them', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    InvestmentAccount::factory()->isa()->create(['user_id' => $user->id, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $events = submitForm($user, accountConversation($user), ['name' => 'investment', 'answers' => [
+        'gia' => ['provider' => 'Hargreaves Lansdown', 'current_value' => 18000, 'ownership_type' => 'individual'],
+    ]]);
+
+    $quick = collect($events)->firstWhere('type', 'quick_replies');
+    expect($quick['prompt_text'])->toEndWith("That's the Free plan's limit of 2 ISAs and investment accounts, so I can't add another here. You can upgrade after onboarding to add more.");
+});

@@ -260,7 +260,7 @@ it('the three account steps are form turns owned by the corpus with short lead-i
         ->and([$bank['turn_type'], $bank['form'], $bank['form_prompt_text'], $bank['next']])->toBe(['form', 'savings', 'Now your bank and savings accounts.', 'campaign_bank_accounts_more'])
         ->and([$inv['turn_type'], $inv['form'], $inv['form_prompt_text'], $inv['next']])->toBe(['form', 'investment', 'Now your investments.', 'campaign_investment_accounts_more'])
         ->and($isa['prompt_text'])->toContain('Cash, Stocks & Shares, Lifetime')
-        ->and($bank['skip_if'])->toBe([OnboardingStateMachine::class, 'skipIfNoBankOrSavings'])
+        ->and($bank['skip_if'])->toBe([OnboardingStateMachine::class, 'skipBankAccounts'])
         ->and($bank['record_context'])->toBe('savings');
 });
 
