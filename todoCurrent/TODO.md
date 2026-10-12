@@ -471,7 +471,13 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Fyn's arithmetic on the user's own figures is wrong: £478 a month should be £492.89; gift saving £0 should be £484; ISA saving £468 should be £216. New task T46.
           - Raw LaTeX shows on /m. New task T47.
           - The `PromptOverlayGoldenMasterTest` fixtures had been stale since T1; recaptured in #1217.
-        - **Next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.**
+        - T48 (2026-10-12, session 4) is ticked to Dev walk. There is one Fyn limit per tier per rolling week (Free 750,000, Premium 3,000,000), and the daily stop and the cheaper-model switch are gone:
+          - PR #1222, dev `46b402737`. The migration ran on csjones and both bundles were rebuilt.
+          - Walked as Rory 504 on web and /m: answered past the old 500,000 daily point. At 755,902 both surfaces show "You've reached your weekly Fyn usage limit.", and web shows "resets in 3d 11h" (correct to 00:00 on 16 October).
+          - The admin page was not walked (CSJ: "dont worry about ttesting these limits now … lets move on").
+          - Found: T49, /m reply paragraphs run together.
+          - The Prod release needs the migration.
+        - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
           - The map of what to change is in the session 3 handover.
