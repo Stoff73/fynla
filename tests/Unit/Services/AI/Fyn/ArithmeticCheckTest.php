@@ -42,3 +42,14 @@ it('is applied to every streamed reply by the one output filter', function () {
     expect($out)->toContain('£38,000 is less than £650,000, so £0')
         ->not->toContain('− £650,000 = £0');
 });
+
+// Fyn's sums carry labels (csjones #22962, after the first fix): the check
+// reads the figures through them.
+it('reads a sum with labels on its figures, as Fyn writes it', function () {
+    $reply = "**Working:** £40,000 assets − £0 recorded debts = **£40,000 estate** \n£40,000 − £325,000 Nil Rate Band = **£0 taxable estate** \n**£0 × 40% = £0 Inheritance Tax**";
+
+    expect(ArithmeticCheck::correct($reply))->toBe(
+        "**Working:** £40,000 assets − £0 recorded debts = **£40,000 estate** \n£40,000 is less than £325,000 Nil Rate Band, so **£0 taxable estate** \n**£0 × 40% = £0 Inheritance Tax**"
+    )->and(ArithmeticCheck::correct('£60,000 salary − £6,000 pension = **£55,000** taxed'))
+        ->toBe('£60,000 salary − £6,000 pension = **£54,000** taxed');
+});
