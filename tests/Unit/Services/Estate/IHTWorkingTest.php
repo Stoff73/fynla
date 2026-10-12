@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AI\Pointers\FetchContext;
 use App\Services\AI\Pointers\Handlers\EstatePlanHandler;
 use App\Services\Estate\IHTCalculationService;
+use App\Support\Money;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -63,6 +64,17 @@ it('says when a married user\'s figure leaves their spouse out', function () {
     expect($calc['working'])->toContain('Only your own estate is counted, because your spouse\'s records are not linked to and shared with your account.');
 });
 
+it('carries the projection at the expected age of death', function () {
+    $user = ihtWorkingSaver(['marital_status' => 'single']);
+
+    $calc = app(IHTCalculationService::class)->calculate($user);
+
+    $projection = collect($calc['working'])->first(fn (string $line) => str_starts_with($line, 'Looking ahead to age'));
+
+    expect($projection)->toContain('Looking ahead to age '.$calc['estimated_age_at_death'])
+        ->toContain('in '.$calc['years_to_death'].' years');
+});
+
 it('carries the same working in the estate plan Fyn fetches', function () {
     $user = ihtWorkingSaver(['marital_status' => 'single']);
     $calc = app(IHTCalculationService::class)->calculate($user);
@@ -77,21 +89,20 @@ it('carries the same working in the estate plan Fyn fetches', function () {
         ->and($payload['inheritance_tax']['working'])->toBe($calc['working']);
 });
 
-// Never a figure built on a guess (CSJ 2026-10-12: "WHAT ARE YOU ASSUMING
-// FOR"). The projection fills missing records with assumptions
-// (HouseholdCashFlowProjector: an assumed age, no pension, spending carried
-// on), so where it had to, the working gives no projected figure: it says
-// what is not recorded.
-it('gives no projected figure where the projection had to assume, only what is missing', function () {
-    $user = ihtWorkingSaver(['marital_status' => 'single']);
+// Robin 509's working said "the estate is projected at £0" with no reason; the
+// engine's own assumptions (no pension or State Pension recorded, spending
+// carries on) and the cash it runs short by explain it.
+it('gives the projection its assumptions and any cash shortfall', function () {
+    $user = ihtWorkingSaver(['marital_status' => 'single', 'monthly_expenditure' => 4000, 'expenditure_entry_mode' => 'simple']);
 
     $calc = app(IHTCalculationService::class)->calculate($user);
-    $working = implode("\n", $calc['working']);
 
     expect($calc['projected_cash_assumptions'])->not->toBeEmpty()
-        ->and($working)->not->toContain('Looking ahead')
-        ->and($working)->not->toContain('assumes')
-        ->and($working)->not->toContain('projected at')
-        ->and($working)->toContain('There is no figure for the estate at death until these are recorded:')
-        ->and($working)->toContain('No State Pension forecast is recorded for');
+        ->and($calc['working'])->toContain(...$calc['projected_cash_assumptions']);
+    if ((float) $calc['projected_cash_shortfall'] > 0) {
+        expect($calc['working'])->toContain(sprintf(
+            'On those assumptions, spending uses up the cash before then, with %s more needed.',
+            Money::exact((float) $calc['projected_cash_shortfall']),
+        ));
+    }
 });
