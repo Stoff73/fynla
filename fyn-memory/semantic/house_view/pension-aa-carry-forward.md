@@ -2,7 +2,8 @@
 fact_id: hv-pension-aa-carry-forward
 category: house_view
 title: Pension Annual Allowance carry-forward — unused allowance from earlier years
-version: 3
+source: "Finance Act 2004 s228A (carry forward of unused annual allowance)"
+version: 4
 valid_to: null
 ---
 

@@ -2,7 +2,8 @@
 fact_id: hv-pa-taper-rescue
 category: house_view
 title: Personal Allowance taper rescue — pension contributions in the taper band
-version: 3
+source: "Income Tax Act 2007 s35 (Personal Allowance reduced by half the adjusted net income above the limit), s58 (adjusted net income)"
+version: 4
 valid_to: null
 ---
 

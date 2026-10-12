@@ -95,3 +95,12 @@ it('parses a bare ISO date (YAML int timestamp) and effectiveOn honours the wind
         ->and($fact->effectiveOn(Carbon::parse('2021-01-01')))->toBeFalse()
         ->and($fact->effectiveOn(Carbon::parse('2019-12-31')))->toBeFalse();
 });
+
+// Walk fix plan T14 (M5): every category carries a source, so Fyn always has
+// one to cite (Rule 23).
+it('refuses a house view or tax fact with no source', function (string $category) {
+    writeFact($this->corpus, $category, 'a', "fact_id: x-a\ncategory: {$category}\ntitle: A\nversion: 1\nvalid_from: 2024-04-06\nvalid_to: null");
+
+    expect(fn () => app(SemanticCorpusLoader::class)->all())
+        ->toThrow(RuntimeException::class, 'source');
+})->with(['house_view', 'tax', 'allowance']);

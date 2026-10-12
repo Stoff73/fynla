@@ -2,7 +2,8 @@
 fact_id: hv-lifetime-isa
 category: house_view
 title: Lifetime ISA — the government bonus for a first home or later life
-version: 2
+source: "Savings (Government Contributions) Act 2017 s1 (government bonus); Individual Savings Account Regulations 1998 (SI 1998/1870) reg 4ZA(1A) (Lifetime ISA limit), reg 12B (opening conditions), Schedule (Lifetime ISA further provision)"
+version: 3
 valid_to: null
 ---
 

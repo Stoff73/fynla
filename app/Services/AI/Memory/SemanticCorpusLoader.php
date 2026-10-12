@@ -20,8 +20,12 @@ final class SemanticCorpusLoader
 
     private const CATEGORIES = ['fca', 'product', 'house_view', 'tax', 'allowance'];
 
-    /** source mandatory for these; valid_from mandatory for those. */
-    private const SOURCE_REQUIRED = ['fca', 'product'];
+    /**
+     * source mandatory for every category (walk fix plan T14, M5: Rule 23,
+     * every claim sourced, so Fyn always has a source to name); valid_from
+     * mandatory for those below.
+     */
+    private const SOURCE_REQUIRED = self::CATEGORIES;
 
     private const VALID_FROM_REQUIRED = ['fca', 'tax', 'allowance'];
 

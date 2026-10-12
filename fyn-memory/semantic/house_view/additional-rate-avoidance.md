@@ -2,7 +2,8 @@
 fact_id: hv-additional-rate-avoidance
 category: house_view
 title: Additional-rate avoidance — pension contributions above the additional-rate threshold
-version: 2
+source: "Income Tax Act 2007 s35 (Personal Allowance reduction), s58 (adjusted net income); Finance Act 2004 s188, s192 (pension relief, relief at source)"
+version: 3
 valid_to: null
 ---
 
