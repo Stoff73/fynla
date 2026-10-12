@@ -10,6 +10,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\Money;
 
 /**
  * Asset-shifting strategies for couples: savings-to-spouse for every couple,
@@ -175,6 +176,12 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             'partner_extra_tax' => $move['partner_extra_tax'],
             'partner_extra_tax_shown' => $partnerShown,
             'requires_advice' => true,
+            // The steps behind the figures (walk fix plan T12), so Fyn presents
+            // them rather than working the saving out itself.
+            'working' => [
+                sprintf('Moving %s of your savings moves %s of interest a year to your spouse.', Money::exact($transfer), Money::exact($move['interest_moved'])),
+                ...$this->math->savingsMoveWorking($move),
+            ],
         ];
     }
 
