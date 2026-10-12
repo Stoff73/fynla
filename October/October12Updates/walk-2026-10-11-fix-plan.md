@@ -508,6 +508,21 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   - Found: T54 (two projections in one tool result).
   - Found (for T15): on /m Fyn rounded £260,978.89 to "£260,979" (#22861), against the exact-money rule; on web it gave the pence (#22863).
 
+- **T12, part 1 of 3 (savings to spouse, F5 and P3), 2026-10-12, session 5.** T12's boxes stay open until parts 2 (child benefit charge, F6) and 3 (estate, M8 and Q8) are done.
+  - **Code:** #1240 (`9112c1a35`), branch `fix/t12-savings-move-working`.
+    - `TaxStrategyMath::savingsMoveWorking()` gives the steps from the tax engine's own interest breakdown (`UKTaxCalculator::calculateDetailedNetIncome`) on the exact income the move was priced on. `savingsMoveToPartner` also returns `user_parts` and `partner_parts`.
+    - `savings_to_spouse` and `joint_savings_psa_split` (the same move) carry `working`.
+    - `App\Support\Money::exact()` is the one exact formatter (£100 / £100.15). `UKTaxCalculator`'s private copy is gone; its output is unchanged on 8 cases. T15 can build on it.
+    - Sources: ITA 2007 s12, s12B, s836; ITTOIA 2005 s626.
+  - **Test:** in `SavingsToSpouseTest`, 3 new cases failed first (no `working` key), then passed. Each expected line was worked by hand from the rules (the £60,000 / £20,000 worked example, a retired partner's starting rate, the 50/50 split). 15 passed; with `SaveTaxMatrixDefectsTest`, `TaxStrategyCalculatorTest` and `SaveTaxHeadlineTotalTest`, 111 passed.
+  - **Dev:** csjones pulled `9112c1a35` (PHP only); caches cleared; 200.
+  - **Dev walk (fresh account Robin Walk, user 509, `slaterjoneschris+t12gift@gmail.com`):**
+    1. /m 390: typed the /m front door, clicked "Save tax now", then answered: full-time; £50,271 to £100,000; spouse yes, up to £50,270; savings accounts. Registered with the emailed code (read from `PendingRegistration`, the R2 exception). Fyn's forms: income £60,000 at Acme Ltd; Marcus easy access savings £40,000 at 4.5%, individual; verify screen "Continue"; date of birth; spouse full-time, £20,000, all from work, nothing ticked; spending £2,500 a month; invite "Not now". Plan delivered: "Gift £28,800 of savings to your spouse and save £459 in tax a year".
+    2. /m: "How did you work out the £459 saving for gifting my savings to my spouse? Show me the working." got the published steps, each figure the card's: £28,800 → £1,296; £1,800 (£500 tax-free, £1,300 at 40%, £520); £504 (£1.60); £518.40; spouse £1,000 tax-free, £296 at 20%, £59.20; £518.40 − £59.20 = £459.20, shown as £459 (#22893, `get_recommendations`). Shot `T12-01-gift-working-m-csjones.png`.
+    3. Web 1440: signed in from the front door (code by `php zz_code.php 509`), clicked the dashboard action "Gift £28,800 …", then "Ask Fyn about this": the same steps (#22895). Shot `T12-02-gift-working-web-csjones.png`.
+    - The 50/50 split card needs a single-earner household and was not in this plan. **I COULD NOT TEST THIS** live; `SavingsToSpouseTest` covers its working.
+  - Seen on the walk (not T12): the /m bubble "on file: Marcus easy access savings.Do you have another account to add?" runs two sentences together (T49).
+
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
   - "Quick check: if my employer and I pay 6% + 8% of a £72,000 salary, how much is that a year? And does a 50/50 joint account mean half the interest is mine?", as `spouse` (the same conversation as the invite);
