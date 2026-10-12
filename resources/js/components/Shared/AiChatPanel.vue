@@ -414,13 +414,13 @@
             @keydown.enter.exact.prevent="send"
             :placeholder="inputPlaceholder"
             :rows="docked ? undefined : 1"
-            :disabled="streaming || loading || tokenLimitReached"
+            :disabled="streaming || loading || tokenLimitReached || awaitingBubbleAnswer"
             :class="[
               'flex-1 resize-none rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:bg-savannah-100 disabled:cursor-not-allowed',
               docked
                 ? 'min-w-0 h-full border border-light-gray text-horizon-500 placeholder-neutral-500 py-2.5'
                 : 'border border-horizon-300',
-              { 'opacity-60': streaming || tokenLimitReached }
+              { 'opacity-60': streaming || tokenLimitReached || awaitingBubbleAnswer }
             ]"
           ></textarea>
           <button
@@ -528,6 +528,7 @@ export default {
 
         inputPlaceholder() {
             if (this.tokenLimitReached) return `Fyn usage limit reached — resets in ${this.resetCountdown}`;
+            if (this.awaitingBubbleAnswer) return 'Pick one of the options above';
             return 'Ask Fyn...';
         },
 
@@ -609,7 +610,19 @@ export default {
         },
 
         canSend() {
-            return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading && !this.tokenLimitReached;
+            return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading && !this.tokenLimitReached && !this.awaitingBubbleAnswer;
+        },
+
+        // T58 (CSJ 2026-10-12): while bubbles that answer the step are
+        // waiting, the answer is a tap, so the chat box is disabled. A
+        // navigation bubble alone ("Take me to my tax strategy"), a
+        // bubble-less note, or a form opened after the bubbles leave it open.
+        awaitingBubbleAnswer() {
+            const idx = this.latestQuickRepliesIndex;
+            if (idx === -1) return false;
+            if (this.messages.slice(idx + 1).some((m) => m?.role === 'capture_form')) return false;
+            const bubbles = this.messages[idx]?.metadata?.bubbles || [];
+            return bubbles.some((b) => b && !b.route);
         },
 
         // Index of the most recent quick_replies message in the message
