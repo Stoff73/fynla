@@ -74,7 +74,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T11 | The retirement plan tool carries the Retirement page's headline | Q6 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T12 | Published working for the savings-to-spouse, child benefit charge and estate scenarios (item 18). F6 moved to T55 (needs your design) | F5, P3, M8, Q8 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T13 | Older turns summarised for the model; search reads the open conversation; recall rule | Q13 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T14 | Corpus entry on gifts within seven years of death; `source:` filled on every entry; Fyn cites it | F17, M5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T14 | Corpus entry on gifts within seven years of death; `source:` filled on every entry; Fyn cites it | F17, M5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T15 | Money given to the model written exactly: £100, £100.15, never rounded | F14 (context) | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T16 | Onboarding bubble steps read typed answers | F1 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T17 | Typed facts kept and later forms pre-filled; children open the dependants form | F2, F11, F16, F21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -563,6 +563,18 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   - The same-conversation search was walked on /m; on the web the new conversation exercised the recall rule. Both post to the one endpoint, so the search runs the same code.
   - Found: T56 (other conversations are read only through their summaries).
   - Seen: #22903 restated "paid in March" as "due to be paid in March".
+
+- **T14, Code (2026-10-12, session 5):** #1248 (`66ae675bc`), branch `fix/t14-corpus-sources`.
+  - Every provision cited was fetched on legislation.gov.uk this session: IHTA 1984 s3A, s7, s18, s199, s204; ITA 2007 s12, s12B, s13A, s35, s55B, s58, s414, s836, s837; FA 2004 s188, s190, s192, s228A, s228ZA; TCGA 1992 s1K, s58; ITTOIA 2005 s626 (s694 is only the power to make the ISA regulations, so the regulations are cited); ITEPA 2003 s308; Savings (Government Contributions) Act 2017 s1; ISA Regulations 1998 regs 2A, 2B, 4ZA, 4ZB, 12A, 12B, 22 and Schedule; GOV.UK "Salary sacrifice for employers" and "Inheritance Tax: gifts".
+  - The 20 house views gain `source:`; the new `tax/iht-gifts-within-seven-years.md` (no figures; Fyn takes them from `get_tax_information(inheritance_tax)`); `SemanticCorpusLoader` requires a source in every category; `FynSystemPrompt`: name the source of a `<knowledge>` fact.
+  - In the path: "harvest" removed from two titles (Rule 9); the savings-to-spouse entry corrected to the current rule.
+  - GOV.UK says tax on gifts is "usually paid by the estate"; the Act puts it on the recipient first (s199(1)(b)) and the estate only if unpaid (s204(8)). The entry gives both.
+- **T14, Test (2026-10-12):** `SemanticCorpusContentTest`, `SemanticCorpusLoaderTest`, `FynContextAssemblerKnowledgeTest` and `FynSystemPromptTest` new cases red first (the real corpus also failed to load once on a quoting error in a source, fixed). `PromptOverlayGoldenMasterTest` recaptured: sources in the knowledge headings and the corrected entry only. 43 passed, 1 skipped.
+- **T14, Dev (2026-10-12):** csjones pulled `66ae675bc`; caches cleared.
+- **T14, Dev walk (2026-10-12, as Pat 506):**
+  1. Web 1440 (conversation 617): "Rules only, nothing to record. If I gave my son a large cash gift and died four years later, who would pay the Inheritance Tax on that gift?" got: the gift uses the band first; "Your son, as the recipient, is liable … under section 199(1)(b) of the Inheritance Tax Act 1984"; the personal representatives under s204(8) if unpaid twelve months after the end of the month of death; taper relief reduces the tax on the gift, not its value (#22929). Shot `T14-01-gift-tax-who-pays-web-csjones.png`.
+  2. /m 390 (conversation 616): "Rules only. How does taper relief work on a gift if someone dies within seven years, and where does that rule come from?" got the rule and "The rule comes from Inheritance Tax Act 1984, section 7(4). The seven-year exemption is in section 3A(4)." (#22931). Shot `T14-02-taper-source-m-csjones.png`.
+  - Seen (for T15): #22929 quoted "£325,000 Nil Rate Band" without being asked; the figure is the configured band.
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;

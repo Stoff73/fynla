@@ -538,6 +538,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Walked as Pat 506: /m quoted "my bonus this year is £14,500, paid in March." from 22 messages back (#22925); on the web, a new conversation found nothing and Fyn asked instead of inventing (#22927).
           - Found: T56 (other conversations reach Fyn only through their summaries; a scope question for you).
           - Next: T14.
+        - T14 (2026-10-12, session 5) is ticked to Dev walk. Every knowledge fact names its source (each fetched on legislation.gov.uk), the loader requires one, Fyn names it, and a new entry covers gifts within seven years of death:
+          - PR #1248, dev `66ae675bc`, on csjones.
+          - Walked as Pat 506: web gave who pays with s199(1)(b) and s204(8) (#22929); /m gave taper relief with s7(4) and s3A(4) (#22931).
+          - In the path: "harvest" removed from two corpus titles; the savings-to-spouse entry corrected.
+          - Next: T15.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
