@@ -563,6 +563,14 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Found: on /m two sentences run together in Fyn's replies ("Monzo current account.Do you have …"); that is T49.
           - Found: opening /m signs the web tab out (front door lands on sign-in); that is T33.
           - Walk accounts on csjones to purge: Maya, Leo (T58); Asha, Ravi (T17); Nadia, Omar, Lena, Theo (T18); Iris (T19); plus Robin 509, Priya 510, Sanjay 511 from session 5.
+        - Where we stopped (2026-10-12, session 7):
+          - **T20 ticked to Dev walk:** one form per person named in a message (P8). Two PRs: #1272 (`c9cefb517`), the queue of further records, in chat and at the walk's one-per-save form steps; and #1273 (`2347b09ba`), found on the walk, which gives each capture form its own ids (a second form of the same kind named and focused the first form's inputs).
+            - Walked on csjones: web, two children (Robin 509); /m, two parents (Robin); /m and web, two accounts typed at the setup bank step (Tom 522, Ellie 523).
+            - The setup walk's own children step: **I COULD NOT TEST THIS** as a user (nothing reaches the journey path today). Covered by `OneFormPerPersonTest`.
+          - DECISION (CSJ): approve the T20 wording: "There's a form for each of the N you told me about. I've filled in the first — check it, add anything missing and save, and the next one opens." and "Here's the next one, filled in — check it, add anything missing and save."
+          - Found: T49 is on web too (the loop question "savings.That's the Free plan's limit").
+          - Walk accounts to purge: Priya 521, Tom 522, Ellie 523 (T20), plus the session 6 list.
+          - Next: T21 (the self-employed sentence says profit, M4).
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.

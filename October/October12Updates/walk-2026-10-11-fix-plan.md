@@ -88,7 +88,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T17 | ~~Typed facts kept and later forms pre-filled; children open the dependants form~~ **Narrowed (2026-10-12, session 6):** F2, F11's spouse answer and F21 were typed at bubble steps, which T58 now locks; nothing to park. What remains: a typed answer at a form step always opens the form filled in (F11, #3836) | F2, F11, F16, F21 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T18 | The cap is checked when a section starts; the at-cap reply is in words | F10, F9 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T19 | "No mortgage" ticks the No mortgage box | M3, Q2 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T20 | One form per person named in a message | P8 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T20 | One form per person named in a message | P8 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T21 | The self-employed sentence says profit | M4 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T22 | Normal registration opens on "Which of these do you have?" with the first-name greeting (section 6) | your change | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T23 | Save Tax report only for Save Tax arrivals; others end on their actions; arrival record corrected (10 rows); iOS `/actions` link (section 6b) | your change | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -113,7 +113,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T45 | The write router files "Change my retirement income target …" as a `goal` (the goal keyword "target" wins over the `retirement_goals` wording), so the capture is opened for the wrong record type. Found on the T4 walk (#22779, #22786); the capture model still used `capture_retirement_goals` | T4 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T46 | Fyn's own arithmetic on the user's figures is wrong: /m Q7 gave "about £478 a month" where 5% a year compounded monthly over 228 months needs £492.89 to build £186,975. Fyn has no calculation tool (first T5 walk, 2026-10-12, conversation 592) | T5 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T47 | Fyn's answer printed a formula as raw LaTeX (`\\(\\frac{…}\\)`) on /m (first T5 walk, conversation 592) | T5 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| T49 | On /m, Fyn's reply paragraphs run together with no space or break ("£5,800.Your recorded…"), T48 Dev walk, Rory 504 | T48 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T49 | On /m, Fyn's reply paragraphs run together with no space or break ("£5,800.Your recorded…"), T48 Dev walk, Rory 504. **Also on web (T20 walk, 2026-10-12):** the bank loop question at the Free limit is stored with a paragraph break (`"…Nationwide easy access savings.\n\nThat's the Free plan's limit…"`, user 521) and both web and /m render it as "savings.That's" (shots `T20-03`, `T20-12`) | T48 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T50 | The what-if comparison is £0 for every figure (T7 walk, scenarios 1 and 2, Alex 502). `WhatIfScenarioService::extractMetrics` reads keys the agents do not return, so every figure defaults to 0; the `pension_contribution` override does nothing (`applyOverrides`); and the user's own row is saved mid-calculation, then reverted. Fyn tells the user the comparison shows £0 | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T51 | A Free user can create a paid-plan what-if scenario through chat (`create_what_if_scenario` has no tier check; the API route is gated by `CheckSubscription` `what_if`), then is sent to the paid-plan teaser (T7 walk, Alex 502) | T7 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T52 | On a capture failure the screen shows the model's own sentence, but the saved reply (History, reload) is the composed failure text, so the two differ ("There isn't a saved goal to delete, so your round-the-world trip goal remains unchanged" live vs "You don't have a goal saved, so there's nothing to delete." saved; T8 walk #22842, #22845) | T8 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -655,6 +655,38 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   1. Web 1440, fresh Iris Walk (`slaterjoneschris+t19web@gmail.com`): Full-time, No, Property, work form, "Okay"; at "Now your property." typed Brett's #3920 words: the form opened "I've filled in what you told me" with Home, Value 400000, **No mortgage ticked** (amount box disabled), Individual (shot `T19-03-web-no-mortgage-ticked-csjones.png`); Save gave "Home worth £400,000, no mortgage, individual." and net worth £400,000 (shot `T19-04`).
   2. /m 390, the same account: resume "Continue", "Yes, add another"; typed Brett's Q2 words "A holiday flat in St Ives, Cornwall, worth £210,000, no mortgage, in my name only …": Second home, 210000, **No mortgage ticked**, Individual (shot `T19-06-m-no-mortgage-ticked-csjones.png`); Save gave "Second home worth £210,000, no mortgage, individual.", then the property limit step (T18) (shot `T19-07`).
 - **T19, walk account on csjones to purge:** Iris Walk (`slaterjoneschris+t19web@gmail.com`, `Password1!`).
+- **T20, evidence read first (2026-10-12, session 7, production):** conversation 1032, user 812. #3977 "Please add my two children: Maya, who is 11, and Arjun, who is 8. They both depend on me and Dev." was typed in chat after onboarding (the write classifier's `dependant` route, section 8), not at a bubble step, so T58 does not cover it. #3978's `capture_form_values` held `_lead` = {first_name: Maya, relationship: child} only; Arjun was dropped until #3981 "You missed Arjun". Live.
+- **T20, Code (2026-10-12):** #1272 (`c9cefb517`), branch `fix/t20-one-form-per-person`.
+  - `TypedFormFill` reads one entry per new record on a blank form. The first entry fills the form, and the rest come back as its `queue`. A form holding a saved record never takes a list.
+  - The queue rides on the form's message (`capture_form_queue`). Saving the form opens the next one, filled in: in chat via `handleCreateFormTurn`, and at the setup walk's one-record-per-save form steps via `openQueuedWalkForm` (`FORM_LOOP_STATES`), in place of "another?".
+  - Past the Free limit, the limit is said instead.
+  - Only the newest form is open on web (`AiChatPanel.vue` `latestCaptureFormIndex`) and /m (`onboardingChat.js:405`), so the forms come one at a time and there is no frontend change.
+  - In the path: the limit sentence has one home, `OnboardingStateMachine::freeLimitSentence` (it was written twice in the director, tech debt from session 6).
+- **T20, Code, walk fix (2026-10-12):** #1273 (`2347b09ba`), branch `fix/t20-form-ids-per-instance`. The web walk showed Arjun's text boxes with no accessible name. `captureFormState.js` `inputId` was `fyn-form-<kind>-<field>`, so a second form of the same kind repeated the first form's ids: its labels named the first form's inputs, and focusing an opened kind landed there. The shared mixin (web and /m) now numbers each form.
+- **T20, Test (2026-10-12):**
+  - Backend: `tests/Feature/Onboarding/OneFormPerPersonTest.php` (3 tests: chat, a refused save keeps the queue, the walk's dependants step) and 3 new tests in `TypedFormFillTest`. All were red first (array offset on null; `filledPrompt` undefined; prompt rule absent), then 15 passed. Touched-path files: 381 passed.
+  - Frontend: a two-form test in the web `tests/frontend/components/Fyn/FynCaptureForm.test.js` and the /m `resources/mobile/components/__tests__/FynCaptureForm.spec.js`. Both were red first, then 48 passed. Chat panel and /m chat specs: 73 passed.
+- **T20, Dev (2026-10-12):** csjones `git pull` to `c9cefb517`, then `2347b09ba`. Both bundles were built at 22:33 BST from the #1273 tree (`resources/` equal to dev) and uploaded with rsync, no `--delete`. Cache clears were blocked by the permission check; no config, route or view changed.
+- **T20, Dev walk (2026-10-12):**
+  1. Web 1440, chat, Robin 509, after the bundles, New conversation: "Please add my two children: Zara, who is 6, and Leo, born 3 May 2022, no disability. They both depend on me."
+     - Zara's form opened: "There's a form for each of the 2 you told me about…" (shot `T20-04` is the pre-bundle run with Maya and Arjun).
+     - Filled the date and No, then Save: "Saved — My child Zara was born on 20 January 2020." Then Leo's form opened filled in (Leo, 2022-05-03, No), with labelled boxes (shot `T20-05`).
+     - Save: saved, and nothing more opened (shot `T20-06`). Rows 704 and 705.
+  2. /m 390, chat, Robin 509: "Please add my mum June, born 1 February 1950, and my dad Ken, born 9 July 1948. They both depend on me."
+     - June's form opened as a parent, filled in (shot `T20-07`).
+     - Save opened Ken's form, filled in (shot `T20-08`). Save: rows 706 and 707 (shot `T20-09`).
+  3. /m 390, setup walk, fresh Tom 522: Full-time, No, Bank account and Savings account, work form, Okay. At "Now your bank and savings accounts." typed "I have two easy access savings accounts: Nationwide with £8,000 at 4.1% and Chase with £3,000 at 4.5%".
+     - Nationwide's form opened (shot `T20-10`).
+     - Save opened Chase's, the same kind, with labelled boxes, in place of "another?" (shot `T20-11`).
+     - Save went to the loop step with the Free limit (step `campaign_bank_accounts_more`; shot `T20-12`).
+  4. Web 1440, setup walk, fresh Ellie 523: the same steps with Marcus £6,500 at 4.3% and Santander £2,000 at 3.9% (shots `T20-13`, `T20-14`, `T20-15`). Both were saved, and the step went to `campaign_bank_accounts_more`.
+  5. Before the bundles, web 1440, fresh Priya 521 typed a Monzo current account and a Nationwide easy access account (shots `T20-01` to `T20-03`), and Robin typed Brett's #3977 word for word. Maya was saved, then Arjun's form opened; that run found the id defect fixed in #1273.
+  - **I COULD NOT TEST THIS** as a user: the setup walk's own children step (`base_dependants_detail`). Normal registration runs the Save Tax walk (T23), which never asks about children, and nothing a user can click reaches the journey path today. It is covered by `OneFormPerPersonTest` only. The same queue code was walked at the bank step (walks 3 and 4).
+- **T20, wording for CSJ's approval:** "There's a form for each of the N you told me about. I've filled in the first — check it, add anything missing and save, and the next one opens." and "Here's the next one, filled in — check it, add anything missing and save." (`CaptureForms::filledPrompt`, `FILLED_NEXT_PROMPT`).
+- **T20, Found (not fixed):**
+  - The save read-back capitalises mid-sentence: "Saved — My child Zara was born on 20 January 2020." (`handleCreateFormTurn`, as on production #3980). It reads the form's own summary, which can start with a proper noun, so it was left as it is.
+  - T49 is on web too (see T49's row).
+- **T20, walk accounts on csjones to purge:** Priya Sandhu 521 (`slaterjoneschris+t20web@gmail.com`), Tom Walk 522 (`+t20m`), Ellie Walk 523 (`+t20web2`), all `Password1!`. Robin 509 now holds Maya, Zara, Leo, June and Ken (test rows).
 - **T58, walk accounts on csjones to purge:** Maya Walk and Leo Walk (`slaterjoneschris+t58m@`, `+t58web@gmail.com`, `Password1!`).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
