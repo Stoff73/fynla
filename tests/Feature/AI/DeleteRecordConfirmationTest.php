@@ -219,7 +219,21 @@ it('refuses a delete preview for a record that does not exist, and tells Fyn to 
     expect($result['error'] ?? null)->toBeTrue()
         ->and($result['error_type'] ?? null)->toBe('not_found')
         ->and($result)->not->toHaveKey('confirmation_token')
-        ->and($result['message'])->toContain('Look the record up with your read tools');
+        ->and($result['message'])->toBe("There's no saved goal with that id, so nothing was deleted.")
+        ->and($result['instruction'])->toContain('Look the record up with your read tools');
+});
+
+it('keeps the steer for the model out of the message a user can see (T8 walk, #22838)', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('delete_record', [
+        'entity_type' => 'goal',
+        'entity_id' => 0,
+    ], $user);
+
+    expect($result['message'])->not->toContain('read tools')
+        ->and($result['message'])->not->toContain('delete_record')
+        ->and($result['message'])->not->toContain('id 0');
 });
 
 it("refuses a delete preview for another user's record", function (): void {
