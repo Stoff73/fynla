@@ -14,8 +14,8 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-04 | Dead | `getSpouse()`, no route | none | — |
 | MB-05 | Dead + Dead end | three Investment components, no routes | none (delete with MB-01) | — |
 | MB-06 | Dead | seven lifecycle mailables with no campaign | planned or abandoned | pending |
-| MB-07 | Dead | `RiskRecalculationObserver` + job never wired | delete, or was the queued path intended | pending |
-| MB-08 | Dead (route side) | 25 orphan route rows; dossier at `docs/app-map/reports/mb-08-orphan-routes.md` | household routes: wire up or retire the sold capability; persona list: keep as probe or delete | pending (22 delete, 1 keep) |
+| MB-07 | Dead | `RiskRecalculationObserver` + job never wired | delete, or was the queued path intended | withdrawn 2026-10-12 — wrong when raised: the class is the base of seven registered risk observers (see recheck) |
+| MB-08 | Dead (route side) | 25 orphan route rows; dossier at `docs/app-map/reports/mb-08-orphan-routes.md` | household routes: wire up or retire the sold capability; persona list: keep as probe or delete | pending; corrected 2026-10-12 — `household/death-scenario` has a caller on an unlinked page (see recheck) |
 | MB-09 | Dead | 56 Vue public page copies blocked by the router guard; PHP pages are canonical | confirm and delete the Vue copies | pending |
 | MB-10 | Does not make sense | six mock-up routes live unguarded | keep, guard, or delete | pending |
 | MB-11 | Does not make sense | 4 unreferenced and 12 one-off artisan commands | prune or record | pending |
@@ -30,7 +30,7 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-20 | Broken | web restore modal never shows the MFA field | none (fix) | fixed 2026-09-14, branch `mb-18-20-m-login-mfa-restore` |
 | MB-21 | Broken | wrong MFA or recovery code bounces the user with no message | 422 for wrong codes, or allowlist the endpoints | pending |
 | MB-22 | Broken (layout) | privacy toggle under the open Fyn panel at 1440 px | none (fix) | — |
-| MB-23 | Broken | paused onboarding user's next message hits the director with no step; web shows nothing | route by step not conversation source, or new conversation on pause | pending |
+| MB-23 | Broken | paused onboarding user's next message hits the director with no step; web shows nothing | route by step not conversation source, or new conversation on pause | fixed 2026-09-19, `fe1fddee7` (#914); confirmed 2026-10-12 |
 | MB-24 | Broken | `/m` "Something else" at the front door answers "This step cannot be skipped." | none (fix the bubble id routing) | fixed 2026-09-14, branch `mb-24-front-door-something-else` |
 | MB-25 | Dead end | paused journey/focus onboarding has no way back in on any surface | should paused users be offered Continue, and where | pending |
 | MB-26 | Dead end | web never offers onboarding to a returning user who registered but never started; `/m` does | none (align web with `/m`) | fixed 2026-09-14, branch `mb-26-web-onboarding-needs-start` |
@@ -45,23 +45,23 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-35 | Does not make sense | wizard copy and options: American "Dependents", marital status omits civil partnership | none (fix) | fixed 2026-09-14, branch `mb-35-wizard-copy-civil-partnership` |
 | MB-36 | Does not make sense (adjacent: Savings) | `/m` savings screen says expenditure is missing while computing a target from it | none (Savings module fix) | — |
 | MB-37 | Broken | web savings verify page shows no accounts | which page the savings verify should open | pending |
-| MB-38 | Does not make sense + Duplicate | Pension Check hardcodes income bands in three places; no income context or cross-check | extend to Pension Check, or accept the drift | pending |
+| MB-38 | Does not make sense + Duplicate | Pension Check hardcodes income bands in three places; no income context or cross-check | extend to Pension Check, or accept the drift | pending; partly fixed 2026-09-29 (`8e0c4cea9`, band labels) — income stamp and mismatch challenge still Save Tax only |
 | MB-39 | Does not make sense | four non-campaign pages framed and routed as campaigns | retire them, or build the campaigns | pending |
-| MB-40 | Does not make sense | Save Tax headline counts saving lines the page hides | show every line, or exclude them from the total | pending |
+| MB-40 | Does not make sense | Save Tax headline counts saving lines the page hides | show every line, or exclude them from the total | pending; narrowed 2026-09-29 — the two spouse lines are gone, the ISA line is still counted and not shown |
 | MB-41 | Dead (route side) | public tax-allowances endpoint serves mock-ups only; mislabelled threshold | delete, or wire the live page to it | pending |
 | MB-42 | Dead (route side) | tax-strategy calculate endpoint has no caller | delete, or restore the sliders | pending |
 | MB-43 | Dead | charitable-giving state remnants | delete the remnants, or restore a giving section | pending |
 | MB-44 | Dead end | declining the Save Tax consent gate has no way back; Actions tile can never show | allow Save Tax re-entry, or drop the tile and comment | pending |
-| MB-45 | Dead end + Duplicate | Tax Strategy next-step routes missing on web; key drift on `/m` and iOS; two list sources | which list is canonical | pending |
+| MB-45 | Dead end + Duplicate | Tax Strategy next-step routes missing on web; key drift on `/m` and iOS; two list sources | which list is canonical | fixed web and `/m` 2026-10-09, `19fbd433a`; iOS map still drifts (iOS deferred) |
 | MB-46 | Does not make sense (Rule 2) | "£40,000 of unused tax allowances" hardcoded in the corpus prompt | none (compute from tax config) | — |
 | MB-47 | Broken | web pages under the chat not refetched after a Fyn write (extends MB-27) | none (refetch) | fixed 2026-09-14, branch `mb-47-fyn-navigation-refresh` |
 | MB-48 | Broken | spouse verify page shows nothing for a non-working spouse | none (return household figures without income) | fixed 2026-09-14, branch `mb-48-spouse-verify-household` |
 | MB-49 | Does not make sense | natural "X, not Y" correction produced no write; 6.5-minute edit turn | accept as model behaviour, or add a deterministic correction parser | pending |
 | MB-50 | Does not make sense | `/m` expenditure verify shows a derived total, never the entered figure | none (show the entered figure) | fixed 2026-09-14, branch `mb-50-m-expenditure-entered-figure` |
-| MB-51 | Does not make sense (copy) | "details page" labels, "workplace pension we covered" for the self-employed, neutral DOB wording for Pension Check, "bank and savings" for savings-only | none (fix the strings and key lookup) | — |
+| MB-51 | Does not make sense (copy) | "details page" labels, "workplace pension we covered" for the self-employed, neutral DOB wording for Pension Check, "bank and savings" for savings-only | none (fix the strings and key lookup) | partly fixed — (a) and (b) done; (c) and (d) still open (see recheck) |
 | MB-52 | Duplicate drift | `/m` collapses multi-paragraph advice into one paragraph | none (render breaks on `/m`) | — |
 | MB-53 | Does not make sense | Pension Check re-entry re-asks the pensions section | add data-presence skips, or accept the repeat | pending |
-| MB-54 | Does not make sense | Save Tax workplace-pension capture drops the pot value and provider | add the pot loop to Save Tax, or extend the prompt | pending; cause corrected 2026-09-14 — the model refused and the deterministic backstop wrote the degraded row; the backstop now keeps the provider and reads a stated pot (branch `mb-56-58-pension-capture`) |
+| MB-54 | Does not make sense | Save Tax workplace-pension capture drops the pot value and provider | add the pot loop to Save Tax, or extend the prompt | fixed 2026-09-15, `347fbe88b` (Save Tax pot-value loop); confirmed 2026-10-12. Earlier: cause corrected 2026-09-14 — the model refused and the deterministic backstop wrote the degraded row; the backstop now keeps the provider and reads a stated pot (branch `mb-56-58-pension-capture`) |
 | MB-55 | Does not make sense | Save Tax sign-in link drops the campaign; Pension Check's keeps it | none (align with Pension Check, subject to MB-44) | — |
 | MB-56 | Dead end | Pension Check pot loop: a £0 pot re-asks forever; "not sure, skip it" records the skip then stalls | none (treat a stated £0 as answered; advance on the recorded skip) | fixed 2026-09-14, branch `mb-56-58-pension-capture` |
 | MB-57 | Broken (data) | a bare figure answered to the pot question was written to `users.annual_employment_income` (£62,000 became £500) | none (the pot turn must not offer, or must scope, `update_profile`) | fixed 2026-09-14, branch `mb-56-58-pension-capture` |
@@ -534,3 +534,53 @@ Evidence: user 92, conversation 201, `campaign_occupational_scheme`: "I pay 5%, 
 What is wrong: the model called `create_pension` twice for one scheme, the second time with the provider split into a scheme name and a truncated provider.
 Suspected impact: a duplicate pension in the retirement projection (double counting once both have values) and an extra pot-loop turn.
 Decision needed: no — one `create_pension` per scheme on the occupational turn (dedupe on employer + provider, or reject a second create in the same turn); adjacent to MB-54.
+
+## Recheck 2026-10-12 (commit `f00076906`, `dev`)
+
+Every open entry was checked against the code at `f00076906`, 1,111 commits after the stamp of the 02b map. The route table came from `php artisan route:list --json` (810 routes). Tests run this recheck: `PausedUserMessageRoutesToAdviceTest`, `StrategyPlanComposerTest`, `PensioncheckStatesTest` — 102 passed (267 assertions). Nothing was fixed in this recheck. "Not rechecked" means the entry needs a live walk, and none was done.
+
+| Id | Now | Evidence at `f00076906` |
+|---|---|---|
+| MB-01 | Open. 150 unreachable of 863 | A new scratch sweep follows imports by resolved path plus component tags, with comments stripped. Run against `28194e804`, it finds the 153 in Appendix A plus 5 more: the September sweep matched by file name, so `views/Planning/WhatIfScenarios.vue` hid `components/Protection/WhatIfScenarios.vue` (and its `ScenarioBuilder`), and `Estate/NetWorth.vue` (with `NetWorthWaterfallChart`) was hidden the same way. The true September figure was 158. Since then: 6 deleted (`Protection/GapAnalysis`, `Protection/ProtectionOverviewCard` in `14bc8d55a` 2026-09-29; `Protection/RecommendationCard`, `ScenarioBuilder`, `WhatIfScenarios` in `d2b6bf5da` 2026-10-06; `UserProfile/DomicileInformation` in `16844317e` 2026-09-26); 3 became reachable (`Estate/GiftForm`, `GiftingStrategy`, `LifePolicyStrategy`, via `ed7dab7ae` 2026-09-28); 1 newly unreachable (`utils/emergencyRunway.js`, its last importer removed in `d05faad5f` 2026-10-01). |
+| MB-02 | Open | `store/modules/estate.js:282`, `services/estateService.js:22-23`; no `estate/analyze` route; no dispatcher |
+| MB-03 | Open | `services/savingsService.js:115,125,135`; `store/modules/savings.js:296-302`; no route; no caller |
+| MB-04 | Open | `services/userProfileService.js:195-196`; only `api/user/spouse/financial-commitments` exists |
+| MB-05 | Open | The three components are still present with no importer; neither route prefix exists |
+| MB-06 | Open | `config/lifecycle.php:13-14` registers the two campaigns only; the seven mailables have zero constructor references in `app/` |
+| MB-07 | **Withdrawn: wrong when raised** | `RiskRecalculationObserver` is the base class of `UserRiskObserver`, `FamilyMemberRiskObserver`, `SavingsAccountRiskObserver`, `InvestmentAccountRiskObserver`, `DCPensionRiskObserver`, `PropertyRiskObserver` and `LifeEventRiskObserver` (each `extends RiskRecalculationObserver`, unchanged since `1fb394f82`/`93c6cf134`, January–February). All seven are registered in `EventServiceProvider.php:107-125`. They call `dispatchRecalculation()`, which dispatches `RecalculateRiskProfileJob` (`RiskRecalculationObserver.php:18-36`). The queued path is live, and `app/Services/CLAUDE.md:67` is correct. Overview § 2.10 and § 3 are corrected. |
+| MB-08 | Open, corrected | All 25 route rows are still registered. Correction to dossier row 9: `GET api/household/death-scenario` has a caller. `components/Dashboard/DeathOfSpouseScenario.vue:220` → `services/householdService.js:27` (path built from `API_BASE = '/household'`, which the dossier's `git log -S'household/'` could not see). The component renders in `views/Planning/WhatIfScenarios.vue:45,57` at `/planning/what-if/death-of-spouse` (`router/index.js:1177-1179`, since `4ab950e73` 2026-03-12). No link anywhere reaches that page (grep: only its own breadcrumb), so it opens only by typing the URL. `household/net-worth` and `household/optimisations` have no caller (their components `HouseholdNetWorth.vue` and `SpousalOptimisations.vue` are in the MB-01 set). The household decision therefore covers a page that exists but is never linked. |
+| MB-09 | Open | 55 of the 56 Vue copies remain (`views/Help.vue` deleted); guard at `router/index.js:1714-1726` |
+| MB-10 | Open | `routes/web.php:662-702,752`, no environment guard |
+| MB-11 | Open | All 16 named commands are still registered |
+| MB-12 | Open | No production caller for any of the three (`CurrencyDisplayService` is named only in `app/Services/Stores/SavingsStore.md:154`) |
+| MB-13 | Open | `app/Http/Kernel.php:158-160` |
+| MB-14 | Open | `PushNotificationService.php:37-47`; `notification_preferences` columns this recheck exclude `savings_maturity_alerts`, `savings_rate_alerts`, `isa_allowance_warnings` and `protection_alerts` |
+| MB-15 | Open | `via()` returns `['database']` at `GiftExemptionNotification.php:27`, `TrustAnniversaryNotification.php:25`, `CompanyFilingDueNotification.php:37`; the only `notifications` routes are the preferences pair |
+| MB-16 | Open | `EventServiceProvider.php:70`; `User.php:7` still comments out `MustVerifyEmail` |
+| MB-17 | Open | `resources/mobile/views/NotificationPreferences.vue` has no `lifecycle_` key; web has both (`NotificationPreferences.vue:89-90`) |
+| MB-21 | Open | `resources/js/services/api.js:107-111` allowlist still lacks `/auth/mfa/*`; `MFAController.php:249,265` still answer 401 |
+| MB-22 | Not rechecked | Layout; needs a 1440 px walk with the Fyn panel open |
+| MB-23 | **Fixed 2026-09-19** | `fe1fddee7` (#914): `ConversationModeResolver.php:23-31` sends a `fyn_onboarding` conversation to the director only while the user has a step. `PausedUserMessageRoutesToAdviceTest` passed this recheck. |
+| MB-25 | Open | `AiChatController.php:550-558` resumes a parked step only when `onboarding_fyn_path === 'campaign'` |
+| MB-29 | Open | `OnboardingService.php:576` still calls `PropertyNormaliser` with no import |
+| MB-30 | Open | All seven routes are still registered |
+| MB-31 | Open | `OnboardingWizard.vue` still names the unregistered step components |
+| MB-32 | Open | Three writers: `LifeStageService.php:42`, `JourneyStateService.php:75`, `OnboardingService.php:87` |
+| MB-34 | Open | `constants/lifeStageConfig.js`: 44 `£` literals (was 46) |
+| MB-36 | Open; for the Savings map (06) | The card is the seeded action `emergency_fund_no_data` (`SavingsActionDefinitionSeeder.php:212-222`), evaluated at `SavingsActionDefinitionService.php:3716`. Not re-driven. |
+| MB-37 | Open (route unchanged) | The savings verify still opens `/savings` (`OnboardingStateMachine.php:418`). Page content not re-driven. |
+| MB-38 | **Partly fixed 2026-09-29** | `8e0c4cea9`: `pensioncheck.php:16` reads `FunnelIncomeBand::pageLabels()`; the plan page's `INC_LABEL` and the recap literals are gone. Still open: `AuthController.php:192` stamps income context only for `savetax`, and `detectIncomeFunnelMismatch()` returns early for other campaigns (`OnboardingChatDirector.php:3875`). |
+| MB-39 | Open | `RedirectPhoneToMobile.php:44`; `router/index.js:266-284` |
+| MB-40 | **Narrowed 2026-09-29** | `b246fe774`, `93d537618`: the `spouse_psa` and `spouse_starting_rate` lines no longer exist (`SaveTaxEstimateService.php:113-117`). Still open: the `isa` line is summed into `savings_total` (`:92-105`, `:131`) and has no callout (`savetax-plan-v4.js:40-45`, "ISA is intentionally absent"). |
+| MB-41 | Open | `TaxAllowancesController.php:93`; callers are only the v2/v3 mock-up scripts and the shadowed `SaveTaxCampaignPage.vue` |
+| MB-42 | Open | Route registered; `services/taxStrategyService.js:12` `recalculate` has no dispatcher on any client |
+| MB-43 | Open | `OnboardingStateMachine.php:156`; `capture_charitable_giving` still in `AdviceFyn.php:188` |
+| MB-44 | Open | `config/onboarding.php:91` savetax `reentry => false` |
+| MB-45 | **Fixed on web and `/m` 2026-10-09** | `19fbd433a`: the server names each next step (`rec.next_step.destination`). Web resolves it at `StrategyRecommendationList.vue:172` and `/m` at `TaxStrategy.vue:229-234`; both read `composed_plan.items` (`StrategyRecommendationList.vue:130`, `TaxStrategy.vue:167`). `StrategyPlanComposerTest` passed this recheck. iOS keeps its own map with the old `dividend_allowance` key (`TaxStrategyView.swift:484-494`); iOS deferred. |
+| MB-46 | Open | `fyn-onboarding.v1.md:446` |
+| MB-49 | Not rechecked | Model behaviour; needs a live verify-edit turn |
+| MB-51 | **Partly fixed** | (a) labels for `state_pension` and `retirement_goals` added (`OnboardingStateMachine.php:1707-1708`); (b) "Beyond the workplace pension we covered" no longer appears in the corpus or code. Still open: (c) `buildCampaignDobPrompt()` (`:2452-2458`) tests funnel `assets` for `pension` while Pension Check stores `pensions` (the comment at `:2477-2481` says so), so Pension Check users still get the neutral wording; (d) `:2586-2587` label both `bank` and `savings` "bank and savings accounts". |
+| MB-52 | Unverified | The `/m` renderer turns every newline into `<br>` (`resources/mobile/utils/fynText.js:20`, lists reworked in `a2dcfe534`/`1a9e38b4d` 2026-10-09), so a `\n\n` should now show as a break. Whether the advice bubble goes through this renderer was not traced, and it was not re-driven. |
+| MB-53 | Open | The Pension Check `pensions` section still has `'skip' => null` (`OnboardingStateMachine.php:396`) |
+| MB-54 | **Fixed 2026-09-15** | `347fbe88b`: the Save Tax workplace step routes into the pot-value loop (`OnboardingStateMachine.php:2861`). `PensioncheckStatesTest` passed this recheck. |
+| MB-55 | Open | `savetax-plan-v4.js:202` links `/login?from=savetax`; `Login.vue:251-252` reads only `redirect` |
