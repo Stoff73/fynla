@@ -435,6 +435,26 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
     - Where we stopped (2026-10-08 s4): RELEASED as release z (#1142, main `91121fe74`, ~10:20 BST): walked fynla.org web 1440 + /m 390 with Save Tax walk account (walk-z, £60,000, Aviva 10% through pay): "How did you work out the £3,700 pension figure?" (web) and "Where does the £3,700 in my pension action come from?" (/m) both gave £60,000 → £54,000 → £50,270 → £3,730 → £3,700 → £1,480; account purged. Web said "the working shown on the card" (the card does not show it): fixed in #1143 (walked csjones web), merged to main as release PR #1144 (main `63b1d63b5`), NOT YET DEPLOYED: CSJ runs `release-prod-2026-10-08-z2.sh` (session aa7bbf85 scratchpad), then walk fynla.org web + /m with a new Save Tax walk account (same set-up), purge it, patch notes (today's file `October/October8Updates/`), cross off item 18.
     - Released z2 (2026-10-08 ~10:55 BST, main `63b1d63b5`, file checksum matches; no new errors). Walked fynla.org with walk account (walk-z2, purged): /m "Where does the £3,700 in my pension action come from?" gave the working (£6,000 → £54,000 → £50,270 → £3,730), no mention of the card. Web "How did you work out the £3,700 pension figure?" gave the exact working but STILL opened "The £3,700 figure comes directly from the working shown on the card" (on csjones the same build did not). The instruction alone is not reliable: the grounding frames everything as "the card" ("Explain that action from the card below", "When the card below has working"). NEXT: reframe `FynContextAssembler::actionGrounding` so the working is labelled as the plan's own (field `how_the_plan_worked_it_out`, intro "the action and how the plan worked out its figure"), test, csjones walk web + /m (several asks), release, fynla.org walk. Item 18 stays open until then.
     - Found (2026-10-08, PRODUCTION ERROR, NOT fixed, not this item): "Generating retirement plan failed — Undefined variable $potentialSaving" (`RetirementActionDefinitionService::evaluateHighPensionFundFees`, line 2746), twice on fynla.org 2026-10-08 (10:15, 10:19). Introduced by `8adf7e213` (1 October, released #1047): it removed `$potentialSaving` (a typed-in 0.25% index-fund figure) but the decision-trace sentence still reads it, so the retirement plan fails for anyone whose pension holds funds charging above 0.5%. Fix next: drop the unsourced saving sentence from the trace; test; own PR and release.
+    - Found (2026-10-12, Brett's production walk of 11 October, 63 findings, PLANNED, nothing fixed yet): `October/October12Updates/walk-2026-10-11-fix-plan.md`. Each finding has a verdict and code/production evidence, plus fix batches B1–B7. CSJ's normal-registration start is mapped there (open on the bubbles, greet by the registered first name, then employment, spouse and spouse income).
+      - CSJ 2026-10-12, mapped in section 6b: the end-of-onboarding Save Tax report is only for Save Tax arrivals; everyone else ends on their actions.
+      - The chat currently stamps every registrant as a Save Tax arrival (`OnboardingChatDirector.php:2755`): 10 on production, 7 mid-onboarding.
+      - CSJ 2026-10-12 rules for carrying out the plan (NON-NEGOTIABLE, plan section 0):
+        - R1: NO SUB-AGENTS.
+        - R2: walk as a user, clicking links, no made-up URLs.
+        - R3: six boxes per task, each ticked with evidence.
+        - R5: review, test and walk only the changes; one full test run at the end (T43).
+      - Where we stopped (2026-10-12, session 1, context clear):
+        - T0 and T1 are ticked to Dev walk:
+          - csjones runs dev `cc2ee4437` with both bundles rebuilt;
+          - T1 is PR #1209 (Fyn receives the user's exact words).
+        - Next is T2: one question test (`QuerySchemas::isAdviceShaped`, extended) in front of every gate that runs before the model.
+        - Prod boxes for T0 and T1 wait for CSJ's release.
+      - Headline causes:
+        - Fyn's copy of every message loses "?", "@" and "+" (`FynContextAssembler.php:347`);
+        - pre-model gates and the advice `QueryClassifier` file questions as writes, navigation or data entry ("Show the working" matches navigation);
+        - `capture_*` writes are marked not landed;
+        - workplace pensions saved through Fyn have no `scheme_type` (9 of 25 on production), so the retirement plan says 0.0% is paid in.
+      - F5/P3/F6/M8/Q8 overlap this item (strategies publishing their working).
 19. [ ] **"Ask Fyn about this" from a card is swallowed while onboarding is paused** (the director greets "Welcome back… continue?" and never answers; csjones user 419).
 20. [ ] **/m cannot mark an emergency fund account,** and Fyn cannot set `is_emergency_fund`.
 21. [ ] **Savings cards that duplicate tax actions** can sit on one list (`psa_breached` / `cash_isa_recommended` vs `isa_topup_vs_psa`, `spouse_psa_shift` vs `savings_to_spouse`, `child_no_jisa` vs `junior_isa`, `excess_cash_pension` vs `pension_tax_relief`).
