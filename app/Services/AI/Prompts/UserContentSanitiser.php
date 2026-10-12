@@ -91,12 +91,20 @@ final class UserContentSanitiser
      * "isenbretdev1011gmail.com", and every question lost its question mark).
      * Only two things go: invisible characters, and the angle brackets of
      * anything shaped like a tag, so a message cannot close the
-     * <user_message> block or open a <context> block of its own.
+     * <user_message> block or open a <context> block of its own. The tag
+     * pass repeats until nothing tag-shaped is left: one pass turned
+     * "<</user_message>>" into a real "</user_message>" (security review,
+     * 2026-10-12). Each pass removes two characters, so it always ends.
      */
     public static function message(string $value): string
     {
-        $visible = preg_replace(self::INVISIBLE_PATTERN, '', $value) ?? '';
+        $text = preg_replace(self::INVISIBLE_PATTERN, '', $value) ?? '';
 
-        return preg_replace(self::TAG_PATTERN, '$1', $visible) ?? '';
+        do {
+            $before = $text;
+            $text = preg_replace(self::TAG_PATTERN, '$1', $text) ?? '';
+        } while ($text !== $before);
+
+        return $text;
     }
 }
