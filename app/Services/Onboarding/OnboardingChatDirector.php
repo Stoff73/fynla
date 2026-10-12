@@ -389,7 +389,7 @@ final class OnboardingChatDirector
                 '',
                 strtok((string) ($pending['message'] ?? ''), "\n") ?: ''
             ));
-            if ($awaitingDetail && $pendingOriginal !== '' && $this->userAskedQuestion($pendingOriginal)) {
+            if ($awaitingDetail && $pendingOriginal !== '' && QuerySchemas::isAdviceShaped($pendingOriginal)) {
                 $awaitingDetail = false;
                 $pending = null;
             }
@@ -558,7 +558,7 @@ final class OnboardingChatDirector
         // and the step asked again; only a tap (the exact label) is a pick.
         $questionAtBubbles = $interpretation['ok']
             && ($state['turn_type'] ?? '') === 'bubbles'
-            && $this->writeIntentClassifier->isQuestion($message)
+            && QuerySchemas::isAdviceShaped($message)
             && ! OnboardingStateMachine::isExactBubbleAnswer($currentStateId, $message);
 
         if (! $interpretation['ok'] || $volunteeredRecord || $questionAtBubbles) {
@@ -2140,7 +2140,7 @@ final class OnboardingChatDirector
             return $this->emitSectionChooser($user, $conversation, $currentStateId);
         }
 
-        if ($this->writeIntentClassifier->isQuestion($message)) {
+        if (QuerySchemas::isAdviceShaped($message)) {
             $primary = $this->queryClassifier->classify($message, $currentRoute)['primary'] ?? null;
 
             return $this->handleQuestionInterruption(
@@ -2328,7 +2328,7 @@ final class OnboardingChatDirector
                 // WriteIntentClassifier::classify() short-circuits to null for
                 // any message that looks like a question (the same check that
                 // routed this message into handleQuestionInterruption in the
-                // first place — see isQuestion()/looksLikeQuestion()), so in
+                // first place — see QuerySchemas::isAdviceShaped()), so in
                 // practice this always falls back to the generic shape below.
                 // Still call it first rather than hardcoding: if that
                 // precedence ever changes, a real classification wins.
@@ -3265,7 +3265,7 @@ final class OnboardingChatDirector
         $captureDetails = [];
         $captureError = null;
 
-        $userAskedQuestion = $this->userAskedQuestion($message);
+        $userAskedQuestion = QuerySchemas::isAdviceShaped($message);
 
         // Baseline so the no-capture cleanup below removes only rows THIS
         // extraction stream persisted (its off-script conversational prose).
@@ -4561,7 +4561,7 @@ PROMPT;
             //     still stripped; and
             // (3) a question turn that captured nothing stays on this state
             //     instead of advancing (see the gate before the advance below).
-            $userAskedQuestion = $this->userAskedQuestion($message);
+            $userAskedQuestion = QuerySchemas::isAdviceShaped($message);
 
             // B-1 gap-check — track the fields dict of every fill_form the
             // LLM emitted so we can compare it to the deterministic entity
@@ -7288,19 +7288,6 @@ PROMPT;
     }
 
     /**
-     * A1 — does the user's message ask a question? Single heuristic shared by
-     * both capture handlers (delegated asset capture + grouped_extract) so the
-     * two call sites cannot drift. A literal "?" counts, and so does a leading
-     * interrogative/imperative ("explain salary sacrifice please", "what is
-     * a SIPP") — users routinely drop the question mark.
-     */
-    private function userAskedQuestion(string $message): bool
-    {
-        return str_contains($message, '?')
-            || preg_match('/^(explain|what|why|how|when|tell me|define|describe)\b/i', trim($message)) === 1;
-    }
-
-    /**
      * Detect a delegated model response that asks for a missing capture fact
      * before it attempts any write tool. This response must remain visible and
      * keep the current state parked; it is not a zero-entity completion turn.
@@ -7380,7 +7367,7 @@ PROMPT;
         // handing the model a question to record as a fact. Reuse the
         // shared A1 heuristic — if the previous user turn asked a question,
         // there is no unresolved capture attempt to complete.
-        if ($this->userAskedQuestion((string) $previousUserMessage->content)) {
+        if (QuerySchemas::isAdviceShaped((string) $previousUserMessage->content)) {
             return $message;
         }
 
@@ -7873,7 +7860,7 @@ PROMPT;
      */
     private function offerTypedAnswerForm(User $user, AiConversation $conversation, string $message, string $stateId, array $state): \Generator
     {
-        if (! isset($state['form']) || ! $this->clientSupportsForms || $this->writeIntentClassifier->isQuestion($message)) {
+        if (! isset($state['form']) || ! $this->clientSupportsForms || QuerySchemas::isAdviceShaped($message)) {
             return false;
         }
         $form = $this->walkForm($user, $conversation, $state);

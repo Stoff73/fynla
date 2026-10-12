@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Anthropic\Client;
 use App\Models\AiConversation;
 use App\Models\SavingsAccount;
 use App\Models\TaxActionDefinition;
@@ -78,4 +79,33 @@ it("names the spouse's income in Fyn's words, with no instruction meant for a fo
     // list (csjones walk 2026-10-07).
     expect(HouseholdFinancialContext::labelFor('spouse_income_amount'))
         ->toBe("spouse's total income");
+});
+
+it('answers a question that says "nothing else" instead of recording it as none (fix plan T2, F19)', function (): void {
+    // Brett, production 2026-10-11 (#3869): "… through Monzo and nothing else
+    // … would the family be ok?" was taken as "I have none of those" and four
+    // topics were recorded as declared none on his account.
+    TaxActionDefinition::create([
+        'key' => 'pension_history_test', 'source' => 'strategy', 'strategy_type' => 'carry_forward',
+        'title_template' => 'Carry forward', 'description_template' => 'Test', 'category' => 'Test', 'priority' => 'low',
+        'scope' => 'portfolio', 'what_if_impact_type' => 'tax_optimisation', 'trigger_config' => [], 'is_enabled' => true,
+        'sort_order' => 1, 'claim_tier' => 'mechanical', 'required_data' => ['pension_input_history', 'gia_holdings'],
+    ]);
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true, 'annual_employment_income' => 90000, 'employment_status' => 'employed', 'date_of_birth' => '1987-02-23']);
+    SavingsAccount::factory()->for($user)->create(['current_balance' => 100000, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'joint_owner_id' => null]);
+    app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Chat']);
+    Sanctum::actingAs($user);
+    $harness = FynStreamHarness::fake();
+    $harness->textTurn('Here is how the cover compares.');
+    $harness->bind();
+
+    $message = "I've got death in service of 4x salary through Monzo and nothing else. Dev has the Teachers' pension death grant. No income protection, no critical illness. If I died or couldn't work, would the family be ok? What cover would you look at and roughly how much?";
+    $body = $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages", ['message' => $message])
+        ->assertOk()->streamedContent();
+
+    // The turn went past the gates to the model (the answer process).
+    expect($body)->not->toContain("I won't ask about")
+        ->and(app(Client::class)->messages->calls)->not->toBeEmpty()
+        ->and($user->fresh()->onboarding_fyn_context['declared_none_keys'] ?? [])->toBe([]);
 });

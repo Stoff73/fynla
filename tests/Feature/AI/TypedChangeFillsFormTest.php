@@ -108,3 +108,21 @@ it('leaves a question about a record to the model', function (): void {
 
     Http::assertNothingSent();
 });
+
+it('leaves a request for the working about a record to the model (fix plan T2)', function (): void {
+    // Brett, production 2026-10-11 (#3973): a stated figure followed by
+    // "Is that right? Explain the working" opened an edit form. A request for
+    // the working is a question, with or without its question mark.
+    Http::fake(['api.x.ai/*' => Http::response(['choices' => [['message' => ['content' => json_encode(['forms' => []])]]]])]);
+    SavingsAccount::factory()->create([
+        'user_id' => $this->user->id, 'joint_owner_id' => null, 'institution' => 'Nationwide',
+        'account_type' => 'easy_access', 'current_balance' => 8500, 'ownership_type' => 'individual',
+    ]);
+    $id = AiConversation::create(['user_id' => $this->user->id, 'title' => 'Chat', 'status' => 'active', 'model_used' => ''])->id;
+
+    $this->withHeader('X-Fynla-Forms', '1')
+        ->postJson("/api/ai-chat/conversations/{$id}/messages", ['message' => 'My Nationwide balance is £9,200 now. Show the working for the interest it earns'])
+        ->assertOk()->streamedContent();
+
+    Http::assertNothingSent();
+});

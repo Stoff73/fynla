@@ -102,3 +102,19 @@ it('takes the answer to the duplicate guard\'s form question as about that recor
         ->and($intent['entity_type'])->toBe('savings_account')
         ->and($intent['pending_record_id'])->toBe(893);
 });
+
+it("answers Brett's request for the working instead of continuing the capture (fix plan T2)", function (string $message) {
+    // P2 and Q7, production 2026-10-11: the capture row was marked not landed
+    // and asked a question, so the next message reused the opening write
+    // intent and made three goals (#3966) or overwrote the target (#4013).
+    $conversation = conversationWith([
+        ['role' => 'user', 'content' => 'My Chase savings of £38,000 at 4.5% are in my name and I pay 40% on the interest. I am saving for a house.'],
+        ['role' => 'assistant', 'content' => 'Is the Chase account in your name only?', 'persona' => 'data_capture',
+            'metadata' => ['capture_write_landed' => false]],
+    ]);
+
+    expect(continuationIntent($conversation, $message))->toBeNull();
+})->with([
+    'P2 #3965' => "Chase is on file at 4.5%, that's £1,710 a year. Now give me the yearly tax saving for each of the three options, gift to Dev, joint, or £12,000 into my ISA, with the working.",
+    'Q7 #4013' => 'Then work it through: projected £62,894 a year at 60 against a wanted £70,373. Gap per year and per month, the extra pot that gap needs at a 4% withdrawal rate, and the monthly saving over 19 years at 5% growth that builds it. Show the working.',
+]);

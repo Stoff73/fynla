@@ -104,13 +104,17 @@ describe('WriteIntentClassifier::classify — F-6 interrogative guard', function
     });
 
     it('still accepts a clear imperative even when it contains a question word later', function () {
-        // "Add a goal" doesn't start with an interrogative prefix and has no `?`.
-        $result = $this->classifier->classify('Add a goal: where should I retire');
-        // Note: this DOES end without `?` and starts with "add" not an
-        // interrogative — so it should match. The classifier's job is to
-        // be conservative, not perfect.
+        // "when" here names the goal's time, it does not ask anything.
+        $result = $this->classifier->classify('Add a goal for when I retire');
         expect($result)->not->toBeNull();
         expect($result['entity_type'])->toBe('goal');
+    });
+
+    it('leaves a question after a colon to the answer process (fix plan T2)', function () {
+        // A clause after a colon is read as its own sentence ("Then work it
+        // through: …", Brett #4013), so "where should I retire" asks something.
+        // CSJ 2026-10-12: a question always goes to the answer process.
+        expect($this->classifier->classify('Add a goal: where should I retire'))->toBeNull();
     });
 });
 
@@ -233,5 +237,40 @@ describe('WriteIntentClassifier::classify — a section named in general words',
 
     it('still routes a savings goal to the goal', function () {
         expect($this->classifier->classify('Change my savings goal to £10,000')['entity_type'] ?? null)->toBe('goal');
+    });
+});
+
+describe('WriteIntentClassifier — a question is never a write (fix plan T2)', function () {
+    // Brett's production walk, 2026-10-11 (fix plan section 8): each asked for
+    // an answer, and a verb + entity inside the question opened a write.
+    it("leaves Brett's questions to the answer process", function (string $message) {
+        expect($this->classifier->classify($message))->toBeNull();
+    })->with([
+        'F22 #3877 (was retirement_goals via "we\'ve got")' => "I'd like to retire at 60, not 67. Dev would carry on teaching until 65. Can we afford it on what we've got, and what would I need to put away each month to make it work? Please use my actual figures.",
+        'P1 #3963 (was goal via "i pay" + "saving for")' => 'My Chase savings of £38,000 at 4.5% are in my name and I pay 40% on the interest. Dev earns £48,000 and has no taxable savings interest. Give me the yearly tax saving for three options: gift the whole lot to Dev, make it a joint account, or move £12,000 into my ISA. Show the working for each.',
+        'P7 #3973 (was spouse via "i own" + "my husband")' => "If I died tomorrow and everything I own went to my husband Dev, would there be any tax to pay on what I leave? I've been shown a figure of £3,900 on £9,750. Is that right? Explain the working either way.",
+        'Q5 #3999 (was property via "record")' => "Rules question, nothing to record. A higher-rate taxpayer gets £8,700 a year as her half of the rent on a jointly owned let flat. Her share of the interest-only mortgage interest is £4,680 a year and of the agent's fee £870. How much tax does she pay on that rent, how is the mortgage interest relieved, and would the household pay less if the other owner, a basic-rate taxpayer, held most of it? Figures please.",
+    ]);
+
+    it('does not read a write verb the user negates as a write', function (string $message) {
+        expect($this->classifier->classify($message))->toBeNull();
+    })->with([
+        "Don't record this: the flat brings in £8,700 a year in rent",
+        'Nothing to record here, the buy to let is let at £1,450 a month',
+        "I didn't ask you to save the pension, it is with Aviva",
+    ]);
+
+    it("still writes Brett's genuine additions", function (string $message, string $entity) {
+        expect($this->classifier->classify($message)['entity_type'] ?? null)->toBe($entity);
+    })->with([
+        'M6 #3946' => ['I have £60,000 in an easy access account with Marcus paying 4.3%', 'savings_account'],
+        'P8 #3977' => ['Please add my two children: Maya, who is 11, and Arjun, who is 8. They both depend on me and Dev.', 'dependant'],
+    ]);
+
+    it('does not take a request for the working as acceptance of an offer', function () {
+        $offer = 'Would you like me to help you set up that emergency fund goal now?';
+
+        expect($this->classifier->proposalAcceptanceIntent('Yes please, set it up.', $offer))->not->toBeNull()
+            ->and($this->classifier->proposalAcceptanceIntent('Yes, and show the working first', $offer))->toBeNull();
     });
 });
