@@ -181,6 +181,9 @@ final class WriteIntentClassifier
      */
     private const NEGATED_WRITE_VERB = "/\\b(?:nothing\\s+to|not\\s+to|no\\s+need\\s+to|don['\u{2019}]?t|do\\s+not|didn['\u{2019}]?t\\s+ask\\s+you\\s+to|did\\s+not\\s+ask\\s+you\\s+to)\\s+(?:add|create|save|record|log|register)\\b/u";
 
+    /** Asking Fyn to invite the spouse or link accounts with them (T9). */
+    private const SPOUSE_INVITE_VERB = '/\\b(?:invite|invitation|link\\s+(?:up|my\\s+account|our\\s+accounts|accounts))\\b/u';
+
     /**
      * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
      */
@@ -202,6 +205,15 @@ final class WriteIntentClassifier
         // "Nothing to record", "don't save", "I didn't ask you to record" name
         // a write verb only to refuse it (Brett, #3999 and #3967).
         $normalised = (string) preg_replace(self::NEGATED_WRITE_VERB, ' ', $normalised);
+
+        // "Invite my partner …" (fix plan T9, Q17): an invitation to link with
+        // the spouse goes to the invite step, not the spouse record's form.
+        if (preg_match(self::SPOUSE_INVITE_VERB, $normalised, $inviteMatch) === 1) {
+            $spouseKeyword = $this->firstMatch($normalised, self::ENTITY_KEYWORDS['spouse']);
+            if ($spouseKeyword !== null) {
+                return $this->buildResult('spouse_invite', trim($inviteMatch[0]), $spouseKeyword);
+            }
+        }
 
         $matchedVerb = $this->firstVerbMatch($normalised);
         if ($matchedVerb === null) {

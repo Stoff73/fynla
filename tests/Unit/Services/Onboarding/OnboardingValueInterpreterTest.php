@@ -263,3 +263,9 @@ describe('parseSpouseInviteDetails', function () {
             ->and(OnboardingValueInterpreter::parseSpouseInviteDetails(''))->toBeNull();
     });
 });
+
+it('does not take request words for the spouse first name (T9, Q17)', function () {
+    expect(OnboardingValueInterpreter::parseSpouseInviteDetails('Please invite my partner to link accounts. Their email is dev@example.com.'))->toBeNull()
+        ->and(OnboardingValueInterpreter::parseSpouseInviteDetails('Invite my wife Angela, angela@example.com'))
+        ->toBe(['first_name' => 'Angela', 'email' => 'angela@example.com']);
+});

@@ -274,3 +274,22 @@ describe('WriteIntentClassifier — a question is never a write (fix plan T2)', 
             ->and($this->classifier->proposalAcceptanceIntent('Yes, and show the working first', $offer))->toBeNull();
     });
 });
+
+describe('WriteIntentClassifier::classify — spouse invitations (T9, Q17)', function () {
+    it('files a request to invite the partner as a spouse invitation', function (string $message) {
+        expect($this->classifier->classify($message)['entity_type'] ?? null)->toBe('spouse_invite');
+    })->with([
+        'Q17 statement' => ['Please invite my partner to link accounts. Their email is slaterjoneschris+t1walk@gmail.com.'],
+        'named' => ['Invite my wife Angela, angela@example.com'],
+        'link up' => ['Link my account with my husband please'],
+        'send' => ['Send my spouse an invitation'],
+    ]);
+
+    it('leaves a question about inviting to the answer process', function () {
+        expect($this->classifier->classify('Please invite my partner. Their email is a@b.com. Is that address written correctly?'))->toBeNull();
+    });
+
+    it('keeps a spouse record change a spouse capture', function () {
+        expect($this->classifier->classify("Update my wife's salary to £40,000")['entity_type'] ?? null)->not->toBe('spouse_invite');
+    });
+});
