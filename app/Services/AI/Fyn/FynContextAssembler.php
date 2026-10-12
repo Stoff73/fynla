@@ -30,6 +30,7 @@ use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Estate\WillTypePolicy;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
+use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -64,6 +65,7 @@ final class FynContextAssembler
         private readonly ProceduralVersionHolder $proceduralVersions,
         private readonly ContextualResourceResolver $contextualResources,
         private readonly WillTypePolicy $willTypePolicy,
+        private readonly SpouseJointRecords $spouseRecords,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -189,9 +191,9 @@ final class FynContextAssembler
         }
 
         // Save Tax stores spouse financial inputs in a dedicated household
-        // row rather than on users/family_members. Surface that row only when
-        // the user explicitly asks about spouse finances, so the model cannot
-        // mistake an absent linked-spouse profile for absent campaign data.
+        // row rather than on users/family_members. Surface that row on every
+        // advice turn it exists for: a question that names the spouse ("Dev")
+        // carries no relationship word (T10, walk 2026-10-11 P4).
         $householdGrounding = $this->savedHouseholdFinancesDirective($ctx);
         if ($householdGrounding !== null) {
             $lines[] = $householdGrounding;
@@ -568,21 +570,12 @@ final class FynContextAssembler
     }
 
     /**
-     * Ground spouse-finance questions in the dedicated Save Tax household row.
+     * Ground every advice turn in the dedicated Save Tax household row, with
+     * the spouse named so a question that names them reaches their figures.
      */
     private function savedHouseholdFinancesDirective(FynTurnContext $ctx): ?string
     {
         if ($ctx->isOnboarding()) {
-            return null;
-        }
-
-        $message = mb_strtolower($ctx->message);
-        $mentionsSpouse = preg_match('/\b(spouse|partner|husband|wife)\b/i', $message) === 1;
-        $mentionsFinances = preg_match(
-            '/\b(income|earn|salary|isa|pension|saving|investment|asset|household|financial|record)\b/i',
-            $message,
-        ) === 1;
-        if (! $mentionsSpouse || ! $mentionsFinances) {
             return null;
         }
 
@@ -593,6 +586,9 @@ final class FynContextAssembler
 
         $fields = [
             'spouse_annual_income' => 'Spouse annual income',
+            'spouse_annual_earnings' => 'Spouse annual earnings from work',
+            'spouse_annual_dividends' => 'Spouse annual dividends',
+            'spouse_unrealised_gains' => 'Spouse unrealised gains',
             'spouse_isa_balance' => 'Spouse ISA balance',
             'spouse_pension_input_annual' => 'Spouse annual pension contribution',
             'spouse_existing_isa_balance' => 'Spouse existing ISA balance',
@@ -618,6 +614,11 @@ final class FynContextAssembler
 
         if ($values === []) {
             return null;
+        }
+
+        $spouseName = $this->spouseRecords->spouseFirstName($ctx->user);
+        if ($spouseName !== null) {
+            array_unshift($values, '- Spouse: '.UserContentSanitiser::wrap($spouseName));
         }
 
         return "<saved_household_finances>\n"
