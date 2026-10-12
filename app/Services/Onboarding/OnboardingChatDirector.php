@@ -53,7 +53,6 @@ use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
-use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
 use App\Support\SharedExpenditure;
@@ -88,6 +87,27 @@ use Illuminate\Support\Facades\Log;
  */
 final class OnboardingChatDirector
 {
+    /**
+     * A setup form step that adds one record per save, and its "another?"
+     * question (CSJ 2026-09-16).
+     */
+    private const FORM_LOOP_STATES = [
+        OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
+        OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
+        OnboardingStateMachine::STATE_JOURNEY_PROTECTION => OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE,
+    ];
+
+    /**
+     * Metadata on a filled-in form's message: the answers of the further new
+     * records read from the same message, each opened after the one before is
+     * saved (TypedFormFill's `queue`; walk 2026-10-11, P8; T20).
+     */
+    private const FORM_QUEUE = 'capture_form_queue';
+
     /** A capture form saved with nothing in it. */
     /** The two answers to the duplicate guard's "separate one, or the same one?" (R19). */
     private const DUPLICATE_ANSWER_BUBBLES = [
@@ -1241,7 +1261,7 @@ final class OnboardingChatDirector
                 // An answer typed at the form is filled in, never saved: the
                 // user checks it and presses Save (CSJ 2026-10-05, option A).
                 if ($typedFill !== null) {
-                    $formPromptText = CaptureForms::FILLED_PROMPT;
+                    $formPromptText = $typedFill['prompt'] ?? CaptureForms::filledPrompt(count($typedFill['queue'] ?? []));
                 }
 
                 yield array_filter([
@@ -1255,6 +1275,7 @@ final class OnboardingChatDirector
                     'capture_form' => $schema,
                     'capture_form_values' => $prefill['values'] ?? null,
                     'capture_form_record' => $prefill['record'] ?? null,
+                    self::FORM_QUEUE => ($typedFill['queue'] ?? []) ?: null,
                     'onboarding_step' => $stateId,
                     'turn_intent' => $turnIntent->value,
                 ], static fn ($v): bool => $v !== null);
@@ -1864,15 +1885,7 @@ final class OnboardingChatDirector
      */
     private function reenteredFromLoopQuestion(AiConversation $conversation, string $formStateId): bool
     {
-        $loopState = [
-            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
-            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
-            OnboardingStateMachine::STATE_JOURNEY_PROTECTION => OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE,
-        ][$formStateId] ?? null;
+        $loopState = self::FORM_LOOP_STATES[$formStateId] ?? null;
         if ($loopState === null) {
             return false;
         }
@@ -2435,7 +2448,7 @@ final class OnboardingChatDirector
             // rather than offer to save it (T18 walk, csjones 2026-10-12).
             $limit = OnboardingStateMachine::freeLimitForForm($user, $this->formForWriteIntent($intent));
             if ($limit !== null) {
-                $line = "You've reached your plan's limit of {$limit['limit']} {$limit['noun']}. To add more, upgrade your plan.";
+                $line = OnboardingStateMachine::freeLimitSentence($limit);
                 yield ['type' => 'content', 'text' => $line];
                 $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
                     'onboarding_step' => $currentStateId,
@@ -4291,6 +4304,9 @@ PROMPT;
                 yield ['type' => 'content', 'text' => $ack];
                 $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
             }
+            if (yield from $this->openQueuedWalkForm($user, $conversation, $currentStateId, $state, (string) $form['name'], $message)) {
+                return;
+            }
             yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
             return;
@@ -4301,6 +4317,9 @@ PROMPT;
             'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
             'records_created' => $recordsCreated,
         ];
+        if (yield from $this->openQueuedWalkForm($user, $conversation, $currentStateId, $state, (string) $form['name'], $message)) {
+            return;
+        }
         yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
     }
 
@@ -7817,7 +7836,7 @@ PROMPT;
             $blankName = (string) (($blankFilled ?? $forms[$firstBlank])['schema']['name'] ?? '');
             $limit = OnboardingStateMachine::freeLimitForForm($user, $blankName);
             if ($limit !== null) {
-                $line = "You've reached your plan's limit of {$limit['limit']} {$limit['noun']}. To add more, upgrade your plan.";
+                $line = OnboardingStateMachine::freeLimitSentence($limit);
                 yield ['type' => 'content', 'text' => $line];
                 $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => ['turn_intent' => FynTurnIntent::InterruptionAnswer->value]]);
                 yield ['type' => 'done', 'message_id' => $saved->id];
@@ -7879,9 +7898,77 @@ PROMPT;
 
         // Read back as the edit form's save is ("Updated — …").
         $text = 'Saved — '.rtrim($message, '.').'.';
+        // Further records read from the same message open next, filled in;
+        // past the Free limit it is said instead (T20).
+        $queue = $this->queuedForms($conversation, (string) $form['name']);
+        $limit = $queue === [] ? null : OnboardingStateMachine::freeLimitForForm($user, (string) $form['name']);
+        if ($limit !== null) {
+            $text .= ' '.OnboardingStateMachine::freeLimitSentence($limit);
+        }
         yield ['type' => 'content', 'text' => $text];
         $saved = $this->saveMessage($conversation, 'assistant', $text, ['metadata' => ['turn_intent' => FynTurnIntent::CaptureAck->value]]);
+
+        $schema = $queue === [] || $limit !== null ? null : $this->formSchemaFor($user, (string) $form['name']);
+        if ($schema !== null) {
+            yield from $this->emitFormMessage($conversation, [
+                'schema' => $schema,
+                'answers' => $queue[0],
+                'record' => null,
+                'queue' => array_slice($queue, 1),
+                'prompt' => CaptureForms::FILLED_NEXT_PROMPT,
+            ], true, null);
+
+            return;
+        }
         yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
+    /**
+     * The further new records read with the form just saved, when it is the
+     * newest form Fyn offered (a refusal in between offers no form, so a
+     * corrected save still finds them).
+     *
+     * @return list<array<string, array<string, mixed>>>
+     */
+    private function queuedForms(AiConversation $conversation, string $formName): array
+    {
+        $offered = $conversation->messages()->where('role', 'assistant')->whereNotNull('metadata')->latest('id')->limit(20)->get(['metadata'])
+            ->first(static fn (AiMessage $m): bool => is_array($m->metadata['capture_form'] ?? null));
+        $metadata = is_array($offered?->metadata) ? $offered->metadata : [];
+        $queue = $metadata[self::FORM_QUEUE] ?? null;
+
+        return ($metadata['capture_form']['name'] ?? null) === $formName && is_array($queue) ? array_values(array_filter($queue, 'is_array')) : [];
+    }
+
+    /**
+     * At a setup form step that adds one record per save, the next record
+     * read from the same message opens filled in, in place of "another?";
+     * the step stays where it is. False when there is none, or the Free limit
+     * is reached (the "another?" step then says so).
+     *
+     * @param  array<string, mixed>  $state
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function openQueuedWalkForm(User $user, AiConversation $conversation, string $stateId, array $state, string $formName, string $message): \Generator
+    {
+        $queue = isset(self::FORM_LOOP_STATES[$stateId]) ? $this->queuedForms($conversation, $formName) : [];
+        if ($queue === [] || OnboardingStateMachine::freeLimitAt($user, $stateId) !== null) {
+            return false;
+        }
+        $form = $this->walkForm($user, $conversation, $state);
+        if ($form === null) {
+            return false;
+        }
+
+        $this->recordProgress($user, $stateId, ['selection' => (string) ($user->onboarding_fyn_selection ?? 'savetax'), 'raw_message' => mb_substr($message, 0, 500)]);
+        yield from $this->emitTurnForState($user, $conversation, $stateId, $state, includeTransitionHeader: false, typedFill: array_replace($form, [
+            'answers' => $queue[0],
+            'record' => null,
+            'queue' => array_slice($queue, 1),
+            'prompt' => CaptureForms::FILLED_NEXT_PROMPT,
+        ]));
+
+        return true;
     }
 
     /**
@@ -7994,7 +8081,9 @@ PROMPT;
         if ($record === null) {
             // A blank form outside the walk, offered to add a record; its save
             // comes back through handleCreateFormTurn.
-            $prompt = $changeFilledIn ? CaptureForms::FILLED_PROMPT : CaptureForms::ADD_PROMPT;
+            $prompt = $changeFilledIn
+                ? ($form['prompt'] ?? CaptureForms::filledPrompt(count($form['queue'] ?? [])))
+                : CaptureForms::ADD_PROMPT;
             $form['schema'] = CaptureForms::forAdding($form['schema']);
         } else {
             // Some labels already start "Your" ("Your spouse's details").
@@ -8010,6 +8099,7 @@ PROMPT;
             'capture_form' => $form['schema'],
             'capture_form_values' => $values,
             'capture_form_record' => $record,
+            self::FORM_QUEUE => ($form['queue'] ?? []) ?: null,
         ])]);
         yield array_filter([
             'type' => 'capture_form',

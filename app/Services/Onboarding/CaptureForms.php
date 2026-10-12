@@ -136,6 +136,23 @@ final class CaptureForms
     /** The line above a form Fyn filled in from what the user typed (a setup step, or a new record). */
     public const FILLED_PROMPT = "I've filled in what you told me — check it, add anything missing and save.";
 
+    /** The line above the next of several new records read from one message, opened after the one before is saved (T20). */
+    public const FILLED_NEXT_PROMPT = "Here's the next one, filled in — check it, add anything missing and save.";
+
+    /**
+     * The line above a form Fyn filled in, naming the forms still to come
+     * when the message described several new records (walk 2026-10-11, P8).
+     */
+    public static function filledPrompt(int $queued): string
+    {
+        if ($queued < 1) {
+            return self::FILLED_PROMPT;
+        }
+        $total = $queued + 1;
+
+        return "There's a form for each of the {$total} you told me about. I've filled in the first — check it, add anything missing and save, and the next one opens.";
+    }
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
