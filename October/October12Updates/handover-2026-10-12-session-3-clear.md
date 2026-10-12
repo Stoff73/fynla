@@ -82,7 +82,41 @@ I stopped at about 750k context. T6 touches the server, both chat panels, a web 
 
 ## Pick up from here (auto-continue contract)
 
-Current TODO item: **18**. See "Where we stopped". Next in the plan is **T6**: navigation moves to the server for every surface, and the web keyword matcher is deleted (F3, F4; plan section 5 B2.5).
+Current TODO item: **18**. See "Where we stopped".
+
+### FIRST: T48, one Fyn limit per tier (CSJ 2026-10-12, added after this handover was written)
+
+CSJ: "due to the change in the llm, we can increase the limits … so the test runs can complete", then "lets replace both, with 750k and 3 million, so we only have one limit".
+
+- **Values (CSJ 2026-10-12):** Free **750,000** tokens, Premium **3,000,000**.
+- **They replace both:**
+  - `fyn_weekly_token_budget` (Free 100,000, Premium 500,000). Exceeding it only switches to a cheaper model and shows a notice: `HasAiGuardrails::isWeeklyBudgetExceeded` (`:85`), `weeklyTokenUsage` (`:72`), `getAiModel` (`:132`) and `HasAiChat.php:467`.
+  - `fyn_daily_hard_backstop` (Free 500,000, Premium 2,000,000). This is the hard stop, "You've reached your daily Fyn usage limit": `isDailyBackstopExceeded` (`:104`) and `:213`.
+- **Period, default until CSJ says otherwise:** per day. Keep the daily stop and its midnight UTC reset, set it to 750,000 / 3,000,000, and remove the weekly switch and its column. If CSJ meant per week, the stop moves to the rolling week instead.
+- **Values live in data, not code:** `tier_configurations`, the same on csjones and production today (read 2026-10-12). `TierConfigurationSeeder` uses `firstOrCreate` (`:20`), so it will not change existing rows. A migration must set the new values on both environments. Also update the seeder (`:62-63`, `:105-106`) for fresh installs.
+- **Remove `fyn_weekly_token_budget` from:**
+  - `app/Models/TierConfiguration.php:19,31`;
+  - `app/Services/Stores/TierConfigurationStore.php:168`;
+  - `app/Http/Resources/TierConfigurationResource.php:27`;
+  - `app/Services/Payment/SubscriptionStatusService.php:81`;
+  - `app/Http/Requests/Admin/UpdateTierConfigurationRequest.php:26`;
+  - the admin page `resources/js/components/Admin/TierConfiguration.vue:125,232`. That is a web bundle rebuild; /m and iOS do not read it.
+  - Then drop the column by migration.
+- **Tests to update:**
+  - `tests/Feature/Tiers/ApprovedTwoTierMatrixTest.php:62,77`;
+  - `tests/Feature/Tiers/TierConfigurationSeederTest.php:25,38`;
+  - `tests/Feature/Tiers/TierConfigurationsTableTest.php:16`;
+  - `tests/Pest.php:165-166`;
+  - `tests/Unit/Services/Payment/SubscriptionStatusServiceTest.php:144-145`;
+  - `tests/Unit/Services/Tiers/FynMeteringTest.php:24`;
+  - `tests/Architecture/StoreBoundary/TierConfigBoundaryTest.php`;
+  - `tests/E2E/public/pricing-contract.spec.js:71,90` (fixture only).
+- **Walk:** Rory (504) had used 517,635 tokens on 2026-10-12. Under 750,000 he is no longer stopped. Walk Fyn on web and /m past the old 500,000 point, and check the admin Tier Configuration page shows one limit.
+- **Release:** needs the migration on production. CSJ runs the release.
+
+### Then T6
+
+Next in the plan is **T6**: navigation moves to the server for every surface, and the web keyword matcher is deleted (F3, F4; plan section 5 B2.5).
 
 T6 mapping, done this session:
 - **Web matcher to delete:** `resources/js/utils/chatNavigationRouter.js`.

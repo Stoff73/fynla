@@ -471,7 +471,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Fyn's arithmetic on the user's own figures is wrong: £478 a month should be £492.89; gift saving £0 should be £484; ISA saving £468 should be £216. New task T46.
           - Raw LaTeX shows on /m. New task T47.
           - The `PromptOverlayGoldenMasterTest` fixtures had been stale since T1; recaptured in #1217.
-        - Next is T6: navigation moves to the server; the web keyword matcher is deleted.
+        - **Next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.**
+          - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
+          - Default until CSJ says otherwise: the one limit is per day (the existing daily stop, reset at midnight UTC), and the weekly switch is removed.
+          - The map of what to change is in the session 3 handover.
+        - Then T6: navigation moves to the server, and the web keyword matcher is deleted.
         - Prod boxes for T0 to T5 wait for CSJ's release.
         - T1's security follow-up is PR #1211 (merged).
         - New task T44: remove the suggested prompts from Fyn's chat window (CSJ screenshot `remove.png`).
