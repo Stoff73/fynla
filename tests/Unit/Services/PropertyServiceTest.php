@@ -8,6 +8,7 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Property\PropertyService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,6 +23,9 @@ class PropertyServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // A buy-to-let's summary works its Section 24 credit at the configured
+        // basic rate (T64); the Pest safety net does not reach class-style tests.
+        $this->seed(TaxConfigurationSeeder::class);
         $this->propertyService = app(PropertyService::class);
         $this->user = User::factory()->create();
     }
