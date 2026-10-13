@@ -161,7 +161,8 @@ class CrossModuleAssetAggregator
     {
         $user = User::findOrFail($userId);
 
-        return $this->savingsStore->forUser($user)
+        // The user's own accounts: a child's Junior ISA is the child's (T65).
+        return $this->savingsStore->ownForUser($user)
             ->map(function ($account) use ($userId) {
                 $userShare = $this->calculateUserShare($account, $userId);
                 $fullValue = $this->getFullValue($account);
@@ -264,7 +265,8 @@ class CrossModuleAssetAggregator
     {
         $user = User::findOrFail($userId);
 
-        return $this->savingsStore->forUser($user)
+        // The user's own accounts: a child's Junior ISA is the child's (T65).
+        return $this->savingsStore->ownForUser($user)
             ->sum(fn ($account) => $this->calculateUserShare($account, $userId));
     }
 
@@ -438,7 +440,7 @@ class CrossModuleAssetAggregator
                 'total' => $this->calculateInvestmentTotal($userId),
             ],
             'cash' => [
-                'count' => $this->savingsStore->forUser($user)->count(),
+                'count' => $this->savingsStore->ownForUser($user)->count(),
                 'total' => $this->calculateCashTotal($userId),
             ],
             'chattel' => [

@@ -137,7 +137,8 @@ class EstateAssetAggregatorService
         });
 
         // Savings/Cash - Single-record pattern
-        $savingsAccounts = app(SavingsStore::class)->forUser($user);
+        // A child's Junior ISA is not in the parent's estate (T65; IHTA 1984 s5(1)).
+        $savingsAccounts = app(SavingsStore::class)->ownForUser($user);
         $savingsAssets = $savingsAccounts->map(function ($account) use ($user) {
             return (object) [
                 'user_id' => $user->id,

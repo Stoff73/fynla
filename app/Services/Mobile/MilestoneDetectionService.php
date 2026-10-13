@@ -913,7 +913,7 @@ class MilestoneDetectionService
 
         // Savings reads flow through the canonical store (SavingsStoreBoundary);
         // InvestmentAccount reads are unrestricted (its boundary guards writes).
-        $hasIsa = $this->savingsStore->forUser($user)->contains(fn ($a): bool => (bool) $a->is_isa)
+        $hasIsa = $this->savingsStore->ownForUser($user)->contains(fn ($a): bool => (bool) $a->is_isa)
             || InvestmentAccount::where('user_id', $user->id)->isa()->exists();
 
         if (! $hasIsa) {

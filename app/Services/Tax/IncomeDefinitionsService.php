@@ -281,7 +281,7 @@ class IncomeDefinitionsService
             return 0.0;
         }
 
-        return (float) app(SavingsStore::class)->forUser($user)
+        return (float) app(SavingsStore::class)->ownForUser($user)
             ->where('is_isa', false)
             ->sum(fn ($account): float => $this->calculateUserShare($account, (int) $user->id)
                 * SavingsInterestRate::fraction($account->interest_rate));

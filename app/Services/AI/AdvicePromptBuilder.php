@@ -858,7 +858,13 @@ PROMPT;
                 $savings = app(SavingsStore::class)->forUserWithJointOwner($user);
                 if ($savings->isNotEmpty()) {
                     // S0.10 — account_name and institution are user-controlled free text.
-                    $items = $savings->map(fn ($a) => '[ID:'.$a->id
+                    // A Junior ISA is the child's money (GOV.UK), held by the
+                    // user for them and out of every total of theirs (T65).
+                    $items = $savings->map(fn ($a) => $a->isJuniorIsa()
+                        ? '[ID:'.$a->id.' Junior ISA for '.UserContentSanitiser::wrap((string) ($a->beneficiary_name ?: 'a child'))
+                            .' at '.UserContentSanitiser::wrap((string) $a->institution)
+                            .' '.Money::exact((float) $a->current_balance).': the child\'s money, not counted in your totals]'
+                        : '[ID:'.$a->id
                         .' '.UserContentSanitiser::wrap((string) $a->account_name)
                         .' at '.UserContentSanitiser::wrap((string) $a->institution)
                         .($a->is_isa ? ' ISA(tax-free)' : '')

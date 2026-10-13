@@ -88,15 +88,18 @@ final class SavingsPosition
      * Savings and Investments.
      *
      * @param  iterable<object>  $accounts
-     * @return array{current_accounts: float, savings_accounts: float, isas: float, nsi: float}
+     * @return array{current_accounts: float, savings_accounts: float, isas: float, nsi: float, junior_isas: float}
      */
     private function groupTotals(iterable $accounts): array
     {
-        $totals = ['current_accounts' => 0.0, 'savings_accounts' => 0.0, 'isas' => 0.0, 'nsi' => 0.0];
+        $totals = ['current_accounts' => 0.0, 'savings_accounts' => 0.0, 'isas' => 0.0, 'nsi' => 0.0, 'junior_isas' => 0.0];
 
         foreach ($accounts as $account) {
             $group = match (true) {
-                (bool) ($account->is_isa ?? false) || in_array($account->account_type, ['cash_isa', 'junior_isa'], true) => 'isas',
+                // A child's Junior ISA is the child's money: its own group, never
+                // the holder's ISAs, and not in total_cash (T65).
+                $account->account_type === 'junior_isa' || in_array((string) ($account->isa_type ?? ''), ['junior', 'junior_isa'], true) => 'junior_isas',
+                (bool) ($account->is_isa ?? false) || $account->account_type === 'cash_isa' => 'isas',
                 $account->account_type === 'current_account' => 'current_accounts',
                 in_array($account->account_type, ['premium_bonds', 'nsi'], true) => 'nsi',
                 in_array($account->account_type, ['savings_account', 'easy_access', 'instant_access', 'notice', 'fixed'], true) => 'savings_accounts',

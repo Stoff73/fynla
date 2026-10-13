@@ -80,6 +80,34 @@
         </div>
       </div>
 
+      <!-- Junior ISAs: the children's money, apart from the holder's (T65) -->
+      <div v-if="juniorIsas.length" class="m-card">
+        <div class="m-cap-head" style="margin-top:0">
+          <p class="m-section-label">Junior ISAs (your children's)</p>
+          <span class="ms-acct__balance">{{ fmt(juniorIsaTotal) }}</span>
+        </div>
+        <div>
+          <button
+            v-for="acct in juniorIsas"
+            :key="acct.id"
+            type="button"
+            class="ms-acct"
+            @click="openAccount(acct.id)"
+          >
+            <div class="ms-acct__main">
+              <span class="ms-acct__provider">{{ acct.beneficiary_name ? acct.beneficiary_name + ' · ' : '' }}{{ acct.provider || acct.institution || 'Junior ISA' }}</span>
+              <span class="ms-acct__meta">
+                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+              </span>
+            </div>
+            <div class="ms-acct__right">
+              <span class="ms-acct__balance">{{ fmt(balanceOf(acct)) }}</span>
+              <span class="ms-acct__view">View</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
       <!-- Emergency fund runway -->
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">Emergency fund</p>
@@ -163,6 +191,10 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 // savings-account screens already do.
 import { calculateUserShare, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
 
+// The one test of a Junior ISA here, as SavingsAccount::isJuniorIsa.
+const isJuniorIsa = (account) => account.account_type === 'junior_isa'
+  || ['junior', 'junior_isa'].includes(account.isa_type);
+
 export default {
   name: 'MobileSavings',
   components: { ISAContributionHistory, MobileChrome },
@@ -172,8 +204,12 @@ export default {
     accounts() { return this.payload?.accounts || []; },
     // CSJ: a Cash ISA is cash held in an ISA wrapper — it is NOT a bank account,
     // so group it separately on the cash page.
-    bankAccounts() { return this.accounts.filter((a) => !a.is_isa); },
-    cashIsas() { return this.accounts.filter((a) => a.is_isa); },
+    bankAccounts() { return this.accounts.filter((a) => !a.is_isa && !isJuniorIsa(a)); },
+    cashIsas() { return this.accounts.filter((a) => a.is_isa && !isJuniorIsa(a)); },
+    // A child's Junior ISA is the child's money: its own card, out of the
+    // totals and the account count (T65, CSJ 2026-10-13).
+    juniorIsas() { return this.accounts.filter((a) => isJuniorIsa(a)); },
+    juniorIsaTotal() { return Number(this.position.group_totals?.junior_isas) || 0; },
     // Free-tier cap nudge (5.1). account_limit null = unlimited tier → hide nudge.
     accountCount() { return this.payload?.account_count ?? this.accounts.length; },
     accountLimit() { return this.payload?.account_limit ?? null; },
@@ -196,7 +232,7 @@ export default {
     isa() { return this.position.isa || {}; },
     totalCash() { return Number(this.position.total_cash) || 0; },
     accountCountLabel() {
-      const n = this.accounts.length;
+      const n = this.accounts.length - this.juniorIsas.length;
       if (n === 0) return 'No accounts added yet.';
       return `Across ${n} ${n === 1 ? 'account' : 'accounts'}.`;
     },

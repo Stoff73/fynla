@@ -63,8 +63,10 @@ it('totals the cash page groups at the user\'s share', function () {
         (object) ['account_type' => 'easy_access', 'is_isa' => false, 'current_balance' => 5000],
         (object) ['account_type' => 'cash_isa', 'is_isa' => true, 'current_balance' => 10000],
         (object) ['account_type' => 'premium_bonds', 'is_isa' => false, 'current_balance' => 2000],
+        // A child's Junior ISA: its own group, never the holder's ISAs (T65).
+        (object) ['account_type' => 'junior_isa', 'is_isa' => true, 'isa_type' => 'junior', 'current_balance' => 3100],
     ];
 
     expect($this->position->build(18500, 0, null, $this->target, $this->isa, $accounts)['group_totals'])
-        ->toBe(['current_accounts' => 1500.0, 'savings_accounts' => 5000.0, 'isas' => 10000.0, 'nsi' => 2000.0]);
+        ->toBe(['current_accounts' => 1500.0, 'savings_accounts' => 5000.0, 'isas' => 10000.0, 'nsi' => 2000.0, 'junior_isas' => 3100.0]);
 });
