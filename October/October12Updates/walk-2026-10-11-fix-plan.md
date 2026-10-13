@@ -89,7 +89,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T18 | The cap is checked when a section starts; the at-cap reply is in words | F10, F9 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T19 | "No mortgage" ticks the No mortgage box | M3, Q2 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T20 | One form per person named in a message | P8 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T21 | The self-employed sentence says profit | M4 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T21 | The self-employed sentence says profit | M4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T22 | Normal registration opens on "Which of these do you have?" with the first-name greeting (section 6) | your change | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T23 | Save Tax report only for Save Tax arrivals; others end on their actions; arrival record corrected (10 rows); iOS `/actions` link (section 6b) | your change | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T24 | Fyn's forms gain the fields whose columns exist | F9, F11, F12, F15, Q1, Q15, Q19, Q24 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -687,6 +687,23 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   - The save read-back capitalises mid-sentence: "Saved — My child Zara was born on 20 January 2020." (`handleCreateFormTurn`, as on production #3980). It reads the form's own summary, which can start with a proper noun, so it was left as it is.
   - T49 is on web too (see T49's row).
 - **T20, walk accounts on csjones to purge:** Priya Sandhu 521 (`slaterjoneschris+t20web@gmail.com`), Tom Walk 522 (`+t20m`), Ellie Walk 523 (`+t20web2`), all `Password1!`. Robin 509 now holds Maya, Zara, Leo, June and Ken (test rows).
+- **T21, evidence read first (2026-10-13, production):** conversation 1028 (Tom, user 813). #3885: "self-employed, I'm an IT consultant trading as Okafor Consulting, profit about £55k last year". The form asked for "Gross annual income, Before tax, including bonuses and commissions" (`CaptureForms.php:1399`), and his line #3893 read "My job is IT consultant at Okafor Consulting and I earn £55,000 a year." `handleCaptureWorkDetails` already counts the figure as self-employment income (`CoordinatingAgent.php:2316`), so only the words were wrong. Live.
+- **T21, Code (2026-10-13):** #1275 (`f4ed40f19`), branch `fix/t21-self-employed-profit`, and #1276 (the edit-form test).
+  - For `employment_status = self_employed`, `CaptureForms::workFor` asks for "Annual profit", with the hint "What the business takes in, less allowable expenses, before tax". It is served on the walk (`formSchemaFor`) and the edit form (`RecordEditForms::formFor`).
+    - Source: GOV.UK, Expenses if you're self-employed: "you'll only pay Income Tax on the remaining £30,000 - known as your taxable profit".
+  - The line comes from `summarise($form, $user)`, through `transcriptLine`: "My job is IT consultant, trading as Okafor Consulting, and my profit is £55,000 a year." / "I trade as … and my profit is …".
+  - In the path: "Got it — £X a year, noted." rounded to whole pounds, and `CaptureForms::pounds` repeated `Money::exact`. Both now use `Money::exact`.
+- **T21, Test (2026-10-13):**
+  - `CaptureFormsTest` was red first (`workFor` undefined).
+  - `JourneyCaptureFormTurnTest` was red first (label "Gross annual income").
+  - `WorkEditFormTest` was red with the edit-form line removed.
+  - Touched-path files: 280 passed.
+- **T21, Dev (2026-10-13):** csjones `git pull` to `f4ed40f19`. PHP only.
+- **T21, Dev walk (2026-10-13):**
+  1. Web 1440, fresh Tunde Okafor 524: Self-employed, No, Bank account, That's everything. The work form showed "Annual profit *" with the new hint (shot `T21-01`). Filled Okafor Consulting / IT consultant / 55000.50 and saved. The line read "My job is IT consultant, trading as Okafor Consulting, and my profit is £55,000.50 a year.", then "Got it — £55,000.50 a year, noted." (shot `T21-02`). Stored as `annual_self_employment_income` 55000.50.
+  2. /m 390, the same account (bridged): Continue, then "Yes, add another". The /m form showed "Annual profit *" and the hint (shot `T21-03`). Filled Okafor Tutoring / 4200 and saved. The line read "I trade as Okafor Tutoring and my profit is £4,200 a year.", then "Got it — £59,200.50 a year, noted." (shot `T21-04`). Two jobs stored.
+  - The edit form (a saved job opened to change it) is covered by `WorkEditFormTest`. It was not walked: that form opens from a chat change or a page, and at the walk's bubble steps the chat is locked.
+- **T21, walk account on csjones to purge:** Tunde Okafor 524 (`slaterjoneschris+t21web@gmail.com`, `Password1!`).
 - **T58, walk accounts on csjones to purge:** Maya Walk and Leo Walk (`slaterjoneschris+t58m@`, `+t58web@gmail.com`, `Password1!`).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
