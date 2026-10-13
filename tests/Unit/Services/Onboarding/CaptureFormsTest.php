@@ -561,3 +561,25 @@ it('asks what the spouse does on the working-spouse form, and writes it with the
         ->and(CaptureForms::toolInputs($form)['_lead'])->toMatchArray(['spouse_employment_status' => 'retired', 'spouse_annual_income' => 30000.0])
         ->and(CaptureForms::summarise($form))->toStartWith('My spouse is retired, their income is £30,000 a year');
 });
+
+// T21 (walk 2026-10-11, M4, #3893): Tom chose Self-employed and typed "profit
+// about £55k last year"; the form asked for "Gross annual income … including
+// bonuses and commissions" and his line read "I earn £55,000 a year". The
+// handler counts it as self-employment income (CoordinatingAgent
+// handleCaptureWorkDetails), and a sole trader's taxable figure is profit:
+// income less allowable expenses (gov.uk/expenses-if-youre-self-employed).
+it('says profit on the work form and its line for a self-employed user', function (): void {
+    $selfEmployed = (new User)->forceFill(['employment_status' => 'self_employed']);
+    $employed = (new User)->forceFill(['employment_status' => 'employed']);
+
+    $field = CaptureForms::workFor($selfEmployed)['fields']['annual_income'];
+    expect($field['label'])->toBe('Annual profit')
+        ->and($field['hint'])->toBe('What the business takes in, less allowable expenses, before tax')
+        ->and(CaptureForms::workFor($employed))->toBe(CaptureForms::schema(CaptureForms::WORK));
+
+    $form = ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Okafor Consulting', 'occupation' => 'IT consultant', 'annual_income' => 55000]]];
+    expect(CaptureForms::summarise($form, $selfEmployed))->toBe('My job is IT consultant, trading as Okafor Consulting, and my profit is £55,000 a year.')
+        ->and(CaptureForms::summarise(['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Okafor Consulting', 'annual_income' => 55000.5]]], $selfEmployed))->toBe('I trade as Okafor Consulting and my profit is £55,000.50 a year.')
+        ->and(CaptureForms::summarise($form, $employed))->toBe('My job is IT consultant at Okafor Consulting and I earn £55,000 a year.')
+        ->and(CaptureForms::summarise($form))->toBe('My job is IT consultant at Okafor Consulting and I earn £55,000 a year.');
+});
