@@ -594,6 +594,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - T13's Prod walk was not done (**I COULD NOT TEST THIS**); its box stays empty.
           - Found on the walk, added to the plan as T61 to T68: the web mortgage card's annual payment £0 (T25 path); "Reading," trailing comma; Purchase Price £0; the Section 24 credit is £0 without a payment (figure); a child's Junior ISA counted as the parent's in Inheritance Tax and cash (figure); the published working drops pence (this item's working, T66); the threshold strip's "£3,148" and "Marriage Allowance is lost" for a single person (check first); Premium Bonds "Not recorded" rate.
           - Next: T61 to T68 under R4 (found on a walk, fixed in the same loop), then T26.
+        - Where we stopped (2026-10-13, session 3):
+          - T61 to T65 ticked to Dev walk in session 2 (#1288 to #1298); T69, T70, T71 found and added.
+          - **T66 ticked to Dev walk:** the pension working keeps the pence (#1299). Walked /m and web as Tunde 524: "£59,200.50 − £50,270 = £8,930.50" (`T66-01`, `T66-02`).
+          - **T58.1 ticked to Dev walk:** the web chat box opens after "Something else" on the resume bubbles (#1300), found on the T66 walk. /m empties the set on tap; the tap on /m **I COULD NOT TEST** (no resume bubbles there for Meera 531).
+          - Next: T67 (check first), T68, then T69 to T71, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
