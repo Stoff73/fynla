@@ -48,6 +48,25 @@ class SavingsStore
         return SavingsAccount::forUserOrJoint($user->id)->get();
     }
 
+    /**
+     * The accounts that are the user's own money: everything they hold except
+     * a Junior ISA, which a parent opens and runs but which belongs to the
+     * child (GOV.UK, Junior ISAs: "the money belongs to the child"). Every
+     * total of the user's cash, net worth and estate reads this (T65, CSJ
+     * 2026-10-13: out of all parent totals). Lists that show the Junior ISA,
+     * and the Junior ISA actions, read forUser() or juniorIsasFor().
+     */
+    public function ownForUser(User $user): Collection
+    {
+        return $this->forUser($user)->reject(fn (SavingsAccount $account): bool => $account->isJuniorIsa())->values();
+    }
+
+    /** The children's Junior ISAs the user holds (T65). */
+    public function juniorIsasFor(User $user): Collection
+    {
+        return $this->forUser($user)->filter(fn (SavingsAccount $account): bool => $account->isJuniorIsa())->values();
+    }
+
     public function existsForUser(User $user): bool
     {
         return SavingsAccount::forUserOrJoint($user->id)->exists();

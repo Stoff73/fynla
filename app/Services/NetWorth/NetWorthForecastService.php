@@ -154,7 +154,7 @@ final class NetWorthForecastService
         ];
         $warnings = [];
 
-        foreach ($this->savingsStore->forUser($user) as $account) {
+        foreach ($this->savingsStore->ownForUser($user) as $account) {
             $amount = (float) ($account->regular_contribution_amount ?? 0);
             $cashFlows['annual_contributions']['cash'] += $amount
                 * self::annualFrequencyMultiplier($account->contribution_frequency)

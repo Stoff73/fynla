@@ -2425,6 +2425,12 @@ class CoordinatingAgent extends BaseAgent
                         $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
                     }
 
+                    // A Junior ISA is the child's money, out of the user's totals (T65).
+                    if ($a->isJuniorIsa()) {
+                        $fields['belongs_to_child'] = (string) ($a->beneficiary_name ?: 'a child');
+                        $fields['in_your_totals'] = false;
+                    }
+
                     return array_merge(['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => $total, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate, 'rate_valid_until' => $a->rate_valid_until?->format('Y-m-d'), 'access_type' => $a->access_type, 'notice_period_days' => $a->notice_period_days, 'maturity_date' => $a->maturity_date?->format('Y-m-d'), 'is_emergency_fund' => (bool) $a->is_emergency_fund, 'is_isa' => (bool) $a->is_isa, 'isa_type' => $a->isa_type, 'isa_subscription_amount' => $a->isa_subscription_amount ? (float) $a->isa_subscription_amount : null, 'regular_contribution' => $a->regular_contribution_amount ? (float) $a->regular_contribution_amount : null, 'contribution_frequency' => $a->contribution_frequency], $fields);
                 })->toArray();
                 break;

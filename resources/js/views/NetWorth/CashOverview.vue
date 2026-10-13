@@ -203,6 +203,31 @@
             </template>
           </div>
 
+          <!-- Junior ISAs: the children's money, shown apart from the holder's (T65) -->
+          <div v-if="juniorIsaAccounts.length > 0" class="account-card module-gradient">
+            <div class="card-header">
+              <h4 class="card-title">Junior ISAs (your children's)</h4>
+            </div>
+            <div class="card-total">
+              <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(juniorIsaAccountsTotal) }}</span>
+            </div>
+            <div
+              v-for="account in juniorIsaAccounts"
+              :key="account.id"
+              class="account-item"
+              @click="selectAccount(account)"
+            >
+              <div class="account-info">
+                <span class="account-name" :title="account.institution || 'Junior ISA'">
+                  {{ account.beneficiary_name ? account.beneficiary_name + ' · ' : '' }}{{ account.institution || 'Junior ISA' }}
+                </span>
+              </div>
+              <div class="account-balances">
+                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- NS&I Card -->
           <div class="account-card module-gradient">
             <div class="card-header">
@@ -290,6 +315,10 @@ import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInli
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 import logger from '@/utils/logger';
+// The one test of a Junior ISA on this page, as SavingsAccount::isJuniorIsa.
+const isJuniorIsa = (account) => account.account_type === 'junior_isa'
+  || ['junior', 'junior_isa'].includes(account.isa_type);
+
 export default {
   name: 'CashOverview',
 
@@ -340,9 +369,15 @@ export default {
       );
     },
 
+    // A child's Junior ISA is the child's money: its own card, never the
+    // holder's Cash ISAs, and out of the totals (T65, CSJ 2026-10-13).
+    juniorIsaAccounts() {
+      return this.accounts.filter(a => isJuniorIsa(a));
+    },
+
     isaAccounts() {
       return this.accounts.filter(a =>
-        ['cash_isa', 'junior_isa'].includes(a.account_type) || a.is_isa
+        !isJuniorIsa(a) && (a.account_type === 'cash_isa' || a.is_isa)
       );
     },
 
@@ -368,6 +403,10 @@ export default {
 
     nsiAccountsTotal() {
       return Number(this.groupTotals.nsi) || 0;
+    },
+
+    juniorIsaAccountsTotal() {
+      return Number(this.groupTotals.junior_isas) || 0;
     },
 
     // Monthly income from user profile (full month - assumed payday has occurred)

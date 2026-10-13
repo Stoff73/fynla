@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -467,7 +468,8 @@ class NetWorthService
         })->toArray();
 
         // Get cash/savings items
-        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
+        // The user's own accounts: a child's Junior ISA is the child's (T65).
+        $savingsAccounts = app(SavingsStore::class)->ownForUser($user);
         $cashItems = $savingsAccounts->map(function ($account) use ($userId) {
             $name = $account->institution;
             if ($account->account_type) {

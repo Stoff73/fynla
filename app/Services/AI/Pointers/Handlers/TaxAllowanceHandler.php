@@ -60,7 +60,8 @@ final class TaxAllowanceHandler implements FetchHandler
     /** @return list<string> */
     private function subscriptionAccounts(FetchContext $ctx, string $year): array
     {
-        $accounts = $this->savingsStore->forUser($ctx->user)
+        // A Junior ISA uses the child's allowance, not the holder's (T65).
+        $accounts = $this->savingsStore->ownForUser($ctx->user)
             ->filter(fn ($account): bool => (bool) $account->is_isa
                 && $account->isa_subscription_year === $year
                 && (float) ($account->isa_subscription_amount ?? 0) > 0)

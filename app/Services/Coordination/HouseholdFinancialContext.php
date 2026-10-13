@@ -290,7 +290,7 @@ final class HouseholdFinancialContext
      */
     public function hasIsaAccount(User $user): bool
     {
-        return $this->savingsStore->forUser($user)
+        return $this->savingsStore->ownForUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', true)
             ->isNotEmpty()
@@ -308,7 +308,7 @@ final class HouseholdFinancialContext
      */
     private function hasSavingsBalance(User $user): bool
     {
-        return $this->savingsStore->forUser($user)
+        return $this->savingsStore->ownForUser($user)
             ->where('user_id', $user->id)
             ->isNotEmpty();
     }
