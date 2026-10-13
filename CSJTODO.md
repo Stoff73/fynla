@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-10-12 session 6. The order of work is `todoCurrent/TODO.md`; the walk fix plan (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) orders the tasks inside item 18. T0 to T15, T17 to T19, T48 and T58 are walked green on csjones, not released; T16 was reverted (#1262). Next: T20.*
+*Last updated: 2026-10-13 session 1. The order of work is `todoCurrent/TODO.md`; the walk fix plan (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) orders the tasks inside item 18. T0 to T15, T17 to T25, T48 and T58 are walked green on csjones, not released; T16 was reverted (#1262). Next: T26.*
 
 ## The board position
 
@@ -250,14 +250,19 @@ Three small decisions, all optional:
 
 ## Deploy state
 
-- **2026-10-12: prod (fynla.org) = main `f45bc67fd` (release ab).** dev = `7fa4470ba`; csjones runs `cb78008e5` (PHP), with the T48 migration run and both bundles built at 12:41 BST from T6's tree. The next release needs T48's migration (`2026_10_12_120000_one_weekly_fyn_limit_per_tier`) and both bundles.
+- **2026-10-13: prod (fynla.org) = main `f45bc67fd` (release ab).** dev = `fa9aee492`; csjones runs `ea4c4b75e`, with the T48 and T25 migrations run and both bundles built at 09:48 BST from that tree. The next release needs migrations `2026_10_12_120000_one_weekly_fyn_limit_per_tier` and `2026_10_13_100000_make_mortgage_type_nullable`, both bundles, and `php artisan registrations:clear-chat-campaign-stamp --dry-run` then without `--dry-run` (10 users).
 
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
 
+- **(2026-10-13 session 1, T20 to T25)**
+  - `SaveAccountModal.vue:262-266` writes "£20,000" and "£9,000" into copy (Rule 2).
+  - "Not recorded" lives in `utils/interestRate.js` (web savings rate), inline in `PropertyDetailInline.vue` (web mortgage) and inline in /m `MortgageDetail.vue`; one helper per surface.
+  - `NextActionsService` (Mobile) reads `OnboardingStateMachine::isSaveTaxArrival`; the arrival test wants a home both own.
+
 - **(2026-10-12 session 6, T58 and T17 to T19)**
-  - The Free-limit sentence "You've reached your plan's limit of N … To add more, upgrade your plan." is written twice in `OnboardingChatDirector` (`:2438`, `:7820`) and once per entity in `CoordinatingAgent` (`:3136` to `:4112`); one home beside `OnboardingStateMachine::freeLimitAt`.
+  - The Free-limit sentence is still written once per entity in `CoordinatingAgent` (`:3136` to `:4112`); the director's two copies use `OnboardingStateMachine::freeLimitSentence` since T20.
   - The bubble-lock rule exists per surface: web `AiChatPanel.vue:620` (excludes `route` only), /m `onboardingChat.js:92` (excludes route, action, retry, `subscription_options`).
   - `OnboardingChatDirector.php` is 9,590 lines.
 
