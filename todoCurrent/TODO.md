@@ -589,6 +589,11 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
             - Release needs migration `2026_10_13_100000_make_mortgage_type_nullable` and both bundles. Existing production rows (mortgages 386, 387, property 531) keep their placeholders; changing them is a database change for your OK.
             - Found: rate type "fixed" and a 25-year term are still invented for a balance-only mortgage. Added as T60.
           - Stopped after T25 (CSJ 2026-10-13: "stop after t25"). Next on the list: T26.
+        - Where we stopped (2026-10-13, session 2): **T0 to T25 RELEASED as release ac** (CSJ 2026-10-13: "we are going to releas t0 - t25 to prod"). PR #1286, main `ed6eb011f`, 10:16 BST; 3 migrations; `registrations:clear-chat-campaign-stamp` cleared the plan's 10 users; 0 log errors to 13:05.
+          - **Prod walk done** on fynla.org: web (Ada 824), /m (Ada bridged, Bea 825) and a `/savetax` arrival (Cal 826); each task's steps and shots `PROD-ac-01` to `-45` are in the plan's log. All accounts purged, plus `c.jones@csjones.co` (811).
+          - T13's Prod walk was not done (**I COULD NOT TEST THIS**); its box stays empty.
+          - Found on the walk, added to the plan as T61 to T68: the web mortgage card's annual payment £0 (T25 path); "Reading," trailing comma; Purchase Price £0; the Section 24 credit is £0 without a payment (figure); a child's Junior ISA counted as the parent's in Inheritance Tax and cash (figure); the published working drops pence (this item's working, T66); the threshold strip's "£3,148" and "Marriage Allowance is lost" for a single person (check first); Premium Bonds "Not recorded" rate.
+          - Next: T61 to T68 under R4 (found on a walk, fixed in the same loop), then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
