@@ -195,6 +195,7 @@ it('savetax synthesis is byte-identical: still mirrors the tax plan for savetax 
     // deliberately parallel to CampaignSynthesisTurnTest to prove the savetax
     // path is untouched by the campaign-aware refactor.
     $user = User::factory()->create([
+        'funnel_answers' => ['campaign' => 'savetax'], // a /savetax arrival (T23)
         'date_of_birth' => '1982-02-19',
         'marital_status' => 'married',
         'employment_status' => 'full_time',

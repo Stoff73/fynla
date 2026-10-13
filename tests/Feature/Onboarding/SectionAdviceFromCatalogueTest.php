@@ -71,7 +71,7 @@ it('returns null for a section with no applicable strategies', function () {
 it('degrades to a sensible closing line for synthesis with an empty plan', function () {
     // D1 Fix 6 — synthesis previously returned null (silent) when the plan was
     // empty; the final recap turn must instead voice an honest closing line.
-    $user = User::factory()->create(['first_name' => 'Jo']);
+    $user = User::factory()->create(['funnel_answers' => ['campaign' => 'savetax'], 'first_name' => 'Jo']);
 
     $text = invokeSectionAdvice($user->fresh(), 'synthesis');
 
