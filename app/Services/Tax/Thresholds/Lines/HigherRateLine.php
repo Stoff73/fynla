@@ -52,7 +52,11 @@ final class HigherRateLine extends MoneyLine
             range: ['from' => $threshold, 'to' => null],
             position: $this->position($income, $threshold),
             headline: ThresholdCopy::into($income - $threshold, sprintf('%d%% band', $pct)),
-            body: sprintf('Above %s your Savings Allowance halves, dividends and gains are taxed at the higher rates, and Marriage Allowance is lost.', ThresholdCopy::pounds($threshold)),
+            // Marriage Allowance needs a marriage or civil partnership (ITA 2007 s55B),
+            // so only a couple can lose it (T67: a single user was told it was lost).
+            body: $this->math->isMarriedOrCivilPartner($context->user)
+                ? sprintf('Above %s your Savings Allowance halves, dividends and gains are taxed at the higher rates, and Marriage Allowance is lost.', ThresholdCopy::pounds($threshold))
+                : sprintf('Above %s your Savings Allowance halves, and dividends and gains are taxed at the higher rates.', ThresholdCopy::pounds($threshold)),
             explanation: $this->bandExplanation($mechanism, $pct),
             cost: $cost,
             lever: $lever,

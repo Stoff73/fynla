@@ -281,6 +281,23 @@ describe('band lines', function () {
         expect($result->position['over'])->toBeFalse()->and($result->position['distance'])->toBe(-2270.0);
     });
 
+    // T67 (release ac prod walk, single Bea): Marriage Allowance needs a marriage or
+    // civil partnership (ITA 2007 s55B), so a single person cannot lose it. The spec
+    // lists it as lost "if claimed" (2026-09-21 threshold-position design).
+    it('does not tell a single person they lose Marriage Allowance', function () {
+        $user = User::factory()->create(['annual_employment_income' => 58000, 'marital_status' => 'single']);
+        $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+        expect($result->body)->toBe('Above £50,270 your Savings Allowance halves, and dividends and gains are taxed at the higher rates.');
+    });
+
+    it('tells a married person or civil partner they lose Marriage Allowance', function () {
+        foreach (['married', 'civil_partnership'] as $status) {
+            $user = User::factory()->create(['annual_employment_income' => 58000, 'marital_status' => $status]);
+            $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
+            expect($result->body)->toBe('Above £50,270 your Savings Allowance halves, dividends and gains are taxed at the higher rates, and Marriage Allowance is lost.');
+        }
+    });
+
     it('names the ISA move when the excess is dividends', function () {
         $user = User::factory()->create(['annual_employment_income' => 45000, 'annual_dividend_income' => 8000]);
         $result = app(HigherRateLine::class)->evaluate(thresholdLineContext($user));
