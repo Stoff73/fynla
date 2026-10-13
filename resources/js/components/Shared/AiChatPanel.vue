@@ -636,6 +636,13 @@ export default {
             for (let i = this.messages.length - 1; i >= 0; i--) {
                 const role = this.messages[i]?.role;
                 if (role === 'quick_replies') {
+                    // A resume set (Continue / Something else) is answered by
+                    // an action, not a message: once anything follows it, it
+                    // is spent, or the box stays locked after Fyn's reply
+                    // (T58 follow-up, walked 2026-10-13). /m removes them on tap.
+                    if (this.messages[i]?.metadata?.action_bubbles && i < this.messages.length - 1) {
+                        return -1;
+                    }
                     return i;
                 }
                 if (role === 'user') {

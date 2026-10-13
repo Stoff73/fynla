@@ -49,6 +49,18 @@ describe('AiChatPanel — the chat box while bubbles wait (T58)', () => {
     expect(textarea(wrapper).attributes('disabled')).toBeDefined();
   });
 
+  // Walked on csjones 2026-10-13 (T66, Tunde 524): "Something else" posts an
+  // action, not a message, and Fyn replied "Of course — what can I help you
+  // with?", but the box stayed locked on the answered resume bubbles.
+  it('opens the box once Fyn has answered a resume bubble (Continue / Something else)', () => {
+    const wrapper = build([
+      bubbles([{ id: 'continue', label: 'Continue' }, { id: 'something_else', label: 'Something else' }], { action_bubbles: true }),
+      { id: 'a1', role: 'assistant', content: 'Of course — what can I help you with?' },
+    ]);
+    expect(textarea(wrapper).attributes('disabled')).toBeUndefined();
+    expect(wrapper.vm.latestQuickRepliesIndex).toBe(-1);
+  });
+
   it('opens the box again once the user has answered', () => {
     const wrapper = build([
       bubbles([{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }]),
