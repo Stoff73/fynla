@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\ExpenditureProfile;
+use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
@@ -137,6 +138,38 @@ describe('Savings API', function () {
             $account = SavingsAccount::where('user_id', $user->id)->first();
             expect($account->isa_type)->toBe('junior')
                 ->and($account->isJuniorIsa())->toBeTrue();
+        });
+
+        // T65 walk (csjones, 2026-10-13): the web form sent Leo as the
+        // beneficiary, but the request had no rule for the beneficiary fields,
+        // so the Junior ISA was saved with no child.
+        it('keeps the child a Junior ISA is for, from the family list or by name', function () {
+            $user = User::factory()->create();
+            $leo = FamilyMember::factory()->create(['user_id' => $user->id, 'first_name' => 'Leo', 'relationship' => 'child']);
+            $base = ['account_type' => 'junior_isa', 'institution' => 'Fidelity', 'current_balance' => 5000,
+                'is_isa' => true, 'isa_type' => 'junior', 'isa_subscription_year' => '2026/27'];
+
+            $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $base + [
+                'beneficiary_id' => $leo->id, 'beneficiary_name' => 'Leo Walk', 'beneficiary_dob' => '2022-05-03',
+            ])->assertCreated();
+            $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', array_merge($base, [
+                'institution' => 'Vanguard', 'beneficiary_name' => 'Arjun',
+            ]))->assertCreated();
+
+            $accounts = SavingsAccount::where('user_id', $user->id)->orderBy('id')->get();
+            expect($accounts[0]->beneficiary_id)->toBe($leo->id)
+                ->and($accounts[0]->beneficiary_name)->toBe('Leo Walk')
+                ->and($accounts[1]->beneficiary_name)->toBe('Arjun');
+        });
+
+        it('refuses another user\'s family member as the beneficiary', function () {
+            $user = User::factory()->create();
+            $other = FamilyMember::factory()->create(['user_id' => User::factory()->create()->id, 'relationship' => 'child']);
+
+            $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
+                'account_type' => 'junior_isa', 'institution' => 'Fidelity', 'current_balance' => 5000,
+                'is_isa' => true, 'isa_type' => 'junior', 'beneficiary_id' => $other->id,
+            ])->assertStatus(422)->assertJsonValidationErrors('beneficiary_id');
         });
 
         it('does not 500 when country arrives null in the payload', function () {
