@@ -203,31 +203,6 @@
             </template>
           </div>
 
-          <!-- Junior ISAs: the children's money, shown apart from the holder's (T65) -->
-          <div v-if="juniorIsaAccounts.length > 0" class="account-card module-gradient">
-            <div class="card-header">
-              <h4 class="card-title">Junior ISAs (your children's)</h4>
-            </div>
-            <div class="card-total">
-              <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(juniorIsaAccountsTotal) }}</span>
-            </div>
-            <div
-              v-for="account in juniorIsaAccounts"
-              :key="account.id"
-              class="account-item"
-              @click="selectAccount(account)"
-            >
-              <div class="account-info">
-                <span class="account-name" :title="account.institution || 'Junior ISA'">
-                  {{ account.beneficiary_name ? account.beneficiary_name + ' · ' : '' }}{{ account.institution || 'Junior ISA' }}
-                </span>
-              </div>
-              <div class="account-balances">
-                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
-              </div>
-            </div>
-          </div>
-
           <!-- NS&I Card -->
           <div class="account-card module-gradient">
             <div class="card-header">
@@ -273,6 +248,31 @@
                 Add Account
               </button>
             </template>
+          </div>
+
+          <!-- Junior ISAs: the children's money, after the holder's own cards (T65) -->
+          <div v-if="juniorIsaAccounts.length > 0" class="account-card module-gradient">
+            <div class="card-header">
+              <h4 class="card-title">Junior ISAs (your children's)</h4>
+            </div>
+            <div class="card-total">
+              <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(juniorIsaAccountsTotal) }}</span>
+            </div>
+            <div
+              v-for="account in juniorIsaAccounts"
+              :key="account.id"
+              class="account-item"
+              @click="selectAccount(account)"
+            >
+              <div class="account-info">
+                <span class="account-name" :title="account.institution || 'Junior ISA'">
+                  {{ account.beneficiary_name ? account.beneficiary_name + ' · ' : '' }}{{ account.institution || 'Junior ISA' }}
+                </span>
+              </div>
+              <div class="account-balances">
+                <span class="account-balance">{{ formatCurrency(account.current_balance) }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
