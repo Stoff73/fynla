@@ -90,8 +90,8 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T19 | "No mortgage" ticks the No mortgage box | M3, Q2 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T20 | One form per person named in a message | P8 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T21 | The self-employed sentence says profit | M4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T22 | Normal registration opens on "Which of these do you have?" with the first-name greeting (section 6) | your change | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| T23 | Save Tax report only for Save Tax arrivals; others end on their actions; arrival record corrected (10 rows); iOS `/actions` link (section 6b) | your change | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T22 | Normal registration opens on "Which of these do you have?" with the first-name greeting (section 6) | your change | [x] | [x] | [x] | [x] | [ ] | [ ] |
+| T23 | Save Tax report only for Save Tax arrivals; others end on their actions; arrival record corrected (10 rows); iOS `/actions` link (section 6b) | your change | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T24 | Fyn's forms gain the fields whose columns exist | F9, F11, F12, F15, Q1, Q15, Q19, Q24 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T25 | Stop storing placeholders (rate 0, "repayment", "To be completed", "Unknown") as facts | Q1, Q9, N7 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T26 | Workplace pensions get their scheme type; production rows corrected | N2 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -122,6 +122,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T55 | **DECISION (CSJ):** how Fyn receives the user's own Child Benefit charge (F6). No tax plan strategy prices it; the figure lives only in the threshold strip (`HighIncomeChildBenefitLine`, via `ChildBenefitService::calculateChildBenefitPosition`), which no Fyn tool reads. On F6 (#3856) Fyn had only `get_tax_information(benefits)` (configuration), worked out "166%" itself, called £93,080 "below the £80,000 point", and could not say what the £9,700 pension payment does to the charge (at £83,380 it still repays all of it). Options: the threshold position in Fyn's context, an existing tool carrying it, or a plan item. Your call (Rule 16) | T12 part 2 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T56 | The `words` search reads only the open conversation. A figure given in an earlier conversation reaches Fyn only through that conversation's stored summary (`ConversationSummariser`, every 30 minutes, first 50 messages). Signing in on the web opened a new conversation (617) and "Remind me what I told you my bonus was" found nothing; Fyn asked rather than invented (T13 web walk, #22927). Whether `words` should also read the user's other conversations is a scope question for you | T13 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T57 | **DECISION (CSJ):** the pages round money to whole pounds (`currencyMixin`); Fyn now gives it exactly. Pat's Income page says "Net Income (after tax and National Insurance): £26,840" and Fyn says £26,839.60, on a line it is told is "the Income page's figure". Should the pages show pence as Fyn does, or Fyn quote the page's whole pounds? Your exact-pence rule (2026-10-12) was given for Fyn (T15 walk) | T15 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T59 | A single person with no dependants and no debts is told "Your life cover is £730,573 short" (T23 web walk, Nia 527, £68,000). Check the protection need's basis against the cover rules before changing anything | T23 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T41 | Live checks first, then fix what they show: /m message typed after a page change (M1); silent Saves (F10, Q24); will builder name and warning (Q19, Q20); retirement projection change (Q21); /m dashboard blank area | M1, F10, Q24, Q19, Q20, Q21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T42 | Brett's account 812: the "declared none" flags and the unasked goal written by these bugs. A database change, so done only with your OK | F19, P2 | [ ] | n/a | n/a | [ ] | [ ] | [ ] |
 | T43 | The full test run, once T0–T42 are done (R5) | all | n/a | [ ] | n/a | n/a | n/a | n/a |
@@ -704,6 +705,42 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   2. /m 390, the same account (bridged): Continue, then "Yes, add another". The /m form showed "Annual profit *" and the hint (shot `T21-03`). Filled Okafor Tutoring / 4200 and saved. The line read "I trade as Okafor Tutoring and my profit is £4,200 a year.", then "Got it — £59,200.50 a year, noted." (shot `T21-04`). Two jobs stored.
   - The edit form (a saved job opened to change it) is covered by `WorkEditFormTest`. It was not walked: that form opens from a chat change or a page, and at the walk's bubble steps the chat is locked.
 - **T21, walk account on csjones to purge:** Tunde Okafor 524 (`slaterjoneschris+t21web@gmail.com`, `Password1!`).
+- **T22, Code (2026-10-13):** #1278 (`3aa6d46b2`).
+  - `FUNNEL_STATES` asks assets first. `funnelGreeting` already greets on the first funnel question.
+  - `nextFromFunnelAssets`: "That's everything" now goes on to the first unanswered of employment, spouse and spouse income, and records `funnel_assets_answered` in `onboarding_fyn_context`. An empty list on its own still reads as unanswered, because a registration that never showed the question can send one. Restart rebuilds the context (`SpouseJointRecords::carry`).
+  - `/savetax` arrivals and invited partners are unchanged: their answers already fill the funnel.
+- **T22, Test (2026-10-13):**
+  - Two new tests, red first, in `SavetaxFunnelQuestionsTest`: the bubbles open with the first-name greeting, then employment, spouse and spouse income; and an empty "That's everything" is never asked again.
+  - Tests that encoded the employment-first order were moved to the new order, each keeping what it checks (9 in `SavetaxFunnelQuestionsTest`, 2 in `ForcedSavetaxCampaignTest`, 3 in `LinkedSpouseOnboardingTest`).
+  - Funnel-path files: 258 passed.
+- **T22, Dev (2026-10-13):** csjones `git pull` to `3aa6d46b2`. PHP only.
+- **T22, Dev walk (2026-10-13):**
+  1. Web 1440, fresh Amara 525 by normal registration. The first turn was "Hi Amara, I'm Fyn. I'll help you find where you could be saving tax. First, a few quick questions. **Which of these do you have?**" with the bubbles (shot `T22-01`). Then ISA, Pension, That's everything → employment → Full-time → spouse → Yes → spouse income → Up to £50,270 → "Now your work and income." (shot `T22-02`). Funnel stored with the profile mapped (married, dual earner).
+  2. /m 390, fresh Kofi 526: the same greeting on the bubbles (shot `T22-03`). "That's everything" with nothing ticked went to employment, then Full-time → spouse → No → work (shot `T22-04`). The bubbles were never asked again (`funnel_assets_answered`).
+- **T22, walk accounts to purge:** Amara 525 (`+t22web`), Kofi 526 (`+t22m`).
+- **T23, Code (2026-10-13):** #1279 (`47c2037df`).
+  - `OnboardingStateMachine::isSaveTaxArrival`: `funnel_answers.campaign === 'savetax'`, or a row from before the stamp that carries the `/savetax` page's `income` answer. Production 637, 647 and 648 are such rows; only that page asks the income band.
+  - The chat no longer writes `campaign`. An invitee copies the inviter's campaign only when the inviter has one.
+  - Everyone else's closing turn is "Here are your top actions, built from what you told me — in the order I'd tackle them:", then `NextActionsService::build`'s items. Each bullet carries the dashboard row's own figure line unless the title quotes it. There is no plan heading or total.
+  - A new corpus terminal, `campaign_actions_terminal`, goes to `/actions`, with "Take me to my actions".
+  - The partner invite says "actions".
+  - `applyCampaignAffinity` gives tax-first to arrivals only. Point 7 of this plan did not follow automatically: the selection is `savetax` for everyone.
+  - `registrations:clear-chat-campaign-stamp` (`--dry-run` first): a read-only count on production gives 10 users, 753, 759, 765, 776, 803, 810, 811, 812, 813, 814 (7 mid-onboarding), matching this plan.
+  - iOS: `DeepLinkParser` maps `/actions`.
+- **T23, Test (2026-10-13):**
+  - New, red first: `SaveTaxReportForArrivalsOnlyTest` (5), `ClearChatCampaignStampTest`, an invitee case in `SpouseInvitationRegistrationTest`, a normal-registrant case in `CampaignAffinityTest`, and `DeepLinkTests` `/actions` (CI).
+  - Arrival-shaped users in the synthesis, terminal and affinity tests now carry the arrival record.
+  - Touched-path files: 450 passed.
+  - **Existing failure, not from T23:** `FynRankedRecommendationsAreTheActionsListTest` (`900.0` vs `900`) fails the same way on dev `ad952eca2`.
+- **T23, Dev (2026-10-13):** csjones `git pull` to `47c2037df`. On csjones, `--dry-run` lists 34 old walk accounts; it was not run there, since fresh registrations are no longer stamped.
+- **T23, Dev walk (2026-10-13):**
+  1. Web 1440, fresh Nia 527 by normal registration: through to spending. The closing turn was "Here are your top actions…" (no protection policies, no will, "Pay £17,700 more into your pension and save £7,080 in tax", life cover short), then "Your actions are ready, Nia…" with "**Take me to my actions**" (shot `T23-01`). The button opened `/actions`.
+  2. /m 390, fresh Zain 528: the same steps. The closing turn listed will, pension £7,080, Personal Savings Allowance Exceeded, Consider a Cash ISA (shot `T23-02`). "Take me to my actions" opened the /m Actions screen with the same four in the same order (1 to 4) and the same £7,080 (shot `T23-03`).
+  3. Web 1440, fresh Sasha 529 through the homepage's "Save tax now" link and the `/savetax` funnel (`campaign: savetax`, income band kept). It still ended on "Here's your tax plan…" with "Together these are worth roughly £7,416 a year" and "**Take me to my tax strategy**" (shot `T23-04`).
+  - The web dashboard has no top-actions list (it opens on the "Where to focus" tabs). The figure-for-figure check against `NextActionsService::build` is the /m Top actions list and Actions screen (walk 2).
+- **T23, wording for CSJ's approval:** the closing turn, closing step, button and partner invite above (the plan's draft). The bullet suffix departs from the draft's "saves around £X a year": it is the dashboard row's own line ("you could save £7,080"), because not every action's figure is yearly.
+- **T23, Found (not fixed):** Nia 527 (single, no dependants, no mortgage) is told "Your life cover is £730,573 short" (closing turn and Actions page). Whether the protection need should count income replacement for someone with no dependants is outside T23. Added as T59.
+- **T23, walk accounts to purge:** Nia 527 (`+t23web`), Zain 528 (`+t23m`), Sasha 529 (`+t23st`).
 - **T58, walk accounts on csjones to purge:** Maya Walk and Leo Walk (`slaterjoneschris+t58m@`, `+t58web@gmail.com`, `Password1!`).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:

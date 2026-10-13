@@ -575,6 +575,13 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
             - DECISION (CSJ): approve the T21 wording: "Annual profit", "What the business takes in, less allowable expenses, before tax", and the two line forms.
             - Recorded: CSJ answered the T20 report with "Good go to T21" (2026-10-13); taken as approval of the T20 wording. Correct me if not.
           - Next (CSJ 2026-10-13: "move too T22 and 23 after this"): T22, then T23.
+          - **T22 ticked to Dev walk (2026-10-13):** normal registration opens on "Which of these do you have?" with the first-name greeting, then employment, spouse and spouse income. #1278 (`3aa6d46b2`). Walked web (Amara 525) and /m (Kofi 526, empty "That's everything").
+          - **T23 ticked to Dev walk (2026-10-13):** the Save Tax report is for Save Tax arrivals only; everyone else ends on their top actions and `/actions`. #1279 (`47c2037df`). Walked web (Nia 527), /m (Zain 528, matches the Actions screen) and a `/savetax` arrival (Sasha 529, plan unchanged).
+            - Release needs: `php artisan registrations:clear-chat-campaign-stamp --dry-run`, then without `--dry-run` (10 production users). The corpus file ships with the code.
+            - DECISION (CSJ): approve the T23 wording: "Here are your top actions, built from what you told me — in the order I'd tackle them:", "Your actions are ready, {first_name}. Open any action on the next screen to see the steps, or ask me about it here.", "Take me to my actions", the partner invite with "actions". Also the bullet suffix: the dashboard row's own line ("you could save £7,080"), not the draft's "saves around £X a year", because not every action's figure is yearly.
+            - Found: `FynRankedRecommendationsAreTheActionsListTest` fails on dev (`900.0` vs `900`), not from these changes.
+            - Found: a single person with no dependants is told "Your life cover is £730,573 short" (Nia 527). Added as T59.
+          - Next (CSJ 2026-10-13: "you can go to t24 and 25 next"): T24, then T25.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
