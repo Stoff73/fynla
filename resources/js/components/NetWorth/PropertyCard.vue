@@ -17,8 +17,8 @@
       <p v-if="property.address_line_2" class="property-address-2">
         {{ property.address_line_2 }}
       </p>
-      <p class="property-location">
-        {{ property.city }}, {{ property.postcode }}
+      <p v-if="location" class="property-location">
+        {{ location }}
       </p>
       <p v-if="coOwner" class="property-coowner">
         {{ ownershipLabel }} with {{ coOwner }}
@@ -77,6 +77,11 @@ export default {
   emits: ['select-property'],
 
   computed: {
+    // Town and postcode, whichever were given (T62: "Reading," with no postcode).
+    location() {
+      return [this.property.city, this.property.postcode].filter(Boolean).join(', ');
+    },
+
     propertyTypeLabel() {
       const labels = {
         main_residence: 'Main Residence',

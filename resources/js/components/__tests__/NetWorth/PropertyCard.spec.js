@@ -77,6 +77,21 @@ describe('PropertyCard.vue', () => {
     expect(html).toContain('SW1A 1AA');
   });
 
+  // T62 (release ac prod walk): a home saved through Fyn with a town and no
+  // postcode read "Reading," on the card.
+  it('shows the town alone when there is no postcode, and no line when there is neither', async () => {
+    expect(wrapper.find('.property-location').text()).toBe('London, SW1A 1AA');
+
+    await wrapper.setProps({ property: { ...solePropertyMock, city: 'Reading', postcode: null } });
+    expect(wrapper.find('.property-location').text()).toBe('Reading');
+
+    await wrapper.setProps({ property: { ...solePropertyMock, city: null, postcode: 'RG1 1AA' } });
+    expect(wrapper.find('.property-location').text()).toBe('RG1 1AA');
+
+    await wrapper.setProps({ property: { ...solePropertyMock, city: null, postcode: null } });
+    expect(wrapper.find('.property-location').exists()).toBe(false);
+  });
+
   it('does not show address_line_2 when null', async () => {
     await wrapper.setProps({ property: jointPropertyMock });
     expect(wrapper.html()).toContain('456 Oak Avenue');
