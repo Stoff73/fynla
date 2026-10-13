@@ -74,11 +74,20 @@ function ftqLastBubbleIds(User $user): array
     return array_map(fn (array $b) => $b['id'], (array) ($message->metadata['bubbles'] ?? []));
 }
 
-it('greets, asks employment, spouse, spouse income and assets, then maps the profile and enters base_work', function () {
+// T22 (CSJ 2026-10-12, plan section 6): normal registration opens on "Which
+// of these do you have?" with Fyn's greeting by the registered first name,
+// then asks employment, spouse and spouse income, each only if not answered.
+it('greets by first name on the asset bubbles, then asks employment, spouse and spouse income, then maps the profile and enters base_work', function () {
     $user = ftqUser();
     $first = ftqStart($user);
-    expect($first)->toContain("I'm Fyn")->toContain('employment');
-    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT);
+    expect($first)->toContain("Hi Sam, I'm Fyn")->toContain('Which of these do you have?')->not->toContain('employment');
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
+
+    ftqSay($user, 'Bank account');
+    ftqSay($user, 'Pension');
+    $employment = ftqSay($user, "That's everything");
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT)
+        ->and($employment)->toContain('employment')->not->toContain("I'm Fyn");
 
     ftqSay($user, 'Full-time');
     expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE);
@@ -88,16 +97,10 @@ it('greets, asks employment, spouse, spouse income and assets, then maps the pro
     expect(ftqLastBubbleIds($user))->toBe(['zero', 'upto_50270', '50271_100000', '100001_125140', 'over_125140']);
 
     ftqSay($user, "They don't earn");
-    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
-
-    ftqSay($user, 'Bank account');
-    ftqSay($user, 'Pension');
-    ftqSay($user, "That's everything");
 
     $user->refresh();
     expect($user->funnel_answers)->toMatchArray([
-        'campaign' => 'savetax', 'employment' => 'full-time',
-        'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => ['bank', 'pension'],
+        'employment' => 'full-time', 'spouse' => 'yes', 'spouseIncome' => 'zero', 'assets' => ['bank', 'pension'],
     ])
         ->and($user->employment_status)->toBe('full_time')
         ->and($user->marital_status)->toBe('married')
@@ -105,8 +108,22 @@ it('greets, asks employment, spouse, spouse income and assets, then maps the pro
         ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
 });
 
+it('takes That\'s everything with nothing ticked as the answer and never asks the bubbles again (T22)', function () {
+    $user = ftqUser();
+    ftqStart($user);
+    ftqSay($user, "That's everything");
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT);
+
+    ftqSay($user, 'Full-time');
+    ftqSay($user, 'No');
+    $user->refresh();
+
+    expect($user->funnel_answers['assets'])->toBe([])
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK);
+});
+
 it('labels the spouse-income bands from the tax configuration', function () {
-    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'yes']]);
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'spouse' => 'yes', 'assets' => ['bank']]]);
     ftqStart($user);
     $conversation = AiConversation::forUser($user->id)->onboarding()->latest('id')->firstOrFail();
     $labels = array_column((array) $conversation->messages()->where('role', 'assistant')->latest('id')->first()->metadata['bubbles'], 'label');
@@ -127,9 +144,9 @@ it('skips spouse income when there is no spouse', function () {
 it('sends a retired user to the retirement-date branch after the questions', function () {
     $user = ftqUser();
     ftqStart($user);
+    ftqSay($user, "That's everything");
     ftqSay($user, 'Retired');
     ftqSay($user, 'No');
-    ftqSay($user, "That's everything");
     $user->refresh();
 
     expect($user->employment_status)->toBe('retired')
@@ -196,9 +213,9 @@ it('matches a typed employment answer written without the hyphen', function () {
 it('does not greet a second time when the walk reaches income', function () {
     $user = ftqUser();
     ftqStart($user);
+    ftqSay($user, "That's everything");
     ftqSay($user, 'Full-time');
-    ftqSay($user, 'No');
-    $turn = ftqSay($user, "That's everything");
+    $turn = ftqSay($user, 'No');
 
     expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK)
         ->and($turn)->not->toContain("I'm Fyn")
@@ -248,7 +265,7 @@ it('Start over for a user who never answered the funnel asks the questions again
 
     iterator_to_array(app(OnboardingChatDirector::class)->handleAction($user, $conversation, 'restart'), false);
 
-    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT);
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
 });
 
 it('the default first turn is Save Tax while it is forced', function () {
@@ -260,7 +277,7 @@ it('the default first turn is Save Tax while it is forced', function () {
     $text = collect(iterator_to_array(app(OnboardingChatDirector::class)->emitFirstTurn($user, $conversation), false))
         ->pluck('prompt_text')->filter()->implode(' ');
 
-    expect($text)->toContain('employment')->not->toContain('life-stage journey');
+    expect($text)->toContain('Which of these do you have?')->not->toContain('life-stage journey');
 });
 
 it('asks "anything else" after the first asset instead of repeating the whole question', function () {
@@ -275,14 +292,18 @@ it('asks "anything else" after the first asset instead of repeating the whole qu
 // ── Final review fixes ──────────────────────────────────────────────────────
 
 it('greets on whichever funnel question comes first (I-1)', function () {
-    $user = ftqUser(['funnel_answers' => ['campaign' => 'pensioncheck', 'employment' => 'full-time', 'spouse' => 'yes'], 'employment_status' => 'full_time', 'marital_status' => 'married']);
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'pensioncheck', 'spouse' => 'yes'], 'marital_status' => 'married']);
     $first = ftqStart($user);
 
-    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME)
-        ->and($first)->toContain("I'm Fyn")->toContain('earn a year');
+    expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS)
+        ->and($first)->toContain("I'm Fyn")->toContain('Which of these do you have?');
 
-    $next = ftqSay($user, "They don't earn");
-    expect($next)->not->toContain("I'm Fyn")->toContain('Which of these do you have?');
+    $next = ftqSay($user, "That's everything");
+    expect($next)->not->toContain("I'm Fyn")->toContain('employment');
+
+    // Past the first question: a funnel already answering the bubbles greets on spouse income.
+    $partial = ftqUser(['funnel_answers' => ['campaign' => 'pensioncheck', 'employment' => 'full-time', 'spouse' => 'yes', 'assets' => ['bank']], 'employment_status' => 'full_time', 'marital_status' => 'married']);
+    expect(ftqStart($partial))->toContain("I'm Fyn")->toContain('earn a year');
 });
 
 it('does not ask what the profile already answers — a linked spouse invitee (I-2)', function () {
@@ -298,7 +319,7 @@ it('does not ask what the profile already answers — a linked spouse invitee (I
 });
 
 it('asks spouse income for a married profile with no household mode (I-2)', function () {
-    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax'], 'marital_status' => 'married', 'employment_status' => 'employed']);
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank']], 'marital_status' => 'married', 'employment_status' => 'employed']);
     ftqStart($user);
 
     expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME);
@@ -348,7 +369,7 @@ it('flags the asset step as multi-select on the live event and the stored row (M
 });
 
 it('does not flag single-choice bubble steps as multi-select (M4)', function () {
-    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time']]);
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'assets' => ['bank']]]);
     $stream = ftqStart($user);
 
     expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE)
@@ -451,7 +472,7 @@ it('answers a question typed at a single-choice step and records no answer', fun
         ->textTurn('For this question a partner you live with counts.')
         ->bind();
 
-    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time'], 'employment_status' => 'full_time']);
+    $user = ftqUser(['funnel_answers' => ['campaign' => 'savetax', 'employment' => 'full-time', 'assets' => ['bank']], 'employment_status' => 'full_time']);
     ftqStart($user);
     expect($user->refresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE);
 
