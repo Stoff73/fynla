@@ -2466,14 +2466,14 @@ class CoordinatingAgent extends BaseAgent
                     }
 
                     // Embed mortgage detail so the model gets it from property queries
-                    $mortgages = $p->mortgages->map(fn ($m) => ['lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months])->toArray();
+                    $mortgages = $p->mortgages->map(fn ($m) => ['lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => $m->interest_rate !== null ? (float) $m->interest_rate : null, 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => $m->monthly_payment !== null ? (float) $m->monthly_payment : null, 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months])->toArray();
 
                     return array_merge(['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => $total, 'outstanding_mortgage' => $mortgageTotal, 'mortgages' => $mortgages], $fields);
                 })->toArray();
                 break;
             case 'mortgage':
                 $items = Mortgage::whereHas('property', fn ($q) => $q->forUserOrJoint($userId))->with('property')->get();
-                $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
+                $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => $m->interest_rate !== null ? (float) $m->interest_rate : null, 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => $m->monthly_payment !== null ? (float) $m->monthly_payment : null, 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
                 break;
             case 'life_insurance':
                 $items = LifeInsurancePolicy::where('user_id', $userId)->get();
@@ -3929,10 +3929,10 @@ class CoordinatingAgent extends BaseAgent
 
         // array_merge with defaults FIRST + $input SECOND so Fyn's actual values
         // override the placeholders. Equivalent to array_replace($defaults, $input).
+        // The address line names the property where nothing else does; a town
+        // or postcode the user did not give stays null (T25: "Unknown", "N/A").
         $toolInput = array_merge([
             'address_line_1' => ucfirst(str_replace('_', ' ', $propertyType)),
-            'city' => 'Unknown',
-            'postcode' => 'N/A',
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipPct,
             'joint_owner_id' => $input['joint_owner_id'] ?? null,
@@ -3968,11 +3968,12 @@ class CoordinatingAgent extends BaseAgent
                     $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
                     $mortgagePayload = [
                         'property_id' => $property->id,
-                        'lender_name' => $input['mortgage_lender'] ?? 'To be completed',
-                        'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+                        // Not given stays null (T25), never "To be completed",
+                        // "repayment" or £0.
+                        'lender_name' => $input['mortgage_lender'] ?? null,
+                        'mortgage_type' => $input['mortgage_type'] ?? null,
                         'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
                         'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
-                        'monthly_payment' => 0,
                         'ownership_type' => $ownershipType,
                         'ownership_percentage' => $ownershipPct,
                         'joint_owner_id' => $property->joint_owner_id,
@@ -4074,8 +4075,9 @@ class CoordinatingAgent extends BaseAgent
         $payload = [
             'user_id' => $user->id,
             'property_id' => $property->id,
-            'lender_name' => $input['lender_name'] ?? 'To be completed',
-            'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+            // Not given stays null (T25).
+            'lender_name' => $input['lender_name'] ?? null,
+            'mortgage_type' => $input['mortgage_type'] ?? null,
             'rate_type' => $input['rate_type'] ?? 'fixed',
             'outstanding_balance' => (float) $input['outstanding_balance'],
             'ownership_type' => $property->ownership_type,
