@@ -155,11 +155,27 @@ it('keeps a saved mortgage\'s maturity date when the years left are saved unchan
     $mortgage = Mortgage::where('property_id', $property->id)->sole();
     $maturity = now()->addYears(17)->subMonths(5)->format('Y-m-d');
     $mortgage->forceFill(['maturity_date' => $maturity])->save();
-    $forms = app(\App\Services\Onboarding\RecordEditForms::class);
+    $forms = app(RecordEditForms::class);
 
     $form = $forms->formFor($user->fresh(), 'property', (int) $property->id);
     expect($form['answers']['main_residence']['mortgage_years_left'])->toBe(17);
     $forms->update($user->fresh(), ['name' => CaptureForms::PROPERTY, 'answers' => $form['answers'], 'record' => $form['record']], 0);
 
     expect($mortgage->fresh()->maturity_date->format('Y-m-d'))->toBe($maturity);
+});
+
+// T24 walk (csjones, user 530): the Junior ISA saved from the bank form was
+// not named at the bank loop question, which counts only non-ISA accounts
+// (every ISA counts with investments, CSJ 2026-09-15), so it read as lost.
+it('names a Junior ISA saved from the bank form at the bank loop question, without counting it as a bank account', function (): void {
+    $user = t24User(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
+
+    $events = t24Submit($user, CaptureForms::SAVINGS, [
+        'premium_bonds' => ['current_value' => 10000],
+        'junior_isa' => ['provider' => 'Fidelity', 'current_value' => 4200, 'child_first_name' => 'Maya', 'child_date_of_birth' => '2015-03-14'],
+    ]);
+
+    $loop = (string) collect($events)->firstWhere('type', 'quick_replies')['prompt_text'];
+    expect($loop)->toContain('You have 1 bank or savings account on file: NS&I Premium Bonds.')
+        ->and($loop)->toContain('Fidelity Junior ISA for Maya counts with your ISAs.');
 });
