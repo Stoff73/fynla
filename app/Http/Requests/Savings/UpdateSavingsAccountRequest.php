@@ -65,6 +65,12 @@ class UpdateSavingsAccountRequest extends FormRequest
             'isa_type' => 'nullable|in:cash,stocks_shares,LISA,junior', // junior: SavingsStore::ISA_TYPE_FOR_ACCOUNT_TYPE (T65)
             'isa_subscription_year' => 'nullable|string',
             'isa_subscription_amount' => 'nullable|numeric|min:0',
+
+            // A Junior ISA's child: one of the user's own family members, or a
+            // name and date of birth for a child not on the list (T65).
+            'beneficiary_id' => ['sometimes', 'nullable', 'integer', Rule::exists('family_members', 'id')->where('user_id', $this->user()->id)],
+            'beneficiary_name' => 'sometimes|nullable|string|max:255',
+            'beneficiary_dob' => 'sometimes|nullable|date|before:today',
         ];
     }
 

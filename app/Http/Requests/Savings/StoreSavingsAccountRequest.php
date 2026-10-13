@@ -68,6 +68,12 @@ class StoreSavingsAccountRequest extends FormRequest
             'joint_owner_id' => ['nullable', 'exists:users,id', new LinkedCoOwner($this->user())],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
             'trust_id' => ['nullable', 'exists:trusts,id'],
+
+            // A Junior ISA's child: one of the user's own family members, or a
+            // name and date of birth for a child not on the list (T65).
+            'beneficiary_id' => ['nullable', 'integer', Rule::exists('family_members', 'id')->where('user_id', $this->user()->id)],
+            'beneficiary_name' => ['nullable', 'string', 'max:255'],
+            'beneficiary_dob' => ['nullable', 'date', 'before:today'],
         ];
     }
 
