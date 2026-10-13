@@ -115,6 +115,30 @@ describe('Savings API', function () {
             expect($account->isa_type)->toBe('cash');
         });
 
+        // T65 walk (csjones, 2026-10-13): the web form sends isa_type 'junior'
+        // for a Junior ISA (SaveAccountModal) and the request refused it with
+        // "The selected isa type is invalid", so no Junior ISA could be added.
+        it('creates a Junior ISA as the web form sends it', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'junior_isa',
+                'institution' => 'Fidelity',
+                'current_balance' => 5000,
+                'interest_rate' => 0,
+                'access_type' => 'immediate',
+                'is_isa' => true,
+                'isa_type' => 'junior',
+                'isa_subscription_year' => '2026/27',
+                'beneficiary_name' => 'Leo',
+            ];
+
+            $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data)->assertCreated();
+
+            $account = SavingsAccount::where('user_id', $user->id)->first();
+            expect($account->isa_type)->toBe('junior')
+                ->and($account->isJuniorIsa())->toBeTrue();
+        });
+
         it('does not 500 when country arrives null in the payload', function () {
             $user = User::factory()->create();
             $data = [

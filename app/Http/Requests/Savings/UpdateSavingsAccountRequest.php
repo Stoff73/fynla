@@ -62,7 +62,7 @@ class UpdateSavingsAccountRequest extends FormRequest
             'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'sometimes|nullable|exists:trusts,id',
             'country' => 'sometimes|nullable|string|max:255',
-            'isa_type' => 'nullable|in:cash,stocks_shares,LISA',
+            'isa_type' => 'nullable|in:cash,stocks_shares,LISA,junior', // junior: SavingsStore::ISA_TYPE_FOR_ACCOUNT_TYPE (T65)
             'isa_subscription_year' => 'nullable|string',
             'isa_subscription_amount' => 'nullable|numeric|min:0',
         ];
