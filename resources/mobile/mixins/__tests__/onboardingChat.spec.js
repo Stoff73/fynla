@@ -1001,3 +1001,66 @@ describe('bubbles that are never picks', () => {
     expect(isToggleable(cursor.reply.bubbles[0])).toBe(false);
   });
 });
+
+// T58 (CSJ 2026-10-12): while bubbles that answer the step are waiting, the
+// answer is a tap, so the chat box is disabled and a typed send goes nowhere.
+describe('onboardingChat mixin — the chat box while bubbles wait (T58)', () => {
+  const host = (messages) => {
+    const wrapper = mount(Host);
+    wrapper.vm.messages = messages;
+    return wrapper.vm;
+  };
+  const fyn = (bubbles, extra = {}) => ({ role: 'fyn', text: 'Do you have a partner?', bubbles, ...extra });
+
+  it('is waiting while answer bubbles show, and says so in the box', () => {
+    const vm = host([fyn([{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }])]);
+    expect(vm.awaitingBubbleAnswer()).toBe(true);
+    expect(vm.fynInputPlaceholder()).toBe('Pick one of the options above');
+  });
+
+  it('is waiting for the resume bubbles (Continue / Something else)', () => {
+    const vm = host([fyn([{ id: 'continue', label: 'Continue' }, { id: 'something_else', label: 'Something else' }], { actionBubbles: true })]);
+    expect(vm.awaitingBubbleAnswer()).toBe(true);
+  });
+
+  it('is not waiting for a navigation, plans, skip or try-again bubble alone', () => {
+    expect(host([fyn([{ id: 'view_plan', label: 'Take me to my tax strategy', route: '/tax-strategy' }])]).awaitingBubbleAnswer()).toBe(false);
+    expect(host([fyn([{ id: 'subscription_options', label: 'Compare plans' }])]).awaitingBubbleAnswer()).toBe(false);
+    expect(host([fyn([{ id: 'skip', label: 'Skip for now', action: true }])]).awaitingBubbleAnswer()).toBe(false);
+    expect(host([fyn([{ id: 'retry', label: 'Try again', retry: 'turn-1' }])]).awaitingBubbleAnswer()).toBe(false);
+  });
+
+  it('is not waiting once an open form follows the bubbles, or with no bubbles at all', () => {
+    expect(host([
+      fyn([{ id: 'yes', label: 'Yes' }]),
+      { role: 'fyn', text: '', bubbles: [], form: { schema: { fields: [] }, locked: false } },
+    ]).awaitingBubbleAnswer()).toBe(false);
+    const vm = host([fyn([])]);
+    expect(vm.awaitingBubbleAnswer()).toBe(false);
+    expect(vm.fynInputPlaceholder()).toBe('Ask Fyn anything...');
+  });
+
+  // The stream pushes a plain reply object, then fills its bubbles in place
+  // (send / startOnboarding: cursor.reply), outside Vue's reactivity. The
+  // check must still see them, as the template does (csjones walk, Maya).
+  it('sees bubbles filled into a reply after it was pushed', () => {
+    const vm = host([]);
+    const reply = { role: 'fyn', text: '', bubbles: [] };
+    vm.messages.push(reply);
+    expect(vm.awaitingBubbleAnswer()).toBe(false);
+    reply.bubbles = [{ id: 'full-time', label: 'Full-time' }];
+    expect(vm.awaitingBubbleAnswer()).toBe(true);
+    expect(vm.fynInputPlaceholder()).toBe('Pick one of the options above');
+  });
+
+  it('sends nothing typed while answer bubbles wait, but a tap still sends', async () => {
+    apiStream.mockClear();
+    const vm = host([fyn([{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }])]);
+    vm.draft = 'about 48k';
+    await vm.send();
+    expect(apiStream).not.toHaveBeenCalled();
+    expect(vm.messages).toHaveLength(1);
+    vm.chooseBubble({ id: 'yes', label: 'Yes' }, vm.messages[0]);
+    expect(vm.messages.some((m) => m.role === 'user' && m.text === 'Yes')).toBe(true);
+  });
+});

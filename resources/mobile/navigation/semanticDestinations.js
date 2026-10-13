@@ -17,6 +17,7 @@ const overviewPaths = Object.freeze({
   spouse_sharing: '/spouse-sharing',
   subscription: '/subscription',
   settings: '/settings',
+  actions: '/actions',
 });
 
 const detailPaths = Object.freeze({

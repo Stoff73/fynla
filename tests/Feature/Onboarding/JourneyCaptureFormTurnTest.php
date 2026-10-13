@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Services\Onboarding\RecordEditForms;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -242,6 +243,24 @@ it('a self-employed user\'s work form income lands on self-employment income', f
     $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_WORK, ['employment_status' => 'self_employed', 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
     submitJourneyForm($user, journeyConversation($user), ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Self-employed', 'occupation' => 'Consultant', 'annual_income' => 52000]]]);
     expect((float) $user->fresh()->annual_self_employment_income)->toBe(52000.0);
+});
+
+// T21 (walk 2026-10-11, M4, #3893): the self-employed work step asks for
+// profit and the user's line says profit; the read-back keeps the pence.
+it('asks a self-employed user for their profit, says profit on their line, and repeats it back exactly', function (): void {
+    $user = journeyStepUser(OnboardingStateMachine::STATE_BASE_WORK, ['employment_status' => 'self_employed', 'annual_employment_income' => null, 'annual_self_employment_income' => null]);
+    $conversation = journeyConversation($user);
+    $director = app(OnboardingChatDirector::class);
+    $director->setClientSupportsForms(true);
+
+    $emitted = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_BASE_WORK, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK)), false);
+    expect(collect($emitted)->firstWhere('type', 'capture_form')['form']['fields']['annual_income']['label'])->toBe('Annual profit');
+
+    $form = ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Okafor Consulting', 'occupation' => 'IT consultant', 'annual_income' => 55000.5]]];
+    expect(app(RecordEditForms::class)->transcriptLine($user, $form))->toBe('My job is IT consultant, trading as Okafor Consulting, and my profit is £55,000.50 a year.');
+
+    $events = submitJourneyForm($user, $conversation, $form);
+    expect(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('Got it — £55,000.50 a year, noted.');
 });
 
 // CSJ 2026-09-16: the journey's "Anything else" focuses open on the same forms as the Save Tax walk.

@@ -38,6 +38,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\UserProfileService;
+use App\Support\Money;
 use App\Traits\ResolvesExpenditure;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -254,41 +255,16 @@ PROMPT;
     }
 
     /**
-     * S0.5.t — handoff_guidance block. Extracted from inline Layer 10b so it
-     * can be promoted to Layer 3b. Tells advice Fyn that ALL write intents
-     * route through `delegate_to_capture` and lists the required arguments
-     * + the navigate_to_page anti-pattern that BS-14 caught.
+     * S0.5.t — handoff_guidance block, promoted to Layer 3b. Tells advice
+     * Fyn that a stated write intent routes through `delegate_to_capture`
+     * and a question is answered.
      */
     private function getHandoffGuidance(): string
     {
-        // Rule 20 — the record-type vocabulary has ONE home
-        // (FynSystemPrompt::WRITABLE_RECORD_TYPES). This builder used to carry
-        // its own copy, and the two drifted apart on exactly the records that
-        // are not assets.
-        return str_replace('{{RECORD_TYPES}}', FynSystemPrompt::WRITABLE_RECORD_TYPES, <<<'PROMPT'
-<handoff_guidance>
-**TOP-PRIORITY RULE — READ FIRST.** This rule overrides every other instruction in this prompt.
-
-When the user asks you to add / save / record / create / update / delete / remove any {{RECORD_TYPES}}, or any other persistent record, your FIRST AND ONLY action is to emit the `delegate_to_capture` tool.
-
-You MUST pass these arguments:
-- `reason` (string, REQUIRED): a one-sentence why, e.g. "User wants to add a Cash ISA at Nationwide."
-- `entity_types` (array of strings, REQUIRED): record types, e.g. `["savings_account"]`, `["protection_policy"]`.
-- `fields_needed` (array of strings, optional): field names the user provided, e.g. `["provider","current_balance","interest_rate"]`.
-
-OMITTING `reason` BREAKS THE HANDOFF. Always include it. Always include `entity_types`.
-
-**ANTI-PATTERNS — these are FORBIDDEN for write intents:**
-- Calling a navigation tool to send the user to the relevant page so they fill the form themselves. The user asked YOU to add the record. Use `delegate_to_capture`.
-- Calling `create_*`, `update_*`, or `delete_*` tools directly. Those tools are not in your tool list — Advice Fyn is read-only.
-- Replying with text like "I've added", "I've recorded", "I've noted", "I'll take you to..." without first calling `delegate_to_capture`. That fabricates success.
-- Asking the user follow-up questions ("what's the start date?") before calling `delegate_to_capture`. Call the tool first with whatever the user gave you; the handoff captures the rest.
-
-**REQUIRED PATTERN.** User: "Add a Cash ISA with Nationwide, balance £5,000, interest 4.5%" → IMMEDIATELY emit `delegate_to_capture({reason: "User wants to add a Cash ISA at Nationwide.", entity_types: ["savings_account"], fields_needed: ["provider","account_type","current_balance","interest_rate"]})`. Do NOT navigate. Do NOT reply with text first. Do NOT ask follow-up questions.
-
-The handoff runs through Onboarding Fyn, persists the record, and continues the conversation seamlessly. The user does not see the handoff. After the handoff completes, you may add a brief confirmation only if the underlying tool actually persisted the record.
-</handoff_guidance>
-PROMPT);
+        // Rule 20 — the handoff rule has ONE home, FynSystemPrompt. This
+        // builder carried its own longer copy, which drifted from the unified
+        // prompt (fix plan T5 added the question exception there).
+        return FynSystemPrompt::handoffGuidance();
     }
 
     /**
@@ -372,7 +348,7 @@ PROMPT;
         $definitions = $taxMath->incomeDefinitionsFor($user);
         $totalIncome = (float) ($definitions['total_income'] ?? 0);
         if ($totalIncome > 0) {
-            $lines[] = '- Total annual income: £'.number_format($totalIncome, 2);
+            $lines[] = '- Total annual income: '.Money::exact($totalIncome);
             $lines[] = '- Estimated income tax band: '.$this->taxBandLabel($taxMath, $taxMath->incomeTaxBandFor($user));
 
             // FA 2004 s189(2): employment and trading income are relevant UK
@@ -405,7 +381,7 @@ PROMPT;
                     // total without Fyn having to subtract (walked 2026-10-04: told
                     // to list a minus line, it still gave the gross beside the total).
                     if ($key === 'employment' && $sacrificed > 0) {
-                        $label .= ' after salary sacrifice (£'.number_format((float) $amount, 2).' before; £'.number_format($sacrificed, 2).' is paid into the pension before tax and National Insurance)';
+                        $label .= ' after salary sacrifice ('.Money::exact((float) $amount).' before; '.Money::exact($sacrificed).' is paid into the pension before tax and National Insurance)';
                         $amount = (float) $amount - $sacrificed;
                     }
                     $tag = match ($relevant) {
@@ -413,7 +389,7 @@ PROMPT;
                         false => ' [not relevant UK earnings]',
                         null => '',
                     };
-                    $lines[] = "  - {$label}{$tag}: £".number_format((float) $amount, 2);
+                    $lines[] = "  - {$label}{$tag}: ".Money::exact((float) $amount);
                 }
             }
 
@@ -423,15 +399,14 @@ PROMPT;
             // they miss the dividend rates, the savings allowances and tax a trust
             // has already paid (walked 2026-10-03: £9,552 against the page's £7,743.50).
             $tab = app(UserProfileService::class)->incomeAndTaxFor($user);
-            $lines[] = '- Income Tax this year (the Income page\'s figure; quote it, never work it out again): £'.number_format((float) $tab['income_tax'], 2);
-            $lines[] = '- National Insurance this year (the Income page\'s figure): £'.number_format((float) $tab['national_insurance'], 2);
-            $lines[] = '- Take-home after Income Tax and National Insurance (the Income page\'s figure): £'.number_format((float) $tab['net_income'], 2);
+            $lines[] = '- Income Tax this year (the Income page\'s figure; quote it, never work it out again): '.Money::exact((float) $tab['income_tax']);
+            $lines[] = '- National Insurance this year (the Income page\'s figure): '.Money::exact((float) $tab['national_insurance']);
+            $lines[] = '- Take-home after Income Tax and National Insurance (the Income page\'s figure): '.Money::exact((float) $tab['net_income']);
         }
 
         $totalExpenditure = $this->calculateTotalExpenditure($user);
         if ($totalExpenditure > 0) {
-            $formatted = number_format($totalExpenditure, 2);
-            $lines[] = "- Monthly expenditure: £{$formatted}";
+            $lines[] = '- Monthly expenditure: '.Money::exact($totalExpenditure);
         }
 
         // The plan's own monthly surplus, the one server figure the plan and the
@@ -440,11 +415,11 @@ PROMPT;
         // left out the pension payment (csjones, Jamie, 2026-10-08).
         $commitments = (float) app(DisposableIncomeAccessor::class)->getForUser($user)['expenditure_composition']['commitments_annual'] / 12;
         if ($commitments > 0) {
-            $lines[] = '- Financial commitments each month, on top of the expenditure above (pension payments from take-home, protection premiums, regular saving, loan repayments): £'.number_format($commitments, 2);
+            $lines[] = '- Financial commitments each month, on top of the expenditure above (pension payments from take-home, protection premiums, regular saving, loan repayments): '.Money::exact($commitments);
         }
         $surplus = app(CashFlowCoordinator::class)->calculateAvailableSurplus($user->id);
         $lines[] = '- Left over each month after take-home, expenditure and commitments (the plan\'s figure; quote it, never work it out again): '
-            .($surplus < 0 ? '−£' : '£').number_format(abs($surplus), 2);
+            .Money::exact($surplus);
 
         // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED;
         // it is not evidence that they named back, and this reads their financial data.
@@ -455,10 +430,10 @@ PROMPT;
         if ($spouse) {
             $spouseExpenditure = $this->calculateTotalExpenditure($spouse);
             if ($spouseExpenditure > 0) {
-                $lines[] = '- Spouse monthly expenditure: £'.number_format($spouseExpenditure, 2);
+                $lines[] = '- Spouse monthly expenditure: '.Money::exact($spouseExpenditure);
             }
             if ($totalExpenditure > 0 && $spouseExpenditure > 0) {
-                $lines[] = '- Combined household expenditure: £'.number_format($totalExpenditure + $spouseExpenditure, 2);
+                $lines[] = '- Combined household expenditure: '.Money::exact($totalExpenditure + $spouseExpenditure);
             }
         }
 
@@ -560,9 +535,9 @@ PROMPT;
                 // The cached figure every page and the dashboard read, so Fyn
                 // quotes the number on screen (CSJ 2026-10-01; audit item 46).
                 $netWorthData = $netWorthService->getCachedNetWorth($user);
-                $lines[] = '- Total net worth: £'.number_format($netWorthData['net_worth'], 0);
-                $lines[] = '- Total assets: £'.number_format($netWorthData['total_assets'], 0);
-                $lines[] = '- Total liabilities: £'.number_format($netWorthData['total_liabilities'], 0);
+                $lines[] = '- Total net worth: '.Money::exact($netWorthData['net_worth']);
+                $lines[] = '- Total assets: '.Money::exact($netWorthData['total_assets']);
+                $lines[] = '- Total liabilities: '.Money::exact($netWorthData['total_liabilities']);
             } catch (\Exception $e) {
                 // Fall through — individual modules below will provide partial data
             }
@@ -570,16 +545,15 @@ PROMPT;
             // Available surplus — always rendered (cross-module cashflow)
             $surplus = $analysis['available_surplus'] ?? 0;
             if ($surplus !== 0) {
-                $formatted = number_format(abs($surplus), 2);
                 $label = $surplus >= 0 ? 'Monthly surplus' : 'Monthly shortfall';
-                $lines[] = "- {$label}: £{$formatted}";
+                $lines[] = "- {$label}: ".Money::exact(abs((float) $surplus));
             }
 
             // Savings — module-scoped
             if ($renderModule('savings') && isset($modules['savings'])) {
                 $s = $modules['savings'];
                 if (($s['total_savings'] ?? 0) > 0) {
-                    $lines[] = '- Total savings: £'.number_format($s['total_savings'], 2);
+                    $lines[] = '- Total savings: '.Money::exact($s['total_savings']);
                 }
                 if (isset($s['emergency_fund_months'])) {
                     // Same wording Fyn sees as the user sees on every screen
@@ -595,7 +569,7 @@ PROMPT;
             if ($renderModule('investment') && isset($modules['investment'])) {
                 $inv = $modules['investment'];
                 if (($inv['total_portfolio_value'] ?? 0) > 0) {
-                    $lines[] = '- Investment portfolio: £'.number_format($inv['total_portfolio_value'], 0);
+                    $lines[] = '- Investment portfolio: '.Money::exact($inv['total_portfolio_value']);
                 }
             }
 
@@ -603,13 +577,13 @@ PROMPT;
             if ($renderModule('retirement') && isset($modules['retirement'])) {
                 $ret = $modules['retirement'];
                 if (($ret['total_pension_value'] ?? 0) > 0) {
-                    $lines[] = '- Total pension value: £'.number_format($ret['total_pension_value'], 0);
+                    $lines[] = '- Total pension value: '.Money::exact($ret['total_pension_value']);
                 }
                 if (($ret['projected_annual_income'] ?? 0) > 0) {
-                    $lines[] = '- Projected retirement income: £'.number_format($ret['projected_annual_income'], 0).' per year';
+                    $lines[] = '- Projected retirement income: '.Money::exact($ret['projected_annual_income']).' per year';
                 }
                 if (($ret['income_gap'] ?? 0) > 0) {
-                    $lines[] = '- Retirement income gap: £'.number_format($ret['income_gap'], 0).' per year';
+                    $lines[] = '- Retirement income gap: '.Money::exact($ret['income_gap']).' per year';
                 }
             }
 
@@ -617,10 +591,10 @@ PROMPT;
             if ($renderModule('protection') && isset($modules['protection'])) {
                 $prot = $modules['protection'];
                 if (($prot['full_analysis']['total_cover'] ?? 0) > 0) {
-                    $lines[] = '- Total life cover: £'.number_format($prot['full_analysis']['total_cover'], 0);
+                    $lines[] = '- Total life cover: '.Money::exact($prot['full_analysis']['total_cover']);
                 }
                 if (($prot['coverage_gap'] ?? 0) > 0) {
-                    $lines[] = '- Coverage gap: £'.number_format($prot['coverage_gap'], 0);
+                    $lines[] = '- Coverage gap: '.Money::exact($prot['coverage_gap']);
                 }
             }
 
@@ -634,7 +608,7 @@ PROMPT;
             if ($renderModule('estate') && isset($modules['estate'])) {
                 $est = $modules['estate'];
                 if (($est['iht_liability'] ?? 0) > 0) {
-                    $lines[] = '- Estimated Inheritance Tax liability: £'.number_format($est['iht_liability'], 0);
+                    $lines[] = '- Estimated Inheritance Tax liability: '.Money::exact($est['iht_liability']);
                 }
             }
 
@@ -653,11 +627,11 @@ PROMPT;
                     // status_label), the ones every screen shows.
                     $remaining = (float) $goal->amount_remaining;
                     $status = strtolower((string) $goal->status_label);
-                    $contribution = $goal->monthly_contribution ? ' — £'.number_format((float) $goal->monthly_contribution, 0).'/month' : '';
+                    $contribution = $goal->monthly_contribution ? ' — '.Money::exact((float) $goal->monthly_contribution).'/month' : '';
                     // S0.10 — goal_name is user-controlled free text.
                     $goalName = UserContentSanitiser::wrap((string) $goal->goal_name);
-                    $lines[] = "  [ID:{$goal->id}] {$goalName}: £".number_format((float) $goal->current_amount, 0)
-                        .' of £'.number_format((float) $goal->target_amount, 0)
+                    $lines[] = "  [ID:{$goal->id}] {$goalName}: ".Money::exact((float) $goal->current_amount)
+                        .' of '.Money::exact((float) $goal->target_amount)
                         ." ({$status}){$contribution}"
                         .($goal->target_date ? ' — target: '.$goal->target_date->format('M Y') : '');
                 }
@@ -679,7 +653,7 @@ PROMPT;
                 foreach ($activeEvents->take(10) as $event) {
                     $monthsUntil = max(0, (int) now()->diffInMonths($event->expected_date));
                     $sign = $event->impact_type === 'income' ? '+' : '-';
-                    $lines[] = "  [ID:{$event->id}] {$event->event_name}: {$sign}£".number_format((float) $event->amount, 0)
+                    $lines[] = "  [ID:{$event->id}] {$event->event_name}: {$sign}".Money::exact((float) $event->amount)
                         ." — in {$monthsUntil} months ({$event->certainty})";
                 }
             }
@@ -720,7 +694,7 @@ PROMPT;
 
                     // Include estimated saving if available
                     if (isset($rec['estimated_saving']) && $rec['estimated_saving'] > 0) {
-                        $lines[] = '   Estimated saving: £'.number_format((float) $rec['estimated_saving'], 0);
+                        $lines[] = '   Estimated saving: '.Money::exact((float) $rec['estimated_saving']);
                     }
 
                     // Items that are one choice (the ISA wrap, the spouse gift,
@@ -751,8 +725,7 @@ PROMPT;
             $cashflow = $analysis['cashflow_allocation'] ?? [];
             if (! empty($cashflow) && isset($cashflow['total_demand'])) {
                 $lines[] = '';
-                $totalDemand = number_format($cashflow['total_demand'], 2);
-                $lines[] = "Cashflow: Total monthly demand £{$totalDemand} vs surplus £".number_format(abs($surplus), 2);
+                $lines[] = 'Cashflow: Total monthly demand '.Money::exact((float) $cashflow['total_demand']).' vs surplus '.Money::exact(abs((float) $surplus));
             }
 
             // Shortfall analysis
@@ -803,8 +776,8 @@ PROMPT;
                     $lines[] = 'LIFE EVENT IMPACTS BY MODULE:';
                     foreach ($lifeEventImpacts as $module => $impact) {
                         $sign = $impact['net_impact'] >= 0 ? '+' : '-';
-                        $amount = number_format(abs($impact['net_impact']), 0);
-                        $line = "- {$module}: {$impact['event_count']} upcoming events, net impact {$sign}£{$amount}";
+                        $amount = Money::exact(abs((float) $impact['net_impact']));
+                        $line = "- {$module}: {$impact['event_count']} upcoming events, net impact {$sign}{$amount}";
                         // formatEventForModule emits expected_date, not months_until.
                         $nextEvent = $impact['next_event'] ?? null;
                         if (is_array($nextEvent) && ! empty($nextEvent['expected_date'])) {
@@ -862,14 +835,14 @@ PROMPT;
             $valueWithShare = function ($record, float $totalValue) use ($userId) {
                 $type = $record->ownership_type ?? 'individual';
                 if ($type === 'individual') {
-                    return '£'.number_format($totalValue, 0);
+                    return Money::exact($totalValue);
                 }
                 $userPct = (int) ($record->user_id === $userId
                     ? ($record->ownership_percentage ?? 100)
                     : (100 - ($record->ownership_percentage ?? 100)));
                 $userValue = $totalValue * ($userPct / 100);
 
-                return 'total:£'.number_format($totalValue, 0).' your-share:£'.number_format($userValue, 0);
+                return 'total:'.Money::exact($totalValue).' your-share:'.Money::exact($userValue);
             };
 
             // Savings
@@ -907,7 +880,7 @@ PROMPT;
                     $items = $dcPensions->map(fn ($p) => '[ID:'.$p->id
                         .' '.UserContentSanitiser::wrap((string) $p->scheme_name)
                         .' '.$p->pension_type
-                        .' £'.number_format((float) $p->current_fund_value, 0).']')->implode(' ');
+                        .' '.Money::exact((float) $p->current_fund_value).']')->implode(' ');
                     $lines[] = "DC PENSIONS: {$items}";
                 }
             }
@@ -919,7 +892,7 @@ PROMPT;
                     // S0.10 — scheme_name is user-controlled free text.
                     $items = $dbPensions->map(fn ($p) => '[ID:'.$p->id
                         .' '.UserContentSanitiser::wrap((string) $p->scheme_name)
-                        .' £'.number_format((float) ($p->accrued_annual_pension ?? 0), 0).'/yr]')->implode(' ');
+                        .' '.Money::exact((float) ($p->accrued_annual_pension ?? 0)).'/yr]')->implode(' ');
                     $lines[] = "DB PENSIONS: {$items}";
                 }
             }
@@ -940,18 +913,18 @@ PROMPT;
                         $userMortgage = $mortgageTotal * ($userPct / 100);
 
                         $valueLabel = $userPct < 100
-                            ? ' total:£'.number_format($totalValue, 0).' your-share:£'.number_format($userValue, 0)
-                            : ' £'.number_format($totalValue, 0);
+                            ? ' total:'.Money::exact($totalValue).' your-share:'.Money::exact($userValue)
+                            : ' '.Money::exact($totalValue);
                         $mortgageLabel = $mortgageTotal > 0
                             ? ($userPct < 100
-                                ? ' mortgage-total:£'.number_format($mortgageTotal, 0).' your-mortgage:£'.number_format($userMortgage, 0)
-                                : ' mortgage:£'.number_format($mortgageTotal, 0))
+                                ? ' mortgage-total:'.Money::exact($mortgageTotal).' your-mortgage:'.Money::exact($userMortgage)
+                                : ' mortgage:'.Money::exact($mortgageTotal))
                             : '';
                         $rentalTotal = (float) ($p->monthly_rental_income ?? 0);
                         $rentalLabel = $p->property_type === 'buy_to_let' && $rentalTotal > 0
                             ? ($userPct < 100
-                                ? ' rent-total:£'.number_format($rentalTotal, 0).'/mo your-rent:£'.number_format($rentalTotal * ($userPct / 100), 0).'/mo'
-                                : ' rent:£'.number_format($rentalTotal, 0).'/mo')
+                                ? ' rent-total:'.Money::exact($rentalTotal).'/mo your-rent:'.Money::exact($rentalTotal * ($userPct / 100)).'/mo'
+                                : ' rent:'.Money::exact($rentalTotal).'/mo')
                             : '';
 
                         // S0.10 — address_line_1 is user-controlled free text.
@@ -971,7 +944,7 @@ PROMPT;
                     $items = $lifePolicies->map(fn ($p) => '[ID:'.$p->id
                         .' '.UserContentSanitiser::wrap((string) $p->provider)
                         .' '.$p->policy_type
-                        .' £'.number_format((float) $p->sum_assured, 0).']')->implode(' ');
+                        .' '.Money::exact((float) $p->sum_assured).']')->implode(' ');
                     $lines[] = "LIFE INSURANCE: {$items}";
                 }
             }
@@ -983,7 +956,7 @@ PROMPT;
                     // S0.10 — provider is user-controlled free text.
                     $items = $ciPolicies->map(fn ($p) => '[ID:'.$p->id
                         .' '.UserContentSanitiser::wrap((string) $p->provider)
-                        .' £'.number_format((float) $p->sum_assured, 0).']')->implode(' ');
+                        .' '.Money::exact((float) $p->sum_assured).']')->implode(' ');
                     $lines[] = "CRITICAL ILLNESS: {$items}";
                 }
             }
@@ -995,7 +968,7 @@ PROMPT;
                     // S0.10 — provider is user-controlled free text.
                     $items = $ipPolicies->map(fn ($p) => '[ID:'.$p->id
                         .' '.UserContentSanitiser::wrap((string) $p->provider)
-                        .' £'.number_format((float) $p->benefit_amount, 0).'/mo]')->implode(' ');
+                        .' '.Money::exact((float) $p->benefit_amount).'/mo]')->implode(' ');
                     $lines[] = "INCOME PROTECTION: {$items}";
                 }
             }
@@ -1008,7 +981,7 @@ PROMPT;
                     $items = $trusts->map(fn ($t) => '[ID:'.$t->id
                         .' '.UserContentSanitiser::wrap((string) $t->trust_name)
                         .' '.$t->trust_type
-                        .' £'.number_format((float) $t->current_value, 0).']')->implode(' ');
+                        .' '.Money::exact((float) $t->current_value).']')->implode(' ');
                     $lines[] = "TRUSTS: {$items}";
                 }
             }
@@ -1021,7 +994,7 @@ PROMPT;
                     $items = $businesses->map(fn ($b) => '[ID:'.$b->id
                         .' '.UserContentSanitiser::wrap((string) $b->business_name)
                         .' '.$b->business_type
-                        .' £'.number_format((float) $b->current_valuation, 0).']')->implode(' ');
+                        .' '.Money::exact((float) $b->current_valuation).']')->implode(' ');
                     $lines[] = "BUSINESS: {$items}";
                 }
             }
@@ -1034,7 +1007,7 @@ PROMPT;
                     $items = $chattels->map(fn ($c) => '[ID:'.$c->id
                         .' '.UserContentSanitiser::wrap((string) $c->description)
                         .' '.$c->chattel_type
-                        .' £'.number_format((float) $c->current_value, 0).']')->implode(' ');
+                        .' '.Money::exact((float) $c->current_value).']')->implode(' ');
                     $lines[] = "CHATTELS: {$items}";
                 }
             }
@@ -1046,12 +1019,12 @@ PROMPT;
                     $items = $liabilities->map(function ($l) {
                         // S0.10 — liability_name is user-controlled free text.
                         $name = UserContentSanitiser::wrap((string) $l->liability_name);
-                        $parts = '[ID:'.$l->id.' '.$name.' '.$l->liability_type.' £'.number_format((float) $l->current_balance, 0);
+                        $parts = '[ID:'.$l->id.' '.$name.' '.$l->liability_type.' '.Money::exact((float) $l->current_balance);
                         if ($l->interest_rate) {
                             $parts .= " rate:{$l->interest_rate}%";
                         }
                         if ($l->monthly_payment) {
-                            $parts .= ' £'.number_format((float) $l->monthly_payment, 0).'/mo';
+                            $parts .= ' '.Money::exact((float) $l->monthly_payment).'/mo';
                         }
                         if ($l->is_priority_debt) {
                             $parts .= ' PRIORITY';
@@ -1071,7 +1044,7 @@ PROMPT;
                     $items = $gifts->map(fn ($g) => '[ID:'.$g->id
                         .' '.UserContentSanitiser::wrap((string) $g->recipient)
                         .' '.$g->gift_type
-                        .' £'.number_format((float) $g->gift_value, 0)
+                        .' '.Money::exact((float) $g->gift_value)
                         .' '.($g->gift_date ? $g->gift_date->format('M Y') : '').']')->implode(' ');
                     $lines[] = "GIFTS: {$items}";
                 }

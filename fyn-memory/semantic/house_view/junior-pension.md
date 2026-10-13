@@ -2,7 +2,8 @@
 fact_id: hv-junior-pension
 category: house_view
 title: Junior pension — government-topped pension contributions for children
-version: 2
+source: "Finance Act 2004 s188 (relief for contributions), s190 (annual limit: relevant UK earnings or the basic amount), s192 (relief at source)"
+version: 3
 valid_to: null
 ---
 

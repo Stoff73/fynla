@@ -353,7 +353,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import chattelService from '@/services/chattelService';
 
 import logger from '@/utils/logger';
-import { coOwnerName, getOwnershipLabel, isSharedRecord, userSharePercent } from '@/utils/ownership';
+import { coOwnerName, getOwnershipLabel, isSharedRecord, sharePercentText } from '@/utils/ownership';
 export default {
   name: 'ChattelDetailInline',
 
@@ -396,7 +396,7 @@ export default {
     // The viewer's own share: the joint owner's is the other side of the
     // stored split, which is the primary owner's (Rule 6, W-0016).
     sharePercent() {
-      return userSharePercent(this.chattel).toFixed(2);
+      return sharePercentText(this.chattel);
     },
     vehicleDescription() {
       if (this.chattel?.chattel_type !== 'vehicle') return null;
@@ -479,7 +479,7 @@ export default {
         return 'Individual (100%)';
       }
 
-      const percent = userSharePercent(chattel).toFixed(2);
+      const percent = sharePercentText(chattel);
       const other = coOwnerName(chattel);
 
       return other

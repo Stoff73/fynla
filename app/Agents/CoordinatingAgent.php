@@ -14,6 +14,7 @@ use App\Enums\FynTurnIntent;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Exceptions\SpouseCollisionException;
+use App\Exceptions\SpouseInviteLimitException;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\BusinessInterest;
@@ -50,6 +51,7 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\ConversationWindow;
 use App\Services\AI\Fyn\RecaptureGuard;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Pointers\FetchContext;
@@ -166,6 +168,8 @@ class CoordinatingAgent extends BaseAgent
     private const SAVINGS_ACCOUNT_TYPES = [
         'easy_access', 'notice', 'fixed', 'fixed_term',
         'regular_saver', 'cash_isa', 'junior_isa', 'current_account',
+        // T24: the savings form's Premium Bonds kind (SavingsAccount::TYPE_LABELS).
+        'premium_bonds',
     ];
 
     public function __construct(
@@ -1233,7 +1237,7 @@ class CoordinatingAgent extends BaseAgent
                 // Handoff tools — stubbed so HasAiChat doesn't error. The
                 // synthetic 'handoff' SSE event yielded downstream from this
                 // result is consumed by OnboardingChatDirector::handleInlineCapture.
-                'delegate_to_capture' => [
+                'delegate_to_capture' => $this->questionHandoffRefusal($input, $conversationId) ?? [
                     'action' => 'handoff',
                     'handoff_type' => 'delegate_to_capture',
                     'payload' => $input,
@@ -1957,7 +1961,7 @@ class CoordinatingAgent extends BaseAgent
                 ];
             }
 
-            if ($outcome['kind'] === 'invalid') {
+            if ($outcome['kind'] === 'invalid' || $outcome['kind'] === 'limited') {
                 return ['error' => true, 'message' => $outcome['message']];
             }
 
@@ -2064,7 +2068,11 @@ class CoordinatingAgent extends BaseAgent
         $data['email'] = $email;
 
         try {
+            app(SpouseLinkingService::class)->guardInviteRate($user);
+
             return ['ok' => true, 'result' => app(SpouseLinkingService::class)->linkOrCreateSpouse($user, $data)];
+        } catch (SpouseInviteLimitException $e) {
+            return ['ok' => false, 'kind' => 'limited', 'message' => $e->getMessage()];
         } catch (SpouseCollisionException $e) {
             return ['ok' => false, 'kind' => 'collision', 'message' => $e->getMessage()];
         } catch (\InvalidArgumentException $e) {
@@ -2458,14 +2466,14 @@ class CoordinatingAgent extends BaseAgent
                     }
 
                     // Embed mortgage detail so the model gets it from property queries
-                    $mortgages = $p->mortgages->map(fn ($m) => ['lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months])->toArray();
+                    $mortgages = $p->mortgages->map(fn ($m) => ['lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => $m->interest_rate !== null ? (float) $m->interest_rate : null, 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => $m->monthly_payment !== null ? (float) $m->monthly_payment : null, 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months])->toArray();
 
                     return array_merge(['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => $total, 'outstanding_mortgage' => $mortgageTotal, 'mortgages' => $mortgages], $fields);
                 })->toArray();
                 break;
             case 'mortgage':
                 $items = Mortgage::whereHas('property', fn ($q) => $q->forUserOrJoint($userId))->with('property')->get();
-                $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
+                $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => $m->interest_rate !== null ? (float) $m->interest_rate : null, 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => $m->monthly_payment !== null ? (float) $m->monthly_payment : null, 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
                 break;
             case 'life_insurance':
                 $items = LifeInsurancePolicy::where('user_id', $userId)->get();
@@ -2841,7 +2849,17 @@ class CoordinatingAgent extends BaseAgent
             ->limit(10)
             ->get(['id', 'title', 'summary', 'topics', 'intents_stated', 'entities_mentioned', 'last_message_at']);
 
+        // The open conversation's earlier messages, out of the model's view:
+        // the user's own words, quoted, for the words asked (walk fix plan
+        // T13). Only the caller's own conversation is read.
+        $words = array_values(array_filter((array) ($input['words'] ?? []), fn ($v) => is_string($v) && trim($v) !== ''));
+        $active = $activeConversationId !== null && $words !== []
+            ? AiConversation::where('id', $activeConversationId)->where('user_id', $user->id)->first()
+            : null;
+        $thisConversation = $active !== null ? ConversationWindow::earlierUserMessagesWith($active, $words) : [];
+
         return [
+            'this_conversation' => $thisConversation,
             'count' => $rows->count(),
             'conversations' => $rows->map(fn ($row) => [
                 'id' => $row->id,
@@ -3313,6 +3331,9 @@ class CoordinatingAgent extends BaseAgent
             'joint_owner_id' => 'nullable|integer|exists:users,id',
             'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
+            // A Junior ISA's child (T24; the web form's beneficiary fields).
+            'beneficiary_name' => 'nullable|string|max:255',
+            'beneficiary_dob' => 'nullable|date_format:Y-m-d|before:today',
         ]);
         if ($validationError) {
             return $validationError;
@@ -3877,6 +3898,10 @@ class CoordinatingAgent extends BaseAgent
             'monthly_building_insurance' => 'nullable|numeric|min:0|max:99999.99',
             'monthly_contents_insurance' => 'nullable|numeric|min:0|max:99999.99',
             'monthly_service_charge' => 'nullable|numeric|min:0|max:99999.99',
+            'managing_agent_fee' => 'nullable|numeric|min:0|max:99999.99',
+            'city' => 'nullable|string|max:255',
+            'mortgage_lender' => 'nullable|string|max:255',
+            'mortgage_maturity_date' => 'nullable|date_format:Y-m-d|after:today',
             'monthly_maintenance_reserve' => 'nullable|numeric|min:0|max:99999.99',
             'other_monthly_costs' => 'nullable|numeric|min:0|max:99999.99',
             // Legacy field names from AiToolDefinitions (Anthropic path)
@@ -3904,10 +3929,10 @@ class CoordinatingAgent extends BaseAgent
 
         // array_merge with defaults FIRST + $input SECOND so Fyn's actual values
         // override the placeholders. Equivalent to array_replace($defaults, $input).
+        // The address line names the property where nothing else does; a town
+        // or postcode the user did not give stays null (T25: "Unknown", "N/A").
         $toolInput = array_merge([
             'address_line_1' => ucfirst(str_replace('_', ' ', $propertyType)),
-            'city' => 'Unknown',
-            'postcode' => 'N/A',
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipPct,
             'joint_owner_id' => $input['joint_owner_id'] ?? null,
@@ -3943,11 +3968,12 @@ class CoordinatingAgent extends BaseAgent
                     $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
                     $mortgagePayload = [
                         'property_id' => $property->id,
-                        'lender_name' => $input['mortgage_lender'] ?? 'To be completed',
-                        'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+                        // Not given stays null (T25), never "To be completed",
+                        // "repayment" or £0.
+                        'lender_name' => $input['mortgage_lender'] ?? null,
+                        'mortgage_type' => $input['mortgage_type'] ?? null,
                         'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
                         'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
-                        'monthly_payment' => 0,
                         'ownership_type' => $ownershipType,
                         'ownership_percentage' => $ownershipPct,
                         'joint_owner_id' => $property->joint_owner_id,
@@ -4049,8 +4075,9 @@ class CoordinatingAgent extends BaseAgent
         $payload = [
             'user_id' => $user->id,
             'property_id' => $property->id,
-            'lender_name' => $input['lender_name'] ?? 'To be completed',
-            'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+            // Not given stays null (T25).
+            'lender_name' => $input['lender_name'] ?? null,
+            'mortgage_type' => $input['mortgage_type'] ?? null,
             'rate_type' => $input['rate_type'] ?? 'fixed',
             'outstanding_balance' => (float) $input['outstanding_balance'],
             'ownership_type' => $property->ownership_type,
@@ -5285,7 +5312,7 @@ class CoordinatingAgent extends BaseAgent
                 'error' => true,
                 'message' => match ($outcome['kind']) {
                     'collision' => 'That email address is already linked to another Fynla household, so I have not saved anything. Ask the user for a different address, or for their spouse to link their own account.',
-                    'invalid' => $outcome['message'],
+                    'invalid', 'limited' => $outcome['message'],
                     default => "I could not link your spouse's account just then, and I have not saved anything.",
                 },
             ];
@@ -6049,6 +6076,37 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
+     * A question is answered, never handed to capture (fix plan T5, CSJ
+     * 2026-10-12). The prompt scopes the handoff to statements, but the model
+     * still handed "What is 6% + 8% of £72,000 a year? …" to capture as work
+     * details (csjones, conversation 594). Write safety is enforced at
+     * dispatch, not by prompt wording, so when the in-flight message is a
+     * question (QuerySchemas::isAdviceShaped, the one question test) the
+     * handoff is refused back to the model, which then answers. A request to
+     * run a what-if is saved as a scenario (S0.5.r) and still hands off.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>|null
+     */
+    private function questionHandoffRefusal(array $input, ?int $conversationId): ?array
+    {
+        $message = $this->latestUserMessageText($conversationId);
+        if ($message === null || ! QuerySchemas::isAdviceShaped($message)) {
+            return null;
+        }
+
+        $entityTypes = array_map('strval', (array) ($input['entity_types'] ?? []));
+        if ($entityTypes !== [] && array_diff($entityTypes, ['what_if_scenario']) === []) {
+            return null;
+        }
+
+        return [
+            'handoff_refused' => true,
+            'message' => 'Not handed to capture: the user asked a question, and nothing is saved. Answer the question now from the records and your read tools. Do not say anything was saved or could not be saved.',
+        ];
+    }
+
+    /**
      * Fetch the verbatim text of the most recent user message in the
      * conversation — the in-flight turn that triggered the current tool call.
      * Used by capture handlers that must reason about the user's actual words
@@ -6797,13 +6855,21 @@ class CoordinatingAgent extends BaseAgent
         $providedToken = (string) ($input['confirmation_token'] ?? '');
 
         if (! hash_equals($expectedToken, $providedToken)) {
+            // T8 (Q22): the preview looks the record up the way the delete
+            // does, so Fyn never asks the user to confirm deleting a record
+            // that is not there ("goal #0").
+            $name = $this->deletableRecordName($entityType, $entityId, $user);
+            if ($name === null) {
+                return $this->deleteTargetNotFound($entityType, $user);
+            }
+
             return [
                 'requires_confirmation' => true,
                 'confirmation_token' => $expectedToken,
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,
                 'preview_message' => 'This will permanently delete '
-                    .str_replace('_', ' ', $entityType)." #{$entityId}. "
+                    .str_replace('_', ' ', $entityType)." \"{$name}\". "
                     .'Confirm with the user before re-calling delete_record with this confirmation_token.',
             ];
         }
@@ -6910,11 +6976,143 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
+     * A delete aimed at a record the user does not have (T8, Q22). The
+     * capture turn has no read tool, so the result carries the user's saved
+     * records of that type for the model to retry with a real id, and a
+     * sentence the user sees as written (`user_facing`): none saved, or which
+     * one they meant.
+     *
+     * @return array<string, mixed>
+     */
+    private function deleteTargetNotFound(string $entityType, User $user): array
+    {
+        $label = self::DELETE_LABELS[$entityType] ?? str_replace('_', ' ', $entityType);
+        $saved = $this->savedRecordsFor($entityType, $user);
+        $names = array_column($saved, 'name');
+        $choices = count($names) > 1
+            ? implode(', ', array_slice($names, 0, -1)).' or '.end($names)
+            : ($names[0] ?? '');
+
+        return [
+            'error' => true,
+            'error_type' => 'not_found',
+            'user_facing' => true,
+            'message' => $saved === []
+                ? "You don't have a {$label} saved, so there's nothing to delete."
+                : "Which {$label} did you mean: {$choices}?",
+            'saved_records' => $saved,
+            'instruction' => 'Do not ask the user to confirm a delete. If the record the user named is in saved_records, call delete_record again with its id; otherwise tell the user which ones are saved.',
+        ];
+    }
+
+    /** How a delete names each kind of record to the user. */
+    private const DELETE_LABELS = [
+        'dc_pension' => 'pension',
+        'db_pension' => 'pension',
+        'estate_asset' => 'asset',
+        'estate_liability' => 'liability',
+        'estate_gift' => 'gift',
+        'life_insurance' => 'life insurance policy',
+        'critical_illness' => 'critical illness policy',
+        'income_protection' => 'income protection policy',
+    ];
+
+    /**
+     * The user's records of a type, as the delete finds them (owned, or
+     * jointly held where SharedOwnership allows), with the name a person
+     * would use.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    private function savedRecordsFor(string $entityType, User $user): array
+    {
+        $modelClass = $this->deletableModelClass($entityType);
+        if ($modelClass === null) {
+            return [];
+        }
+
+        $query = SharedOwnership::jointOwnerMayEdit($modelClass) || isset(self::JOINT_RECORD_STORES[$entityType])
+            ? $modelClass::query()->forUserOrJoint($user->id)
+            : $modelClass::query()->where('user_id', $user->id);
+
+        return $query->orderBy('id')->limit(10)->get()
+            ->map(fn ($record): array => ['id' => (int) $record->id, 'name' => $this->recordName($record, (int) $record->id)])
+            ->values()
+            ->all();
+    }
+
+    /** The name a person would use for a record, else its number. */
+    private function recordName(object $record, int $entityId): string
+    {
+        return (string) ($record->goal_name
+            ?? $record->event_name
+            ?? $record->scheme_name
+            ?? $record->account_name
+            ?? $record->policy_name
+            ?? $record->provider
+            ?? $record->liability_name
+            ?? $record->address_line_1
+            ?? $record->lender_name
+            ?? $record->recipient
+            ?? $record->trust_name
+            ?? $record->business_name
+            ?? $record->description
+            ?? $record->first_name
+            ?? "#{$entityId}");
+    }
+
+    /**
+     * The name of the record a delete would remove, found the way each delete
+     * branch below finds it (pension store, joint-record stores, owned model),
+     * or null when the user has no such record (T8).
+     */
+    private function deletableRecordName(string $entityType, int $entityId, User $user): ?string
+    {
+        if ($entityType === 'dc_pension' || $entityType === 'db_pension') {
+            $pension = app(PensionStore::class)->find($entityId, $entityType === 'dc_pension' ? 'dc' : 'db', $user);
+
+            return $pension === null ? null : $this->recordName($pension, $entityId);
+        }
+
+        if (isset(self::JOINT_RECORD_STORES[$entityType])) {
+            $record = app(self::JOINT_RECORD_STORES[$entityType])->find($entityId, $user);
+
+            return $record === null ? null : $this->recordName($record, $entityId);
+        }
+
+        $model = $this->resolveModel($entityType, $entityId, $user->id);
+
+        return is_array($model) ? null : $this->recordName($model, $entityId);
+    }
+
+    /**
      * Resolve a model instance by entity type and ID, ensuring it belongs to the user.
      */
     private function resolveModel(string $entityType, int $entityId, int $userId): mixed
     {
-        $modelClass = match ($entityType) {
+        $modelClass = $this->deletableModelClass($entityType);
+
+        if (! $modelClass) {
+            return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
+        }
+
+        // Either owner of a joint record may change it (SharedOwnership::JOINT_OWNER_EDITABLE,
+        // CSJ 2026-10-08). Nothing else opens to the joint owner.
+        $model = SharedOwnership::jointOwnerMayEdit($modelClass)
+            ? $modelClass::whereKey($entityId)->forUserOrJoint($userId)->first()
+            : $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
+
+        if (! $model) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)).' not found or does not belong to you.'];
+        }
+
+        return $model;
+    }
+
+    /** @return class-string<Model>|null */
+    private function deletableModelClass(string $entityType): ?string
+    {
+        return match ($entityType) {
             'goal' => Goal::class,
             'life_event' => LifeEvent::class,
             'savings_account' => SavingsAccount::class,
@@ -6935,22 +7133,6 @@ class CoordinatingAgent extends BaseAgent
             'chattel' => Chattel::class,
             default => null,
         };
-
-        if (! $modelClass) {
-            return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
-        }
-
-        // Either owner of a joint record may change it (SharedOwnership::JOINT_OWNER_EDITABLE,
-        // CSJ 2026-10-08). Nothing else opens to the joint owner.
-        $model = SharedOwnership::jointOwnerMayEdit($modelClass)
-            ? $modelClass::whereKey($entityId)->forUserOrJoint($userId)->first()
-            : $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
-
-        if (! $model) {
-            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)).' not found or does not belong to you.'];
-        }
-
-        return $model;
     }
 
     // ─── Profile update handler ─────────────────────────────────────────

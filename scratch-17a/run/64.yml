@@ -1,0 +1,290 @@
+- iframe [active] [ref=f140e3]:
+  - generic [ref=f141e3]:
+    - generic [ref=f141e317]:
+      - banner [ref=f141e318]:
+        - button "Open menu" [ref=f141e319] [cursor=pointer]
+        - paragraph [ref=f141e323]: Good afternoon, Sam
+      - main [ref=f141e324]:
+        - generic [ref=f141e325]:
+          - heading "Bank Accounts" [level=1] [ref=f141e326]
+          - paragraph [ref=f141e327]: Your cash, emergency-fund runway and ISA allowance
+        - button "Add bank account" [ref=f141e592] [cursor=pointer]
+        - generic [ref=f141e593]:
+          - paragraph [ref=f141e594]: Total cash
+          - paragraph [ref=f141e595]: £12,000
+          - paragraph [ref=f141e596]: Across 1 account.
+        - generic [ref=f141e597]:
+          - generic [ref=f141e598]:
+            - paragraph [ref=f141e599]: Bank accounts
+            - generic [ref=f141e600]:
+              - generic [ref=f141e601]: 1 of 2 accounts used
+              - button "Upgrade" [ref=f141e602] [cursor=pointer]
+          - button "Santander 4.00% £12,000 Your 50.00% of £24,000 View" [ref=f141e604] [cursor=pointer]:
+            - generic [ref=f141e605]:
+              - generic [ref=f141e606]: Santander
+              - generic [ref=f141e607]: 4.00%
+            - generic [ref=f141e609]:
+              - generic [ref=f141e610]: £12,000
+              - generic [ref=f141e611]: Your 50.00% of £24,000
+              - generic [ref=f141e612]: View
+        - generic [ref=f141e613]:
+          - paragraph [ref=f141e614]: Emergency fund
+          - generic [ref=f141e615]:
+            - generic [ref=f141e616]:
+              - generic [ref=f141e617]: Cash held
+              - generic [ref=f141e618]: £12,000
+            - generic [ref=f141e619]:
+              - generic [ref=f141e620]: Target (6 months)
+              - generic [ref=f141e621]: £0
+            - generic [ref=f141e623]: Add your monthly spending
+            - paragraph [ref=f141e625]: We need what you spend each month before we can work out how long your cash would last.
+          - paragraph [ref=f141e626]: The standard recommendation is 6 months of essential expenditure.
+        - button "ISA allowance this year ISA allowance used of £20,000 £20,000 remaining £0 used View contributions" [ref=f141e628] [cursor=pointer]:
+          - paragraph [ref=f141e629]: ISA allowance this year
+          - generic [ref=f141e630]:
+            - generic [ref=f141e631]: ISA allowance used
+            - generic [ref=f141e632]: of £20,000
+          - generic [ref=f141e634]:
+            - generic [ref=f141e635]: £20,000 remaining
+            - generic [ref=f141e636]: £0 used
+          - generic [ref=f141e637]: View contributions
+        - generic [ref=f141e638]:
+          - paragraph [ref=f141e639]: Recommended actions
+          - article [ref=f141e640]:
+            - heading "Emergency Fund Cannot Be Assessed" [level=3] [ref=f141e641]
+            - paragraph [ref=f141e642]: We cannot assess your emergency fund without expenditure data.
+            - paragraph [ref=f141e643]: Add your monthly expenditure so we can calculate your emergency fund target.
+          - article [ref=f141e644]:
+            - heading "Designate an Emergency Fund Account" [level=3] [ref=f141e645]
+            - paragraph [ref=f141e646]: None of your savings accounts is marked as your emergency fund.
+            - paragraph [ref=f141e647]: Mark the account you would draw on first as your emergency fund so Fynla can track it.
+          - article [ref=f141e648]:
+            - heading "Personal Savings Allowance Exceeded" [level=3] [ref=f141e649]
+            - paragraph [ref=f141e650]: Your estimated annual savings interest of £960 exceeds your £500 Personal Savings Allowance.
+            - paragraph [ref=f141e651]: Move savings into a Cash ISA to shelter interest from tax.
+          - article [ref=f141e652]:
+            - heading "Consider a Cash ISA" [level=3] [ref=f141e653]
+            - paragraph [ref=f141e654]: Moving savings to a Cash ISA would shelter interest from tax.
+            - paragraph [ref=f141e655]: Open a Cash ISA and transfer existing savings to use your ISA allowance.
+      - button "Chat with Fyn" [ref=f141e399] [cursor=pointer]:
+        - generic [ref=f141e401]:
+          - generic [ref=f141e402]: Fyn
+          - generic [ref=f141e403]: Your financial companion
+      - region "Chat with Fyn" [ref=f141e409]:
+        - generic [ref=f141e410]:
+          - generic [ref=f141e413]:
+            - paragraph [ref=f141e414]: Fyn
+            - paragraph [ref=f141e415]: Your financial companion
+          - generic [ref=f141e416]:
+            - button "Report a problem" [ref=f141e417] [cursor=pointer]
+            - button "Close Fyn chat" [ref=f141e418] [cursor=pointer]
+        - generic [ref=f141e421]:
+          - generic [ref=f141e422]:
+            - paragraph [ref=f141e423]:
+              - text: "Hi Sam, I'm Fyn — thanks for those answers. Here's what you've told me:"
+              - list [ref=f141e424]:
+                - listitem [ref=f141e425]: Working full-time
+                - listitem [ref=f141e426]: Earning £50,271–£100,000
+                - listitem [ref=f141e427]: You have a spouse or civil partner earning up to £50,270
+                - listitem [ref=f141e428]: You have savings and a pension
+              - text: I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about 4 minutes.
+              - strong [ref=f141e429]: Let's start with your income.
+              - text: Tell me your gross annual income (this includes bonuses and commissions).
+            - generic [ref=f141e431]:
+              - generic [ref=f141e432]:
+                - generic [ref=f141e433]: Employer or trading name *
+                - textbox "Employer or trading name * Employer or trading name * Employer or trading name *" [disabled] [ref=f141e434]: Harbour Rail
+              - generic [ref=f141e435]:
+                - generic [ref=f141e436]: Job title or role
+                - textbox "Job title or role Job title or role Job title or role" [disabled] [ref=f141e437]: project engineer
+              - generic [ref=f141e438]:
+                - generic [ref=f141e439]: Gross annual income *
+                - generic [ref=f141e440]:
+                  - generic [ref=f141e441]: £
+                  - spinbutton "Gross annual income * Gross annual income * Gross annual income *" [disabled] [ref=f141e442]: "84000"
+                - paragraph [ref=f141e443]: Before tax, including bonuses and commissions
+          - paragraph [ref=f141e445]: Welcome back, Sam. Last time we were capturing your income. Would you like to continue from where we left off, or is there something else I can help with?
+          - generic [ref=f141e446]:
+            - paragraph [ref=f141e447]: Now your work and income.
+            - generic [ref=f141e449]:
+              - generic [ref=f141e450]:
+                - generic [ref=f141e451]: Employer or trading name *
+                - textbox [disabled] [ref=f141e452]: Harbour Rail
+              - generic [ref=f141e453]:
+                - generic [ref=f141e454]: Job title or role
+                - textbox [disabled] [ref=f141e455]: project engineer
+              - generic [ref=f141e456]:
+                - generic [ref=f141e457]: Gross annual income *
+                - generic [ref=f141e458]:
+                  - generic [ref=f141e459]: £
+                  - spinbutton [disabled] [ref=f141e460]: "84000"
+                - paragraph [ref=f141e461]: Before tax, including bonuses and commissions
+          - paragraph [ref=f141e463]: I'm a project engineer at Harbour Rail and earn £84,000 a year
+          - generic [ref=f141e464]:
+            - paragraph [ref=f141e465]: I've filled in what you told me — check it, add anything missing and save.
+            - generic [ref=f141e467]:
+              - generic [ref=f141e468]:
+                - generic [ref=f141e469]: Employer or trading name *
+                - textbox [disabled] [ref=f141e470]: Harbour Rail
+              - generic [ref=f141e471]:
+                - generic [ref=f141e472]: Job title or role
+                - textbox [disabled] [ref=f141e473]: project engineer
+              - generic [ref=f141e474]:
+                - generic [ref=f141e475]: Gross annual income *
+                - generic [ref=f141e476]:
+                  - generic [ref=f141e477]: £
+                  - spinbutton [disabled] [ref=f141e478]: "84000"
+                - paragraph [ref=f141e479]: Before tax, including bonuses and commissions
+          - paragraph [ref=f141e481]: My job is project engineer at Harbour Rail and I earn £84,000 a year.
+          - paragraph [ref=f141e483]: Got it — £84,000 a year, noted.
+          - paragraph [ref=f141e485]: Do you have any other roles or sources of earned income to add?
+          - paragraph [ref=f141e487]: No, that's everything
+          - paragraph [ref=f141e489]: Thanks Sam for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your bank and savings accounts and pensions, including your spouse's where it makes sense, is that okay?
+          - paragraph [ref=f141e491]: Okay
+          - generic [ref=f141e492]:
+            - paragraph [ref=f141e493]: Now your bank and savings accounts.
+            - generic [ref=f141e494]:
+              - generic [ref=f141e495]:
+                - paragraph [ref=f141e496]: A current account is for day-to-day money. Easy access, fixed rate and notice accounts are savings that pay interest.
+                - generic [ref=f141e497]:
+                  - button "Current account" [disabled] [ref=f141e498]
+                  - button "Easy access savings" [disabled] [pressed] [ref=f141e499]
+                  - button "Fixed rate savings" [disabled] [ref=f141e500]
+                  - button "Notice account" [disabled] [ref=f141e501]
+              - generic [ref=f141e502]:
+                - paragraph [ref=f141e503]: Easy access savings
+                - generic [ref=f141e504]:
+                  - generic [ref=f141e505]: Who is it with *
+                  - textbox "Who is it with * Who is it with *" [disabled] [ref=f141e506]: Santander
+                - generic [ref=f141e507]:
+                  - generic [ref=f141e508]: Balance *
+                  - generic [ref=f141e509]:
+                    - generic [ref=f141e510]: £
+                    - spinbutton "Balance * Balance *" [disabled] [ref=f141e511]: "24000"
+                - generic [ref=f141e512]:
+                  - generic [ref=f141e513]: Interest rate % *
+                  - spinbutton "Interest rate % * Interest rate % *" [disabled] [ref=f141e514]: "4"
+                - generic [ref=f141e515]:
+                  - generic [ref=f141e516]: Ownership *
+                  - radiogroup "Ownership *" [ref=f141e517]:
+                    - generic [ref=f141e518]:
+                      - radio "Individual" [disabled] [ref=f141e519]
+                      - text: Individual
+                    - generic [ref=f141e520]:
+                      - radio "Joint" [checked] [disabled] [ref=f141e521]
+                      - text: Joint
+                  - paragraph [ref=f141e522]: Joint means held 50/50 with your spouse or partner
+          - paragraph [ref=f141e524]: My partner and I have a joint easy access savings account with Santander, £24,000 at 4% interest
+          - generic [ref=f141e525]:
+            - paragraph [ref=f141e526]: I've filled in what you told me — check it, add anything missing and save.
+            - generic [ref=f141e527]:
+              - generic [ref=f141e528]:
+                - paragraph [ref=f141e529]: A current account is for day-to-day money. Easy access, fixed rate and notice accounts are savings that pay interest.
+                - generic [ref=f141e530]:
+                  - button "Current account" [disabled] [ref=f141e531]
+                  - button "Easy access savings" [disabled] [pressed] [ref=f141e532]
+                  - button "Fixed rate savings" [disabled] [ref=f141e533]
+                  - button "Notice account" [disabled] [ref=f141e534]
+              - generic [ref=f141e535]:
+                - paragraph [ref=f141e536]: Easy access savings
+                - generic [ref=f141e537]:
+                  - generic [ref=f141e538]: Who is it with *
+                  - textbox [disabled] [ref=f141e539]: Santander
+                - generic [ref=f141e540]:
+                  - generic [ref=f141e541]: Balance *
+                  - generic [ref=f141e542]:
+                    - generic [ref=f141e543]: £
+                    - spinbutton [disabled] [ref=f141e544]: "24000"
+                - generic [ref=f141e545]:
+                  - generic [ref=f141e546]: Interest rate % *
+                  - spinbutton [disabled] [ref=f141e547]: "4"
+                - generic [ref=f141e548]:
+                  - generic [ref=f141e549]: Ownership *
+                  - radiogroup "Ownership *" [ref=f141e550]:
+                    - generic [ref=f141e551]:
+                      - radio "Individual" [disabled] [ref=f141e552]
+                      - text: Individual
+                    - generic [ref=f141e553]:
+                      - radio "Joint" [checked] [disabled] [ref=f141e554]
+                      - text: Joint
+                  - paragraph [ref=f141e555]: Joint means held 50/50 with your spouse or partner
+          - paragraph [ref=f141e557]: Santander easy access savings, balance £24,000, 4% interest, joint.
+          - paragraph [ref=f141e559]: "You have 1 bank or savings account on file: Santander easy access savings.Do you have another account to add?"
+          - paragraph [ref=f141e561]: No, that's everything
+          - paragraph [ref=f141e563]:
+            - text: "Here's your bank accounts page — take a look and check everything's correct, then tell me:"
+            - strong [ref=f141e564]: does it look right?
+          - paragraph [ref=f141e566]: Yes, that's right
+          - generic [ref=f141e567]:
+            - paragraph [ref=f141e568]: Now let's look at pensions and retirement — for that I need your date of birth and your gender.
+            - generic [ref=f141e570]:
+              - generic [ref=f141e571]:
+                - generic [ref=f141e572]: Your date of birth *
+                - textbox "Your date of birth *" [disabled] [ref=f141e573]: 1979-07-22
+              - generic [ref=f141e574]:
+                - generic [ref=f141e575]: Gender *
+                - radiogroup "Gender *" [ref=f141e576]:
+                  - generic [ref=f141e577]:
+                    - radio "Male" [checked] [disabled] [ref=f141e578]
+                    - text: Male
+                  - generic [ref=f141e579]:
+                    - radio "Female" [disabled] [ref=f141e580]
+                    - text: Female
+                  - generic [ref=f141e581]:
+                    - radio "Other" [disabled] [ref=f141e582]
+                    - text: Other
+          - paragraph [ref=f141e657]: I was born on 22 July 1979 and I'm male.
+          - paragraph [ref=f141e659]: Thanks — I've noted you're born on 22 July 1979, male and married.
+          - generic [ref=f141e660]:
+            - paragraph [ref=f141e661]: Now your pensions.
+            - generic [ref=f141e663]:
+              - paragraph [ref=f141e664]: A SIPP is a Self-Invested Personal Pension.
+              - generic [ref=f141e665]:
+                - button "Workplace pension" [disabled] [ref=f141e666]
+                - button "Personal pension or SIPP" [disabled] [ref=f141e667]
+          - paragraph [ref=f141e671]: Workplace pension with Legal & General worth £110,000. I pay 6% through salary sacrifice and my employer pays 8%.
+          - generic [ref=f141e672]:
+            - paragraph [ref=f141e673]: I've filled in what you told me — check it, add anything missing and save.
+            - generic [ref=f141e674]:
+              - generic [ref=f141e675]:
+                - paragraph [ref=f141e676]: A SIPP is a Self-Invested Personal Pension.
+                - generic [ref=f141e677]:
+                  - button "Workplace pension" [pressed] [ref=f141e678] [cursor=pointer]
+                  - button "Personal pension or SIPP" [ref=f141e679] [cursor=pointer]
+              - generic [ref=f141e680]:
+                - paragraph [ref=f141e681]: Workplace pension
+                - generic [ref=f141e682]:
+                  - generic [ref=f141e683]: Who is it with *
+                  - textbox "Who is it with *" [ref=f141e684]: Legal & General
+                - generic [ref=f141e685]:
+                  - generic [ref=f141e686]: Current value
+                  - generic [ref=f141e687]:
+                    - generic [ref=f141e688]: £
+                    - spinbutton "Current value" [ref=f141e689]: "110000"
+                  - paragraph [ref=f141e690]: Leave blank if you don't know
+                - generic [ref=f141e691]:
+                  - generic [ref=f141e692]: You pay % of salary *
+                  - spinbutton "You pay % of salary *" [ref=f141e693]: "6"
+                - generic [ref=f141e694]:
+                  - generic [ref=f141e695]: Your employer pays %
+                  - spinbutton "Your employer pays %" [ref=f141e696]: "8"
+                  - paragraph [ref=f141e697]: Leave blank if none or unknown
+                - generic [ref=f141e698]:
+                  - generic [ref=f141e699]: Salary sacrifice *
+                  - radiogroup "Salary sacrifice *" [ref=f141e700]:
+                    - generic [ref=f141e701]:
+                      - radio "Yes" [checked] [ref=f141e702]
+                      - text: "Yes"
+                    - generic [ref=f141e703]:
+                      - radio "No" [ref=f141e704]
+                      - text: "No"
+                - generic [ref=f141e705]:
+                  - generic [ref=f141e706]: Who you want it to go to if you die
+                  - textbox "Who you want it to go to if you die" [ref=f141e707]
+                  - paragraph [ref=f141e708]: The person you have named to the scheme. Leave blank if you haven't named anyone
+              - button "Save" [ref=f141e710] [cursor=pointer]
+        - generic [ref=f141e585]:
+          - textbox "Ask Fyn a question" [active] [ref=f141e587]:
+            - /placeholder: Ask Fyn anything...
+          - button "Send to Fyn" [ref=f141e588] [cursor=pointer]
+    - button "Report a problem" [ref=f141e175] [cursor=pointer]

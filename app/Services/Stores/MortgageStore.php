@@ -299,10 +299,12 @@ class MortgageStore
         $rules = [
             'property_id' => ($partial ? 'sometimes|' : 'required|').'integer|exists:properties,id',
             'user_id' => ($partial ? 'sometimes|' : 'required|').'integer|exists:users,id',
-            'lender_name' => ($partial ? 'sometimes|' : 'required|').'string|max:255',
-            'mortgage_type' => ($partial ? 'sometimes|' : 'required|').'in:repayment,interest_only,mixed',
+            // Not given is null, never a stand-in (T25): the columns are nullable
+            // (mortgage_type since 2026_10_13_100000), so the rule says so.
+            'lender_name' => 'sometimes|nullable|string|max:255',
+            'mortgage_type' => 'sometimes|nullable|in:repayment,interest_only,mixed',
             'outstanding_balance' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::currencyRules(false),
-            'monthly_payment' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::currencyRules(false),
+            'monthly_payment' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'ownership_type' => ($partial ? 'sometimes|' : 'required|').'in:individual,joint',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
             'interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',

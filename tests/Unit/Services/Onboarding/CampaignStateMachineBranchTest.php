@@ -338,11 +338,11 @@ describe('post-plan spouse invitation (CSJ 2026-09-12)', function () {
     });
 
     it('is skipped for single users, linked spouses and pending invitations', function () {
-        $single = User::factory()->create(['marital_status' => 'single', 'onboarding_fyn_selection' => 'savetax']);
+        $single = User::factory()->create(['marital_status' => 'single', 'onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax']]);
         expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $single))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL);
 
         $spouse = User::factory()->create();
-        $linked = User::factory()->create(['marital_status' => 'married', 'spouse_id' => $spouse->id, 'onboarding_fyn_selection' => 'savetax']);
+        $linked = User::factory()->create(['marital_status' => 'married', 'spouse_id' => $spouse->id, 'onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax']]);
         $spouse->update(['spouse_id' => $linked->id]);
         expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $linked->fresh()))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL);
 
@@ -353,7 +353,7 @@ describe('post-plan spouse invitation (CSJ 2026-09-12)', function () {
     });
 
     it('routes Yes to the details turn and Not now to the terminal, and names the spouse when known', function () {
-        $user = User::factory()->create(['first_name' => 'Chris', 'marital_status' => 'married', 'onboarding_fyn_selection' => 'savetax']);
+        $user = User::factory()->create(['first_name' => 'Chris', 'marital_status' => 'married', 'onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax']]);
         $conversation = AiConversation::factory()->create(['user_id' => $user->id, 'onboarding_parked_facts' => ['spouse' => ['first_name' => 'Angela']]]);
 
         expect(OnboardingStateMachine::nextFromCampaignSpouseInvite('Yes, invite them', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS)

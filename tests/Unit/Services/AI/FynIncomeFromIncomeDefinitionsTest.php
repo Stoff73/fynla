@@ -10,6 +10,7 @@ use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\KycGateChecker;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\UserProfile\UserProfileService;
+use App\Support\Money;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -53,7 +54,7 @@ it('gives Fyn the State Pension being paid as income, as the Income page does', 
     $total = app(IncomeDefinitionsService::class)->calculate($user->id)['total_income'];
 
     expect($total)->toBeGreaterThan(0.0)
-        ->and(fynIncomeLine($user))->toBe('£'.number_format($total, 2));
+        ->and(fynIncomeLine($user))->toBe(Money::exact($total));
 
     $kyc = app(KycGateChecker::class)->check($user->fresh(), [
         'primary' => QuerySchemas::INCOME,
@@ -72,7 +73,7 @@ it('gives Fyn the same total as the Income page for an earner with rent', functi
 
     $total = app(IncomeDefinitionsService::class)->calculate($user->id)['total_income'];
 
-    expect(fynIncomeLine($user))->toBe('£'.number_format($total, 2));
+    expect(fynIncomeLine($user))->toBe(Money::exact($total));
 });
 
 it('names the band the Tax plan uses, with the rate from tax config', function () {
@@ -110,9 +111,9 @@ it('gives Fyn the salary sacrifice and the Income page\'s tax, National Insuranc
 
     $profile = app(AdvicePromptBuilder::class)->buildUserProfile($user->fresh());
 
-    expect($profile)->toContain('- Income Tax this year (the Income page\'s figure; quote it, never work it out again): £'.number_format((float) $tab['income_tax'], 2))
-        ->and($profile)->toContain('- National Insurance this year (the Income page\'s figure): £'.number_format((float) $tab['national_insurance'], 2))
-        ->and($profile)->toContain('- Take-home after Income Tax and National Insurance (the Income page\'s figure): £'.number_format((float) $tab['net_income'], 2))
+    expect($profile)->toContain('- Income Tax this year (the Income page\'s figure; quote it, never work it out again): '.Money::exact((float) $tab['income_tax']))
+        ->and($profile)->toContain('- National Insurance this year (the Income page\'s figure): '.Money::exact((float) $tab['national_insurance']))
+        ->and($profile)->toContain('- Take-home after Income Tax and National Insurance (the Income page\'s figure): '.Money::exact((float) $tab['net_income']))
         ->and((float) $tab['income_tax'])->toBeGreaterThan(0.0);
 });
 
@@ -126,7 +127,7 @@ it('lists employment after salary sacrifice, so the parts add up to the total', 
 
     $profile = app(AdvicePromptBuilder::class)->buildUserProfile($user->fresh());
 
-    expect($profile)->toContain('- Total annual income: £57,000.00')
-        ->and($profile)->toContain('Employment (PAYE) after salary sacrifice (£60,000.00 before; £3,000.00 is paid into the pension before tax and National Insurance) [relevant UK earnings]: £57,000.00')
-        ->and($profile)->not->toContain('-£3,000.00');
+    expect($profile)->toContain('- Total annual income: £57,000')
+        ->and($profile)->toContain('Employment (PAYE) after salary sacrifice (£60,000 before; £3,000 is paid into the pension before tax and National Insurance) [relevant UK earnings]: £57,000')
+        ->and($profile)->not->toContain('-£3,000');
 });

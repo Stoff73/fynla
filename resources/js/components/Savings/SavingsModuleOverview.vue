@@ -132,7 +132,7 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
-import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
+import { calculateUserShare, coOwnerName, isSharedRecord, sharePercentText } from '@/utils/ownership';
 export default {
   name: 'SavingsModuleOverview',
 
@@ -211,7 +211,7 @@ export default {
     },
 
     formatSharePercent(account) {
-      return `${userSharePercent(account).toFixed(2)}%`;
+      return `${sharePercentText(account)}%`;
     },
 
     coOwnerOf(account) {

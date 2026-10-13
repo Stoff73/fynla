@@ -12,6 +12,7 @@ use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Tax\Strategies\AssetShiftingBundleStrategy;
+use App\Services\Tax\Strategies\JointSavingsStrategy;
 use App\Services\Tax\Strategies\TaxStrategyContext;
 use App\Services\Tax\TaxStrategyMath;
 use Database\Seeders\ActionHowToSeeder;
@@ -244,4 +245,68 @@ it('says only that the allowances the partner has left cover it, when they pay n
     expect($gift['partner_extra_tax'])->toBeLessThan(0.01)
         ->and($steps)->toContain('the tax-free allowances they have left for savings interest cover it')
         ->and($steps)->not->toContain('Personal Allowance, starting rate');
+});
+
+// Walk fix plan T12 (F5, P3): the card published no working, so Fyn worked
+// the saving out itself and gave £684 and £542 for a £342 answer. Each line
+// below is worked by hand from the rules: the £60,000 earner's £500 Personal
+// Savings Allowance (ITA 2007 s12B(3)) and 40% rate; the £20,000 partner's
+// £1,000 allowance (s12B(2)) and 20% rate, their starting rate for savings
+// used up by the £7,430 of pay above their Personal Allowance (s12(3)).
+it('publishes the working behind the gift, each step from the figures it was priced on', function () {
+    $gift = stsGift(stsWorkedExample());
+
+    expect($gift['working'])->toBe([
+        'Moving £28,800 of your savings moves £1,296 of interest a year to your spouse.',
+        'Now you have £1,800 of savings interest: £500 is tax-free under your Personal Savings Allowance and £1,300 is taxed at 40%, which is £520 of tax.',
+        'After the move you have £504: £500 is tax-free under your Personal Savings Allowance and £4 is taxed at 40%, which is £1.60 of tax.',
+        'So you pay £518.40 less tax.',
+        'Now your spouse has no savings interest.',
+        'After the move your spouse has £1,296: £1,000 is tax-free under their Personal Savings Allowance and £296 is taxed at 20%, which is £59.20 of tax.',
+        'So your spouse pays £59.20 more tax.',
+        'Together that is £518.40 less £59.20, a saving of £459.20 a year, shown rounded down to £459.',
+    ]);
+});
+
+// S8 / E5's retired partner: £14,000 of pension leaves £3,570 of their £5,000
+// starting rate for savings (ITA 2007 s12), so the interest moved to them is
+// taxed at 0% there before their allowance is reached.
+it('names the starting rate for savings when it covers the partner\'s interest', function () {
+    $user = stsCouple(
+        ['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 25000],
+        ['spouse_annual_income' => 14000, 'spouse_existing_savings_balance' => 0],
+        60000, 4.5,
+    );
+
+    expect(stsGift($user)['working'])->toContain(
+        'After the move your spouse has £1,696.50: all of it is tax-free under their starting rate for savings.',
+        'So your spouse pays no more tax.',
+    );
+});
+
+// The 50/50 split is priced by the same move (ITA 2007 s836: joint interest
+// between spouses living together is taxed half each), so it carries the same
+// working. £60,000 at 4.5% is £2,700; half is £1,350. The £25,000 earner's
+// £1,000 allowance (s12B(2)) covers the first £1,000 at 0% and the rest is
+// taxed at 20%; the retired partner's £3,570 of starting rate (s12) covers
+// their £1,350.
+it('publishes the same working behind the 50/50 split', function () {
+    $user = stsCouple(
+        ['household_calculation_mode' => 'single_earner_couple', 'annual_employment_income' => 25000],
+        ['spouse_annual_income' => 14000, 'spouse_existing_savings_balance' => 0],
+        60000, 4.5,
+    );
+    $context = new TaxStrategyContext($user, null, TaxStrategyHouseholdInput::where('user_id', $user->id)->first(), 'single_earner_couple');
+    $split = collect(app(JointSavingsStrategy::class)->generate($context))->firstWhere('type', 'joint_savings_psa_split')?->toArray();
+
+    expect($split['working'])->toBe([
+        'Held equally in joint names, half of the £2,700 of interest a year, £1,350, is taxed as your spouse\'s.',
+        'Now you have £2,700 of savings interest: £1,000 is tax-free under your Personal Savings Allowance and £1,700 is taxed at 20%, which is £340 of tax.',
+        'After the move you have £1,350: £1,000 is tax-free under your Personal Savings Allowance and £350 is taxed at 20%, which is £70 of tax.',
+        'So you pay £270 less tax.',
+        'Now your spouse has no savings interest.',
+        'After the move your spouse has £1,350: all of it is tax-free under their starting rate for savings.',
+        'So your spouse pays no more tax.',
+        'Together that is a saving of £270 a year.',
+    ]);
 });

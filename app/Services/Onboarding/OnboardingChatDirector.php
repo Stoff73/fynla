@@ -9,6 +9,7 @@ use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
 use App\Exceptions\SpouseCollisionException;
+use App\Exceptions\SpouseInviteLimitException;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
@@ -48,13 +49,14 @@ use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
+use App\Services\Mobile\NextActionsService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
-use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Support\Money;
 use App\Support\SharedExpenditure;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
@@ -87,7 +89,34 @@ use Illuminate\Support\Facades\Log;
  */
 final class OnboardingChatDirector
 {
+    /**
+     * A setup form step that adds one record per save, and its "another?"
+     * question (CSJ 2026-09-16).
+     */
+    private const FORM_LOOP_STATES = [
+        OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
+        OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
+        OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
+        OnboardingStateMachine::STATE_JOURNEY_PROTECTION => OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE,
+    ];
+
+    /**
+     * Metadata on a filled-in form's message: the answers of the further new
+     * records read from the same message, each opened after the one before is
+     * saved (TypedFormFill's `queue`; walk 2026-10-11, P8; T20).
+     */
+    private const FORM_QUEUE = 'capture_form_queue';
+
     /** A capture form saved with nothing in it. */
+    /** The two answers to the duplicate guard's "separate one, or the same one?" (R19). */
+    private const DUPLICATE_ANSWER_BUBBLES = [
+        ['id' => 'duplicate_same', 'label' => 'The same one'],
+        ['id' => 'duplicate_separate', 'label' => 'A separate one'],
+    ];
+
     private const EMPTY_FORM_LINE = 'Fill in at least one before saving.';
 
     /**
@@ -383,7 +412,7 @@ final class OnboardingChatDirector
                 '',
                 strtok((string) ($pending['message'] ?? ''), "\n") ?: ''
             ));
-            if ($awaitingDetail && $pendingOriginal !== '' && $this->userAskedQuestion($pendingOriginal)) {
+            if ($awaitingDetail && $pendingOriginal !== '' && QuerySchemas::isAdviceShaped($pendingOriginal)) {
                 $awaitingDetail = false;
                 $pending = null;
             }
@@ -473,9 +502,11 @@ final class OnboardingChatDirector
         }
 
         // A typed answer at a step with a form fills the form in (CSJ
-        // 2026-10-05, option A). "None" and a bare "yes" keep their own
-        // handling (handleAssetCaptureTurn's emitNothingToAdd).
-        if (isset($state['form']) && ! self::isCompletionDeclaration($message) && ! self::isBareAffirmative($message)) {
+        // 2026-10-05, option A). The form decides: "None" or a bare "yes"
+        // fills nothing, so it keeps its own handling (handleAssetCaptureTurn's
+        // emitNothingToAdd). A word test here skipped the form for facts that
+        // also said "nothing else in his name" (walk 2026-10-11, #3836, T17).
+        if (isset($state['form'])) {
             $offered = yield from $this->offerTypedAnswerForm($user, $conversation, $message, $currentStateId, $state);
             if ($offered) {
                 return;
@@ -552,7 +583,7 @@ final class OnboardingChatDirector
         // and the step asked again; only a tap (the exact label) is a pick.
         $questionAtBubbles = $interpretation['ok']
             && ($state['turn_type'] ?? '') === 'bubbles'
-            && $this->writeIntentClassifier->isQuestion($message)
+            && QuerySchemas::isAdviceShaped($message)
             && ! OnboardingStateMachine::isExactBubbleAnswer($currentStateId, $message);
 
         if (! $interpretation['ok'] || $volunteeredRecord || $questionAtBubbles) {
@@ -1232,7 +1263,7 @@ final class OnboardingChatDirector
                 // An answer typed at the form is filled in, never saved: the
                 // user checks it and presses Save (CSJ 2026-10-05, option A).
                 if ($typedFill !== null) {
-                    $formPromptText = CaptureForms::FILLED_PROMPT;
+                    $formPromptText = $typedFill['prompt'] ?? CaptureForms::filledPrompt(count($typedFill['queue'] ?? []));
                 }
 
                 yield array_filter([
@@ -1246,6 +1277,7 @@ final class OnboardingChatDirector
                     'capture_form' => $schema,
                     'capture_form_values' => $prefill['values'] ?? null,
                     'capture_form_record' => $prefill['record'] ?? null,
+                    self::FORM_QUEUE => ($typedFill['queue'] ?? []) ?: null,
                     'onboarding_step' => $stateId,
                     'turn_intent' => $turnIntent->value,
                 ], static fn ($v): bool => $v !== null);
@@ -1279,7 +1311,7 @@ final class OnboardingChatDirector
             // One bubble above the choices, as on a form turn.
             $promptText = str_replace(OnboardingStateMachine::BUBBLE_BREAK, "\n\n", $promptText);
             $onFile = $this->recordsOnFileAtLoop($user, $stateId);
-            $cap = $this->capReachedAtLoop($user, $stateId);
+            $cap = OnboardingStateMachine::freeLimitAt($user, $stateId);
             if ($cap !== null) {
                 $promptText = "That's the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add another here. You can upgrade after onboarding to add more.";
                 $bubbles = array_values(array_filter($bubbles, static fn (array $b): bool => ($b['id'] ?? '') === 'continue'));
@@ -1288,6 +1320,20 @@ final class OnboardingChatDirector
             }
             if ($onFile !== null) {
                 $promptText = $onFile."\n\n".$promptText;
+            }
+            // Reached past a form skipped at the limit (skipSectionAtFreeLimit),
+            // the step names its section, as the form would have; otherwise it
+            // repeats the previous section's paragraph with nothing to say which
+            // section this is (T18 walk, csjones /m). After a save in the
+            // section, the user's last message is that section's form.
+            $entry = OnboardingStateMachine::sectionEntryForLoop($stateId);
+            if ($cap !== null && $entry !== null) {
+                $entryState = OnboardingStateMachine::getState($entry) ?? [];
+                $lastPosted = $conversation->messages()->where('role', 'user')->latest('id')->first(['metadata'])?->metadata['form']['name'] ?? null;
+                $leadIn = $entryState['form_prompt_text'] ?? null;
+                if ($lastPosted !== ($entryState['form'] ?? null) && is_string($leadIn) && $leadIn !== '') {
+                    $promptText = $leadIn."\n\n".$promptText;
+                }
             }
 
             $event = [
@@ -1713,6 +1759,11 @@ final class OnboardingChatDirector
         $user->refresh();
 
         $campaign = $user->onboarding_fyn_selection ?? 'savetax';
+        // The tax plan is the Save Tax campaign's report; everyone else ends
+        // on their actions (CSJ 2026-10-12, T23).
+        if ($campaign === 'savetax' && ! OnboardingStateMachine::isSaveTaxArrival($user)) {
+            return $this->actionsSynthesis($user);
+        }
 
         try {
             $plan = $campaign === 'pensioncheck'
@@ -1771,16 +1822,83 @@ final class OnboardingChatDirector
             $lines[] = $bullet;
         }
 
-        $total = (float) ($plan['combined_annual_saving'] ?? 0.0);
-        if ($total > 0) {
+        $totalLine = $this->planTotalLine($plan['items'], (float) ($plan['combined_annual_saving'] ?? 0.0));
+        if ($totalLine !== null) {
             $lines[] = '';
-            $lines[] = sprintf('Together these are worth roughly £%s a year.', number_format((int) round($total)));
+            $lines[] = $totalLine;
         }
 
         $lines[] = '';
         $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The closing turn for a user who did not come through Save Tax: their
+     * top actions, the same items, order and figures as the dashboard's
+     * (NextActionsService::build, the head of the Actions page list), so chat
+     * and dashboard never disagree. Each bullet carries the dashboard row's
+     * own figure line ("You could save £3,880") unless the title already
+     * quotes it. No plan heading, no plan total.
+     */
+    private function actionsSynthesis(User $user): string
+    {
+        try {
+            $actions = app(NextActionsService::class)->build($user->id);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Actions synthesis failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            $actions = [];
+        }
+
+        $bullets = [];
+        foreach ($actions as $action) {
+            $title = trim((string) ($action['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $meta = trim((string) ($action['meta'] ?? ''));
+            $amount = preg_match('/£[\d,]+(?:\.\d{2})?/', $meta, $m) === 1 ? $m[0] : null;
+            $bullets[] = '- '.$title.($amount !== null && ! str_contains($title, $amount) ? ' — '.lcfirst($meta) : '');
+        }
+
+        if ($bullets === []) {
+            $firstName = trim((string) ($user->first_name ?? '')) ?: 'there';
+
+            return "That's your details saved, {$firstName}. You'll find your actions on the next screen.";
+        }
+
+        return implode("\n", [
+            "Here are your top actions, built from what you told me — in the order I'd tackle them:",
+            '',
+            ...$bullets,
+            '',
+            'For regulated advice personal to your circumstances, speak to a qualified financial adviser.',
+        ]);
+    }
+
+    /**
+     * The line under the plan's bullets. The total is tax saved, so it speaks
+     * for every bullet only when each one saves tax; a bullet that does not
+     * (the Lifetime ISA's £1,000 bonus) left "Together these are worth roughly
+     * £220 a year" under a list worth more (walk R23).
+     *
+     * @param  list<array<string, mixed>>  $items
+     */
+    private function planTotalLine(array $items, float $total): ?string
+    {
+        if ($total <= 0) {
+            return null;
+        }
+
+        $amount = number_format((int) round($total));
+        foreach ($items as $item) {
+            if (trim((string) ($item['title'] ?? '')) !== '' && (float) ($item['estimated_annual_tax_saved'] ?? 0) <= 0) {
+                return sprintf('The tax saved comes to roughly £%s a year.', $amount);
+            }
+        }
+
+        return sprintf('Together these are worth roughly £%s a year.', $amount);
     }
 
     /**
@@ -1817,15 +1935,7 @@ final class OnboardingChatDirector
      */
     private function reenteredFromLoopQuestion(AiConversation $conversation, string $formStateId): bool
     {
-        $loopState = [
-            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY => OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE,
-            OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE,
-            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => OnboardingStateMachine::STATE_BASE_DEPENDANTS_MORE,
-            OnboardingStateMachine::STATE_JOURNEY_PROTECTION => OnboardingStateMachine::STATE_JOURNEY_PROTECTION_MORE,
-        ][$formStateId] ?? null;
+        $loopState = self::FORM_LOOP_STATES[$formStateId] ?? null;
         if ($loopState === null) {
             return false;
         }
@@ -1883,32 +1993,46 @@ final class OnboardingChatDirector
             default => [[], '', ''],
         };
         $names = array_values($names);
+        // A Junior ISA is added from the bank form but, like every ISA,
+        // counts with the investments (SavingsStore::countForUser), so it is
+        // named apart rather than read as lost (T24 walk, csjones 530).
+        $juniorIsas = $stateId === OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE
+            ? app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->where('account_type', 'junior_isa')
+                ->map(fn ($a) => $label([$a->account_name, $a->institution], 'A Junior ISA'))->values()->all()
+            : [];
+        $juniorLine = $juniorIsas === [] ? '' : ' '.$this->joinClauses($juniorIsas).(count($juniorIsas) === 1 ? ' counts' : ' count').' with your ISAs.';
         if ($names === []) {
-            return null;
+            return $juniorLine === '' ? null : ltrim($juniorLine);
         }
 
         $count = count($names);
 
-        return sprintf('You have %d %s on file: %s.', $count, $count === 1 ? $singular : $plural, $this->joinClauses($names));
+        return sprintf('You have %d %s on file: %s.', $count, $count === 1 ? $singular : $plural, $this->joinClauses($names)).$juniorLine;
     }
 
-    private function capReachedAtLoop(User $user, string $stateId): ?array
+    /**
+     * The plan's cap for another record like the one a duplicate question is
+     * about, when it is reached (a cash ISA counts with the investments, CSJ
+     * 2026-09-15). Null when another could be added.
+     *
+     * @return array{limit: int, noun: string}|null
+     */
+    private function capReachedForRecord(User $user, string $entityType, ?int $recordId): ?array
     {
-        [$entityKey, $count, $noun] = match ($stateId) {
-            OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE => [PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'],
-            OnboardingStateMachine::STATE_CAMPAIGN_ISA_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'],
-            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts'],
-            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'investment accounts'],
-            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_MORE => [PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'],
-            default => [null, 0, ''],
-        };
-        if ($entityKey === null) {
-            return null;
+        if ($entityType === 'savings_account') {
+            $isIsa = (bool) app(SavingsStore::class)->forUser($user)->firstWhere('id', $recordId)?->is_isa;
+
+            return $isIsa
+                ? OnboardingStateMachine::freeLimitReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts')
+                : OnboardingStateMachine::freeLimitReached($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts');
         }
 
-        $limit = app(TierGate::class)->hardLimit($user, $entityKey);
-
-        return $limit !== null && $count >= $limit ? ['limit' => $limit, 'noun' => $noun] : null;
+        return match ($entityType) {
+            'investment_account' => OnboardingStateMachine::freeLimitReached($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'),
+            'dc_pension', 'db_pension' => OnboardingStateMachine::freeLimitReached($user, PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'),
+            'property' => OnboardingStateMachine::freeLimitReached($user, PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'),
+            default => null,
+        };
     }
 
     private function filterBubbles(User $user, string $stateId, array $state): array
@@ -2079,7 +2203,7 @@ final class OnboardingChatDirector
             return $this->emitSectionChooser($user, $conversation, $currentStateId);
         }
 
-        if ($this->writeIntentClassifier->isQuestion($message)) {
+        if (QuerySchemas::isAdviceShaped($message)) {
             $primary = $this->queryClassifier->classify($message, $currentRoute)['primary'] ?? null;
 
             return $this->handleQuestionInterruption(
@@ -2267,7 +2391,7 @@ final class OnboardingChatDirector
                 // WriteIntentClassifier::classify() short-circuits to null for
                 // any message that looks like a question (the same check that
                 // routed this message into handleQuestionInterruption in the
-                // first place — see isQuestion()/looksLikeQuestion()), so in
+                // first place — see QuerySchemas::isAdviceShaped()), so in
                 // practice this always falls back to the generic shape below.
                 // Still call it first rather than hardcoding: if that
                 // precedence ever changes, a real classification wins.
@@ -2345,6 +2469,25 @@ final class OnboardingChatDirector
         yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
     }
 
+    /**
+     * The capture form a classified write intent would add to, so its Free
+     * limit can be read (OnboardingStateMachine::freeLimitForForm). A cash
+     * ISA is a savings_account to the classifier but counts with the ISAs
+     * (CSJ 2026-09-15).
+     *
+     * @param  array<string, mixed>  $intent  WriteIntentClassifier::classify
+     */
+    private function formForWriteIntent(array $intent): string
+    {
+        return match ((string) ($intent['entity_type'] ?? '')) {
+            'savings_account' => str_contains(mb_strtolower((string) ($intent['matched_entity_keyword'] ?? '')), 'isa') ? CaptureForms::ISA : CaptureForms::SAVINGS,
+            'investment_account' => CaptureForms::INVESTMENT,
+            'pension', 'dc_pension', 'db_pension' => CaptureForms::PENSION,
+            'property' => CaptureForms::PROPERTY,
+            default => '',
+        };
+    }
+
     private function handleInformationInterruption(
         User $user,
         AiConversation $conversation,
@@ -2358,7 +2501,23 @@ final class OnboardingChatDirector
             return null;
         }
 
-        return (function () use ($user, $conversation, $currentStateId, $message, $intent): \Generator {
+        return (function () use ($user, $conversation, $currentStateId, $state, $message, $intent): \Generator {
+            // A record past the Free limit could not be saved: say the limit
+            // rather than offer to save it (T18 walk, csjones 2026-10-12).
+            $limit = OnboardingStateMachine::freeLimitForForm($user, $this->formForWriteIntent($intent));
+            if ($limit !== null) {
+                $line = OnboardingStateMachine::freeLimitSentence($limit);
+                yield ['type' => 'content', 'text' => $line];
+                $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
+                    'onboarding_step' => $currentStateId,
+                    'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
+                ]]);
+                yield ['type' => 'done', 'message_id' => $saved->id];
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
             $offer = 'That sounds like something worth saving. Want me to save it to your plan now? We can also come back to it during setup.';
             $bubbles = [
                 ['id' => 'store_now', 'label' => 'Yes, save it'],
@@ -2551,7 +2710,16 @@ final class OnboardingChatDirector
      */
     private function sendSpouseInvitation(User $user, array $details): void
     {
+        // A demo persona is shared; it never invites anyone (the spouse tools
+        // refuse it the same way, CoordinatingAgent::previewBlocked).
+        if ($user->is_preview_user) {
+            $this->rememberSpouseInviteOutcome($user, ['status' => 'preview']);
+
+            return;
+        }
+
         try {
+            $this->spouseLinking->guardInviteRate($user);
             $result = $this->spouseLinking->linkOrCreateSpouse($user, [
                 'first_name' => $details['first_name'],
                 'email' => $details['email'],
@@ -2565,12 +2733,56 @@ final class OnboardingChatDirector
                 default => 'sent',
             };
             $this->rememberSpouseInviteOutcome($user, ['status' => $status, 'first_name' => $details['first_name'], 'email' => $details['email']]);
+        } catch (SpouseInviteLimitException $e) {
+            $this->rememberSpouseInviteOutcome($user, ['status' => 'limited', 'message' => $e->getMessage()]);
         } catch (SpouseCollisionException $e) {
             $this->rememberSpouseInviteOutcome($user, ['status' => 'collision']);
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Spouse invitation failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
             $this->rememberSpouseInviteOutcome($user, ['status' => 'failed']);
         }
+    }
+
+    /**
+     * An invitation asked for in chat (fix plan T9, Q17). The details are read
+     * with the invite step's parser; an email with no name in the message
+     * takes the spouse's name already on file. With both, the invitation goes
+     * through sendSpouseInvitation and the reply is the step's outcome
+     * sentence; without, Fyn asks the step's own question, and the answer
+     * continues this capture.
+     *
+     * @return \Generator<array<string, mixed>>
+     */
+    private function inviteSpouseFromChat(User $user, AiConversation $conversation, string $message): \Generator
+    {
+        $details = OnboardingValueInterpreter::parseSpouseInviteDetails($message);
+        if ($details === null && preg_match('/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/', $message, $email) === 1) {
+            $name = OnboardingStateMachine::knownSpouseFirstName($user, $conversation)
+                ?? FamilyMember::where('user_id', $user->id)->where('relationship', 'spouse')->value('first_name');
+            if (is_string($name) && trim($name) !== '') {
+                $details = ['first_name' => trim($name), 'email' => mb_strtolower($email[0])];
+            }
+        }
+
+        if ($details === null) {
+            $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS) ?? [];
+            $line = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+            yield ['type' => 'content', 'text' => $line];
+            $saved = $this->saveMessage($conversation, 'assistant', $line, [
+                'persona' => 'data_capture',
+                'metadata' => ['turn_intent' => FynTurnIntent::CaptureClarification->value],
+            ]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        $this->sendSpouseInvitation($user, $details);
+        $line = $this->takeSpouseInviteOutcomeText($user->fresh() ?? $user)
+            ?? "I couldn't send the invitation just now. You can try again from Family in Settings.";
+        yield ['type' => 'content', 'text' => $line];
+        $saved = $this->saveMessage($conversation, 'assistant', $line, ['persona' => 'data_capture']);
+        yield ['type' => 'done', 'message_id' => $saved->id];
     }
 
     /** @param  array<string, mixed>  $outcome */
@@ -2604,6 +2816,8 @@ final class OnboardingChatDirector
             'declined' => 'No problem. You can invite them any time from Family in Settings.',
             'collision' => "That email's already registered with another Fynla household, so I haven't sent an invitation. You can try a different address from Family in Settings.",
             'failed' => "I couldn't send the invitation just now. You can try again from Family in Settings.",
+            'limited' => (string) ($outcome['message'] ?? ''),
+            'preview' => "You're in preview mode, so I haven't sent an invitation. Create your own account to invite your spouse.",
             default => null,
         };
     }
@@ -2690,8 +2904,9 @@ final class OnboardingChatDirector
             && ((is_string($capturedValue) && $capturedValue !== '') || (is_array($capturedValue) && $capturedValue !== []))) {
             $key = OnboardingStateMachine::FUNNEL_STATES[$stateId];
             $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
-            // Keep the campaign the user arrived on (their acquisition record).
-            $funnel['campaign'] ??= $user->onboarding_fyn_selection ?? 'savetax';
+            // Only the answers: the campaign the user arrived on is recorded at
+            // registration, and stamping it here made every registrant a Save
+            // Tax arrival (T23, OnboardingStateMachine::isSaveTaxArrival).
             if ($key === 'assets') {
                 // Every pick a multi-select submission names (M4), or an
                 // older client's single tap; the submit bubble is not an asset.
@@ -3204,7 +3419,7 @@ final class OnboardingChatDirector
         $captureDetails = [];
         $captureError = null;
 
-        $userAskedQuestion = $this->userAskedQuestion($message);
+        $userAskedQuestion = QuerySchemas::isAdviceShaped($message);
 
         // Baseline so the no-capture cleanup below removes only rows THIS
         // extraction stream persisted (its off-script conversational prose).
@@ -4148,6 +4363,9 @@ PROMPT;
                 yield ['type' => 'content', 'text' => $ack];
                 $this->saveMessage($conversation, 'assistant', $ack, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::StepPrompt->value]]);
             }
+            if (yield from $this->openQueuedWalkForm($user, $conversation, $currentStateId, $state, (string) $form['name'], $message)) {
+                return;
+            }
             yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
 
             return;
@@ -4158,6 +4376,9 @@ PROMPT;
             'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
             'records_created' => $recordsCreated,
         ];
+        if (yield from $this->openQueuedWalkForm($user, $conversation, $currentStateId, $state, (string) $form['name'], $message)) {
+            return;
+        }
         yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, (string) ($user->onboarding_fyn_selection ?? 'savetax'));
     }
 
@@ -4221,6 +4442,9 @@ PROMPT;
                 // The record the duplicate guard's question is about, so the
                 // answer can be taken as about it (emitFormProblem).
                 'entity_id' => isset($result['entity_id']) ? (int) $result['entity_id'] : null,
+                // Its kind, so the question can tell whether another would
+                // pass the plan's cap (walk R39).
+                'entity_type' => (string) ($result['entity_type'] ?? $definition['entity_type'] ?? ''),
                 'fields' => is_array($result['errors'] ?? null)
                     ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])
                     : [],
@@ -4241,7 +4465,29 @@ PROMPT;
     private function emitFormProblem(AiConversation $conversation, string $formName, array $errors, string $text, ?string $stateId): \Generator
     {
         yield ['type' => 'capture_form_errors', 'form' => $formName, 'errors' => $errors];
-        yield ['type' => 'content', 'text' => $text];
+
+        // The duplicate guard's question is a two-way choice, so it is asked
+        // with its two answers as bubbles; each sends its words as the reply,
+        // the path a typed "It's the same one" takes (regression walk
+        // 2026-10-09, R19: CSJ "why no bubble on the duplicate message?").
+        $asksDuplicate = collect($errors)->contains(static fn (array $e): bool => in_array($e['error_type'] ?? null, ['confirm_duplicate_required', 'confirm_edit_required'], true));
+        $bubbles = $asksDuplicate ? self::DUPLICATE_ANSWER_BUBBLES : null;
+        // At the plan's cap a separate one cannot be added, so it is not
+        // offered: "A separate one" led to "what would you like to call it?"
+        // for a record the cap then refused (walk R39).
+        $exact = collect($errors)->first(static fn (array $e): bool => ($e['error_type'] ?? null) === 'confirm_duplicate_required');
+        if ($exact !== null && $conversation->user !== null) {
+            $cap = $this->capReachedForRecord($conversation->user, (string) ($exact['entity_type'] ?? ''), isset($exact['entity_id']) ? (int) $exact['entity_id'] : null);
+            if ($cap !== null) {
+                $bubbles = [self::DUPLICATE_ANSWER_BUBBLES[0]];
+                $text .= " If it's a separate one, that's the Free plan's limit of {$cap['limit']} {$cap['noun']}, so I can't add it here.";
+            }
+        }
+        if ($bubbles !== null) {
+            yield ['type' => 'quick_replies', 'prompt_text' => $text, 'bubbles' => $bubbles];
+        } else {
+            yield ['type' => 'content', 'text' => $text];
+        }
 
         // Outside the setup walk nothing holds a step, so a duplicate guard's
         // question is marked as a capture still asking about its record: the
@@ -4260,6 +4506,7 @@ PROMPT;
                 'turn_intent' => FynTurnIntent::CaptureClarification->value,
                 'capture_write_landed' => $guardRecordId !== null ? false : null,
                 'capture_record_id' => $guardRecordId,
+                'bubbles' => $bubbles,
             ], static fn ($value): bool => $value !== null),
         ]));
     }
@@ -4474,7 +4721,7 @@ PROMPT;
             //     still stripped; and
             // (3) a question turn that captured nothing stays on this state
             //     instead of advancing (see the gate before the advance below).
-            $userAskedQuestion = $this->userAskedQuestion($message);
+            $userAskedQuestion = QuerySchemas::isAdviceShaped($message);
 
             // B-1 gap-check — track the fields dict of every fill_form the
             // LLM emitted so we can compare it to the deterministic entity
@@ -4499,6 +4746,7 @@ PROMPT;
                 $pendingWriteFailures['gapfill:'.$tool.':'.count($pendingWriteFailures)] = [
                     'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
                     'tier_limit' => (($result['error_type'] ?? '') === 'tier_limit_reached'),
+                    'user_facing' => ($result['user_facing'] ?? false) === true,
                 ];
                 if ($tool !== '' && ! in_array($tool, $failedWriteTools, true)) {
                     $failedWriteTools[] = $tool;
@@ -4601,6 +4849,7 @@ PROMPT;
                         $pendingWriteFailures[$failureKey] = [
                             'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
                             'tier_limit' => (($event['result']['error_type'] ?? '') === 'tier_limit_reached'),
+                            'user_facing' => ($event['result']['user_facing'] ?? false) === true,
                         ];
                         // Remember the tool so the gap-fill never blind-creates
                         // the entity this failed (richer) attempt was refused for.
@@ -5264,11 +5513,13 @@ PROMPT;
      * delegated path appended the missing-detail tail to tier-limit
      * messages, which a plan limit cannot satisfy; live /m msg 19716).
      * A tier-limit message wins and shows verbatim (it carries its own
-     * upgrade call to action); otherwise the first named reason composes the
+     * upgrade call to action), then a message the tool wrote for the user
+     * (`user_facing`, e.g. a delete that found nothing, T8); otherwise the
+     * first named reason composes the
      * missing-detail line. The transport placeholder "The write failed." is
      * not a reason. Returns null when no failure carries a usable message.
      *
-     * @param  list<array{message?: string, tier_limit?: bool}>  $failures
+     * @param  list<array{message?: string, tier_limit?: bool, user_facing?: bool}>  $failures
      */
     private function captureFailureText(array $failures): ?string
     {
@@ -5278,6 +5529,14 @@ PROMPT;
         );
         if ($tier !== null) {
             return (string) $tier['message'];
+        }
+
+        $written = collect($failures)->first(
+            fn (array $failure): bool => ($failure['user_facing'] ?? false) === true
+                && trim((string) ($failure['message'] ?? '')) !== ''
+        );
+        if ($written !== null) {
+            return (string) $written['message'];
         }
 
         $reason = collect($failures)
@@ -6381,6 +6640,7 @@ PROMPT;
     {
         [$id, $label] = match ($route) {
             '/tax-strategy' => ['view_strategy', 'Take me to my tax strategy'],
+            '/actions' => ['view_actions', 'Take me to my actions'],
             '/retirement' => ['view_retirement', 'Take me to my retirement plan'],
             default => ['view_plan', 'Take me to my plan'],
         };
@@ -6661,8 +6921,10 @@ PROMPT;
         if ($user->date_of_birth) {
             $parts[] = 'born on '.$user->date_of_birth->format('j F Y');
         }
-        if ($user->gender) {
-            $parts[] = (string) $user->gender;
+        // "Other" is left out of the list rather than read as "you're other".
+        $gender = $user->gender ? CaptureForms::genderWords((string) $user->gender) : null;
+        if ($gender !== null) {
+            $parts[] = $gender;
         }
         if ($user->marital_status) {
             $parts[] = CaptureForms::maritalWords((string) $user->marital_status);
@@ -6823,7 +7085,8 @@ PROMPT;
             return 'Got it — thanks.';
         }
 
-        return sprintf('Got it — £%s a year, noted.', number_format($income, 0));
+        // Exact, as the user gave it (CSJ 2026-10-12: never rounded).
+        return 'Got it — '.Money::exact($income).' a year, noted.';
     }
 
     /**
@@ -7199,19 +7462,6 @@ PROMPT;
     }
 
     /**
-     * A1 — does the user's message ask a question? Single heuristic shared by
-     * both capture handlers (delegated asset capture + grouped_extract) so the
-     * two call sites cannot drift. A literal "?" counts, and so does a leading
-     * interrogative/imperative ("explain salary sacrifice please", "what is
-     * a SIPP") — users routinely drop the question mark.
-     */
-    private function userAskedQuestion(string $message): bool
-    {
-        return str_contains($message, '?')
-            || preg_match('/^(explain|what|why|how|when|tell me|define|describe)\b/i', trim($message)) === 1;
-    }
-
-    /**
      * Detect a delegated model response that asks for a missing capture fact
      * before it attempts any write tool. This response must remain visible and
      * keep the current state parked; it is not a zero-entity completion turn.
@@ -7291,7 +7541,7 @@ PROMPT;
         // handing the model a question to record as a fact. Reuse the
         // shared A1 heuristic — if the previous user turn asked a question,
         // there is no unresolved capture attempt to complete.
-        if ($this->userAskedQuestion((string) $previousUserMessage->content)) {
+        if (QuerySchemas::isAdviceShaped((string) $previousUserMessage->content)) {
             return $message;
         }
 
@@ -7624,12 +7874,36 @@ PROMPT;
         $recordsFilled = array_filter($filled, static fn (int $index): bool => $index < $firstBlank, ARRAY_FILTER_USE_KEY);
         $blankFilled = array_values(array_diff_key($filled, $recordsFilled))[0] ?? null;
         $hasBlank = count($forms) > $firstBlank;
+        // A message that restates a record already on file ("Add my Barclays
+        // easy access savings, £10,000 at 4%") is read onto that record's form,
+        // where nothing changes, and the blank form opened empty: what the user
+        // typed was lost (walk R38). Read it again onto the blank form alone, so
+        // it opens filled and its save asks whether it is the same account.
+        if ($recordsFilled === [] && $blankFilled === null && $hasBlank && $firstBlank > 0) {
+            $blankFilled = array_values(app(TypedFormFill::class)->fillAny(array_slice($forms, $firstBlank), $message))[0] ?? null;
+        }
 
         if ($recordsFilled === [] && $blankFilled === null && (! $openAnyway || ($candidates === [] && ! $hasBlank))) {
             return false;
         }
         if ($persistUserMessage) {
             $this->saveMessage($conversation, 'user', $message);
+        }
+
+        // A new record past the Free limit could only fail at Save: say the
+        // limit in words, before any form (walk 2026-10-11, F9, #3795). A
+        // change to a saved record adds nothing, so it still opens.
+        if ($recordsFilled === [] && $hasBlank) {
+            $blankName = (string) (($blankFilled ?? $forms[$firstBlank])['schema']['name'] ?? '');
+            $limit = OnboardingStateMachine::freeLimitForForm($user, $blankName);
+            if ($limit !== null) {
+                $line = OnboardingStateMachine::freeLimitSentence($limit);
+                yield ['type' => 'content', 'text' => $line];
+                $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => ['turn_intent' => FynTurnIntent::InterruptionAnswer->value]]);
+                yield ['type' => 'done', 'message_id' => $saved->id];
+
+                return true;
+            }
         }
 
         if (count($recordsFilled) === 1) {
@@ -7685,9 +7959,77 @@ PROMPT;
 
         // Read back as the edit form's save is ("Updated — …").
         $text = 'Saved — '.rtrim($message, '.').'.';
+        // Further records read from the same message open next, filled in;
+        // past the Free limit it is said instead (T20).
+        $queue = $this->queuedForms($conversation, (string) $form['name']);
+        $limit = $queue === [] ? null : OnboardingStateMachine::freeLimitForForm($user, (string) $form['name']);
+        if ($limit !== null) {
+            $text .= ' '.OnboardingStateMachine::freeLimitSentence($limit);
+        }
         yield ['type' => 'content', 'text' => $text];
         $saved = $this->saveMessage($conversation, 'assistant', $text, ['metadata' => ['turn_intent' => FynTurnIntent::CaptureAck->value]]);
+
+        $schema = $queue === [] || $limit !== null ? null : $this->formSchemaFor($user, (string) $form['name']);
+        if ($schema !== null) {
+            yield from $this->emitFormMessage($conversation, [
+                'schema' => $schema,
+                'answers' => $queue[0],
+                'record' => null,
+                'queue' => array_slice($queue, 1),
+                'prompt' => CaptureForms::FILLED_NEXT_PROMPT,
+            ], true, null);
+
+            return;
+        }
         yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
+    /**
+     * The further new records read with the form just saved, when it is the
+     * newest form Fyn offered (a refusal in between offers no form, so a
+     * corrected save still finds them).
+     *
+     * @return list<array<string, array<string, mixed>>>
+     */
+    private function queuedForms(AiConversation $conversation, string $formName): array
+    {
+        $offered = $conversation->messages()->where('role', 'assistant')->whereNotNull('metadata')->latest('id')->limit(20)->get(['metadata'])
+            ->first(static fn (AiMessage $m): bool => is_array($m->metadata['capture_form'] ?? null));
+        $metadata = is_array($offered?->metadata) ? $offered->metadata : [];
+        $queue = $metadata[self::FORM_QUEUE] ?? null;
+
+        return ($metadata['capture_form']['name'] ?? null) === $formName && is_array($queue) ? array_values(array_filter($queue, 'is_array')) : [];
+    }
+
+    /**
+     * At a setup form step that adds one record per save, the next record
+     * read from the same message opens filled in, in place of "another?";
+     * the step stays where it is. False when there is none, or the Free limit
+     * is reached (the "another?" step then says so).
+     *
+     * @param  array<string, mixed>  $state
+     * @return \Generator<array<string, mixed>, mixed, mixed, bool>
+     */
+    private function openQueuedWalkForm(User $user, AiConversation $conversation, string $stateId, array $state, string $formName, string $message): \Generator
+    {
+        $queue = isset(self::FORM_LOOP_STATES[$stateId]) ? $this->queuedForms($conversation, $formName) : [];
+        if ($queue === [] || OnboardingStateMachine::freeLimitAt($user, $stateId) !== null) {
+            return false;
+        }
+        $form = $this->walkForm($user, $conversation, $state);
+        if ($form === null) {
+            return false;
+        }
+
+        $this->recordProgress($user, $stateId, ['selection' => (string) ($user->onboarding_fyn_selection ?? 'savetax'), 'raw_message' => mb_substr($message, 0, 500)]);
+        yield from $this->emitTurnForState($user, $conversation, $stateId, $state, includeTransitionHeader: false, typedFill: array_replace($form, [
+            'answers' => $queue[0],
+            'record' => null,
+            'queue' => array_slice($queue, 1),
+            'prompt' => CaptureForms::FILLED_NEXT_PROMPT,
+        ]));
+
+        return true;
     }
 
     /**
@@ -7734,6 +8076,9 @@ PROMPT;
         if ($schema !== null && $schema['name'] === CaptureForms::SPOUSE_HOUSEHOLD) {
             $schema = CaptureForms::spouseHouseholdFor($user, $schema);
         }
+        if ($schema !== null && $schema['name'] === CaptureForms::WORK) {
+            $schema = CaptureForms::workFor($user, $schema);
+        }
 
         return $schema;
     }
@@ -7776,7 +8121,7 @@ PROMPT;
      */
     private function offerTypedAnswerForm(User $user, AiConversation $conversation, string $message, string $stateId, array $state): \Generator
     {
-        if (! isset($state['form']) || ! $this->clientSupportsForms || $this->writeIntentClassifier->isQuestion($message)) {
+        if (! isset($state['form']) || ! $this->clientSupportsForms || QuerySchemas::isAdviceShaped($message)) {
             return false;
         }
         $form = $this->walkForm($user, $conversation, $state);
@@ -7800,7 +8145,9 @@ PROMPT;
         if ($record === null) {
             // A blank form outside the walk, offered to add a record; its save
             // comes back through handleCreateFormTurn.
-            $prompt = $changeFilledIn ? CaptureForms::FILLED_PROMPT : CaptureForms::ADD_PROMPT;
+            $prompt = $changeFilledIn
+                ? ($form['prompt'] ?? CaptureForms::filledPrompt(count($form['queue'] ?? [])))
+                : CaptureForms::ADD_PROMPT;
             $form['schema'] = CaptureForms::forAdding($form['schema']);
         } else {
             // Some labels already start "Your" ("Your spouse's details").
@@ -7816,6 +8163,7 @@ PROMPT;
             'capture_form' => $form['schema'],
             'capture_form_values' => $values,
             'capture_form_record' => $record,
+            self::FORM_QUEUE => ($form['queue'] ?? []) ?: null,
         ])]);
         yield array_filter([
             'type' => 'capture_form',
@@ -8540,6 +8888,14 @@ PROMPT;
         // about, else the blank form for that kind of record, filled in from
         // the message. A section with nothing saved and no form says so.
         $entityType = (string) ($context->entityTypes[0] ?? '');
+
+        // "Invite my partner …" runs the invite step's own code (T9, Q17).
+        if ($entityType === 'spouse_invite') {
+            yield from $this->inviteSpouseFromChat($user, $conversation, $message);
+
+            return;
+        }
+
         $editSection = RecordEditForms::sectionForEntityType($entityType);
         if ($editSection !== null && ! $context->isContinuation) {
             $candidates = app(RecordEditForms::class)->candidates($user, $editSection);
@@ -8744,6 +9100,7 @@ PROMPT;
                             : 'The information could not be saved.',
                         'content_offset' => $retryContentOffset ?? count($contentEvents),
                         'tier_limit' => ($result['reason'] ?? null) === 'tier_limit_reached',
+                        'user_facing' => ($result['user_facing'] ?? false) === true,
                         'tool' => $tool,
                     ];
                 }

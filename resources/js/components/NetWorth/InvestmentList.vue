@@ -275,7 +275,7 @@ import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 
 import logger from '@/utils/logger';
-import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
+import { calculateUserShare, coOwnerName, isSharedRecord, sharePercentText } from '@/utils/ownership';
 export default {
   name: 'InvestmentList',
 
@@ -574,7 +574,7 @@ export default {
     },
 
     formatSharePercent(account) {
-      return `${userSharePercent(account).toFixed(2)}%`;
+      return `${sharePercentText(account)}%`;
     },
 
     coOwnerOf(account) {

@@ -28,8 +28,9 @@ branch: dev
    - CSJ: "Why would adding an account then asking about it, still leading to adding it be intended."
    - Find the director's multi-select free-text path first (Rule 20: every mechanism, web and `/m`). A question must answer and leave the holdings unchanged.
 3. **Spouse transfer, still open from session 3:** extend `WalkFormPrefill` so each walk form the transfer answered opens that record as an edit (savings, ISA, investments, pension, other income). Then walk a spouse's full onboarding on web and `/m`. See `CSJTODO.md` NEXT.
-4. **Retirement how-to batch (26), then investment (17), then estate (12).** CSJ parked these until after the release, which has now happened.
-5. **Vault sync for 2026-09-29 session 3 and this session:** run `vault-sync` once.
+4. Create patch notes following the previous formats from Spetember/September28Updates folder, as well as 27,26 and 25.
+5. **Retirement how-to batch (26), then investment (17), then estate (12).** CSJ parked these until after the release, which has now happened.
+6. **Vault sync for 2026-09-29 session 3 and this session:** run `vault-sync` once.
 
 ## Context to load
 

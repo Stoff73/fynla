@@ -185,7 +185,7 @@ import AssetAllocationChart from './AssetAllocationChart.vue';
 import GeographicAllocationMap from './GeographicAllocationMap.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
+import { calculateUserShare, coOwnerName, isSharedRecord, sharePercentText } from '@/utils/ownership';
 
 export default {
   name: 'PortfolioOverview',
@@ -288,7 +288,7 @@ export default {
     },
 
     formatSharePercent(account) {
-      return `${userSharePercent(account).toFixed(2)}%`;
+      return `${sharePercentText(account)}%`;
     },
 
     coOwnerOf(account) {

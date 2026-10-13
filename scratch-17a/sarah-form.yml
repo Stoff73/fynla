@@ -1,0 +1,187 @@
+- generic [ref=f116e3]:
+  - generic [ref=f116e42]:
+    - banner [ref=f116e43]:
+      - button "Open menu" [ref=f116e44] [cursor=pointer]
+      - paragraph [ref=f116e48]: Good morning, Sarah
+    - main [ref=f116e49]:
+      - button [ref=f116e51] [cursor=pointer]:
+        - img "Level 3, 20 percent complete" [ref=f116e52]:
+          - generic [ref=f116e56]:
+            - paragraph [ref=f116e57]: Level
+            - paragraph [ref=f116e58]: "3"
+        - generic [ref=f116e59]:
+          - heading "0 of 4 actions to your next level" [level=2] [ref=f116e60]
+          - paragraph [ref=f116e61]:
+            - text: Complete actions to reach
+            - strong [ref=f116e62]: Level 4
+            - text: .
+      - note [ref=f116e63]:
+        - generic [ref=f116e64]:
+          - tablist "Focus areas" [ref=f116e65]:
+            - tab "Top actions 4 actions" [selected] [ref=f116e66] [cursor=pointer]:
+              - generic [ref=f116e67]: Top actions
+              - generic [ref=f116e68]: 4 actions
+            - tab "Retirement 1 action" [ref=f116e69] [cursor=pointer]:
+              - generic [ref=f116e70]: Retirement
+              - generic [ref=f116e71]: 1 action
+            - tab "Protection 4 actions" [ref=f116e72] [cursor=pointer]:
+              - generic [ref=f116e73]: Protection
+              - generic [ref=f116e74]: 4 actions
+            - tab "Savings Monthly expenditure is required to calculate savings capacity. Locked" [ref=f116e75] [cursor=pointer]:
+              - generic [ref=f116e76]: Savings
+              - generic [ref=f116e77]: Monthly expenditure is required to calculate savings capacity.
+              - generic [ref=f116e78]: Locked
+            - tab "Investment A completed risk profile is essential to determine suitable asset allocation and investment recommendations. Locked" [ref=f116e79] [cursor=pointer]:
+              - generic [ref=f116e80]: Investment
+              - generic [ref=f116e81]: A completed risk profile is essential to determine suitable asset allocation and investment recommendations.
+              - generic [ref=f116e82]: Locked
+            - tab "Estate Planning At least one asset (property, investment, savings, or pension) is required for estate analysis. Locked" [ref=f116e83] [cursor=pointer]:
+              - generic [ref=f116e84]: Estate Planning
+              - generic [ref=f116e85]: At least one asset (property, investment, savings, or pension) is required for estate analysis.
+              - generic [ref=f116e86]: Locked
+            - tab "Goals Create a goal Locked" [ref=f116e87] [cursor=pointer]:
+              - generic [ref=f116e88]: Goals
+              - generic [ref=f116e89]: Create a goal
+              - generic [ref=f116e90]: Locked
+          - generic [ref=f116e91]:
+            - button "Previous focus area" [disabled] [ref=f116e92]
+            - tablist "Focus area navigation" [ref=f116e95]:
+              - button "Top actions" [ref=f116e96] [cursor=pointer]
+              - button "Retirement" [ref=f116e97] [cursor=pointer]
+              - button "Protection" [ref=f116e98] [cursor=pointer]
+              - button "Savings" [ref=f116e99] [cursor=pointer]
+              - button "Investment" [ref=f116e100] [cursor=pointer]
+              - button "Estate Planning" [ref=f116e101] [cursor=pointer]
+              - button "Goals" [ref=f116e102] [cursor=pointer]
+            - button "Next focus area" [ref=f116e103] [cursor=pointer]
+          - region "Top actions actions" [ref=f116e106]:
+            - generic [ref=f116e107]:
+              - list [ref=f116e108]:
+                - listitem [ref=f116e109]:
+                  - button "Mark complete" [ref=f116e110] [cursor=pointer]
+                  - link "You have no protection policies in place" [ref=f116e114] [cursor=pointer]:
+                    - /url: "#"
+                  - button "Skip this recommendation for now" [ref=f116e122] [cursor=pointer]
+                - listitem [ref=f116e125]:
+                  - button "Mark complete" [ref=f116e126] [cursor=pointer]
+                  - link "Your life cover is £9,797 short" [ref=f116e130] [cursor=pointer]:
+                    - /url: "#"
+                  - button "Skip this recommendation for now" [ref=f116e138] [cursor=pointer]
+                - listitem [ref=f116e141]:
+                  - button "Mark complete" [ref=f116e142] [cursor=pointer]
+                  - link "Your critical illness cover is £105,000 short" [ref=f116e146] [cursor=pointer]:
+                    - /url: "#"
+                  - button "Skip this recommendation for now" [ref=f116e154] [cursor=pointer]
+                - listitem [ref=f116e157]:
+                  - button "Mark complete" [ref=f116e158] [cursor=pointer]
+                  - link "Your income protection is £1,750 a month short" [ref=f116e162] [cursor=pointer]:
+                    - /url: "#"
+                  - button "Skip this recommendation for now" [ref=f116e170] [cursor=pointer]
+              - link "See all actions" [ref=f116e173] [cursor=pointer]:
+                - /url: "#"
+      - region [ref=f116e174]:
+        - heading "Your finances" [level=3] [ref=f116e176]
+        - generic [ref=f116e177]:
+          - link [ref=f116e178] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=f116e180]:
+              - generic [ref=f116e181]: 0%
+              - generic [ref=f116e182]: Equity
+            - generic [ref=f116e183]:
+              - paragraph [ref=f116e184]: Net worth
+              - paragraph [ref=f116e188]: £0
+              - paragraph [ref=f116e189]: £0 assets
+          - link [ref=f116e190] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=f116e192]:
+              - generic [ref=f116e193]: None
+              - generic [ref=f116e194]: Cover
+            - generic [ref=f116e195]:
+              - paragraph [ref=f116e196]: Protection
+              - paragraph [ref=f116e200]: £0
+              - paragraph [ref=f116e201]: Add your cover
+          - link [ref=f116e202] [cursor=pointer]:
+            - /url: "#"
+            - paragraph [ref=f116e205]:
+              - strong [ref=f116e206]: "0"
+              - text: / 6 months
+            - generic [ref=f116e207]:
+              - paragraph [ref=f116e208]: Bank Accounts
+              - paragraph [ref=f116e212]: £0
+              - paragraph [ref=f116e213]: Start your emergency fund
+          - link [ref=f116e214] [cursor=pointer]:
+            - /url: "#"
+            - paragraph [ref=f116e217]:
+              - strong [ref=f116e218]: Target not set
+            - generic [ref=f116e219]:
+              - paragraph [ref=f116e220]: Retirement
+              - paragraph [ref=f116e224]: £0
+              - paragraph [ref=f116e225]: Plan your retirement
+          - link [ref=f116e226] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=f116e228]:
+              - generic [ref=f116e229]: "0"
+              - generic [ref=f116e230]: Accounts
+            - generic [ref=f116e231]:
+              - paragraph [ref=f116e232]: Investment
+              - paragraph [ref=f116e236]: £0
+              - paragraph [ref=f116e237]: Add your investments
+    - button "Chat with Fyn" [ref=f116e239] [cursor=pointer]:
+      - generic [ref=f116e241]:
+        - generic [ref=f116e242]: Fyn
+        - generic [ref=f116e243]: Your financial companion
+    - region "Chat with Fyn" [ref=f116e247]:
+      - generic [ref=f116e248]:
+        - generic [ref=f116e251]:
+          - paragraph [ref=f116e252]: Fyn
+          - paragraph [ref=f116e253]: Your financial companion
+        - generic [ref=f116e254]:
+          - button "Report a problem" [ref=f116e255] [cursor=pointer]
+          - button "Close Fyn chat" [ref=f116e256] [cursor=pointer]
+      - generic [ref=f116e259]:
+        - paragraph [ref=f116e261]: Welcome back, Sarah. Last time we were choosing how to get started. Would you like to continue from where we left off, or is there something else I can help with?
+        - paragraph [ref=f116e275]: Of course — what can I help you with?
+        - paragraph [ref=f116e281]: I have a Marcus easy access savings account with £8,000 in it. Please add it.
+        - generic [ref=f116e282]:
+          - paragraph [ref=f116e283]: I've filled in what you told me — check it, add anything missing and save.
+          - generic [ref=f116e284]:
+            - generic [ref=f116e285]:
+              - paragraph [ref=f116e286]: A current account is for day-to-day money. Easy access, fixed rate and notice accounts are savings that pay interest.
+              - generic [ref=f116e287]:
+                - button "Current account" [ref=f116e288] [cursor=pointer]
+                - button "Easy access savings" [pressed] [ref=f116e289] [cursor=pointer]
+                - button "Fixed rate savings" [ref=f116e290] [cursor=pointer]
+                - button "Notice account" [ref=f116e291] [cursor=pointer]
+            - generic [ref=f116e292]:
+              - paragraph [ref=f116e293]: Easy access savings
+              - generic [ref=f116e294]:
+                - generic [ref=f116e295]: Who is it with *
+                - textbox "Who is it with *" [ref=f116e296]: Marcus
+              - generic [ref=f116e297]:
+                - generic [ref=f116e298]: Balance *
+                - generic [ref=f116e299]:
+                  - generic [ref=f116e300]: £
+                  - spinbutton "Balance *" [ref=f116e301]: "8000"
+              - generic [ref=f116e302]:
+                - generic [ref=f116e303]: Interest rate % *
+                - spinbutton "Interest rate % *" [ref=f116e304]
+              - generic [ref=f116e305]:
+                - generic [ref=f116e306]: Ownership *
+                - radiogroup "Ownership *" [ref=f116e307]:
+                  - generic [ref=f116e308]:
+                    - radio "Individual" [ref=f116e309]
+                    - text: Individual
+                  - generic [ref=f116e310]:
+                    - radio "Joint" [ref=f116e311]
+                    - text: Joint
+                - paragraph [ref=f116e312]: Joint means held 50/50 with your spouse or partner
+            - button "Save" [disabled] [ref=f116e314]
+      - generic "Suggested questions" [ref=f116e276]:
+        - button "How do I \"You have no protection policies in place\"?" [ref=f116e277] [cursor=pointer]
+        - button "How do I \"Your life cover is £9,797 short\"?" [ref=f116e278] [cursor=pointer]
+        - button "How do I \"Your critical illness cover is £105,000 short\"?" [ref=f116e279] [cursor=pointer]
+      - generic [ref=f116e265]:
+        - textbox "Ask Fyn a question" [active] [ref=f116e267]:
+          - /placeholder: Ask Fyn anything...
+        - button "Send to Fyn" [ref=f116e268] [cursor=pointer]
+  - button "Report a problem" [ref=f116e271] [cursor=pointer]

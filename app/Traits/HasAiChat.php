@@ -30,6 +30,7 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\AiProvider;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\ConversationWindow;
 use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\Fyn\CertaintyFilter;
 use App\Services\AI\Fyn\ClaimTier;
@@ -99,8 +100,6 @@ trait HasAiChat
         'module' => 5,
         'factual' => 3,
     ];
-
-    private const MAX_HISTORY_MESSAGES = 20;
 
     /**
      * Chat overrides used by OnboardingChatDirector during delegated
@@ -405,12 +404,13 @@ trait HasAiChat
             $userMessage = $this->saveMessage($conversation, 'user', $message);
         }
 
-        // Check token budget
+        // The tier's one Fyn limit, per rolling week (T48). Every surface
+        // shows this message as sent.
         if (! $this->hasTokenBudget($user)) {
             $usage = $this->getTokenUsageDetails($user);
             yield [
                 'type' => 'token_limit',
-                'message' => "You've reached your daily Fyn usage limit.",
+                'message' => "You've reached your weekly Fyn usage limit.",
                 'reset_at' => $usage['reset_at'],
                 'seconds_until_reset' => $usage['seconds_until_reset'],
             ];
@@ -461,13 +461,6 @@ trait HasAiChat
         $complexity = $this->classifyComplexity($message, $conversation->message_count);
         $model = $this->getAiModel($user, $complexity, $provider);
 
-        // Soft-degrade notice (PR 6 — Rule #16: plain text only, no icon/emoji/glyph).
-        // Prepend to the system prompt so the AI knows to keep responses shorter and
-        // to relay the notice. Chat is NEVER hard-walled by the weekly budget.
-        if ($this->isWeeklyBudgetExceeded($user)) {
-            $systemPrompt = 'Fyn is running in a lighter mode this week — upgrade for full responses.'
-                ."\n\n".$systemPrompt;
-        }
         $maxTokens = $this->getAiMaxTokens($user);
         $toolDefinitions = $isXai
             ? app(XaiToolDefinitions::class)
@@ -1296,11 +1289,14 @@ trait HasAiChat
                     // data_capture turns; the director consumes it and never
                     // re-yields, so no frontend sees it.
                     if (! $isRepeatedToolCall && $this->personaOverride === 'data_capture') {
+                        // Not failed: it wrote (ToolResults::wroteData), or it
+                        // succeeded, found the record already there, or is a
+                        // capture still asking for a detail (`onboarding_capture`
+                        // with nothing written yet is not a failure).
                         $writeLanded = ! $isToolError && (
-                            (isset($toolResult['created']) && $toolResult['created'] === true)
-                            || (isset($toolResult['updated']) && $toolResult['updated'] === true)
-                            || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
-                            || (isset($toolResult['success']) && $toolResult['success'] === true)
+                            ToolResults::wroteData($toolResult)
+                            || ($toolResult['onboarding_capture'] ?? false) === true
+                            || ($toolResult['success'] ?? false) === true
                             || ToolResults::isDuplicateSkip($toolResult)
                         );
                         $toolCallId = (string) ($toolUseBlock['id'] ?? '');
@@ -1527,12 +1523,8 @@ trait HasAiChat
                 ->last();
 
             $messageMetadata['capture_write_landed'] = collect($fullToolResults)
-                ->contains(function (array $result): bool {
-                    $raw = $result['raw'] ?? null;
-
-                    return is_array($raw) && collect(array_keys(self::ENTITY_EVENTS))
-                        ->contains(fn (string $flag): bool => ($raw[$flag] ?? false) === true);
-                });
+                ->contains(fn (array $result): bool => is_array($result['raw'] ?? null)
+                    && ToolResults::wroteData($result['raw']));
         }
 
         $assistantExtra = array_merge([
@@ -1913,10 +1905,8 @@ trait HasAiChat
      */
     private function buildMessageHistory(AiConversation $conversation): array
     {
-        $dbMessages = $conversation->messages()
-            ->whereIn('role', ['user', 'assistant'])
-            ->orderBy('created_at', 'desc')
-            ->limit(self::MAX_HISTORY_MESSAGES)
+        $dbMessages = ConversationWindow::newestFirst($conversation)
+            ->limit(ConversationWindow::MESSAGES)
             ->get()
             ->reverse()
             ->values();

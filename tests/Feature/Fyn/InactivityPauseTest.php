@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
@@ -55,7 +56,9 @@ it('does not pause an in-flight onboarding conversation', function () {
 
 it('keeps paused conversations in the history list', function () {
     $user = User::factory()->create(['onboarding_completed' => true]);
-    idleConversation($user, 0, ['status' => 'paused', 'title' => 'Paused one']);
+    $paused = idleConversation($user, 0, ['status' => 'paused', 'title' => 'Paused one']);
+    // History lists conversations where something was said (walk R29).
+    AiMessage::create(['conversation_id' => $paused->id, 'role' => 'user', 'content' => 'Hello']);
     Sanctum::actingAs($user);
 
     $response = $this->getJson('/api/ai-chat/conversations');

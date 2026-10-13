@@ -2,7 +2,8 @@
 fact_id: hv-junior-isa
 category: house_view
 title: Junior ISA — a separate tax-free allowance for each child
-version: 2
+source: "Individual Savings Account Regulations 1998 (SI 1998/1870) reg 2B (junior ISA account), reg 4ZB (junior ISA subscriptions), reg 12A (opening conditions), reg 22 (income and gains exempt)"
+version: 3
 valid_to: null
 ---
 

@@ -4,6 +4,7 @@ import {
   calculateUserShare,
   coOwnerName,
   isSharedRecord,
+  sharePercentText,
   userSharePercent,
 } from '@/utils/ownership';
 
@@ -129,5 +130,23 @@ describe('coOwnerName', () => {
   it('returns null for a solely owned record or an unknown counterparty', () => {
     expect(coOwnerName({ ownership_type: 'individual' })).toBeNull();
     expect(coOwnerName({ ownership_type: 'joint', is_primary_owner: true })).toBeNull();
+  });
+});
+
+describe('sharePercentText (walk R14/R26)', () => {
+  it('drops trailing zeros: "50", not "50.00"', () => {
+    expect(sharePercentText({ ownership_type: 'joint', ownership_percentage: 50 })).toBe('50');
+  });
+
+  it('keeps up to two decimals when the share has them', () => {
+    expect(sharePercentText({ ownership_type: 'tenants_in_common', ownership_percentage: 33.333 })).toBe('33.33');
+  });
+
+  it('reads the server figure for this viewer when the payload carries it', () => {
+    expect(sharePercentText({ ownership_type: 'joint', ownership_percentage: 60, user_share_percent: '40.00' })).toBe('40');
+  });
+
+  it('is 100 for a record held alone', () => {
+    expect(sharePercentText({ ownership_type: 'individual' })).toBe('100');
   });
 });

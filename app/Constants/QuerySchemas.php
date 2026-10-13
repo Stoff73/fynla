@@ -259,7 +259,9 @@ final class QuerySchemas
             '/\bi\'ve\s+(got|paid|saved|put|deposited)\b/i',
         ],
         self::NAVIGATION => [
-            '/\b(take|go|navigate|show)\s+(me\s+)?(to|the)\b/i',
+            // "Show the working" is not a page (Brett, #4003 and #4009 were
+            // filed here and skipped the answer process; fix plan T3).
+            '/\b(take|go|navigate)\s+(me\s+)?(to|the)\b/i',
             '/\bgo\s+to\b/i',
             '/\bopen\s+(my|the)\b/i',
             // "Show me my X" — exclude wealth-summary phrases so they reach
@@ -293,7 +295,11 @@ final class QuerySchemas
             '/\b(which|what)\s+(fynla\s+)?plan\s+(am\s+i|are\s+we)\s+on\b/i',
         ],
         self::HOLISTIC_HEALTH => [
-            '/\bnet\s+worth\b/i',
+            // Not when the question is a pension pot at a named age ("what
+            // would the pot and my net worth be at 60", Brett #3971): the
+            // turn is given its PRIMARY type's tools only, and that needs the
+            // retirement projection (fix plan T3).
+            '/^(?!.*\b(pension|pot|sipp)\b.{0,80}\b(at|by|until)\s+\d{2}\b).*\bnet\s+worth\b/is',
             '/\b(how\s+much|what)\s+(am|are)\s+(i|we)\s+worth\b/i',
             '/\b(total|combined)\s+wealth\b/i',
             '/\bwhat\s+do\s+i\s+own\b/i',
@@ -310,6 +316,8 @@ final class QuerySchemas
             // "put more into my pension", "pay more into the pension", "top up my pension" (F1)
             '/\b(put|putting|pay|paying|contribute|contributing)\b[^.?!]{0,30}\b(in|into)\b[^.?!]{0,20}\bpensions?\b/i',
             '/\btop(ping)?\s+up\b[^.?!]{0,20}\bpensions?\b/i',
+            // "paid an extra £20,000 a year into my Aviva pot" (Brett, #3971; fix plan T3)
+            '/\b(paid|pay|paying|put|putting)\b[^.?!]{0,40}\binto\b[^.?!]{0,30}\b(pot|sipp)\b/i',
             '/\b(maximis|maximiz)e?\s+(my\s+)?pension/i',
             '/\bhow\s+much\s+.*pension/i',
             '/\bannual\s+allowance\b/i',
@@ -324,6 +332,16 @@ final class QuerySchemas
             '/\bretirement\s+(income|readiness|target|gap)/i',
             '/\bhow\s+much\s+.*need.*retire/i',
             '/\bretirement\s+age\b/i',
+            // Brett's walk, 2026-10-11 (fix plan T3): F22 #3877, Q6 #4003,
+            // Q7 #4009 and #4013 matched no retirement wording.
+            '/\bretire\s+at\b/i',
+            '/\bstop(ping)?\s+work(ing)?\s+at\b/i',
+            '/\bafford\s+to\s+retire\b/i',
+            '/\b(retirement|pension|income)\s+shortfall\b/i',
+            '/\bhow\s+far\s+short\b(?!.{0,40}\b(emergency|cover|protection|isa|goal|deposit)\b)/i',
+            '/^(?!.*\b(goals?|deposit|wedding|holiday)\b).*\bput\s+away\s+(each|every|a|per)\s+month\b/i',
+            '/\b(extra|bigger|larger|additional)\s+(pension\s+)?pot\b/i',
+            '/\bwithdrawal\s+rate\b/i',
         ],
         self::RETIREMENT_DECUMULATION => [
             '/\bdrawdown\b/i',
@@ -375,6 +393,12 @@ final class QuerySchemas
             '/\b(savings?|cash|deposits?|money)\b.{0,20}\b(protect|protected|protection|safe|secure|covered|fscs|guarantee)\b/i',
             '/\b(protect|protected|protection|safe|secure|covered|guarantee)\b.{0,20}\b(savings?|cash|deposits?|money|bank\s+account)\b/i',
             '/\bdeposit\s+protection\b/i',
+            // Tax on savings interest, by owner (Brett, P3 #3967). Mortgage
+            // interest is property (rent questions, Q5).
+            '/\b(tax|taxed|taxable)\b.{0,60}(?<!mortgage\s)\binterest\b(?!-only)/i',
+            '/(?<!mortgage\s)\binterest\b(?!-only).{0,60}\b(tax|taxed|taxable)\b/i',
+            // Which figure is on file for an account (Brett, Q10 #4033).
+            '/(?<!investment\s)(?<!brokerage\s)\baccount\b.{0,120}\bon\s+(file|record)\b/i',
         ],
         self::SAVINGS_DEBT => [
             '/\b(pay\s+off|repay).*mortgage\b.*\b(or|vs|versus)\b.*\b(invest|save)\b/i',
@@ -410,6 +434,10 @@ final class QuerySchemas
             '/\bnil\s+rate\s+band\b/i',
             '/\bestate\s+(value|tax|liability)/i',
             '/\bhow\s+much\s+.*estate\s+.*tax/i',
+            // Brett's walk (fix plan T3): M8 #3961, P7 #3973, Q8 #4015.
+            '/\bdeath\s+tax(es)?\b/i',
+            '/\b(she|he|they|kids|children|daughter|son|wife|husband|partner|spouse)\s+(would\s+|will\s+)?inherit(s|ed)?\b/i',
+            '/\bif\s+(i|we|both\s+of\s+us)\s+(both\s+)?died\b.{0,120}\b(tax|estate|leave|inherit\w*|went\s+to|pass(es|ed)?\s+to)\b/i',
         ],
         self::ESTATE_PLANNING => [
             '/\bwill(s)?\b/i',
@@ -443,6 +471,11 @@ final class QuerySchemas
             '/\brental\s+(income|yield)/i',
             '/\bhouse\s+(price|value)/i',
             '/\bhow\s+much\s+.*property\s+worth/i',
+            // Tax on rent (Brett, Q5 #3997 and #3999; fix plan T3).
+            '/\b(rent|rental\s+(income|profit))\b.{0,60}\btax(ed|able)?\b/i',
+            '/\btax(ed|able)?\b.{0,60}\b(rent|rental)\b/i',
+            '/\b(let|letting)\s+(flat|house|property|properties)\b/i',
+            '/\bmortgage\s+interest\b/i',
         ],
         self::INCOME => [
             '/\bincome\s+(breakdown|source|type|tax\s+position)/i',
@@ -840,47 +873,94 @@ final class QuerySchemas
     }
 
     /**
-     * Detect advice-shaped phrasing in a user message. Used by classifier
-     * callers that want to decide whether a user turn is asking for
-     * analysis as well as volunteering data — the presence of any of these
-     * phrases indicates the user expects advice, not just capture.
+     * How a sentence opens when it asks a question or asks for an answer
+     * ("explain…", "give me…", "work it through"). Read at the start of the
+     * message and of every sentence or clause after a colon, once the words
+     * in QUESTION_FILLER are set aside. Moved from
+     * WriteIntentClassifier::INTERROGATIVE_PREFIXES (April30Updates F-6) and
+     * OnboardingChatDirector::userAskedQuestion (A1), and extended with Brett's
+     * production walk of 2026-10-11 (fix plan T2).
+     */
+    private const QUESTION_OPENINGS = [
+        '(?:is|are|am|was|were)\s+(?:i|we|you|it|this|that|there|my|our|he|she|they)',
+        '(?:can|could|should|shall|would|will|may|might|must)\s+(?:i|we|you|it|this|that|there|my|our|he|she|they)',
+        // "Do it" accepts an offer; "do I" asks.
+        '(?:do|did)\s+(?:i|we|you|my|our|he|she|they)',
+        '(?:have|has)\s+(?:i|we|you|my|our|he|she|they)',
+        'does', 'how', 'why', 'which',
+        '(?:what|whats|what\'s)\s+(?:is|are|was|were|would|should|could|can|will|do|does|did|if|about|happens|else)',
+        'whats', 'what\'s',
+        '(?:when|where)\s+(?:should|can|could|do|does|did|will|would|is|are)',
+        // "Show me my investments" is a display command (navigation, T6);
+        // "show me how…" asks for an answer.
+        '(?:tell|give)\s+me', 'show\s+me\s+(?:how|what|why|which|where|when|whether|if)', 'explain', 'define', 'describe',
+        '(?:talk|walk)\s+me\s+through', 'help\s+me\s+(?:understand|work|decide|choose)',
+        'work\s+(?:it\s+|this\s+|that\s+)?(?:through|out)', 'calculate', 'recommend', 'compare',
+        'run\s+(?:a|an|the|me|some)',
+    ];
+
+    /** Words that open a sentence without changing what it is ("Now give me…", "Okay, which wins"). */
+    private const QUESTION_FILLER = '(?:now|then|so|and|but|ok|okay|right|please|also|just|well|yes|actually|hi|hello|hey|fyn)';
+
+    /**
+     * Phrases that ask for an answer wherever they sit in the message.
+     */
+    private const QUESTION_PHRASES = [
+        '/\bshould\s+(?:i|we)\b/',
+        '/\bwhat\s+(?:about|if)\b/',
+        '/\bcan\s+you\s+(?:explain|help|tell|show|work|give|compare|check)\b/',
+        '/\bwhat\s+do\s+you\s+think\b/',
+        '/\bis\s+(?:that|this)\s+(?:enough|right|correct)\b/',
+        '/\b(?:show|give)\s+(?:me\s+)?(?:the|your)\s+working\b/',
+        '/\bwith\s+the\s+working\b/',
+        '/\bwork\s+it\s+through\b/',
+        '/\btell\s+me\b/',
+        '/\bwhich\s+wins\b/',
+        '/\bfigures\s+please\b/',
+        '/\bnothing\s+to\s+record\b/',
+        '/\brules\s+question\b/',
+        '/\b(?:need|want|like|get|some|your|any)\s+advice\b/',
+        '/\badvice\s+(?:on|about|for)\b/',
+        '/\b(?:would|do|can|could)\s+you\s+recommend\b/',
+    ];
+
+    /**
+     * The one test for "the user is asking something" (fix plan T2, CSJ
+     * 2026-10-12: a question always goes to Advice Fyn's answer process).
+     * Every gate that runs before the model (the "none" declaration, the
+     * write classifier, the capture continuation, an offer's acceptance and
+     * the typed-change form) and the setup walk's question checks ask it
+     * first, so a question is answered rather than written, navigated or
+     * recorded as "none".
      *
-     * Case-insensitive, word-boundary-aware. Intentionally permissive —
-     * false positives are preferable to misrouting a genuine advice query.
+     * A question mark anywhere is a question. Without one, a sentence that
+     * opens as a question or a request for an answer counts, and so do a few
+     * phrases that ask for the working wherever they sit. Words that only
+     * name a topic ("forecast", "how much" inside "not sure how much") do not:
+     * a typed answer at a setup form fills that form, so a statement must
+     * stay a statement.
      */
     public static function isAdviceShaped(string $message): bool
     {
-        $patterns = [
-            '/\bshould\s+i\b/i',
-            '/\bwhat\s+(about|if)\b/i',
-            '/\bhow\s+(much|should|can|do|would)\b/i',
-            '/\bam\s+i\b/i',
-            '/\bcan\s+you\s+(explain|help|tell)\b/i',
-            '/\bwhy\b/i',
-            '/\brecommend/i',
-            '/\badvice\b/i',
-            '/\bcompare\b/i',
-            '/\bprojection\b/i',
-            '/\bforecast\b/i',
-            '/\bthoughts\?/i',
-            '/\bis\s+that\s+enough\b/i',
-            '/\bis\s+this\s+enough\b/i',
-            '/\bwhat\s+do\s+you\s+think\b/i',
-        ];
+        $text = mb_strtolower(trim(str_replace(["\u{2018}", "\u{2019}"], "'", $message)));
+        if ($text === '') {
+            return false;
+        }
 
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $message) === 1) {
+        if (str_contains($text, '?')) {
+            return true;
+        }
+
+        foreach (self::QUESTION_PHRASES as $pattern) {
+            if (preg_match($pattern, $text) === 1) {
                 return true;
             }
         }
 
-        // Belt-and-braces: if the message contains a question mark AND has
-        // more than one sentence/clause, fall through to advice. This
-        // catches "Add my ISA £5k, thoughts?" style mixed-intent messages.
-        if (str_contains($message, '?')) {
-            // Count rough clause separators (comma, period, question, newline)
-            $clauseSeparators = preg_match_all('/[,.?!\n]/', $message);
-            if ($clauseSeparators !== false && $clauseSeparators >= 2) {
+        $openings = '/^(?:'.implode('|', self::QUESTION_OPENINGS).')\b/';
+        foreach (preg_split('/[.!;:\n]+/', $text) ?: [] as $sentence) {
+            $sentence = (string) preg_replace('/^(?:[\s,\'"(\-–—]*'.self::QUESTION_FILLER.'\b)*[\s,\'"(\-–—]*/u', '', $sentence);
+            if (preg_match($openings, $sentence) === 1) {
                 return true;
             }
         }

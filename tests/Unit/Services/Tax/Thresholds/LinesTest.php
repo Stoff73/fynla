@@ -203,7 +203,8 @@ describe('HighIncomeChildBenefitLine', function () {
         // 30% of the benefit: £6,000 over the line at 1% per £200. The benefit itself
         // comes from the service, so the test does not restate the weekly rates.
         $benefit = (float) app(ChildBenefitService::class)->calculateChildBenefitPosition($user, 66000.0)['benefit']['annual_amount'];
-        $expectedCharge = round($benefit * 0.30, 2);
+        // The charge is rounded down to whole pounds (ITEPA 2003 s681C(3)).
+        $expectedCharge = floor($benefit * 0.30);
 
         expect($result)->not->toBeNull()
             ->and($result->position['distance'])->toBe(6000.0)

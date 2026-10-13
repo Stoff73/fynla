@@ -1367,11 +1367,15 @@
   color: var(--horizon-600);
   border: 1px solid var(--horizon-100);
 }
-/* Bullet lists inside a Fyn bubble (funnel recap "what you've told me"). */
-.md-fyn__msg ul {
+/* Lists inside a Fyn bubble (funnel recap "what you've told me", numbered working). */
+.md-fyn__msg ul,
+.md-fyn__msg ol {
   margin: 0.5rem 0 0;
   padding-left: 1.25rem;
   list-style: disc;
+}
+.md-fyn__msg ol {
+  list-style: decimal;
 }
 .md-fyn__msg li {
   margin: 0.125rem 0;
@@ -1661,6 +1665,9 @@
   flex-shrink: 0;
 }
 .md-fyn__compose .md-fyn-dock__input { cursor: text; }
+/* T58: disabled while answer bubbles wait; the same look as .m-field:disabled. */
+.md-fyn__compose .md-fyn-dock__input:disabled { background: var(--horizon-100); border-color: var(--horizon-200); cursor: not-allowed; }
+.md-fyn__compose .md-fyn-dock__send:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ===================================================================
    v42 OVERRIDES — lock accordion to a fixed height so it never jumps.

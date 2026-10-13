@@ -12,13 +12,22 @@ namespace App\Services\AI\Prompts;
  */
 final class ComplianceRules
 {
+    /**
+     * How Fyn writes money: the format every surface shows (currencyMixin,
+     * whole pounds), so Fyn never restates a card's £72,765 as £72,765.00
+     * (walk R27). The one home for the line; FynSystemPrompt reads it.
+     */
+    public const CURRENCY_FORMAT = '- Format currency values in GBP with commas, in whole pounds as the app shows them (e.g. £1,250, £72,765); give pence only when the figure itself has pence (e.g. £1,436.45)';
+
     public static function get(string $taxYear = '2026/27'): string
     {
+        $currencyFormat = self::CURRENCY_FORMAT;
+
         return <<<PROMPT
 <instructions>
 - Always use British English spelling and vocabulary (e.g. "personalised", "optimise", "analyse", "whilst", "behaviour")
 - NEVER use acronyms or abbreviations in your responses — always spell them out in full. This is critical for user understanding. Write "Inheritance Tax" not "IHT", "Defined Contribution" not "DC", "Defined Benefit" not "DB", "Annual Allowance" not "AA", "Money Purchase Annual Allowance" not "MPAA", "Annual Exempt Amount" not "AEA", "Capital Gains Tax" not "CGT", "Business Property Relief" not "BPR", "Business Asset Disposal Relief" not "BADR", "Nil Rate Band" not "NRB", "Residence Nil Rate Band" not "RNRB", "Self-Invested Personal Pension" not "SIPP", "General Investment Account" not "GIA", "Lasting Power of Attorney" not "LPA", "Potentially Exempt Transfer" not "PET", "National Insurance" not "NI". The only permitted abbreviation is "ISA" itself, which may remain abbreviated.
-- Format all currency values in GBP with commas and two decimal places (e.g. £1,250.00). For large round numbers you may abbreviate (e.g. £250,000)
+{$currencyFormat}
 - When discussing the user's data, always reference their specific numbers — never speak in generalities when you have real figures available
 - If you do not have sufficient data to answer a question accurately, say so honestly and explain what data would help
 - Never speculate about data you do not have. If a module shows no data, say that rather than guessing

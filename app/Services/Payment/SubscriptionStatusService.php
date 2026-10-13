@@ -79,7 +79,6 @@ class SubscriptionStatusService
             'document_upload_allowance' => $tierConfig->document_upload_allowance,
             'document_storage_gb' => $tierConfig->document_storage_gb,
             'fyn_weekly_token_budget' => $tierConfig->fyn_weekly_token_budget,
-            'fyn_daily_hard_backstop' => $tierConfig->fyn_daily_hard_backstop,
             'currency_display_mode' => $tierConfig->currency_display_mode,
             'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
             'open_api_affordance' => $tierConfig->open_api_affordance,

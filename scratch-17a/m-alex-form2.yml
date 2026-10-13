@@ -1,0 +1,252 @@
+- generic [ref=f197e3]:
+  - generic [ref=f197e4]:
+    - banner [ref=f197e5]:
+      - button "Open menu" [ref=f197e6] [cursor=pointer]
+      - paragraph [ref=f197e10]: Good evening, Alex
+    - main [ref=f197e11]:
+      - button [ref=f197e13] [cursor=pointer]:
+        - img "Level 6, 90 percent complete" [ref=f197e14]:
+          - generic [ref=f197e18]:
+            - paragraph [ref=f197e19]: Level
+            - paragraph [ref=f197e20]: "6"
+        - generic [ref=f197e21]:
+          - heading "3 of 4 actions to your next level" [level=2] [ref=f197e22]
+          - paragraph [ref=f197e23]:
+            - text: Complete actions to reach
+            - strong [ref=f197e24]: Level 7
+            - text: .
+      - note [ref=f197e25]:
+        - generic [ref=f197e26]:
+          - tablist "Focus areas" [ref=f197e27]:
+            - tab "Top actions 4 actions" [selected] [ref=f197e28] [cursor=pointer]:
+              - generic [ref=f197e29]: Top actions
+              - generic [ref=f197e30]: 4 actions
+            - tab "Retirement 1 action" [ref=f197e31] [cursor=pointer]:
+              - generic [ref=f197e32]: Retirement
+              - generic [ref=f197e33]: 1 action
+            - tab "Protection 4 actions" [ref=f197e34] [cursor=pointer]:
+              - generic [ref=f197e35]: Protection
+              - generic [ref=f197e36]: 4 actions
+            - tab "Savings 4 actions" [ref=f197e37] [cursor=pointer]:
+              - generic [ref=f197e38]: Savings
+              - generic [ref=f197e39]: 4 actions
+            - tab "Investment 1 action" [ref=f197e40] [cursor=pointer]:
+              - generic [ref=f197e41]: Investment
+              - generic [ref=f197e42]: 1 action
+            - tab "Estate Planning 2 actions" [ref=f197e43] [cursor=pointer]:
+              - generic [ref=f197e44]: Estate Planning
+              - generic [ref=f197e45]: 2 actions
+            - tab "Goals Create a goal Locked" [ref=f197e46] [cursor=pointer]:
+              - generic [ref=f197e47]: Goals
+              - generic [ref=f197e48]: Create a goal
+              - generic [ref=f197e49]: Locked
+          - generic [ref=f197e50]:
+            - button "Previous focus area" [disabled] [ref=f197e51]
+            - tablist "Focus area navigation" [ref=f197e54]:
+              - button "Top actions" [ref=f197e55] [cursor=pointer]
+              - button "Retirement" [ref=f197e56] [cursor=pointer]
+              - button "Protection" [ref=f197e57] [cursor=pointer]
+              - button "Savings" [ref=f197e58] [cursor=pointer]
+              - button "Investment" [ref=f197e59] [cursor=pointer]
+              - button "Estate Planning" [ref=f197e60] [cursor=pointer]
+              - button "Goals" [ref=f197e61] [cursor=pointer]
+            - button "Next focus area" [ref=f197e62] [cursor=pointer]
+          - region "Top actions actions" [ref=f197e65]:
+            - generic [ref=f197e66]:
+              - list [ref=f197e67]:
+                - listitem [ref=f197e68]:
+                  - button "Mark complete" [ref=f197e69] [cursor=pointer]
+                  - link "Pay £28,000 more into your pension and save £11,200 in tax You could save £11,200" [ref=f197e73] [cursor=pointer]:
+                    - /url: "#"
+                    - generic [ref=f197e77]:
+                      - generic [ref=f197e78]: Pay £28,000 more into your pension and save £11,200 in tax
+                      - generic [ref=f197e79]: You could save £11,200
+                  - button "Skip this recommendation for now" [ref=f197e82] [cursor=pointer]
+                - listitem [ref=f197e85]:
+                  - link "Unlock ISA info Enter your ISA details" [ref=f197e86] [cursor=pointer]:
+                    - /url: "#"
+                    - generic [ref=f197e90]:
+                      - generic [ref=f197e91]: Unlock ISA info
+                      - generic [ref=f197e92]: Enter your ISA details
+                - listitem [ref=f197e95]:
+                  - link "Unlock investment info Enter your investment details" [ref=f197e96] [cursor=pointer]:
+                    - /url: "#"
+                    - generic [ref=f197e100]:
+                      - generic [ref=f197e101]: Unlock investment info
+                      - generic [ref=f197e102]: Enter your investment details
+                - listitem [ref=f197e105]:
+                  - button "Mark complete" [ref=f197e106] [cursor=pointer]
+                  - link "Reclaim £120 on your Gift Aid donations via Self Assessment You could save £120" [ref=f197e110] [cursor=pointer]:
+                    - /url: "#"
+                    - generic [ref=f197e114]:
+                      - generic [ref=f197e115]: Reclaim £120 on your Gift Aid donations via Self Assessment
+                      - generic [ref=f197e116]: You could save £120
+                  - button "Skip this recommendation for now" [ref=f197e119] [cursor=pointer]
+              - link "See all actions" [ref=f197e122] [cursor=pointer]:
+                - /url: "#"
+      - region [ref=f197e123]:
+        - heading "Your finances" [level=3] [ref=f197e125]
+        - generic [ref=f197e126]:
+          - link [ref=f197e127] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=f197e129]:
+              - generic [ref=f197e130]: 100%
+              - generic [ref=f197e131]: Equity
+            - generic [ref=f197e132]:
+              - paragraph [ref=f197e133]: Net worth
+              - paragraph [ref=f197e137]: £122,000
+              - paragraph [ref=f197e138]: £122,000 assets
+          - link [ref=f197e139] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=f197e141]:
+              - generic [ref=f197e142]: None
+              - generic [ref=f197e143]: Cover
+            - generic [ref=f197e144]:
+              - paragraph [ref=f197e145]: Protection
+              - paragraph [ref=f197e149]: £0
+              - paragraph [ref=f197e150]: Add your cover
+          - link [ref=f197e151] [cursor=pointer]:
+            - /url: "#"
+            - paragraph [ref=f197e155]:
+              - strong [ref=f197e156]: "6.3"
+              - text: / 6 months
+            - generic [ref=f197e157]:
+              - paragraph [ref=f197e158]: Bank Accounts
+              - paragraph [ref=f197e162]: £12,000
+              - paragraph [ref=f197e163]: Emergency fund on track
+          - link [ref=f197e164] [cursor=pointer]:
+            - /url: "#"
+            - paragraph [ref=f197e168]:
+              - strong [ref=f197e169]: 102%
+              - text: of target
+            - generic [ref=f197e170]:
+              - paragraph [ref=f197e171]: Retirement
+              - paragraph [ref=f197e175]: £110,000
+              - paragraph [ref=f197e176]: Towards your target
+          - link [ref=f197e177] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=f197e179]:
+              - generic [ref=f197e180]: "0"
+              - generic [ref=f197e181]: Accounts
+            - generic [ref=f197e182]:
+              - paragraph [ref=f197e183]: Investment
+              - paragraph [ref=f197e187]: £0
+              - paragraph [ref=f197e188]: Add your investments
+    - button "Chat with Fyn" [ref=f197e190] [cursor=pointer]:
+      - generic [ref=f197e192]:
+        - generic [ref=f197e193]: Fyn
+        - generic [ref=f197e194]: Your financial companion
+    - region "Chat with Fyn" [ref=f197e198]:
+      - generic [ref=f197e199]:
+        - generic [ref=f197e202]:
+          - paragraph [ref=f197e203]: Fyn
+          - paragraph [ref=f197e204]: Your financial companion
+        - generic [ref=f197e205]:
+          - button "Report a problem" [ref=f197e206] [cursor=pointer]
+          - button "Close Fyn chat" [ref=f197e207] [cursor=pointer]
+      - generic [ref=f197e210]:
+        - paragraph [ref=f197e212]: Is there anything about my pensions the plan is still waiting on from me?
+        - paragraph [ref=f197e214]:
+          - text: Yes, Alex. Your plan is waiting for a
+          - strong [ref=f197e215]: State Pension forecast
+          - text: . It needs that to include your expected State Pension in your retirement picture. You can add the forecast amount and the age it is expected to start.You have one recorded workplace pension, valued at
+          - strong [ref=f197e216]: £110,000.00
+          - text: ", with contributions recorded as"
+          - strong [ref=f197e217]: 6% from you and 8% from your employer
+          - text: . The plan may also benefit from a target retirement age, which is not recorded.Would you like to add your State Pension forecast, or tell me your target retirement age first?
+        - paragraph [ref=f197e219]: What monthly surplus does my plan show for me?
+        - paragraph [ref=f197e221]:
+          - text: Your plan shows a monthly surplus of
+          - strong [ref=f197e222]: £2,846.18
+          - text: after your take-home pay,
+          - strong [ref=f197e223]: £1,900.00
+          - text: monthly expenditure and recorded commitments.
+        - paragraph [ref=f197e225]: "Tell me more about: Pay £28,000 more into your pension and save £11,200 in tax"
+        - paragraph [ref=f197e227]:
+          - text: The plan estimates that paying
+          - strong [ref=f197e228]: £28,000.00
+          - text: more into your pension could save
+          - strong [ref=f197e229]: £11,200.00
+          - text: "in Income Tax this tax year. Its calculation is:"
+          - list [ref=f197e230]:
+            - listitem [ref=f197e231]:
+              - text: Your income this year is
+              - strong [ref=f197e232]: £79,440.00
+              - text: .
+            - listitem [ref=f197e233]:
+              - text: The higher rate starts at
+              - strong [ref=f197e234]: £50,270.00
+              - text: ", raised to"
+              - strong [ref=f197e235]: £50,870.00
+              - text: by your
+              - strong [ref=f197e236]: £600.00
+              - text: Gift Aid.
+            - listitem [ref=f197e237]:
+              - strong [ref=f197e238]: £480.00
+              - text: of your savings interest is covered by your Personal Savings Allowance, so it is taxed at
+              - strong [ref=f197e239]: 0%
+              - text: .
+            - listitem [ref=f197e240]:
+              - text: That leaves
+              - strong [ref=f197e241]: £28,090.00
+              - text: taxed at 40%; rounded down to the nearest £100, the plan uses
+              - strong [ref=f197e242]: £28,000.00
+              - text: . At 40%, that gives the estimated
+              - strong [ref=f197e243]: £11,200.00
+              - text: tax saving.
+          - text: Your recorded pension contributions so far are
+          - strong [ref=f197e244]: £11,760.00
+          - text: ", all paid by your employer through salary sacrifice. The plan’s suggested route is to ask your employer about increasing salary sacrifice, then pay any remaining amount into a personal pension and claim the additional relief through Self Assessment. Its suggested monthly amounts are based on the five months left in the tax year, and it notes that your cash pay after salary sacrifice must not fall below the National Minimum Wage.Your plan shows"
+          - strong [ref=f197e245]: £2,846.18
+          - text: monthly surplus, and your cash savings cover
+          - strong [ref=f197e246]: 6.32 months
+          - text: of expenditure. The retirement analysis is missing your target retirement age and target income, so it cannot show how this extra contribution would change a projection against your own retirement goal. The pension allowance check shows
+          - strong [ref=f197e247]: £48,240.00
+          - text: remaining for 2026/27, based on
+          - strong [ref=f197e248]: £11,760.00
+          - text: recorded so far against a
+          - strong [ref=f197e249]: £60,000.00
+          - text: allowance.Pension contributions are generally inaccessible until pension age, and investment values can fall as well as rise; past performance does not reliably predict future results. Tax treatment depends on your circumstances and may change. Would you like to look at the suggested payment route, or first add your retirement age and income target?For regulated advice personal to your circumstances, speak to a qualified financial adviser.
+        - paragraph [ref=f197e251]: Add my Santander easy access savings account, £24,000 at 4%, joint with Jamie 50/50
+        - generic [ref=f197e252]:
+          - paragraph [ref=f197e253]: Fill this in and save, and I'll add it to your records.
+          - generic [ref=f197e254]:
+            - generic [ref=f197e255]:
+              - paragraph [ref=f197e256]: A current account is for day-to-day money. Easy access, fixed rate and notice accounts are savings that pay interest.
+              - generic [ref=f197e257]:
+                - button "Current account" [ref=f197e258] [cursor=pointer]
+                - button "Easy access savings" [pressed] [ref=f197e259] [cursor=pointer]
+                - button "Fixed rate savings" [ref=f197e260] [cursor=pointer]
+                - button "Notice account" [ref=f197e261] [cursor=pointer]
+            - generic [ref=f197e276]:
+              - paragraph [ref=f197e277]: Easy access savings
+              - generic [ref=f197e278]:
+                - generic [ref=f197e279]: Who is it with *
+                - textbox "Who is it with *" [ref=f197e280]: Santander
+              - generic [ref=f197e281]:
+                - generic [ref=f197e282]: Balance *
+                - generic [ref=f197e283]:
+                  - generic [ref=f197e284]: £
+                  - spinbutton "Balance *" [ref=f197e285]: "24000"
+              - generic [ref=f197e286]:
+                - generic [ref=f197e287]: Interest rate % *
+                - spinbutton "Interest rate % *" [ref=f197e288]: "4"
+              - generic [ref=f197e289]:
+                - generic [ref=f197e290]: Ownership *
+                - radiogroup "Ownership *" [ref=f197e291]:
+                  - generic [ref=f197e292]:
+                    - radio "Individual" [ref=f197e293]
+                    - text: Individual
+                  - generic [ref=f197e294]:
+                    - radio "Joint" [checked] [active] [ref=f197e295]
+                    - text: Joint
+                - paragraph [ref=f197e296]: Joint means held 50/50 with your spouse or partner
+            - button "Save" [ref=f197e263] [cursor=pointer]
+      - generic "Suggested questions" [ref=f197e264]:
+        - 'button "Tell me more about: Pay £28,000 more into your pension and save £11,200 in tax" [ref=f197e265] [cursor=pointer]'
+        - 'button "Tell me more about: Reclaim £120 on your Gift Aid donations via Self Assessment" [ref=f197e266] [cursor=pointer]'
+      - generic [ref=f197e267]:
+        - textbox "Ask Fyn a question" [ref=f197e269]:
+          - /placeholder: Ask Fyn anything...
+        - button "Send to Fyn" [ref=f197e270] [cursor=pointer]
+  - button "Report a problem" [ref=f197e273] [cursor=pointer]

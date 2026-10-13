@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Constants\QuerySchemas;
+
 /**
  * Server-side write-intent classifier.
  *
@@ -172,31 +174,15 @@ final class WriteIntentClassifier
     ];
 
     /**
-     * Interrogative prefixes that indicate the user is ASKING about an
-     * entity rather than asserting they have one. Matched at the start
-     * of the (lowercased, trimmed) message. Without this guard the
-     * classifier mis-routed advice questions like "Should I add to my
-     * Cash ISA?" as write intents because they contain a verb+entity
-     * pair (April30Updates F-6).
-     *
-     * Order doesn't matter — any match disables the classifier.
+     * A write verb the user names only to refuse it: "nothing to record",
+     * "don't save", "I didn't ask you to record" (fix plan T2). Removed before
+     * the verbs are matched. Whether the message asks something is
+     * QuerySchemas::isAdviceShaped, the one question test.
      */
-    private const INTERROGATIVE_PREFIXES = [
-        'should i', 'should we', 'shall i', 'shall we',
-        'can i', 'can we', 'could i', 'could we',
-        'may i', 'may we',
-        'do i', 'do we', 'does it', 'does this',
-        'how do i', 'how do we', 'how can i', 'how can we',
-        'how much', 'how many', 'how often',
-        'what should', 'what could', 'what would', 'what is', 'what are', 'what about',
-        'why should', 'why would', 'why is',
-        'when should', 'when can', 'when do', 'when will',
-        'where should', 'where can', 'where do',
-        'which is', 'which should', 'which would',
-        'is it', 'is there', 'is this', 'are there',
-        'tell me', 'explain', 'show me',
-        'would it', 'would i', 'would we',
-    ];
+    private const NEGATED_WRITE_VERB = "/\\b(?:nothing\\s+to|not\\s+to|no\\s+need\\s+to|don['\u{2019}]?t|do\\s+not|didn['\u{2019}]?t\\s+ask\\s+you\\s+to|did\\s+not\\s+ask\\s+you\\s+to)\\s+(?:add|create|save|record|log|register)\\b/u";
+
+    /** Asking Fyn to invite the spouse or link accounts with them (T9). */
+    private const SPOUSE_INVITE_VERB = '/\\b(?:invite|invitation|link\\s+(?:up|my\\s+account|our\\s+accounts|accounts))\\b/u';
 
     /**
      * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
@@ -208,13 +194,25 @@ final class WriteIntentClassifier
             return null;
         }
 
-        // April30Updates F-6 — the message ends with `?` OR starts with an
-        // interrogative phrase => it's an advice question, not a write
-        // intent. Do not bypass the LLM. False negatives (missing a real
-        // imperative phrased as "I have" with no question mark) are still
-        // recoverable via the LLM's own delegate_to_capture path.
-        if ($this->looksLikeQuestion($normalised)) {
+        // April30Updates F-6 — a question is an advice question, not a write
+        // intent. Do not bypass the LLM. One test for every gate (fix plan T2):
+        // "Give me the saving … Show the working" (Brett, #3963) carried "i pay"
+        // + "saving for" and was written as a goal.
+        if (QuerySchemas::isAdviceShaped($userMessage)) {
             return null;
+        }
+
+        // "Nothing to record", "don't save", "I didn't ask you to record" name
+        // a write verb only to refuse it (Brett, #3999 and #3967).
+        $normalised = (string) preg_replace(self::NEGATED_WRITE_VERB, ' ', $normalised);
+
+        // "Invite my partner …" (fix plan T9, Q17): an invitation to link with
+        // the spouse goes to the invite step, not the spouse record's form.
+        if (preg_match(self::SPOUSE_INVITE_VERB, $normalised, $inviteMatch) === 1) {
+            $spouseKeyword = $this->firstMatch($normalised, self::ENTITY_KEYWORDS['spouse']);
+            if ($spouseKeyword !== null) {
+                return $this->buildResult('spouse_invite', trim($inviteMatch[0]), $spouseKeyword);
+            }
         }
 
         $matchedVerb = $this->firstVerbMatch($normalised);
@@ -299,7 +297,7 @@ final class WriteIntentClassifier
     public function proposalAcceptanceIntent(string $userMessage, ?string $lastAssistantContent): ?array
     {
         $normalised = strtolower(trim($userMessage));
-        if ($normalised === '' || $lastAssistantContent === null || $this->looksLikeQuestion($normalised)) {
+        if ($normalised === '' || $lastAssistantContent === null || QuerySchemas::isAdviceShaped($userMessage)) {
             return null;
         }
 
@@ -328,36 +326,6 @@ final class WriteIntentClassifier
         }
 
         return null;
-    }
-
-    /**
-     * Public question check for callers that need the same advice-vs-write
-     * discrimination on a raw message (WP-1: the capture-continuation rule
-     * must not treat a mid-capture question as the awaited answer).
-     */
-    public function isQuestion(string $message): bool
-    {
-        return $this->looksLikeQuestion(strtolower(trim($message)));
-    }
-
-    /**
-     * Does the message look like an advice question rather than a write
-     * intent? Two signals: (1) ends with `?`, (2) starts with one of the
-     * interrogative prefixes above. Either is sufficient.
-     */
-    private function looksLikeQuestion(string $normalised): bool
-    {
-        if (str_ends_with($normalised, '?')) {
-            return true;
-        }
-
-        foreach (self::INTERROGATIVE_PREFIXES as $prefix) {
-            if (str_starts_with($normalised, $prefix.' ') || $normalised === $prefix) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

@@ -16,7 +16,11 @@ use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\Auth\FunnelAnswersMapper;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
+use App\Services\Stores\TierGate;
 use App\Services\Tax\TaxStrategyMath;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -169,6 +173,9 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_TERMINAL = 'campaign_terminal';
 
+    /** The Save Tax walk's closing step for a user who did not come through Save Tax: their actions (T23). */
+    public const STATE_CAMPAIGN_ACTIONS_TERMINAL = 'campaign_actions_terminal';
+
     // Date of birth, captured inside the pensions section for the savetax
     // campaign (it's irrelevant to the income-tax advice the user came for, and
     // only matters once we reach pensions/retirement).
@@ -226,13 +233,25 @@ final class OnboardingStateMachine
     /** The bubble id that submits a multi-select state's picks. */
     public const MULTI_SELECT_SUBMIT = 'done';
 
-    /** Funnel question state → the funnel_answers key it writes, in asking order. */
+    /**
+     * Funnel question state → the funnel_answers key it writes, in asking
+     * order. The chat opens on "Which of these do you have?", then employment,
+     * spouse and spouse income (CSJ 2026-10-12, T22).
+     */
     public const FUNNEL_STATES = [
+        self::STATE_CAMPAIGN_FUNNEL_ASSETS => 'assets',
         self::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT => 'employment',
         self::STATE_CAMPAIGN_FUNNEL_SPOUSE => 'spouse',
         self::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME => 'spouseIncome',
-        self::STATE_CAMPAIGN_FUNNEL_ASSETS => 'assets',
     ];
+
+    /**
+     * onboarding_fyn_context flag: the asset bubbles were answered in chat.
+     * "That's everything" with nothing ticked stores an empty list, which on
+     * its own reads as unanswered (an empty list from a registration that
+     * never showed the question).
+     */
+    private const FUNNEL_ASSETS_ANSWERED = 'funnel_assets_answered';
 
     // PensionCheck campaign states — all defined in Task C3.
     // The STATE_CAMPAIGN2_STATE_PENSION and STATE_CAMPAIGN2_RETIREMENT_GOALS constants
@@ -635,8 +654,9 @@ final class OnboardingStateMachine
             // populate the user's tax position from natural-language input.
             // ── Savings section (entry: ISA) ──────────────────────────────
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
-                // Only ask about ISAs if the user ticked "ISA" on the funnel.
-                'skip_if' => [self::class, 'skipIfNoIsa'],
+                // Only ask about ISAs if the user ticked "ISA" on the funnel,
+                // and not at the Free limit (skipSectionAtFreeLimit).
+                'skip_if' => [self::class, 'skipIsaHoldings'],
                 'capture_focus' => 'savings',
             ],
             // After an ISA form save, ask for another or move on to bank
@@ -662,8 +682,9 @@ final class OnboardingStateMachine
                 'record_context' => 'savings',
                 'record_context_mode' => 'reference',
                 // 'next' is corpus DATA now (static: campaign_bank_accounts_more).
-                // Only ask about bank/savings if the user ticked bank or savings.
-                'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
+                // Only ask about bank/savings if the user ticked bank or savings,
+                // and not at the Free limit (skipSectionAtFreeLimit).
+                'skip_if' => [self::class, 'skipBankAccounts'],
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [
                 'next' => self::class.'::nextFromBankAccountsMore',
@@ -672,6 +693,7 @@ final class OnboardingStateMachine
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'capture_focus' => 'investment',
+                'skip_if' => [self::class, 'skipInvestmentAccounts'],
                 // 'next' is corpus DATA now (static: campaign_investment_accounts_more).
             ],
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [
@@ -682,7 +704,7 @@ final class OnboardingStateMachine
                 'capture_focus' => 'property',
                 // 'next' is corpus DATA now (static: campaign_property_more) —
                 // the multi-property loop asks first, see STATE_CAMPAIGN_PROPERTY_MORE.
-                'skip_if' => [self::class, 'skipSectionIfNoProperty'],
+                'skip_if' => [self::class, 'skipPropertySection'],
             ],
             // After a property save, loop back for another or continue to verify
             // (CSJ 2026-09-16) — mirrors STATE_BASE_EMPLOYMENT_MORE.
@@ -723,7 +745,7 @@ final class OnboardingStateMachine
                 // skipIfNotEmployed — byte-identical savetax path guaranteed.
                 // 'next' is corpus DATA now (static: campaign_pension_more) — the
                 // pension form (CSJ 2026-09-16) asks for another first.
-                'skip_if' => [self::class, 'skipIfOccupationalScheme'],
+                'skip_if' => [self::class, 'skipOccupationalSchemeSection'],
                 // Linear scripted step that writes no entity record (workplace
                 // pension details inform retirement advice, not a create_* row).
                 // When the user both answers the scripted question and asks a
@@ -860,6 +882,11 @@ final class OnboardingStateMachine
             // STATE_DONE; the OnboardingChatDirector reads `navigate_to` and emits
             // a `navigate` SSE event when this state is reached.
             self::STATE_CAMPAIGN_TERMINAL => [
+            ],
+            // The same walk's closing step for everyone who did not come
+            // through Save Tax: their actions, not the tax plan (CSJ
+            // 2026-10-12, T23). Prompt and navigate_to live in the corpus.
+            self::STATE_CAMPAIGN_ACTIONS_TERMINAL => [
             ],
             // ── Per-section advice (auto-advancing) ───────────────────────
             // Each fires after its section's capture, relays the relevant
@@ -1097,9 +1124,8 @@ final class OnboardingStateMachine
             'spouseIncome' => array_key_exists('spouseIncome', $funnel) || ! empty($user->household_calculation_mode)
                 || app(HouseholdFinancialContext::class)->linkedSpouseEarnings($user) !== null,
             // An empty list from a registration that never showed the
-            // question is not an answer (the chat's "That's everything" leaves
-            // the walk directly and does not come back through here).
-            'assets' => ! empty($funnel['assets']),
+            // question is not an answer; "That's everything" in chat is.
+            'assets' => ! empty($funnel['assets']) || ! empty($user->onboarding_fyn_context[self::FUNNEL_ASSETS_ANSWERED]),
         ];
         $hasSpouse = array_key_exists('spouse', $funnel) ? $funnel['spouse'] === 'yes' : $married;
 
@@ -1213,11 +1239,18 @@ final class OnboardingStateMachine
         return self::firstMissingFunnelState($user) ?? self::leaveFunnelQuestions($user);
     }
 
+    /** "That's everything" answers the bubbles; the questions not yet answered follow (T22). */
     public static function nextFromFunnelAssets(string $answer, User $user): string
     {
-        return in_array(self::MULTI_SELECT_SUBMIT, self::matchBubbles(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer), true)
-            ? self::leaveFunnelQuestions($user)
-            : self::STATE_CAMPAIGN_FUNNEL_ASSETS;
+        if (! in_array(self::MULTI_SELECT_SUBMIT, self::matchBubbles(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer), true)) {
+            return self::STATE_CAMPAIGN_FUNNEL_ASSETS;
+        }
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context[self::FUNNEL_ASSETS_ANSWERED] = true;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        return self::nextFromFunnelQuestion($answer, $user);
     }
 
     /** Map the answers onto the profile exactly as registration does, then enter Save Tax. */
@@ -2394,6 +2427,111 @@ final class OnboardingStateMachine
         return ($user->onboarding_fyn_path ?? '') === 'journey';
     }
 
+    /**
+     * The Free plan's limit a capture section's records count against, when
+     * it is reached: at the section's entry and at its "another?" step. One
+     * home for the walk (CSJ 2026-09-16: at the limit Fyn says so and offers
+     * the next section). A cash or stocks and shares ISA counts with the
+     * investments (CSJ 2026-09-15), so both those steps name the ISAs.
+     *
+     * @return array{limit: int, noun: string}|null
+     */
+    public static function freeLimitAt(User $user, string $stateId): ?array
+    {
+        [$entityKey, $count, $noun] = match ($stateId) {
+            self::STATE_CAMPAIGN_PROPERTY, self::STATE_CAMPAIGN_PROPERTY_MORE => [PropertyStore::ENTITY_KEY, app(PropertyStore::class)->forUser($user)->count(), 'properties'],
+            self::STATE_CAMPAIGN_ISA_HOLDINGS, self::STATE_CAMPAIGN_ISA_MORE,
+            self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user), 'ISAs and investment accounts'],
+            self::STATE_CAMPAIGN_BANK_ACCOUNTS, self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user), 'bank and savings accounts'],
+            self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME, self::STATE_CAMPAIGN_PENSION_MORE => [PensionStore::ENTITY_KEY, app(PensionStore::class)->dcPensionsFor($user)->count() + app(PensionStore::class)->dbPensionsFor($user)->count(), 'pensions'],
+            default => [null, 0, ''],
+        };
+
+        return $entityKey === null ? null : self::freeLimitReached($user, $entityKey, $count, $noun);
+    }
+
+    /** A capture section's "another?" step, mapped to the form step that opens the section. */
+    public static function sectionEntryForLoop(string $stateId): ?string
+    {
+        return match ($stateId) {
+            self::STATE_CAMPAIGN_ISA_MORE => self::STATE_CAMPAIGN_ISA_HOLDINGS,
+            self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+            self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            self::STATE_CAMPAIGN_PROPERTY_MORE => self::STATE_CAMPAIGN_PROPERTY,
+            self::STATE_CAMPAIGN_PENSION_MORE => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            default => null,
+        };
+    }
+
+    /**
+     * The Free limit a blank add form's records count against, when reached:
+     * the same counts as the walk's sections (freeLimitAt).
+     *
+     * @return array{limit: int, noun: string}|null
+     */
+    public static function freeLimitForForm(User $user, string $formName): ?array
+    {
+        $stateId = match ($formName) {
+            CaptureForms::SAVINGS => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+            CaptureForms::ISA, CaptureForms::INVESTMENT => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            CaptureForms::PENSION, CaptureForms::PENSION_PERSONAL, CaptureForms::DB_PENSION => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            CaptureForms::PROPERTY => self::STATE_CAMPAIGN_PROPERTY,
+            default => null,
+        };
+
+        return $stateId === null ? null : self::freeLimitAt($user, $stateId);
+    }
+
+    /** The Free limit said in words: one sentence for every place a new record meets it. */
+    public static function freeLimitSentence(array $limit): string
+    {
+        return "You've reached your plan's limit of {$limit['limit']} {$limit['noun']}. To add more, upgrade your plan.";
+    }
+
+    /** @return array{limit: int, noun: string}|null */
+    public static function freeLimitReached(User $user, string $entityKey, int $count, string $noun): ?array
+    {
+        $limit = app(TierGate::class)->hardLimit($user, $entityKey);
+
+        return $limit !== null && $count >= $limit ? ['limit' => $limit, 'noun' => $noun] : null;
+    }
+
+    /**
+     * A section already at the Free limit opens on its "another?" step, which
+     * says the limit and offers the next section, not on a blank form that
+     * fails at Save (walk 2026-10-11, F10: #3805 to #3809). Its "another?"
+     * step keeps the section's own skip rule, so it still shows.
+     */
+    private static function skipSectionAtFreeLimit(User $user, string $stateId): bool
+    {
+        return self::freeLimitAt($user, $stateId) !== null;
+    }
+
+    public static function skipIsaHoldings(User $user): bool
+    {
+        return self::skipIfNoIsa($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_ISA_HOLDINGS);
+    }
+
+    public static function skipBankAccounts(User $user): bool
+    {
+        return self::skipIfNoBankOrSavings($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_BANK_ACCOUNTS);
+    }
+
+    public static function skipInvestmentAccounts(User $user): bool
+    {
+        return self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    }
+
+    public static function skipPropertySection(User $user): bool
+    {
+        return self::skipSectionIfNoProperty($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_PROPERTY);
+    }
+
+    public static function skipOccupationalSchemeSection(User $user): bool
+    {
+        return self::skipIfOccupationalScheme($user) || self::skipSectionAtFreeLimit($user, self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    }
+
     public static function skipIfNoIsa(User $user): bool
     {
         if (self::isJourney($user)) {
@@ -2901,12 +3039,36 @@ final class OnboardingStateMachine
             ?? self::campaignFinalTerminalFor($user);
     }
 
-    /** The campaign's closing state for this user's selection. */
+    /**
+     * The campaign's closing state for this user's selection. The Save Tax
+     * walk ends on the tax strategy only for a Save Tax arrival; everyone else
+     * ends on their actions (CSJ 2026-10-12, T23).
+     */
     public static function campaignFinalTerminalFor(User $user): string
     {
-        return $user->onboarding_fyn_selection === 'pensioncheck'
-            ? self::STATE_CAMPAIGN2_TERMINAL
-            : self::STATE_CAMPAIGN_TERMINAL;
+        if ($user->onboarding_fyn_selection === 'pensioncheck') {
+            return self::STATE_CAMPAIGN2_TERMINAL;
+        }
+
+        return self::isSaveTaxArrival($user) ? self::STATE_CAMPAIGN_TERMINAL : self::STATE_CAMPAIGN_ACTIONS_TERMINAL;
+    }
+
+    /**
+     * Did this user come through the Save Tax campaign? The one answer for
+     * every reader: registration records it (AuthController::register, from
+     * /savetax), and an invited partner takes the inviter's
+     * (SpouseLinkingService::acceptInvitation). Every user walks the Save Tax
+     * steps (config onboarding.forced_campaign), so the selection cannot tell.
+     */
+    public static function isSaveTaxArrival(User $user): bool
+    {
+        $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
+        $campaign = $funnel['campaign'] ?? null;
+
+        // Rows from before the campaign stamp (A6) carry the /savetax page's
+        // income answer, which only that page asks (the chat never asks the
+        // income band): production users 637, 647 and 648 on 2026-10-13.
+        return $campaign === 'savetax' || ($campaign === null && array_key_exists('income', $funnel));
     }
 
     /**
@@ -2935,9 +3097,14 @@ final class OnboardingStateMachine
         $name = self::knownSpouseFirstName($user, $conversation);
         $whom = $name ?? 'your spouse';
 
-        return "One more thing. Your plan uses the figures you gave me for {$whom}. "
+        // A Save Tax arrival has a plan; everyone else has their actions (T23).
+        [$subject, $result] = self::isSaveTaxArrival($user)
+            ? ['Your plan uses', 'the joint plan gets']
+            : ['Your actions use', 'your actions get'];
+
+        return "One more thing. {$subject} the figures you gave me for {$whom}. "
             .'If they have their own Fynla account and you link up, I can use their real allowances and tax position, '
-            .'and the joint plan gets more accurate. **Shall I send them an invitation?**';
+            ."and {$result} more accurate. **Shall I send them an invitation?**";
     }
 
     /** The spouse's first name when known: the linked account, else a parked fact. */

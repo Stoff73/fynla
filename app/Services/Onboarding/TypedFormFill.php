@@ -23,12 +23,17 @@ use Illuminate\Support\Facades\Validator;
  * record, never a different or new one. Nothing is returned when the message
  * gives nothing for the form (a question, say), so the turn is answered as
  * before.
+ *
+ * A blank form told about several new records ("my two children: Maya … and
+ * Arjun …") reads one entry per record: the first fills the form and the rest
+ * come back as its `queue`, each to open filled in after the one before is
+ * saved (walk 2026-10-11, P8 #3977: Arjun was dropped; T20).
  */
 final class TypedFormFill
 {
     /**
      * @param  array{schema: array<string, mixed>, answers: array<string, array<string, mixed>>, record?: array<string, mixed>|null, label?: string}  $form  RecordEditForms::formFor, or a walk step's form
-     * @return array<string, mixed>|null the form with `answers` filled in and `filled` naming the fields
+     * @return array<string, mixed>|null the form with `answers` filled in, `filled` naming the fields, and `queue` the answers of any further new records
      */
     public function fill(array $form, string $message): ?array
     {
@@ -54,9 +59,25 @@ final class TypedFormFill
         $extracted = $this->extract($forms, $sectionsByForm, $message);
         $result = [];
         foreach ($forms as $index => $form) {
-            $filled = self::apply($form, $sectionsByForm[$index], (array) ($extracted[(string) $index] ?? []));
-            if ($filled !== null) {
-                $result[$index] = $filled;
+            $entries = (array) ($extracted[(string) $index] ?? []);
+            // One record is a section map; several are a list of them.
+            if (! array_is_list($entries) || $entries === []) {
+                $entries = [$entries];
+            }
+            // A form holding a saved record is that record alone.
+            if (($form['record'] ?? null) !== null) {
+                $entries = [$entries[0]];
+            }
+            $filledEntries = [];
+            foreach ($entries as $entry) {
+                $filled = self::apply($form, $sectionsByForm[$index], (array) $entry);
+                if ($filled !== null) {
+                    $filledEntries[] = $filled;
+                }
+            }
+            if ($filledEntries !== []) {
+                $first = array_shift($filledEntries);
+                $result[$index] = $filledEntries === [] ? $first : array_replace($first, ['queue' => array_column($filledEntries, 'answers')]);
             }
         }
 
@@ -84,6 +105,17 @@ final class TypedFormFill
                     continue;
                 }
                 $definition = $form['schema']['fields'][$key];
+                // "No mortgage": a money-or-none field the message says there
+                // is none of is null, which both renderers draw as its box
+                // ticked (captureFormState.js). Walk 2026-10-11, M3 / Q2.
+                if ($value === null && $definition['type'] === 'money_or_none') {
+                    if (! array_key_exists($key, (array) ($answers[$sectionKey] ?? [])) || $answers[$sectionKey][$key] !== null) {
+                        $answers[$sectionKey] = array_replace((array) ($answers[$sectionKey] ?? []), [$key => null]);
+                        $filled[] = $key;
+                    }
+
+                    continue;
+                }
                 $value = is_string($value) ? trim($value) : $value;
                 // The field's own rule, less its presence part: a value is given.
                 $rules = array_values(array_filter(
@@ -152,6 +184,7 @@ final class TypedFormFill
                         'label' => $definition['label'] ?? $key,
                         'type' => $definition['type'],
                         'options' => isset($definition['options']) ? array_column($definition['options'], 'value') : null,
+                        'none_label' => $definition['none_label'] ?? null,
                         'current' => $form['answers'][$sectionKey][$key] ?? null,
                     ], static fn ($v): bool => $v !== null);
                 }
@@ -166,13 +199,15 @@ final class TypedFormFill
         }
 
         $system = <<<'PROMPT'
-A user typed a message where Fyn can show them a form. The forms are listed. A form with a "record" holds that saved record; a form without one is blank. Each form has sections; a section with a "kind" is one kind of record (an easy access account, a workplace pension), and each field is listed with any current value. Return the NEW value the message states for each field it gives, under its form and section, and nothing else. Output strict JSON: {"forms": {"<form>": {"<section key>": {"<field key>": <value>}}}}.
+A user typed a message where Fyn can show them a form. The forms are listed. A form with a "record" holds that saved record; a form without one is blank. Each form has sections; a section with a "kind" is one kind of record (an easy access account, a workplace pension), and each field is listed with any current value. Return the NEW value the message states for each field it gives, under its form and section, and nothing else. Output strict JSON: {"forms": {"<form>": {"<section key>": {"<field key>": <value>}}}}. When the message describes several new records for one blank form (two children, two accounts), that form takes a list, one entry per record, in the order given: {"forms": {"<form>": [{"<section key>": {...}}, {"<section key>": {...}}]}}.
 Rules:
 - Only fields the message gives a value for. If it gives none (a question, a greeting), return {"forms": {}}.
 - Fill a form holding a record only when the message is about that record. Never put a different or new record (another provider, a new account) on it.
 - A new record the message describes goes on the blank form, under the section for its kind.
+- Several new records on one blank form: one entry per record, each holding only what the message says about that record. Never merge two records into one entry. A form holding a record never takes a list.
 - Put a value under a kind's section only when the message describes that kind of record. If it is not clear which kind, leave that value out.
-- choice: one of the listed options, exactly. date: YYYY-MM-DD. money and percent: a plain number, no symbols. text: the words given.
+- choice: one of the listed options, exactly. date: YYYY-MM-DD. money, money_or_none and percent: a plain number, no symbols. text: the words given.
+- money_or_none: null only when the message says what the field's none_label says ("No mortgage": there is no mortgage; "I don't know": the user does not know the figure). An amount of nothing that is not the none_label is 0.
 - Never guess or carry a value over from the current one.
 - JSON only, no prose, no markdown fences.
 PROMPT;

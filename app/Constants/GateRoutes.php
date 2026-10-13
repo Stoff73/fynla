@@ -67,6 +67,37 @@ final class GateRoutes
 
     public const BUSINESS = 'business';
 
+    // Pages a user can ask Fyn to open (T6), beyond the gate destinations.
+    public const ACTIONS = 'actions';
+
+    public const SECURITY = 'security';
+
+    public const PLANNING_ASSUMPTIONS = 'planning_assumptions';
+
+    public const LETTER_TO_SPOUSE = 'letter_to_spouse';
+
+    public const WILL_BUILDER = 'will_builder';
+
+    public const POWER_OF_ATTORNEY = 'power_of_attorney';
+
+    public const TRUSTS = 'trusts';
+
+    public const LIFE_EVENTS = 'life_events';
+
+    public const PLANS = 'plans';
+
+    public const INVESTMENT_PLAN = 'investment_plan';
+
+    public const RETIREMENT_PLAN = 'retirement_plan';
+
+    public const PROTECTION_PLAN = 'protection_plan';
+
+    public const ESTATE_PLAN = 'estate_plan';
+
+    public const PLANNING_JOURNEYS = 'planning_journeys';
+
+    public const WHAT_IF = 'what_if';
+
     /** @var array<string, array{label: string, web: string, mobile: ?string}> */
     public const MAP = [
         self::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => '/personal-information'],
@@ -100,6 +131,67 @@ final class GateRoutes
         // had just added.
         self::CHATTELS => ['label' => 'Valuables', 'web' => '/net-worth/chattels', 'mobile' => '/net-worth/chattels'],
         self::BUSINESS => ['label' => 'Business Interests', 'web' => '/net-worth/business', 'mobile' => '/net-worth/business'],
+        self::ACTIONS => ['label' => 'Actions', 'web' => '/actions', 'mobile' => '/actions'],
+        self::SECURITY => ['label' => 'Security Settings', 'web' => '/settings/security', 'mobile' => null],
+        self::PLANNING_ASSUMPTIONS => ['label' => 'Planning Assumptions', 'web' => '/settings/assumptions', 'mobile' => null],
+        self::LETTER_TO_SPOUSE => ['label' => 'Letter to Spouse', 'web' => '/valuable-info?section=letter', 'mobile' => null],
+        self::WILL_BUILDER => ['label' => 'Will Builder', 'web' => '/estate/will-builder', 'mobile' => null],
+        self::POWER_OF_ATTORNEY => ['label' => 'Power of Attorney', 'web' => '/estate/power-of-attorney', 'mobile' => null],
+        self::TRUSTS => ['label' => 'Trusts', 'web' => '/trusts', 'mobile' => null],
+        self::LIFE_EVENTS => ['label' => 'Life Events', 'web' => '/goals?tab=events', 'mobile' => null],
+        self::PLANS => ['label' => 'Plans', 'web' => '/plans', 'mobile' => null],
+        self::INVESTMENT_PLAN => ['label' => 'Investment Plan', 'web' => '/plans/investment', 'mobile' => null],
+        self::RETIREMENT_PLAN => ['label' => 'Retirement Plan', 'web' => '/plans/retirement', 'mobile' => null],
+        self::PROTECTION_PLAN => ['label' => 'Protection Plan', 'web' => '/plans/protection', 'mobile' => null],
+        self::ESTATE_PLAN => ['label' => 'Estate Plan', 'web' => '/plans/estate', 'mobile' => null],
+        self::PLANNING_JOURNEYS => ['label' => 'Planning Journeys', 'web' => '/planning/journeys', 'mobile' => null],
+        self::WHAT_IF => ['label' => 'What-If Scenarios', 'web' => '/planning/what-if', 'mobile' => null],
+    ];
+
+    /**
+     * The names a user can give a page when asking Fyn to open it (T6). Each
+     * name must be the whole rest of the command, so words match whole. The
+     * pages are the ones the web chat's old keyword matcher opened, plus Tax
+     * Strategy; the routes come from MAP, the one route table.
+     *
+     * @var array<string, list<string>>
+     */
+    public const NAVIGATION_NAMES = [
+        self::DASHBOARD => ['dashboard', 'home', 'home page'],
+        self::PERSONAL_INFORMATION => ['profile', 'details', 'personal details', 'personal information', 'account details'],
+        self::SETTINGS => ['settings', 'preferences'],
+        self::SECURITY => ['security', 'security settings'],
+        self::PLANNING_ASSUMPTIONS => ['assumptions', 'planning assumptions'],
+        self::NET_WORTH => ['net worth', 'wealth', 'wealth summary'],
+        self::SAVINGS => ['savings', 'cash', 'cash savings', 'bank accounts', 'bank account', 'savings accounts'],
+        self::INVESTMENT => ['investments', 'investment', 'portfolio'],
+        self::RETIREMENT => ['retirement', 'pensions', 'pension'],
+        self::PROPERTY => ['property', 'properties'],
+        self::BUSINESS => ['business', 'businesses', 'business interests'],
+        self::CHATTELS => ['valuables', 'personal valuables', 'chattels'],
+        self::LIABILITIES => ['liabilities', 'debts', 'loans'],
+        self::INCOME => ['income'],
+        self::EXPENDITURE => ['expenditure', 'spending', 'expenses', 'budget'],
+        self::LETTER_TO_SPOUSE => ['letter to spouse', 'letter to my spouse', 'spouse letter'],
+        self::PROTECTION => ['protection', 'insurance', 'life insurance'],
+        self::ESTATE => ['estate', 'estate planning', 'inheritance tax'],
+        self::WILL_BUILDER => ['will', 'will builder'],
+        self::POWER_OF_ATTORNEY => ['power of attorney', 'lasting power of attorney'],
+        self::TRUSTS => ['trusts', 'trust'],
+        self::GOALS => ['goals'],
+        self::LIFE_EVENTS => ['life events'],
+        self::RISK_PROFILE => ['risk profile', 'attitude to risk'],
+        self::PLANS => ['plans'],
+        self::INVESTMENT_PLAN => ['investment plan'],
+        self::RETIREMENT_PLAN => ['retirement plan', 'pension plan'],
+        self::PROTECTION_PLAN => ['protection plan'],
+        self::ESTATE_PLAN => ['estate plan'],
+        self::HOLISTIC_PLAN => ['holistic plan', 'financial plan', 'holistic financial plan'],
+        self::ACTIONS => ['actions', 'recommendations'],
+        self::PLANNING_JOURNEYS => ['journeys', 'planning journeys'],
+        self::WHAT_IF => ['what if', 'what-if', 'what if scenarios', 'what-if scenarios', 'scenarios'],
+        self::TAX_STRATEGY => ['tax strategy', 'tax plan'],
+        self::SUBSCRIPTION => ['subscription'],
     ];
 
     /**

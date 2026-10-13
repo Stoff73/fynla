@@ -183,10 +183,15 @@ final class PensionTaxReliefStrategy implements TaxStrategy
             if ($sliceParts['interest_covered'] >= 1) {
                 $lines[] = sprintf('%s of your savings interest above that is covered by your Personal Savings Allowance, so it is taxed at 0%%.', $pounds($sliceParts['interest_covered']));
             }
+            if ($sliceParts['interest_taxed'] >= 1) {
+                $lines[] = sprintf('The other %s of your interest is taxed at %d%%. Paying in up to the amount below does not change that, because interest is taxed on top of the rest of your income apart from dividends, so it is left out.', $pounds($sliceParts['interest_taxed']), $ratePct);
+            }
             if ($sliceParts['dividends'] >= 1) {
                 $lines[] = sprintf('%s of dividends above that are taxed at the dividend rates, not %d%%.', $pounds($sliceParts['dividends']), $ratePct);
             }
-            $lines[] = sprintf('So %s of your income is taxed at %d%%.', $pounds((float) $limits['slice']), $ratePct);
+            $lines[] = $sliceParts['interest_taxed'] >= 1
+                ? sprintf('So %s of your income other than interest is taxed at %d%%, and that is what a pension payment relieves at %d%%.', $pounds((float) $limits['slice']), $ratePct, $ratePct)
+                : sprintf('So %s of your income is taxed at %d%%.', $pounds((float) $limits['slice']), $ratePct);
         } else {
             $paying = $this->math->estimatePensionContributionThisYear($user, $context->overrides);
             $lines[] = sprintf('Your plan suggests paying in a tenth of your earnings of %s, which is %s a year.', $pounds($earnings), $pounds($earnings * self::BASIC_RATE_SHARE_OF_EARNINGS));

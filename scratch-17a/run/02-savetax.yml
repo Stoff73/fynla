@@ -1,0 +1,21 @@
+- generic [active] [ref=f123e1]:
+  - link "Skip to main content" [ref=f123e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f123e3]:
+    - banner [ref=f123e4]:
+      - generic [ref=f123e5]:
+        - link "Fynla home" [ref=f123e6] [cursor=pointer]:
+          - /url: /
+          - img "Fynla" [ref=f123e7]
+        - generic [ref=f123e8]: 1 of 4
+      - progressbar "Question progress" [ref=f123e9]
+    - main [ref=f123e11]:
+      - region [ref=f123e12]:
+        - heading "What is your employment status?" [level=2] [ref=f123e13]
+        - paragraph [ref=f123e14]: We use this to identify the tax reliefs most relevant to you.
+        - group "Employment status options" [ref=f123e15]:
+          - button "Not employed" [ref=f123e16] [cursor=pointer]
+          - button "Part-time employed" [ref=f123e21] [cursor=pointer]
+          - button "Full time employed" [ref=f123e26] [cursor=pointer]
+          - button "Self-employed" [ref=f123e31] [cursor=pointer]
+          - button "Retired" [ref=f123e36] [cursor=pointer]

@@ -1,0 +1,215 @@
+- generic [ref=f124e1]:
+  - link "Skip to main content" [ref=f124e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f124e3]:
+    - navigation "Primary navigation" [ref=f124e4]:
+      - generic [ref=f124e5]:
+        - link "Fynla home" [ref=f124e6] [cursor=pointer]:
+          - /url: /
+          - img "Fynla" [ref=f124e7]
+        - generic "Desktop navigation links" [ref=f124e8]:
+          - link "Home" [ref=f124e9] [cursor=pointer]:
+            - /url: /
+          - button "How it works" [ref=f124e11] [cursor=pointer]
+          - button "Resources" [ref=f124e15] [cursor=pointer]
+          - button "Why Fynla" [ref=f124e19] [cursor=pointer]
+          - link "Pricing" [ref=f124e22] [cursor=pointer]:
+            - /url: /pricing
+        - generic [ref=f124e23]:
+          - link "Sign in" [ref=f124e24] [cursor=pointer]:
+            - /url: /login
+          - generic [aria-hidden] [ref=f124e27]: /
+          - link "Register" [ref=f124e28] [cursor=pointer]:
+            - /url: /register
+  - main [ref=f124e29]:
+    - region [ref=f124e30]:
+      - generic [ref=f124e31]:
+        - generic [ref=f124e32]:
+          - heading "Great news, you could save tax" [level=1] [ref=f124e33]: Great news,you could save tax
+          - paragraph [ref=f124e35]: An estimated saving of up to £4,000 each year
+          - paragraph [ref=f124e36]: Worked out for an income of £100,000, the top of the band you chose. It uses England, Wales and Northern Ireland Income Tax rates, not Scottish rates. Register for free and get your personalised tax strategy, worked out from your real figures.
+          - paragraph [ref=f124e37]: This is an illustrative estimate, not personal financial advice.
+        - generic "Create your account" [ref=f124e38]:
+          - generic [ref=f124e39]:
+            - paragraph [ref=f124e40]: Create your free account
+            - generic [ref=f124e41]:
+              - generic [ref=f124e42]:
+                - generic [ref=f124e43]: First name
+                - textbox "First name" [ref=f124e44]
+              - generic [ref=f124e45]:
+                - generic [ref=f124e46]: Last name
+                - textbox "Last name" [ref=f124e47]
+            - generic [ref=f124e48]: Email address
+            - textbox "Email address" [ref=f124e49]
+            - generic [ref=f124e50]: Password
+            - textbox "Password" [ref=f124e51]:
+              - /placeholder: Create a password
+            - alert [ref=f124e204]: Please enter your name, email and a password.
+            - button "Register for free" [active] [ref=f124e52] [cursor=pointer]
+            - paragraph [ref=f124e53]: Takes you straight to your dashboard with Fyn open, ready to guide your onboarding.
+    - region [ref=f124e54]:
+      - generic [ref=f124e55]:
+        - generic [ref=f124e56]:
+          - generic [ref=f124e57]: Tax year
+          - heading "Your allowances" [level=2] [ref=f124e58]
+          - generic [ref=f124e59]:
+            - generic [ref=f124e60]:
+              - paragraph [ref=f124e61]: Allowances available to you
+              - paragraph [ref=f124e62]: 3 of 6
+              - paragraph [ref=f124e63]: The amounts have different tax meanings and are not added together.
+            - group [ref=f124e64]:
+              - generic "What does this mean?" [ref=f124e65] [cursor=pointer]
+        - generic [ref=f124e66]:
+          - paragraph [ref=f124e67]: Find out how
+          - link "Register for free" [ref=f124e68] [cursor=pointer]:
+            - /url: "#register-form"
+        - generic [ref=f124e69]:
+          - generic [ref=f124e70]:
+            - paragraph [ref=f124e71]: Income
+            - generic [ref=f124e72]:
+              - generic [ref=f124e73]:
+                - generic [aria-hidden] [ref=f124e74]: –
+                - generic [ref=f124e75]:
+                  - generic [ref=f124e76]:
+                    - generic [ref=f124e77]: Personal Allowance
+                    - generic [ref=f124e78]: £12,570
+                  - paragraph [ref=f124e79]: Used automatically
+                  - group [ref=f124e80]:
+                    - generic "Why?" [ref=f124e81] [cursor=pointer]
+              - generic [ref=f124e82]:
+                - generic [aria-hidden] [ref=f124e83]: ✓
+                - generic [ref=f124e84]:
+                  - generic [ref=f124e85]:
+                    - generic [ref=f124e86]: Personal Savings Allowance
+                    - generic [ref=f124e87]: £500
+                  - paragraph [ref=f124e88]: Available to you
+                  - group [ref=f124e89]:
+                    - generic "Why?" [ref=f124e90] [cursor=pointer]
+          - generic [ref=f124e91]:
+            - paragraph [ref=f124e92]: Investment & Cash
+            - generic [ref=f124e93]:
+              - generic [ref=f124e94]:
+                - generic [aria-hidden] [ref=f124e95]: ✓
+                - generic [ref=f124e96]:
+                  - generic [ref=f124e97]:
+                    - generic [ref=f124e98]: ISA Allowance
+                    - generic [ref=f124e99]: £20,000
+                  - paragraph [ref=f124e100]: Available to you
+                  - group [ref=f124e101]:
+                    - generic "Why?" [ref=f124e102] [cursor=pointer]
+              - generic [ref=f124e103]:
+                - generic [aria-hidden] [ref=f124e104]: ✓
+                - generic [ref=f124e105]:
+                  - generic [ref=f124e106]:
+                    - generic [ref=f124e107]: Pension Annual Allowance
+                    - generic [ref=f124e108]: £60,000
+                  - paragraph [ref=f124e109]: Available to you
+                  - paragraph [ref=f124e110]:
+                    - strong [ref=f124e111]: Could save £4,000/yr.
+                    - text: A pension contribution of £10,000 attracts 40% tax relief.
+                  - group [ref=f124e112]:
+                    - generic "Why?" [ref=f124e113] [cursor=pointer]
+              - generic [ref=f124e114]:
+                - generic [aria-hidden] [ref=f124e115]: –
+                - generic [ref=f124e116]:
+                  - generic [ref=f124e117]:
+                    - generic [ref=f124e118]: Dividend Allowance
+                    - generic [ref=f124e119]: £500
+                  - paragraph [ref=f124e120]: Not applicable
+                  - group [ref=f124e121]:
+                    - generic "Why?" [ref=f124e122] [cursor=pointer]
+              - generic [ref=f124e123]:
+                - generic [aria-hidden] [ref=f124e124]: –
+                - generic [ref=f124e125]:
+                  - generic [ref=f124e126]:
+                    - generic [ref=f124e127]: Capital Gains Tax Allowance
+                    - generic [ref=f124e128]: £3,000
+                  - paragraph [ref=f124e129]: Not applicable
+                  - group [ref=f124e130]:
+                    - generic "Why?" [ref=f124e131] [cursor=pointer]
+        - generic [ref=f124e132]:
+          - paragraph [ref=f124e133]: Find out how
+          - link "Register for free" [ref=f124e134] [cursor=pointer]:
+            - /url: "#register-form"
+  - contentinfo [ref=f124e135]:
+    - generic [ref=f124e136]:
+      - generic [ref=f124e137]:
+        - generic [ref=f124e138]:
+          - link "Fynla home" [ref=f124e139] [cursor=pointer]:
+            - /url: /
+            - img "Fynla" [ref=f124e140]
+          - paragraph [ref=f124e141]: Financial freedom mapping —your financial companion for lifethrough one single finance platform
+        - navigation "About Fynla links" [ref=f124e142]:
+          - heading "About Fynla" [level=3] [ref=f124e143]
+          - list [ref=f124e144]:
+            - listitem [ref=f124e145]:
+              - link "About us" [ref=f124e146] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=f124e147]:
+              - link "News" [ref=f124e148] [cursor=pointer]:
+                - /url: /news
+            - listitem [ref=f124e149]:
+              - link "FCA website" [ref=f124e150] [cursor=pointer]:
+                - /url: https://www.fca.org.uk
+        - navigation "Help centre links" [ref=f124e151]:
+          - heading "Help centre" [level=3] [ref=f124e152]
+          - list [ref=f124e153]:
+            - listitem [ref=f124e154]:
+              - link "Help centre" [ref=f124e155] [cursor=pointer]:
+                - /url: /help
+            - listitem [ref=f124e156]:
+              - link "FAQs" [ref=f124e157] [cursor=pointer]:
+                - /url: /faq
+            - listitem [ref=f124e158]:
+              - link "Guides and explainers" [ref=f124e159] [cursor=pointer]:
+                - /url: /learn
+            - listitem [ref=f124e160]:
+              - link "Contact us" [ref=f124e161] [cursor=pointer]:
+                - /url: /contact
+        - navigation "Legal links" [ref=f124e162]:
+          - heading "Terms" [level=3] [ref=f124e163]
+          - list [ref=f124e164]:
+            - listitem [ref=f124e165]:
+              - link "Terms & conditions" [ref=f124e166] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=f124e167]:
+              - link "Privacy policy" [ref=f124e168] [cursor=pointer]:
+                - /url: /privacy
+            - listitem [ref=f124e169]:
+              - link "Editorial policy" [ref=f124e170] [cursor=pointer]:
+                - /url: /editorial-policy
+        - navigation "Tools links" [ref=f124e171]:
+          - heading "Tools" [level=3] [ref=f124e172]
+          - list [ref=f124e173]:
+            - listitem [ref=f124e174]:
+              - link "Calculators" [ref=f124e175] [cursor=pointer]:
+                - /url: /calculators
+            - listitem [ref=f124e176]:
+              - link "Resources" [ref=f124e177] [cursor=pointer]:
+                - /url: /learn
+            - listitem [ref=f124e178]:
+              - link "View demo" [ref=f124e179] [cursor=pointer]:
+                - /url: /register?from=demo
+        - navigation "Adviser links" [ref=f124e180]:
+          - heading "Advisers" [level=3] [ref=f124e181]
+          - list [ref=f124e182]:
+            - listitem [ref=f124e183]:
+              - link "Why Fynla advisers" [ref=f124e184] [cursor=pointer]:
+                - /url: /advisors
+            - listitem [ref=f124e185]:
+              - link "Adviser features" [ref=f124e186] [cursor=pointer]:
+                - /url: /advisors?scrollTo=adviser-features
+            - listitem [ref=f124e187]:
+              - link "Adviser sign up" [ref=f124e188] [cursor=pointer]:
+                - /url: /advisors?scrollTo=adviser-signup
+      - generic [ref=f124e189]:
+        - paragraph [ref=f124e190]: © Fynla 2026
+        - generic "Social media links" [ref=f124e191]:
+          - link "Fynla on YouTube" [ref=f124e192] [cursor=pointer]:
+            - /url: https://www.youtube.com/@HelloFynla
+          - link "Fynla on Facebook" [ref=f124e195] [cursor=pointer]:
+            - /url: https://www.facebook.com/HelloFynla
+          - link "Fynla on Instagram" [ref=f124e198] [cursor=pointer]:
+            - /url: https://www.instagram.com/HelloFynla
+          - link "Fynla on TikTok" [ref=f124e201] [cursor=pointer]:
+            - /url: https://www.tiktok.com/@HelloFynla

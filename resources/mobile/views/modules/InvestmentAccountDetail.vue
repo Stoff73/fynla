@@ -68,7 +68,7 @@ import MobileChrome from '../../components/MobileChrome.vue';
 import CanonicalPortfolio from '../../components/CanonicalPortfolio.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
-import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { calculateUserShare, coOwnerName, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
 import { formatAssetType } from '../../../js/constants/assetTypes.js';
 
 function capitalise(s) {
@@ -87,7 +87,7 @@ export default {
     // share and no joint indicator at all (W-0015).
     isShared() { return isSharedRecord(this.account); },
     userShare() { return calculateUserShare(this.account, { valueField: 'current_value' }); },
-    sharePercent() { return `${userSharePercent(this.account).toFixed(2)}%`; },
+    sharePercent() { return `${sharePercentText(this.account)}%`; },
     coOwner() { return coOwnerName(this.account); },
     accountId() { return this.$route.params.id; },
     // Either owner of a joint account may change it (CSJ 2026-10-08).

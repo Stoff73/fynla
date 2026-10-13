@@ -393,7 +393,7 @@ export default {
       return [
         { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, route: '/net-worth/wealth-summary', ...card('net_worth') },
         { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, route: '/protection', ...card('protection') },
-        { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, route: '/net-worth/cash', ...card('savings') },
+        { key: 'savings', label: 'Bank Accounts', tone: 'spring', icon: ICON.card, route: '/net-worth/cash', ...card('savings') },
         { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, route: '/net-worth/retirement', ...card('retirement') },
         { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, route: '/net-worth/investments', ...card('investment') },
       ];

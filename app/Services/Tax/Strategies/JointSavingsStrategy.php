@@ -9,6 +9,7 @@ use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
+use App\Support\Money;
 
 /**
  * Strategy #15 — Joint Savings Split for Personal Savings Allowance Doubling.
@@ -103,6 +104,11 @@ final class JointSavingsStrategy implements TaxStrategy
                 // when the plan re-prices its pension items.
                 'interest_removed_from_income' => round($interestPerPerson, 2),
                 'pension_paid_first' => round($context->pensionPaidElsewhere, 2),
+                // The same steps as the gift (walk fix plan T12).
+                'working' => [
+                    sprintf('Held equally in joint names, half of the %s of interest a year, %s, is taxed as your spouse\'s.', Money::exact($interest), Money::exact($move['interest_moved'])),
+                    ...$this->math->savingsMoveWorking($move),
+                ],
             ],
         )];
     }

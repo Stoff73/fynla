@@ -1,0 +1,225 @@
+- generic [active] [ref=f163e1]:
+  - generic [ref=f163e3]:
+    - generic [ref=f163e4]:
+      - generic [ref=f163e5]:
+        - navigation [ref=f163e6]:
+          - generic [ref=f163e8]:
+            - heading "Planning" [level=1] [ref=f163e9]
+            - generic [ref=f163e11]:
+              - button "Upgrade Now" [ref=f163e281] [cursor=pointer]
+              - button "Support" [ref=f163e13] [cursor=pointer]
+              - button [ref=f163e18] [cursor=pointer]:
+                - img "Fyn" [ref=f163e19]
+                - text: Chat with Fyn
+              - button "Lena Planbfour" [ref=f163e21] [cursor=pointer]
+        - alert
+      - main [ref=f163e26]:
+        - generic [ref=f163e28]:
+          - generic [ref=f163e100]:
+            - heading "Your actions 19" [level=3] [ref=f163e101]:
+              - text: Your actions
+              - generic [ref=f163e102]: "19"
+            - paragraph [ref=f163e103]: Grouped by when they need doing. Open any action for the reasoning behind it.
+            - region [ref=f163e104]:
+              - generic [ref=f163e105]:
+                - heading "Worth doing soon" [level=4] [ref=f163e106]
+                - generic [ref=f163e107]: "10"
+              - paragraph [ref=f163e108]: No deadline, but the longer they sit the more they cost
+              - generic [ref=f163e109]:
+                - generic [ref=f163e110]:
+                  - generic [ref=f163e111] [cursor=pointer]:
+                    - generic [ref=f163e112]: Claim Marriage Allowance
+                    - generic [ref=f163e113]: Tax Strategy · You could save £252
+                  - button "Mark as done" [ref=f163e115] [cursor=pointer]
+                - generic [ref=f163e116]:
+                  - generic [ref=f163e117] [cursor=pointer]:
+                    - generic [ref=f163e118]: You have no protection policies in place
+                    - generic [ref=f163e119]: Protection
+                  - button "Mark as done" [ref=f163e121] [cursor=pointer]
+                - generic [ref=f163e122]:
+                  - generic [ref=f163e123] [cursor=pointer]:
+                    - generic [ref=f163e124]: No Will in Place
+                    - generic [ref=f163e125]: Estate Planning
+                  - button "Mark as done" [ref=f163e127] [cursor=pointer]
+                - generic [ref=f163e128]:
+                  - generic [ref=f163e129] [cursor=pointer]:
+                    - generic [ref=f163e130]: Your life cover is £177,713 short
+                    - generic [ref=f163e131]: Protection
+                  - button "Mark as done" [ref=f163e133] [cursor=pointer]
+                - generic [ref=f163e134]:
+                  - generic [ref=f163e135] [cursor=pointer]:
+                    - generic [ref=f163e136]: Your critical illness cover is £24,000 short
+                    - generic [ref=f163e137]: Protection
+                  - button "Mark as done" [ref=f163e139] [cursor=pointer]
+                - generic [ref=f163e140]:
+                  - generic [ref=f163e141] [cursor=pointer]:
+                    - generic [ref=f163e142]: Your income protection is £400 a month short
+                    - generic [ref=f163e143]: Protection
+                  - button "Mark as done" [ref=f163e145] [cursor=pointer]
+                - generic [ref=f163e146]:
+                  - generic [ref=f163e147] [cursor=pointer]:
+                    - generic [ref=f163e148]: No Lasting Power of Attorney (Financial)
+                    - generic [ref=f163e149]: Estate Planning
+                  - button "Mark as done" [ref=f163e151] [cursor=pointer]
+                - generic [ref=f163e152]:
+                  - generic [ref=f163e153] [cursor=pointer]:
+                    - generic [ref=f163e154]: Record your employer benefits
+                    - generic [ref=f163e155]: Protection
+                  - button "Mark as done" [ref=f163e157] [cursor=pointer]
+                - generic [ref=f163e158]:
+                  - generic [ref=f163e159] [cursor=pointer]:
+                    - generic [ref=f163e160]: Add your State Pension forecast
+                    - generic [ref=f163e161]: Retirement
+                  - button "Mark as done" [ref=f163e163] [cursor=pointer]
+                - generic [ref=f163e164]:
+                  - generic [ref=f163e165] [cursor=pointer]:
+                    - generic [ref=f163e166]: No Lasting Power of Attorney (Health)
+                    - generic [ref=f163e167]: Estate Planning
+                  - button "Mark as done" [ref=f163e169] [cursor=pointer]
+            - region [ref=f163e170]:
+              - generic [ref=f163e171]:
+                - heading "Waiting on you" [level=4] [ref=f163e172]
+                - generic [ref=f163e173]: "9"
+              - paragraph [ref=f163e174]: Not things to do — things we need before the figures above can be right.
+              - generic [ref=f163e175]:
+                - generic [ref=f163e176]:
+                  - generic [ref=f163e177] [cursor=pointer]:
+                    - generic [ref=f163e178]: Unlock pension info
+                    - generic [ref=f163e179]: Tax Strategy · Enter your pension details
+                  - generic [ref=f163e180]: Unlock
+                - generic [ref=f163e182]:
+                  - generic [ref=f163e183] [cursor=pointer]:
+                    - generic [ref=f163e184]: Unlock ISA info
+                    - generic [ref=f163e185]: Tax Strategy · Enter your ISA details
+                  - generic [ref=f163e186]: Unlock
+                - generic [ref=f163e188]:
+                  - generic [ref=f163e189] [cursor=pointer]:
+                    - generic [ref=f163e190]: Unlock investment info
+                    - generic [ref=f163e191]: Tax Strategy · Enter your investment details
+                  - generic [ref=f163e192]: Unlock
+                - generic [ref=f163e194]:
+                  - generic [ref=f163e195] [cursor=pointer]:
+                    - generic [ref=f163e196]: Unlock dividend info
+                    - generic [ref=f163e197]: Tax Strategy · Enter your dividend details
+                  - generic [ref=f163e198]: Unlock
+                - generic [ref=f163e200]:
+                  - generic [ref=f163e201] [cursor=pointer]:
+                    - generic [ref=f163e202]: Unlock charitable giving info
+                    - generic [ref=f163e203]: Tax Strategy · Enter your charitable giving details
+                  - generic [ref=f163e204]: Unlock
+                - generic [ref=f163e206]:
+                  - generic [ref=f163e207] [cursor=pointer]:
+                    - generic [ref=f163e208]: Add your spouse
+                    - generic [ref=f163e209]: Household · Joint planning needs their details — allowance transfers and the joint tax picture depend on it.
+                  - generic [ref=f163e210]: Unlock
+                - generic [ref=f163e212]:
+                  - generic [ref=f163e213] [cursor=pointer]:
+                    - generic [ref=f163e214]: Unlock goals advice
+                    - generic [ref=f163e215]: Goals · Create a goal
+                  - generic [ref=f163e216]: Unlock
+                - generic [ref=f163e218]:
+                  - generic [ref=f163e219] [cursor=pointer]:
+                    - generic [ref=f163e220]: Unlock investment advice
+                    - generic [ref=f163e221]: Investment · Your monthly expenditure is needed to calculate disposable income and affordable contribution levels.
+                  - generic [ref=f163e222]: Unlock
+                - generic [ref=f163e224]:
+                  - generic [ref=f163e225] [cursor=pointer]:
+                    - generic [ref=f163e226]: Unlock savings advice
+                    - generic [ref=f163e227]: Savings · Monthly expenditure is required to calculate savings capacity.
+                  - generic [ref=f163e228]: Unlock
+          - generic [ref=f163e230]:
+            - heading "Activity" [level=3] [ref=f163e231]
+            - generic [ref=f163e232]:
+              - generic [ref=f163e233]:
+                - generic [ref=f163e234]: Completed the estate profile
+                - generic [ref=f163e235]: 25/09/2026
+              - generic [ref=f163e236]:
+                - generic [ref=f163e237]: Completed the protection profile
+                - generic [ref=f163e238]: 25/09/2026
+              - generic [ref=f163e239]:
+                - generic [ref=f163e240]: Completed the retirement profile
+                - generic [ref=f163e241]: 25/09/2026
+              - generic [ref=f163e242]:
+                - generic [ref=f163e243]: Completed the tax profile
+                - generic [ref=f163e244]: 25/09/2026
+              - generic [ref=f163e245]:
+                - generic [ref=f163e246]: Found £252 a year of possible tax savings
+                - generic [ref=f163e247]: 25/09/2026
+              - generic [ref=f163e248]:
+                - generic [ref=f163e249]: Completed your tax profile
+                - generic [ref=f163e250]: 25/09/2026
+              - generic [ref=f163e251]:
+                - generic [ref=f163e252]: Answered an onboarding question
+                - generic [ref=f163e253]: 25/09/2026
+              - generic [ref=f163e254]:
+                - generic [ref=f163e255]: Told us about your monthly spending
+                - generic [ref=f163e256]: 25/09/2026
+              - generic [ref=f163e257]:
+                - generic [ref=f163e258]: Answered an onboarding question
+                - generic [ref=f163e259]: 25/09/2026
+              - generic [ref=f163e260]:
+                - generic [ref=f163e261]: Shared your date of birth
+                - generic [ref=f163e262]: 25/09/2026
+              - generic [ref=f163e263]:
+                - generic [ref=f163e264]: Answered an onboarding question
+                - generic [ref=f163e265]: 25/09/2026
+              - generic [ref=f163e266]:
+                - generic [ref=f163e267]: Told us about your bank accounts
+                - generic [ref=f163e268]: 25/09/2026
+              - generic [ref=f163e269]:
+                - generic [ref=f163e270]: Added your first savings account
+                - generic [ref=f163e271]: 25/09/2026
+              - generic [ref=f163e272]:
+                - generic [ref=f163e273]: Answered an onboarding question
+                - generic [ref=f163e274]: 25/09/2026
+              - generic [ref=f163e275]:
+                - generic [ref=f163e276]: Confirmed your income sources
+                - generic [ref=f163e277]: 25/09/2026
+              - generic [ref=f163e278]:
+                - generic [ref=f163e279]: Told us about your income
+                - generic [ref=f163e280]: 25/09/2026
+      - contentinfo [ref=f163e31]:
+        - generic [ref=f163e32]:
+          - generic [ref=f163e33]:
+            - link [ref=f163e35] [cursor=pointer]:
+              - /url: /
+              - img "Fynla" [ref=f163e36]
+            - generic [ref=f163e37]:
+              - text: © 2026 Fynla - Your personal finance platform. For demonstration purposes only. |
+              - link "v1.0" [ref=f163e38] [cursor=pointer]:
+                - /url: /version
+              - text: "|"
+              - link "fynla.org" [ref=f163e39] [cursor=pointer]:
+                - /url: https://fynla.org
+            - generic [ref=f163e40]:
+              - link "Privacy Policy" [ref=f163e41] [cursor=pointer]:
+                - /url: /privacy
+              - link "Terms of Service" [ref=f163e42] [cursor=pointer]:
+                - /url: /terms
+              - link "Help" [ref=f163e43] [cursor=pointer]:
+                - /url: /help
+              - link "Sitemap" [ref=f163e44] [cursor=pointer]:
+                - /url: /sitemap
+          - paragraph [ref=f163e46]: This system is for demonstration purposes only and does not constitute regulated financial advice.
+    - complementary [ref=f163e47]:
+      - button "Expand Fyn chat" [ref=f163e48] [cursor=pointer]
+      - img "Fyn" [ref=f163e51]
+  - navigation [ref=f163e52]:
+    - link [ref=f163e54] [cursor=pointer]:
+      - /url: /dashboard
+      - img "Fynla" [ref=f163e55]
+    - button "Collapse menu" [ref=f163e56] [cursor=pointer]
+    - generic [ref=f163e59]:
+      - generic [ref=f163e61]:
+        - link "Dashboard" [ref=f163e62] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Net Worth" [ref=f163e66] [cursor=pointer]:
+          - /url: /net-worth/wealth-summary
+      - button "Cash Management" [ref=f163e71] [cursor=pointer]
+      - button "Finances" [ref=f163e76] [cursor=pointer]
+      - button "Personal Affairs" [ref=f163e81] [cursor=pointer]
+      - button "Planning" [ref=f163e86] [cursor=pointer]
+    - generic [ref=f163e90]:
+      - link "Account" [ref=f163e91] [cursor=pointer]:
+        - /url: /settings
+      - button "Sign Out" [ref=f163e96] [cursor=pointer]

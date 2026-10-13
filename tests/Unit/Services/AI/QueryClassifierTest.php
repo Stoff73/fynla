@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Constants\QuerySchemas;
+use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\QueryClassifier;
 
 beforeEach(function () {
@@ -293,4 +294,73 @@ describe('QueryClassifier', function () {
                 ->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
         });
     });
+});
+
+/*
+ * Brett's production walk of 2026-10-11 (fix plan T3, section 8 replay): the
+ * answer process filed these questions as data entry or navigation (bypass
+ * types, no tools) or as general, so the prescribed tools never ran.
+ */
+describe('QueryClassifier — a question is filed under its subject (fix plan T3)', function () {
+    it("files each of Brett's questions under the type whose tools carry its figures", function (string $message, string $primary, ?string $route) {
+        expect($this->classifier->classify($message, $route)['primary'])->toBe($primary);
+    })->with([
+        'F19 #3869 (was data_entry)' => ["I've got death in service of 4x salary through Monzo and nothing else. Dev has the Teachers' pension death grant. No income protection, no critical illness. If I died or couldn't work, would the family be ok? What cover would you look at and roughly how much?", QuerySchemas::PROTECTION_COVER, '/protection'],
+        'F22 #3877 on /protection (was protection_cover)' => ["I'd like to retire at 60, not 67. Dev would carry on teaching until 65. Can we afford it on what we've got, and what would I need to put away each month to make it work? Please use my actual figures.", QuerySchemas::RETIREMENT_READINESS, '/protection'],
+        'F22 #3877 with no page (was general)' => ["I'd like to retire at 60, not 67. Dev would carry on teaching until 65. Can we afford it on what we've got, and what would I need to put away each month to make it work? Please use my actual figures.", QuerySchemas::RETIREMENT_READINESS, null],
+        'M8 #3961 (was data_entry)' => ["I have a daughter, she's 27. If I died tomorrow and she inherited everything, how much inheritance tax would there be, and does she get the extra allowance for the house?", QuerySchemas::ESTATE_IHT, null],
+        'P3 #3967 (was general)' => ["I didn't ask you to record anything, please don't. It's a hypothetical: how much tax a year is due on £1,710 of interest if it's all mine, if it's all Dev's, and if it's split equally between us? Three numbers with the working.", QuerySchemas::SAVINGS_ACCOUNTS, null],
+        'P7 #3973 on /estate (was estate_planning by page)' => ["If I died tomorrow and everything I own went to my husband Dev, would there be any tax to pay on what I leave? I've been shown a figure of £3,900 on £9,750. Is that right? Explain the working either way.", QuerySchemas::ESTATE_IHT, '/estate'],
+        'Q5 #3997 (was general)' => ["Now that we let the Woking flat, how is my half of the rent taxed this year? Can the mortgage interest and the agent's fee be deducted, and would the household pay less if the flat were held mainly by the lower earner? Figures please.", QuerySchemas::PROPERTY, null],
+        'Q5 #3999' => ["Rules question, nothing to record. A higher-rate taxpayer gets £8,700 a year as her half of the rent on a jointly owned let flat. Her share of the interest-only mortgage interest is £4,680 a year and of the agent's fee £870. How much tax does she pay on that rent, how is the mortgage interest relieved, and would the household pay less if the other owner, a basic-rate taxpayer, held most of it? Figures please.", QuerySchemas::PROPERTY, null],
+        'Q6 #4003 (was navigation)' => ["If I stop work at 60 and want £70,000 a year after that, how far short am I on what's on file, and what would I need to put away each month from now to close it? Show the working.", QuerySchemas::RETIREMENT_READINESS, '/net-worth/retirement'],
+        'Q7 #4009 (was navigation)' => ['Pure arithmetic, nothing to record. Projected £62,894 a year at 60 against a wanted £70,373 a year. What is the gap per year and per month, what extra pot does the gap need at a 4% withdrawal rate, and what monthly saving over 19 years at 5% a year growth builds that extra pot? Show the working.', QuerySchemas::RETIREMENT_READINESS, null],
+        'Q7 #4013' => ['Then work it through: projected £62,894 a year at 60 against a wanted £70,373. Gap per year and per month, the extra pot that gap needs at a 4% withdrawal rate, and the monthly saving over 19 years at 5% growth that builds it. Show the working.', QuerySchemas::RETIREMENT_READINESS, null],
+        'Q8 #4015 (was tax_optimisation)' => ["Rules and numbers only, nothing to record. On what's on file, if both of us died next year and everything went to the kids, what would the death tax bill be, and what are the three best things to do about it? Figures please.", QuerySchemas::ESTATE_IHT, null],
+        'Q10 #4033 (was general)' => ['Hang on, I told you earlier the Chase account was £38,000 but I think I may have said £83,000 at some point. Which figure do you have on file, and which should it be?', QuerySchemas::SAVINGS_ACCOUNTS, null],
+    ]);
+
+    // The model is given the PRIMARY type's tools only
+    // (AdvicePromptBuilder::buildToolsAndTriggersBlock), so these read the
+    // block the turn actually carries.
+    it('gives a pension pot what-if asked with net worth the retirement projection tool (P5 #3971)', function () {
+        $result = $this->classifier->classify("Run a what-if for me: if I paid an extra £20,000 a year into my Aviva pot from now until 60, what would the pot and my net worth be at 60 compared with today's projection?");
+
+        expect(app(AdvicePromptBuilder::class)->buildToolsAndTriggersBlock($result))->toContain('get_module_analysis(retirement)');
+    });
+
+    it('gives a retirement question the retirement projection tool (Q6)', function () {
+        $result = $this->classifier->classify("If I stop work at 60 and want £70,000 a year after that, how far short am I on what's on file, and what would I need to put away each month from now to close it? Show the working.");
+
+        expect(app(AdvicePromptBuilder::class)->buildToolsAndTriggersBlock($result))->toContain('get_module_analysis(retirement)');
+    });
+
+    it('keeps net worth with a pension and no age as the whole picture', function () {
+        expect($this->classifier->classify('What is my net worth including my pension?')['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
+    });
+
+    it('never files a request for the working as navigation', function () {
+        expect($this->classifier->classify('Show the working for each')['primary'])->not->toBe(QuerySchemas::NAVIGATION);
+    });
+
+    it('keeps the new wording to its own subject', function (string $message, string $primary) {
+        expect($this->classifier->classify($message)['primary'])->toBe($primary);
+    })->with([
+        'emergency fund shortfall' => ['How far short is my emergency fund of six months?', QuerySchemas::SAVINGS_EMERGENCY],
+        'protection shortfall' => ['Is there a protection gap if I died or could not work?', QuerySchemas::PROTECTION_COVER],
+        'savings interest rate' => ['What savings rate should I be getting on my interest?', QuerySchemas::SAVINGS_ACCOUNTS],
+    ]);
+
+    it('leaves a goal\'s monthly saving out of retirement', function () {
+        expect($this->classifier->classify('What should I put away each month to reach my house deposit goal?')['primary'])
+            ->not->toBe(QuerySchemas::RETIREMENT_READINESS);
+    });
+
+    it('still files plain statements and commands as before', function (string $message, string $primary) {
+        expect($this->classifier->classify($message)['primary'])->toBe($primary);
+    })->with([
+        ['I have a pension with £50,000', QuerySchemas::DATA_ENTRY],
+        ['Take me to estate planning', QuerySchemas::NAVIGATION],
+        ['Show me my investments', QuerySchemas::NAVIGATION],
+    ]);
 });

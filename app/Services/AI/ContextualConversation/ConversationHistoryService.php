@@ -22,6 +22,10 @@ final class ConversationHistoryService
     {
         $conversations = AiConversation::forUser($user->id)
             ->whereIn('status', ['active', 'paused'])
+            // Opening the chat starts a conversation before anything is said;
+            // one with nothing in it is not history (walk R29: every reload
+            // listed another empty "General Fyn conversation").
+            ->whereHas('messages', fn ($query) => $query->whereIn('role', ['user', 'assistant']))
             ->with(['latestVisibleMessage' => fn ($query) => $query->select([
                 'ai_messages.id',
                 'ai_messages.conversation_id',

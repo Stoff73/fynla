@@ -1,0 +1,274 @@
+- generic [ref=f97e1]:
+  - generic [ref=f97e4]:
+    - generic [ref=f97e5]:
+      - navigation [ref=f97e6]:
+        - generic [ref=f97e8]:
+          - heading "Cash Management" [level=1] [ref=f97e9]
+          - generic [ref=f97e11]:
+            - link "Sign Up Now" [ref=f97e12] [cursor=pointer]:
+              - /url: /fynla/register
+            - button "Support" [ref=f97e16] [cursor=pointer]
+            - button "Patricia Bennett" [ref=f97e22] [cursor=pointer]
+      - generic [ref=f97e29]:
+        - generic [ref=f97e30]:
+          - generic [ref=f97e31]:
+            - generic [ref=f97e35]: Preview Mode
+            - generic [ref=f97e36]: (Patricia's view)
+          - generic [ref=f97e37]:
+            - button "Patricia & Harold Bennett" [active] [ref=f97e38] [cursor=pointer]
+            - generic [ref=f97e318]:
+              - generic [ref=f97e319]:
+                - heading "Select a Financial Scenario" [level=3] [ref=f97e320]
+                - paragraph [ref=f97e321]: Explore different life stages and situations
+              - generic [ref=f97e322]:
+                - generic [ref=f97e323]:
+                  - generic [ref=f97e324]: Starting Out
+                  - button "📚 Janice Taylor University student building early financial habits £33k - £34k | Student loan, first savings, financial literacy" [ref=f97e327] [cursor=pointer]:
+                    - generic [ref=f97e328]:
+                      - generic [ref=f97e329]: 📚
+                      - generic [ref=f97e331]:
+                        - generic [ref=f97e332]: Janice Taylor
+                        - paragraph [ref=f97e334]: University student building early financial habits
+                        - generic [ref=f97e335]:
+                          - generic [ref=f97e336]: £33k - £34k
+                          - generic [ref=f97e337]: "|"
+                          - generic [ref=f97e338]: Student loan, first savings, financial literacy
+                - generic [ref=f97e339]:
+                  - generic [ref=f97e340]: Building Foundations
+                  - button "🎓 John Morgan Early career professional saving for his first home £15k - £20k | First home, emergency fund, pension growth" [ref=f97e343] [cursor=pointer]:
+                    - generic [ref=f97e344]:
+                      - generic [ref=f97e345]: 🎓
+                      - generic [ref=f97e347]:
+                        - generic [ref=f97e348]: John Morgan
+                        - paragraph [ref=f97e350]: Early career professional saving for his first home
+                        - generic [ref=f97e351]:
+                          - generic [ref=f97e352]: £15k - £20k
+                          - generic [ref=f97e353]: "|"
+                          - generic [ref=f97e354]: First home, emergency fund, pension growth
+                - generic [ref=f97e355]:
+                  - generic [ref=f97e356]: Protecting What Matters
+                  - button "👨‍👩‍👧‍👦 Emily & James Carter Young family building their future £80k - £120k | Protection gaps, emergency fund" [ref=f97e359] [cursor=pointer]:
+                    - generic [ref=f97e360]:
+                      - generic [ref=f97e361]: 👨‍👩‍👧‍👦
+                      - generic [ref=f97e363]:
+                        - generic [ref=f97e364]: Emily & James Carter
+                        - paragraph [ref=f97e366]: Young family building their future
+                        - generic [ref=f97e367]:
+                          - generic [ref=f97e368]: £80k - £120k
+                          - generic [ref=f97e369]: "|"
+                          - generic [ref=f97e370]: Protection gaps, emergency fund
+                  - button "🚀 Alex Chen Self-made tech entrepreneur £800k - £1m | Business protection, single estate" [ref=f97e371] [cursor=pointer]:
+                    - generic [ref=f97e372]:
+                      - generic [ref=f97e373]: 🚀
+                      - generic [ref=f97e375]:
+                        - generic [ref=f97e376]: Alex Chen
+                        - paragraph [ref=f97e378]: Self-made tech entrepreneur
+                        - generic [ref=f97e379]:
+                          - generic [ref=f97e380]: £800k - £1m
+                          - generic [ref=f97e381]: "|"
+                          - generic [ref=f97e382]: Business protection, single estate
+                - generic [ref=f97e383]:
+                  - generic [ref=f97e384]: Planning Your Future
+                  - button "💼 David & Sarah Mitchell High earners approaching retirement £1.5m - £2m | Tax efficiency, pension allowances" [ref=f97e387] [cursor=pointer]:
+                    - generic [ref=f97e388]:
+                      - generic [ref=f97e389]: 💼
+                      - generic [ref=f97e391]:
+                        - generic [ref=f97e392]: David & Sarah Mitchell
+                        - paragraph [ref=f97e394]: High earners approaching retirement
+                        - generic [ref=f97e395]:
+                          - generic [ref=f97e396]: £1.5m - £2m
+                          - generic [ref=f97e397]: "|"
+                          - generic [ref=f97e398]: Tax efficiency, pension allowances
+                - generic [ref=f97e399]:
+                  - generic [ref=f97e400]: Enjoying Your Wealth
+                  - button "👴👵 Patricia & Harold Bennett Current Retired couple with estate planning focus £800k - £900k | Inheritance Tax planning, gifting strategy" [ref=f97e403] [cursor=pointer]:
+                    - generic [ref=f97e404]:
+                      - generic [ref=f97e405]: 👴👵
+                      - generic [ref=f97e407]:
+                        - generic [ref=f97e408]:
+                          - generic [ref=f97e409]: Patricia & Harold Bennett
+                          - generic [ref=f97e410]: Current
+                        - paragraph [ref=f97e411]: Retired couple with estate planning focus
+                        - generic [ref=f97e412]:
+                          - generic [ref=f97e413]: £800k - £900k
+                          - generic [ref=f97e414]: "|"
+                          - generic [ref=f97e415]: Inheritance Tax planning, gifting strategy
+          - button "View as Harold" [ref=f97e44] [cursor=pointer]
+        - generic [ref=f97e48]:
+          - button "Exit Demo" [ref=f97e49] [cursor=pointer]
+          - link "Signup Now" [ref=f97e50] [cursor=pointer]:
+            - /url: /fynla/register
+      - alert
+    - main [ref=f97e51]:
+      - generic [ref=f97e53]:
+        - generic [ref=f97e54]:
+          - button "100% complete 8 of 8 items complete What powers this view" [ref=f97e164] [cursor=pointer]:
+            - generic [ref=f97e56]:
+              - img "100% complete" [ref=f97e165]:
+                - generic [ref=f97e60]: 100%
+              - generic [ref=f97e61]: 8 of 8 items complete
+            - generic [ref=f97e62]: What powers this view
+          - generic [ref=f97e67]:
+            - generic [ref=f97e68]:
+              - generic [ref=f97e69]: Completed (8)
+              - generic [ref=f97e166]: Your date of birth
+              - generic [ref=f97e170]: Your annual income
+              - generic [ref=f97e174]: Your monthly spending
+              - generic [ref=f97e178]: Your marital status
+              - generic [ref=f97e182]: Your occupation
+              - generic [ref=f97e186]: Your target retirement age
+              - generic [ref=f97e190]: Your domicile status
+              - generic [ref=f97e194]: Your family members
+            - generic [ref=f97e73]:
+              - generic [ref=f97e74]: Outstanding (0)
+              - generic [ref=f97e78]: All items complete
+            - generic [ref=f97e79]:
+              - generic [ref=f97e80]: Why we need this
+              - generic [ref=f97e83]: Hover over an outstanding item to see why it's needed
+        - generic [ref=f97e199]:
+          - generic [ref=f97e200]:
+            - generic [ref=f97e202]:
+              - generic [ref=f97e203]:
+                - generic [ref=f97e204]:
+                  - heading "Income" [level=3] [ref=f97e205]
+                  - paragraph [ref=f97e206]: Your annual income from all sources
+                - button "Edit" [ref=f97e207] [cursor=pointer]
+              - generic [ref=f97e209]:
+                - generic [ref=f97e214]:
+                  - generic [ref=f97e215]: Total Annual
+                  - generic [ref=f97e216]: £30,000
+                - generic [ref=f97e217]:
+                  - generic [ref=f97e219]:
+                    - generic [ref=f97e220]: "Pension income:"
+                    - generic [ref=f97e221]: £30,000
+                  - generic [ref=f97e223]:
+                    - generic [ref=f97e224]: "Total Annual Income:"
+                    - generic [ref=f97e225]: £30,000
+                  - generic [ref=f97e226]:
+                    - heading "Disposable Income" [level=4] [ref=f97e227]
+                    - generic [ref=f97e228]:
+                      - generic [ref=f97e229]:
+                        - generic [ref=f97e230]: "Net Income (after tax and National Insurance):"
+                        - generic [ref=f97e231]: £26,514
+                      - generic [ref=f97e232]:
+                        - generic [ref=f97e233]: "Annual Expenditure:"
+                        - generic [ref=f97e234]: £32,556
+                      - generic [ref=f97e235]:
+                        - generic [ref=f97e236]: "Disposable Income:"
+                        - generic [ref=f97e237]: "-£6,042"
+            - generic [ref=f97e238]:
+              - generic [ref=f97e239]:
+                - heading "Estimated Tax and National Insurance" [level=3] [ref=f97e240]
+                - generic [ref=f97e242]:
+                  - generic [ref=f97e243]:
+                    - generic [ref=f97e244]:
+                      - heading "Pension Income" [level=4] [ref=f97e245]
+                      - paragraph [ref=f97e246]: £30,000
+                    - generic [ref=f97e247]: No National Insurance
+                  - generic [ref=f97e249]:
+                    - generic [ref=f97e250]:
+                      - generic [ref=f97e251]: Pension Income
+                      - generic [ref=f97e252]: £30,000
+                    - generic [ref=f97e253]:
+                      - generic [ref=f97e254]: Taxable Income
+                      - generic [ref=f97e255]: £30,000
+                  - generic [ref=f97e256]:
+                    - generic [ref=f97e257]: Income Tax
+                    - generic [ref=f97e258]:
+                      - generic [ref=f97e259]: "Personal Allowance: £12,570 @ 0%"
+                      - generic [ref=f97e260]: £0
+                    - generic [ref=f97e261]:
+                      - generic [ref=f97e262]: "Basic: £17,430 @ 20%"
+                      - generic [ref=f97e263]: "-£3,486"
+                  - generic [ref=f97e265]:
+                    - generic [ref=f97e266]: Net Income
+                    - generic [ref=f97e267]: £26,514
+                - paragraph [ref=f97e269]:
+                  - strong [ref=f97e270]: "Note:"
+                  - text: "Tax calculations use 2026/27 UK tax rates. Income is taxed in priority order: employment income uses the Personal Allowance first, with other income types taxed at remaining band positions. Rental profit is your share of the rent less allowable letting expenses — utilities, buildings and contents insurance, service charge, ground rent, managing agent fees, your maintenance reserve and any other monthly costs you have recorded against the property. Mortgage payments are not deducted here: mortgage interest is relieved as the basic rate tax credit shown separately."
+              - generic [ref=f97e271]:
+                - heading "Your Income Definitions" [level=3] [ref=f97e272]
+                - generic [ref=f97e273]:
+                  - generic [ref=f97e274]: Total Income
+                  - generic [ref=f97e275]: £30,000
+                - paragraph [ref=f97e276]:
+                  - generic [ref=f97e277]: Pension £30,000
+                - generic [ref=f97e279]:
+                  - generic [ref=f97e280]: Net Income
+                  - generic [ref=f97e281]: £30,000
+                - generic [ref=f97e282]:
+                  - generic [ref=f97e283]: Less Gift Aid (grossed up)
+                  - generic [ref=f97e284]: "-£1,500"
+                - generic [ref=f97e286]:
+                  - generic [ref=f97e287]: Adjusted Net Income
+                  - generic [ref=f97e288]: £28,500
+                - paragraph [ref=f97e289]: Used to work out your Personal Allowance.
+                - paragraph [ref=f97e291]: Threshold Income and Adjusted Income are each worked out from your Total Income above, not from your Adjusted Net Income.
+                - generic [ref=f97e292]:
+                  - generic [ref=f97e293]: Threshold Income
+                  - generic [ref=f97e294]: £30,000
+                - paragraph [ref=f97e295]: The same as your Total Income of £30,000 — you have no employee pension contributions to deduct.
+                - paragraph [ref=f97e296]: Below £200,000 — no pension taper triggered
+                - generic [ref=f97e297]:
+                  - generic [ref=f97e298]: Adjusted Income
+                  - generic [ref=f97e299]: £30,000
+                - paragraph [ref=f97e300]: The same as your Total Income of £30,000 — you have no employer pension contributions to add.
+                - paragraph [ref=f97e301]: Below £260,000 — full Annual Allowance available
+                - generic [ref=f97e302]:
+                  - heading "Your Allowances" [level=4] [ref=f97e303]
+                  - generic [ref=f97e304]:
+                    - generic [ref=f97e305]:
+                      - generic [ref=f97e306]: Personal Allowance
+                      - generic [ref=f97e307]: £12,570(full)
+                    - generic [ref=f97e308]:
+                      - generic [ref=f97e309]: Pension Annual Allowance
+                      - generic [ref=f97e310]: £60,000(full)
+          - generic [ref=f97e311]:
+            - heading "Your spouse's income" [level=3] [ref=f97e313]
+            - generic [ref=f97e315]:
+              - generic [ref=f97e316]: Pension income
+              - generic [ref=f97e317]: £33,500
+    - contentinfo [ref=f97e95]:
+      - generic [ref=f97e96]:
+        - generic [ref=f97e97]:
+          - link [ref=f97e99] [cursor=pointer]:
+            - /url: /fynla/
+            - img "Fynla" [ref=f97e100]
+          - generic [ref=f97e101]:
+            - text: © 2026 Fynla - Your personal finance platform. For demonstration purposes only. |
+            - link "v1.0" [ref=f97e102] [cursor=pointer]:
+              - /url: /fynla/version
+            - text: "|"
+            - link "fynla.org" [ref=f97e103] [cursor=pointer]:
+              - /url: https://fynla.org
+          - generic [ref=f97e104]:
+            - link "Privacy Policy" [ref=f97e105] [cursor=pointer]:
+              - /url: /fynla/privacy
+            - link "Terms of Service" [ref=f97e106] [cursor=pointer]:
+              - /url: /fynla/terms
+            - link "Help" [ref=f97e107] [cursor=pointer]:
+              - /url: /fynla/help
+            - link "Sitemap" [ref=f97e108] [cursor=pointer]:
+              - /url: /fynla/sitemap
+        - paragraph [ref=f97e110]: This system is for demonstration purposes only and does not constitute regulated financial advice.
+  - navigation [ref=f97e111]:
+    - link [ref=f97e113] [cursor=pointer]:
+      - /url: /fynla/dashboard
+      - img "Fynla" [ref=f97e114]
+    - button "Collapse menu" [ref=f97e115] [cursor=pointer]
+    - generic [ref=f97e118]:
+      - generic [ref=f97e120]:
+        - link "Dashboard" [ref=f97e121] [cursor=pointer]:
+          - /url: /fynla/dashboard
+        - link "Net Worth" [ref=f97e125] [cursor=pointer]:
+          - /url: /fynla/net-worth/wealth-summary
+      - button "Cash Management" [ref=f97e130] [cursor=pointer]
+      - button "Finances" [ref=f97e135] [cursor=pointer]
+      - button "Family" [ref=f97e140] [cursor=pointer]
+      - button "Planning" [ref=f97e145] [cursor=pointer]
+    - link "Sign Up Now" [ref=f97e150] [cursor=pointer]:
+      - /url: /fynla/register
+    - generic [ref=f97e154]:
+      - link "Account" [ref=f97e155] [cursor=pointer]:
+        - /url: /fynla/settings
+      - button "Sign Out" [ref=f97e160] [cursor=pointer]

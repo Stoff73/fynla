@@ -47,6 +47,8 @@ final class UpdateRecordAllowlist
             'account_name', 'account_type', 'institution', 'current_balance',
             'interest_rate', 'access_type', 'isa_subscription_amount',
             'regular_contribution_amount', 'contribution_frequency',
+            // A Junior ISA's child (T24, the savings form's Junior ISA kind).
+            'beneficiary_name', 'beneficiary_dob',
         ],
         'investment_account' => [
             'account_name', 'account_type', 'provider', 'current_value',
@@ -103,14 +105,21 @@ final class UpdateRecordAllowlist
         'property' => [
             'current_value', 'property_type', 'address_line_1',
             'monthly_rental_income',
+            // T24: the property form's town and letting costs.
+            'city', 'managing_agent_fee', 'monthly_service_charge',
         ],
         'mortgage' => [
             'lender_name', 'outstanding_balance', 'interest_rate',
             'monthly_payment', 'remaining_term_months',
+            // T24: the property form's years left. Not mortgage_type: the
+            // contract type is never rewritten (INV-2.7.3, above).
+            'maturity_date',
         ],
         'life_insurance' => [
             'provider', 'sum_assured', 'premium_amount', 'premium_frequency',
             'policy_end_date',
+            // T24: the protection form's "Is it written in trust?".
+            'in_trust',
         ],
         'critical_illness' => [
             'provider', 'sum_assured', 'premium_amount', 'premium_frequency',

@@ -2,7 +2,8 @@
 fact_id: hv-gift-aid-higher-rate-relief
 category: house_view
 title: Gift Aid higher-rate relief — reclaiming extra tax on charitable donations
-version: 2
+source: "Income Tax Act 2007 s414 (Gift Aid: gift treated as paid after basic rate tax; basic and higher rate limits raised by the grossed-up gift)"
+version: 3
 valid_to: null
 ---
 

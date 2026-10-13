@@ -159,15 +159,23 @@ it('counts the Blind Person\'s Allowance in where the higher rate starts (tax re
         ->and($math->incomeTaxNow($user))->toBeLessThan($math->incomeTaxNow(taperEarner()));
 });
 
-it('leaves out the 40% sentence when taxed interest puts part of it at another rate (tax review F4)', function (): void {
+it('stops the part below the threshold at the pay taxed at 40%, and leaves out the 40% sentence while interest sits above the threshold (tax review F4, walk R25)', function (): void {
+    // Interest sits on top of pay (ITA 2007 s16): sized from pay alone (walk
+    // R25), the payment is all relieved at 40% and the engine agrees. The
+    // sentence's "down to £50,270" would not hold: below the pay slice the
+    // next pounds, as many as the interest the allowance covers, save 20%.
     $user = taperEarner(100000);
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'current_balance' => 100000, 'interest_rate' => 4.0, 'is_isa' => false,
         'ownership_type' => 'individual', 'joint_owner_id' => null,
     ]);
-    $card = trapCard($user->fresh(), 1000000.0);
+    $user = $user->fresh();
+    $card = trapCard($user, 1000000.0);
+    $math = app(TaxStrategyMath::class);
 
     expect($card)->not->toBeNull()
+        ->and($card->extra['suggested_contribution'])->toBeLessThanOrEqual(100000 - $math->bandThresholds()['higher'])
+        ->and($card->estimatedAnnualTaxSaved)->toBe((float) round($math->pensionContributionSaving($user, $card->extra['suggested_contribution'])))
         ->and($card->description)->not->toContain('each £1,000 you pay in still saves')
         ->and($card->extra['below_taper'])->toBeFalse();
 });

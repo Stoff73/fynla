@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\SpouseCollisionException;
+use App\Exceptions\SpouseInviteLimitException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFamilyMemberRequest;
 use App\Http\Requests\UpdateFamilyMemberRequest;
@@ -22,7 +23,6 @@ use App\Services\UserProfile\UserProfileService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 
 class FamilyMembersController extends Controller
 {
@@ -157,16 +157,14 @@ class FamilyMembersController extends Controller
         // other relatives, and a large family must not run into an invitation
         // limit. Only this branch can point an email address at a stranger's
         // account — or create one for an address that has none (W-0349).
-        $throttleKey = 'spouse-invite:'.$currentUser->id;
-
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+        try {
+            app(SpouseLinkingService::class)->guardInviteRate($currentUser);
+        } catch (SpouseInviteLimitException $exception) {
             return response()->json([
                 'success' => false,
-                'message' => 'Too many household invitations. Please try again in an hour.',
+                'message' => $exception->getMessage(),
             ], 429);
         }
-
-        RateLimiter::hit($throttleKey, 3600);
 
         $spouseEmail = strtolower(trim((string) $data['email']));
         $data['email'] = $spouseEmail;

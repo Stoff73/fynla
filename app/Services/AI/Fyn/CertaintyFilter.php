@@ -95,7 +95,8 @@ final class CertaintyFilter
 
     private function filter(string $text): string
     {
-        $text = self::clean($text);
+        // Every sum is recomputed before it is shown (ArithmeticCheck).
+        $text = ArithmeticCheck::correct(self::clean($text));
         if (! $this->writeClaimsAreFalse) {
             return $text;
         }

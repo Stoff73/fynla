@@ -251,7 +251,7 @@
                 <!-- Mortgage Header -->
                 <div class="flex justify-between items-start mb-6">
                   <div>
-                    <h4 class="text-xl font-semibold text-horizon-500">{{ mortgage.lender_name }}</h4>
+                    <h4 class="text-xl font-semibold text-horizon-500">{{ mortgage.lender_name || 'Mortgage' }}</h4>
                     <p class="text-sm text-neutral-500 mt-1">{{ formatMortgageType(mortgage.mortgage_type) }}</p>
                   </div>
                   <button
@@ -271,7 +271,7 @@
                     <dl class="space-y-2">
                       <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Lender:</dt>
-                        <dd class="text-sm font-medium text-horizon-500 sm:text-right">{{ mortgage.lender_name }}</dd>
+                        <dd class="text-sm font-medium text-horizon-500 sm:text-right">{{ mortgageLender(mortgage) }}</dd>
                       </div>
                       <div v-if="mortgage.mortgage_account_number" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Account Number:</dt>
@@ -327,9 +327,9 @@
                   <div>
                     <h5 class="text-sm font-semibold text-horizon-500 mb-3">Interest Rate</h5>
                     <dl class="space-y-2">
-                      <div v-if="mortgage.rate_type !== 'mixed' && mortgage.interest_rate != null" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                      <div v-if="mortgage.rate_type !== 'mixed'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Interest Rate:</dt>
-                        <dd class="text-sm font-medium text-horizon-500">{{ parseFloat(mortgage.interest_rate).toFixed(2) }}%</dd>
+                        <dd class="text-sm font-medium text-horizon-500">{{ formatMortgageRate(mortgage) }}</dd>
                       </div>
                       <div v-if="mortgage.rate_type" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Rate Type:</dt>
@@ -356,7 +356,7 @@
                     <dl class="space-y-2">
                       <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Full Monthly Payment:</dt>
-                        <dd class="text-sm font-medium text-violet-600 font-semibold">{{ formatCurrency(calculateFullMonthlyPayment(mortgage)) }}</dd>
+                        <dd class="text-sm font-medium text-violet-600 font-semibold">{{ formatMortgagePayment(mortgage) }}</dd>
                       </div>
                       <div v-if="isSharedOwnership && mortgageShare(mortgage)" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Your Share:</dt>
@@ -514,6 +514,7 @@ import PropertyForm from './PropertyForm.vue';
 import PropertyFinancials from './PropertyFinancials.vue';
 import ConfirmDialog from '../../Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { formatInterestRate } from '@/utils/interestRate';
 
 import logger from '@/utils/logger';
 export default {
@@ -782,7 +783,8 @@ export default {
         part_and_part: 'Part and Part',
         mixed: 'Mixed',
       };
-      return types[type] || type;
+      // A type the user never gave is null (T25), never a stand-in.
+      return type ? (types[type] || type) : 'Not recorded';
     },
 
     formatOwnershipType(type) {
@@ -793,6 +795,20 @@ export default {
         trust: 'Trust',
       };
       return types[type] || type;
+    },
+
+    mortgageLender(mortgage) {
+      return mortgage.lender_name || 'Not recorded';
+    },
+
+    // A payment or rate the user never gave reads "Not recorded", never £0 or
+    // 0.00% (T25; R10 for savings rates).
+    formatMortgagePayment(mortgage) {
+      return mortgage.monthly_payment == null ? 'Not recorded' : this.formatCurrency(this.calculateFullMonthlyPayment(mortgage));
+    },
+
+    formatMortgageRate(mortgage) {
+      return formatInterestRate(mortgage.interest_rate);
     },
 
     calculateFullOutstandingBalance(mortgage) {

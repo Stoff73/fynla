@@ -426,7 +426,7 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
     - Not done (2026-10-08): whether xAI and Anthropic keep Fyn conversations by default (line below).
     - Found (2026-10-08, NOT checked): whether xAI and Anthropic keep Fyn conversations by default (CSJ: never retain data). Check each provider's retention setting next.
 18. [ ] **Tax plan items carry no working, so Fyn invents the arithmetic** ("£60,000 − £50,270 = £9,730 taxed at 40%"; the plan's £3,700 is adjusted net income £54,000 − £50,270).
-    - Before 18 (CSJ 2026-10-09): "before we do item 18, do full walks checking everything is good and there are no regressions" (Save Tax single and couple, partner by invite, normal registration, additions, edits, actions, how-tos; walked as a user). CSJ rules for it: every anomaly is noted on the walk list, fixed and the flow retested, whether old or new; "remove the open banking screen, take user to the correct screen". Walk list and evidence: `October/October9Updates/regression-walk-2026-10-09.md`. Where we stopped (2026-10-09, context clear): walk A done to A8 on fynla.org (Ellis, user 807). R1 (#1164) and R2 (#1165) merged to dev and retested on csjones. R4-R6 in PR #1166, NOT merged (next: vitest, merge, csjones pull + both bundles, retest). Then A9, A10, B-H, one release, retest fixed flows on fynla.org, purge walk accounts. Session 2 (2026-10-09): A9, A10 done; R4-R8, R10, R12, R13 fixed and retested on csjones (#1166, #1168-#1177, dev `0774827a8`); R9 and R11 are DECISIONs for CSJ (in the walk file). Then B1-B4 walked; B5 found R17 (SECURITY: the password step signed the web session in before the emailed code, so a password alone reached the account and an invited partner registered into the inviter's account); fixed #1182 and retested on csjones; DECISION (CSJ): hotfix release now and clear sessions. R14-R16, R18 fixed too (#1178, #1179, #1181).
+    - Before 18 (CSJ 2026-10-09): "before we do item 18, do full walks checking everything is good and there are no regressions" (Save Tax single and couple, partner by invite, normal registration, additions, edits, actions, how-tos; walked as a user). CSJ rules for it: every anomaly is noted on the walk list, fixed and the flow retested, whether old or new; "remove the open banking screen, take user to the correct screen". Walk list and evidence: `October/October9Updates/regression-walk-2026-10-09.md`. Where we stopped (2026-10-09, context clear): walk A done to A8 on fynla.org (Ellis, user 807). R1 (#1164) and R2 (#1165) merged to dev and retested on csjones. R4-R6 in PR #1166, NOT merged (next: vitest, merge, csjones pull + both bundles, retest). Then A9, A10, B-H, one release, retest fixed flows on fynla.org, purge walk accounts. Session 2 (2026-10-09): A9, A10 done; R4-R8, R10, R12, R13 fixed and retested on csjones (#1166, #1168-#1177, dev `0774827a8`); R9 and R11 are DECISIONs for CSJ (in the walk file). Then B1-B4 walked; B5 found R17 (SECURITY: the password step signed the web session in before the emailed code, so a password alone reached the account and an invited partner registered into the inviter's account); fixed #1182 and retested on csjones; R14-R16, R18 fixed too (#1178, #1179, #1181). Answered (CSJ 2026-10-09): "this is clearly an issue and a bug and needs to be fixed … FIX IT": released as release ab (PR #1184, main `f45bc67fd`, sessions cleared); R17 retested on fynla.org (password alone refused; Sam lands in his own account). R19 (duplicate question bubbles, CSJ) fixed #1185 on dev, not released. Where we stopped (2026-10-09, session 2, context clear): walk B6 on fynla.org as Sam 809 at "Do you have another account to add?"; next retest the released fixes on fynla.org, then B6-B8, C-H. Session 3 (2026-10-09): released fixes retested on fynla.org (R1, R2, R4-R8, R10, R12-R18; R13 /m still to see); B6-B8, C1-C4, D1-D4 walked; R20-R39 found, all fixed on dev and retested on csjones except R30 (not a defect) and R20's card questions (with R9) (#1187-#1207, dev `ea11f2898`), NOT released. Where we stopped (2026-10-09, session 3, context clear): walk E next (edits), then F, G, H; then one release (needs migration `2026_10_09_140000_fill_isa_type_from_savings_account_type`, both bundles), retest every fixed flow on fynla.org, purge walk accounts. R9 (now with R20's remaining card questions) and R11 wait on CSJ. Walk file: `October/October9Updates/regression-walk-2026-10-09.md`.
     - Built (2026-10-08, `fix/18-plan-working`): `PensionTaxReliefStrategy` (higher, basic and no-earnings paths) publishes `working`, the steps behind its figure from the figures the sizing used (income, pension paid through pay, the higher-rate start, the slice, the limit that set it, the rounding and saving). It reaches Fyn through the composed plan and the actions list (`RecommendationsAggregatorService` → `NextActionsService` card → `forModel`). One rule in `FynSystemPrompt` (snapshot regenerated, one line): give the action's working exactly; never redo the sums; with no working, say the plan worked it out. `PensionTaxReliefStrategyTest`: the reported case (£60,000 pay, £6,000 through pay → £54,000, £3,730 at 40%, £3,700, £1,480).
     - Found (2026-10-08): the other tax strategies carry no working yet (for example `IncomeBandStrategy`'s pension items above £100,000); under the new rule Fyn says the plan worked those figures out rather than deriving them.
     - Found and fixed in the path (2026-10-08, csjones /m walk, account 492): "How did you work out the £3,700 pension figure?" went ungrounded (`FynContextAssembler::planGroundingDirective` needed a tax classification and words like "my plan"), no tool was called, and Fyn said it was "the government top-up … for each of your children under 18" (no children). Now `ActionCardService::forFigureQuestion` grounds a question that asks how a figure was reached and quotes an amount in one of the user's action titles on that action's card, and the card grounding carries the working. `AskFynActionCardGroundingTest`.
@@ -435,6 +435,174 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
     - Where we stopped (2026-10-08 s4): RELEASED as release z (#1142, main `91121fe74`, ~10:20 BST): walked fynla.org web 1440 + /m 390 with Save Tax walk account (walk-z, £60,000, Aviva 10% through pay): "How did you work out the £3,700 pension figure?" (web) and "Where does the £3,700 in my pension action come from?" (/m) both gave £60,000 → £54,000 → £50,270 → £3,730 → £3,700 → £1,480; account purged. Web said "the working shown on the card" (the card does not show it): fixed in #1143 (walked csjones web), merged to main as release PR #1144 (main `63b1d63b5`), NOT YET DEPLOYED: CSJ runs `release-prod-2026-10-08-z2.sh` (session aa7bbf85 scratchpad), then walk fynla.org web + /m with a new Save Tax walk account (same set-up), purge it, patch notes (today's file `October/October8Updates/`), cross off item 18.
     - Released z2 (2026-10-08 ~10:55 BST, main `63b1d63b5`, file checksum matches; no new errors). Walked fynla.org with walk account (walk-z2, purged): /m "Where does the £3,700 in my pension action come from?" gave the working (£6,000 → £54,000 → £50,270 → £3,730), no mention of the card. Web "How did you work out the £3,700 pension figure?" gave the exact working but STILL opened "The £3,700 figure comes directly from the working shown on the card" (on csjones the same build did not). The instruction alone is not reliable: the grounding frames everything as "the card" ("Explain that action from the card below", "When the card below has working"). NEXT: reframe `FynContextAssembler::actionGrounding` so the working is labelled as the plan's own (field `how_the_plan_worked_it_out`, intro "the action and how the plan worked out its figure"), test, csjones walk web + /m (several asks), release, fynla.org walk. Item 18 stays open until then.
     - Found (2026-10-08, PRODUCTION ERROR, NOT fixed, not this item): "Generating retirement plan failed — Undefined variable $potentialSaving" (`RetirementActionDefinitionService::evaluateHighPensionFundFees`, line 2746), twice on fynla.org 2026-10-08 (10:15, 10:19). Introduced by `8adf7e213` (1 October, released #1047): it removed `$potentialSaving` (a typed-in 0.25% index-fund figure) but the decision-trace sentence still reads it, so the retirement plan fails for anyone whose pension holds funds charging above 0.5%. Fix next: drop the unsourced saving sentence from the trace; test; own PR and release.
+    - Found (2026-10-12, Brett's production walk of 11 October, 63 findings, PLANNED, nothing fixed yet): `October/October12Updates/walk-2026-10-11-fix-plan.md`. Each finding has a verdict and code/production evidence, plus fix batches B1–B7. CSJ's normal-registration start is mapped there (open on the bubbles, greet by the registered first name, then employment, spouse and spouse income).
+      - CSJ 2026-10-12, mapped in section 6b: the end-of-onboarding Save Tax report is only for Save Tax arrivals; everyone else ends on their actions.
+      - The chat currently stamps every registrant as a Save Tax arrival (`OnboardingChatDirector.php:2755`): 10 on production, 7 mid-onboarding.
+      - CSJ 2026-10-12 rules for carrying out the plan (NON-NEGOTIABLE, plan section 0):
+        - R1: NO SUB-AGENTS.
+        - R2: walk as a user, clicking links, no made-up URLs.
+        - R3: six boxes per task, each ticked with evidence.
+        - R5: review, test and walk only the changes; one full test run at the end (T43).
+      - Where we stopped (2026-10-12, session 1, context clear):
+        - T0 and T1 are ticked to Dev walk:
+          - csjones runs dev `cc2ee4437` with both bundles rebuilt;
+          - T1 is PR #1209 (Fyn receives the user's exact words).
+        - T2 (2026-10-12, session 3) is ticked to Dev walk. It is one question test (`QuerySchemas::isAdviceShaped`) in front of every gate before the model:
+          - PR #1213, dev `7081e81fd`, on csjones;
+          - walked on web (Q5, P1, F19) and /m (Q7, P2, P7): every question passed every gate.
+        - Found on the T2 walk: on /m the model still handed Q7 and P2 to capture itself (`LLM-fallback write-intent caught`). That is T5, with the evidence in the plan's T5 baseline. The landed flag was false on a real write (T4).
+        - T3 (2026-10-12, session 3) is ticked to Dev walk. `QueryClassifier` never files a question as data entry or navigation, and has new retirement, estate, savings-tax and rent wording:
+          - PR #1214, plus the follow-up #1215 for P5's primary-type tools; dev `fbc9ab90c`, on csjones;
+          - walked on web (Q6, M8) and /m (Q5, Q8): each turn carries its type's `<required_tools>`.
+        - Found on the T3 walk: Fyn's pot at 60 (£552,597) is not the Retirement page's middle outcome (£484,572). That is T11.
+        - T4 (2026-10-12, session 3) is ticked to Dev walk:
+          - `ToolResults::wroteData` is the one definition of a landed write;
+          - PR #1216, dev `8d53d2b4a`, on csjones;
+          - rows #22780, #22784 and #22787 store `capture_write_landed: true` on web and /m, and the follow-ups were not pulled into capture.
+        - Found on the T4 walk:
+          - Rory (Free tier) used up the daily Fyn tokens (517,635 of 500,000), so walks continue on other csjones walk accounts (Alex 502 next).
+          - "Great, thanks" on /m: the model handed it to capture with no entity types, and the user saw "I couldn't pick up that request". That is T5 and T35.
+          - The router files "retirement income target" as a goal. New task T45.
+        - T5 (2026-10-12, session 3) is ticked to Dev walk:
+          - the handoff rule applies to statements only, and has one home (`FynSystemPrompt::handoffGuidance`, PR #1217);
+          - the first walk showed the prompt alone did not hold, so a dispatch gate was added: a handoff on a question is refused back to the model (PR #1218, dev `e9cf1f21c`);
+          - re-walked on web and /m: every question was answered.
+        - Found on the T5 walks:
+          - Fyn's arithmetic on the user's own figures is wrong: £478 a month should be £492.89; gift saving £0 should be £484; ISA saving £468 should be £216. New task T46.
+          - Raw LaTeX shows on /m. New task T47.
+          - The `PromptOverlayGoldenMasterTest` fixtures had been stale since T1; recaptured in #1217.
+        - T48 (2026-10-12, session 4) is ticked to Dev walk. There is one Fyn limit per tier per rolling week (Free 750,000, Premium 3,000,000), and the daily stop and the cheaper-model switch are gone:
+          - PR #1222, dev `46b402737`. The migration ran on csjones and both bundles were rebuilt.
+          - Walked as Rory 504 on web and /m: answered past the old 500,000 daily point. At 755,902 both surfaces show "You've reached your weekly Fyn usage limit.", and web shows "resets in 3d 11h" (correct to 00:00 on 16 October).
+          - The admin page was not walked (CSJ: "dont worry about ttesting these limits now … lets move on").
+          - Found: T49, /m reply paragraphs run together.
+          - The Prod release needs the migration.
+        - T6 (2026-10-12, session 4) is ticked to Dev walk. Navigation is decided on the server for every surface, and the web keyword matcher is deleted:
+          - PR #1224, dev `bc69c68ed`, both bundles rebuilt.
+          - Walked on web and /m as Alex 502: "ok take me to my tax strategy" opens Tax Strategy on both and the reply is saved (F4). "Show the working" questions are answered, not navigated (F3). On /m a website-only page gets "Will Builder is only on the website for now."
+          - Native gets the /m path; its `allowedRoute` list decides which screens open (confirm with the next iOS build).
+          - Next: T7.
+        - T7 (2026-10-12, session 4) is ticked to Dev walk. A what-if request reaches the scenario capture, never a pension form; T5's gate already did it:
+          - PR #1226 (test only).
+          - Walked on web and /m as Alex 502: scenarios 1 and 2 were saved through `create_what_if_scenario`.
+          - Found: T50 (the comparison is £0 for every figure; `WhatIfScenarioService` is broken) and T51 (a Free user can create a paid-plan scenario through chat).
+          - Next: T8.
+        - T8 (2026-10-12, session 4) is ticked to Dev walk. A delete preview refuses a record that does not exist; the model gets the saved records and the user a plain sentence:
+          - PRs #1228, #1229 and #1230.
+          - Walked on web (Alex 502) and /m (Drew 508; Alex reached the new weekly limit): "Delete my round-the-world trip goal" with no goals saved asks for no confirmation and saves "You don't have a goal saved, so there's nothing to delete."
+          - Found: T52 (the live sentence differs from the saved reply on a capture failure).
+          - Next: T9.
+        - T9 (2026-10-12, session 4) is ticked to Dev walk. An invite request reaches the invite step's own code:
+          - PR #1232, plus #1233, a security fix from the background review: one hourly spouse-invitation limit for every invite path, and demo personas never invite.
+          - Walked on /m and web as Drew 508: invitations 13 to 15 sent, by asking first and from a request that gives the email.
+          - Next: T10.
+        - Where we stopped (2026-10-12, session 4, context clear):
+          - T48 and T6 to T9 are ticked to Dev walk. Dev is `7fa4470ba`, and csjones runs `cb78008e5` (PHP). The bundles were last built by CSJ at 12:41 from T6's tree; T7 to T9 changed no frontend.
+          - Next is T10: spouse figures always in Fyn's context (P4, P3, F5; plan section 5, B3).
+          - Prod boxes for T0 to T9 and T48 wait for CSJ's release. The release needs T48's migration (`2026_10_12_120000_one_weekly_fyn_limit_per_tier`) and both bundles.
+          - New tasks T49 to T52 are on the plan's list.
+          - DECISION (CSJ): approve the user-facing wording written this session:
+            - "Opening <page>." and "<page> is only on the website for now." (T6);
+            - the input placeholder "Fyn usage limit reached — resets in 2d 4h" (T48);
+            - "You don't have a <thing> saved, so there's nothing to delete." and "Which goal did you mean: A or B?" (T8);
+            - "You're in preview mode, so I haven't sent an invitation. Create your own account to invite your spouse." (T9).
+          - DECISION (CSJ): T50's fix needs a design. The what-if engine (`WhatIfScenarioService`) reads keys the agents do not return, never applies the pension contribution, and saves the user's own row mid-calculation.
+          - Walk accounts: Rory 504 and Alex 502 are over the 750,000 weekly limit until 16 October. Drew 508 now has three pending invitations (13 to 15) and is married.
+        - T10 (2026-10-12, session 5) is ticked to Dev walk. The Save Tax household row reaches every advice turn it exists for, with the spouse named:
+          - PR #1236, dev `db75edded`, on csjones (PHP only).
+          - Walked as Pat 506 on web and /m: questions naming Rory with no relationship word got the row's £72,765 income and £72,000 from work (#22857, #22859).
+          - Found: T53 (Fyn's record tools cannot read a linked spouse's own records).
+          - Next: T11.
+        - T11 (2026-10-12, session 5) is ticked to Dev walk. The retirement plan Fyn fetches carries the Retirement page's headline (`RetirementHeadline`):
+          - PR #1238, dev `61e7d40ed`, on csjones (PHP only).
+          - Walked as Pat 506: web (`fetch_retirement_plan`) and /m (`get_module_analysis`) both gave the page's "Projected Capital" £260,978.89 at 67 (#22863, #22861).
+          - The T3 note was a misreading: £552,597 was Rory's "Projected Capital", a page figure; £484,572 is the separate Monte Carlo card.
+          - Found: T54 (`get_module_analysis(retirement)` also sends the `PensionProjector` pot and income, £217,251.58 and £8,690.06 for Pat, and Fyn quoted both incomes). Found for T15: /m rounded £260,978.89 to £260,979.
+          - Next: T12.
+        - T12 part 1 of 3 (2026-10-12, session 5): the savings gift and the 50/50 split publish their working (`TaxStrategyMath::savingsMoveWorking`, from the tax engine's own breakdown):
+          - PR #1240, dev `9112c1a35`, on csjones.
+          - Walked with a fresh Save Tax couple (Robin Walk, user 509): /m (#22893) and web "Ask Fyn about this" (#22895) both gave the card's own steps, £518.40 − £59.20 = £459.20, shown as £459.
+          - `App\Support\Money::exact` is now the one exact formatter (for T15).
+          - Next: T12 part 2, the child benefit charge (F6), then part 3, the estate (M8, Q8).
+        - T12 part 2 (2026-10-12, session 5), the child benefit charge (F6): no tax plan strategy prices it and no Fyn tool reads it, so there is nothing to publish working from.
+          - DECISION (CSJ), T55: how Fyn receives the user's own charge (the threshold position in Fyn's context, an existing tool, or a plan item).
+          - Found and fixed in the path: the charge did not round its percentage or amount down (ITEPA 2003 s681C(3)); #1242, dev `97e615a3d`, on csjones; walked as user 325 on web and /m (£3,847 of £5,130).
+          - Next: T12 part 3, the estate (M8, Q8).
+        - T12 (2026-10-12, session 5) is ticked to Dev walk (parts 1 and 3; part 2, F6, moved to T55 for your design). Part 3: the Inheritance Tax figure publishes its working (`IHTCalculationService::calculate`), carried by `get_module_analysis(estate)` and `fetch_estate_plan`:
+          - PR #1244, dev `61e5c2c94`, on csjones.
+          - Walked: web and /m as Robin 509 (own estate only, spouse not linked, said so: #22897, #22899) and /m as Pat 506 (linked couple: £8,000 + £30,000 = £38,000 against £650,000, £0: #22901).
+          - Found and fixed in the path: Fyn wrote "£40,000 − £325,000 = £0". Every sum Fyn writes is now recomputed in the one output filter (`ArithmeticCheck`, #1254, #1255); re-walked on web (#22964) and /m (#22966).
+          - Next: T13.
+        - T13 (2026-10-12, session 5) is ticked to Dev walk. Earlier turns out of view are named, searchable and quoted (`ConversationWindow`, `search_conversation_index` `words`, `<earlier_in_conversation>`, the recall rule):
+          - PR #1246, dev `6cab6cd63`, on csjones.
+          - Walked as Pat 506: /m quoted "my bonus this year is £14,500, paid in March." from 22 messages back (#22925); on the web, a new conversation found nothing and Fyn asked instead of inventing (#22927).
+          - Found: T56 (other conversations reach Fyn only through their summaries; a scope question for you).
+          - Next: T14.
+        - T14 (2026-10-12, session 5) is ticked to Dev walk. Every knowledge fact names its source (each fetched on legislation.gov.uk), the loader requires one, Fyn names it, and a new entry covers gifts within seven years of death:
+          - PR #1248, dev `66ae675bc`, on csjones.
+          - Walked as Pat 506: web gave who pays with s199(1)(b) and s204(8) (#22929); /m gave taper relief with s7(4) and s3A(4) (#22931).
+          - In the path: "harvest" removed from two corpus titles; the savings-to-spouse entry corrected.
+          - Next: T15.
+        - T15 (2026-10-12, session 5) is ticked to Dev walk. Every money figure handed to the model is exact (`Money::exact`): no ".00", pence kept, never rounded:
+          - PR #1250, dev `da96f4c98`, on csjones.
+          - Walked as Pat 506: /m gave £1,554.40, £26,839.60, £636.63 (#22933); web gave £32,280 and £3,886 (#22935).
+          - DECISION (CSJ), T57: the Income page rounds £26,839.60 to £26,840 while Fyn gives the pence. Should the pages show pence too?
+          - Next: T16.
+        - T16 (2026-10-12, session 5) is ticked to Dev walk. Onboarding bubble steps read typed answers (`AnswerPolarity`, `matchBubble` by meaning, typed lists at multi-select steps):
+          - PR #1252, dev `8a2a5626c`, on csjones.
+          - Walked with fresh accounts: /m (Priya 510) took Brett's four typed answers word for word; web (Sanjay 511) took "roughly 72k" and a typed list.
+          - Next: T17 (typed facts kept and later forms pre-filled: the £400 of dividends and #4083's ISA).
+        - Where we stopped (2026-10-12, session 6):
+          - **T16 REVERTED (CSJ: "why is the user typing?").** #1252 matched typed words to bubbles against CSJ's rulings (2026-09-30 only a tap is a pick; 2026-10-01 forms only, no matching) and misread "nothing to change" as "No, change something". Revert #1262 (`4ba517595`). Memory `feedback_bubble_steps_are_taps_never_typed_matching`.
+          - **T58 (CSJ: disable the chat input when a bubble gives the answer):** #1263 (`1688f9eb8`), web `AiChatPanel::awaitingBubbleAnswer`, /m `onboardingChat.js` methods (not computed: the /m stream fills bubbles in place). Walked web + /m (Maya, Leo). Bundles on csjones built from the merged tree.
+          - **T17 narrowed:** F2, F11's spouse answer and F21 were typed at bubble steps (now locked); parking typed facts not built. Fixed #3836: a typed answer at a form step always goes to the form (#1265, `2bb5b9bf0`). Walked web + /m (Asha, Ravi).
+          - **T18:** Free limit checked at section start (form skipped to the "another?" step), said in words before a blank add form and before the save offer, section lead-in when the form was skipped, "ISAs and investment accounts" noun (#1267, `f86a1f96e`). Walked web + /m (Nadia, Omar, Lena, Theo).
+          - **T19:** typed "no mortgage" ticks the No mortgage box (`TypedFormFill` none_label rule; #1269, `da633bb29`). Walked web + /m (Iris).
+          - csjones on dev `da633bb29`; nothing released to fynla.org. Evidence for each task in the plan's log (docs PRs #1264, #1266, #1268, #1270).
+          - Next: T20 (one form per person named in a message, P8).
+          - Found: on /m two sentences run together in Fyn's replies ("Monzo current account.Do you have …"); that is T49.
+          - Found: opening /m signs the web tab out (front door lands on sign-in); that is T33.
+          - Walk accounts on csjones to purge: Maya, Leo (T58); Asha, Ravi (T17); Nadia, Omar, Lena, Theo (T18); Iris (T19); plus Robin 509, Priya 510, Sanjay 511 from session 5.
+        - Where we stopped (2026-10-12, session 7):
+          - **T20 ticked to Dev walk:** one form per person named in a message (P8). Two PRs: #1272 (`c9cefb517`), the queue of further records, in chat and at the walk's one-per-save form steps; and #1273 (`2347b09ba`), found on the walk, which gives each capture form its own ids (a second form of the same kind named and focused the first form's inputs).
+            - Walked on csjones: web, two children (Robin 509); /m, two parents (Robin); /m and web, two accounts typed at the setup bank step (Tom 522, Ellie 523).
+            - The setup walk's own children step: **I COULD NOT TEST THIS** as a user (nothing reaches the journey path today). Covered by `OneFormPerPersonTest`.
+          - DECISION (CSJ): approve the T20 wording: "There's a form for each of the N you told me about. I've filled in the first — check it, add anything missing and save, and the next one opens." and "Here's the next one, filled in — check it, add anything missing and save."
+          - Found: T49 is on web too (the loop question "savings.That's the Free plan's limit").
+          - Walk accounts to purge: Priya 521, Tom 522, Ellie 523 (T20), plus the session 6 list.
+          - Next: T21 (the self-employed sentence says profit, M4).
+          - **T21 ticked to Dev walk (2026-10-13):** a self-employed user's work form asks for "Annual profit" (what the business takes in, less allowable expenses, before tax; GOV.UK), and their line says profit ("…trading as Okafor Consulting, and my profit is £55,000 a year."). The read-back keeps pence. #1275 (`f4ed40f19`), #1276. Walked web and /m as Tunde 524.
+            - DECISION (CSJ): approve the T21 wording: "Annual profit", "What the business takes in, less allowable expenses, before tax", and the two line forms.
+            - Recorded: CSJ answered the T20 report with "Good go to T21" (2026-10-13); taken as approval of the T20 wording. Correct me if not.
+          - Next (CSJ 2026-10-13: "move too T22 and 23 after this"): T22, then T23.
+          - **T22 ticked to Dev walk (2026-10-13):** normal registration opens on "Which of these do you have?" with the first-name greeting, then employment, spouse and spouse income. #1278 (`3aa6d46b2`). Walked web (Amara 525) and /m (Kofi 526, empty "That's everything").
+          - **T23 ticked to Dev walk (2026-10-13):** the Save Tax report is for Save Tax arrivals only; everyone else ends on their top actions and `/actions`. #1279 (`47c2037df`). Walked web (Nia 527), /m (Zain 528, matches the Actions screen) and a `/savetax` arrival (Sasha 529, plan unchanged).
+            - Release needs: `php artisan registrations:clear-chat-campaign-stamp --dry-run`, then without `--dry-run` (10 production users). The corpus file ships with the code.
+            - DECISION (CSJ): approve the T23 wording: "Here are your top actions, built from what you told me — in the order I'd tackle them:", "Your actions are ready, {first_name}. Open any action on the next screen to see the steps, or ask me about it here.", "Take me to my actions", the partner invite with "actions". Also the bullet suffix: the dashboard row's own line ("you could save £7,080"), not the draft's "saves around £X a year", because not every action's figure is yearly.
+            - Found: `FynRankedRecommendationsAreTheActionsListTest` fails on dev (`900.0` vs `900`), not from these changes.
+            - Found: a single person with no dependants is told "Your life cover is £730,573 short" (Nia 527). Added as T59.
+          - Next (CSJ 2026-10-13: "you can go to t24 and 25 next"): T24, then T25.
+          - **T24 ticked to Dev walk (2026-10-13):** Fyn's forms gain Premium Bonds, Junior ISA, the property town and mortgage details, the letting costs, "Is it written in trust?" and a defined benefit kind. #1281 (`d5cbd18d6`), #1282 (`44df734d1`, the bank loop names a Junior ISA). Walked web (Ravi 530, Robin 509) and /m (Meera 531, Robin).
+            - DECISION (CSJ), F11: where the spouse's date of birth is kept. On the Save Tax path the spouse's figures live on `TaxStrategyHouseholdInput` and there is no spouse family-member row until the invite.
+            - DECISION (CSJ): approve the T24 wording (form labels "Town or city", "Mortgage lender", "Years left on the mortgage", "Letting agent's fee each month", "Service charge each month", "Is it written in trust?", "The child's first name / date of birth", "Final salary or career average pension", the pension prompt's added sentence, and "… counts with your ISAs.").
+          - **T25 ticked to Dev walk (2026-10-13):** a mortgage or property given only some facts stores null for the rest and shows "Not recorded" (no more "To be completed", `repayment`, 0%, £0, "Unknown", "N/A"). #1283 (`ea4c4b75e`). Walked web and /m (Robin 509).
+            - Release needs migration `2026_10_13_100000_make_mortgage_type_nullable` and both bundles. Existing production rows (mortgages 386, 387, property 531) keep their placeholders; changing them is a database change for your OK.
+            - Found: rate type "fixed" and a 25-year term are still invented for a balance-only mortgage. Added as T60.
+          - Stopped after T25 (CSJ 2026-10-13: "stop after t25"). Next on the list: T26.
+        - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
+          - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
+          - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
+          - The map of what to change is in the session 3 handover.
+        - Then T6: navigation moves to the server, and the web keyword matcher is deleted.
+        - Prod boxes for T0 to T5 wait for CSJ's release.
+        - T1's security follow-up is PR #1211 (merged).
+        - New task T44: remove the suggested prompts from Fyn's chat window (CSJ screenshot `remove.png`).
+      - Headline causes:
+        - Fyn's copy of every message loses "?", "@" and "+" (`FynContextAssembler.php:347`);
+        - pre-model gates and the advice `QueryClassifier` file questions as writes, navigation or data entry ("Show the working" matches navigation);
+        - `capture_*` writes are marked not landed;
+        - workplace pensions saved through Fyn have no `scheme_type` (9 of 25 on production), so the retirement plan says 0.0% is paid in.
+      - F5/P3/F6/M8/Q8 overlap this item (strategies publishing their working).
 19. [ ] **"Ask Fyn about this" from a card is swallowed while onboarding is paused** (the director greets "Welcome back… continue?" and never answers; csjones user 419).
 20. [ ] **/m cannot mark an emergency fund account,** and Fyn cannot set `is_emergency_fund`.
 21. [ ] **Savings cards that duplicate tax actions** can sit on one list (`psa_breached` / `cash_isa_recommended` vs `isa_topup_vs_psa`, `spouse_psa_shift` vs `savings_to_spouse`, `child_no_jisa` vs `junior_isa`, `excess_cash_pension` vs `pension_tax_relief`).

@@ -1,0 +1,309 @@
+- generic [active] [ref=f135e1]:
+  - link "Skip to main content" [ref=f135e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f135e3]:
+    - navigation "Primary navigation" [ref=f135e4]:
+      - generic [ref=f135e5]:
+        - link "Fynla home" [ref=f135e6] [cursor=pointer]:
+          - /url: /
+          - img "Fynla" [ref=f135e7]
+        - generic "Desktop navigation links" [ref=f135e8]:
+          - link "Home" [ref=f135e9] [cursor=pointer]:
+            - /url: /
+          - button "How it works" [ref=f135e11] [cursor=pointer]
+          - button "Resources" [ref=f135e15] [cursor=pointer]
+          - button "Why Fynla" [ref=f135e19] [cursor=pointer]
+          - link "Pricing" [ref=f135e22] [cursor=pointer]:
+            - /url: /pricing
+        - generic [ref=f135e23]:
+          - link "Sign in" [ref=f135e24] [cursor=pointer]:
+            - /url: /login
+          - generic [aria-hidden] [ref=f135e27]: /
+          - link "Register" [ref=f135e28] [cursor=pointer]:
+            - /url: /register
+  - main [ref=f135e29]:
+    - region [ref=f135e30]:
+      - generic [ref=f135e31]:
+        - heading "Change your financial future" [level=1] [ref=f135e32]
+        - paragraph [ref=f135e33]: We help create your path to financial freedom with clear recommendations from our proprietary Fynla Brain®
+        - generic [ref=f135e34]:
+          - link "Get started for free" [ref=f135e35] [cursor=pointer]:
+            - /url: /register
+          - paragraph [ref=f135e36]:
+            - link "Meet Fyn" [ref=f135e37] [cursor=pointer]:
+              - /url: "#meet-fyn"
+            - generic [aria-hidden] [ref=f135e38]: "|"
+            - link "View the video" [ref=f135e39] [cursor=pointer]:
+              - /url: "#dashboard"
+            - generic [aria-hidden] [ref=f135e40]: "|"
+            - link "See our demo" [ref=f135e41] [cursor=pointer]:
+              - /url: "#"
+        - generic [aria-hidden] [ref=f135e42]:
+          - generic [ref=f135e44]:
+            - paragraph [ref=f135e45]: One financial view.
+            - paragraph [ref=f135e46]: Use Fynla to securely centralise and view all your financial data.
+          - generic [ref=f135e48]:
+            - paragraph [ref=f135e49]: One financial brain.
+            - paragraph [ref=f135e50]: Our proprietary brain does the calculations so you don't have to.
+          - generic [ref=f135e52]:
+            - paragraph [ref=f135e53]: One financial voice.
+            - paragraph [ref=f135e54]: We will give you clear, simple and tailored advice to help your financial freedom.
+    - region [ref=f135e55]:
+      - generic [ref=f135e57]:
+        - heading "Meet Fyn" [level=2] [ref=f135e59]
+        - paragraph [ref=f135e60]: Your financial companion for life
+        - paragraph [ref=f135e61]: Need help? Fyn is the face of our Fynla brain and will help you with your finance goals by giving you financial clarity. Fyn will help with everything from planning to saving and investments, through to your net worth and real estate. Tell Fyn what you'd like to do and he'll walk you through your dashboard step-by-step.
+        - generic [ref=f135e62]:
+          - button "What can Fyn help you with?" [ref=f135e63] [cursor=pointer]
+          - region "What can Fyn help you with?":
+            - generic [ref=f135e67]: Your financial companion to answer any questions you have
+            - generic [ref=f135e70]: Help understand and complete your dashboard
+            - generic [ref=f135e73]: Support you to achieve your financial goals
+        - link "Quick start with Fyn" [ref=f135e76] [cursor=pointer]:
+          - /url: /register?from=fyn
+    - region [ref=f135e77]:
+      - generic [ref=f135e78]:
+        - heading "How Fyn can help you" [level=2] [ref=f135e79]
+        - paragraph [ref=f135e80]: We leverage tools designed for individuals and families to plan savings, investments, retirement and estate with confidence and within local regulations.
+        - generic [ref=f135e81]:
+          - paragraph [ref=f135e82]: A representative Save Tax estimate
+          - paragraph [ref=f135e83]: £4,000
+          - paragraph [ref=f135e84]:
+            - text: An estimated saving of up to
+            - strong [ref=f135e85]: £4,000
+            - text: each year for someone earning £100,000, using England, Wales and Northern Ireland Income Tax rates. This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
+          - link "Save tax now" [ref=f135e86] [cursor=pointer]:
+            - /url: /savetax
+        - heading "Other ways Fyn can help you" [level=3] [ref=f135e87]
+        - generic [ref=f135e88]:
+          - article "Protection" [ref=f135e89]:
+            - heading "Protection" [level=3] [ref=f135e93]
+            - paragraph [ref=f135e94]: Analyse life insurance, critical illness, and income protection coverage gaps to ensure your family is fully protected.
+            - generic [ref=f135e95]:
+              - generic [ref=f135e96]: Life Cover
+              - generic [ref=f135e97]: Income Protection
+          - article "Savings" [ref=f135e98]:
+            - heading "Savings" [level=3] [ref=f135e102]
+            - paragraph [ref=f135e103]: Track emergency funds, ISA allowances, and savings goals across all your accounts with smart benchmarking.
+            - generic [ref=f135e104]:
+              - generic [ref=f135e105]: Emergency Fund
+              - generic [ref=f135e106]: ISA
+          - article "Investment" [ref=f135e107]:
+            - heading "Investment" [level=3] [ref=f135e111]
+            - paragraph [ref=f135e112]: Portfolio analysis, risk profiling, and Monte Carlo projections to optimise your investment strategy.
+            - generic [ref=f135e113]:
+              - generic [ref=f135e114]: Portfolio
+              - generic [ref=f135e115]: Risk Profile
+          - article "Retirement" [ref=f135e116]:
+            - heading "Retirement" [level=3] [ref=f135e120]
+            - paragraph [ref=f135e121]: Defined Contribution, Defined Benefit, and State Pension tracking with retirement income projections.
+            - generic [ref=f135e122]:
+              - generic [ref=f135e123]: Pension
+              - generic [ref=f135e124]: State Pension
+          - article "Estate planning" [ref=f135e125]:
+            - heading "Estate" [level=3] [ref=f135e129]
+            - paragraph [ref=f135e130]: Inheritance Tax calculations, gifting strategies, and estate value projections for effective planning.
+            - generic [ref=f135e131]:
+              - generic [ref=f135e132]: Inheritance Tax
+              - generic [ref=f135e133]: Trusts
+          - article "Net worth" [ref=f135e134]:
+            - heading "Net Worth" [level=3] [ref=f135e138]
+            - paragraph [ref=f135e139]: Complete balance sheet with properties, assets, and liabilities tracking for a clear financial picture.
+            - generic [ref=f135e140]:
+              - generic [ref=f135e141]: Assets
+              - generic [ref=f135e142]: Liabilities
+        - generic [ref=f135e143]:
+          - link "View detailed list of features ›" [ref=f135e144] [cursor=pointer]:
+            - /url: /features
+          - generic [aria-hidden] [ref=f135e145]: "|"
+          - link "View demos ›" [ref=f135e146] [cursor=pointer]:
+            - /url: "#"
+    - region [ref=f135e147]:
+      - generic [ref=f135e148]:
+        - heading "Your Fynla dashboard" [level=2] [ref=f135e149]
+        - button "Play Fynla dashboard product tour video" [ref=f135e150] [cursor=pointer]:
+          - generic [ref=f135e151]: Your browser does not support the video tag.
+    - region [ref=f135e156]:
+      - generic [ref=f135e157]:
+        - heading "What our customers say" [level=2] [ref=f135e158]
+        - generic [ref=f135e160]:
+          - generic [ref=f135e161]:
+            - generic [ref=f135e162]:
+              - paragraph [ref=f135e174]: "\"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed — very technical analysis of workplace pension options broken down in a very easy to understand way.\""
+              - generic [ref=f135e175]: Stephen D.
+            - generic [ref=f135e176]:
+              - paragraph [ref=f135e188]: "\"It was so easy to see all my finances in one place. I had all current and savings accounts in different locations and had no idea what to do with my money. Fyn was really helpful in getting my information into Fynla, and then I had clear next steps on what I needed to do with my money.\""
+              - generic [ref=f135e189]: Mia R.
+            - generic [ref=f135e190]:
+              - paragraph [ref=f135e202]: "\"Fynla has been a useful way to get a clearer picture of my finances without it feeling overwhelming. It pulls everything into one place, making it much easier to see where things stand. The recommendations are sensible and practical, giving me clear next steps rather than trying to do everything at once.\""
+              - generic [ref=f135e203]: Anne L.
+          - generic [ref=f135e204]:
+            - generic [ref=f135e205]:
+              - paragraph [ref=f135e217]: "\"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save £1,400 a year!\""
+              - generic [ref=f135e218]: Neil S.
+            - generic [ref=f135e219]:
+              - paragraph [ref=f135e231]: "\"Finally, everything in one place. Our family's assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless — intuitive, genuinely useful, and asks exactly the right questions. I can't imagine going back to spreadsheets.\""
+              - generic [ref=f135e232]: Ron B.
+            - generic [ref=f135e233]:
+              - paragraph [ref=f135e245]: "\"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules — ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly.\""
+              - generic [ref=f135e246]: Michael H.
+        - group "Carousel navigation" [ref=f135e247]:
+          - button "Previous reviews" [ref=f135e248] [cursor=pointer]
+          - tablist "Review pages" [ref=f135e251]:
+            - tab "Page 1" [ref=f135e399] [cursor=pointer]
+            - tab "Page 2" [selected] [ref=f135e400] [cursor=pointer]
+          - button "Next reviews" [ref=f135e254] [cursor=pointer]
+    - region [ref=f135e257]:
+      - generic [ref=f135e258]:
+        - heading "Your personal journey" [level=2] [ref=f135e259]
+        - generic [ref=f135e260]:
+          - link [ref=f135e261] [cursor=pointer]:
+            - /url: /stage/starting-out
+            - paragraph [ref=f135e262]: Startingout
+            - paragraph [ref=f135e263]: Build strong financial habits for your future.
+          - link [ref=f135e264] [cursor=pointer]:
+            - /url: /stage/building-foundations
+            - paragraph [ref=f135e265]: Buildingfoundations
+            - paragraph [ref=f135e266]: Save, invest, and grow your wealth with confidence.
+          - link [ref=f135e267] [cursor=pointer]:
+            - /url: /stage/protecting-and-growing
+            - paragraph [ref=f135e268]: Protectingand growing
+            - paragraph [ref=f135e269]: Ensure your family and assets are fully covered.
+          - link [ref=f135e270] [cursor=pointer]:
+            - /url: /stage/planning-your-future
+            - paragraph [ref=f135e271]: Planningyour future
+            - paragraph [ref=f135e272]: Retirement projections, pension tracking, and estate planning.
+          - link [ref=f135e273] [cursor=pointer]:
+            - /url: /stage/enjoying-your-wealth
+            - paragraph [ref=f135e274]: Enjoyingyour wealth
+            - paragraph [ref=f135e275]: Make the most of your financial success.
+        - link "View demo" [ref=f135e277] [cursor=pointer]:
+          - /url: "#"
+    - region [ref=f135e278]:
+      - generic [ref=f135e279]:
+        - heading "Latest insights" [level=2] [ref=f135e280]
+        - generic [ref=f135e281]:
+          - link "How Much Do I Need to Retire in the UK? A Realistic Guide" [ref=f135e282] [cursor=pointer]:
+            - /url: /insights/how-much-to-retire-uk
+            - generic [ref=f135e284]:
+              - generic [ref=f135e285]: Featured
+              - heading "How Much Do I Need to Retire in the UK? A Realistic Guide" [level=3] [ref=f135e286]
+              - paragraph [ref=f135e287]: Calculate your UK retirement number using 2026 PLSA living standards. Pension pot sizes needed and how to bridge the State Pension gap.
+          - generic [ref=f135e288]:
+            - link "What Is a Stocks and Shares ISA? How It Works, Benefits & Risks" [ref=f135e289] [cursor=pointer]:
+              - /url: /insights/stocks-shares-isa-uk
+              - heading "What Is a Stocks and Shares ISA? How It Works, Benefits & Risks" [level=4] [ref=f135e292]
+            - 'link "The Ultimate Guide to ISAs in the UK: Types, Rules & Best Options" [ref=f135e293] [cursor=pointer]':
+              - /url: /insights/isa-guide-uk
+              - 'heading "The Ultimate Guide to ISAs in the UK: Types, Rules & Best Options" [level=4] [ref=f135e296]'
+        - 'link "Latest news Launching Fynla: a new personal finance platform built to change your financial future" [ref=f135e297] [cursor=pointer]':
+          - /url: /news/launching-fynla
+          - generic [ref=f135e298]: Latest news
+          - generic [ref=f135e299]: "Launching Fynla: a new personal finance platform built to change your financial future"
+        - paragraph [ref=f135e300]:
+          - link "See all insights →" [ref=f135e301] [cursor=pointer]:
+            - /url: /insights
+    - region "Fynla key statistics" [ref=f135e302]:
+      - generic [ref=f135e304]:
+        - generic [ref=f135e305]:
+          - generic [ref=f135e306]: 91%
+          - generic [ref=f135e307]: UK adults don't get financial advice
+        - generic [ref=f135e309]:
+          - generic [ref=f135e310]: 1000's
+          - generic [ref=f135e311]: of financial planscreated for people like you
+        - generic [ref=f135e313]:
+          - generic [ref=f135e314]: 30+
+          - generic [ref=f135e315]: Fynla features forfinancial planning
+  - contentinfo [ref=f135e316]:
+    - generic [ref=f135e317]:
+      - generic [ref=f135e318]:
+        - generic [ref=f135e319]:
+          - link "Fynla home" [ref=f135e320] [cursor=pointer]:
+            - /url: /
+            - img "Fynla" [ref=f135e321]
+          - paragraph [ref=f135e322]: Financial freedom mapping —your financial companion for lifethrough one single finance platform
+        - navigation "About Fynla links" [ref=f135e323]:
+          - heading "About Fynla" [level=3] [ref=f135e324]
+          - list [ref=f135e325]:
+            - listitem [ref=f135e326]:
+              - link "About us" [ref=f135e327] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=f135e328]:
+              - link "News" [ref=f135e329] [cursor=pointer]:
+                - /url: /news
+            - listitem [ref=f135e330]:
+              - link "FCA website" [ref=f135e331] [cursor=pointer]:
+                - /url: https://www.fca.org.uk
+        - navigation "Help centre links" [ref=f135e332]:
+          - heading "Help centre" [level=3] [ref=f135e333]
+          - list [ref=f135e334]:
+            - listitem [ref=f135e335]:
+              - link "Help centre" [ref=f135e336] [cursor=pointer]:
+                - /url: /help
+            - listitem [ref=f135e337]:
+              - link "FAQs" [ref=f135e338] [cursor=pointer]:
+                - /url: /faq
+            - listitem [ref=f135e339]:
+              - link "Guides and explainers" [ref=f135e340] [cursor=pointer]:
+                - /url: /learn
+            - listitem [ref=f135e341]:
+              - link "Contact us" [ref=f135e342] [cursor=pointer]:
+                - /url: /contact
+        - navigation "Legal links" [ref=f135e343]:
+          - heading "Terms" [level=3] [ref=f135e344]
+          - list [ref=f135e345]:
+            - listitem [ref=f135e346]:
+              - link "Terms & conditions" [ref=f135e347] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=f135e348]:
+              - link "Privacy policy" [ref=f135e349] [cursor=pointer]:
+                - /url: /privacy
+            - listitem [ref=f135e350]:
+              - link "Editorial policy" [ref=f135e351] [cursor=pointer]:
+                - /url: /editorial-policy
+        - navigation "Tools links" [ref=f135e352]:
+          - heading "Tools" [level=3] [ref=f135e353]
+          - list [ref=f135e354]:
+            - listitem [ref=f135e355]:
+              - link "Calculators" [ref=f135e356] [cursor=pointer]:
+                - /url: /calculators
+            - listitem [ref=f135e357]:
+              - link "Resources" [ref=f135e358] [cursor=pointer]:
+                - /url: /learn
+            - listitem [ref=f135e359]:
+              - link "View demo" [ref=f135e360] [cursor=pointer]:
+                - /url: /register?from=demo
+        - navigation "Adviser links" [ref=f135e361]:
+          - heading "Advisers" [level=3] [ref=f135e362]
+          - list [ref=f135e363]:
+            - listitem [ref=f135e364]:
+              - link "Why Fynla advisers" [ref=f135e365] [cursor=pointer]:
+                - /url: /advisors
+            - listitem [ref=f135e366]:
+              - link "Adviser features" [ref=f135e367] [cursor=pointer]:
+                - /url: /advisors?scrollTo=adviser-features
+            - listitem [ref=f135e368]:
+              - link "Adviser sign up" [ref=f135e369] [cursor=pointer]:
+                - /url: /advisors?scrollTo=adviser-signup
+      - generic [ref=f135e370]:
+        - paragraph [ref=f135e371]: © Fynla 2026
+        - generic "Social media links" [ref=f135e372]:
+          - link "Fynla on YouTube" [ref=f135e373] [cursor=pointer]:
+            - /url: https://www.youtube.com/@HelloFynla
+          - link "Fynla on Facebook" [ref=f135e376] [cursor=pointer]:
+            - /url: https://www.facebook.com/HelloFynla
+          - link "Fynla on Instagram" [ref=f135e379] [cursor=pointer]:
+            - /url: https://www.instagram.com/HelloFynla
+          - link "Fynla on TikTok" [ref=f135e382] [cursor=pointer]:
+            - /url: https://www.tiktok.com/@HelloFynla
+  - dialog "Cookie preferences" [ref=f135e385]:
+    - generic [ref=f135e387]:
+      - generic [ref=f135e392]:
+        - heading "Cookie Preferences" [level=3] [ref=f135e393]
+        - paragraph [ref=f135e394]:
+          - text: We use cookies to help analyse how you use our site. You can accept or decline.
+          - link "Privacy Policy" [ref=f135e395] [cursor=pointer]:
+            - /url: /privacy
+      - generic [ref=f135e396]:
+        - button "Accept Cookies" [ref=f135e397] [cursor=pointer]
+        - button "Decline Cookies" [ref=f135e398] [cursor=pointer]

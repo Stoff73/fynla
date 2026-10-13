@@ -1,0 +1,24 @@
+- generic [ref=f123e1]:
+  - link "Skip to main content" [ref=f123e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=f123e3]:
+    - banner [ref=f123e4]:
+      - generic [ref=f123e5]:
+        - button "Go back" [ref=f123e41] [cursor=pointer]
+        - link "Fynla home" [ref=f123e6] [cursor=pointer]:
+          - /url: /
+          - img "Fynla" [ref=f123e7]
+        - generic [ref=f123e8]: 4 of 4
+      - progressbar "Question progress" [ref=f123e9]
+    - main [ref=f123e11]:
+      - region [ref=f123e88]:
+        - heading "Which of these do you have?" [active] [level=2] [ref=f123e89]
+        - paragraph [ref=f123e90]: Select all that apply. Each one may unlock additional tax saving opportunities.
+        - group "Select all that apply" [ref=f123e91]:
+          - checkbox "Bank accounts" [ref=f123e92] [cursor=pointer]
+          - checkbox "Savings accounts" [ref=f123e97] [cursor=pointer]
+          - checkbox "Pension" [ref=f123e102] [cursor=pointer]
+          - checkbox "Property" [ref=f123e107] [cursor=pointer]
+          - checkbox "ISA" [ref=f123e112] [cursor=pointer]
+          - checkbox "Investments" [ref=f123e117] [cursor=pointer]
+    - button "See your tax insights" [ref=f123e123] [cursor=pointer]

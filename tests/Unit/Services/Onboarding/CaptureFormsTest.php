@@ -178,8 +178,9 @@ it('builds the ISA inputs: a cash ISA is a savings row, the others investment ro
 
 it('offers the four bank kinds; the rate is required on savings kinds and optional on the current account', function (): void {
     $schema = CaptureForms::schema('savings');
-    expect(array_column($schema['kinds'], 'key'))->toBe(['current_account', 'easy_access', 'fixed', 'notice'])
-        ->and(array_column($schema['kinds'], 'label'))->toBe(['Current account', 'Easy access savings', 'Fixed rate savings', 'Notice account'])
+    // T24: Premium Bonds and a child's Junior ISA follow the four bank kinds.
+    expect(array_column($schema['kinds'], 'key'))->toBe(['current_account', 'easy_access', 'fixed', 'notice', 'premium_bonds', 'junior_isa'])
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['Current account', 'Easy access savings', 'Fixed rate savings', 'Notice account', 'Premium Bonds', 'Junior ISA'])
         ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_savings_account'])
         ->and($schema['kinds'][0]['fields'])->toContain('current_account_interest_rate')->not->toContain('interest_rate')
         ->and($schema['kinds'][1]['fields'])->toContain('interest_rate')
@@ -260,15 +261,16 @@ it('the three account steps are form turns owned by the corpus with short lead-i
         ->and([$bank['turn_type'], $bank['form'], $bank['form_prompt_text'], $bank['next']])->toBe(['form', 'savings', 'Now your bank and savings accounts.', 'campaign_bank_accounts_more'])
         ->and([$inv['turn_type'], $inv['form'], $inv['form_prompt_text'], $inv['next']])->toBe(['form', 'investment', 'Now your investments.', 'campaign_investment_accounts_more'])
         ->and($isa['prompt_text'])->toContain('Cash, Stocks & Shares, Lifetime')
-        ->and($bank['skip_if'])->toBe([OnboardingStateMachine::class, 'skipIfNoBankOrSavings'])
+        ->and($bank['skip_if'])->toBe([OnboardingStateMachine::class, 'skipBankAccounts'])
         ->and($bank['record_context'])->toBe('savings');
 });
 
 it('offers a workplace pension and a personal pension or SIPP, both through create_pension', function (): void {
     $schema = CaptureForms::schema('pension');
-    expect(array_column($schema['kinds'], 'key'))->toBe(['workplace', 'personal'])
-        ->and($schema['kinds_prompt'])->toBe('A SIPP is a Self-Invested Personal Pension.')
-        ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP'])
+    // T24 (Q24): the defined benefit kind follows them.
+    expect(array_column($schema['kinds'], 'key'))->toBe(['workplace', 'personal', 'defined_benefit'])
+        ->and($schema['kinds_prompt'])->toBe('A SIPP is a Self-Invested Personal Pension. A final salary or career average pension pays a set income for life rather than building a pot.')
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP', 'Final salary or career average pension'])
         ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_pension'])
         ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice', 'beneficiary_name'])
         ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken', 'beneficiary_name'])
@@ -560,4 +562,26 @@ it('asks what the spouse does on the working-spouse form, and writes it with the
     expect(CaptureForms::rules('spouse_household')['_lead.spouse_employment_status'])->toBe(['required_with:_lead', 'in:full_time,part_time,self_employed,retired,unemployed'])
         ->and(CaptureForms::toolInputs($form)['_lead'])->toMatchArray(['spouse_employment_status' => 'retired', 'spouse_annual_income' => 30000.0])
         ->and(CaptureForms::summarise($form))->toStartWith('My spouse is retired, their income is £30,000 a year');
+});
+
+// T21 (walk 2026-10-11, M4, #3893): Tom chose Self-employed and typed "profit
+// about £55k last year"; the form asked for "Gross annual income … including
+// bonuses and commissions" and his line read "I earn £55,000 a year". The
+// handler counts it as self-employment income (CoordinatingAgent
+// handleCaptureWorkDetails), and a sole trader's taxable figure is profit:
+// income less allowable expenses (gov.uk/expenses-if-youre-self-employed).
+it('says profit on the work form and its line for a self-employed user', function (): void {
+    $selfEmployed = (new User)->forceFill(['employment_status' => 'self_employed']);
+    $employed = (new User)->forceFill(['employment_status' => 'employed']);
+
+    $field = CaptureForms::workFor($selfEmployed)['fields']['annual_income'];
+    expect($field['label'])->toBe('Annual profit')
+        ->and($field['hint'])->toBe('What the business takes in, less allowable expenses, before tax')
+        ->and(CaptureForms::workFor($employed))->toBe(CaptureForms::schema(CaptureForms::WORK));
+
+    $form = ['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Okafor Consulting', 'occupation' => 'IT consultant', 'annual_income' => 55000]]];
+    expect(CaptureForms::summarise($form, $selfEmployed))->toBe('My job is IT consultant, trading as Okafor Consulting, and my profit is £55,000 a year.')
+        ->and(CaptureForms::summarise(['name' => 'work', 'answers' => ['_lead' => ['employer' => 'Okafor Consulting', 'annual_income' => 55000.5]]], $selfEmployed))->toBe('I trade as Okafor Consulting and my profit is £55,000.50 a year.')
+        ->and(CaptureForms::summarise($form, $employed))->toBe('My job is IT consultant at Okafor Consulting and I earn £55,000 a year.')
+        ->and(CaptureForms::summarise($form))->toBe('My job is IT consultant at Okafor Consulting and I earn £55,000 a year.');
 });

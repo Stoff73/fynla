@@ -1,0 +1,117 @@
+- iframe [active] [ref=f131e3]:
+  - generic [ref=f132e3]:
+    - generic [ref=f132e1481]:
+      - banner [ref=f132e1482]:
+        - button "Open menu" [ref=f132e1483] [cursor=pointer]
+        - paragraph [ref=f132e1487]: Good afternoon, Robin
+      - main [ref=f132e1488]:
+        - generic [ref=f132e1489]:
+          - heading "Tax Strategy" [level=1] [ref=f132e1490]
+          - paragraph [ref=f132e1491]: Your allowances and tax-saving actions
+        - button "Edit details" [ref=f132e1493] [cursor=pointer]
+        - paragraph [ref=f132e1495]: Here's your personal tax strategy, Robin. From what you told us, we've found around £7,378 a year you could keep. Open any strategy to see the steps, or ask Fyn about it.
+        - generic [ref=f132e1496]:
+          - paragraph [ref=f132e1497]: Recommended actions
+          - generic [ref=f132e1498]:
+            - article [ref=f132e1499]:
+              - generic [ref=f132e1500]:
+                - heading [level=3] [ref=f132e1502]:
+                  - link "Pay £17,700 more into your pension and save £7,080 in tax" [ref=f132e1503] [cursor=pointer]:
+                    - /url: /m/app/actions/tax_pension_tax_relief
+                - generic [ref=f132e1504]:
+                  - generic [ref=f132e1505]: Saves
+                  - generic [ref=f132e1506]: £7,080
+                  - generic [ref=f132e1507]: a year
+              - paragraph [ref=f132e1508]: Pension contributions get tax relief at your highest rate. £17,700 of your income is taxed at 40%, so paying that amount into a pension saves £7,080 this year. A workplace scheme gives the relief through your pay; for a personal pension the provider adds 20% and you claim the rest through Self Assessment.
+              - button "Mark as done" [ref=f132e1510] [cursor=pointer]
+            - article [ref=f132e1511]:
+              - generic [ref=f132e1512]:
+                - heading [level=3] [ref=f132e1514]:
+                  - link "Reclaim £120 on your Gift Aid donations via Self Assessment" [ref=f132e1515] [cursor=pointer]:
+                    - /url: /m/app/actions/tax_gift_aid_higher_rate_relief
+                - generic [ref=f132e1516]:
+                  - generic [ref=f132e1517]: Saves
+                  - generic [ref=f132e1518]: £120
+                  - generic [ref=f132e1519]: a year
+              - paragraph [ref=f132e1520]: You give around £480 a year through Gift Aid. The charity already reclaims basic-rate tax — but as a higher-rate taxpayer you can claim back another £120 yourself when you file your Self Assessment.
+              - button "Mark as done" [ref=f132e1522] [cursor=pointer]
+            - article [ref=f132e1523]:
+              - generic [ref=f132e1524]:
+                - heading [level=3] [ref=f132e1526]:
+                  - link "Wrap £6,235 of cash savings inside an ISA before 5 April" [ref=f132e1527] [cursor=pointer]:
+                    - /url: /m/app/actions/tax_isa_topup_vs_psa
+                - generic [ref=f132e1528]:
+                  - generic [ref=f132e1529]: Saves
+                  - generic [ref=f132e1530]: £106
+                  - generic [ref=f132e1531]: a year
+              - paragraph [ref=f132e1532]: You hold £18,000 of non-ISA cash producing £765 of annual interest, of which £265 is above your £500 Savings Allowance. Wrapping £6,235 in an ISA shelters that taxable interest — saving around £106 a year while the captured rates and tax position remain the same. Start with Nationwide, where the captured rate is highest.
+              - generic [ref=f132e1533]:
+                - button "Open savings" [ref=f132e1534] [cursor=pointer]
+                - button "Mark as done" [ref=f132e1535] [cursor=pointer]
+            - article [ref=f132e1536]:
+              - generic [ref=f132e1537]:
+                - heading [level=3] [ref=f132e1539]:
+                  - link "Save around £72 a year by moving your pension contributions to salary sacrifice" [ref=f132e1540] [cursor=pointer]:
+                    - /url: /m/app/actions/tax_salary_sacrifice_ni
+                - generic [ref=f132e1541]:
+                  - generic [ref=f132e1542]: Saves
+                  - generic [ref=f132e1543]: £72
+                  - generic [ref=f132e1544]: a year
+              - paragraph [ref=f132e1545]: Switching your £3,600 annual workplace pension contribution to salary sacrifice saves £72 in National Insurance every year, with no change to your take-home pay.
+              - generic [ref=f132e1546]:
+                - button "Open retirement" [ref=f132e1547] [cursor=pointer]
+                - button "Mark as done" [ref=f132e1548] [cursor=pointer]
+        - generic [ref=f132e1549]:
+          - paragraph [ref=f132e1550]: Allowances with potential headroom
+          - paragraph [ref=f132e1551]: "3"
+          - paragraph [ref=f132e1552]: Review each allowance below. The amounts have different tax meanings and are not additive.
+          - paragraph [ref=f132e1553]: Income Tax bands use England, Wales and Northern Ireland rates. Scottish Income Tax bands are not modelled in this journey.
+        - generic [ref=f132e1554]:
+          - paragraph [ref=f132e1555]: Allowances
+          - generic [ref=f132e1556]:
+            - generic [ref=f132e1557]:
+              - generic [ref=f132e1558]: Personal Allowance
+              - generic [ref=f132e1559]: of £12,570
+            - generic [ref=f132e1562]:
+              - generic [ref=f132e1563]: Fully used
+              - generic [ref=f132e1564]: £12,570 used
+          - generic [ref=f132e1565]:
+            - generic [ref=f132e1566]:
+              - generic [ref=f132e1567]: Savings Allowance
+              - generic [ref=f132e1568]: of £500
+            - generic [ref=f132e1571]:
+              - generic [ref=f132e1572]: Fully used
+              - generic [ref=f132e1573]: £500 used
+          - generic [ref=f132e1574]:
+            - generic [ref=f132e1575]:
+              - generic [ref=f132e1576]: ISA Allowance
+              - generic [ref=f132e1577]: of £20,000
+            - generic [ref=f132e1580]:
+              - generic [ref=f132e1581]: £12,000 available
+              - generic [ref=f132e1582]: £8,000 used
+          - generic [ref=f132e1583]:
+            - generic [ref=f132e1584]:
+              - generic [ref=f132e1585]: Capital Gains Tax Allowance
+              - generic [ref=f132e1586]: of £3,000
+            - generic [ref=f132e1588]: Current-year use not confirmed
+          - generic [ref=f132e1590]:
+            - generic [ref=f132e1591]:
+              - generic [ref=f132e1592]: Dividend Allowance
+              - generic [ref=f132e1593]: of £500
+            - generic [ref=f132e1595]:
+              - generic [ref=f132e1596]: £500 available
+              - generic [ref=f132e1597]: £0 used
+          - generic [ref=f132e1598]:
+            - generic [ref=f132e1599]:
+              - generic [ref=f132e1600]: Pension Annual Allowance
+              - generic [ref=f132e1601]: of £60,000
+            - generic [ref=f132e1604]:
+              - generic [ref=f132e1605]: £29,171 available
+              - generic [ref=f132e1606]: £7,200 used
+            - paragraph [ref=f132e1607]: Limited to what you can afford this year
+        - button "See all your actions to get more for your money" [ref=f132e1608] [cursor=pointer]
+      - button "Chat with Fyn" [ref=f132e1610] [cursor=pointer]:
+        - generic [ref=f132e1612]:
+          - generic [ref=f132e1613]: Fyn
+          - generic [ref=f132e1614]: Your financial companion
+    - button "Report a problem" [ref=f132e188] [cursor=pointer]

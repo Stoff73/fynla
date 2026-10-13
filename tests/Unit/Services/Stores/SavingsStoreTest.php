@@ -299,3 +299,33 @@ it('SavingsStore::create still rejects attaching a joint owner who is not the re
 
     expect(SavingsAccount::count())->toBe(0);
 });
+
+it('fills the ISA type a Cash ISA implies when none is given, on create and update (walk R32)', function () {
+    // Fyn's form saves account_type cash_isa with no isa_type; the web form
+    // set it in the browser, so Fyn's Cash ISAs showed "ISA Type:" blank.
+    $user = User::factory()->create();
+    $store = app(SavingsStore::class);
+
+    $account = $store->create([
+        'account_name' => 'Nationwide Cash ISA', 'account_type' => 'cash_isa', 'institution' => 'Nationwide',
+        'current_balance' => 5000, 'is_isa' => true, 'ownership_type' => 'individual', 'country' => 'United Kingdom',
+    ], $user, IngestSource::FYN_AI);
+
+    expect($account->fresh()->isa_type)->toBe('cash');
+
+    $account->forceFill(['isa_type' => null])->saveQuietly();
+    $updated = $store->update($account->id, ['current_balance' => 5500], $user, IngestSource::FYN_AI);
+
+    expect($updated->isa_type)->toBe('cash');
+});
+
+it('keeps an ISA type that was given', function () {
+    $user = User::factory()->create();
+
+    $account = app(SavingsStore::class)->create([
+        'account_name' => 'Lifetime ISA', 'account_type' => 'cash_isa', 'institution' => 'Moneybox',
+        'current_balance' => 4000, 'is_isa' => true, 'isa_type' => 'LISA', 'ownership_type' => 'individual', 'country' => 'United Kingdom',
+    ], $user, IngestSource::FORM);
+
+    expect($account->fresh()->isa_type)->toBe('LISA');
+});

@@ -81,6 +81,27 @@ export default {
     },
   },
   methods: {
+    // T58 (CSJ 2026-10-12): while bubbles that answer the step are waiting,
+    // the answer is a tap, so the chat box is disabled. Answered bubbles are
+    // removed on send, so the newest bubbles are the waiting ones. A
+    // navigation, plans, skip or try-again bubble alone, or an open form
+    // after the bubbles, leaves the box open. Methods, not computed: the
+    // stream fills a pushed reply's bubbles in place (cursor.reply), outside
+    // reactivity, so a cached computed never saw them; read at render, as the
+    // template reads the bubbles themselves.
+    awaitingBubbleAnswer() {
+      for (let i = this.messages.length - 1; i >= 0; i--) {
+        const m = this.messages[i];
+        if (m?.form && m.form.schema && !m.form.locked) return false;
+        if (m?.bubbles && m.bubbles.length) {
+          return m.bubbles.some((b) => b && !b.route && !b.action && !b.retry && b.id !== 'subscription_options');
+        }
+      }
+      return false;
+    },
+    fynInputPlaceholder() {
+      return this.awaitingBubbleAnswer() ? 'Pick one of the options above' : 'Ask Fyn anything...';
+    },
     // Render a Fyn bubble's text: escape HTML, then turn **bold** into <strong>
     // (the SaveTax onboarding bolds the question line). Used via v-html in the
     // dock + dashboard bubble templates.
@@ -550,7 +571,7 @@ export default {
       }
       if (ev.type === 'token_limit') {
         cursor.got = true;
-        cursor.reply.text = ev.message || "You've reached your daily Fyn usage limit.";
+        cursor.reply.text = ev.message || "You've reached your weekly Fyn usage limit.";
         this.$nextTick(this.scrollFyn);
         return;
       }
@@ -756,6 +777,9 @@ export default {
       // "Try again" re-sends the cut-off turn's id (FynTurnLedger).
       const turnId = retryTurnId || newTurnId();
       if ((!form && !text) || this.sending) return;
+      // Typed text while answer bubbles wait goes nowhere (T58); a tap
+      // arrives as `preset`.
+      if (!preset && !form && this.awaitingBubbleAnswer()) return;
       this.sending = true;
       this.draft = '';
       // Prior bubbles are now answered — remove them so they can't be re-tapped.

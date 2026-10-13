@@ -127,6 +127,19 @@ export function userSharePercent(item, viewerId = null) {
 }
 
 /**
+ * THIS VIEWER's share as text for a label: "50", "33.33". At most two
+ * decimals and no trailing zeros, the one format every surface shows
+ * (walk R14/R26: "Your 50.00% of £40,000", "Your share (50.00%)").
+ *
+ * @param {Object} item - The asset item
+ * @param {number|null} viewerId - The logged-in user's id, when known
+ * @returns {string}
+ */
+export function sharePercentText(item, viewerId = null) {
+  return String(Number(userSharePercent(item, viewerId).toFixed(2)));
+}
+
+/**
  * The value of the asset THIS VIEWER owns.
  *
  * Returns the API's `user_share` when present — that is the authoritative

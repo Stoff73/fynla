@@ -25,6 +25,21 @@ describe('/m freemium 5.1 — module payloads surface the free-tier cap', functi
             ->assertJsonPath('data.account_limit', 2);
     });
 
+    it('counts a Cash ISA with the investments, not the bank accounts, on GET /api/savings (walk R37)', function () {
+        // fynla.org, Casey: one bank account and one Cash ISA; the web "Add"
+        // counted both against the bank-account cap and refused as "2 of 2".
+        $user = User::factory()->create(['tier' => 'free']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false]);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+
+        $this->actingAs($user, 'sanctum')->getJson('/api/savings')
+            ->assertOk()
+            ->assertJsonPath('data.account_count', 1)
+            ->assertJsonPath('data.account_limit', 2)
+            ->assertJsonPath('data.isa_count', 1)
+            ->assertJsonPath('data.isa_limit', 2);
+    });
+
     it('exposes the investment cap (2) on GET /api/investment', function () {
         $user = User::factory()->create(['tier' => 'free']);
 

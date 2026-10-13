@@ -103,6 +103,18 @@ declare(strict_types=1);
  *   - docs/sprint-0-verification/BS-13/01-token-limit-notice-docked.png
  *   - docs/sprint-0-verification/BS-13/02-token-limit-notice-modal.png
  */
+/**
+ * Amendment (2026-10-12, T48, CSJ: "lets replace both, with 750k and 3
+ * million, so we only have one limit", "yes per week please"):
+ *   - Seed: the cap is the tier's fyn_weekly_token_budget (Free 750,000,
+ *     Premium 3,000,000) summed over the rolling week (today + 6 prior
+ *     days of ai_daily_usage). There is no daily backstop any more.
+ *   - The notice heading is the server's message, "You've reached your
+ *     weekly Fyn usage limit."; the reset is the first midnight at which the
+ *     week's total falls under the limit, so it can be days away ("2d 4h").
+ *   - Input placeholder: "Fyn usage limit reached — resets in <countdown>".
+ *   - The text regex above still holds ("allowance resets in").
+ */
 it('BS-13 token-limit system message', function (): void {
     $this->markPendingInteractiveRun('BS-13');
 });

@@ -16,6 +16,7 @@ use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
 use App\Support\HouseholdPooling;
+use App\Support\Money;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -789,12 +790,100 @@ class IHTCalculationService
         $pensionAmendment = $this->calculatePensionAmendmentScenario($user, $spouse, $dataSharingEnabled, $result, $assessment);
         $result['pension_amendment'] = $pensionAmendment;
 
+        // The steps behind the figure, from the figures above (walk fix plan T12).
+        $result['working'] = $this->working($result, $poolsSpouse, $this->hasSpousalStatus($user) && ! $poolsSpouse);
+
         // 10. Save to database (opt-in only — see method docblock).
         if ($persist) {
             $this->saveCalculation($user, $result, $userAssets, $spouseAssets, $userLiabilities, $spouseLiabilities);
         }
 
         return $result;
+    }
+
+    /**
+     * The steps behind the estate figure, each one a figure this calculation
+     * published, so a reader (and Fyn) can follow it rather than work it out:
+     * the estate, the nil rate band and residence band in this service's own
+     * sentences, the allowances together, what is taxable, the rate and the
+     * tax, then the projection at the expected age of death (walk fix plan
+     * T12, M8 and Q8). Taxable is the net estate less the allowances and any
+     * charitable exemption (`assessTaxPosition`), and the tax is the taxable
+     * estate at the rate, less quick succession relief (IHTA 1984 s141).
+     *
+     * @param  array<string, mixed>  $result
+     * @return list<string>
+     */
+    private function working(array $result, bool $poolsSpouse, bool $spouseLeftOut): array
+    {
+        $deductions = [];
+        if ((float) $result['total_liabilities'] > 0) {
+            $deductions[] = 'debts of '.Money::exact((float) $result['total_liabilities']);
+        }
+        if ((float) $result['business_relief_deduction'] > 0) {
+            $deductions[] = 'business relief of '.Money::exact((float) $result['business_relief_deduction']);
+        }
+        $lines = [sprintf(
+            '%s %s: assets of %s%s.',
+            $poolsSpouse ? 'Your estate and your spouse\'s together are' : 'Your estate is',
+            Money::exact((float) $result['total_net_estate']),
+            Money::exact((float) $result['total_gross_assets']),
+            $deductions === [] ? ', with no debts recorded' : ' less '.implode(' and ', $deductions),
+        )];
+        if ($spouseLeftOut) {
+            $lines[] = 'Only your own estate is counted, because your spouse\'s records are not linked to and shared with your account.';
+        }
+        $lines[] = (string) $result['nrb_message'];
+        $lines[] = (string) $result['rnrb_message'];
+        if ((float) $result['charitable_deduction'] > 0) {
+            $lines[] = sprintf('Gifts to charity in the will are exempt and take off %s.', Money::exact((float) $result['charitable_deduction']));
+        }
+
+        $taxable = (float) $result['taxable_estate'];
+        $allowances = Money::exact((float) $result['total_allowances']);
+        if ($taxable <= 0) {
+            $lines[] = sprintf('Together the allowances come to %s, which covers the whole estate, so there is no Inheritance Tax to pay.', $allowances);
+        } else {
+            $lines[] = sprintf('Together the allowances come to %s, so %s is taxable.', $allowances, Money::exact($taxable));
+            $relief = (float) $result['quick_succession_relief'];
+            $lines[] = sprintf('At %d%% that is %s.', (int) $result['iht_rate_percent'], Money::exact($relief > 0 ? $taxable * (float) $result['iht_rate'] : (float) $result['iht_liability']));
+            if ($relief > 0) {
+                $lines[] = sprintf('Quick succession relief takes off %s, leaving %s.', Money::exact($relief), Money::exact((float) $result['iht_liability']));
+            }
+        }
+        if ((float) $result['failed_gift_tax'] > 0) {
+            // IHTA 1984 s199(1)(b): the person who received the gift is liable.
+            $lines[] = sprintf(
+                'Separately, gifts made in the last %d years carry %s of tax, which the people who received them pay.',
+                (int) ($this->taxConfig->getPETRules()['years_to_exemption'] ?? 7),
+                Money::exact((float) $result['failed_gift_tax']),
+            );
+        }
+        if (is_string($result['unmodelled_relief_caveat'] ?? null)) {
+            $lines[] = $result['unmodelled_relief_caveat'];
+        }
+        if ((int) ($result['years_to_death'] ?? 0) > 0) {
+            $lines[] = sprintf(
+                'Looking ahead to age %d, in %d years, the estate is projected at %s; %s of it is taxable and the tax is %s.',
+                (int) $result['estimated_age_at_death'],
+                (int) $result['years_to_death'],
+                Money::exact((float) $result['projected_net_estate']),
+                Money::exact((float) $result['projected_taxable_estate']),
+                Money::exact((float) $result['projected_iht_liability']),
+            );
+            // Why the projection is what it is, in this service's own words
+            // (an estate projected at £0 with no reason given, Robin 509).
+            foreach ((array) ($result['projected_cash_assumptions'] ?? []) as $assumption) {
+                if (is_string($assumption) && $assumption !== '') {
+                    $lines[] = $assumption;
+                }
+            }
+            if ((float) ($result['projected_cash_shortfall'] ?? 0) > 0) {
+                $lines[] = sprintf('On those assumptions, spending uses up the cash before then, with %s more needed.', Money::exact((float) $result['projected_cash_shortfall']));
+            }
+        }
+
+        return $lines;
     }
 
     /**

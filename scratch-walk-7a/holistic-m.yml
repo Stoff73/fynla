@@ -1,0 +1,17 @@
+- generic [ref=f174e3]:
+  - generic [ref=f174e4]:
+    - banner [ref=f174e5]:
+      - button "Open menu" [ref=f174e6] [cursor=pointer]
+      - paragraph [ref=f174e10]: Good evening, there
+    - main [ref=f174e11]:
+      - generic [ref=f174e12]:
+        - heading "Holistic Plan" [level=1] [ref=f174e13]
+        - paragraph [ref=f174e14]: Your whole plan, ranked against what you can afford
+      - status [ref=f174e15]:
+        - generic [ref=f174e18]: £
+        - paragraph [ref=f174e19]: Loading your holistic plan…
+    - button "Chat with Fyn" [ref=f174e21] [cursor=pointer]:
+      - generic [ref=f174e23]:
+        - generic [ref=f174e24]: Fyn
+        - generic [ref=f174e25]: Your financial companion
+  - button "Report a problem" [ref=f174e29] [cursor=pointer]

@@ -6,6 +6,7 @@ namespace App\Services\Onboarding;
 
 use App\Exceptions\FinancialCalculationException;
 use App\Exceptions\SpouseCollisionException;
+use App\Exceptions\SpouseInviteLimitException;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
@@ -362,8 +363,9 @@ class OnboardingService
         // belongs to another household, or to the user themselves — is logged
         // and skipped, exactly as this method did before delegating.
         try {
+            app(SpouseLinkingService::class)->guardInviteRate($user);
             app(SpouseLinkingService::class)->linkOrCreateSpouse($user, $spouseData);
-        } catch (SpouseCollisionException|\InvalidArgumentException $e) {
+        } catch (SpouseCollisionException|SpouseInviteLimitException|\InvalidArgumentException $e) {
             Log::warning('[OnboardingService] Spouse linking skipped: '.$e->getMessage(), [
                 'user_id' => $user->id,
             ]);

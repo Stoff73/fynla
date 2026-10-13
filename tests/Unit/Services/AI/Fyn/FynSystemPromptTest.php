@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\Fyn\FynSystemPrompt;
 
 it('is byte-stable across calls and arg-free', function (): void {
@@ -67,4 +68,43 @@ it('never instructs Advice Fyn to call the stripped navigation tool', function (
         ->not->toContain('using navigate_to_page')
         ->not->toContain('Use navigate_to_page with')
         ->toContain("use a navigation tool only when one is present in the current turn's catalogue");
+});
+
+/*
+ * Fix plan T5 (F20, P5, Q5, Q10): the TOP-PRIORITY handoff rule had no
+ * exception for a question, so the model handed questions that quote figures
+ * to capture ("these figures are not in the stored records and need capturing
+ * before analysis", csjones T2 walk #22766) and blank add forms opened.
+ */
+it('applies the capture handoff to statements only (fix plan T5)', function (): void {
+    $guidance = FynSystemPrompt::handoffGuidance();
+
+    expect(FynSystemPrompt::text())->toContain($guidance)
+        ->and($guidance)->toContain('A question is never a write')
+        ->and($guidance)->toContain('`what_if_scenario`')
+        ->and($guidance)->not->toContain('{{');
+});
+
+it('gives the legacy prompt the same handoff rule, from one place (Rule 20)', function (): void {
+    $method = new ReflectionMethod(AdvicePromptBuilder::class, 'getHandoffGuidance');
+    $method->setAccessible(true);
+
+    expect($method->invoke(app(AdvicePromptBuilder::class)))->toBe(FynSystemPrompt::handoffGuidance());
+});
+
+it('treats asking which figure is on file as a question, not a correction (fix plan T5, Q10)', function (): void {
+    expect(FynSystemPrompt::text())->toContain('Asking which figure is on file is a question');
+});
+
+// Walk fix plan T13 (Q13): a figure from earlier in the conversation is
+// quoted from what the user wrote, or said to be out of view; never invented.
+it('carries the recall rule', function (): void {
+    expect(FynSystemPrompt::text())
+        ->toContain('call search_conversation_index with the words to look for and quote what they wrote')
+        ->toContain('Never supply a figure the user did not give.');
+});
+
+// Walk fix plan T14 (M5): Fyn names the source of a <knowledge> fact it uses.
+it('tells Fyn to name the source of a knowledge fact', function (): void {
+    expect(FynSystemPrompt::text())->toContain('When you use a fact from <knowledge>, name its source in plain words');
 });

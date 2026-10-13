@@ -239,9 +239,15 @@ describe("the linked partner's holdings are on their own account", function (): 
     });
 });
 
+/** The asset bubbles answered, so spouse income is the first question left (T22: the bubbles come first). */
+function withAssetsAnswered(User $user): void
+{
+    $user->forceFill(['funnel_answers' => [...(array) $user->funnel_answers, 'assets' => ['bank']]])->save();
+}
+
 describe('when the link cannot answer, the questions are asked as before', function (): void {
     it('asks a married user with no linked account', function (): void {
-        $user = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'employment_status' => 'full_time', 'household_calculation_mode' => null, 'funnel_answers' => ['campaign' => 'savetax']]);
+        $user = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'employment_status' => 'full_time', 'household_calculation_mode' => null, 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank']]]);
 
         expect(OnboardingStateMachine::firstMissingFunnelState($user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME)
             ->and(OnboardingStateMachine::applySkipRules(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK, $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK)
@@ -251,6 +257,7 @@ describe('when the link cannot answer, the questions are asked as before', funct
     it('asks when the couple do not share financial data', function (): void {
         [$sam, $alex] = linkedSpouseOnboardingCouple();
         SpousePermission::create(['user_id' => $sam->id, 'spouse_id' => $alex->id, 'status' => 'rejected']);
+        withAssetsAnswered($alex);
 
         expect(app(HouseholdFinancialContext::class)->linkedSpouseEarnings($alex->fresh()))->toBeNull()
             ->and(OnboardingStateMachine::firstMissingFunnelState($alex->fresh()))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME)
@@ -259,6 +266,7 @@ describe('when the link cannot answer, the questions are asked as before', funct
 
     it("asks when the linked partner's record holds no earnings", function (): void {
         [, $alex] = linkedSpouseOnboardingCouple(samIncome: 0);
+        withAssetsAnswered($alex);
 
         expect(app(HouseholdFinancialContext::class)->linkedSpouseEarnings($alex))->toBeNull()
             ->and(OnboardingStateMachine::firstMissingFunnelState($alex))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME)

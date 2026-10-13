@@ -282,13 +282,13 @@
 
       <!-- Token-limit reached — distinct violet system notice (BS-13).
            v-if takes precedence over the error banner so the legitimate
-           daily-cap message is never overwritten by the empty-response
-           fallback in aiChat.js. -->
+           weekly-limit message is never overwritten by the empty-response
+           fallback in aiChat.js. The heading is the server's message (T48). -->
       <div
         v-if="tokenLimitReached"
         class="p-4 bg-violet-50 border border-violet-200 rounded-lg text-sm text-horizon-500"
       >
-        <p class="font-semibold mb-2">You've reached your daily Fyn usage limit</p>
+        <p class="font-semibold mb-2">{{ tokenLimitMessage }}</p>
         <p class="text-neutral-500">
           Your allowance resets in
           <span class="font-semibold text-violet-600">{{ resetCountdown }}</span>
@@ -414,13 +414,13 @@
             @keydown.enter.exact.prevent="send"
             :placeholder="inputPlaceholder"
             :rows="docked ? undefined : 1"
-            :disabled="streaming || loading || tokenLimitReached"
+            :disabled="streaming || loading || tokenLimitReached || awaitingBubbleAnswer"
             :class="[
               'flex-1 resize-none rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:bg-savannah-100 disabled:cursor-not-allowed',
               docked
                 ? 'min-w-0 h-full border border-light-gray text-horizon-500 placeholder-neutral-500 py-2.5'
                 : 'border border-horizon-300',
-              { 'opacity-60': streaming || tokenLimitReached }
+              { 'opacity-60': streaming || tokenLimitReached || awaitingBubbleAnswer }
             ]"
           ></textarea>
           <button
@@ -452,7 +452,6 @@ import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 import FynCaptureForm from '@/components/Fyn/FynCaptureForm.vue';
 
 import analyticsService from '@/services/analyticsService';
-import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
 import { fynIconUrl } from '@/constants/fynIcon';
 import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
 
@@ -507,6 +506,7 @@ export default {
             'error',
             'retryTurn',
             'tokenLimitReached',
+            'tokenLimitMessage',
             'secondsUntilReset',
             'showHistory',
             'pendingNavigation',
@@ -527,7 +527,8 @@ export default {
         },
 
         inputPlaceholder() {
-            if (this.tokenLimitReached) return 'Daily limit reached — resets at midnight';
+            if (this.tokenLimitReached) return `Fyn usage limit reached — resets in ${this.resetCountdown}`;
+            if (this.awaitingBubbleAnswer) return 'Pick one of the options above';
             return 'Ask Fyn...';
         },
 
@@ -580,8 +581,11 @@ export default {
 
         resetCountdown() {
             if (!this.countdownSeconds || this.countdownSeconds <= 0) return 'shortly';
-            const hours = Math.floor(this.countdownSeconds / 3600);
+            // The limit is per rolling week (T48), so a reset can be days away.
+            const days = Math.floor(this.countdownSeconds / 86400);
+            const hours = Math.floor((this.countdownSeconds % 86400) / 3600);
             const minutes = Math.floor((this.countdownSeconds % 3600) / 60);
+            if (days > 0) return `${days}d ${hours}h`;
             if (hours > 0) return `${hours}h ${minutes}m`;
             return `${minutes}m`;
         },
@@ -606,7 +610,19 @@ export default {
         },
 
         canSend() {
-            return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading && !this.tokenLimitReached;
+            return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading && !this.tokenLimitReached && !this.awaitingBubbleAnswer;
+        },
+
+        // T58 (CSJ 2026-10-12): while bubbles that answer the step are
+        // waiting, the answer is a tap, so the chat box is disabled. A
+        // navigation bubble alone ("Take me to my tax strategy"), a
+        // bubble-less note, or a form opened after the bubbles leave it open.
+        awaitingBubbleAnswer() {
+            const idx = this.latestQuickRepliesIndex;
+            if (idx === -1) return false;
+            if (this.messages.slice(idx + 1).some((m) => m?.role === 'capture_form')) return false;
+            const bubbles = this.messages[idx]?.metadata?.bubbles || [];
+            return bubbles.some((b) => b && !b.route);
         },
 
         // Index of the most recent quick_replies message in the message
@@ -1189,29 +1205,8 @@ export default {
 
             const message = this.inputMessage.trim();
 
-            // Check for navigation intent — handle locally without LLM call
-            const navMatch = matchNavigationIntent(message);
-            if (navMatch) {
-                this.inputMessage = '';
-                // Add user message to chat
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'user_' + Date.now(),
-                    role: 'user',
-                    content: message,
-                    created_at: new Date().toISOString(),
-                });
-                // Add assistant response locally
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'nav_' + Date.now(),
-                    role: 'assistant',
-                    content: navMatch.response,
-                    created_at: new Date().toISOString(),
-                });
-                // Navigate
-                this.handleNavigation(navMatch.route);
-                return;
-            }
-
+            // "Take me to…" is decided on the server for every surface (T6),
+            // so every message goes there and is saved.
             // Leave the text in the box if we cannot get a conversation, so a
             // failure never silently destroys what the user typed.
             if (!await this.ensureConversation()) return;
@@ -1227,24 +1222,6 @@ export default {
             window.dispatchEvent(new Event('fyn-chat-interaction'));
 
             this.inputMessage = '';
-
-            const navMatch = matchNavigationIntent(message);
-            if (navMatch) {
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'user_' + Date.now(),
-                    role: 'user',
-                    content: message,
-                    created_at: new Date().toISOString(),
-                });
-                this.$store.commit('aiChat/ADD_MESSAGE', {
-                    id: 'nav_' + Date.now(),
-                    role: 'assistant',
-                    content: navMatch.response,
-                    created_at: new Date().toISOString(),
-                });
-                this.handleNavigation(navMatch.route);
-                return;
-            }
 
             if (!await this.ensureConversation()) return;
 
@@ -1262,8 +1239,7 @@ export default {
         //     response, producing a duplicate turn and overwriting the
         //     conversation title via HasAiChat's first-message title hook.
         //   - Regular bubbles: send the bubble's label as if the user had
-        //     typed it. The matchNavigationIntent check is skipped because
-        //     onboarding bubbles are never navigation intents.
+        //     typed it.
         async handleQuickReplySelect(bubble, msg) {
             if (this.streaming || this.loading) return;
             // Navigation bubble (e.g. the terminal "Take me to my tax strategy")

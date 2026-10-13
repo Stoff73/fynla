@@ -75,7 +75,7 @@ import { apiGet, apiPut } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
-import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { calculateUserShare, coOwnerName, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
 
 const fmt = (value) => value == null || isNaN(Number(value)) ? '—' : new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
 const label = (value) => value ? String(value).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) : '—';
@@ -94,7 +94,7 @@ export default {
     // Ownership display via the ONE home shared with the desktop SPA (Rule 19 + Rule 20).
     isShared() { return isSharedRecord(this.property); },
     userShare() { return calculateUserShare(this.property, { valueField: 'current_value' }); },
-    sharePercent() { return `${userSharePercent(this.property).toFixed(2)}%`; },
+    sharePercent() { return `${sharePercentText(this.property)}%`; },
     coOwner() { return coOwnerName(this.property); },
     coOwnerSpouseAnswered() { return this.property?.joint_owner_is_spouse !== null && this.property?.joint_owner_is_spouse !== undefined; },
 

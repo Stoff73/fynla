@@ -633,7 +633,7 @@ final class AdviceFyn
      */
     private function offerTypedChangeForm(User $user, AiConversation $conversation, string $message, bool $persistUserMessage): \Generator
     {
-        if ($this->writeIntentClassifier->isQuestion($message)) {
+        if (QuerySchemas::isAdviceShaped($message)) {
             return false;
         }
         $forms = app(RecordEditForms::class);
@@ -657,7 +657,10 @@ final class AdviceFyn
      */
     private function recordDeclaredNone(User $user, AiConversation $conversation, string $message, bool $persistUserMessage): \Generator
     {
-        if (! OnboardingChatDirector::isCompletionDeclaration($message)) {
+        // A question that says "nothing else" is still a question (Brett,
+        // #3869: "… through Monzo and nothing else … would the family be ok?"
+        // was recorded as none for four topics; fix plan T2).
+        if (QuerySchemas::isAdviceShaped($message) || ! OnboardingChatDirector::isCompletionDeclaration($message)) {
             return false;
         }
         $plan = app(ComposedTaxPlanService::class)->forUser($user);
@@ -736,7 +739,7 @@ final class AdviceFyn
 
     private function captureContinuationIntent(AiConversation $conversation, string $message): ?array
     {
-        if ($this->writeIntentClassifier->isQuestion($message)) {
+        if (QuerySchemas::isAdviceShaped($message)) {
             return null;
         }
 

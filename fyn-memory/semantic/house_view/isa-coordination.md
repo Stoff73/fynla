@@ -2,7 +2,8 @@
 fact_id: hv-isa-coordination
 category: house_view
 title: ISA coordination — using both partners' individual ISA allowances
-version: 3
+source: "Individual Savings Account Regulations 1998 (SI 1998/1870) reg 2A (account investor), reg 4ZA (subscription limit per individual)"
+version: 4
 valid_to: null
 ---
 

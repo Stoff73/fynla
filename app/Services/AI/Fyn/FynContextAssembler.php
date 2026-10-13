@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Actions\ActionCardService;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\ContextualConversation\ContextualResourceResolver;
+use App\Services\AI\ConversationWindow;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
@@ -30,8 +31,10 @@ use App\Services\Coordination\StrategyPlanComposer;
 use App\Services\Estate\WillTypePolicy;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
+use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 
@@ -64,6 +67,7 @@ final class FynContextAssembler
         private readonly ProceduralVersionHolder $proceduralVersions,
         private readonly ContextualResourceResolver $contextualResources,
         private readonly WillTypePolicy $willTypePolicy,
+        private readonly SpouseJointRecords $spouseRecords,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -189,12 +193,20 @@ final class FynContextAssembler
         }
 
         // Save Tax stores spouse financial inputs in a dedicated household
-        // row rather than on users/family_members. Surface that row only when
-        // the user explicitly asks about spouse finances, so the model cannot
-        // mistake an absent linked-spouse profile for absent campaign data.
+        // row rather than on users/family_members. Surface that row on every
+        // advice turn it exists for: a question that names the spouse ("Dev")
+        // carries no relationship word (T10, walk 2026-10-11 P4).
         $householdGrounding = $this->savedHouseholdFinancesDirective($ctx);
         if ($householdGrounding !== null) {
             $lines[] = $householdGrounding;
+        }
+
+        // The model sees the newest ConversationWindow::MESSAGES messages; say
+        // when more are out of view and how to read them, so a figure given
+        // earlier is quoted, not invented (walk fix plan T13, Q13).
+        $earlier = $this->earlierInConversationBlock($ctx);
+        if ($earlier !== null) {
+            $lines[] = $earlier;
         }
 
         // CoALA Phase 4c — procedural prompt overlays + FCA blocks. Additive
@@ -344,7 +356,7 @@ final class FynContextAssembler
 
         $lines[] = '</context>';
         $lines[] = '<user_message>';
-        $lines[] = UserContentSanitiser::clean($ctx->message);
+        $lines[] = UserContentSanitiser::message($ctx->message);
         $lines[] = '</user_message>';
 
         return implode("\n", $lines);
@@ -568,21 +580,12 @@ final class FynContextAssembler
     }
 
     /**
-     * Ground spouse-finance questions in the dedicated Save Tax household row.
+     * Ground every advice turn in the dedicated Save Tax household row, with
+     * the spouse named so a question that names them reaches their figures.
      */
     private function savedHouseholdFinancesDirective(FynTurnContext $ctx): ?string
     {
         if ($ctx->isOnboarding()) {
-            return null;
-        }
-
-        $message = mb_strtolower($ctx->message);
-        $mentionsSpouse = preg_match('/\b(spouse|partner|husband|wife)\b/i', $message) === 1;
-        $mentionsFinances = preg_match(
-            '/\b(income|earn|salary|isa|pension|saving|investment|asset|household|financial|record)\b/i',
-            $message,
-        ) === 1;
-        if (! $mentionsSpouse || ! $mentionsFinances) {
             return null;
         }
 
@@ -593,6 +596,9 @@ final class FynContextAssembler
 
         $fields = [
             'spouse_annual_income' => 'Spouse annual income',
+            'spouse_annual_earnings' => 'Spouse annual earnings from work',
+            'spouse_annual_dividends' => 'Spouse annual dividends',
+            'spouse_unrealised_gains' => 'Spouse unrealised gains',
             'spouse_isa_balance' => 'Spouse ISA balance',
             'spouse_pension_input_annual' => 'Spouse annual pension contribution',
             'spouse_existing_isa_balance' => 'Spouse existing ISA balance',
@@ -607,7 +613,7 @@ final class FynContextAssembler
         foreach ($fields as $field => $label) {
             $value = $household->getAttribute($field);
             if ($value !== null) {
-                $values[] = "- {$label}: £".number_format((float) $value, 2);
+                $values[] = "- {$label}: ".Money::exact((float) $value);
             }
         }
 
@@ -620,11 +626,41 @@ final class FynContextAssembler
             return null;
         }
 
+        $spouseName = $this->spouseRecords->spouseFirstName($ctx->user);
+        if ($spouseName !== null) {
+            array_unshift($values, '- Spouse: '.UserContentSanitiser::wrap($spouseName));
+        }
+
         return "<saved_household_finances>\n"
             ."These are the authoritative Save Tax campaign household values currently saved for this user:\n"
             .implode("\n", $values)."\n"
             .'Use the listed values exactly. Do not say that a listed field is not recorded. Do not infer values for fields that are not listed.'
             ."\n</saved_household_finances>";
+    }
+
+    /**
+     * Earlier messages of this conversation the model cannot see: how many,
+     * the app's stored summary of the conversation when there is one (written
+     * by a model from the transcript, so it may not keep exact figures), and
+     * that the search reads the user's own words from them.
+     */
+    private function earlierInConversationBlock(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->conversation === null) {
+            return null;
+        }
+        $count = ConversationWindow::earlierCount($ctx->conversation);
+        if ($count === 0) {
+            return null;
+        }
+
+        $summary = trim((string) ($ctx->conversation->summary ?? ''));
+
+        return "<earlier_in_conversation>\n"
+            ."{$count} earlier messages in this conversation are out of view.\n"
+            .($summary !== '' ? 'A summary of this conversation written by the app (it may not keep exact figures): '.UserContentSanitiser::wrap($summary)."\n" : '')
+            .'To use anything the user said in them, call search_conversation_index with `words` to look for: it returns what they wrote, exactly. Quote it; if it is not found, say that part of the conversation is out of view.'
+            ."\n</earlier_in_conversation>";
     }
 
     /**
@@ -747,7 +783,7 @@ GROUNDING;
         if ($parts === []) {
             return null;
         }
-        $pounds = static fn (float $v): string => '£'.number_format($v, 0);
+        $pounds = static fn (float $v): string => Money::exact($v);
         $described = array_map(static function (array $part) use ($pounds): string {
             $pieces = [];
             if ($part['member_pays'] > 0) {

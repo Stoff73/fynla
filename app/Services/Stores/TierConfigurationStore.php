@@ -165,7 +165,7 @@ class TierConfigurationStore
             'display_name', 'price_monthly_pence', 'price_annual_pence',
             'revolut_plan_variation_id', 'capability_matrix', 'count_caps',
             'document_upload_allowance', 'document_storage_gb',
-            'fyn_weekly_token_budget', 'fyn_daily_hard_backstop',
+            'fyn_weekly_token_budget',
             'currency_display_mode', 'snapshot_surfacing_window_days',
             'open_api_affordance', 'is_active',
         ]));

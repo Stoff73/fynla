@@ -2,7 +2,8 @@
 fact_id: hv-gia-to-spouse
 category: house_view
 title: General Investment Account to spouse — holding taxable investments in the lower earner's name
-version: 3
+source: "Taxation of Chargeable Gains Act 1992 s58 (no gain no loss), s1K (annual exempt amount); Income Tax Act 2007 s13A (dividend nil rate)"
+version: 4
 valid_to: null
 ---
 

@@ -25,6 +25,7 @@ use App\Services\Savings\PSACalculator;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
@@ -208,6 +209,12 @@ class SavingsController extends Controller
                 // joint-aware list above, so "X of Y used" can't contradict the gate.
                 'account_count' => $this->savingsStore->countForUser($user),
                 'account_limit' => $this->tierGate->hardLimit($user, SavingsStore::ENTITY_KEY),
+                // A cash ISA is capped with the investments (CSJ 2026-09-15,
+                // SavingsStore::create), so the web "Add" on Cash ISAs gates on
+                // the gate's own investment count, not on the bank accounts
+                // (walk R37: one bank account and a Cash ISA read as "2 of 2").
+                'isa_count' => app(InvestmentAccountStore::class)->countForUser($user),
+                'isa_limit' => $this->tierGate->hardLimit($user, InvestmentAccountStore::ENTITY_KEY),
                 'goals' => $goals,
                 'expenditure_profile' => $expenditureProfile,
                 'isa_allowance' => $isaAllowance,

@@ -2,7 +2,8 @@
 fact_id: hv-gia-rebalance
 category: house_view
 title: General Investment Account rebalance — shifting dividend income to the lower-band spouse
-version: 3
+source: "Taxation of Chargeable Gains Act 1992 s58 (spouses and civil partners, no gain no loss); Income Tax Act 2007 s13A (dividend nil rate)"
+version: 4
 valid_to: null
 ---
 

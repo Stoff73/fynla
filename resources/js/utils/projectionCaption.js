@@ -22,9 +22,14 @@
  * Both are a one-line change here rather than an edit to two components.
  */
 
-/** Explains why a median path compounds below the quoted arithmetic mean. */
-export const VOLATILITY_DRAG_NOTE = 'The line shows the middle outcome, which grows a '
-  + 'little slower than this rate because returns vary from year to year.';
+/**
+ * Explains why the middle outcome compounds below the quoted arithmetic mean.
+ * It names the figure, not a line: the pension and investment charts draw the
+ * 75%-90% probability bands only, so "the line shows the middle outcome" was
+ * false beside them (walk R20).
+ */
+export const VOLATILITY_DRAG_NOTE = 'The middle outcome grows a little slower than this '
+  + 'rate because returns vary from year to year.';
 
 /**
  * @param {object} options

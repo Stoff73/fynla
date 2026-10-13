@@ -14,8 +14,8 @@ use App\Events\Eval\AgentDecision;
  * can match several areas (e.g. "maximise pension" = retirement + tax + affordability).
  *
  * Priority order:
- *  1. data_entry (adding/updating data — bypasses FCA process)
- *  2. navigation (page navigation — bypasses FCA process)
+ *  1. data_entry (adding/updating data — bypasses FCA process), never for a question
+ *  2. navigation (page navigation — bypasses FCA process), never for a question
  *  3. keyword matching against QuerySchemas::KEYWORD_PATTERNS
  *  4. out_of_remit (S0.14 / INV-2.3.4) — message has strong non-financial signal
  *     AND no financial keyword fired in step 3
@@ -70,8 +70,13 @@ class QueryClassifier
             return $this->buildResult(QuerySchemas::GENERAL);
         }
 
+        // A question is never data entry or navigation, both of which skip the
+        // answer process (fix plan T3: "I have a daughter … how much
+        // inheritance tax" and "… Show the working" were filed there).
+        $asks = QuerySchemas::isAdviceShaped($message);
+
         // 1. Check data_entry first — user is providing data, not asking for advice
-        if ($this->matchesType($message, QuerySchemas::DATA_ENTRY)) {
+        if (! $asks && $this->matchesType($message, QuerySchemas::DATA_ENTRY)) {
             return $this->buildResult(QuerySchemas::DATA_ENTRY);
         }
 
@@ -84,7 +89,7 @@ class QueryClassifier
         // BILLING wins. Same carve-out shape as the wealth-summary exclusion
         // in QuerySchemas::KEYWORD_PATTERNS[NAVIGATION] (those phrasings are
         // excluded so they reach HOLISTIC_HEALTH for the chat answer).
-        if ($this->matchesType($message, QuerySchemas::NAVIGATION)
+        if (! $asks && $this->matchesType($message, QuerySchemas::NAVIGATION)
             && ! $this->matchesType($message, QuerySchemas::BILLING)) {
             return $this->buildResult(QuerySchemas::NAVIGATION);
         }

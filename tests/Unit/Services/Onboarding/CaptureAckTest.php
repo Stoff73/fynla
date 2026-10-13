@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,6 +77,16 @@ describe('buildCaptureAck — personal details', function () {
 
         expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_BASE_PERSONAL))
             ->toBe("Thanks — I've noted you're born on 12 April 1985 and married.");
+    });
+
+    // Walk R34 (fynla.org, Casey): "born on 20 July 1991, other and single".
+    it('leaves a gender of "other" out of the repeat-back, and words the user\'s sentence for it', function () {
+        $user = User::factory()->create(['date_of_birth' => '1991-07-20', 'gender' => 'other', 'marital_status' => 'single']);
+
+        expect(invokeCaptureAck($user, OnboardingStateMachine::STATE_CAMPAIGN_DOB))
+            ->toBe("Thanks — I've noted you're born on 20 July 1991 and single.")
+            ->and(CaptureForms::summarise(['name' => 'dob', 'answers' => ['_lead' => ['date_of_birth' => '1991-07-20', 'gender' => 'other']]]))
+            ->toBe('I was born on 20 July 1991 and I describe my gender as other.');
     });
 
     it('claims nothing about the user when neither field was captured', function () {

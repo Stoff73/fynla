@@ -1,0 +1,239 @@
+- generic [ref=f19e3]:
+  - generic [ref=f19e4]:
+    - banner [ref=f19e5]:
+      - button "Open menu" [ref=f19e6] [cursor=pointer]
+      - paragraph [ref=f19e10]: Good morning, David
+    - main [ref=f19e11]:
+      - generic [ref=f19e12]:
+        - heading "Holistic Plan" [level=1] [ref=f19e13]
+        - paragraph [ref=f19e14]: Your whole plan, ranked against what you can afford
+      - button "Edit details" [ref=f19e16] [cursor=pointer]
+      - generic [ref=f19e17]:
+        - paragraph [ref=f19e18]: Left to put to work each month
+        - paragraph [ref=f19e19]: £0
+        - paragraph [ref=f19e20]: From a £2,839 monthly surplus, after £7,833 committed to your goals. £50,000 of expected outgoings is kept in reserve.
+      - generic [ref=f19e21]:
+        - paragraph [ref=f19e22]: Your ranked actions
+        - article [ref=f19e23]:
+          - generic [ref=f19e25]:
+            - generic [ref=f19e26]: High
+            - generic [ref=f19e27]: Savings
+          - heading "Build cash reserve for Kitchen & Extension" [level=3] [ref=f19e28]
+          - paragraph [ref=f19e29]: Kitchen & Extension is expected in 5 months costing £85,000. Consider saving £17,000 per month to prepare.
+          - paragraph [ref=f19e30]: Fits within your surplus
+        - article [ref=f19e31]:
+          - generic [ref=f19e33]:
+            - generic [ref=f19e34]: High
+            - generic [ref=f19e35]: Estate
+          - heading "Estate Value Exceeds Nil-Rate Band" [level=3] [ref=f19e36]
+          - paragraph [ref=f19e37]: The estimated estate value of £1,728,780 exceeds the nil-rate band of £856,000. The excess of £872,780 may be subject to Inheritance Tax at 40%, resulting in an estimated liability of £349,112.
+          - paragraph [ref=f19e38]: Fits within your surplus
+        - article [ref=f19e39]:
+          - generic [ref=f19e41]:
+            - generic [ref=f19e42]: High
+            - generic [ref=f19e43]: Protection
+          - heading "Your life cover is £322,000 more than you need" [level=3] [ref=f19e44]
+          - paragraph [ref=f19e45]: You need £178,000. Your own policies give £500,000 and your job gives £0. Consider decreasing term life insurance for your mortgage.
+          - paragraph [ref=f19e46]: Fits within your surplus
+        - article [ref=f19e47]:
+          - generic [ref=f19e49]:
+            - generic [ref=f19e50]: High
+            - generic [ref=f19e51]: Protection
+          - heading "Your critical illness cover is £235,000 short" [level=3] [ref=f19e52]
+          - paragraph [ref=f19e53]: You need £435,000. Your own policies give £200,000 and your job gives £0. Add critical illness cover for £235,000.
+          - paragraph [ref=f19e54]: Fits within your surplus
+        - article [ref=f19e55]:
+          - generic [ref=f19e57]:
+            - generic [ref=f19e58]: High
+            - generic [ref=f19e59]: Savings
+          - heading "David's Current Account Earns No Interest" [level=3] [ref=f19e60]
+          - paragraph [ref=f19e61]: David's Current Account holds £25,000 at 0% interest.
+          - paragraph [ref=f19e62]: Fits within your surplus
+        - article [ref=f19e63]:
+          - generic [ref=f19e65]:
+            - generic [ref=f19e66]: High
+            - generic [ref=f19e67]: Savings
+          - heading "Mitchell Current Account Earns No Interest" [level=3] [ref=f19e68]
+          - paragraph [ref=f19e69]: Mitchell Current Account holds £4,500 at 0% interest.
+          - paragraph [ref=f19e70]: Fits within your surplus
+        - article [ref=f19e71]:
+          - generic [ref=f19e73]:
+            - generic [ref=f19e74]: High
+            - generic [ref=f19e75]: Savings
+          - heading "Use Your ISA Allowance for Excess Savings" [level=3] [ref=f19e76]
+          - paragraph [ref=f19e77]: You have £10,000 above your emergency fund target — consider using your remaining ISA allowance.
+          - paragraph [ref=f19e78]: Fits within your surplus
+        - article [ref=f19e79]:
+          - generic [ref=f19e81]:
+            - generic [ref=f19e82]: High
+            - generic [ref=f19e83]: Retirement
+          - heading "Your retirement income is about £11,405 a year short of your target" [level=3] [ref=f19e84]
+          - paragraph [ref=f19e85]: At 60 your retirement income is on course for about £63,595 a year, against your target of £75,000.
+          - paragraph [ref=f19e86]: Fits within your surplus
+        - article [ref=f19e87]:
+          - generic [ref=f19e89]:
+            - generic [ref=f19e90]: Medium
+            - generic [ref=f19e91]: Protection
+          - heading "Review your existing protection policies" [level=3] [ref=f19e92]
+          - paragraph [ref=f19e93]: You have 2 existing protection policies. A review could identify whether your current cover is still appropriate for your circumstances and whether you could achieve better value.
+          - paragraph [ref=f19e94]: Fits within your surplus
+        - article [ref=f19e95]:
+          - generic [ref=f19e97]:
+            - generic [ref=f19e98]: Medium
+            - generic [ref=f19e99]: Protection
+          - heading "Record your employer benefits" [level=3] [ref=f19e100]
+          - paragraph [ref=f19e101]: You appear to be employed but have not recorded any employer-provided protection benefits such as death in service, group income protection, or group critical illness cover. Recording these helps us calculate your protection gaps more accurately.
+          - paragraph [ref=f19e102]: Fits within your surplus
+        - article [ref=f19e103]:
+          - generic [ref=f19e105]:
+            - generic [ref=f19e106]: Medium
+            - generic [ref=f19e107]: Protection
+          - heading "Consider a joint life policy" [level=3] [ref=f19e108]
+          - paragraph [ref=f19e109]: You are married but your life insurance policy with Vitality is a single-life policy. A joint life policy can provide cover for both partners, often at a lower combined premium than two separate single-life policies.
+          - paragraph [ref=f19e110]: Fits within your surplus
+        - article [ref=f19e111]:
+          - generic [ref=f19e113]:
+            - generic [ref=f19e114]: Medium
+            - generic [ref=f19e115]: Savings
+          - heading "Better Rate Available for David's Cash ISA" [level=3] [ref=f19e116]
+          - paragraph [ref=f19e117]: The interest rate on David's Cash ISA (4.25%) is 0.76% below the best available rate.
+          - paragraph [ref=f19e118]: Fits within your surplus
+        - article [ref=f19e119]:
+          - generic [ref=f19e121]:
+            - generic [ref=f19e122]: Medium
+            - generic [ref=f19e123]: Savings
+          - heading "Consider a regular saver ISA for David's Cash ISA" [level=3] [ref=f19e124]
+          - paragraph [ref=f19e125]: £250 a month goes into David's Cash ISA at 4.25%. A regular saver ISA typically pays more on regular monthly deposits.
+          - paragraph [ref=f19e126]: Fits within your surplus
+        - article [ref=f19e127]:
+          - generic [ref=f19e129]:
+            - generic [ref=f19e130]: Medium
+            - generic [ref=f19e131]: Savings
+          - heading "Consider an Offset Mortgage Arrangement" [level=3] [ref=f19e132]
+          - paragraph [ref=f19e133]: Your mortgage rate of 5.49% exceeds your after-tax savings rate — consider an offset mortgage arrangement.
+          - paragraph [ref=f19e134]: Fits within your surplus
+        - article [ref=f19e135]:
+          - generic [ref=f19e137]:
+            - generic [ref=f19e138]: Medium
+            - generic [ref=f19e139]: Savings
+          - heading "Consider a Junior ISA for Charlotte" [level=3] [ref=f19e140]
+          - paragraph [ref=f19e141]: Consider opening a Junior ISA for Charlotte.
+          - paragraph [ref=f19e142]: Fits within your surplus
+        - article [ref=f19e143]:
+          - generic [ref=f19e145]:
+            - generic [ref=f19e146]: Medium
+            - generic [ref=f19e147]: Tax
+          - heading "Reclaim £750 on your Gift Aid donations via Self Assessment" [level=3] [ref=f19e148]
+          - paragraph [ref=f19e149]: You give around £2,400 a year through Gift Aid. The charity already reclaims basic-rate tax — but as a additional-rate taxpayer you can claim back another £750 yourself when you file your Self Assessment.
+          - paragraph [ref=f19e150]: Fits within your surplus
+        - article [ref=f19e151]:
+          - generic [ref=f19e153]:
+            - generic [ref=f19e154]: Medium
+            - generic [ref=f19e155]: Tax
+          - heading "Bed & ISA — potentially shelter £1,588 of gains this year" [level=3] [ref=f19e156]
+          - paragraph [ref=f19e157]: You hold £5,556 of unrealised gains outside your ISA. Selling around £10,000 of holdings and rebuying them inside an ISA could crystallise up to £1,588 within the annual exempt amount and could avoid roughly £381 of tax on a future sale, but only if you have not already used the allowance. Confirm gains and losses elsewhere this tax year, ISA subscriptions, dealing costs and market risk before acting; future growth inside the ISA is sheltered.
+          - paragraph [ref=f19e158]: Fits within your surplus
+        - article [ref=f19e159]:
+          - generic [ref=f19e161]:
+            - generic [ref=f19e162]: Medium
+            - generic [ref=f19e163]: Tax
+          - heading "Save around £232 a year by moving your pension contributions to salary sacrifice" [level=3] [ref=f19e164]
+          - paragraph [ref=f19e165]: Switching your £11,600 annual workplace pension contribution to salary sacrifice saves £232 in National Insurance every year, with no change to your take-home pay.
+          - paragraph [ref=f19e166]: Fits within your surplus
+        - article [ref=f19e167]:
+          - generic [ref=f19e169]:
+            - generic [ref=f19e170]: Medium
+            - generic [ref=f19e171]: Tax
+          - heading "You have 1 child under 18 in your household — up to £9,000 of Junior ISA capacity a year" [level=3] [ref=f19e172]
+          - paragraph [ref=f19e173]: Each child under 18 has a £9,000 annual Junior ISA allowance — separate from your own £20,000. All interest, dividends and capital gains inside the wrapper are tax-free until they turn 18.
+          - paragraph [ref=f19e174]: Fits within your surplus
+        - article [ref=f19e175]:
+          - generic [ref=f19e177]:
+            - generic [ref=f19e178]: Medium
+            - generic [ref=f19e179]: Tax
+          - heading "Open a pension for each child — instant £720 a year of free money" [level=3] [ref=f19e180]
+          - paragraph [ref=f19e181]: Anyone, including a child with no income, can hold a personal pension. £2,880 contributed per child is topped up to £3,600 by the government — that's £720 of free money per child, every year. Decades of compounding sheltered from tax.
+          - paragraph [ref=f19e182]: Fits within your surplus
+        - article [ref=f19e183]:
+          - generic [ref=f19e185]:
+            - generic [ref=f19e186]: Medium
+            - generic [ref=f19e187]: Investment
+          - heading "Rebalance Portfolio" [level=3] [ref=f19e188]
+          - paragraph [ref=f19e189]: Your current allocation deviates significantly from your risk profile. Rebalancing will bring your portfolio back in line with your target allocation.
+          - paragraph [ref=f19e190]: Fits within your surplus
+        - article [ref=f19e191]:
+          - generic [ref=f19e193]:
+            - generic [ref=f19e194]: Medium
+            - generic [ref=f19e195]: Investment
+          - heading "Losses you could use against gains" [level=3] [ref=f19e196]
+          - paragraph [ref=f19e197]: "1 holdings have unrealised losses. Potential tax saving: £0."
+          - paragraph [ref=f19e198]: Fits within your surplus
+        - article [ref=f19e199]:
+          - generic [ref=f19e201]:
+            - generic [ref=f19e202]: Medium
+            - generic [ref=f19e203]: Investment
+          - heading "Use Your ISA Allowance" [level=3] [ref=f19e204]
+          - paragraph [ref=f19e205]: You have £10,000 ISA allowance remaining this tax year. Consider moving General Investment Account holdings (£47,500) into your ISA before 5 April.
+          - paragraph [ref=f19e206]: Fits within your surplus
+        - article [ref=f19e207]:
+          - generic [ref=f19e209]:
+            - generic [ref=f19e210]: Medium
+            - generic [ref=f19e211]: Estate
+          - heading "Gifts Within Seven-Year Window" [level=3] [ref=f19e212]
+          - paragraph [ref=f19e213]: 1 gift(s) totalling £150,000 are within the seven-year Potentially Exempt Transfer window. If the individual were to pass away within this period, these gifts may be subject to taper relief and could affect the Inheritance Tax calculation.
+          - paragraph [ref=f19e214]: Fits within your surplus
+        - article [ref=f19e215]:
+          - generic [ref=f19e217]:
+            - generic [ref=f19e218]: Medium
+            - generic [ref=f19e219]: Estate
+          - heading "Trust Arrangement Review Due" [level=3] [ref=f19e220]
+          - paragraph [ref=f19e221]: The trust "Mitchell Children's Education Trust" was last reviewed on never. Regular review ensures the trust still meets its objectives and complies with current legislation.
+          - paragraph [ref=f19e222]: Fits within your surplus
+        - article [ref=f19e223]:
+          - generic [ref=f19e225]:
+            - generic [ref=f19e226]: Low
+            - generic [ref=f19e227]: Savings
+          - heading "Review Your Excess Emergency Fund" [level=3] [ref=f19e228]
+          - paragraph [ref=f19e229]: Your emergency fund of 14.4 months exceeds your target by 8.4 months.
+          - paragraph [ref=f19e230]: Fits within your surplus
+        - article [ref=f19e231]:
+          - generic [ref=f19e233]:
+            - generic [ref=f19e234]: Low
+            - generic [ref=f19e235]: Savings
+          - heading "Designate an Emergency Fund Account" [level=3] [ref=f19e236]
+          - paragraph [ref=f19e237]: None of your savings accounts is marked as your emergency fund.
+          - paragraph [ref=f19e238]: Fits within your surplus
+        - article [ref=f19e239]:
+          - generic [ref=f19e241]:
+            - generic [ref=f19e242]: Low
+            - generic [ref=f19e243]: Savings
+          - heading "Cash ISA Not a Priority" [level=3] [ref=f19e244]
+          - paragraph [ref=f19e245]: As a basic rate taxpayer with comfortable Personal Savings Allowance headroom, a Cash ISA is not a priority.
+          - paragraph [ref=f19e246]: Fits within your surplus
+        - article [ref=f19e247]:
+          - generic [ref=f19e249]:
+            - generic [ref=f19e250]: Low
+            - generic [ref=f19e251]: Tax
+          - heading "You have £500 of unused Dividend Allowance" [level=3] [ref=f19e252]
+          - paragraph [ref=f19e253]: The first £500 of dividend income each year is tax-free, and you have £500 of it unused. Dividends from shares held outside an ISA use it first, so up to that amount they pay no tax; above it they are taxed at 39.35% at your tax band.
+          - paragraph [ref=f19e254]: Fits within your surplus
+        - article [ref=f19e255]:
+          - generic [ref=f19e257]:
+            - generic [ref=f19e258]: Low
+            - generic [ref=f19e259]: Estate
+          - heading "Beneficiary Designations Review" [level=3] [ref=f19e260]
+          - paragraph [ref=f19e261]: Beneficiary designations on pension and insurance policies should be reviewed periodically to ensure they reflect current wishes, especially after life events such as marriage, divorce, or the birth of a child.
+          - paragraph [ref=f19e262]: Fits within your surplus
+      - generic [ref=f19e263]:
+        - paragraph [ref=f19e264]: Unlock more of your plan
+        - paragraph [ref=f19e265]: These strategies need a little more detail before we can rank them.
+        - paragraph [ref=f19e266]: "Tax: Pension Annual Allowance carry forward"
+        - paragraph [ref=f19e267]: "Tax: General Investment Account to spouse"
+        - paragraph [ref=f19e268]: "Tax: General Investment Account rebalance"
+        - paragraph [ref=f19e269]: "Tax: Tapered annual allowance"
+        - paragraph [ref=f19e270]: "Retirement: Carry forward unused allowance"
+    - button "Chat with Fyn" [ref=f19e272] [cursor=pointer]:
+      - generic [ref=f19e274]:
+        - generic [ref=f19e275]: Fyn
+        - generic [ref=f19e276]: Your financial companion
+  - button "Report a problem" [ref=f19e280] [cursor=pointer]

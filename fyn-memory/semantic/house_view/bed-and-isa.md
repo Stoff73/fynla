@@ -1,8 +1,9 @@
 ---
 fact_id: hv-bed-and-isa
 category: house_view
-title: Bed and ISA — harvesting capital gains within the annual exempt amount
-version: 3
+title: Bed and ISA — realising capital gains within the annual exempt amount
+source: "Taxation of Chargeable Gains Act 1992 s1K (annual exempt amount); Individual Savings Account Regulations 1998 (SI 1998/1870) reg 4ZA (subscription limit), reg 22 (income and gains exempt)"
+version: 4
 valid_to: null
 ---
 

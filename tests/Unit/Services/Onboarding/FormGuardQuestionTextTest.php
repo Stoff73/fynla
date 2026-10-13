@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
+use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 
 /*
  * The duplicate guard asks; it never refuses (CSJ 2026-10-08: "ask, never
@@ -88,4 +91,84 @@ it('saves the guard question outside the walk as a capture still asking about it
     $inside = $run('campaign_savings');
     expect($inside->persona)->toBeNull()
         ->and($inside->metadata)->not->toHaveKey('capture_record_id');
+});
+
+it('asks the duplicate question with its two answers as bubbles, and a failure as plain text', function () {
+    // Regression walk 2026-10-09, R19 (CSJ: "why no bubble on the duplicate
+    // message?"): the two-way question came with no bubbles, so the answer had
+    // to be typed.
+    $user = User::factory()->create();
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'emitFormProblem');
+    $method->setAccessible(true);
+
+    $run = function (array $errors) use ($method, $director, $conversation): array {
+        $gen = $method->invoke($director, $conversation, 'savings', $errors, 'the line', 'base_savings');
+        $events = [];
+        foreach ($gen as $event) {
+            $events[] = $event;
+        }
+
+        return [$events, $gen->getReturn()];
+    };
+
+    [$events, $saved] = $run(['easy_access' => ['message' => 'You already have … or the same one?', 'error_type' => 'confirm_duplicate_required', 'entity_id' => 893, 'fields' => []]]);
+    $replies = collect($events)->firstWhere('type', 'quick_replies');
+
+    expect($replies['prompt_text'])->toBe('the line')
+        ->and(collect($replies['bubbles'])->pluck('label')->all())->toBe(['The same one', 'A separate one'])
+        ->and(collect($events)->where('type', 'content')->all())->toBe([])
+        ->and($saved->metadata['bubbles'])->toBe($replies['bubbles']);
+
+    [$events, $saved] = $run(['easy_access' => ['message' => 'The balance must be a number.', 'error_type' => 'validation_failed', 'fields' => []]]);
+
+    expect(collect($events)->firstWhere('type', 'content')['text'])->toBe('the line')
+        ->and(collect($events)->firstWhere('type', 'quick_replies'))->toBeNull()
+        ->and($saved->metadata['bubbles'] ?? null)->toBeNull();
+});
+
+it('offers only "The same one" when a separate one would pass the plan\'s cap (walk R39)', function (): void {
+    // csjones, Drew (free, two bank accounts): "A separate one" led to "what
+    // would you like to call it?" for an account the cap then refused.
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['tier' => 'free']);
+    $hsbc = SavingsAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'account_type' => 'current_account', 'is_isa' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'emitFormProblem');
+    $method->setAccessible(true);
+
+    $gen = $method->invoke($director, $conversation, 'savings', ['easy_access' => ['message' => 'You already have … or the same one?', 'error_type' => 'confirm_duplicate_required', 'entity_type' => 'savings_account', 'entity_id' => $hsbc->id, 'fields' => []]], 'the line', null);
+    $events = iterator_to_array($gen, false);
+    $replies = collect($events)->firstWhere('type', 'quick_replies');
+
+    expect(collect($replies['bubbles'])->pluck('label')->all())->toBe(['The same one'])
+        ->and($replies['prompt_text'])->toBe("the line If it's a separate one, that's the Free plan's limit of 2 bank and savings accounts, so I can't add it here.");
+});
+
+it('says the cap on a real duplicate form save at the cap (walk R39, end to end)', function (): void {
+    // The first R39 fix read the kind from the error, which the form's write
+    // path did not carry: live, both bubbles still showed.
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['tier' => 'free', 'onboarding_completed' => true]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'HSBC', 'account_name' => 'HSBC easy access savings', 'account_type' => 'easy_access',
+        'current_balance' => 6000, 'interest_rate' => 3, 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null,
+    ]);
+    SavingsAccount::factory()->create(['user_id' => $user->id, 'institution' => 'Monzo', 'account_type' => 'current_account', 'is_isa' => false, 'ownership_type' => 'individual', 'joint_owner_id' => null]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+    $method = new ReflectionMethod($director, 'handleCreateFormTurn');
+    $method->setAccessible(true);
+
+    $form = ['name' => 'savings', 'answers' => ['easy_access' => ['provider' => 'HSBC', 'current_value' => 6000, 'interest_rate' => 3, 'ownership_type' => 'individual']]];
+    $events = iterator_to_array($method->invoke($director, $user, $conversation, 'HSBC easy access savings, balance £6,000, 3% interest, individual.', $form), false);
+    $replies = collect($events)->firstWhere('type', 'quick_replies');
+
+    expect($replies)->not->toBeNull()
+        ->and(collect($replies['bubbles'])->pluck('label')->all())->toBe(['The same one'])
+        ->and($replies['prompt_text'])->toContain("that's the Free plan's limit of 2 bank and savings accounts");
 });

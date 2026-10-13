@@ -3,6 +3,7 @@ import { isAuthenticatedPublicUtilityPath } from './publicRoutePolicy.js';
 import { storedSessionIsLive } from './storedSessionPolicy.js';
 import { isTransferableMobileBearer } from '../mScaffoldBridge.js';
 import store from '@/store';
+import { resolveModule } from '@/utils/moduleMap';
 import { forcedCampaignRedirect } from '@/router/onboardingRoutePolicy.js';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
@@ -1894,32 +1895,10 @@ router.afterEach((to) => {
     return;
   }
 
-  // Map route to module
-  const moduleMap = {
-    '/protection': 'protection',
-    '/savings': 'savings',
-    '/goals': 'goals',
-    '/investment': 'investment',
-    '/net-worth/investments': 'investment',
-    '/net-worth/retirement': 'retirement',
-    '/retirement': 'retirement',
-    '/pension': 'retirement',
-    '/estate': 'estate',
-    '/trusts': 'estate',
-    '/net-worth': 'net_worth',
-    '/dashboard': 'dashboard',
-    '/preview': 'dashboard',
-    '/profile': 'dashboard',
-  };
-
-  // Find matching module
-  let module = 'dashboard';
-  for (const [prefix, mod] of Object.entries(moduleMap)) {
-    if (to.path.startsWith(prefix)) {
-      module = mod;
-      break;
-    }
-  }
+  // The one route-to-module map, the one ModuleStatusBar reads (walk R35:
+  // a second copy here had no /net-worth/cash, so Bank Accounts loaded the
+  // net-worth list into the shared store and raced the banner's own fetch).
+  const module = resolveModule(to.path);
 
   // Fetch requirements for this module
   store.dispatch('infoGuide/fetchRequirements', module);

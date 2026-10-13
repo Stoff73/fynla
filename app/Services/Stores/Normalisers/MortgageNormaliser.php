@@ -46,15 +46,18 @@ final class MortgageNormaliser
     public static function fromFyn(array $data, User $user): array
     {
         // Fyn AI passes user-friendly field names; map to canonical schema.
+        // What the user did not give stays null, never a stand-in fact
+        // (T25, walk 2026-10-11: "repayment", rate 0 and payment 0 were
+        // stored for a mortgage given only its balance).
         $mapped = [
             'property_id' => $data['property_id'] ?? null,
             'lender_name' => $data['lender_name'] ?? $data['lender'] ?? null,
-            'mortgage_type' => $data['mortgage_type'] ?? 'repayment',
+            'mortgage_type' => $data['mortgage_type'] ?? null,
             'original_loan_amount' => $data['original_loan_amount'] ?? $data['original_amount'] ?? null,
             'outstanding_balance' => $data['outstanding_balance'] ?? $data['outstanding_mortgage'] ?? $data['balance'] ?? 0,
-            'interest_rate' => $data['interest_rate'] ?? $data['rate'] ?? 0.0,
+            'interest_rate' => $data['interest_rate'] ?? $data['rate'] ?? null,
             'rate_type' => $data['rate_type'] ?? 'fixed',
-            'monthly_payment' => $data['monthly_payment'] ?? 0,
+            'monthly_payment' => $data['monthly_payment'] ?? null,
             'start_date' => $data['start_date'] ?? null,
             'maturity_date' => $data['maturity_date'] ?? null,
             'remaining_term_months' => $data['remaining_term_months'] ?? null,

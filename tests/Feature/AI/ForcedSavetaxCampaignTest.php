@@ -52,7 +52,8 @@ it('sends a user with no from and no funnel answers into the Save Tax funnel que
 
     expect($user->onboarding_fyn_path)->toBe('campaign')
         ->and($user->onboarding_fyn_selection)->toBe('savetax')
-        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT);
+        // T22: the chat opens on the asset bubbles.
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS);
 });
 
 it('ignores a journey from value', function () {
@@ -71,7 +72,9 @@ it('sends a pensioncheck funnel user into Save Tax at the first missing question
     $user->refresh();
 
     expect($user->onboarding_fyn_selection)->toBe('savetax')
-        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE);
+        // T22: the bubbles come first, then the questions not yet answered.
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_ASSETS)
+        ->and(OnboardingStateMachine::nextFromFunnelAssets("That's everything", $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_FUNNEL_SPOUSE);
 });
 
 it('keeps a fully funnelled savetax user on the existing base_work entry', function () {

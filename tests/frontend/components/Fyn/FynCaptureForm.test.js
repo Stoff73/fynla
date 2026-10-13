@@ -131,9 +131,37 @@ describe('FynCaptureForm', () => {
       const w = mount(FynCaptureForm, { props: { schema }, attachTo: document.body });
       await box(w, 'Buy to let').trigger('click');
       await w.vm.$nextTick();
-      expect(scrolled).toEqual(['fyn-form-buy_to_let-current_value']);
-      expect(document.activeElement && document.activeElement.id).toBe('fyn-form-buy_to_let-current_value');
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0]).toMatch(/^fyn-form-\d+-buy_to_let-current_value$/);
+      expect(document.activeElement && document.activeElement.id).toBe(scrolled[0]);
       w.unmount();
+    } finally {
+      proto.scrollIntoView = original;
+    }
+  });
+
+  // T20: one form per person named, so two forms of one kind sit in the
+  // chat (Maya's, locked, above Arjun's). Ids per kind and field only were
+  // shared: Arjun's labels named Maya's inputs, and opening a kind on his
+  // form focused hers.
+  it('gives each form its own ids, so a second form of the same kind labels and focuses its own fields', async () => {
+    const proto = window.HTMLElement.prototype;
+    const original = proto.scrollIntoView;
+    proto.scrollIntoView = function scrollIntoView() {};
+    try {
+      const first = mount(FynCaptureForm, { props: { schema, values: { buy_to_let: { current_value: 200000 } }, locked: true }, attachTo: document.body });
+      const second = mount(FynCaptureForm, { props: { schema }, attachTo: document.body });
+      await box(second, 'Buy to let').trigger('click');
+      await second.vm.$nextTick();
+
+      expect(second.element.contains(document.activeElement)).toBe(true);
+      const label = second.find('label[for]');
+      expect(second.element.querySelector(`#${label.attributes('for')}`)).not.toBeNull();
+      const firstIds = first.findAll('[id]').map((n) => n.attributes('id'));
+      const secondIds = second.findAll('[id]').map((n) => n.attributes('id'));
+      expect(secondIds.filter((id) => firstIds.includes(id))).toEqual([]);
+      first.unmount();
+      second.unmount();
     } finally {
       proto.scrollIntoView = original;
     }
@@ -238,5 +266,33 @@ describe('money fields take pence', () => {
     const input = wrapper.find('input[type="number"]');
 
     expect(input.attributes('step')).toBe('0.01');
+  });
+});
+
+
+describe('fields shown only once another holds an amount (T24)', () => {
+  const mortgageSchema = {
+    name: 'property', submit_label: 'Save',
+    kinds: [{ key: 'main_residence', label: 'Home', fields: ['current_value', 'mortgage_outstanding_balance', 'mortgage_lender', 'ownership_type'] }],
+    fields: {
+      current_value: { type: 'money', label: 'Value', required: true },
+      mortgage_outstanding_balance: { type: 'money_or_none', label: 'Mortgage outstanding', required: true, none_label: 'No mortgage' },
+      mortgage_lender: { type: 'text', label: 'Mortgage lender', required: false, shown_when: { field: 'mortgage_outstanding_balance', filled: true } },
+      ownership_type: { type: 'choice', label: 'Ownership', required: true, options: [{ value: 'individual', label: 'Individual' }] },
+    },
+  };
+
+  it('shows the mortgage lender only while a mortgage amount is given, and never posts it hidden', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: mortgageSchema, values: { main_residence: { current_value: 400000, mortgage_outstanding_balance: null, ownership_type: 'individual', mortgage_lender: 'Stale Bank' } } } });
+    expect(w.text()).not.toContain('Mortgage lender');
+
+    await w.setProps({ values: { main_residence: { current_value: 400000, mortgage_outstanding_balance: 180000, ownership_type: 'individual', mortgage_lender: 'BM Solutions' } } });
+    const w2 = mount(FynCaptureForm, { props: { schema: mortgageSchema, values: { main_residence: { current_value: 400000, mortgage_outstanding_balance: 180000, ownership_type: 'individual', mortgage_lender: 'BM Solutions' } } } });
+    expect(w2.text()).toContain('Mortgage lender');
+    await w2.find('form').trigger('submit');
+    expect(w2.emitted('submit')[0][0].answers.main_residence.mortgage_lender).toBe('BM Solutions');
+
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0].answers.main_residence).not.toHaveProperty('mortgage_lender');
   });
 });

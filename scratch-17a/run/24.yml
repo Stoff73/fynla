@@ -1,0 +1,207 @@
+- iframe [active] [ref=f131e3]:
+  - generic [ref=f132e3]:
+    - generic [ref=f132e4]:
+      - banner [ref=f132e5]:
+        - button "Open menu" [ref=f132e6] [cursor=pointer]
+        - paragraph [ref=f132e10]: Good afternoon, Robin
+      - main [ref=f132e11]:
+        - button [ref=f132e241] [cursor=pointer]:
+          - img "Level 2, 64 percent complete" [ref=f132e242]:
+            - generic [ref=f132e18]:
+              - paragraph [ref=f132e19]: Level
+              - paragraph [ref=f132e20]: "2"
+          - generic [ref=f132e21]:
+            - heading "2 of 4 actions to your next level" [level=2] [ref=f132e243]
+            - paragraph [ref=f132e23]:
+              - text: Complete actions to reach
+              - strong [ref=f132e24]: Level 3
+              - text: .
+        - note [ref=f132e25]:
+          - generic [ref=f132e26]:
+            - tablist "Focus areas" [ref=f132e27]:
+              - tab "Top actions 1 action" [selected] [ref=f132e28] [cursor=pointer]:
+                - generic [ref=f132e29]: Top actions
+                - generic [ref=f132e30]: 1 action
+              - tab "Retirement Date of birth is required for retirement age calculations. Locked" [ref=f132e31] [cursor=pointer]:
+                - generic [ref=f132e32]: Retirement
+                - generic [ref=f132e33]: Date of birth is required for retirement age calculations.
+                - generic [ref=f132e34]: Locked
+              - tab "Protection Date of birth is required to calculate protection needs and policy terms. Locked" [ref=f132e35] [cursor=pointer]:
+                - generic [ref=f132e36]: Protection
+                - generic [ref=f132e37]: Date of birth is required to calculate protection needs and policy terms.
+                - generic [ref=f132e38]: Locked
+              - tab "Savings Date of birth is required for age-based savings analysis. Locked" [ref=f132e39] [cursor=pointer]:
+                - generic [ref=f132e40]: Savings
+                - generic [ref=f132e41]: Date of birth is required for age-based savings analysis.
+                - generic [ref=f132e42]: Locked
+              - tab "Investment Your date of birth is required to calculate time horizons and age-appropriate investment strategies. Locked" [ref=f132e43] [cursor=pointer]:
+                - generic [ref=f132e44]: Investment
+                - generic [ref=f132e45]: Your date of birth is required to calculate time horizons and age-appropriate investment strategies.
+                - generic [ref=f132e46]: Locked
+              - tab "Estate Planning Date of birth is required for life expectancy and Inheritance Tax calculations. Locked" [ref=f132e47] [cursor=pointer]:
+                - generic [ref=f132e48]: Estate Planning
+                - generic [ref=f132e49]: Date of birth is required for life expectancy and Inheritance Tax calculations.
+                - generic [ref=f132e50]: Locked
+              - tab "Goals Create a goal Locked" [ref=f132e51] [cursor=pointer]:
+                - generic [ref=f132e52]: Goals
+                - generic [ref=f132e53]: Create a goal
+                - generic [ref=f132e54]: Locked
+            - generic [ref=f132e55]:
+              - button "Previous focus area" [disabled] [ref=f132e56]
+              - tablist "Focus area navigation" [ref=f132e59]:
+                - button "Top actions" [ref=f132e60] [cursor=pointer]
+                - button "Retirement" [ref=f132e61] [cursor=pointer]
+                - button "Protection" [ref=f132e62] [cursor=pointer]
+                - button "Savings" [ref=f132e63] [cursor=pointer]
+                - button "Investment" [ref=f132e64] [cursor=pointer]
+                - button "Estate Planning" [ref=f132e65] [cursor=pointer]
+                - button "Goals" [ref=f132e66] [cursor=pointer]
+              - button "Next focus area" [ref=f132e67] [cursor=pointer]
+            - region "Top actions actions" [ref=f132e70]:
+              - generic [ref=f132e71]:
+                - list [ref=f132e72]:
+                  - listitem [ref=f132e73]:
+                    - button "Mark complete" [ref=f132e74] [cursor=pointer]
+                    - link "Pay £21,700 more into your pension and save £8,680 in tax You could save £8,680" [ref=f132e78] [cursor=pointer]:
+                      - /url: "#"
+                      - generic [ref=f132e82]:
+                        - generic [ref=f132e83]: Pay £21,700 more into your pension and save £8,680 in tax
+                        - generic [ref=f132e84]: You could save £8,680
+                    - button "Skip this recommendation for now" [ref=f132e87] [cursor=pointer]
+                - link "See all actions" [ref=f132e90] [cursor=pointer]:
+                  - /url: "#"
+        - region [ref=f132e91]:
+          - heading "Your finances" [level=3] [ref=f132e93]
+          - generic [ref=f132e94]:
+            - link [ref=f132e244] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f132e97]:
+                - generic [ref=f132e98]: 100%
+                - generic [ref=f132e99]: Equity
+              - generic [ref=f132e100]:
+                - paragraph [ref=f132e101]: Net worth
+                - paragraph [ref=f132e105]: £35,000
+                - paragraph [ref=f132e106]: £35,000 assets
+            - link [ref=f132e107] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f132e109]:
+                - generic [ref=f132e110]: None
+                - generic [ref=f132e111]: Cover
+              - generic [ref=f132e112]:
+                - paragraph [ref=f132e113]: Protection
+                - paragraph [ref=f132e117]: £0
+                - paragraph [ref=f132e118]: Add your cover
+            - link [ref=f132e119] [cursor=pointer]:
+              - /url: "#"
+              - paragraph [ref=f132e122]:
+                - strong [ref=f132e123]: "0"
+                - text: / 6 months
+              - generic [ref=f132e124]:
+                - paragraph [ref=f132e125]: Bank Accounts
+                - paragraph [ref=f132e129]: £0
+                - paragraph [ref=f132e130]: Start your emergency fund
+            - link [ref=f132e131] [cursor=pointer]:
+              - /url: "#"
+              - paragraph [ref=f132e134]:
+                - strong [ref=f132e135]: Target not set
+              - generic [ref=f132e136]:
+                - paragraph [ref=f132e137]: Retirement
+                - paragraph [ref=f132e141]: £0
+                - paragraph [ref=f132e142]: Plan your retirement
+            - link [ref=f132e245] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f132e145]:
+                - generic [ref=f132e146]: "1"
+                - generic [ref=f132e147]: Account
+              - generic [ref=f132e148]:
+                - paragraph [ref=f132e149]: Investment
+                - paragraph [ref=f132e153]: £35,000
+                - paragraph [ref=f132e154]: Add the funds you hold
+      - button "Chat with Fyn" [ref=f132e156] [cursor=pointer]:
+        - generic [ref=f132e158]:
+          - generic [ref=f132e159]: Fyn
+          - generic [ref=f132e160]: Your financial companion
+      - region "Chat with Fyn" [ref=f132e164]:
+        - generic [ref=f132e165]:
+          - generic [ref=f132e168]:
+            - paragraph [ref=f132e169]: Fyn
+            - paragraph [ref=f132e170]: Your financial companion
+          - generic [ref=f132e171]:
+            - button "Report a problem" [ref=f132e172] [cursor=pointer]
+            - button "Close Fyn chat" [ref=f132e173] [cursor=pointer]
+        - generic [ref=f132e176]:
+          - paragraph [ref=f132e178]: Welcome back, Robin. Last time we were noting whether you have another role to add. Would you like to continue from where we left off, or is there something else I can help with?
+          - paragraph [ref=f132e192]: Do you have any other roles or sources of earned income to add?
+          - paragraph [ref=f132e197]: No, that's everything
+          - paragraph [ref=f132e199]: Thanks Robin for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your ISAs, bank and savings accounts and pensions, is that okay?
+          - paragraph [ref=f132e204]: Okay
+          - generic [ref=f132e205]:
+            - paragraph [ref=f132e206]: Now your ISAs.
+            - generic [ref=f132e209]:
+              - button "Cash ISA" [disabled] [ref=f132e210]
+              - button "Stocks and Shares ISA" [disabled] [ref=f132e211]
+          - paragraph [ref=f132e215]: I have a Stocks and Shares ISA with Vanguard worth £35,000 and I've paid £8,000 into it this tax year
+          - generic [ref=f132e216]:
+            - paragraph [ref=f132e217]: I've filled in what you told me — check it, add anything missing and save.
+            - generic [ref=f132e218]:
+              - generic [ref=f132e220]:
+                - button "Cash ISA" [disabled] [ref=f132e221]
+                - button "Stocks and Shares ISA" [disabled] [pressed] [ref=f132e222]
+              - generic [ref=f132e223]:
+                - paragraph [ref=f132e224]: Stocks and Shares ISA
+                - generic [ref=f132e225]:
+                  - generic [ref=f132e226]: Who is it with *
+                  - textbox "Who is it with *" [disabled] [ref=f132e227]: Vanguard
+                - generic [ref=f132e228]:
+                  - generic [ref=f132e229]: Current balance *
+                  - generic [ref=f132e230]:
+                    - generic [ref=f132e231]: £
+                    - spinbutton "Current balance *" [disabled] [ref=f132e232]: "35000"
+                - generic [ref=f132e233]:
+                  - generic [ref=f132e234]: Paid in this tax year
+                  - generic [ref=f132e235]:
+                    - generic [ref=f132e236]: £
+                    - spinbutton "Paid in this tax year" [disabled] [ref=f132e237]: "8000"
+                  - paragraph [ref=f132e238]: Leave blank if none
+          - paragraph [ref=f132e247]: Stocks and Shares ISA with Vanguard, balance £35,000, £8,000 paid in this year.
+          - paragraph [ref=f132e249]: "You have 1 ISA or investment account on file: Vanguard Stocks and Shares ISA.Do you have another ISA to add?"
+          - paragraph [ref=f132e254]: No, that's everything
+          - generic [ref=f132e255]:
+            - paragraph [ref=f132e256]: Now your bank and savings accounts.
+            - generic [ref=f132e257]:
+              - generic [ref=f132e258]:
+                - paragraph [ref=f132e259]: A current account is for day-to-day money. Easy access, fixed rate and notice accounts are savings that pay interest.
+                - generic [ref=f132e260]:
+                  - button "Current account" [ref=f132e261] [cursor=pointer]
+                  - button "Easy access savings" [pressed] [ref=f132e262] [cursor=pointer]
+                  - button "Fixed rate savings" [ref=f132e263] [cursor=pointer]
+                  - button "Notice account" [ref=f132e264] [cursor=pointer]
+              - generic [ref=f132e267]:
+                - paragraph [ref=f132e268]: Easy access savings
+                - generic [ref=f132e269]:
+                  - generic [ref=f132e270]: Who is it with *
+                  - textbox "Who is it with *" [active] [ref=f132e271]
+                - generic [ref=f132e272]:
+                  - generic [ref=f132e273]: Balance *
+                  - generic [ref=f132e274]:
+                    - generic [ref=f132e275]: £
+                    - spinbutton "Balance *" [ref=f132e276]
+                - generic [ref=f132e277]:
+                  - generic [ref=f132e278]: Interest rate % *
+                  - spinbutton "Interest rate % *" [ref=f132e279]
+                - generic [ref=f132e280]:
+                  - generic [ref=f132e281]: Ownership *
+                  - radiogroup "Ownership *" [ref=f132e282]:
+                    - generic [ref=f132e283]:
+                      - radio "Individual" [ref=f132e284]
+                      - text: Individual
+                    - generic [ref=f132e285]:
+                      - radio "Joint" [ref=f132e286]
+                      - text: Joint
+                  - paragraph [ref=f132e287]: Joint means held 50/50 with your spouse or partner
+              - button "Save" [disabled] [ref=f132e266]
+        - generic [ref=f132e182]:
+          - textbox "Ask Fyn a question" [ref=f132e184]:
+            - /placeholder: Ask Fyn anything...
+          - button "Send to Fyn" [ref=f132e185] [cursor=pointer]
+    - button "Report a problem" [ref=f132e188] [cursor=pointer]

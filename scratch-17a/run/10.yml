@@ -1,0 +1,198 @@
+- generic [active] [ref=f125e1]:
+  - generic [ref=f125e36]:
+    - generic [ref=f125e37]:
+      - generic [ref=f125e38]:
+        - navigation [ref=f125e39]:
+          - generic [ref=f125e41]:
+            - heading "Dashboard" [level=1] [ref=f125e42]
+            - generic [ref=f125e44]:
+              - button "Upgrade Now" [ref=f125e45] [cursor=pointer]
+              - button "Support" [ref=f125e49] [cursor=pointer]
+              - button [ref=f125e54] [cursor=pointer]:
+                - img "Fyn" [ref=f125e55]
+                - text: Chat with Fyn
+              - button "Robin Hale" [ref=f125e57] [cursor=pointer]
+        - alert
+      - main [ref=f125e62]:
+        - generic [ref=f125e65]:
+          - generic [ref=f125e67]:
+            - generic [ref=f125e72]:
+              - heading "Secure your account with two-factor authentication" [level=3] [ref=f125e73]
+              - paragraph [ref=f125e74]: Protect your financial data by adding an extra layer of security using an authenticator app on your phone.
+              - link "Enable Two-Factor Authentication →" [ref=f125e76] [cursor=pointer]:
+                - /url: /settings/security
+            - button [ref=f125e77] [cursor=pointer]
+          - generic [ref=f125e81]:
+            - generic [ref=f125e82]:
+              - generic [ref=f125e83]:
+                - generic [ref=f125e84]: Level 1
+                - generic [ref=f125e85]:
+                  - text: 0 of 4 actions to your next level — reach
+                  - strong [ref=f125e86]: Level 2
+              - img "Level progress 10 percent" [ref=f125e87]
+            - region [ref=f125e89]:
+              - heading "Where to focus" [level=2] [ref=f125e90]
+              - tablist "Where to focus" [ref=f125e91]:
+                - tab "— Save tax" [selected] [ref=f125e92] [cursor=pointer]:
+                  - generic [ref=f125e93]: —
+                  - generic [ref=f125e94]: Save tax
+                - tab "Locked Retirement" [ref=f125e95] [cursor=pointer]:
+                  - generic [ref=f125e96]: Locked
+                  - generic [ref=f125e97]: Retirement
+                - tab "Locked Protection" [ref=f125e98] [cursor=pointer]:
+                  - generic [ref=f125e99]: Locked
+                  - generic [ref=f125e100]: Protection
+                - tab "Locked Savings" [ref=f125e101] [cursor=pointer]:
+                  - generic [ref=f125e102]: Locked
+                  - generic [ref=f125e103]: Savings
+                - tab "Locked Investment" [ref=f125e104] [cursor=pointer]:
+                  - generic [ref=f125e105]: Locked
+                  - generic [ref=f125e106]: Investment
+                - tab "Locked Estate" [ref=f125e107] [cursor=pointer]:
+                  - generic [ref=f125e108]: Locked
+                  - generic [ref=f125e109]: Estate
+                - tab "Locked Goals" [ref=f125e110] [cursor=pointer]:
+                  - generic [ref=f125e111]: Locked
+                  - generic [ref=f125e112]: Goals
+              - generic [ref=f125e113]:
+                - generic [ref=f125e114]:
+                  - heading "Recommendations" [level=3] [ref=f125e115]
+                  - generic [ref=f125e116]: 0 / 0
+                - paragraph [ref=f125e117]: Use your full ISA and pension allowances to keep more of what you earn.
+                - list [ref=f125e118]:
+                  - listitem [ref=f125e119]:
+                    - generic [ref=f125e120]: No recommendations here right now.
+                - link "Get more recommendations" [ref=f125e123] [cursor=pointer]:
+                  - /url: "#"
+            - region [ref=f125e124]:
+              - heading "Your finances" [level=2] [ref=f125e126]
+              - generic [ref=f125e127]:
+                - link [ref=f125e128] [cursor=pointer]:
+                  - /url: "#"
+                  - generic [ref=f125e130]:
+                    - generic [ref=f125e131]: 0%
+                    - generic [ref=f125e132]: Equity
+                  - generic [ref=f125e133]:
+                    - paragraph [ref=f125e134]: Net worth
+                    - paragraph [ref=f125e138]: £0
+                    - paragraph [ref=f125e139]: £0 assets
+                - link [ref=f125e140] [cursor=pointer]:
+                  - /url: "#"
+                  - generic [ref=f125e142]:
+                    - generic [ref=f125e143]: None
+                    - generic [ref=f125e144]: Cover
+                  - generic [ref=f125e145]:
+                    - paragraph [ref=f125e146]: Protection
+                    - paragraph [ref=f125e150]: £0
+                    - paragraph [ref=f125e151]: Add your cover
+                - link [ref=f125e152] [cursor=pointer]:
+                  - /url: "#"
+                  - paragraph [ref=f125e155]:
+                    - strong [ref=f125e156]: "0"
+                    - text: / 6 months
+                  - generic [ref=f125e157]:
+                    - paragraph [ref=f125e158]: Savings
+                    - paragraph [ref=f125e162]: £0
+                    - paragraph [ref=f125e163]: Start your emergency fund
+                - link [ref=f125e164] [cursor=pointer]:
+                  - /url: "#"
+                  - paragraph [ref=f125e167]:
+                    - strong [ref=f125e168]: Target not set
+                  - generic [ref=f125e169]:
+                    - paragraph [ref=f125e170]: Retirement
+                    - paragraph [ref=f125e174]: £0
+                    - paragraph [ref=f125e175]: Plan your retirement
+                - link [ref=f125e176] [cursor=pointer]:
+                  - /url: "#"
+                  - generic [ref=f125e178]:
+                    - generic [ref=f125e179]: "0"
+                    - generic [ref=f125e180]: Accounts
+                  - generic [ref=f125e181]:
+                    - paragraph [ref=f125e182]: Investment
+                    - paragraph [ref=f125e186]: £0
+                    - paragraph [ref=f125e187]: Add your investments
+      - contentinfo [ref=f125e188]:
+        - generic [ref=f125e189]:
+          - generic [ref=f125e190]:
+            - link [ref=f125e192] [cursor=pointer]:
+              - /url: /
+              - img "Fynla" [ref=f125e193]
+            - generic [ref=f125e194]:
+              - text: © 2026 Fynla - Your personal finance platform. For demonstration purposes only. |
+              - link "v1.0" [ref=f125e195] [cursor=pointer]:
+                - /url: /version
+              - text: "|"
+              - link "fynla.org" [ref=f125e196] [cursor=pointer]:
+                - /url: https://fynla.org
+            - generic [ref=f125e197]:
+              - link "Privacy Policy" [ref=f125e198] [cursor=pointer]:
+                - /url: /privacy
+              - link "Terms of Service" [ref=f125e199] [cursor=pointer]:
+                - /url: /terms
+              - link "Help" [ref=f125e200] [cursor=pointer]:
+                - /url: /help
+              - link "Sitemap" [ref=f125e201] [cursor=pointer]:
+                - /url: /sitemap
+          - paragraph [ref=f125e203]: This system is for demonstration purposes only and does not constitute regulated financial advice.
+    - complementary [ref=f125e204]:
+      - generic [ref=f125e207]:
+        - generic [ref=f125e209]:
+          - generic [ref=f125e210]:
+            - img "Fyn" [ref=f125e211]
+            - heading "Fyn" [level=3] [ref=f125e212]
+          - generic [ref=f125e213]:
+            - button "New" [ref=f125e214] [cursor=pointer]
+            - button "History" [ref=f125e215] [cursor=pointer]
+            - button "Collapse" [ref=f125e216] [cursor=pointer]
+        - generic [ref=f125e217]:
+          - generic [ref=f125e222]:
+            - paragraph [ref=f125e223]: "Hi Robin, I'm Fyn — thanks for those answers. Here's what you've told me:"
+            - paragraph
+            - list [ref=f125e224]:
+              - listitem [ref=f125e225]: Working full-time
+              - listitem [ref=f125e226]: Earning £50,271–£100,000
+              - listitem [ref=f125e227]: You have savings, a pension and an ISA
+            - text: I've started your profile from what you told us, and to build your personalised tax plan I just need a few more details — this usually takes about 5 minutes.
+            - paragraph
+            - paragraph [ref=f125e228]:
+              - strong [ref=f125e229]: Let's start with your income.
+              - text: Tell me your gross annual income (this includes bonuses and commissions).
+          - generic [ref=f125e231]:
+            - generic [ref=f125e232]:
+              - generic [ref=f125e233]:
+                - generic [ref=f125e234]: Employer or trading name *
+                - textbox "Employer or trading name *" [ref=f125e235]
+              - generic [ref=f125e236]:
+                - generic [ref=f125e237]: Job title or role
+                - textbox "Job title or role" [ref=f125e238]
+              - generic [ref=f125e239]:
+                - generic [ref=f125e240]: Gross annual income *
+                - generic [ref=f125e241]:
+                  - generic [ref=f125e242]: £
+                  - spinbutton "Gross annual income *" [ref=f125e243]
+                - paragraph [ref=f125e244]: Before tax, including bonuses and commissions
+            - button "Save" [disabled] [ref=f125e246]
+        - generic [ref=f125e250]:
+          - generic [ref=f125e251]:
+            - textbox "Ask Fyn..." [ref=f125e252]
+            - button "Send" [disabled] [ref=f125e253]
+          - paragraph [ref=f125e254]: Not regulated financial advice.Press Enter to send.
+  - navigation [ref=f125e255]:
+    - link [ref=f125e257] [cursor=pointer]:
+      - /url: /dashboard
+      - img "Fynla" [ref=f125e258]
+    - button "Collapse menu" [ref=f125e259] [cursor=pointer]
+    - generic [ref=f125e262]:
+      - generic [ref=f125e264]:
+        - link "Dashboard" [ref=f125e265] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Net Worth" [ref=f125e269] [cursor=pointer]:
+          - /url: /net-worth/wealth-summary
+      - button "Cash Management" [ref=f125e274] [cursor=pointer]
+      - button "Finances" [ref=f125e279] [cursor=pointer]
+      - button "Personal Affairs" [ref=f125e284] [cursor=pointer]
+      - button "Planning" [ref=f125e289] [cursor=pointer]
+    - generic [ref=f125e293]:
+      - link "Account" [ref=f125e294] [cursor=pointer]:
+        - /url: /settings
+      - button "Sign Out" [ref=f125e299] [cursor=pointer]

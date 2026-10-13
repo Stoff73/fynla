@@ -14,6 +14,7 @@ use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
+use App\Support\Money;
 use App\Support\SavingsInterestRate;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
@@ -735,7 +736,10 @@ final class TaxStrategyMath
      * when the spouse's income or savings are not known, or when nothing
      * moved saves at least £1.
      *
-     * @return array{interest_moved: float, saving: float, user_tax_saved: float, partner_extra_tax: float}|null
+     * `user_parts` and `partner_parts` are each person's income as priced,
+     * before the move, for the working (savingsMoveWorking).
+     *
+     * @return array{interest_moved: float, saving: float, user_tax_saved: float, partner_extra_tax: float, user_parts: array<string, float>, partner_parts: array<string, float>}|null
      */
     public function savingsMoveToPartner(
         User $user,
@@ -792,7 +796,143 @@ final class TaxStrategyMath
             return null;
         }
 
-        return array_map(fn (float $v): float => round($v, 2), $best);
+        return array_map(fn (float $v): float => round($v, 2), $best)
+            + ['user_parts' => $userParts, 'partner_parts' => $partnerParts];
+    }
+
+    /**
+     * The steps behind a savings move to the partner (savingsMoveToPartner),
+     * each from the tax engine's own interest breakdown on the income the move
+     * was priced on: each person's interest before and after, what is
+     * tax-free and under which allowance (ITA 2007 s12, s12B), what is taxed
+     * at which rate, and the totals (walk fix plan T12; TODO item 18).
+     *
+     * @param  array{interest_moved: float, saving: float, user_tax_saved: float, partner_extra_tax: float, user_parts: array<string, float>, partner_parts: array<string, float>}  $move
+     * @return list<string>
+     */
+    public function savingsMoveWorking(array $move): array
+    {
+        $moved = $move['interest_moved'];
+        $userBefore = $move['user_parts'];
+        $userAfter = ['interest' => $userBefore['interest'] - $moved] + $userBefore;
+        $partnerBefore = $move['partner_parts'];
+        $partnerAfter = ['interest' => $partnerBefore['interest'] + $moved] + $partnerBefore;
+
+        $lines = [];
+        $userTaxBefore = $this->interestTaxPosition($userBefore);
+        $userTaxAfter = $this->interestTaxPosition($userAfter);
+        $lines[] = 'Now '.$this->interestSentence($userTaxBefore, 'you have', 'your');
+        $lines[] = 'After the move '.$this->interestSentence($userTaxAfter, 'you have', 'your', short: true);
+        $userOther = $move['user_tax_saved'] - ($userTaxBefore['interest_tax'] - $userTaxAfter['interest_tax']);
+        if (abs($userOther) >= 0.01) {
+            $lines[] = sprintf('Tax on the rest of your income also %s by %s once the interest is no longer counted in your income.', $userOther > 0 ? 'falls' : 'rises', Money::exact(abs($userOther)));
+        }
+        $lines[] = sprintf('So you pay %s less tax.', Money::exact($move['user_tax_saved']));
+
+        $partnerTaxBefore = $this->interestTaxPosition($partnerBefore);
+        $partnerTaxAfter = $this->interestTaxPosition($partnerAfter);
+        $lines[] = 'Now '.$this->interestSentence($partnerTaxBefore, 'your spouse has', 'their');
+        $lines[] = 'After the move '.$this->interestSentence($partnerTaxAfter, 'your spouse has', 'their', short: true);
+        $partnerOther = $move['partner_extra_tax'] - ($partnerTaxAfter['interest_tax'] - $partnerTaxBefore['interest_tax']);
+        if (abs($partnerOther) >= 0.01) {
+            $lines[] = sprintf('Tax on the rest of their income also %s by %s once the interest is counted in their income.', $partnerOther > 0 ? 'rises' : 'falls', Money::exact(abs($partnerOther)));
+        }
+        $lines[] = $move['partner_extra_tax'] >= 0.005
+            ? sprintf('So your spouse pays %s more tax.', Money::exact($move['partner_extra_tax']))
+            : 'So your spouse pays no more tax.';
+
+        $saving = $move['saving'];
+        $total = $move['partner_extra_tax'] >= 0.005
+            ? sprintf('Together that is %s less %s, a saving of %s a year', Money::exact($move['user_tax_saved']), Money::exact($move['partner_extra_tax']), Money::exact($saving))
+            : sprintf('Together that is a saving of %s a year', Money::exact($saving));
+        $lines[] = $total.(fmod(round($saving, 2), 1.0) !== 0.0 ? sprintf(', shown rounded down to %s.', Money::exact(floor($saving))) : '.');
+
+        return $lines;
+    }
+
+    /**
+     * One person's savings interest as the tax engine taxes it on their whole
+     * income: what is tax-free under each allowance, what is taxed at each
+     * rate, the tax on it, and the Income Tax on everything.
+     *
+     * @param  array<string, float>  $parts
+     * @return array{interest: float, free: array<string, float>, taxed: array<string, float>, interest_tax: float, total_tax: float}
+     */
+    private function interestTaxPosition(array $parts): array
+    {
+        $result = $this->detailedTaxOn($parts);
+        $breakdown = collect($result['income_breakdowns'] ?? [])->firstWhere('income_type', 'interest')['tax_breakdown'] ?? [];
+        $interest = max(0.0, (float) $parts['interest']);
+        $personalAllowance = (float) ($breakdown['personal_allowance_used'] ?? 0);
+        $startingRate = (float) ($breakdown['starting_rate_for_savings_used'] ?? 0);
+        $taxable = (float) ($breakdown['taxable_after_psa'] ?? 0);
+
+        $taxed = [];
+        foreach (['basic_rate', 'higher_rate', 'additional_rate'] as $band) {
+            $amount = (float) ($breakdown[$band]['taxable'] ?? 0);
+            if ($amount >= 0.005) {
+                $taxed[(int) round((float) $breakdown[$band]['rate'] * 100).'%'] = $amount;
+            }
+        }
+
+        return [
+            'interest' => $interest,
+            'free' => array_filter([
+                'Personal Allowance' => $personalAllowance,
+                'starting rate for savings' => $startingRate,
+                'Personal Savings Allowance' => max(0.0, $interest - $personalAllowance - $startingRate - $taxable),
+            ], static fn (float $amount): bool => $amount >= 0.005),
+            'taxed' => $taxed,
+            'interest_tax' => (float) ($breakdown['total_income_tax'] ?? 0),
+            'total_tax' => (float) $result['summary']['total_income_tax_before_credits'],
+        ];
+    }
+
+    /**
+     * @param  array{interest: float, free: array<string, float>, taxed: array<string, float>, interest_tax: float, total_tax: float}  $position
+     */
+    private function interestSentence(array $position, string $subject, string $possessive, bool $short = false): string
+    {
+        if ($position['interest'] < 0.005) {
+            return $subject.' no savings interest.';
+        }
+
+        $amount = Money::exact($position['interest']);
+        $opening = $short ? "{$subject} {$amount}" : "{$subject} {$amount} of savings interest";
+
+        $free = array_map(
+            static fn (string $allowance, float $value): string => Money::exact($value).' under '.$possessive.' '.$allowance,
+            array_keys($position['free']),
+            $position['free'],
+        );
+        $taxed = array_map(
+            static fn (string $rate, float $value): string => Money::exact($value).' is taxed at '.$rate,
+            array_keys($position['taxed']),
+            $position['taxed'],
+        );
+
+        if ($taxed === []) {
+            return sprintf('%s: all of it is tax-free under %s %s.', $opening, $possessive, $this->joinWords(array_keys($position['free'])));
+        }
+        $taxPart = $this->joinWords($taxed).', which is '.Money::exact($position['interest_tax']).' of tax.';
+        if ($free === []) {
+            return sprintf('%s: %s', $opening, $taxPart);
+        }
+        // "£500 is tax-free under your Personal Savings Allowance"; several
+        // allowances are listed each with its amount.
+        $freePart = count($free) === 1
+            ? str_replace(' under ', ' is tax-free under ', $free[0])
+            : 'tax-free are '.$this->joinWords($free);
+
+        return sprintf('%s: %s and %s', $opening, $freePart, $taxPart);
+    }
+
+    /** @param  list<string>  $words */
+    private function joinWords(array $words): string
+    {
+        return count($words) > 1
+            ? implode(', ', array_slice($words, 0, -1)).' and '.end($words)
+            : (string) ($words[0] ?? '');
     }
 
     /**
@@ -835,7 +975,18 @@ final class TaxStrategyMath
      */
     public function incomeTaxOn(array $parts): float
     {
-        $result = app(UKTaxCalculator::class)->calculateDetailedNetIncome(
+        return (float) $this->detailedTaxOn($parts)['summary']['total_income_tax_before_credits'];
+    }
+
+    /**
+     * The tax engine's whole result for these income parts.
+     *
+     * @param  array{non_savings: float, interest: float, dividends: float, trust?: float, net_pay?: float}  $parts
+     * @return array<string, mixed>
+     */
+    private function detailedTaxOn(array $parts): array
+    {
+        return app(UKTaxCalculator::class)->calculateDetailedNetIncome(
             employmentIncome: $parts['non_savings'],
             trustIncome: (float) ($parts['trust'] ?? 0),
             interestIncome: $parts['interest'],
@@ -843,8 +994,6 @@ final class TaxStrategyMath
             pensionContributions: (float) ($parts['net_pay'] ?? 0),
             blindPersonsAllowance: (float) ($parts['blind_persons_allowance'] ?? 0),
         );
-
-        return (float) $result['summary']['total_income_tax_before_credits'];
     }
 
     /** The user's Income Tax for the year as things stand, from the one tax engine. */
@@ -955,15 +1104,20 @@ final class TaxStrategyMath
     }
 
     /**
-     * Income actually taxed at the higher rate: non-savings income above the
-     * limit, plus interest above it that the Personal Savings Allowance does
-     * not cover. The allowance is a nil rate on the first slice of savings
-     * income (ITA 2007 s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B),
-     * and savings income sits above non-savings income (s16). Dividends are
-     * taxed at the dividend rates (s8), never the higher rate, so they are
-     * left out: the slice can only understate, never overstate, the relief.
-     * Both pension cards that relieve at the higher rate size from here
-     * (PensionTaxReliefStrategy, IncomeBandStrategy).
+     * Income a pension payment relieves at the higher rate: non-savings income
+     * above the limit. A payment comes off pay (FA 2004 s193(2)) or extends
+     * the bands (s192(4)), and savings income sits above non-savings income
+     * (ITA 2007 s16), so interest above the limit stays above it while the
+     * payment is within this slice: interest the Personal Savings Allowance
+     * covers is taxed at 0% (s12B, https://www.legislation.gov.uk/ukpga/2007/3/section/12B)
+     * and the rest stays at the higher rate. This slice is the stretch where
+     * every pound paid in is relieved at the higher rate; the next pounds,
+     * as many as the interest the allowance covers, are relieved at the basic
+     * rate only, so counting the taxed interest in the slice overstated it
+     * (walk R25: £10,400 on £26,000 where the tax engine gives £10,346).
+     * Dividends are taxed at the dividend rates (s8). Both pension cards that
+     * relieve at the higher rate size from here (PensionTaxReliefStrategy,
+     * IncomeBandStrategy).
      */
     public function higherRateSlice(User $user, float $taxable, float $limit): float
     {
@@ -973,9 +1127,10 @@ final class TaxStrategyMath
     /**
      * The higher-rate slice with the income above the limit it leaves out, so
      * a working can show every step: interest the Personal Savings Allowance
-     * covers (taxed at 0%) and dividends (taxed at the dividend rates).
+     * covers (taxed at 0%), interest still taxed at the higher rate that a
+     * pension payment does not move, and dividends (the dividend rates).
      *
-     * @return array{slice: float, interest_covered: float, dividends: float}
+     * @return array{slice: float, interest_covered: float, interest_taxed: float, dividends: float}
      */
     public function higherRateSliceParts(User $user, float $taxable, float $limit): array
     {
@@ -984,13 +1139,13 @@ final class TaxStrategyMath
         $nonSavings = max(0.0, $taxable - $interest - $parts['dividends']);
         $interestAbove = max(0.0, min($interest, $nonSavings + $interest - $limit));
         $allowanceLeft = max(0.0, $this->psaForBand('higher') - ($interest - $interestAbove));
-        $slice = max(0.0, $nonSavings - $limit) + max(0.0, $interestAbove - $allowanceLeft);
-        $covered = min($interestAbove, $allowanceLeft);
+        $slice = max(0.0, $nonSavings - $limit);
 
         return [
             'slice' => $slice,
-            'interest_covered' => $covered,
-            'dividends' => max(0.0, max(0.0, $taxable - $limit) - $slice - $covered),
+            'interest_covered' => min($interestAbove, $allowanceLeft),
+            'interest_taxed' => max(0.0, $interestAbove - $allowanceLeft),
+            'dividends' => max(0.0, max(0.0, $taxable - $limit) - $slice - $interestAbove),
         ];
     }
 
