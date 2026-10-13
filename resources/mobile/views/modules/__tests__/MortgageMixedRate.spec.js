@@ -83,3 +83,20 @@ describe('/m mortgage detail — mixed rate split (W-0351)', () => {
     expect(wrapper.text()).not.toContain('Variable (40.00%)');
   });
 });
+
+// T25 (walk 2026-10-11, Q1, N7): a type, payment or rate the user never gave
+// is null and reads "Not recorded", never "Repayment", "£0" or "0.00%".
+describe('/m mortgage detail — what was not given (T25)', () => {
+  it('says Not recorded for a missing type, monthly payment and interest rate', async () => {
+    stubMortgage({ lender_name: null, mortgage_type: null, monthly_payment: null, interest_rate: null, rate_type: 'fixed' });
+    const wrapper = await mountDetail();
+    const row = (key) => wrapper.findAll('.m-detail-row, li, div').find((n) => n.text().startsWith(key));
+
+    expect(wrapper.text()).toContain('Not recorded');
+    expect(wrapper.text()).not.toContain('£0');
+    expect(wrapper.text()).not.toContain('0.00%');
+    expect(row('Type')?.text()).toContain('Not recorded');
+    expect(row('Monthly payment')?.text()).toContain('Not recorded');
+    expect(row('Interest rate')?.text()).toContain('Not recorded');
+  });
+});

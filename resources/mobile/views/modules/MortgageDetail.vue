@@ -31,7 +31,8 @@ export default {
     // so both surfaces state the same fact (Rule 19). The split is the label and the
     // rate is the value, exactly as the web detail view renders it.
     rows() { return [
-      { key: 'Type', value: label(this.mortgage.mortgage_type) }, { key: 'Ownership', value: label(this.mortgage.ownership_type) }, { key: 'Monthly payment', value: fmt(this.mortgage.monthly_payment) }, { key: 'Interest rate', value: this.rate(this.mortgage.interest_rate) }, { key: 'Rate type', value: label(this.mortgage.rate_type) },
+      // Not given is null (T25): "Not recorded", never "Repayment" or £0.
+      { key: 'Type', value: this.mortgage.mortgage_type ? label(this.mortgage.mortgage_type) : 'Not recorded' }, { key: 'Ownership', value: label(this.mortgage.ownership_type) }, { key: 'Monthly payment', value: this.mortgage.monthly_payment == null ? 'Not recorded' : fmt(this.mortgage.monthly_payment) }, { key: 'Interest rate', value: this.rate(this.mortgage.interest_rate) }, { key: 'Rate type', value: label(this.mortgage.rate_type) },
       ...this.mixedRateRows,
       ...this.declaredLiabilityRows,
       { key: 'Remaining term', value: this.mortgage.remaining_term_months == null ? '—' : `${this.mortgage.remaining_term_months} months` }, { key: 'Maturity date', value: date(this.mortgage.maturity_date) },
@@ -61,7 +62,8 @@ export default {
   },
   async created() { await this.load(); },
   methods: {
-    fmt, label, rate(value) { return value == null || isNaN(Number(value)) ? '—' : `${Number(value).toFixed(2)}%`; },
+    // A rate the user never gave reads "Not recorded", never 0.00% (T25; R10).
+    fmt, label, rate(value) { return value == null || isNaN(Number(value)) ? 'Not recorded' : `${Number(value).toFixed(2)}%`; },
     goBack() { this.$router.push({ name: 'm-net-worth-category', params: { category: 'liabilities' } }); }, openProperty() { this.$router.push({ name: 'm-property', params: { id: this.mortgage.property.id } }); },
     async load() { this.loading = true; this.error = ''; this.mortgage = null; try { const response = await apiGet(`/api/mortgages/${this.recordId}`, store.token); if (handleAuthExpiry(response, this.$router)) return; if (response.ok) this.mortgage = (response.data?.data || response.data || {}).mortgage || null; else this.error = response.data?.message || 'We could not load this mortgage.'; } catch { this.error = 'Network error. Please try again.'; } finally { this.loading = false; } },
   },
