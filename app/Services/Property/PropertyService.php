@@ -7,6 +7,7 @@ namespace App\Services\Property;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\PropertyStore;
+use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
@@ -22,6 +23,7 @@ class PropertyService
 
     public function __construct(
         private readonly PropertyStore $propertyStore,
+        private readonly TaxConfigService $taxConfig,
     ) {}
 
     /**
@@ -167,7 +169,12 @@ class PropertyService
             $type = $mortgage->mortgage_type;
 
             if ($type === 'interest_only') {
-                $monthlyMortgageInterest += $payment;
+                // On an interest-only loan the payment is the interest. With no
+                // payment recorded it is the balance at the rate, both the
+                // user's own figures (T64).
+                $monthlyMortgageInterest += $mortgage->monthly_payment !== null
+                    ? $payment
+                    : $this->interestOnlyMonthlyInterest($mortgage);
             } elseif ($type === 'repayment') {
                 $monthlyMortgageInterest += (float) ($mortgage->monthly_interest_portion ?? 0);
             } elseif ($type === 'mixed') {
@@ -193,7 +200,11 @@ class PropertyService
 
         $userMonthlyTaxable = $monthlyTaxableIncome * $ownershipMultiplier;
         $userMonthlyInterest = $monthlyMortgageInterest * $ownershipMultiplier;
-        $monthlySection24Credit = $userMonthlyInterest * 0.20;
+        // Finance costs are not deducted from the rent (ITTOIA 2005 s272A); they
+        // reduce the tax at the basic rate (ITA 2007 s399A-s399B), read from the
+        // tax configuration (Rule 2).
+        $basicRate = (float) ($this->taxConfig->getIncomeTax()['bands'][0]['rate'] ?? 0);
+        $monthlySection24Credit = $userMonthlyInterest * $basicRate;
 
         $propertyName = $property->name ?: ($property->address_line_1 ?: 'BTL Property');
 
@@ -208,6 +219,21 @@ class PropertyService
             'ownership_percentage' => $ownershipMultiplier < 1.0 ? round($ownershipMultiplier * 100) : null,
             'has_interest_portion_missing' => $this->hasMissingInterestPortion($mortgages),
         ];
+    }
+
+    /**
+     * Monthly interest on an interest-only mortgage from its balance and annual
+     * rate (stored as a percentage), or 0 when either is unknown (T64).
+     */
+    private function interestOnlyMonthlyInterest(object $mortgage): float
+    {
+        $balance = $mortgage->outstanding_balance;
+        $rate = $mortgage->interest_rate;
+        if ($balance === null || $rate === null) {
+            return 0.0;
+        }
+
+        return (float) $balance * ((float) $rate / 100) / 12;
     }
 
     /**
