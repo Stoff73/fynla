@@ -571,6 +571,10 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Found: T49 is on web too (the loop question "savings.That's the Free plan's limit").
           - Walk accounts to purge: Priya 521, Tom 522, Ellie 523 (T20), plus the session 6 list.
           - Next: T21 (the self-employed sentence says profit, M4).
+          - **T21 ticked to Dev walk (2026-10-13):** a self-employed user's work form asks for "Annual profit" (what the business takes in, less allowable expenses, before tax; GOV.UK), and their line says profit ("…trading as Okafor Consulting, and my profit is £55,000 a year."). The read-back keeps pence. #1275 (`f4ed40f19`), #1276. Walked web and /m as Tunde 524.
+            - DECISION (CSJ): approve the T21 wording: "Annual profit", "What the business takes in, less allowable expenses, before tax", and the two line forms.
+            - Recorded: CSJ answered the T20 report with "Good go to T21" (2026-10-13); taken as approval of the T20 wording. Correct me if not.
+          - Next (CSJ 2026-10-13: "move too T22 and 23 after this"): T22, then T23.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
