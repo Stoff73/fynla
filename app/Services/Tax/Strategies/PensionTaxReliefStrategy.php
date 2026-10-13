@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\Money;
 
 /**
  * Pension tax relief below the Personal Allowance taper (CSJ ruling
@@ -151,7 +152,9 @@ final class PensionTaxReliefStrategy implements TaxStrategy
     private function working(TaxStrategyContext $context, string $band, array $limits, float $earnings, int $display, int $ratePct, float $saving): array
     {
         $user = $context->user;
-        $pounds = static fn (float $value): string => '£'.number_format((int) floor($value));
+        // Exact, as all money given to Fyn is (CSJ 2026-10-12; T66): the
+        // floor here turned £76,188.50 into £76,188 in Fyn's answer.
+        $pounds = static fn (float $value): string => Money::exact(round($value, 2));
         $lines = [];
 
         if ($band === 'higher') {
@@ -268,9 +271,9 @@ final class PensionTaxReliefStrategy implements TaxStrategy
                 // HMRC adds, and the action row says so (CSJ 2026-10-08).
                 'benefit_wording' => $saving - $atSource < 1 ? 'hmrc_adds' : null,
                 'working' => array_values(array_filter([
-                    sprintf('Without earnings from work, tax relief is given on up to £%s a year of pension payments.', number_format((int) $basicAmount)),
-                    $paying >= 1 ? sprintf('You already pay in £%s, which leaves £%s.', number_format((int) floor($paying)), number_format((int) floor(max(0.0, $basicAmount - $paying)))) : null,
-                    $savingsCover < $basicAmount - $paying ? sprintf('Your savings cover a payment of £%s, so it stops there.', number_format((int) floor($savingsCover))) : null,
+                    sprintf('Without earnings from work, tax relief is given on up to %s a year of pension payments.', Money::exact($basicAmount)),
+                    $paying >= 1 ? sprintf('You already pay in %s, which leaves %s.', Money::exact(round($paying, 2)), Money::exact(round(max(0.0, $basicAmount - $paying), 2))) : null,
+                    $savingsCover < $basicAmount - $paying ? sprintf('Your savings cover a payment of %s, so it stops there.', Money::exact(round($savingsCover, 2))) : null,
                     sprintf('Rounded down to the nearest £100 that is £%s: you pay £%s and HMRC adds £%s through your pension provider.', number_format((int) $gross), number_format((int) $net), number_format((int) $atSource)),
                 ])),
             ],

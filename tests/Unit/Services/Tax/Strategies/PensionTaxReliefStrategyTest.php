@@ -9,6 +9,7 @@ use App\Services\Mobile\NextActionsService;
 use App\Services\Tax\TaxStrategyCalculator;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\Money;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -201,6 +202,22 @@ it('carries the working behind a higher-rate item, from income after pension pay
             sprintf('So %s of your income is taxed at %d%%.', $pounds($slice), $rate),
             sprintf('Rounded down to the nearest £100 that is %s, and %d%% of %s is %s of tax saved.', $pounds($display), $rate, $pounds($display), $pounds($display * $rate / 100)),
         ]);
+});
+
+it('keeps the pence in the working, as Fyn quotes money exactly', function () {
+    // T66 (release ac prod walk, 2026-10-13): Ada's working read "Your income
+    // this year is £76,188" and "£25,590 … taxed at 40%" for £76,188.50 and
+    // £25,590.50: every step was floored. Money reaches Fyn exactly (CSJ
+    // 2026-10-12: £100 when whole, £100.15 with pence, never rounded).
+    $user = reliefUser(75000.50);
+    $threshold = app(TaxStrategyMath::class)->bandThresholds()['higher'];
+    $slice = 75000.50 - $threshold;
+
+    $rec = reliefRecs($user)['higher'] ?? null;
+
+    expect($rec)->not->toBeNull()
+        ->and($rec['working'][0])->toBe('Your income this year is £75,000.50.')
+        ->and($rec['working'])->toContain(sprintf('So %s of your income is taxed at 40%%.', Money::exact($slice)));
 });
 
 it('names the interest the Personal Savings Allowance covers, so the working adds up', function () {
