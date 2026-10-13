@@ -598,7 +598,9 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - T61 to T65 ticked to Dev walk in session 2 (#1288 to #1298); T69, T70, T71 found and added.
           - **T66 ticked to Dev walk:** the pension working keeps the pence (#1299). Walked /m and web as Tunde 524: "£59,200.50 − £50,270 = £8,930.50" (`T66-01`, `T66-02`).
           - **T58.1 ticked to Dev walk:** the web chat box opens after "Something else" on the resume bubbles (#1300), found on the T66 walk. /m empties the set on tap; the tap on /m **I COULD NOT TEST** (no resume bubbles there for Meera 531).
-          - Next: T67 (check first), T68, then T69 to T71, then T26.
+          - **T67 ticked to Dev walk:** "£3,148" traced and correct (the spec's delta: £7,730 × 40% + £279.50 × 20%); "Marriage Allowance is lost" now said only to a married person or civil partner (#1302). Walked web and /m, single and married (Tunde 524).
+          - Found, added as T72 (check first, possible security: /m showed Meera after a sign-in as Tunde), T73 (country of birth search), T74 (web form has no civil partnership), T75 (check first: "Single-person household" for a married user).
+          - Next: T72 (security first), then T68, T69 to T71, T73 to T75, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
