@@ -1993,13 +1993,21 @@ final class OnboardingChatDirector
             default => [[], '', ''],
         };
         $names = array_values($names);
+        // A Junior ISA is added from the bank form but, like every ISA,
+        // counts with the investments (SavingsStore::countForUser), so it is
+        // named apart rather than read as lost (T24 walk, csjones 530).
+        $juniorIsas = $stateId === OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE
+            ? app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->where('account_type', 'junior_isa')
+                ->map(fn ($a) => $label([$a->account_name, $a->institution], 'A Junior ISA'))->values()->all()
+            : [];
+        $juniorLine = $juniorIsas === [] ? '' : ' '.$this->joinClauses($juniorIsas).(count($juniorIsas) === 1 ? ' counts' : ' count').' with your ISAs.';
         if ($names === []) {
-            return null;
+            return $juniorLine === '' ? null : ltrim($juniorLine);
         }
 
         $count = count($names);
 
-        return sprintf('You have %d %s on file: %s.', $count, $count === 1 ? $singular : $plural, $this->joinClauses($names));
+        return sprintf('You have %d %s on file: %s.', $count, $count === 1 ? $singular : $plural, $this->joinClauses($names)).$juniorLine;
     }
 
     /**
