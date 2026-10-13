@@ -259,11 +259,16 @@ class PropertyController extends Controller
         $figures['managing_agent_fee_user_monthly'] = round($agentFee * $fraction, 2);
         $figures['value_change'] = $purchase > 0 ? round((float) $property->current_value - $purchase, 2) : null;
         $figures['value_change_percent'] = $purchase > 0 ? round(((float) $property->current_value - $purchase) / $purchase * 100, 2) : null;
-        // Each mortgage at this viewer's share, by id.
+        // Each mortgage at this viewer's share, by id. A payment never given
+        // stays null, never £0 (T25, T61).
         $figures['mortgage_shares'] = $mortgages->mapWithKeys(fn ($mortgage) => [$mortgage->id => [
             'user_share' => round($this->calculateUserMortgageShare($mortgage, $user->id), 2),
-            'user_monthly_payment' => round($this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id), 2),
-            'annual_payment' => round((float) ($mortgage->monthly_payment ?? 0) * 12, 2),
+            'user_monthly_payment' => $mortgage->monthly_payment === null
+                ? null
+                : round($this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id), 2),
+            'annual_payment' => $mortgage->monthly_payment === null
+                ? null
+                : round((float) $mortgage->monthly_payment * 12, 2),
         ]])->all();
 
         if ($mortgages->count() > 0) {
