@@ -225,6 +225,14 @@ const actions = {
 
 const mutations = {
   setToken(state, token) {
+    // A new token is a new sign-in on this browser. Any /m session from before
+    // it belongs to whoever was here last: the framed handoff keeps an /m token
+    // it finds (router/index.js), so leaving it put the new user on the last
+    // user's /m dashboard (T72). A page boot reads the token without this
+    // mutation, so a returning /m user keeps their own rotated token.
+    if (token && token !== state.token) {
+      try { localStorage.removeItem('m_scaffold_token'); } catch { /* storage disabled */ }
+    }
     state.token = token;
   },
 
