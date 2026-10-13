@@ -168,6 +168,8 @@ class CoordinatingAgent extends BaseAgent
     private const SAVINGS_ACCOUNT_TYPES = [
         'easy_access', 'notice', 'fixed', 'fixed_term',
         'regular_saver', 'cash_isa', 'junior_isa', 'current_account',
+        // T24: the savings form's Premium Bonds kind (SavingsAccount::TYPE_LABELS).
+        'premium_bonds',
     ];
 
     public function __construct(
@@ -3329,6 +3331,9 @@ class CoordinatingAgent extends BaseAgent
             'joint_owner_id' => 'nullable|integer|exists:users,id',
             'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
+            // A Junior ISA's child (T24; the web form's beneficiary fields).
+            'beneficiary_name' => 'nullable|string|max:255',
+            'beneficiary_dob' => 'nullable|date_format:Y-m-d|before:today',
         ]);
         if ($validationError) {
             return $validationError;
@@ -3893,6 +3898,10 @@ class CoordinatingAgent extends BaseAgent
             'monthly_building_insurance' => 'nullable|numeric|min:0|max:99999.99',
             'monthly_contents_insurance' => 'nullable|numeric|min:0|max:99999.99',
             'monthly_service_charge' => 'nullable|numeric|min:0|max:99999.99',
+            'managing_agent_fee' => 'nullable|numeric|min:0|max:99999.99',
+            'city' => 'nullable|string|max:255',
+            'mortgage_lender' => 'nullable|string|max:255',
+            'mortgage_maturity_date' => 'nullable|date_format:Y-m-d|after:today',
             'monthly_maintenance_reserve' => 'nullable|numeric|min:0|max:99999.99',
             'other_monthly_costs' => 'nullable|numeric|min:0|max:99999.99',
             // Legacy field names from AiToolDefinitions (Anthropic path)

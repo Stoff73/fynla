@@ -381,7 +381,9 @@ final class CaptureForms
                 self::ISA => self::isaSentence($label, $input),
                 self::SAVINGS => self::savingsSentence($label, $input),
                 self::INVESTMENT => self::investmentSentence($label, $input),
-                self::PENSION, self::PENSION_PERSONAL => self::pensionSentence($label, $input),
+                self::PENSION, self::PENSION_PERSONAL => ($input['pension_category'] ?? null) === 'db'
+                    ? self::dbPensionSentence(self::kindLabel(self::DB_PENSION, (string) $input['scheme_type']), $input)
+                    : self::pensionSentence($label, $input),
                 self::DB_PENSION => self::dbPensionSentence($label, $input),
                 self::PROTECTION => self::protectionSentence($label, $input),
                 self::GIFT => self::giftSentence($label, $input),
@@ -417,6 +419,32 @@ final class CaptureForms
         if (in_array('monthly_rental_income', $kind['fields'], true) && is_numeric($answers['monthly_rental_income'] ?? null)) {
             $input['monthly_rental_income'] = (float) $answers['monthly_rental_income'];
         }
+        $city = trim((string) ($answers['city'] ?? ''));
+        if ($city !== '') {
+            $input['city'] = $city;
+        }
+        foreach (['managing_agent_fee', 'monthly_service_charge'] as $field) {
+            if (in_array($field, $kind['fields'], true) && is_numeric($answers[$field] ?? null)) {
+                $input[$field] = (float) $answers[$field];
+            }
+        }
+        if ($input['has_mortgage']) {
+            $lender = trim((string) ($answers['mortgage_lender'] ?? ''));
+            if ($lender !== '') {
+                $input['mortgage_lender'] = $lender;
+            }
+            if (! empty($answers['mortgage_type'])) {
+                $input['mortgage_type'] = (string) $answers['mortgage_type'];
+            }
+            foreach (['mortgage_interest_rate', 'mortgage_monthly_payment'] as $field) {
+                if (is_numeric($answers[$field] ?? null)) {
+                    $input[$field] = (float) $answers[$field];
+                }
+            }
+            if (is_numeric($answers['mortgage_years_left'] ?? null)) {
+                $input['mortgage_maturity_date'] = Carbon::today()->addYears((int) $answers['mortgage_years_left'])->format('Y-m-d');
+            }
+        }
         $ownership = (string) ($answers['ownership_type'] ?? 'individual');
         $input['ownership_type'] = $ownership;
         if (in_array($ownership, ['joint', 'tenants_in_common'], true)) {
@@ -427,15 +455,42 @@ final class CaptureForms
         return $input;
     }
 
+    /**
+     * The mortgage details the user gave, in brackets after the balance:
+     * "(BM Solutions, interest only, 5.2%, £780 a month)".
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private static function mortgageDetail(array $input): string
+    {
+        $detail = array_filter([
+            $input['mortgage_lender'] ?? null,
+            isset($input['mortgage_type']) ? str_replace('_', ' ', (string) $input['mortgage_type']) : null,
+            isset($input['mortgage_interest_rate']) ? self::percent($input['mortgage_interest_rate']) : null,
+            isset($input['mortgage_monthly_payment']) ? self::pounds($input['mortgage_monthly_payment']).' a month' : null,
+        ]);
+
+        return $detail === [] ? '' : ' ('.implode(', ', $detail).')';
+    }
+
     /** @param  array<string, mixed>  $input */
     private static function propertySentence(string $label, array $input): string
     {
         $parts = [$label.' worth '.self::pounds($input['current_value'])];
+        if (isset($input['city'])) {
+            $parts[0] .= ' in '.$input['city'];
+        }
         $parts[] = $input['has_mortgage']
-            ? 'mortgage '.self::pounds($input['mortgage_outstanding_balance'])
+            ? 'mortgage '.self::pounds($input['mortgage_outstanding_balance']).self::mortgageDetail($input)
             : 'no mortgage';
         if (isset($input['monthly_rental_income'])) {
             $parts[] = 'rent '.self::pounds($input['monthly_rental_income']).' a month';
+        }
+        if (isset($input['managing_agent_fee'])) {
+            $parts[] = 'agent '.self::pounds($input['managing_agent_fee']).' a month';
+        }
+        if (isset($input['monthly_service_charge'])) {
+            $parts[] = 'service charge '.self::pounds($input['monthly_service_charge']).' a month';
         }
         $parts[] = str_replace('_', ' ', $input['ownership_type']);
         if (isset($input['ownership_percentage'])) {
@@ -503,6 +558,30 @@ final class CaptureForms
      */
     private static function savingsInputs(array $kind, array $answers): array
     {
+        if ($kind['key'] === 'premium_bonds') {
+            return [
+                'account_name' => 'NS&I Premium Bonds',
+                'account_type' => 'premium_bonds',
+                'institution' => 'NS&I',
+                'current_balance' => (float) $answers['current_value'],
+                'ownership_type' => 'individual',
+            ];
+        }
+        if ($kind['key'] === 'junior_isa') {
+            $provider = trim((string) $answers['provider']);
+            $child = trim((string) $answers['child_first_name']);
+
+            return [
+                'account_name' => $provider.' Junior ISA for '.$child,
+                'account_type' => 'junior_isa',
+                'is_isa' => true,
+                'institution' => $provider,
+                'current_balance' => (float) $answers['current_value'],
+                'ownership_type' => 'individual',
+                'beneficiary_name' => $child,
+                'beneficiary_dob' => (string) $answers['child_date_of_birth'],
+            ];
+        }
         $provider = trim((string) $answers['provider']);
         $input = [
             'account_name' => $provider.' '.lcfirst($kind['label']),
@@ -583,6 +662,12 @@ final class CaptureForms
     /** @param  array<string, mixed>  $input */
     private static function savingsSentence(string $label, array $input): string
     {
+        if (($input['account_type'] ?? null) === 'premium_bonds') {
+            return 'Premium Bonds, '.self::pounds($input['current_balance']).'.';
+        }
+        if (($input['account_type'] ?? null) === 'junior_isa') {
+            return $input['institution'].' Junior ISA for '.$input['beneficiary_name'].', balance '.self::pounds($input['current_balance']).'.';
+        }
         $parts = [$input['institution'].' '.lcfirst($label).', balance '.self::pounds($input['current_balance'])];
         if (isset($input['interest_rate'])) {
             $parts[] = self::percent($input['interest_rate']).' interest';
@@ -630,6 +715,9 @@ final class CaptureForms
      */
     private static function pensionInputs(array $kind, array $answers): array
     {
+        if (! empty($kind['db'])) {
+            return self::dbPensionInputs(['key' => (string) $answers['db_scheme_type']] + $kind, $answers);
+        }
         $provider = trim((string) $answers['provider']);
         $input = [
             'pension_category' => 'dc',
@@ -806,6 +894,12 @@ final class CaptureForms
         return Money::exact($amount);
     }
 
+    /** The mortgage details asked once a mortgage balance is given (T24). */
+    private const MORTGAGE_DETAIL_FIELDS = ['mortgage_lender', 'mortgage_type', 'mortgage_interest_rate', 'mortgage_monthly_payment', 'mortgage_years_left'];
+
+    /** Shown only while the mortgage balance holds an amount (both renderers, captureFormState.js). */
+    private const HAS_MORTGAGE = ['field' => 'mortgage_outstanding_balance', 'filled' => true];
+
     /** @return array<string, mixed> */
     private static function property(): array
     {
@@ -814,11 +908,11 @@ final class CaptureForms
             'submit_label' => 'Save',
             'kinds' => [
                 ['key' => 'main_residence', 'label' => 'Home', 'tool' => 'create_property', 'entity_type' => 'property',
-                    'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
+                    'fields' => ['current_value', 'city', 'mortgage_outstanding_balance', ...self::MORTGAGE_DETAIL_FIELDS, 'ownership_type', 'ownership_percentage']],
                 ['key' => 'secondary_residence', 'label' => 'Second home', 'tool' => 'create_property', 'entity_type' => 'property',
-                    'fields' => ['current_value', 'mortgage_outstanding_balance', 'ownership_type', 'ownership_percentage']],
+                    'fields' => ['current_value', 'city', 'mortgage_outstanding_balance', ...self::MORTGAGE_DETAIL_FIELDS, 'ownership_type', 'ownership_percentage']],
                 ['key' => 'buy_to_let', 'label' => 'Buy to let', 'tool' => 'create_property', 'entity_type' => 'property',
-                    'fields' => ['current_value', 'mortgage_outstanding_balance', 'monthly_rental_income', 'ownership_type', 'ownership_percentage']],
+                    'fields' => ['current_value', 'city', 'mortgage_outstanding_balance', ...self::MORTGAGE_DETAIL_FIELDS, 'monthly_rental_income', 'managing_agent_fee', 'monthly_service_charge', 'ownership_type', 'ownership_percentage']],
             ],
             'fields' => [
                 'current_value' => ['type' => 'money', 'label' => 'Value', 'required' => true,
@@ -826,6 +920,23 @@ final class CaptureForms
                 'mortgage_outstanding_balance' => ['type' => 'money_or_none', 'label' => 'Mortgage outstanding', 'required' => true,
                     'none_label' => 'No mortgage'],
                 'monthly_rental_income' => ['type' => 'money', 'label' => 'Monthly rental income', 'required' => true],
+                // T24 (walk 2026-10-11, RC7): the columns the property and its
+                // mortgage already have; each optional, so nothing is invented
+                // when the user does not know (T25).
+                'city' => ['type' => 'text', 'label' => 'Town or city', 'required' => false],
+                'mortgage_lender' => ['type' => 'text', 'label' => 'Mortgage lender', 'required' => false, 'shown_when' => self::HAS_MORTGAGE],
+                'mortgage_type' => ['type' => 'choice', 'label' => 'Mortgage type', 'required' => false, 'shown_when' => self::HAS_MORTGAGE, 'options' => [
+                    ['value' => 'repayment', 'label' => 'Repayment'],
+                    ['value' => 'interest_only', 'label' => 'Interest Only'],
+                    ['value' => 'mixed', 'label' => 'Mixed'],
+                ]],
+                'mortgage_interest_rate' => ['type' => 'percent', 'label' => 'Mortgage interest rate %', 'required' => false, 'min' => 0, 'max' => 25, 'step' => 0.01, 'shown_when' => self::HAS_MORTGAGE],
+                'mortgage_monthly_payment' => ['type' => 'money', 'label' => 'Monthly mortgage payment', 'required' => false, 'shown_when' => self::HAS_MORTGAGE],
+                'mortgage_years_left' => ['type' => 'percent', 'label' => 'Years left on the mortgage', 'required' => false, 'min' => 1, 'max' => 40, 'step' => 1, 'shown_when' => self::HAS_MORTGAGE],
+                // Monthly pounds, as the web property form and PropertyService
+                // read managing_agent_fee ("Monthly Management Fee (£)").
+                'managing_agent_fee' => ['type' => 'money', 'label' => "Letting agent's fee each month", 'required' => false, 'hint' => 'Leave blank if none'],
+                'monthly_service_charge' => ['type' => 'money', 'label' => 'Service charge each month', 'required' => false, 'hint' => 'Leave blank if none'],
                 'ownership_type' => ['type' => 'choice', 'label' => 'Ownership', 'required' => true, 'options' => [
                     ['value' => 'individual', 'label' => 'Individual'],
                     ['value' => 'joint', 'label' => 'Joint'],
@@ -892,6 +1003,15 @@ final class CaptureForms
                     'fields' => $fields],
                 ['key' => 'notice', 'label' => 'Notice account', 'tool' => 'create_savings_account', 'entity_type' => 'savings_account',
                     'fields' => $fields],
+                // T24 (walk 2026-10-11, F9 #3790): NS&I Premium Bonds "don't earn
+                // interest" and are not for saving jointly
+                // (nsandi.com/products/premium-bonds), so the balance alone.
+                ['key' => 'premium_bonds', 'label' => 'Premium Bonds', 'tool' => 'create_savings_account', 'entity_type' => 'savings_account',
+                    'fields' => ['current_value']],
+                // A Junior ISA is the child's (gov.uk/junior-individual-savings-accounts),
+                // named as the web savings form names it (beneficiary).
+                ['key' => 'junior_isa', 'label' => 'Junior ISA', 'tool' => 'create_savings_account', 'entity_type' => 'savings_account',
+                    'fields' => ['provider', 'current_value', 'child_first_name', 'child_date_of_birth']],
             ],
             'fields' => [
                 'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
@@ -899,6 +1019,8 @@ final class CaptureForms
                 'interest_rate' => ['type' => 'percent', 'label' => 'Interest rate %', 'required' => true, 'min' => 0, 'max' => 20, 'step' => 0.01],
                 'current_account_interest_rate' => ['type' => 'percent', 'label' => 'Interest rate %', 'required' => false, 'min' => 0, 'max' => 20, 'step' => 0.01,
                     'hint' => 'Leave blank if it pays none'],
+                'child_first_name' => ['type' => 'text', 'label' => "The child's first name", 'required' => true],
+                'child_date_of_birth' => ['type' => 'date', 'label' => "The child's date of birth", 'required' => true],
                 'ownership_type' => ['type' => 'choice', 'label' => 'Ownership', 'required' => true,
                     'hint' => 'Joint means held 50/50 with another person, such as your spouse or partner', 'options' => [
                         ['value' => 'individual', 'label' => 'Individual'],
@@ -973,11 +1095,13 @@ final class CaptureForms
      */
     private static function pension(): array
     {
+        $db = self::dbPension();
+
         return [
             'name' => self::PENSION,
             'submit_label' => 'Save',
             // Rule 9: spell SIPP out before the button uses it (CSJ 2026-09-27).
-            'kinds_prompt' => 'A SIPP is a Self-Invested Personal Pension.',
+            'kinds_prompt' => 'A SIPP is a Self-Invested Personal Pension. A final salary or career average pension pays a set income for life rather than building a pot.',
             'kinds' => [
                 ['key' => 'workplace', 'label' => 'Workplace pension', 'scheme_type' => 'occupational',
                     'tool' => 'create_pension', 'entity_type' => 'dc_pension',
@@ -985,8 +1109,17 @@ final class CaptureForms
                 ['key' => 'personal', 'label' => 'Personal pension or SIPP', 'scheme_type' => 'personal',
                     'tool' => 'create_pension', 'entity_type' => 'dc_pension',
                     'fields' => ['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken', 'beneficiary_name']],
+                // T24 (walk 2026-10-11, Q24): a working user's pension step had
+                // no defined benefit kind; the defined benefit form's own fields
+                // and write (dbPension, dbPensionInputs).
+                ['key' => 'defined_benefit', 'label' => 'Final salary or career average pension', 'db' => true,
+                    'tool' => 'create_pension', 'entity_type' => 'db_pension',
+                    'fields' => ['db_scheme_type', ...$db['kinds'][0]['fields']]],
             ],
             'fields' => [
+                'db_scheme_type' => ['type' => 'choice', 'label' => 'What kind of scheme', 'required' => true,
+                    'options' => array_map(static fn (array $kind): array => ['value' => $kind['key'], 'label' => $kind['label']], $db['kinds'])],
+                ...$db['fields'],
                 'provider' => ['type' => 'text', 'label' => 'Who is it with', 'required' => true],
                 'current_value' => ['type' => 'money', 'label' => 'Current value', 'required' => false,
                     'hint' => "Leave blank if you don't know"],
@@ -1813,6 +1946,9 @@ final class CaptureForms
         if (is_numeric($answers['policy_term_years'] ?? null)) {
             $input['policy_term_years'] = (int) $answers['policy_term_years'];
         }
+        if (in_array($answers['in_trust'] ?? null, ['yes', 'no'], true)) {
+            $input['in_trust'] = $answers['in_trust'] === 'yes';
+        }
 
         return $input;
     }
@@ -1833,6 +1969,9 @@ final class CaptureForms
         if (isset($input['policy_term_years'])) {
             $parts[] = $input['policy_term_years'].' year term';
         }
+        if (isset($input['in_trust'])) {
+            $parts[] = $input['in_trust'] ? 'written in trust' : 'not in trust';
+        }
 
         return implode(', ', $parts).'.';
     }
@@ -1851,7 +1990,7 @@ final class CaptureForms
             'kinds' => [
                 ['key' => 'life', 'label' => 'Life insurance', 'policy_type' => 'level_term',
                     'tool' => 'create_protection_policy', 'entity_type' => 'life_insurance_policy',
-                    'fields' => ['provider', 'sum_assured', 'premium_amount', 'policy_term_years']],
+                    'fields' => ['provider', 'sum_assured', 'premium_amount', 'policy_term_years', 'in_trust']],
                 ['key' => 'critical', 'label' => 'Critical illness cover', 'policy_type' => 'standalone_ci',
                     'tool' => 'create_protection_policy', 'entity_type' => 'critical_illness_policy',
                     'fields' => ['provider', 'sum_assured', 'premium_amount', 'policy_term_years']],
@@ -1866,6 +2005,12 @@ final class CaptureForms
                 'premium_amount' => ['type' => 'money', 'label' => 'Monthly premium', 'required' => false, 'hint' => "Leave blank if you don't know"],
                 'policy_term_years' => ['type' => 'percent', 'label' => 'Term in years', 'required' => false, 'min' => 1, 'max' => 50, 'step' => 1,
                     'hint' => 'Leave blank for whole of life or if unsure'],
+                // T24 (walk 2026-10-11, Q15 #4021): the column the policy has
+                // (life_insurance_policies.in_trust).
+                'in_trust' => ['type' => 'choice', 'label' => 'Is it written in trust?', 'required' => false, 'options' => [
+                    ['value' => 'yes', 'label' => 'Yes'],
+                    ['value' => 'no', 'label' => 'No'],
+                ]],
             ],
         ];
     }
