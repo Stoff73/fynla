@@ -27,6 +27,7 @@ use App\Services\Tiers\TeaserGate;
 use App\Support\SharedExpenditure;
 use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -437,7 +438,9 @@ final class RecordEditForms
             if ($kinds === []) {
                 return null;
             }
-            $kinds[0]['fields'] = array_values(array_diff($kinds[0]['fields'], ['ownership_type', 'ownership_percentage']));
+            // A saved mortgage's contract type is never rewritten (INV-2.7.3,
+            // UpdateRecordAllowlist), so the edit form does not ask it.
+            $kinds[0]['fields'] = array_values(array_diff($kinds[0]['fields'], ['ownership_type', 'ownership_percentage', 'mortgage_type']));
             $schema['kinds'] = $kinds;
         }
         unset($schema['kinds_prompt'], $schema['allow_empty']);
@@ -654,6 +657,17 @@ final class RecordEditForms
                 'interest_rate' => self::floatOrNull($account->interest_rate),
             ], static fn ($v): bool => $v !== null && $v !== ''), $label];
         }
+        if ($account->account_type === 'premium_bonds') {
+            return [CaptureForms::SAVINGS, 'premium_bonds', ['current_value' => (float) $account->current_balance], $label];
+        }
+        if ($account->account_type === 'junior_isa') {
+            return [CaptureForms::SAVINGS, 'junior_isa', array_filter([
+                'provider' => $account->institution,
+                'current_value' => (float) $account->current_balance,
+                'child_first_name' => $account->beneficiary_name,
+                'child_date_of_birth' => $account->beneficiary_dob?->format('Y-m-d'),
+            ], static fn ($v): bool => $v !== null && $v !== ''), $label];
+        }
         $kind = in_array($account->account_type, ['current_account', 'easy_access', 'fixed', 'notice'], true) ? $account->account_type : 'easy_access';
         $rateKey = $kind === 'current_account' ? 'current_account_interest_rate' : 'interest_rate';
 
@@ -739,16 +753,36 @@ final class RecordEditForms
     }
 
     /** @return array{0: string, 1: string, 2: array<string, mixed>, 3: string} */
+    /** Whole years to a saved mortgage's maturity, as the property form asks it (T24). */
+    private static function mortgageYearsLeft(?Model $mortgage): ?int
+    {
+        $maturity = $mortgage?->maturity_date;
+
+        return $maturity !== null && $maturity->isFuture() ? (int) max(1, round(Carbon::today()->diffInMonths($maturity) / 12)) : null;
+    }
+
     private function propertyAnswers(Model $property): array
     {
         $kind = in_array($property->property_type, ['main_residence', 'secondary_residence', 'buy_to_let'], true) ? $property->property_type : 'main_residence';
         $mortgage = $property->mortgages()->orderBy('id')->first();
-        $answers = [
+        $answers = array_filter([
             'current_value' => (float) $property->current_value,
-            'mortgage_outstanding_balance' => $mortgage !== null ? (float) $mortgage->outstanding_balance : null,
-        ];
+            'city' => $property->city,
+            'mortgage_lender' => $mortgage?->lender_name,
+            'mortgage_type' => $mortgage?->mortgage_type,
+            'mortgage_interest_rate' => self::floatOrNull($mortgage?->interest_rate),
+            'mortgage_monthly_payment' => self::floatOrNull($mortgage?->monthly_payment),
+            'mortgage_years_left' => self::mortgageYearsLeft($mortgage),
+        ], static fn ($v): bool => $v !== null && $v !== '');
+        // The box with no amount is the "No mortgage" answer (null), so it stays.
+        $answers['mortgage_outstanding_balance'] = $mortgage !== null ? (float) $mortgage->outstanding_balance : null;
         if ($kind === 'buy_to_let') {
             $answers['monthly_rental_income'] = (float) ($property->monthly_rental_income ?? 0);
+            foreach (['managing_agent_fee', 'monthly_service_charge'] as $field) {
+                if (self::floatOrNull($property->{$field}) !== null) {
+                    $answers[$field] = (float) $property->{$field};
+                }
+            }
         }
 
         return [CaptureForms::PROPERTY, $kind, $answers, self::propertyLabel($property)];
@@ -786,6 +820,7 @@ final class RecordEditForms
             $amountKey => self::floatOrNull($policy->{$amountKey}),
             'premium_amount' => self::floatOrNull($policy->premium_amount),
             'policy_term_years' => $policy->getAttribute('policy_term_years') !== null ? (int) $policy->getAttribute('policy_term_years') : null,
+            'in_trust' => $policy instanceof LifeInsurancePolicy ? ($policy->in_trust ? 'yes' : 'no') : null,
         ], static fn ($v): bool => $v !== null && $v !== '');
     }
 
@@ -850,6 +885,8 @@ final class RecordEditForms
                 'current_balance' => $input['current_balance'] ?? null,
                 'interest_rate' => $input['interest_rate'] ?? null,
                 'isa_subscription_amount' => $input['isa_subscription_amount'] ?? null,
+                'beneficiary_name' => $input['beneficiary_name'] ?? null,
+                'beneficiary_dob' => $input['beneficiary_dob'] ?? null,
             ], static fn ($v): bool => $v !== null),
             'investment_account' => array_filter([
                 'provider' => $input['provider'] ?? null,
@@ -880,6 +917,7 @@ final class RecordEditForms
                 'sum_assured' => $input['sum_assured'] ?? null,
                 'premium_amount' => $input['premium_amount'] ?? null,
                 'premium_frequency' => isset($input['premium_amount']) ? 'monthly' : null,
+                'in_trust' => $type === 'life_insurance' ? ($input['in_trust'] ?? null) : null,
             ], static fn ($v): bool => $v !== null),
             'income_protection' => array_filter([
                 'provider' => $input['provider'] ?? null,
@@ -915,6 +953,9 @@ final class RecordEditForms
             'current_value' => $input['current_value'] ?? null,
             'property_type' => $input['property_type'] ?? null,
             'monthly_rental_income' => $input['monthly_rental_income'] ?? null,
+            'city' => $input['city'] ?? null,
+            'managing_agent_fee' => $input['managing_agent_fee'] ?? null,
+            'monthly_service_charge' => $input['monthly_service_charge'] ?? null,
         ], static fn ($v): bool => $v !== null);
         $result = $this->runTool('update_record', ['entity_type' => 'property', 'entity_id' => (int) $property->id, 'fields' => $fields], $user, $conversationId);
         if (($result['error'] ?? false) === true) {
@@ -924,13 +965,35 @@ final class RecordEditForms
 
         $mortgage = $property->mortgages()->orderBy('id')->first();
         $balance = ($input['has_mortgage'] ?? false) ? (float) $input['mortgage_outstanding_balance'] : null;
+        // The years left are shown rounded, so an unchanged figure keeps the
+        // stored maturity date rather than resetting it to today plus years.
+        if (($input['mortgage_maturity_date'] ?? null) !== null && $mortgage !== null
+            && self::mortgageYearsLeft($mortgage) === (int) round(Carbon::today()->diffInMonths(Carbon::parse($input['mortgage_maturity_date'])) / 12)) {
+            unset($input['mortgage_maturity_date']);
+        }
+        // The mortgage details the form asks (T24), in the mortgage's own columns.
+        $mortgageFields = array_filter([
+            'outstanding_balance' => $balance,
+            'lender_name' => $input['mortgage_lender'] ?? null,
+            'interest_rate' => $input['mortgage_interest_rate'] ?? null,
+            'monthly_payment' => $input['mortgage_monthly_payment'] ?? null,
+            'maturity_date' => $input['mortgage_maturity_date'] ?? null,
+        ], static fn ($v): bool => $v !== null);
         if ($mortgage !== null && $balance !== null) {
-            $result = $this->runTool('update_record', ['entity_type' => 'mortgage', 'entity_id' => (int) $mortgage->id, 'fields' => ['outstanding_balance' => $balance]], $user, $conversationId);
+            $result = $this->runTool('update_record', ['entity_type' => 'mortgage', 'entity_id' => (int) $mortgage->id, 'fields' => $mortgageFields], $user, $conversationId);
         } elseif ($mortgage !== null && $balance === null) {
             $token = hash('sha256', $user->id.'|mortgage|'.$mortgage->id.'|'.now()->format('Y-m-d'));
             $result = $this->runTool('delete_record', ['entity_type' => 'mortgage', 'entity_id' => (int) $mortgage->id, 'confirmation_token' => $token], $user, $conversationId);
         } elseif ($mortgage === null && $balance !== null) {
-            $result = $this->runTool('create_mortgage', ['property_id' => (int) $property->id, 'outstanding_balance' => $balance], $user, $conversationId);
+            $result = $this->runTool('create_mortgage', array_filter([
+                'property_id' => (int) $property->id,
+                'outstanding_balance' => $balance,
+                'lender_name' => $input['mortgage_lender'] ?? null,
+                'mortgage_type' => $input['mortgage_type'] ?? null,
+                'interest_rate' => $input['mortgage_interest_rate'] ?? null,
+                'monthly_payment' => $input['mortgage_monthly_payment'] ?? null,
+                'maturity_date' => $input['mortgage_maturity_date'] ?? null,
+            ], static fn ($v): bool => $v !== null), $user, $conversationId);
         }
         if (($result['error'] ?? false) === true) {
             return $result;

@@ -360,6 +360,8 @@ class SavingsStore
             'joint_owner_name' => 'sometimes|nullable|string|max:255',
             'country' => 'sometimes|nullable|string|max:255',
             'include_in_retirement' => 'sometimes|boolean',
+            'beneficiary_name' => 'sometimes|nullable|string|max:255',
+            'beneficiary_dob' => 'sometimes|nullable|date',
         ];
 
         $validator = Validator::make($data, $rules);

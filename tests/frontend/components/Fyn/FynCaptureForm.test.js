@@ -268,3 +268,31 @@ describe('money fields take pence', () => {
     expect(input.attributes('step')).toBe('0.01');
   });
 });
+
+
+describe('fields shown only once another holds an amount (T24)', () => {
+  const mortgageSchema = {
+    name: 'property', submit_label: 'Save',
+    kinds: [{ key: 'main_residence', label: 'Home', fields: ['current_value', 'mortgage_outstanding_balance', 'mortgage_lender', 'ownership_type'] }],
+    fields: {
+      current_value: { type: 'money', label: 'Value', required: true },
+      mortgage_outstanding_balance: { type: 'money_or_none', label: 'Mortgage outstanding', required: true, none_label: 'No mortgage' },
+      mortgage_lender: { type: 'text', label: 'Mortgage lender', required: false, shown_when: { field: 'mortgage_outstanding_balance', filled: true } },
+      ownership_type: { type: 'choice', label: 'Ownership', required: true, options: [{ value: 'individual', label: 'Individual' }] },
+    },
+  };
+
+  it('shows the mortgage lender only while a mortgage amount is given, and never posts it hidden', async () => {
+    const w = mount(FynCaptureForm, { props: { schema: mortgageSchema, values: { main_residence: { current_value: 400000, mortgage_outstanding_balance: null, ownership_type: 'individual', mortgage_lender: 'Stale Bank' } } } });
+    expect(w.text()).not.toContain('Mortgage lender');
+
+    await w.setProps({ values: { main_residence: { current_value: 400000, mortgage_outstanding_balance: 180000, ownership_type: 'individual', mortgage_lender: 'BM Solutions' } } });
+    const w2 = mount(FynCaptureForm, { props: { schema: mortgageSchema, values: { main_residence: { current_value: 400000, mortgage_outstanding_balance: 180000, ownership_type: 'individual', mortgage_lender: 'BM Solutions' } } } });
+    expect(w2.text()).toContain('Mortgage lender');
+    await w2.find('form').trigger('submit');
+    expect(w2.emitted('submit')[0][0].answers.main_residence.mortgage_lender).toBe('BM Solutions');
+
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0].answers.main_residence).not.toHaveProperty('mortgage_lender');
+  });
+});

@@ -155,6 +155,15 @@ class SavingsAccountNormaliser
         if (isset($toolParams['interest_rate'])) {
             $canonical['interest_rate'] = (float) $toolParams['interest_rate'];
         }
+        // A Junior ISA's child, as the web savings form records one not on
+        // the family list (T24).
+        if ($dbAccountType === 'junior_isa') {
+            foreach (['beneficiary_name', 'beneficiary_dob'] as $field) {
+                if (! empty($toolParams[$field])) {
+                    $canonical[$field] = (string) $toolParams[$field];
+                }
+            }
+        }
         if (isset($toolParams['regular_contribution_amount'])) {
             $canonical['regular_contribution_amount'] = (float) $toolParams['regular_contribution_amount'];
         }

@@ -101,7 +101,16 @@ export const captureFormMixin = {
       if (!when) return true;
       return (when.in || []).includes(this.answers[kindKey][when.field]);
     },
-    visibleFields(kind) { return kind.fields.filter((fieldKey) => !this.field(fieldKey).required_when || this.conditionMet(kind.key, fieldKey)); },
+    // A `shown_when: { field, filled: true }` field shows only while that
+    // field holds an amount (the mortgage details under the balance, T24);
+    // hidden, it is never posted.
+    shownWhenMet(kindKey, fieldKey) {
+      const when = this.field(fieldKey).shown_when;
+      if (!when || !when.filled) return true;
+      const v = this.answers[kindKey][when.field];
+      return typeof v === 'number' && v > 0 && !this.isNone(kindKey, when.field);
+    },
+    visibleFields(kind) { return kind.fields.filter((fieldKey) => (!this.field(fieldKey).required_when || this.conditionMet(kind.key, fieldKey)) && this.shownWhenMet(kind.key, fieldKey)); },
     isRequired(kindKey, fieldKey) {
       const f = this.field(fieldKey);
       return Boolean(f.required) || (Boolean(f.required_when) && this.conditionMet(kindKey, fieldKey));

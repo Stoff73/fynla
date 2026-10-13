@@ -178,8 +178,9 @@ it('builds the ISA inputs: a cash ISA is a savings row, the others investment ro
 
 it('offers the four bank kinds; the rate is required on savings kinds and optional on the current account', function (): void {
     $schema = CaptureForms::schema('savings');
-    expect(array_column($schema['kinds'], 'key'))->toBe(['current_account', 'easy_access', 'fixed', 'notice'])
-        ->and(array_column($schema['kinds'], 'label'))->toBe(['Current account', 'Easy access savings', 'Fixed rate savings', 'Notice account'])
+    // T24: Premium Bonds and a child's Junior ISA follow the four bank kinds.
+    expect(array_column($schema['kinds'], 'key'))->toBe(['current_account', 'easy_access', 'fixed', 'notice', 'premium_bonds', 'junior_isa'])
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['Current account', 'Easy access savings', 'Fixed rate savings', 'Notice account', 'Premium Bonds', 'Junior ISA'])
         ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_savings_account'])
         ->and($schema['kinds'][0]['fields'])->toContain('current_account_interest_rate')->not->toContain('interest_rate')
         ->and($schema['kinds'][1]['fields'])->toContain('interest_rate')
@@ -266,9 +267,10 @@ it('the three account steps are form turns owned by the corpus with short lead-i
 
 it('offers a workplace pension and a personal pension or SIPP, both through create_pension', function (): void {
     $schema = CaptureForms::schema('pension');
-    expect(array_column($schema['kinds'], 'key'))->toBe(['workplace', 'personal'])
-        ->and($schema['kinds_prompt'])->toBe('A SIPP is a Self-Invested Personal Pension.')
-        ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP'])
+    // T24 (Q24): the defined benefit kind follows them.
+    expect(array_column($schema['kinds'], 'key'))->toBe(['workplace', 'personal', 'defined_benefit'])
+        ->and($schema['kinds_prompt'])->toBe('A SIPP is a Self-Invested Personal Pension. A final salary or career average pension pays a set income for life rather than building a pot.')
+        ->and(array_column($schema['kinds'], 'label'))->toBe(['Workplace pension', 'Personal pension or SIPP', 'Final salary or career average pension'])
         ->and(array_unique(array_column($schema['kinds'], 'tool')))->toBe(['create_pension'])
         ->and($schema['kinds'][0]['fields'])->toBe(['provider', 'current_value', 'employee_contribution_percent', 'employer_contribution_percent', 'salary_sacrifice', 'beneficiary_name'])
         ->and($schema['kinds'][1]['fields'])->toBe(['provider', 'current_value', 'annual_contribution', 'annual_drawdown_income', 'pcls_taken', 'beneficiary_name'])
