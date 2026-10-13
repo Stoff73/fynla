@@ -20,4 +20,16 @@ describe('PropertyDetailInline — what was not given (T25)', () => {
     expect(formatMortgageRate.call(ctx, { interest_rate: null })).toBe('Not recorded');
     expect(formatMortgageRate.call(ctx, { interest_rate: '5.2000' })).toBe('5.20%');
   });
+
+  // T61 (release ac prod walk): the same card read "Full Annual Payment: £0".
+  it('names a missing annual payment and payment share as Not recorded', () => {
+    const { formatMortgageAnnualPayment, formatMortgagePaymentShare } = PropertyDetailInline.methods;
+    const withShare = (share) => ({ ...ctx, mortgageShare: () => share });
+
+    expect(formatMortgageAnnualPayment.call(withShare({ annual_payment: null }), { id: 1 })).toBe('Not recorded');
+    expect(formatMortgageAnnualPayment.call(withShare(null), { id: 1 })).toBe('Not recorded');
+    expect(formatMortgageAnnualPayment.call(withShare({ annual_payment: 9360 }), { id: 1 })).toBe('£9,360');
+    expect(formatMortgagePaymentShare.call(withShare({ user_monthly_payment: null }), { id: 1 })).toBe('Not recorded');
+    expect(formatMortgagePaymentShare.call(withShare({ user_monthly_payment: 390 }), { id: 1 })).toBe('£390');
+  });
 });

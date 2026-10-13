@@ -360,11 +360,11 @@
                       </div>
                       <div v-if="isSharedOwnership && mortgageShare(mortgage)" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Your Share:</dt>
-                        <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(mortgageShare(mortgage).user_monthly_payment) }}</dd>
+                        <dd class="text-sm font-medium text-horizon-500">{{ formatMortgagePaymentShare(mortgage) }}</dd>
                       </div>
                       <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Full Annual Payment:</dt>
-                        <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(mortgageShare(mortgage)?.annual_payment ?? 0) }}</dd>
+                        <dd class="text-sm font-medium text-horizon-500">{{ formatMortgageAnnualPayment(mortgage) }}</dd>
                       </div>
                       <div v-if="mortgage.start_date && mortgage.maturity_date" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                         <dt class="text-sm text-neutral-500">Remaining Term:</dt>
@@ -805,6 +805,17 @@ export default {
     // 0.00% (T25; R10 for savings rates).
     formatMortgagePayment(mortgage) {
       return mortgage.monthly_payment == null ? 'Not recorded' : this.formatCurrency(this.calculateFullMonthlyPayment(mortgage));
+    },
+
+    // The server sends null for both when no payment was given (T61).
+    formatMortgageAnnualPayment(mortgage) {
+      const annual = this.mortgageShare(mortgage)?.annual_payment;
+      return annual == null ? 'Not recorded' : this.formatCurrency(annual);
+    },
+
+    formatMortgagePaymentShare(mortgage) {
+      const monthly = this.mortgageShare(mortgage)?.user_monthly_payment;
+      return monthly == null ? 'Not recorded' : this.formatCurrency(monthly);
     },
 
     formatMortgageRate(mortgage) {
