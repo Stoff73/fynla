@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
+use App\Support\Money;
 use Carbon\Carbon;
 
 /**
@@ -351,7 +352,7 @@ final class CaptureForms
      * names each kind and its ownership. One sentence per filled kind,
      * shaped per schema (see the *Sentence methods).
      */
-    public static function summarise(array $form): string
+    public static function summarise(array $form, ?User $user = null): string
     {
         $schema = self::schema((string) ($form['name'] ?? ''));
         if ($schema === null) {
@@ -364,7 +365,7 @@ final class CaptureForms
                 self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::DEPENDANTS => self::dependantSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD, self::EXPENDITURE_TAX => self::expenditureSentence($schema, self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
-                self::WORK => self::workSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
+                self::WORK => self::workSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? [])), self::isSelfEmployed($user)),
                 self::EMPLOYER_BENEFITS => self::employerBenefitsSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::STATE_PENSION => self::statePensionSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
                 self::OTHER_INCOME => self::otherIncomeSentence(self::singleWriteInputs($schema, (array) ($form['answers'] ?? []))),
@@ -801,8 +802,8 @@ final class CaptureForms
     private static function pounds(float $amount): string
     {
         // Whole pounds without pence; otherwise both digits ("£11,502.40",
-        // never "£11,502.4", walked 2026-10-01).
-        return '£'.(fmod(round($amount, 2), 1.0) === 0.0 ? number_format($amount) : number_format($amount, 2));
+        // never "£11,502.4", walked 2026-10-01). The one exact formatter.
+        return Money::exact($amount);
     }
 
     /** @return array<string, mixed> */
@@ -1325,8 +1326,11 @@ final class CaptureForms
     /**
      * @param  array<string, mixed>  $input
      */
-    private static function workSentence(array $input): string
+    private static function workSentence(array $input, bool $selfEmployed = false): string
     {
+        if ($selfEmployed) {
+            return self::selfEmployedWorkSentence($input);
+        }
         $parts = [];
         // "My job is X at Y" avoids an article before the role ("a Operations manager").
         if (isset($input['occupation'])) {
@@ -1339,6 +1343,52 @@ final class CaptureForms
         }
 
         return $parts === [] ? '' : implode(' and ', $parts).'.';
+    }
+
+    /**
+     * A sole trader's line names the trading name and the profit, the figure
+     * their income tax is worked out on: income less allowable expenses
+     * (gov.uk/expenses-if-youre-self-employed). Walk 2026-10-11, M4 (#3893).
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private static function selfEmployedWorkSentence(array $input): string
+    {
+        $profit = isset($input['annual_income']) ? 'my profit is '.self::pounds((float) $input['annual_income']).' a year' : null;
+        if (isset($input['occupation'])) {
+            $job = 'My job is '.$input['occupation'].(isset($input['employer']) ? ', trading as '.$input['employer'] : '');
+
+            return $job.($profit === null ? '' : (isset($input['employer']) ? ', and ' : ' and ').$profit).'.';
+        }
+        if (isset($input['employer'])) {
+            return 'I trade as '.$input['employer'].($profit === null ? '' : ' and '.$profit).'.';
+        }
+
+        return $profit === null ? '' : ucfirst($profit).'.';
+    }
+
+    private static function isSelfEmployed(?User $user): bool
+    {
+        return $user?->employment_status === 'self_employed';
+    }
+
+    /**
+     * The work form for this user: a self-employed user is asked for their
+     * profit, not a salary with bonuses (walk 2026-10-11, M4).
+     *
+     * @return array<string, mixed>
+     */
+    public static function workFor(User $user, ?array $schema = null): array
+    {
+        $schema ??= self::work();
+        if (self::isSelfEmployed($user)) {
+            $schema['fields']['annual_income'] = array_replace($schema['fields']['annual_income'], [
+                'label' => 'Annual profit',
+                'hint' => 'What the business takes in, less allowable expenses, before tax',
+            ]);
+        }
+
+        return $schema;
     }
 
     /**

@@ -407,6 +407,9 @@ final class RecordEditForms
         if ($type === 'spouse_household') {
             $schema = CaptureForms::spouseHouseholdFor($user, $schema);
         }
+        if ($type === 'employment') {
+            $schema = CaptureForms::workFor($user, $schema);
+        }
 
         return [
             'name' => $formName,
@@ -538,7 +541,7 @@ final class RecordEditForms
         $record = $form['record'] ?? null;
         $model = is_array($record) ? $this->find($user, (string) ($record['type'] ?? ''), (int) ($record['id'] ?? 0)) : null;
 
-        return CaptureForms::summarise($model === null ? $form : $this->withStoredOwnership($user, $model, $form));
+        return CaptureForms::summarise($model === null ? $form : $this->withStoredOwnership($user, $model, $form), $user);
     }
 
     /**

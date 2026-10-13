@@ -55,6 +55,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Support\Money;
 use App\Support\SharedExpenditure;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
@@ -7025,7 +7026,8 @@ PROMPT;
             return 'Got it — thanks.';
         }
 
-        return sprintf('Got it — £%s a year, noted.', number_format($income, 0));
+        // Exact, as the user gave it (CSJ 2026-10-12: never rounded).
+        return 'Got it — '.Money::exact($income).' a year, noted.';
     }
 
     /**
@@ -8014,6 +8016,9 @@ PROMPT;
         }
         if ($schema !== null && $schema['name'] === CaptureForms::SPOUSE_HOUSEHOLD) {
             $schema = CaptureForms::spouseHouseholdFor($user, $schema);
+        }
+        if ($schema !== null && $schema['name'] === CaptureForms::WORK) {
+            $schema = CaptureForms::workFor($user, $schema);
         }
 
         return $schema;
