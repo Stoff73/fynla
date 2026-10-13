@@ -59,23 +59,23 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 
 | # | Task | Fixes | Code | Test | Dev | Dev walk | Prod | Prod walk |
 |---|---|---|---|---|---|---|---|---|
-| T0 | Dev's existing walk fixes R19–R39, already merged and tested, go out with the first release | F14 (prompt), M6 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T1 | Fyn receives the user's exact words (no character stripping) | N1, Q17 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T48 | **NEXT ACTION (CSJ 2026-10-12): one Fyn limit per tier.** Free **750,000** tokens, Premium **3,000,000**, replacing both the weekly budget (switches to a cheaper model) and the daily hard stop, "so we only have one limit" and the test runs can complete. **Per rolling week (CSJ 2026-10-12: "yes per week please")**: over the limit, Fyn stops; the daily stop and the cheaper-model switch are removed. Map in the session 3 handover | CSJ | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T2 | One question test (`isAdviceShaped`, extended) in front of every gate that runs before the model | F19, F22, P1, P2, P7, Q5, Q7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T3 | `QueryClassifier` never files a question as data entry or navigation; adds retirement, estate, savings-tax and rent wording | Q6, Q7, Q8, M8, F19, F22, P3, P5, P7, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T4 | `capture_*` writes recorded as landed | N4, P2, Q6, Q7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T5 | The capture-handoff prompt rule applies to statements only | F20, P5, Q5, Q10 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T7 | A what-if request reaches the what-if scenario capture | P5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T8 | A delete preview refuses a record that does not exist | Q22 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T9 | An invite request reaches the existing invite step | Q17 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T10 | Spouse figures always in Fyn's context | P4, P3, F5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T11 | The retirement plan tool carries the Retirement page's headline | Q6 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T12 | Published working for the savings-to-spouse, child benefit charge and estate scenarios (item 18). F6 moved to T55 (needs your design) | F5, P3, M8, Q8 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T13 | Older turns summarised for the model; search reads the open conversation; recall rule | Q13 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T14 | Corpus entry on gifts within seven years of death; `source:` filled on every entry; Fyn cites it | F17, M5 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T15 | Money given to the model written exactly: £100, £100.15, never rounded | F14 (context) | [x] | [x] | [x] | [x] | [ ] | [ ] |
+| T0 | Dev's existing walk fixes R19–R39, already merged and tested, go out with the first release | F14 (prompt), M6 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T1 | Fyn receives the user's exact words (no character stripping) | N1, Q17 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T48 | **NEXT ACTION (CSJ 2026-10-12): one Fyn limit per tier.** Free **750,000** tokens, Premium **3,000,000**, replacing both the weekly budget (switches to a cheaper model) and the daily hard stop, "so we only have one limit" and the test runs can complete. **Per rolling week (CSJ 2026-10-12: "yes per week please")**: over the limit, Fyn stops; the daily stop and the cheaper-model switch are removed. Map in the session 3 handover | CSJ | [x] | [x] | [x] | [x] | [x] | [x] |
+| T2 | One question test (`isAdviceShaped`, extended) in front of every gate that runs before the model | F19, F22, P1, P2, P7, Q5, Q7 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T3 | `QueryClassifier` never files a question as data entry or navigation; adds retirement, estate, savings-tax and rent wording | Q6, Q7, Q8, M8, F19, F22, P3, P5, P7, Q5, Q10 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T4 | `capture_*` writes recorded as landed | N4, P2, Q6, Q7 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T5 | The capture-handoff prompt rule applies to statements only | F20, P5, Q5, Q10 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T6 | Navigation moves to the server for every surface; the web keyword matcher is deleted | F3, F4 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T7 | A what-if request reaches the what-if scenario capture | P5 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T8 | A delete preview refuses a record that does not exist | Q22 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T9 | An invite request reaches the existing invite step | Q17 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T10 | Spouse figures always in Fyn's context | P4, P3, F5 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T11 | The retirement plan tool carries the Retirement page's headline | Q6 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T12 | Published working for the savings-to-spouse, child benefit charge and estate scenarios (item 18). F6 moved to T55 (needs your design) | F5, P3, M8, Q8 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T13 | Older turns summarised for the model; search reads the open conversation; recall rule | Q13 | [x] | [x] | [x] | [x] | [x] | [ ] |
+| T14 | Corpus entry on gifts within seven years of death; `source:` filled on every entry; Fyn cites it | F17, M5 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T15 | Money given to the model written exactly: £100, £100.15, never rounded | F14 (context) | [x] | [x] | [x] | [x] | [x] | [x] |
 | T16 | ~~Onboarding bubble steps read typed answers~~ **REVERTED (CSJ 2026-10-12): #1252 reverted by #1262 (`4ba517595`). Typed words are never matched to bubbles; only a tap is an answer (CSJ 2026-09-30, 2026-10-01). Replaced by T58** | F1 | [x] | [x] | [x] | [x] | n/a | n/a |
 | T16.1 | ~~At "Is that right?" (`campaign_verify_navigate`), "nothing to change", "no changes, all correct" and "no that's right" are read as "No, change something" and open the edit step. Before #1252 they matched nothing and the step asked again. `AnswerPolarity::isNegative` takes a leading "no"/"nothing" as a no; `OnboardingStateMachine::matchByMeaning` maps it to the `no` bubble (`OnboardingStateMachine.php:3471`); `nextFromVerifyNavigate` goes to `campaign_verify_edit` (`:1513`)~~ Closed: #1252 reverted (#1262) | T16 re-check | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T16.2 | ~~At "Which of these do you have?" (`campaign_funnel_assets`), "just a current account and nothing else" submits "That's everything" with nothing ticked: one named chip is ignored (`count($named) > 1`, `:3264`), then "nothing else" is a no and `done` is in `NEGATIVE_BUBBLES` (`:3424`). "a current account" on its own is not taken at all~~ Closed: #1252 reverted (#1262) | T16 re-check | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -84,16 +84,16 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T16.5 | ~~F1 is marked fixed but two of its five cases are not, and no task owns them: #4083 (Dev's ISA typed at a yes/no gate, moved to T17) and the £400 of dividends in #3777 (still lost). T17's Fixes column lists F2, F11, F16, F21, not F1~~ Closed: #1252 reverted (#1262) | T16 re-check, F1 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T16.6 | ~~T16's Dev walk was ticked with the "nope" (`base_employment_more`) and "sure, go ahead" (`campaign_intro`) steps walked on /m only (R3 needs web and /m). Walk them on web 1440, and re-walk T16 on both once T16.1–T16.5 are fixed~~ Closed: #1252 reverted (#1262) | T16 re-check, R3 | n/a | n/a | n/a | [ ] | n/a | [ ] |
 | T16.7 | ~~**DECISION (CSJ):** choices #1252 made without your agreement (session 5 handover, question 4): the confirmation-step rule (`CONFIRMATION_STATES`); the yes/no word lists (`AnswerPolarity`) and which bubbles they select (`AFFIRMATIVE_BUBBLES`, `NEGATIVE_BUBBLES`); the typed-list aliases (`BUBBLE_ALIASES`); and widening `OnboardingChatDirector::isCompletionDeclaration` for all nine callers, including the advice side (`AdviceFyn.php:663`). Keep or change each~~ Closed: #1252 reverted (#1262) | T16 re-check | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| T58 | **CSJ 2026-10-12: disable the chat input while bubbles that answer the step are waiting**, web and /m (F1: Brett could type at a bubble step because the box stays open: web `AiChatPanel.vue:411-425`, /m `Dashboard.vue:330`) | F1, CSJ | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T17 | ~~Typed facts kept and later forms pre-filled; children open the dependants form~~ **Narrowed (2026-10-12, session 6):** F2, F11's spouse answer and F21 were typed at bubble steps, which T58 now locks; nothing to park. What remains: a typed answer at a form step always opens the form filled in (F11, #3836) | F2, F11, F16, F21 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T18 | The cap is checked when a section starts; the at-cap reply is in words | F10, F9 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T19 | "No mortgage" ticks the No mortgage box | M3, Q2 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T20 | One form per person named in a message | P8 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T21 | The self-employed sentence says profit | M4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T22 | Normal registration opens on "Which of these do you have?" with the first-name greeting (section 6) | your change | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T23 | Save Tax report only for Save Tax arrivals; others end on their actions; arrival record corrected (10 rows); iOS `/actions` link (section 6b) | your change | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T24 | Fyn's forms gain the fields whose columns exist | F9, F11, F12, F15, Q1, Q15, Q19, Q24 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T25 | Stop storing placeholders (rate 0, "repayment", "To be completed", "Unknown") as facts | Q1, Q9, N7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
+| T58 | **CSJ 2026-10-12: disable the chat input while bubbles that answer the step are waiting**, web and /m (F1: Brett could type at a bubble step because the box stays open: web `AiChatPanel.vue:411-425`, /m `Dashboard.vue:330`) | F1, CSJ | [x] | [x] | [x] | [x] | [x] | [x] |
+| T17 | ~~Typed facts kept and later forms pre-filled; children open the dependants form~~ **Narrowed (2026-10-12, session 6):** F2, F11's spouse answer and F21 were typed at bubble steps, which T58 now locks; nothing to park. What remains: a typed answer at a form step always opens the form filled in (F11, #3836) | F2, F11, F16, F21 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T18 | The cap is checked when a section starts; the at-cap reply is in words | F10, F9 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T19 | "No mortgage" ticks the No mortgage box | M3, Q2 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T20 | One form per person named in a message | P8 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T21 | The self-employed sentence says profit | M4 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T22 | Normal registration opens on "Which of these do you have?" with the first-name greeting (section 6) | your change | [x] | [x] | [x] | [x] | [x] | [x] |
+| T23 | Save Tax report only for Save Tax arrivals; others end on their actions; arrival record corrected (10 rows); iOS `/actions` link (section 6b) | your change | [x] | [x] | [x] | [x] | [x] | [x] |
+| T24 | Fyn's forms gain the fields whose columns exist | F9, F11, F12, F15, Q1, Q15, Q19, Q24 | [x] | [x] | [x] | [x] | [x] | [x] |
+| T25 | Stop storing placeholders (rate 0, "repayment", "To be completed", "Unknown") as facts | Q1, Q9, N7 | [x] | [x] | [x] | [x] | [x] | [x] |
 | T26 | Workplace pensions get their scheme type; production rows corrected | N2 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T27 | Joint records added after onboarding link to the partner; partner's figures transferred for the partner to confirm | Q23 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T28 | The Liabilities page shows mortgages to Free users | F12 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -124,6 +124,14 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T57 | **DECISION (CSJ):** the pages round money to whole pounds (`currencyMixin`); Fyn now gives it exactly. Pat's Income page says "Net Income (after tax and National Insurance): £26,840" and Fyn says £26,839.60, on a line it is told is "the Income page's figure". Should the pages show pence as Fyn does, or Fyn quote the page's whole pounds? Your exact-pence rule (2026-10-12) was given for Fyn (T15 walk) | T15 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T60 | A mortgage given only a balance still gets rate type "fixed" (`mortgages.rate_type` NOT NULL DEFAULT 'fixed', `MortgageNormaliser`) and a 25-year term (`mortgage.default_term_months`, W-0012's reconciliation), which show as facts (T25 /m walk: "Not recorded · Fixed", 300 months). The same class as T25 but outside its list | T25 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T59 | A single person with no dependants and no debts is told "Your life cover is £730,573 short" (T23 web walk, Nia 527, £68,000). Check the protection need's basis against the cover rules before changing anything | T23 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T61 | The web mortgage card shows "Full Annual Payment: £0" when no payment was given; the monthly line on the same card says "Not recorded" (`PropertyDetailInline.vue:367`, `?? 0`). T25's own path (release ac prod walk) | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T62 | A property saved with a town and no postcode shows "Reading," and "Woking," with a trailing comma on the web property cards (release ac prod walk, shot `PROD-ac-13`) | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T63 | "Purchase Price: £0" shows for a price never given, on the web property Overview and the /m property screen (the T25 class: a placeholder shown as a fact) | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T64 | **Figure defect.** The Section 24 credit is £0 for an interest-only mortgage with a balance and rate but no payment: `PropertyService::calculateTaxPosition` takes the interest from `monthly_payment` (`PropertyService.php:166`), so £180,000 at 5.2% (£9,360 interest, a £1,872 credit under ITA 2007 s399A) gives nothing, while the Income page's note says the credit is "shown separately". The 20% is written in (`:196`), not read from `TaxConfigService` (Rule 2). Fyn and the Income page both gave Income Tax £17,776.20 (Ada, release ac walk) | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T65 | **Figure defect.** A child's Junior ISA is counted as the parent's: in the Inheritance Tax action (Bea: "Your Inheritance Tax would be £2,800" = (£310,000 + £210,000 − £200,000 + £8,900 + £3,100 − £325,000) × 40%; without the £3,100 Junior ISA it is £1,560), in "Total cash" and under "Cash ISAs" with no child's name (web `CashOverview.vue:345`, /m Bank Accounts). A Junior ISA belongs to the child (ISA Regulations 1998 reg 2A) | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T66 | The published working drops pence: "£76,188" for £76,188.50, "£25,590" for £25,590.50 (web), "£21,090" for £21,090.50 (/m), against the exact-money rule (CSJ 2026-10-12). `PensionTaxReliefStrategy`'s working (item 18) | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T67 | **Check first:** the threshold strip on /m Actions told single Bea "Costs you £3,148 a year" (£8,009.50 into the 40% band; I could not trace £3,148 to a source) and "Marriage Allowance is lost", which does not apply to a single person | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T68 | Premium Bonds show "Not recorded" for an interest rate on the web and /m Bank Accounts pages; T24 saves them with no rate because they pay prizes, not interest | ac walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T41 | Live checks first, then fix what they show: /m message typed after a page change (M1); silent Saves (F10, Q24); will builder name and warning (Q19, Q20); retirement projection change (Q21); /m dashboard blank area | M1, F10, Q24, Q19, Q20, Q21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T42 | Brett's account 812: the "declared none" flags and the unasked goal written by these bugs. A database change, so done only with your OK | F19, P2 | [ ] | n/a | n/a | [ ] | [ ] | [ ] |
 | T43 | The full test run, once T0–T42 are done (R5) | all | n/a | [ ] | n/a | n/a | n/a | n/a |
@@ -803,6 +811,45 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 - **T25, Found:** rate type "fixed" and the 25-year term are still invented for a mortgage given only a balance. Added as T60.
 - **T24/T25, walk accounts to purge:** Ravi Walk 530 (`+t24web`), Meera Walk 531 (`+t24m`). Robin 509 now also holds property 228 and two life policies.
 - **T58, walk accounts on csjones to purge:** Maya Walk and Leo Walk (`slaterjoneschris+t58m@`, `+t58web@gmail.com`, `Password1!`).
+
+- **Prod, T0 to T25 (2026-10-13), release ac:** PR #1286 (dev → main), main `ed6eb011f` == dev. Built from a clean main worktree with `deploy/fynla-org/build.sh`; script `release-prod-2026-10-13-ac.sh` (session b06fb2e4), run 10:16 BST in maintenance mode.
+  - Backup `~/release-backups/2026-10-13-ac-release/` (users, savings_accounts, mortgages, tier_configurations; migrate status before and after).
+  - Migrations `2026_10_09_140000`, `2026_10_12_120000` (T48) and `2026_10_13_100000` (T25) ran; `db:seed`; the three corpus validators passed; bundle `app-2Zpwyh8q.js`; `ClearChatCampaignStamp.php` and `CaptureForms.php` checksums match local.
+  - T23: `registrations:clear-chat-campaign-stamp` (dry run, then run) removed the stamp from exactly the plan's 10 users: 753, 759, 765, 776, 803, 810, 811, 812, 813, 814.
+  - T48: `tier_configurations` reads Free 750,000 and Premium 3,000,000 a week; `fyn_daily_hard_backstop` is gone.
+  - `storage/logs/laravel.log`: 0 errors from the release to the end of the walk (13:05 BST).
+- **Prod walk, T0 to T25 (2026-10-13, fynla.org):** three fresh accounts, codes read from the production database (the R2 exception). Screenshots `shots/PROD-ac-01` to `PROD-ac-45`.
+  - **Web 1440, Ada Walk (824), normal registration from "Get started for free":**
+    - T22: "Hi Ada, I'm Fyn … Which of these do you have?" on the bubbles, then employment, spouse and spouse income (`PROD-ac-01`, `-02`).
+    - T58: "Pick one of the options above" and Send disabled at every bubble step; the box opened at each form.
+    - T21: Self-employed gave "Annual profit *" and its hint (`-03`); "my profit is £62,000.50 a year", "Got it — £62,000.50 a year, noted." (`-04`).
+    - T20 and T24: "£10,000 of premium bonds, and our daughter Maya has a Junior ISA with Fidelity…" opened Premium Bonds (£10,000), then the Junior ISA filled in (Fidelity, £4,200, Maya, 2015-03-14) (`-05`, `-06`); the loop read "Fidelity Junior ISA for Maya counts with your ISAs." (`-07`).
+    - T20 and T18: "Nationwide with £8,000 at 4.1% and Chase with £3,000 at 4.5%" opened Nationwide; on Save the limit sentence replaced Chase's form (`-08`, `-09`).
+    - T19 and T24: Brett's "My house in Reading … no mortgage, just me on the deeds" filled Home, £400,000, town Reading, No mortgage ticked, Individual (`-11`).
+    - T24: the buy-to-let message filled Woking, £180,000, BM Solutions, Interest Only, 5.2%, rent £1,450, agent £145, service charge £150; saved as "mortgage £180,000 (BM Solutions, interest only, 5.2%)…", then the property limit (`-12`).
+    - T25: Mortgage tab "Full Monthly Payment: Not recorded" (`-14`). "Fixed" and the 2051 end date are T60.
+    - T17: Brett's spouse words typed at the spouse form opened it filled in (full-time, £48,000, ISAs Nationwide) (`-15`).
+    - T23: "Here are your top actions…" (no protection, no will, "Pay £17,400 … save £6,960", life cover), the partner invite naming actions, "Take me to my actions" to `/actions` with the same items (`-16`, `-17`). "£25,919 into the 40% band" checked: £62,000.50 + £13,860 rent profit + £328 interest − £50,270.
+    - T6: "ok take me to my tax strategy" opened Tax Strategy with "Opening Tax Strategy." (`-18`).
+    - T5: "What is 6% + 8% of £72,000 a year? …" answered £4,320 + £5,760 = £10,080, no form (`-19`).
+    - T12 (item 18): the £6,960 working: £76,188 income, £328 at 0%, £25,590 at 40%, £17,469 available, £17,400, × 40% = £6,960; checked by hand (pence dropped: T66).
+    - T8: "Delete my round-the-world trip goal": "there isn't a saved goal with that name", no confirmation (`-20`); saved reply #4170 differs (T52).
+    - T10: "What annual income do you have saved for Dev?": £48,000 (`-21`).
+    - T14: the gift question cited Inheritance Tax Act 1984 s199(1)(b) (`-22`).
+    - T15: "£76,188.50" and Income Tax "£17,776.20" (`-23`); the Income page gives £7,540 + £10,236 (`-24`). Checked by hand; the missing Section 24 credit is T64.
+    - T4: "Change my retirement income target to £40,000 a year, retiring at 62": "Recorded…", row #4178 `capture_write_landed: true` (`-25`).
+    - T1: #4168's `<user_message>` holds the question exactly as typed, "?" included (production read).
+    - T24: the pension form shows "Final salary or career average pension" on web; a SIPP saved through chat.
+    - T0: Retirement page caption "Using Upper-Medium risk profile (6.50% expected return). The middle outcome grows a little slower…" (`-26`).
+    - T11: "£356,914 at 62 … £16,775 a year … gap £23,225", the page's own figures (`-27`).
+    - T7: the what-if was saved as a scenario, no pension form (`-28`); £0 comparison (T50) and Free creation (T51) as known.
+    - T9: "Please invite my partner Dev … slaterjoneschris+acdev@gmail.com" got "Done. I've sent an invitation…" (`-29`).
+  - **/m 390, Ada (bridged from web):** T25 "Monthly payment: Not recorded" (`-30`); T6 "take me to my savings" opened Bank Accounts (`-31`); T3 "If I stop work at 62, how far short am I … Show the working." gave £40,000 − £16,774.96 = £23,225.04 from the retirement analysis (`-32`); T12 "Where does the £5,600 in my pension action come from?" gave the published working (£4,500 gross raises the start to £54,770; £21,090 at 40%; £14,094 available; £14,000 × 40% = £5,600).
+  - **/m 390, Bea Walk (825), registered from the /m sign-in page:** T22 greeting on the bubbles and T58 lock, chips kept it locked (`-33`); T17 typed work answer filled the form (`-34`); T24 Junior ISA kind for Arjun and its loop line (`-35`); T20 Monzo then Marcus (`-36`, `-37`); T18 limit (`-38`); T24 mortgage fields hidden until the amount, then shown (`-39`, `-40`), saved with lender, type, rate, payment and term; T19 "holiday flat … no mortgage" ticked No mortgage (`-41`); T24 defined benefit kind, "Public sector pension with NHS Pension Scheme, £8,400 a year, still building up." (`-42`); T23 "Here are your top actions…" and "Take me to my actions" to the /m Actions screen, same order (`-43`, `-44`).
+  - **Web 1440, Cal Walk (826), from the homepage's "Save tax now" and the `/savetax` funnel:** T23 the arrival still ends on "Here's your tax plan…", "roughly £8,968 a year" (£8,680 + £288) (`-45`).
+  - **I COULD NOT TEST THIS on prod:** T13 (a figure recalled from beyond the 20-message window) was not walked; its Prod walk box stays empty. T48's limit message was not walked (CSJ 2026-10-12: limits not tested now); its values were read.
+  - Accounts purged with `RetentionPurgeService::purgeUser` and a force delete: 824, 825, 826, and `c.jones@csjones.co` (811, the standing rule); the invitation went with 824. Tokens, conversations and pending registrations: 0.
+  - Found on the walk, added as T61 to T68. Also seen: "Thanks Ada for that information" (missing commas, existing copy); /m T49 run-together paragraphs again (".That projection"); opening /m signed the web tab out and the front door landed on sign-in (T33).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
