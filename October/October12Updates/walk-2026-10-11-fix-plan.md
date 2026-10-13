@@ -92,8 +92,8 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T21 | The self-employed sentence says profit | M4 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T22 | Normal registration opens on "Which of these do you have?" with the first-name greeting (section 6) | your change | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T23 | Save Tax report only for Save Tax arrivals; others end on their actions; arrival record corrected (10 rows); iOS `/actions` link (section 6b) | your change | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T24 | Fyn's forms gain the fields whose columns exist | F9, F11, F12, F15, Q1, Q15, Q19, Q24 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| T25 | Stop storing placeholders (rate 0, "repayment", "To be completed", "Unknown") as facts | Q1, Q9, N7 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T24 | Fyn's forms gain the fields whose columns exist | F9, F11, F12, F15, Q1, Q15, Q19, Q24 | [x] | [x] | [x] | [x] | [ ] | [ ] |
+| T25 | Stop storing placeholders (rate 0, "repayment", "To be completed", "Unknown") as facts | Q1, Q9, N7 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T26 | Workplace pensions get their scheme type; production rows corrected | N2 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T27 | Joint records added after onboarding link to the partner; partner's figures transferred for the partner to confirm | Q23 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T28 | The Liabilities page shows mortgages to Free users | F12 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -122,6 +122,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T55 | **DECISION (CSJ):** how Fyn receives the user's own Child Benefit charge (F6). No tax plan strategy prices it; the figure lives only in the threshold strip (`HighIncomeChildBenefitLine`, via `ChildBenefitService::calculateChildBenefitPosition`), which no Fyn tool reads. On F6 (#3856) Fyn had only `get_tax_information(benefits)` (configuration), worked out "166%" itself, called £93,080 "below the £80,000 point", and could not say what the £9,700 pension payment does to the charge (at £83,380 it still repays all of it). Options: the threshold position in Fyn's context, an existing tool carrying it, or a plan item. Your call (Rule 16) | T12 part 2 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T56 | The `words` search reads only the open conversation. A figure given in an earlier conversation reaches Fyn only through that conversation's stored summary (`ConversationSummariser`, every 30 minutes, first 50 messages). Signing in on the web opened a new conversation (617) and "Remind me what I told you my bonus was" found nothing; Fyn asked rather than invented (T13 web walk, #22927). Whether `words` should also read the user's other conversations is a scope question for you | T13 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T57 | **DECISION (CSJ):** the pages round money to whole pounds (`currencyMixin`); Fyn now gives it exactly. Pat's Income page says "Net Income (after tax and National Insurance): £26,840" and Fyn says £26,839.60, on a line it is told is "the Income page's figure". Should the pages show pence as Fyn does, or Fyn quote the page's whole pounds? Your exact-pence rule (2026-10-12) was given for Fyn (T15 walk) | T15 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T60 | A mortgage given only a balance still gets rate type "fixed" (`mortgages.rate_type` NOT NULL DEFAULT 'fixed', `MortgageNormaliser`) and a 25-year term (`mortgage.default_term_months`, W-0012's reconciliation), which show as facts (T25 /m walk: "Not recorded · Fixed", 300 months). The same class as T25 but outside its list | T25 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T59 | A single person with no dependants and no debts is told "Your life cover is £730,573 short" (T23 web walk, Nia 527, £68,000). Check the protection need's basis against the cover rules before changing anything | T23 walk | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T41 | Live checks first, then fix what they show: /m message typed after a page change (M1); silent Saves (F10, Q24); will builder name and warning (Q19, Q20); retirement projection change (Q21); /m dashboard blank area | M1, F10, Q24, Q19, Q20, Q21 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T42 | Brett's account 812: the "declared none" flags and the unasked goal written by these bugs. A database change, so done only with your OK | F19, P2 | [ ] | n/a | n/a | [ ] | [ ] | [ ] |
@@ -741,6 +742,66 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 - **T23, wording for CSJ's approval:** the closing turn, closing step, button and partner invite above (the plan's draft). The bullet suffix departs from the draft's "saves around £X a year": it is the dashboard row's own line ("you could save £7,080"), because not every action's figure is yearly.
 - **T23, Found (not fixed):** Nia 527 (single, no dependants, no mortgage) is told "Your life cover is £730,573 short" (closing turn and Actions page). Whether the protection need should count income replacement for someone with no dependants is outside T23. Added as T59.
 - **T23, walk accounts to purge:** Nia 527 (`+t23web`), Zain 528 (`+t23m`), Sasha 529 (`+t23st`).
+- **T24, evidence read first (2026-10-13, production, read-only):**
+  - #3790 / #3794: Premium Bonds and "our eldest has a Junior ISA" (F9).
+  - #3985: interest-only mortgage with BM Solutions at 5.2%, a letting agent and a service charge (Q1). Mortgage 387 holds "To be completed", `repayment`, 0.0000, 0.00.
+  - #4021: a life policy "written in trust" (Q15).
+  - Property 531: city "Unknown", postcode "N/A" (F15).
+  - Q24: a working user's pension step had no defined benefit kind.
+- **T24, Code (2026-10-13):** #1281 (`d5cbd18d6`) and #1282 (`44df734d1`).
+  - Savings form:
+    - Premium Bonds kind: balance only, NS&I, no rate, individual. NS&I, Premium Bonds: "Premium Bonds don't earn interest"; not for saving jointly.
+    - Junior ISA kind: provider, balance, the child's first name and date of birth, as the web form's `beneficiary_*` fields.
+    - `premium_bonds` added to `SAVINGS_ACCOUNT_TYPES`; `beneficiary_*` through the handler, normaliser and store.
+  - Property form:
+    - Town or city on every kind.
+    - Once a mortgage amount is given: lender, type, rate, monthly payment, years left. Shown by a new `shown_when` rule in the shared mixin (web and /m).
+    - Buy to let: the letting agent's fee and service charge each month.
+  - Life insurance: "Is it written in trust?".
+  - Pension: a defined benefit kind on the workplace step, using the defined benefit form's own fields and write.
+  - Edit forms carry the same fields (`RecordEditForms`, `UpdateRecordAllowlist`):
+    - a saved mortgage's type is never rewritten (INV-2.7.3, `UpdateRecordAllowlistTest`), so the edit form doesn't ask it;
+    - an unchanged years-left keeps the maturity date.
+  - #1282, found on the walk: the bank loop names a Junior ISA saved from the bank form ("Fidelity Junior ISA for Maya counts with your ISAs."), because every ISA counts with investments (CSJ 2026-09-15).
+- **T24, Test (2026-10-13):**
+  - `FormsGainFieldsTest`: 4 red first (savings, property, in trust, defined benefit), plus the edit form, a maturity-drift case (proven red with the fix removed), and the Junior ISA line (red first).
+  - The `shown_when` spec on web and /m (red first).
+  - Touched-path files: 459 passed; frontend 105.
+- **T24, Dev (2026-10-13):** csjones `git pull` to `d5cbd18d6`, then `44df734d1`. Both bundles built at 09:11 BST from `d5cbd18d6` and uploaded with rsync, no `--delete` (#1282 is PHP only).
+- **T24, Dev walk (2026-10-13):**
+  1. Web 1440, fresh Ravi 530, bank step. Typed "I have £10,000 of premium bonds, and our daughter Maya has a Junior ISA with Fidelity with about £4,200 in it. She was born on 14 March 2015."
+     - Premium Bonds form, balance £10,000 (shot `T24-01`). Save opened the Junior ISA form, filled in with Fidelity, £4,200, Maya, 2015-03-14 (shot `T24-02`).
+     - Rows: `premium_bonds`, NS&I, rate null, individual; `junior_isa`, `is_isa`, beneficiary Maya.
+     - The loop question did not name the Junior ISA, which became #1282.
+  2. Web, Ravi, property step. Typed Brett's #3985 words, with the agent fee and service charge as monthly amounts.
+     - The form filled the town Woking, £180,000, BM Solutions, Interest Only, 5.2%, rent £1,450, agent £145, service charge £150. I added payment £780 and 18 years (shot `T24-03`).
+     - The line read "Buy to let worth £320,000 in Woking, mortgage £180,000 (BM Solutions, interest only, 5.2%, £780 a month)…". The rows match, with 216 months to 2044-10-13. Property page shot `T24-04`.
+  3. Web, Ravi, pension step: the "Final salary or career average pension" kind, Public sector, Local Government Pension Scheme, £9,400, 12 years, still building up (shot `T24-05`). DB row `public_sector`, `active`.
+  4. Web, Robin 509, chat: Brett's #4021 words filled the life form with "Is it written in trust?" Yes (shot `T24-06`). Saved `in_trust: true`.
+  5. /m 390, fresh Meera 531:
+     - Tapped the Junior ISA kind (Arjun) (shot `T24-07`). The loop read "Fidelity Junior ISA for Arjun counts with your ISAs." (shot `T24-08`).
+     - Property: the mortgage fields were hidden until the £310,000 was entered, then shown (shots `T24-09`, `T24-10`). Saved Guildford, Nationwide, `repayment`, 4.1%.
+     - Pension: Career average, NHS Pension Scheme, £6,200 (shot `T24-11`).
+  6. /m, Robin, chat: a Zurich life policy "not in trust" filled No (shot `T24-12`). Saved `in_trust: false`.
+- **T24, not built (for CSJ):**
+  - **Spouse's date of birth (F11).** On the Save Tax path the spouse's figures live on `TaxStrategyHouseholdInput`, with no spouse family-member row until the invite (production 812's row 1435 appeared at the invite). Where the date should be kept is a design decision.
+  - **Will builder address (Q19)** stays with T41's Q19 check.
+- **T25, Code (2026-10-13):** #1283 (`ea4c4b75e`). Not given is null on every Fyn property and mortgage write:
+  - `create_property` and `create_mortgage` drop "Unknown", "N/A", "To be completed", `repayment` and £0.
+  - `MortgageNormaliser::fromFyn` keeps type, rate and payment null.
+  - `MortgageStore` allows null lender, type and payment.
+  - Migration `2026_10_13_100000` makes `mortgages.mortgage_type` nullable; existing rows are not rewritten (R10's rule).
+  - "Not recorded" on web (`PropertyDetailInline`) and /m (`MortgageDetail`).
+  - Fyn's record reads keep a missing rate or payment null.
+- **T25, Test (2026-10-13):** `PlaceholdersAreNotFactsTest` (2, red first: "Unknown" and "To be completed"), the web `MortgageNotRecorded.spec.js` and the /m `MortgageMixedRate.spec.js` T25 case (red first). Touched-path files: 389 passed; frontend 7.
+- **T25, Dev (2026-10-13):** csjones `git pull` to `ea4c4b75e`. `php artisan migrate --force` ran `2026_10_13_100000` (DONE, 163 ms). Both bundles built at 09:48 BST and uploaded.
+- **T25, Dev walk (2026-10-13):**
+  1. Web 1440, Robin 509, chat: "Add my home: worth £450,000 with £210,000 left on the mortgage, in my name." filled value and balance only; saved.
+     - Property 228: city and postcode null; mortgage lender, type, rate and payment null.
+     - Finances → Property → Main residence → Mortgage tab: heading "Mortgage", and Lender, Mortgage Type, Interest Rate and Full Monthly Payment all "Not recorded" (shot `T25-01`).
+  2. /m 390, Robin: Net worth → Property → Main residence → Mortgage £210,000. Type, Monthly payment and Interest rate "Not recorded"; header "Not recorded · Fixed" (shot `T25-02`).
+- **T25, Found:** rate type "fixed" and the 25-year term are still invented for a mortgage given only a balance. Added as T60.
+- **T24/T25, walk accounts to purge:** Ravi Walk 530 (`+t24web`), Meera Walk 531 (`+t24m`). Robin 509 now also holds property 228 and two life policies.
 - **T58, walk accounts on csjones to purge:** Maya Walk and Leo Walk (`slaterjoneschris+t58m@`, `+t58web@gmail.com`, `Password1!`).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
