@@ -230,13 +230,25 @@ final class OnboardingStateMachine
     /** The bubble id that submits a multi-select state's picks. */
     public const MULTI_SELECT_SUBMIT = 'done';
 
-    /** Funnel question state → the funnel_answers key it writes, in asking order. */
+    /**
+     * Funnel question state → the funnel_answers key it writes, in asking
+     * order. The chat opens on "Which of these do you have?", then employment,
+     * spouse and spouse income (CSJ 2026-10-12, T22).
+     */
     public const FUNNEL_STATES = [
+        self::STATE_CAMPAIGN_FUNNEL_ASSETS => 'assets',
         self::STATE_CAMPAIGN_FUNNEL_EMPLOYMENT => 'employment',
         self::STATE_CAMPAIGN_FUNNEL_SPOUSE => 'spouse',
         self::STATE_CAMPAIGN_FUNNEL_SPOUSE_INCOME => 'spouseIncome',
-        self::STATE_CAMPAIGN_FUNNEL_ASSETS => 'assets',
     ];
+
+    /**
+     * onboarding_fyn_context flag: the asset bubbles were answered in chat.
+     * "That's everything" with nothing ticked stores an empty list, which on
+     * its own reads as unanswered (an empty list from a registration that
+     * never showed the question).
+     */
+    private const FUNNEL_ASSETS_ANSWERED = 'funnel_assets_answered';
 
     // PensionCheck campaign states — all defined in Task C3.
     // The STATE_CAMPAIGN2_STATE_PENSION and STATE_CAMPAIGN2_RETIREMENT_GOALS constants
@@ -1104,9 +1116,8 @@ final class OnboardingStateMachine
             'spouseIncome' => array_key_exists('spouseIncome', $funnel) || ! empty($user->household_calculation_mode)
                 || app(HouseholdFinancialContext::class)->linkedSpouseEarnings($user) !== null,
             // An empty list from a registration that never showed the
-            // question is not an answer (the chat's "That's everything" leaves
-            // the walk directly and does not come back through here).
-            'assets' => ! empty($funnel['assets']),
+            // question is not an answer; "That's everything" in chat is.
+            'assets' => ! empty($funnel['assets']) || ! empty($user->onboarding_fyn_context[self::FUNNEL_ASSETS_ANSWERED]),
         ];
         $hasSpouse = array_key_exists('spouse', $funnel) ? $funnel['spouse'] === 'yes' : $married;
 
@@ -1220,11 +1231,18 @@ final class OnboardingStateMachine
         return self::firstMissingFunnelState($user) ?? self::leaveFunnelQuestions($user);
     }
 
+    /** "That's everything" answers the bubbles; the questions not yet answered follow (T22). */
     public static function nextFromFunnelAssets(string $answer, User $user): string
     {
-        return in_array(self::MULTI_SELECT_SUBMIT, self::matchBubbles(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer), true)
-            ? self::leaveFunnelQuestions($user)
-            : self::STATE_CAMPAIGN_FUNNEL_ASSETS;
+        if (! in_array(self::MULTI_SELECT_SUBMIT, self::matchBubbles(self::STATE_CAMPAIGN_FUNNEL_ASSETS, $answer), true)) {
+            return self::STATE_CAMPAIGN_FUNNEL_ASSETS;
+        }
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context[self::FUNNEL_ASSETS_ANSWERED] = true;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        return self::nextFromFunnelQuestion($answer, $user);
     }
 
     /** Map the answers onto the profile exactly as registration does, then enter Save Tax. */
