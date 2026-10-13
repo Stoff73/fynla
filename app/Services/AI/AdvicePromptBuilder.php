@@ -399,7 +399,15 @@ PROMPT;
             // they miss the dividend rates, the savings allowances and tax a trust
             // has already paid (walked 2026-10-03: £9,552 against the page's £7,743.50).
             $tab = app(UserProfileService::class)->incomeAndTaxFor($user);
-            $lines[] = '- Income Tax this year (the Income page\'s figure; quote it, never work it out again): '.Money::exact((float) $tab['income_tax']);
+            // The figure is after any Section 24 credit; without saying so Fyn
+            // told a landlord the credit was not in it (T64).
+            $summary = $tab['detailed_tax_breakdown']['summary'] ?? [];
+            $credit = (float) ($summary['section_24_credit'] ?? 0);
+            $creditNote = $credit > 0
+                ? ', after the '.Money::exact($credit).' Section 24 credit for buy-to-let mortgage interest; '
+                    .Money::exact((float) ($summary['total_income_tax_before_credits'] ?? 0)).' before it'
+                : '';
+            $lines[] = '- Income Tax this year (the Income page\'s figure'.$creditNote.'; quote it, never work it out again): '.Money::exact((float) $tab['income_tax']);
             $lines[] = '- National Insurance this year (the Income page\'s figure): '.Money::exact((float) $tab['national_insurance']);
             $lines[] = '- Take-home after Income Tax and National Insurance (the Income page\'s figure): '.Money::exact((float) $tab['net_income']);
         }

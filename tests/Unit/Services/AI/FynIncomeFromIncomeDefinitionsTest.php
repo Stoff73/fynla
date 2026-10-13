@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Constants\QuerySchemas;
 use App\Models\DCPension;
+use App\Models\Mortgage;
+use App\Models\Property;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
@@ -130,4 +132,46 @@ it('lists employment after salary sacrifice, so the parts add up to the total', 
     expect($profile)->toContain('- Total annual income: £57,000')
         ->and($profile)->toContain('Employment (PAYE) after salary sacrifice (£60,000 before; £3,000 is paid into the pension before tax and National Insurance) [relevant UK earnings]: £57,000')
         ->and($profile)->not->toContain('-£3,000');
+});
+
+// T64 (csjones walk, 2026-10-13): the Income page's Income Tax is after the
+// Section 24 credit, but Fyn's line did not say so, and Fyn told Robin "the
+// buy-to-let mortgage interest credit is not reflected in that figure". The
+// line now names the credit and the figure before it.
+it('says the Income Tax is after the buy-to-let credit, and by how much', function () {
+    $user = User::factory()->create([
+        'date_of_birth' => now()->subYears(40),
+        'annual_employment_income' => 60000,
+        'annual_self_employment_income' => 0,
+        'annual_dividend_income' => 0,
+        'annual_interest_income' => 0,
+        'annual_other_income' => 0,
+        'annual_trust_income' => 0,
+    ]);
+    $property = Property::factory()->create([
+        'user_id' => $user->id,
+        'property_type' => 'buy_to_let',
+        'ownership_type' => 'individual',
+        'current_value' => 320000,
+        'monthly_rental_income' => 1450,
+    ]);
+    Mortgage::factory()->create([
+        'user_id' => $user->id,
+        'property_id' => $property->id,
+        'ownership_type' => 'individual',
+        'mortgage_type' => 'interest_only',
+        'outstanding_balance' => 180000,
+        'interest_rate' => 5.2,
+        'monthly_payment' => null,
+    ]);
+    $tab = app(UserProfileService::class)->incomeAndTaxFor($user->fresh());
+    $summary = $tab['detailed_tax_breakdown']['summary'];
+    expect((float) $summary['section_24_credit'])->toBe(1872.0);
+
+    $profile = app(AdvicePromptBuilder::class)->buildUserProfile($user->fresh());
+
+    expect($profile)->toContain('- Income Tax this year (the Income page\'s figure, after the '
+        .Money::exact(1872.0).' Section 24 credit for buy-to-let mortgage interest; '
+        .Money::exact((float) $summary['total_income_tax_before_credits']).' before it; quote it, never work it out again): '
+        .Money::exact((float) $tab['income_tax']));
 });
