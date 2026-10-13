@@ -13,6 +13,7 @@ use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\RecommendationsAggregatorService;
+use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\PrerequisiteGateService;
 use App\Services\Retirement\RetirementDrawdownPosition;
 
@@ -396,6 +397,12 @@ class NextActionsService
                 ?? (! empty($user->funnel_answers) ? 'savetax' : null));
 
         $campaign = is_string($raw) ? $raw : null;
+        // Every user walks Save Tax (onboarding.forced_campaign), so the
+        // selection alone would put tax first for everyone; only a Save Tax
+        // arrival gets it (T23, plan section 6b point 7).
+        if ($campaign === 'savetax' && ! OnboardingStateMachine::isSaveTaxArrival($user)) {
+            $campaign = null;
+        }
         $affinityModule = self::CAMPAIGN_AFFINITY[$campaign] ?? null;
 
         if ($affinityModule === null) {

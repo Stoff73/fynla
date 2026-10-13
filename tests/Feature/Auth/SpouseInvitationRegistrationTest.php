@@ -116,6 +116,18 @@ it("registering from the link links the accounts, hands over Laura's figures and
         ->and((float) ($azlan->fresh()->annual_other_income ?? 0))->toBe(0.0);
 });
 
+// T23 (plan section 6b): the invitee walks the inviter's campaign, so the
+// partner of a normal registrant is not recorded as a Save Tax arrival.
+it('records the invitee as a Save Tax arrival only when the inviter is one', function (): void {
+    [$laura, $invitation] = inviteAzlan();
+    $laura->forceFill(['funnel_answers' => ['spouse' => 'yes']])->save();
+
+    $azlan = registerFromInvitation($invitation->token);
+
+    expect($azlan->fresh()->spouse_id)->toBe($laura->id)
+        ->and($azlan->fresh()->funnel_answers['campaign'] ?? null)->toBeNull();
+});
+
 it("hands over the invited partner's income as pay when Laura said they work", function (): void {
     [$laura, $invitation] = inviteAzlan();
     TaxStrategyHouseholdInput::create(['user_id' => $laura->id, 'spouse_employment_status' => 'full_time']);

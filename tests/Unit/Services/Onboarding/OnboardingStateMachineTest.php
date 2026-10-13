@@ -69,6 +69,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
             OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL,
+            OnboardingStateMachine::STATE_CAMPAIGN_ACTIONS_TERMINAL,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SAVINGS,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INVESTMENTS,

@@ -42,7 +42,7 @@ it('routes the campaign to a synthesis advice state before the terminal state', 
         ->toContain('nextFromCampaignSynthesis');
 
     // Verify the routing for both campaigns.
-    $savetaxUser = User::factory()->create(['onboarding_fyn_selection' => 'savetax']);
+    $savetaxUser = User::factory()->create(['onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax']]);
     $pensioncheckUser = User::factory()->create(['onboarding_fyn_selection' => 'pensioncheck']);
     expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $savetaxUser))
         ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL)
@@ -52,6 +52,7 @@ it('routes the campaign to a synthesis advice state before the terminal state', 
 
 it('voices a bulleted plan that mirrors the /tax-strategy dashboard (no numbering, no locked tease)', function () {
     $user = User::factory()->create([
+        'funnel_answers' => ['campaign' => 'savetax'], // a /savetax arrival (T23)
         'date_of_birth' => '1982-02-19', 'marital_status' => 'married',
         'employment_status' => 'full_time', 'annual_employment_income' => 110000,
         'monthly_expenditure' => 3000, 'household_calculation_mode' => 'single_earner_couple',
@@ -75,6 +76,7 @@ it('voices a bulleted plan that mirrors the /tax-strategy dashboard (no numberin
 
 it('persists the voiced synthesis to ai_messages so /tax-strategy shows exactly what was said (A4)', function () {
     $user = User::factory()->create([
+        'funnel_answers' => ['campaign' => 'savetax'], // a /savetax arrival (T23)
         'date_of_birth' => '1982-02-19', 'marital_status' => 'married',
         'employment_status' => 'full_time', 'annual_employment_income' => 110000,
         'monthly_expenditure' => 3000, 'household_calculation_mode' => 'single_earner_couple',
@@ -117,6 +119,7 @@ it('degrades to a sensible closing line for a user with no strategies', function
     // D1 Fix 6 — the final recap turn previously fell silent (null) when the plan
     // had no items; it must instead voice an honest forward-looking line.
     $user = User::factory()->create([
+        'funnel_answers' => ['campaign' => 'savetax'], // a /savetax arrival (T23)
         'annual_employment_income' => 0,
         'monthly_expenditure' => 0,
         'first_name' => 'Alex',

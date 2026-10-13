@@ -722,9 +722,11 @@ final class SpouseLinkingService
         // only for what is missing. The campaign is keyed off funnel_answers
         // (AiChatController::startOnboarding funnel fallback).
         $newUser->refresh();
-        if (empty($newUser->funnel_answers['campaign'] ?? null)) {
-            $campaign = $inviter->funnel_answers['campaign'] ?? 'savetax';
-            $newUser->funnel_answers = array_merge((array) ($newUser->funnel_answers ?? []), ['campaign' => is_string($campaign) ? $campaign : 'savetax']);
+        // Only a campaign the inviter has: the partner of a normal registrant
+        // is not a Save Tax arrival (T23, OnboardingStateMachine::isSaveTaxArrival).
+        $campaign = $inviter->funnel_answers['campaign'] ?? null;
+        if (empty($newUser->funnel_answers['campaign'] ?? null) && is_string($campaign) && $campaign !== '') {
+            $newUser->funnel_answers = array_merge((array) ($newUser->funnel_answers ?? []), ['campaign' => $campaign]);
         }
         $context = is_array($newUser->onboarding_fyn_context) ? $newUser->onboarding_fyn_context : [];
         $context['invited_by'] = $inviter->id;

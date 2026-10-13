@@ -49,6 +49,7 @@ use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
 use App\Services\Mobile\MilestoneDetectionService;
+use App\Services\Mobile\NextActionsService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -1758,6 +1759,11 @@ final class OnboardingChatDirector
         $user->refresh();
 
         $campaign = $user->onboarding_fyn_selection ?? 'savetax';
+        // The tax plan is the Save Tax campaign's report; everyone else ends
+        // on their actions (CSJ 2026-10-12, T23).
+        if ($campaign === 'savetax' && ! OnboardingStateMachine::isSaveTaxArrival($user)) {
+            return $this->actionsSynthesis($user);
+        }
 
         try {
             $plan = $campaign === 'pensioncheck'
@@ -1826,6 +1832,49 @@ final class OnboardingChatDirector
         $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The closing turn for a user who did not come through Save Tax: their
+     * top actions, the same items, order and figures as the dashboard's
+     * (NextActionsService::build, the head of the Actions page list), so chat
+     * and dashboard never disagree. Each bullet carries the dashboard row's
+     * own figure line ("You could save £3,880") unless the title already
+     * quotes it. No plan heading, no plan total.
+     */
+    private function actionsSynthesis(User $user): string
+    {
+        try {
+            $actions = app(NextActionsService::class)->build($user->id);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Actions synthesis failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            $actions = [];
+        }
+
+        $bullets = [];
+        foreach ($actions as $action) {
+            $title = trim((string) ($action['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $meta = trim((string) ($action['meta'] ?? ''));
+            $amount = preg_match('/£[\d,]+(?:\.\d{2})?/', $meta, $m) === 1 ? $m[0] : null;
+            $bullets[] = '- '.$title.($amount !== null && ! str_contains($title, $amount) ? ' — '.lcfirst($meta) : '');
+        }
+
+        if ($bullets === []) {
+            $firstName = trim((string) ($user->first_name ?? '')) ?: 'there';
+
+            return "That's your details saved, {$firstName}. You'll find your actions on the next screen.";
+        }
+
+        return implode("\n", [
+            "Here are your top actions, built from what you told me — in the order I'd tackle them:",
+            '',
+            ...$bullets,
+            '',
+            'For regulated advice personal to your circumstances, speak to a qualified financial adviser.',
+        ]);
     }
 
     /**
@@ -2847,8 +2896,9 @@ final class OnboardingChatDirector
             && ((is_string($capturedValue) && $capturedValue !== '') || (is_array($capturedValue) && $capturedValue !== []))) {
             $key = OnboardingStateMachine::FUNNEL_STATES[$stateId];
             $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
-            // Keep the campaign the user arrived on (their acquisition record).
-            $funnel['campaign'] ??= $user->onboarding_fyn_selection ?? 'savetax';
+            // Only the answers: the campaign the user arrived on is recorded at
+            // registration, and stamping it here made every registrant a Save
+            // Tax arrival (T23, OnboardingStateMachine::isSaveTaxArrival).
             if ($key === 'assets') {
                 // Every pick a multi-select submission names (M4), or an
                 // older client's single tap; the submit bubble is not an asset.
@@ -6582,6 +6632,7 @@ PROMPT;
     {
         [$id, $label] = match ($route) {
             '/tax-strategy' => ['view_strategy', 'Take me to my tax strategy'],
+            '/actions' => ['view_actions', 'Take me to my actions'],
             '/retirement' => ['view_retirement', 'Take me to my retirement plan'],
             default => ['view_plan', 'Take me to my plan'],
         };

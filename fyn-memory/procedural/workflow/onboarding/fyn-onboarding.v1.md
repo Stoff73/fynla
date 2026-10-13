@@ -456,6 +456,13 @@ campaign_terminal:
   navigate_to: /tax-strategy
   next: done
 
+campaign_actions_terminal:
+  turn_type: terminal
+  prompt_text: "Your actions are ready, {first_name}. Open any action on the next screen to see the steps, or ask me about it here."
+  capture_field: null
+  navigate_to: /actions
+  next: done
+
 campaign_advice_income:
   turn_type: advice
   advice_section: income

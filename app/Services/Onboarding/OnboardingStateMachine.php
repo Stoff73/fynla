@@ -173,6 +173,9 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_TERMINAL = 'campaign_terminal';
 
+    /** The Save Tax walk's closing step for a user who did not come through Save Tax: their actions (T23). */
+    public const STATE_CAMPAIGN_ACTIONS_TERMINAL = 'campaign_actions_terminal';
+
     // Date of birth, captured inside the pensions section for the savetax
     // campaign (it's irrelevant to the income-tax advice the user came for, and
     // only matters once we reach pensions/retirement).
@@ -879,6 +882,11 @@ final class OnboardingStateMachine
             // STATE_DONE; the OnboardingChatDirector reads `navigate_to` and emits
             // a `navigate` SSE event when this state is reached.
             self::STATE_CAMPAIGN_TERMINAL => [
+            ],
+            // The same walk's closing step for everyone who did not come
+            // through Save Tax: their actions, not the tax plan (CSJ
+            // 2026-10-12, T23). Prompt and navigate_to live in the corpus.
+            self::STATE_CAMPAIGN_ACTIONS_TERMINAL => [
             ],
             // ── Per-section advice (auto-advancing) ───────────────────────
             // Each fires after its section's capture, relays the relevant
@@ -3031,12 +3039,36 @@ final class OnboardingStateMachine
             ?? self::campaignFinalTerminalFor($user);
     }
 
-    /** The campaign's closing state for this user's selection. */
+    /**
+     * The campaign's closing state for this user's selection. The Save Tax
+     * walk ends on the tax strategy only for a Save Tax arrival; everyone else
+     * ends on their actions (CSJ 2026-10-12, T23).
+     */
     public static function campaignFinalTerminalFor(User $user): string
     {
-        return $user->onboarding_fyn_selection === 'pensioncheck'
-            ? self::STATE_CAMPAIGN2_TERMINAL
-            : self::STATE_CAMPAIGN_TERMINAL;
+        if ($user->onboarding_fyn_selection === 'pensioncheck') {
+            return self::STATE_CAMPAIGN2_TERMINAL;
+        }
+
+        return self::isSaveTaxArrival($user) ? self::STATE_CAMPAIGN_TERMINAL : self::STATE_CAMPAIGN_ACTIONS_TERMINAL;
+    }
+
+    /**
+     * Did this user come through the Save Tax campaign? The one answer for
+     * every reader: registration records it (AuthController::register, from
+     * /savetax), and an invited partner takes the inviter's
+     * (SpouseLinkingService::acceptInvitation). Every user walks the Save Tax
+     * steps (config onboarding.forced_campaign), so the selection cannot tell.
+     */
+    public static function isSaveTaxArrival(User $user): bool
+    {
+        $funnel = is_array($user->funnel_answers) ? $user->funnel_answers : [];
+        $campaign = $funnel['campaign'] ?? null;
+
+        // Rows from before the campaign stamp (A6) carry the /savetax page's
+        // income answer, which only that page asks (the chat never asks the
+        // income band): production users 637, 647 and 648 on 2026-10-13.
+        return $campaign === 'savetax' || ($campaign === null && array_key_exists('income', $funnel));
     }
 
     /**
@@ -3065,9 +3097,14 @@ final class OnboardingStateMachine
         $name = self::knownSpouseFirstName($user, $conversation);
         $whom = $name ?? 'your spouse';
 
-        return "One more thing. Your plan uses the figures you gave me for {$whom}. "
+        // A Save Tax arrival has a plan; everyone else has their actions (T23).
+        [$subject, $result] = self::isSaveTaxArrival($user)
+            ? ['Your plan uses', 'the joint plan gets']
+            : ['Your actions use', 'your actions get'];
+
+        return "One more thing. {$subject} the figures you gave me for {$whom}. "
             .'If they have their own Fynla account and you link up, I can use their real allowances and tax position, '
-            .'and the joint plan gets more accurate. **Shall I send them an invitation?**';
+            ."and {$result} more accurate. **Shall I send them an invitation?**";
     }
 
     /** The spouse's first name when known: the linked account, else a parked fact. */

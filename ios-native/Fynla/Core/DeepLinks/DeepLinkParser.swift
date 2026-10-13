@@ -62,6 +62,7 @@ struct DeepLinkParser: Sendable {
             "/estate": .estate,
             "/goals": .goals,
             "/tax-strategy": .taxStrategy,
+            "/actions": .actions,
             "/holistic-plan": .holisticPlan,
             "/settings": .settings,
         ]
