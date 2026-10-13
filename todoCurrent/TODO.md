@@ -582,6 +582,13 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
             - Found: `FynRankedRecommendationsAreTheActionsListTest` fails on dev (`900.0` vs `900`), not from these changes.
             - Found: a single person with no dependants is told "Your life cover is £730,573 short" (Nia 527). Added as T59.
           - Next (CSJ 2026-10-13: "you can go to t24 and 25 next"): T24, then T25.
+          - **T24 ticked to Dev walk (2026-10-13):** Fyn's forms gain Premium Bonds, Junior ISA, the property town and mortgage details, the letting costs, "Is it written in trust?" and a defined benefit kind. #1281 (`d5cbd18d6`), #1282 (`44df734d1`, the bank loop names a Junior ISA). Walked web (Ravi 530, Robin 509) and /m (Meera 531, Robin).
+            - DECISION (CSJ), F11: where the spouse's date of birth is kept. On the Save Tax path the spouse's figures live on `TaxStrategyHouseholdInput` and there is no spouse family-member row until the invite.
+            - DECISION (CSJ): approve the T24 wording (form labels "Town or city", "Mortgage lender", "Years left on the mortgage", "Letting agent's fee each month", "Service charge each month", "Is it written in trust?", "The child's first name / date of birth", "Final salary or career average pension", the pension prompt's added sentence, and "… counts with your ISAs.").
+          - **T25 ticked to Dev walk (2026-10-13):** a mortgage or property given only some facts stores null for the rest and shows "Not recorded" (no more "To be completed", `repayment`, 0%, £0, "Unknown", "N/A"). #1283 (`ea4c4b75e`). Walked web and /m (Robin 509).
+            - Release needs migration `2026_10_13_100000_make_mortgage_type_nullable` and both bundles. Existing production rows (mortgages 386, 387, property 531) keep their placeholders; changing them is a database change for your OK.
+            - Found: rate type "fixed" and a 25-year term are still invented for a balance-only mortgage. Added as T60.
+          - Stopped after T25 (CSJ 2026-10-13: "stop after t25"). Next on the list: T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
