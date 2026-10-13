@@ -121,7 +121,7 @@
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-neutral-500">Purchase Price:</dt>
-                    <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(property.purchase_price) }}</dd>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatPurchasePrice() }}</dd>
                   </div>
                   <div v-if="leaseRemainingYears !== null" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-neutral-500">Remaining lease:</dt>
@@ -805,6 +805,12 @@ export default {
     // 0.00% (T25; R10 for savings rates).
     formatMortgagePayment(mortgage) {
       return mortgage.monthly_payment == null ? 'Not recorded' : this.formatCurrency(this.calculateFullMonthlyPayment(mortgage));
+    },
+
+    // A price never given is null from the server (T63).
+    formatPurchasePrice() {
+      const price = this.property?.purchase_price;
+      return price == null ? 'Not recorded' : this.formatCurrency(price);
     },
 
     // The server sends null for both when no payment was given (T61).

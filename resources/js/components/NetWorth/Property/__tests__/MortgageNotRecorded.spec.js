@@ -21,6 +21,13 @@ describe('PropertyDetailInline — what was not given (T25)', () => {
     expect(formatMortgageRate.call(ctx, { interest_rate: '5.2000' })).toBe('5.20%');
   });
 
+  // T63 (release ac prod walk): the Overview read "Purchase Price: £0".
+  it('names a purchase price never given as Not recorded', () => {
+    const { formatPurchasePrice } = PropertyDetailInline.methods;
+    expect(formatPurchasePrice.call({ ...ctx, property: { purchase_price: null } })).toBe('Not recorded');
+    expect(formatPurchasePrice.call({ ...ctx, property: { purchase_price: 250000 } })).toBe('£250,000');
+  });
+
   // T61 (release ac prod walk): the same card read "Full Annual Payment: £0".
   it('names a missing annual payment and payment share as Not recorded', () => {
     const { formatMortgageAnnualPayment, formatMortgagePaymentShare } = PropertyDetailInline.methods;

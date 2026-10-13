@@ -307,10 +307,11 @@ class PropertyService
         }
         $ltv = $currentValue > 0 ? ($mortgageBalance / $currentValue) * 100 : 0;
 
-        // Calculate total return (capital growth + rental yield)
-        $purchasePrice = $property->purchase_price ?? 0;
-        $capitalGrowth = $currentValue - $purchasePrice;
-        $capitalGrowthPercent = $purchasePrice > 0 ? ($capitalGrowth / $purchasePrice) * 100 : 0;
+        // Capital growth needs the price paid. A price never given stays null,
+        // and so does the growth, never the whole value over £0 (T63).
+        $purchasePrice = $property->purchase_price !== null ? (float) $property->purchase_price : null;
+        $capitalGrowth = $purchasePrice > 0 ? $currentValue - $purchasePrice : null;
+        $capitalGrowthPercent = $purchasePrice > 0 ? round(($capitalGrowth / $purchasePrice) * 100, 2) : null;
 
         return [
             // Top-level commonly accessed fields
@@ -323,7 +324,7 @@ class PropertyService
             'household_id' => $property->household_id,
             'trust_id' => $property->trust_id,
             'current_value' => (float) $currentValue,
-            'purchase_price' => (float) $purchasePrice,  // Add to top level for easier access
+            'purchase_price' => $purchasePrice,  // null when never given (T63)
             'purchase_date' => $property->purchase_date?->format('Y-m-d'),
             'valuation_date' => $property->valuation_date?->format('Y-m-d'),
             'equity' => (float) $equity,
@@ -389,7 +390,7 @@ class PropertyService
                 'current_value' => $currentValue,
                 'valuation_date' => $property->valuation_date?->format('Y-m-d'),
                 'capital_growth' => $capitalGrowth,
-                'capital_growth_percent' => round($capitalGrowthPercent, 2),
+                'capital_growth_percent' => $capitalGrowthPercent,
             ],
             'financial' => [
                 'equity' => $equity,
