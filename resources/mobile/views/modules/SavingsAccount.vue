@@ -26,9 +26,9 @@
         </div>
       </div>
 
-      <!-- Balance & interest -->
+      <!-- Balance & interest (Premium Bonds pay no interest: T68) -->
       <div class="m-card m-detail-rows">
-        <p class="m-section-label">Balance &amp; interest</p>
+        <p class="m-section-label">{{ paysInterest(account) ? 'Balance & interest' : 'Balance' }}</p>
         <div v-for="row in balanceRows" :key="row.key" class="m-detail-row">
           <span class="m-detail-key">{{ row.key }}</span>
           <span class="m-detail-value">{{ row.value }}</span>
@@ -219,6 +219,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     // A rate never given reads "Not recorded", never 0% (R10). One rule for web and /m.
     rate: formatInterestRate,
+    paysInterest,
     accountTypeLabel(t) { return ACCOUNT_TYPES[t] || (t ? String(t).replace(/_/g, ' ') : '—'); },
     accessTypeLabel(t) { return ACCESS_TYPES[t] || (t ? String(t).replace(/_/g, ' ') : '—'); },
     isaTypeLabel(t) { return ISA_TYPES[t] || (t ? String(t).replace(/_/g, ' ') : '—'); },
