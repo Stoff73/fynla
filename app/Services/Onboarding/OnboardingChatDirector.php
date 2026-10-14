@@ -7883,6 +7883,10 @@ PROMPT;
             $blankFilled = array_values(app(TypedFormFill::class)->fillAny(array_slice($forms, $firstBlank), $message))[0] ?? null;
         }
 
+        if ($blankFilled !== null) {
+            $blankFilled = CaptureForms::withKnownChild($user, $blankFilled);
+        }
+
         if ($recordsFilled === [] && $blankFilled === null && (! $openAnyway || ($candidates === [] && ! $hasBlank))) {
             return false;
         }
@@ -8129,6 +8133,7 @@ PROMPT;
         if ($filled === null) {
             return false;
         }
+        $filled = CaptureForms::withKnownChild($user, $filled);
 
         yield from $this->emitTurnForState($user, $conversation, $stateId, $state, includeTransitionHeader: false, typedFill: $filled);
 

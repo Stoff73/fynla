@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Constants\ProfileEnums;
+use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Tax\TaxStrategyMath;
@@ -139,6 +140,42 @@ final class CaptureForms
 
     /** The line above the next of several new records read from one message, opened after the one before is saved (T20). */
     public const FILLED_NEXT_PROMPT = "Here's the next one, filled in — check it, add anything missing and save.";
+
+    /**
+     * A Junior ISA typed for a child already on the record takes that child's
+     * date of birth from the record instead of asking for it again (T70). The
+     * queue of further records is read the same way.
+     *
+     * @param  array<string, mixed>  $form
+     * @return array<string, mixed>
+     */
+    public static function withKnownChild(User $user, array $form): array
+    {
+        $fill = static function (array $answers) use ($user): ?array {
+            $junior = $answers['junior_isa'] ?? null;
+            if (! is_array($junior) || ! empty($junior['child_date_of_birth'])) {
+                return null;
+            }
+            $child = FamilyMember::onlyChildNamed($user->id, (string) ($junior['child_first_name'] ?? ''));
+            if ($child?->date_of_birth === null) {
+                return null;
+            }
+            $answers['junior_isa']['child_date_of_birth'] = $child->date_of_birth->format('Y-m-d');
+
+            return $answers;
+        };
+
+        $answers = $fill((array) ($form['answers'] ?? []));
+        if ($answers !== null) {
+            $form['answers'] = $answers;
+            $form['filled'] = array_values(array_unique([...(array) ($form['filled'] ?? []), 'child_date_of_birth']));
+        }
+        if (isset($form['queue']) && is_array($form['queue'])) {
+            $form['queue'] = array_map(static fn (array $queued): array => $fill($queued) ?? $queued, $form['queue']);
+        }
+
+        return $form;
+    }
 
     /**
      * The line above a form Fyn filled in, naming the forms still to come
