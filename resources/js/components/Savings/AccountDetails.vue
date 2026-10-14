@@ -55,7 +55,7 @@
             <p class="text-2xl font-bold text-horizon-500">
               {{ formatCurrency(account.current_balance) }}
             </p>
-            <p class="text-sm text-neutral-500">{{ formatInterestRate(account.interest_rate) }}<template v-if="hasInterestRate(account.interest_rate)"> APY</template></p>
+            <p v-if="paysInterest(account)" class="text-sm text-neutral-500">{{ formatInterestRate(account.interest_rate) }}<template v-if="hasInterestRate(account.interest_rate)"> APY</template></p>
           </div>
         </div>
 
@@ -149,7 +149,7 @@
 </template>
 
 <script>
-import { formatInterestRate, hasInterestRate } from '@/utils/interestRate';
+import { formatInterestRate, hasInterestRate, paysInterest } from '@/utils/interestRate';
 import { mapState, mapActions } from 'vuex';
 import SaveAccountModal from './SaveAccountModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -205,6 +205,7 @@ export default {
 
     formatInterestRate,
     hasInterestRate,
+    paysInterest,
 
     // Modal handlers
     handleCloseModal() {

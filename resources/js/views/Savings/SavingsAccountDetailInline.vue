@@ -126,12 +126,12 @@
               </div>
             </dl>
             <dl class="space-y-3">
-              <!-- Interest Rate -->
-              <div class="flex justify-between">
+              <!-- Interest Rate (Premium Bonds pay prizes, not interest: T68) -->
+              <div v-if="paysInterest(account)" class="flex justify-between">
                 <dt class="text-sm text-neutral-500">Interest Rate:</dt>
                 <dd class="text-sm font-medium text-violet-600">{{ formatInterestRate(account.interest_rate) }}</dd>
               </div>
-              <div class="flex justify-between">
+              <div v-if="paysInterest(account)" class="flex justify-between">
                 <dt class="text-sm text-neutral-500">Annual Interest:</dt>
                 <dd class="text-sm font-medium text-spring-600">{{ annualInterest === null ? 'Not recorded' : formatCurrency(annualInterest) }}</dd>
               </div>
@@ -229,7 +229,7 @@
 </template>
 
 <script>
-import { formatInterestRate } from '@/utils/interestRate';
+import { formatInterestRate, paysInterest } from '@/utils/interestRate';
 import { mapActions } from 'vuex';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
@@ -460,6 +460,7 @@ export default {
     },
 
     formatInterestRate,
+    paysInterest,
   },
 };
 </script>

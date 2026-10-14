@@ -60,11 +60,11 @@
                 Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(userShare) }}
               </p>
             </div>
-            <div class="bg-eggshell-500 rounded-lg p-4">
+            <div v-if="paysInterest(account)" class="bg-eggshell-500 rounded-lg p-4">
               <p class="text-sm text-neutral-500">Interest Rate</p>
               <p class="text-2xl font-bold text-violet-600">{{ formatInterestRate(account.interest_rate) }}</p>
             </div>
-            <div class="bg-eggshell-500 rounded-lg p-4">
+            <div v-if="paysInterest(account)" class="bg-eggshell-500 rounded-lg p-4">
               <p class="text-sm text-neutral-500">Annual Interest</p>
               <p class="text-2xl font-bold text-spring-600">{{ annualInterest === null ? 'Not recorded' : formatCurrency(annualInterest) }}</p>
             </div>
@@ -111,15 +111,15 @@
                   <dt class="text-sm text-neutral-500">Your Share ({{ account.ownership_percentage }}%):</dt>
                   <dd class="text-sm font-medium text-violet-600">{{ formatCurrency(userShare) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div v-if="paysInterest(account)" class="flex justify-between">
                   <dt class="text-sm text-neutral-500">Interest Rate:</dt>
                   <dd class="text-sm font-medium text-horizon-500">{{ formatInterestRate(account.interest_rate) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div v-if="paysInterest(account)" class="flex justify-between">
                   <dt class="text-sm text-neutral-500">Monthly Interest:</dt>
                   <dd class="text-sm font-medium text-spring-600">{{ formatCurrency(monthlyInterest) }}</dd>
                 </div>
-                <div class="flex justify-between">
+                <div v-if="paysInterest(account)" class="flex justify-between">
                   <dt class="text-sm text-neutral-500">Annual Interest:</dt>
                   <dd class="text-sm font-medium text-spring-600">{{ annualInterest === null ? 'Not recorded' : formatCurrency(annualInterest) }}</dd>
                 </div>
@@ -197,7 +197,7 @@
 </template>
 
 <script>
-import { formatInterestRate } from '@/utils/interestRate';
+import { formatInterestRate, paysInterest } from '@/utils/interestRate';
 import { mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
@@ -371,6 +371,7 @@ export default {
     },
 
     formatInterestRate,
+    paysInterest,
   },
 };
 </script>

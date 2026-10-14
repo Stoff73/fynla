@@ -41,7 +41,7 @@
               <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Bank account' }}</span>
               <span class="ms-acct__meta">
                 <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
-                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+                <span v-if="paysInterest(acct)" class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
               </span>
             </div>
             <div class="ms-acct__right">
@@ -68,7 +68,7 @@
               <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Cash ISA' }}</span>
               <span class="ms-acct__meta">
                 <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
-                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+                <span v-if="paysInterest(acct)" class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
               </span>
             </div>
             <div class="ms-acct__right">
@@ -97,7 +97,7 @@
             <div class="ms-acct__main">
               <span class="ms-acct__provider">{{ acct.beneficiary_name ? acct.beneficiary_name + ' · ' : '' }}{{ acct.provider || acct.institution || 'Junior ISA' }}</span>
               <span class="ms-acct__meta">
-                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+                <span v-if="paysInterest(acct)" class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
               </span>
             </div>
             <div class="ms-acct__right">
@@ -190,6 +190,7 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 // (Rule 20). `/m` reaches it by relative path, as the investment, property and
 // savings-account screens already do.
 import { calculateUserShare, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
+import { formatInterestRate, paysInterest } from '../../../js/utils/interestRate.js';
 
 // The one test of a Junior ISA here, as SavingsAccount::isJuniorIsa.
 const isJuniorIsa = (account) => account.account_type === 'junior_isa'
@@ -260,11 +261,10 @@ export default {
   },
   methods: {
     fmt(v) { return formatCurrency(v); },
-    rate(r) {
-      // A rate never given is null: "Not recorded", never 0% (R10).
-      if (r == null || r === '' || isNaN(Number(r))) return 'Not recorded';
-      return `${Number(r).toFixed(2)}%`;
-    },
+    // A rate never given reads "Not recorded", never 0% (R10); Premium Bonds
+    // have no rate line at all (T68). One rule for web and /m.
+    rate: formatInterestRate,
+    paysInterest,
     // The FULL balance on the record — the context line only, never a total.
     balanceOf(a) {
       return a.full_balance ?? a.current_balance ?? 0;

@@ -11,7 +11,7 @@
         >
           <div>
             <p class="text-sm font-medium text-horizon-500">{{ account.institution }}</p>
-            <p class="text-xs text-neutral-500">{{ formatAccountType(account.type) }} &middot; {{ hasInterestRate(account.interest_rate) ? `${formatInterestRate(account.interest_rate)} interest` : 'Interest rate not recorded' }}</p>
+            <p class="text-xs text-neutral-500">{{ formatAccountType(account.type) }}<template v-if="paysInterest(account)"> &middot; {{ hasInterestRate(account.interest_rate) ? `${formatInterestRate(account.interest_rate)} interest` : 'Interest rate not recorded' }}</template></p>
           </div>
           <p class="text-sm font-semibold text-horizon-500">{{ formatCurrency(account.balance) }}</p>
         </div>
@@ -35,7 +35,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { formatInterestRate, hasInterestRate } from '@/utils/interestRate';
+import { formatInterestRate, hasInterestRate, paysInterest } from '@/utils/interestRate';
 
 export default {
   name: 'HolisticSavingsSituation',
@@ -45,6 +45,7 @@ export default {
   methods: {
     formatInterestRate,
     hasInterestRate,
+    paysInterest,
   },
 
   props: {
