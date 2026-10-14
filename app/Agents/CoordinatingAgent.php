@@ -78,6 +78,7 @@ use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
 use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\HouseholdProvisioner;
+use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Payment\SubscriptionStatusService;
@@ -3380,7 +3381,12 @@ class CoordinatingAgent extends BaseAgent
                 'message' => 'Validation failed for savings account.',
             ];
         } catch (TierLimitExceededException $e) {
-            return $this->tierLimitResult($e, $user, "You've reached your plan's limit of {$e->hardLimit} savings accounts. To add more, upgrade your plan.");
+            // A cash or Junior ISA counts with the ISAs (CSJ 2026-09-15): name
+            // the limit actually reached, in the one sentence (T78).
+            return $this->tierLimitResult($e, $user, OnboardingStateMachine::freeLimitSentence([
+                'limit' => $e->hardLimit,
+                'noun' => $e->entityKey === InvestmentAccountStore::ENTITY_KEY ? 'ISAs and investment accounts' : 'bank and savings accounts',
+            ]));
         }
 
         $this->invalidateUserCache($user->id);

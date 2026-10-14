@@ -7898,8 +7898,9 @@ PROMPT;
         // limit in words, before any form (walk 2026-10-11, F9, #3795). A
         // change to a saved record adds nothing, so it still opens.
         if ($recordsFilled === [] && $hasBlank) {
-            $blankName = (string) (($blankFilled ?? $forms[$firstBlank])['schema']['name'] ?? '');
-            $limit = OnboardingStateMachine::freeLimitForForm($user, $blankName);
+            $blankForm = $blankFilled ?? $forms[$firstBlank];
+            $blankName = (string) ($blankForm['schema']['name'] ?? '');
+            $limit = OnboardingStateMachine::freeLimitForForm($user, $blankName, CaptureForms::filledKind((array) $blankForm['schema'], (array) ($blankForm['answers'] ?? [])));
             if ($limit !== null) {
                 $line = OnboardingStateMachine::freeLimitSentence($limit);
                 yield ['type' => 'content', 'text' => $line];
@@ -7966,7 +7967,7 @@ PROMPT;
         // Further records read from the same message open next, filled in;
         // past the Free limit it is said instead (T20).
         $queue = $this->queuedForms($conversation, (string) $form['name']);
-        $limit = $queue === [] ? null : OnboardingStateMachine::freeLimitForForm($user, (string) $form['name']);
+        $limit = $queue === [] ? null : OnboardingStateMachine::freeLimitForForm($user, (string) $form['name'], CaptureForms::filledKind($this->formSchemaFor($user, (string) $form['name']) ?? [], (array) $queue[0]));
         if ($limit !== null) {
             $text .= ' '.OnboardingStateMachine::freeLimitSentence($limit);
         }

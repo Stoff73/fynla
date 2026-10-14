@@ -142,6 +142,25 @@ final class CaptureForms
     public const FILLED_NEXT_PROMPT = "Here's the next one, filled in — check it, add anything missing and save.";
 
     /**
+     * The kind a form's answers fill, when the form has kinds: the first
+     * answered section that is one of them (T78).
+     *
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, mixed>  $answers
+     */
+    public static function filledKind(array $schema, array $answers): ?string
+    {
+        $kinds = array_column((array) ($schema['kinds'] ?? []), 'key');
+        foreach (array_keys($answers) as $section) {
+            if (in_array($section, $kinds, true)) {
+                return (string) $section;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * A Junior ISA typed for a child already on the record takes that child's
      * date of birth from the record instead of asking for it again (T70). The
      * queue of further records is read the same way.
