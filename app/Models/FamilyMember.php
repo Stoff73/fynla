@@ -133,6 +133,29 @@ class FamilyMember extends Model
     ];
 
     /**
+     * The one child of the user's with this first name (and this date of
+     * birth, when one is given), or null when none or more than one matches.
+     * A Junior ISA named for a child already on the record belongs to that
+     * child (T70); a guess between two is never made.
+     */
+    public static function onlyChildNamed(int $userId, string $firstName, ?string $dateOfBirth = null): ?self
+    {
+        $firstName = trim($firstName);
+        if ($firstName === '') {
+            return null;
+        }
+        $matches = self::query()
+            ->where('user_id', $userId)
+            ->where('relationship', 'child')
+            ->whereRaw('LOWER(first_name) = ?', [mb_strtolower($firstName)])
+            ->when($dateOfBirth !== null && $dateOfBirth !== '', fn ($q) => $q->whereDate('date_of_birth', $dateOfBirth))
+            ->limit(2)
+            ->get();
+
+        return $matches->count() === 1 ? $matches->first() : null;
+    }
+
+    /**
      * Resolve a requested relationship into the three things a caller needs: the
      * value the column can hold, the relationship the user actually chose, and
      * the note that gives a human reading the record the same context.

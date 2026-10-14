@@ -10,6 +10,7 @@ use App\Events\Savings\SavingsAccountRestored;
 use App\Events\Savings\SavingsAccountUpdated;
 use App\Models\AuditLog;
 use App\Models\Estate\Trust;
+use App\Models\FamilyMember;
 use App\Models\SavingsAccount;
 use App\Models\SavingsAccountValueSnapshot;
 use App\Models\User;
@@ -205,7 +206,7 @@ class SavingsStore
             );
         }
 
-        $attributes = array_merge($data, ['user_id' => $user->id]);
+        $attributes = array_merge($this->withKnownChild($data, $user), ['user_id' => $user->id]);
 
         return AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($attributes, $user, $source) {
             $account = SavingsAccount::create($attributes);
@@ -350,6 +351,21 @@ class SavingsStore
                 'ingest_source' => $source->value,
             ]);
         }
+    }
+
+    /**
+     * A Junior ISA named for a child already on the record is that child's
+     * (T70): Fyn's form names the child, the web form picks one. Linked only
+     * when exactly one child matches; the name and date given stay as typed.
+     */
+    private function withKnownChild(array $data, User $user): array
+    {
+        if (($data['account_type'] ?? null) !== 'junior_isa' || ! empty($data['beneficiary_id'])) {
+            return $data;
+        }
+        $child = FamilyMember::onlyChildNamed($user->id, (string) ($data['beneficiary_name'] ?? ''), $data['beneficiary_dob'] ?? null);
+
+        return $child === null ? $data : array_merge($data, ['beneficiary_id' => $child->id]);
     }
 
     private function validateCanonical(array $data): void
