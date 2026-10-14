@@ -626,7 +626,9 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - **T82 ticked to Dev walk (2026-10-14):** the Premium Bonds maximum holds in the store for every surface and in the waterfall (#1332); a refused change tells the user the store's reason (#1333). Walked /m. The waterfall step on screen: I COULD NOT TEST THIS.
           - **T26 ticked to Dev walk (2026-10-14):** workplace pensions saved through Fyn get `scheme_type` "workplace" (#1335); the retirement plan now reads 3% + 3% where Priya was told 0.0%. Walked /m (Robin 509).
             - DECISION (CSJ): at the next release, run `php artisan pensions:backfill-dc-scheme-type --dry-run`, then without `--dry-run`, to give production's untyped pensions their type (9 of 25 occupational, Priya's 529 among them)? A database change.
-          - Next: T27 (joint records added after onboarding link to the partner).
+          - **T27 parts 1 and 2 walked (2026-10-14):** a joint record added after onboarding links to the partner; `couples:link-joint-records` for the ones saved before (#1337). Walked web (Rory 504) and /m (Pat 506). Also fixed a store-boundary red I caused in #1332.
+            - DECISION (CSJ): at the next release, run `php artisan couples:link-joint-records --dry-run`, then without (production property 533 among them)? A database change.
+          - Next: T27 part 3 (the partner's figures transferred for the spouse's walk to confirm, ruling 50).
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
