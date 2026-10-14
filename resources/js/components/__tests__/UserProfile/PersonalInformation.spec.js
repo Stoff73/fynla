@@ -129,6 +129,21 @@ describe('PersonalInformation.vue', () => {
     expect(wrapper.vm.isEditing).toBe(false);
   });
 
+  // T74 (T67 walk, 2026-10-13): the web form had no civil partnership, which
+  // /m and the enum offer and Marriage Allowance turns on (ITA 2007 s55B), and
+  // the line printed the raw value through CSS capitalize ("Civil_partnership").
+  it('offers a civil partnership and shows it by its name', async () => {
+    await enterEditMode();
+    const options = wrapper.findAll('#marital_status option').map((o) => [o.attributes('value'), o.text()]);
+    expect(options).toContainEqual(['civil_partnership', 'Civil partnership']);
+
+    wrapper.vm.isEditing = false;
+    wrapper.vm.form.marital_status = 'civil_partnership';
+    await flushPromises();
+    expect(wrapper.text()).toContain('Civil partnership');
+    expect(wrapper.text()).not.toContain('civil_partnership');
+  });
+
   it('displays the current personal, address, and occupation data', () => {
     const text = wrapper.text();
     expect(text).toContain('John Doe');

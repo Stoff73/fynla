@@ -1,6 +1,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { formatMaritalStatus } from '@/constants/profileOptions';
 
 /**
  * Read-only summary of captured personal / family / employment /
@@ -74,14 +75,7 @@ export default {
             }
         },
         labelMaritalStatus(value) {
-            const map = {
-                single: 'Single',
-                married: 'Married',
-                civil_partnership: 'Civil partnership',
-                divorced: 'Divorced',
-                widowed: 'Widowed',
-            };
-            return map[value] || value;
+            return formatMaritalStatus(value);
         },
         labelEmploymentStatus(value) {
             const map = {
