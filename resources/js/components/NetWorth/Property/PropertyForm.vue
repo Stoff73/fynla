@@ -1888,7 +1888,9 @@ export default {
 
     validateForm() {
       // Basic validation
-      if (!this.form.property_type || !this.form.address_line_1 || !this.form.city || !this.form.postcode) {
+      // The postcode is optional: Fyn saves a property with its town alone (T24,
+      // T62), and the store allows none, so it must not block a save (T77).
+      if (!this.form.property_type || !this.form.address_line_1 || !this.form.city) {
         this.error = 'Please fill in all required fields in Basic Information (Step 1).';
         this.currentStep = 1; // Go to step with error
         return false;

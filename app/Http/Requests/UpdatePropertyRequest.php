@@ -62,7 +62,8 @@ class UpdatePropertyRequest extends FormRequest
             'address_line_2' => ['sometimes', 'nullable', 'string', 'max:255'],
             'city' => ['sometimes', 'string', 'max:255'],
             'county' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'postcode' => ['sometimes', 'string', 'max:20'],
+            // A postcode never given stays null (T77), as the store allows.
+            'postcode' => ['sometimes', 'nullable', 'string', 'max:20'],
 
             // Financial
             'purchase_date' => ['sometimes', 'nullable', 'date'],

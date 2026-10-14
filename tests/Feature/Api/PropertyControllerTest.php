@@ -170,6 +170,26 @@ class PropertyControllerTest extends TestCase
         ]);
     }
 
+    /**
+     * T77 (T69 walk, Robin 509): Fyn saves a property with a town and no
+     * postcode (T24, T62); the web edit could not be saved without one, and a
+     * postcode sent empty was refused.
+     */
+    public function test_can_update_property_with_no_postcode(): void
+    {
+        $property = Property::factory()->create([
+            'user_id' => $this->user->id,
+            'city' => 'Woking',
+            'postcode' => null,
+        ]);
+
+        $this->withToken($this->token)
+            ->putJson("/api/properties/{$property->id}", ['city' => 'Woking', 'postcode' => '', 'tenant_name' => 'Sam Lee'])
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('properties', ['id' => $property->id, 'postcode' => null, 'tenant_name' => 'Sam Lee']);
+    }
+
     public function test_cannot_update_other_user_property(): void
     {
         $otherUser = User::factory()->create();
