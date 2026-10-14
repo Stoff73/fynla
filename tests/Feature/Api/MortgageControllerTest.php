@@ -167,6 +167,26 @@ class MortgageControllerTest extends TestCase
         ]);
     }
 
+    /**
+     * T77 (T69 walk, Robin 509): a mortgage Fyn saved with no payment could not
+     * be edited on the web, and a payment sent as null was refused.
+     */
+    public function test_can_update_mortgage_with_no_monthly_payment(): void
+    {
+        $mortgage = Mortgage::factory()->create([
+            'property_id' => $this->property->id,
+            'user_id' => $this->user->id,
+            'outstanding_balance' => 180000,
+            'monthly_payment' => null,
+        ]);
+
+        $this->withToken($this->token)
+            ->putJson("/api/mortgages/{$mortgage->id}", ['outstanding_balance' => 175000, 'monthly_payment' => null])
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('mortgages', ['id' => $mortgage->id, 'outstanding_balance' => 175000, 'monthly_payment' => null]);
+    }
+
     public function test_cannot_update_other_user_mortgage(): void
     {
         $otherUser = User::factory()->create();

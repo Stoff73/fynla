@@ -61,7 +61,8 @@ class UpdateMortgageRequest extends FormRequest
             'variable_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
 
             // Payment
-            'monthly_payment' => ['sometimes', 'numeric', 'min:0'],
+            // A payment never given stays null (T25, T77), as the store allows.
+            'monthly_payment' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'monthly_interest_portion' => ['sometimes', 'nullable', 'numeric', 'min:0'],
 
             // Dates
