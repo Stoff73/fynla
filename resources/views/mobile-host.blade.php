@@ -30,7 +30,22 @@
         $framePath = (is_string($to) && \App\Http\Middleware\RedirectPhoneToMobile::isFramableTo($to)) ? $to : '/';
     @endphp
     <div class="m-frame-wrap">
-        <iframe src="{{ url($framePath) }}" title="Fynla" allow="clipboard-read; clipboard-write"></iframe>
+        <iframe id="m-frame" src="{{ url($framePath) }}" title="Fynla" allow="clipboard-read; clipboard-write"></iframe>
     </div>
+    @if ($framePath === '/')
+    {{-- T76: someone still signed in to /m (its token in localStorage) opens on
+         their own app, not the public homepage: the session persists while
+         signed in. Without the token, or with storage blocked, the funnel as
+         before; a campaign ?to= link always keeps its funnel. --}}
+    <script>
+        (function () {
+            try {
+                if (window.localStorage.getItem('m_scaffold_token')) {
+                    document.getElementById('m-frame').src = @json(url('/m/app'));
+                }
+            } catch (e) { /* storage blocked: the funnel */ }
+        })();
+    </script>
+    @endif
 </body>
 </html>

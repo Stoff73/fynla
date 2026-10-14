@@ -16,6 +16,20 @@ it('serves the mobile host page with a same-origin iframe', function () {
     $res->assertSee('src="'.url('/').'"', false);
 });
 
+// T76 (csjones, 2026-10-13): a user signed in to /m only (the /m token in
+// localStorage, no web session in the tab) who opened /m again got the public
+// homepage. The session persists while signed in (CSJ 2026-06-17), so the
+// host opens the frame on /m/app when the token is there.
+it('opens the frame on the mobile app when the browser holds a /m token', function () {
+    $res = get('/m');
+    $res->assertSee("localStorage.getItem('m_scaffold_token')", false);
+    $res->assertSee(json_encode(url('/m/app')), false);
+});
+
+it('keeps a campaign deep link on its funnel even when signed in', function () {
+    get('/m?to=/savetax')->assertDontSee("localStorage.getItem('m_scaffold_token')", false);
+});
+
 it('serves the mobile app shell at /m/app and nested paths', function () {
     get('/m/app')->assertOk()->assertSee('id="m-app"', false);
     get('/m/app/login')->assertOk()->assertSee('id="m-app"', false);
