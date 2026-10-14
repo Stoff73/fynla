@@ -29,6 +29,17 @@ describe('PropertyDetailInline — what was not given (T25)', () => {
   });
 
   // T61 (release ac prod walk): the same card read "Full Annual Payment: £0".
+  // T81 (T77 walk, Robin 509): a postcode and purchase date never given were
+  // blank lines beside "Purchase Price: Not recorded".
+  it('names a postcode and purchase date never given as Not recorded', () => {
+    const { formatPostcode, formatPurchaseDate, formatDate } = PropertyDetailInline.methods;
+    const withProperty = (property) => ({ ...ctx, property, formatDate });
+    expect(formatPostcode.call(withProperty({ postcode: null }))).toBe('Not recorded');
+    expect(formatPostcode.call(withProperty({ postcode: 'GU21 6AA' }))).toBe('GU21 6AA');
+    expect(formatPurchaseDate.call(withProperty({ purchase_date: null }))).toBe('Not recorded');
+    expect(formatPurchaseDate.call(withProperty({ purchase_date: '2019-04-01' }))).toBe('01/04/2019');
+  });
+
   it('names a missing annual payment and payment share as Not recorded', () => {
     const { formatMortgageAnnualPayment, formatMortgagePaymentShare } = PropertyDetailInline.methods;
     const withShare = (share) => ({ ...ctx, mortgageShare: () => share });

@@ -109,7 +109,7 @@
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-neutral-500">Postcode:</dt>
-                    <dd class="text-sm font-medium text-horizon-500">{{ property.postcode }}</dd>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatPostcode() }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-neutral-500">Property Type:</dt>
@@ -117,7 +117,7 @@
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-neutral-500">Purchase Date:</dt>
-                    <dd class="text-sm font-medium text-horizon-500">{{ formatDate(property.purchase_date) }}</dd>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatPurchaseDate() }}</dd>
                   </div>
                   <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-neutral-500">Purchase Price:</dt>
@@ -808,6 +808,16 @@ export default {
     },
 
     // A price never given is null from the server (T63).
+    // A postcode or purchase date never given reads "Not recorded", as the
+    // price beside them does, not a blank line (T81).
+    formatPostcode() {
+      return this.property?.postcode || 'Not recorded';
+    },
+
+    formatPurchaseDate() {
+      return this.formatDate(this.property?.purchase_date) || 'Not recorded';
+    },
+
     formatPurchasePrice() {
       const price = this.property?.purchase_price;
       return price == null ? 'Not recorded' : this.formatCurrency(price);
