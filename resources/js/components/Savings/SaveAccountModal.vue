@@ -233,7 +233,11 @@
                 <div>
                   <p class="text-sm font-medium text-violet-900">ISA Subscription</p>
                   <p class="text-xs text-violet-700 mt-1">
-                    All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your £{{ isJuniorISA ? '9,000' : '20,000' }} annual allowance ({{ currentTaxYear }})
+                    <!-- A Junior ISA's limit is the child's, across the child's cash and
+                         stocks and shares Junior ISAs (GOV.UK, Junior ISAs); figures from the
+                         tax configuration (Rule 2). T71. -->
+                    <template v-if="isJuniorISA">All payments into the child's Junior ISAs (cash and stocks and shares) count towards the child's {{ formatCurrency(juniorIsaAllowance) }} Junior ISA allowance ({{ currentTaxYear }})</template>
+                    <template v-else>All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your {{ formatCurrency(isaAnnualAllowance) }} annual allowance ({{ currentTaxYear }})</template>
                   </p>
                 </div>
               </div>
@@ -261,10 +265,6 @@
                 <p class="text-xs text-neutral-500 mt-1">
                   Junior ISAs are for children under 18. The child owns the account but cannot access it until age 18.
                 </p>
-                <!-- Age 16-17 guidance -->
-                <div v-if="isBeneficiary16Or17" class="mt-2 p-2 bg-violet-50 border border-violet-200 rounded text-xs text-violet-800">
-                  <strong>Note:</strong> At 16-17, they can also open their own adult Cash ISA and Stocks & Shares ISA (£20,000 total) which they can access anytime. Combined with the Junior ISA (£9,000), they could save up to £29,000 per year.
-                </div>
               </div>
 
               <!-- Custom Beneficiary Details (if "Other" selected) -->
@@ -290,11 +290,6 @@
                     :max="maxBeneficiaryDob"
                     class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
-                  <p class="text-xs text-neutral-500 mt-1">Required to show correct ISA guidance</p>
-                </div>
-                <!-- Age 16-17 guidance for "Other" beneficiary -->
-                <div v-if="isOtherBeneficiary16Or17" class="p-2 bg-violet-50 border border-violet-200 rounded text-xs text-violet-800">
-                  <strong>Note:</strong> At 16-17, they can also open their own adult Cash ISA and Stocks & Shares ISA (£20,000 total) which they can access anytime. Combined with the Junior ISA (£9,000), they could save up to £29,000 per year.
                 </div>
               </div>
 
@@ -689,39 +684,9 @@ export default {
       return this.$store.getters['userProfile/juniorIsaEligibleChildren'] || [];
     },
 
-    selectedBeneficiaryAge() {
-      if (!this.formData.beneficiary_id || this.formData.beneficiary_id === 'other') {
-        return null;
-      }
-      const child = this.eligibleChildren.find(c => c.id === parseInt(this.formData.beneficiary_id));
-      if (!child || !child.date_of_birth) {
-        return null;
-      }
-      const dob = new Date(child.date_of_birth);
-      const today = new Date();
-      return Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
-    },
-
-    isBeneficiary16Or17() {
-      return this.selectedBeneficiaryAge !== null && this.selectedBeneficiaryAge >= 16 && this.selectedBeneficiaryAge <= 17;
-    },
-
     maxBeneficiaryDob() {
       // Child must be under 18, so max DOB is today
       return new Date().toISOString().split('T')[0];
-    },
-
-    otherBeneficiaryAge() {
-      if (!this.formData.beneficiary_dob) {
-        return null;
-      }
-      const dob = new Date(this.formData.beneficiary_dob);
-      const today = new Date();
-      return Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
-    },
-
-    isOtherBeneficiary16Or17() {
-      return this.otherBeneficiaryAge !== null && this.otherBeneficiaryAge >= 16 && this.otherBeneficiaryAge <= 17;
     },
 
     // ISA Allowance Tracking computed properties
@@ -1048,7 +1013,7 @@ export default {
       if ((this.formData.is_isa || this.isISAProductType) && !this.isJuniorISA) {
         if (this.totalWithPlanned > this.isaAnnualAllowance) {
           const excess = this.totalWithPlanned - this.isaAnnualAllowance;
-          this.isaAllowanceError = `Your planned ISA contributions would exceed the £20,000 allowance by ${this.formatCurrency(excess)}. Consider reducing your regular contributions or lump sum.`;
+          this.isaAllowanceError = `Your planned ISA contributions would exceed the ${this.formatCurrency(this.isaAnnualAllowance)} allowance by ${this.formatCurrency(excess)}. Consider reducing your regular contributions or lump sum.`;
           this.submitting = false;
           return;
         }

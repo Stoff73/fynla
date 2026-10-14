@@ -1,0 +1,56 @@
+import { describe, it, expect, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
+import { createStore } from 'vuex';
+import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
+
+/**
+ * T71 (T65 walk, 2026-10-13): the Junior ISA panel said "All ISA contributions
+ * (Cash ISA + Stocks & Shares ISA) count towards your £9,000 annual allowance".
+ * The £9,000 is the CHILD's Junior ISA limit, across the child's cash and
+ * stocks and shares Junior ISAs (GOV.UK, Junior ISAs: "the total amount paid
+ * in cannot go over £9,000 in the 2026 to 2027 tax year"), and every figure
+ * comes from the tax configuration (Rule 2). The 16-17 note offered adult
+ * ISAs that need the holder to be 18 (GOV.UK: "You must be 18 or over to open
+ * an ISA"), so it is gone.
+ */
+function mountModal(accountType, children = []) {
+  const store = createStore({
+    modules: {
+      taxConfig: {
+        namespaced: true,
+        // Deliberately not the statutory figures, to prove they are read.
+        getters: { isaAnnualAllowance: () => 21000, juniorIsaAllowance: () => 9100, lifetimeIsaAllowance: () => 4000 },
+      },
+      userProfile: {
+        namespaced: true,
+        getters: { spouse: () => null, juniorIsaEligibleChildren: () => children },
+        actions: { fetchFamilyMembers: vi.fn() },
+      },
+      lifeStage: { namespaced: true, getters: { formFields: () => () => ({}) } },
+      aiFormFill: { namespaced: true, actions: { beginFieldSequence: vi.fn(), cancelFill: vi.fn() } },
+    },
+  });
+  return mount(SaveAccountModal, {
+    props: { defaultAccountType: accountType },
+    global: { plugins: [store], stubs: { CountrySelector: true } },
+  });
+}
+
+describe('SaveAccountModal — the ISA allowance line', () => {
+  it('names the child\'s Junior ISA allowance from the configuration', async () => {
+    const wrapper = mountModal('junior_isa', [{ id: 9, first_name: 'Maya', last_name: 'Walk', relationship: 'child', date_of_birth: '2009-01-01' }]);
+    await flushPromises();
+    const text = wrapper.text();
+
+    expect(text).toContain("All payments into the child's Junior ISAs (cash and stocks and shares) count towards the child's £9,100 Junior ISA allowance");
+    expect(text).not.toContain('your £9,000');
+    expect(text).not.toContain('At 16-17');
+  });
+
+  it('names the adult ISA allowance from the configuration', async () => {
+    const wrapper = mountModal('cash_isa');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('count towards your £21,000 annual allowance');
+  });
+});
