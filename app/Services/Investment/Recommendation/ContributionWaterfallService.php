@@ -436,16 +436,18 @@ class ContributionWaterfallService
             return $this->skipStep($stepName, $remaining <= 0 ? 'No surplus remaining after prior steps.' : 'Premium Bonds wrapper blocked.');
         }
 
-        $maxHolding = (float) ($waterfallConfig['premium_bonds_max'] ?? 50000);
-        $minAge = (int) ($waterfallConfig['premium_bonds_min_age'] ?? 16);
+        // One home for both figures: the savings configuration (T82; NS&I: "You
+        // are only able to hold up to £50,000", "Anyone aged 16 or over can buy").
+        $maxHolding = (float) $this->taxConfig->get('savings.premium_bonds_max_holding', 0);
+        $minAge = (int) $this->taxConfig->get('savings.premium_bonds_min_age_self', 0);
         $age = $context['personal']['age'] ?? null;
 
         if ($age !== null && $age < $minAge) {
             return $this->skipStep($stepName, sprintf('Age %d — must be at least %d to hold Premium Bonds.', $age, $minAge));
         }
 
-        // Estimate current Premium Bonds holding (not tracked individually — allocate conservatively)
-        $currentHolding = 0; // Would need to be populated from savings accounts if tracked
+        // The bonds already held (UserContextBuilder), so the headroom is real (T82).
+        $currentHolding = (float) ($context['premium_bonds_holding'] ?? 0);
         $headroom = max(0, $maxHolding - $currentHolding);
 
         if ($headroom <= 0) {

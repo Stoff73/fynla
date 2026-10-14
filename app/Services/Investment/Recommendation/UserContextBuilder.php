@@ -9,6 +9,7 @@ use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Savings\ISATracker;
@@ -79,6 +80,7 @@ class UserContextBuilder
         // Emergency fund
         $savingsAccounts = app(SavingsStore::class)->forUser($user);
         $totalSavings = $savingsAccounts->sum('current_balance');
+        $premiumBondsHolding = $this->premiumBondsHolding($user);
         $emergencyTarget = $monthlyExpenditure * 6;
         $emergencyShortfall = max(0, $emergencyTarget - $totalSavings);
         $emergencyRunway = $monthlyExpenditure > 0 ? $totalSavings / $monthlyExpenditure : 0;
@@ -145,6 +147,7 @@ class UserContextBuilder
                 'is_self_assessed' => $riskProfile?->is_self_assessed ?? false,
             ],
             'debt' => $debts,
+            'premium_bonds_holding' => $premiumBondsHolding,
             'emergency_fund' => [
                 'total_savings' => round((float) $totalSavings, 2),
                 'runway_months' => round($emergencyRunway, 1),
@@ -233,6 +236,8 @@ class UserContextBuilder
         $cgtAnnualExempt = $cgtConfig['annual_exempt_amount'] ?? TaxDefaults::CGT_ANNUAL_EXEMPT;
         $psa = $this->taxConfig->getPersonalSavingsAllowance($taxBand);
 
+        $premiumBondsHolding = $this->premiumBondsHolding($user);
+
         // Emergency fund from savings analysis
         $emergencyFund = $savingsAnalysis['emergency_fund'] ?? [];
         $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;
@@ -299,6 +304,7 @@ class UserContextBuilder
                 'is_self_assessed' => $riskProfile?->is_self_assessed ?? false,
             ],
             'debt' => $debts,
+            'premium_bonds_holding' => $premiumBondsHolding,
             'emergency_fund' => [
                 'total_savings' => round((float) $totalSavings, 2),
                 'runway_months' => round((float) $emergencyRunway, 1),
@@ -353,6 +359,14 @@ class UserContextBuilder
     /**
      * Determine the user's income tax band from gross income.
      */
+    /** The Premium Bonds the user holds, so the waterfall counts them (T82). */
+    private function premiumBondsHolding(User $user): float
+    {
+        return round((float) SavingsAccount::where('user_id', $user->id)
+            ->where('account_type', 'premium_bonds')
+            ->sum('current_balance'), 2);
+    }
+
     private function determineTaxBand(float $grossIncome): string
     {
         $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
