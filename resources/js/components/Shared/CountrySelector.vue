@@ -359,6 +359,10 @@ export default {
 
   methods: {
     handleInput() {
+      // Typing always shows the matches: the field can keep focus with the
+      // list closed (after a Save the browser refocuses it), and focus alone
+      // would never reopen it (T73).
+      this.showDropdown = true;
       // Clear selection if user is typing
       if (this.searchQuery !== this.modelValue) {
         this.$emit('update:modelValue', '');
