@@ -619,7 +619,9 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - **T79 ticked to Dev walk (2026-10-14):** the web Premium Bonds limit comes from the tax configuration (#1326).
           - Checked, not a defect: the seeded FSCS £85,000 is the 2025/26 base; 2026/27 holds £120,000 (FSCS: "On 1 December 2025 the FSCS deposit protection limit rose to £120,000").
           - Found, added as T82: the Premium Bonds maximum is checked only on the web form; a second key with a typed-in fallback.
-          - Next: T80, T81, T82, then T26.
+          - **T80 ticked to Dev walk (2026-10-14):** a rate never given on the web form is saved as none and reads "Not recorded" (#1328).
+            - DECISION (CSJ): accounts saved through the web form before #1328 hold 0% where no rate was given (csjones 927, 928; production may hold others). Set them to "not recorded"? A database change.
+          - Next: T81, T82, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
