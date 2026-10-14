@@ -19,6 +19,8 @@ use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Recalc\SavingsAccountDerivedColumnCalculator;
 use App\Services\Stores\Snapshots\SnapshotPolicies;
+use App\Services\TaxConfigService;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -192,6 +194,7 @@ class SavingsStore
         $data = $this->withIsaType($data);
         $this->validateCanonical($data);
         $this->validateOwnershipLinks($data, $user);
+        $this->validatePremiumBondsHolding($data, $user);
 
         // A cash ISA is capped with the investments, a bank account with the
         // bank accounts (CSJ 2026-09-15) — one rule for the form and Fyn.
@@ -235,6 +238,7 @@ class SavingsStore
             $account->only(['account_type', 'is_isa', 'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id']),
             $data
         ), $user);
+        $this->validatePremiumBondsHolding(array_merge($account->only(['account_type', 'current_balance']), $data), $user, $account->id);
 
         return AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($account, $data, $user, $source) {
             // fill before getDirty so the dirty diff is captured correctly
@@ -366,6 +370,32 @@ class SavingsStore
         $child = FamilyMember::onlyChildNamed($user->id, (string) ($data['beneficiary_name'] ?? ''), $data['beneficiary_dob'] ?? null);
 
         return $child === null ? $data : array_merge($data, ['beneficiary_id' => $child->id]);
+    }
+
+    /**
+     * The Premium Bonds a person holds, across all their bonds, cannot pass
+     * the configured maximum (savings.premium_bonds_max_holding; NS&I: "You
+     * are only able to hold up to £50,000 in Premium Bonds"). Checked here so
+     * the web form, /m and Fyn meet one rule (T82).
+     */
+    private function validatePremiumBondsHolding(array $data, User $user, ?int $exceptId = null): void
+    {
+        if (($data['account_type'] ?? null) !== 'premium_bonds') {
+            return;
+        }
+        $max = (float) app(TaxConfigService::class)->get('savings.premium_bonds_max_holding', 0);
+        if ($max <= 0) {
+            return;
+        }
+        $held = (float) SavingsAccount::where('user_id', $user->id)
+            ->where('account_type', 'premium_bonds')
+            ->when($exceptId !== null, fn ($q) => $q->whereKeyNot($exceptId))
+            ->sum('current_balance');
+        if ($held + (float) ($data['current_balance'] ?? 0) > $max) {
+            throw new StoreValidationException([
+                'current_balance' => ['Premium Bonds have a maximum holding of '.Money::exact($max).' per person.'],
+            ]);
+        }
     }
 
     private function validateCanonical(array $data): void
