@@ -624,7 +624,9 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - **T81 ticked to Dev walk (2026-10-14):** a postcode or purchase date never given reads "Not recorded" (#1330).
             - DECISION (CSJ): a property saved through Fyn holds its type as the first address line ("Buy to let"), so the web page reads "Address: Buy to let, Woking". T25 kept it on purpose, because Fyn and the edit chooser name a property by it. Keep it, or store no address and name the property some other way?
           - **T82 ticked to Dev walk (2026-10-14):** the Premium Bonds maximum holds in the store for every surface and in the waterfall (#1332); a refused change tells the user the store's reason (#1333). Walked /m. The waterfall step on screen: I COULD NOT TEST THIS.
-          - Next: T26 (workplace pensions get their scheme type; production rows corrected, N2).
+          - **T26 ticked to Dev walk (2026-10-14):** workplace pensions saved through Fyn get `scheme_type` "workplace" (#1335); the retirement plan now reads 3% + 3% where Priya was told 0.0%. Walked /m (Robin 509).
+            - DECISION (CSJ): at the next release, run `php artisan pensions:backfill-dc-scheme-type --dry-run`, then without `--dry-run`, to give production's untyped pensions their type (9 of 25 occupational, Priya's 529 among them)? A database change.
+          - Next: T27 (joint records added after onboarding link to the partner).
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
