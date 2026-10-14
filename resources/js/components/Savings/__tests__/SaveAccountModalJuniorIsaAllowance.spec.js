@@ -19,7 +19,7 @@ function mountModal(accountType, children = []) {
       taxConfig: {
         namespaced: true,
         // Deliberately not the statutory figures, to prove they are read.
-        getters: { isaAnnualAllowance: () => 21000, juniorIsaAllowance: () => 9100, lifetimeIsaAllowance: () => 4000 },
+        getters: { isaAnnualAllowance: () => 21000, juniorIsaAllowance: () => 9100, lifetimeIsaAllowance: () => 4000, premiumBondsMaxHolding: () => 40000 },
       },
       userProfile: {
         namespaced: true,
@@ -52,5 +52,19 @@ describe('SaveAccountModal — the ISA allowance line', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('count towards your £21,000 annual allowance');
+  });
+});
+
+// T79: the Premium Bonds limit was a typed-in £50,000 (Rule 2).
+describe('SaveAccountModal — the Premium Bonds limit', () => {
+  it('refuses a holding over the configured maximum, naming it', async () => {
+    const wrapper = mountModal('premium_bonds');
+    await flushPromises();
+    wrapper.vm.formData.institution = 'NS&I';
+    wrapper.vm.formData.current_balance = 45000;
+    await wrapper.vm.handleSubmit();
+
+    expect(wrapper.vm.isaAllowanceError).toBe('Premium Bonds have a maximum holding of £40,000 per person. You have entered £45,000.');
+    expect(wrapper.emitted('save')).toBeUndefined();
   });
 });

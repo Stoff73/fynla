@@ -642,7 +642,7 @@ export default {
 
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
-    ...mapGetters('taxConfig', ['isaAnnualAllowance', 'juniorIsaAllowance']),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance', 'juniorIsaAllowance', 'premiumBondsMaxHolding']),
 
     stageFormConfig() {
       return this.$store.getters['lifeStage/formFields']('savings') || {};
@@ -1019,11 +1019,12 @@ export default {
         }
       }
 
-      // Validate Premium Bonds maximum £50,000 per person
-      if (this.formData.account_type === 'premium_bonds') {
+      // Premium Bonds maximum holding per person, from the tax configuration
+      // (Rule 2; NS&I: "You are only able to hold up to £50,000"). T79.
+      if (this.formData.account_type === 'premium_bonds' && this.premiumBondsMaxHolding) {
         const balance = parseFloat(this.formData.current_balance) || 0;
-        if (balance > 50000) {
-          this.isaAllowanceError = `Premium Bonds have a maximum holding of £50,000 per person. You have entered ${this.formatCurrency(balance)}.`;
+        if (balance > this.premiumBondsMaxHolding) {
+          this.isaAllowanceError = `Premium Bonds have a maximum holding of ${this.formatCurrency(this.premiumBondsMaxHolding)} per person. You have entered ${this.formatCurrency(balance)}.`;
           this.submitting = false;
           return;
         }

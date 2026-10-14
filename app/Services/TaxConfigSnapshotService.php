@@ -58,6 +58,12 @@ class TaxConfigSnapshotService
                 'junior_isa_allowance' => (int) $this->taxConfig->get('isa.junior_isa.annual_allowance', 0),
             ],
 
+            // T79 — the web savings form typed in the £50,000 Premium Bonds limit
+            // beside this configured one (Rule 2).
+            'savings' => [
+                'premium_bonds_max_holding' => (int) $this->taxConfig->get('savings.premium_bonds_max_holding', 0),
+            ],
+
             'pension' => [
                 'annual_allowance' => (int) $this->taxConfig->get('pension.annual_allowance', 0),
                 'money_purchase_annual_allowance' => (int) $this->taxConfig->get('pension.money_purchase_annual_allowance', 0),
