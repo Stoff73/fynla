@@ -9,7 +9,6 @@ use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Savings\ISATracker;
@@ -362,7 +361,8 @@ class UserContextBuilder
     /** The Premium Bonds the user holds, so the waterfall counts them (T82). */
     private function premiumBondsHolding(User $user): float
     {
-        return round((float) SavingsAccount::where('user_id', $user->id)
+        return round((float) app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('account_type', 'premium_bonds')
             ->sum('current_balance'), 2);
     }
