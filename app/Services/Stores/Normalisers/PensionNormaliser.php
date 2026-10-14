@@ -86,12 +86,30 @@ class PensionNormaliser
         'platform_fee_type',
     ];
 
+    /**
+     * The `dc_pensions.scheme_type` for a pension type: the web form's rule
+     * (DCPensionForm.vue handlePensionTypeChange), in one place for every
+     * path (T26). A stakeholder pension is a regulated personal pension.
+     */
+    public static function dcSchemeTypeFor(string $pensionType): ?string
+    {
+        return match ($pensionType) {
+            'occupational' => 'workplace',
+            'stakeholder', 'personal' => 'personal',
+            'sipp' => 'sipp',
+            default => null,
+        };
+    }
+
     public function fromFormDc(array $request): array
     {
         $data = $request;
         $data['type'] = 'dc';
         $data['pension_type'] = $data['pension_type'] ?? 'occupational';
         $data['provider'] = $data['provider'] ?? ($data['scheme_name'] ?? null);
+        if (($data['scheme_type'] ?? '') === '' && ($schemeType = self::dcSchemeTypeFor((string) $data['pension_type'])) !== null) {
+            $data['scheme_type'] = $schemeType;
+        }
 
         // `has_custom_risk` is the flag every reader of the per-pension risk
         // override gates on — RetirementController:865, PensionProjector:291 and
@@ -209,6 +227,9 @@ class PensionNormaliser
             'type' => 'dc',
             'scheme_name' => $toolParams['scheme_name'],
             'pension_type' => $pensionType,
+            // T26: the column the employer-match, auto-enrolment and salary-
+            // sacrifice checks read; it was left NULL for every Fyn pension.
+            'scheme_type' => self::dcSchemeTypeFor($pensionType),
             'provider' => ! empty($toolParams['provider']) ? $toolParams['provider'] : $toolParams['scheme_name'],
         ];
 
@@ -273,6 +294,7 @@ class PensionNormaliser
             'provider' => $extraction['provider'] ?? ($extraction['scheme_name'] ?? null),
             'current_fund_value' => (float) ($extraction['current_fund_value'] ?? 0),
         ];
+        $canonical['scheme_type'] = self::dcSchemeTypeFor((string) $canonical['pension_type']);
 
         foreach (['annual_salary', 'employee_contribution_percent', 'employer_contribution_percent', 'monthly_contribution_amount', 'retirement_age', 'member_number', 'investment_strategy', 'platform_fee_percent'] as $optional) {
             if (array_key_exists($optional, $extraction)) {

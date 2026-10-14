@@ -46,6 +46,11 @@ $pensionConsumers = [
     // forceFill/saveQuietly the derived columns only — a migration-style
     // backfill (spec §14.2 console-command category).
     'App\Console\Commands\BackfillPensionDerivedColumns',
+    // T26: one-off backfill of dc_pensions.scheme_type where it is NULL, from
+    // the pension type by PensionNormaliser::dcSchemeTypeFor. Reads DCPension
+    // and forceFills that one column — the same migration-style console
+    // category as the backfill above.
+    'App\Console\Commands\BackfillDcPensionSchemeType',
 
     // ---- Spec §14.2 permanent allowlist ----
     // Observers (recalc / risk side effects), factories, domain events,
