@@ -616,7 +616,10 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - **T76 ticked to Dev walk (2026-10-14):** reopening /m while signed in to /m opens the mobile app, not the homepage (#1321). Walked /m, signed in and signed out.
           - **T77 ticked to Dev walk (2026-10-14):** the web property form saves a mortgage with no payment (#1323) and a property with no postcode (#1324). Walked web (Robin 509).
           - Found, added as T81 (check first): Fyn's property name held as the first address line; blank Postcode and Purchase Date lines.
-          - Next: T79, T80, T81, then T26.
+          - **T79 ticked to Dev walk (2026-10-14):** the web Premium Bonds limit comes from the tax configuration (#1326).
+          - Checked, not a defect: the seeded FSCS £85,000 is the 2025/26 base; 2026/27 holds £120,000 (FSCS: "On 1 December 2025 the FSCS deposit protection limit rose to £120,000").
+          - Found, added as T82: the Premium Bonds maximum is checked only on the web form; a second key with a typed-in fallback.
+          - Next: T80, T81, T82, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
