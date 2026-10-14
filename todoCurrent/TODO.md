@@ -602,7 +602,8 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Found, added as T72 (check first, possible security: /m showed Meera after a sign-in as Tunde), T73 (country of birth search), T74 (web form has no civil partnership), T75 (check first: "Single-person household" for a married user).
           - **T72 ticked to Dev walk (security):** a web sign-in inside /m kept the last user's /m session, so Tunde saw Meera's dashboard. Every new web token now removes the earlier /m token (#1304). Walked /m and web.
           - Found, added as T76: a user signed in on /m only who reopens /m gets the public homepage.
-          - Next: T68, T69 to T71, T73 to T76, then T26.
+          - **T68 ticked to Dev walk (2026-10-14):** Premium Bonds show no interest rate or interest lines on web and /m (one rule, `paysInterest`; #1306, #1307). T58.1's /m tap walked too (Ravi 530).
+          - Next: T69 to T71, T73 to T76, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
