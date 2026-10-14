@@ -1791,10 +1791,8 @@ export default {
           this.error = 'Please enter the outstanding balance for the mortgage.';
           return;
         }
-        if (!this.mortgageForm.monthly_payment || this.mortgageForm.monthly_payment <= 0) {
-          this.error = 'Please enter the monthly mortgage payment.';
-          return;
-        }
+        // The monthly payment is optional: Fyn saves a mortgage without one and
+        // it reads "Not recorded" (T25, T64), so the form must not demand it (T77).
       }
 
       if (this.currentStep < this.totalSteps) {
@@ -1960,6 +1958,7 @@ export default {
         if (cleanedMortgage.notes === '') cleanedMortgage.notes = null;
         // Convert empty strings to null for numeric fields
         if (cleanedMortgage.original_loan_amount === '') cleanedMortgage.original_loan_amount = null;
+        if (cleanedMortgage.monthly_payment === '') cleanedMortgage.monthly_payment = null;
         if (cleanedMortgage.interest_rate === '') cleanedMortgage.interest_rate = null;
         if (cleanedMortgage.repayment_percentage === '') cleanedMortgage.repayment_percentage = null;
         if (cleanedMortgage.interest_only_percentage === '') cleanedMortgage.interest_only_percentage = null;
