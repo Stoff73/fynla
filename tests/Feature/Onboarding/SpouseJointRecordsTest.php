@@ -118,13 +118,16 @@ it('does not remember a joint record when the household has no spouse', function
     expect($user->fresh()->onboarding_fyn_context[SpouseJointRecords::CONTEXT_KEY] ?? null)->toBeNull();
 });
 
-it('does not remember a joint record saved after onboarding', function (): void {
+// T27 (Q23, RC8; plan 2026-10-12): remembered after onboarding too. The
+// onboarding-only rule (2026-09-15) left production property 533 joint with
+// no co-owner once the partner was linked.
+it('remembers a joint record saved after onboarding, for the partner\'s link', function (): void {
     $this->seed(TierConfigurationSeeder::class);
     $user = onboardingCoupleUser(['onboarding_completed' => true, 'onboarding_fyn_step' => null]);
 
     saveJointHalifax($user);
 
-    expect($user->fresh()->onboarding_fyn_context[SpouseJointRecords::CONTEXT_KEY] ?? null)->toBeNull();
+    expect($user->fresh()->onboarding_fyn_context[SpouseJointRecords::CONTEXT_KEY] ?? null)->not->toBeNull();
 });
 
 it('treats the model placeholder "0" as no co-owner name in the one shared rule', function (): void {

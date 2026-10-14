@@ -140,6 +140,45 @@ final class SpouseJointRecords
      * Has the household said there is a spouse? The funnel answer, the
      * marital status, an existing spouse row or a linked account all count.
      */
+    /**
+     * Link the joint records a user already holds to their linked spouse:
+     * shared, with no co-owner id, and either no named co-owner, a placeholder
+     * ("my partner") or the spouse's own first name. A record naming someone
+     * else is left alone. For records saved before T27 (RC8). Returns the
+     * records linked, or that would be with $dryRun.
+     *
+     * @return list<array{type: string, id: int}>
+     */
+    public function linkExisting(User $user, bool $dryRun = false): array
+    {
+        $spouseId = $user->spouse_id ? (int) $user->spouse_id : null;
+        if ($spouseId === null) {
+            return [];
+        }
+        $spouseName = $this->spouseFirstName($user);
+        $linked = [];
+        foreach (self::STORES as $type => $storeClass) {
+            foreach (app($storeClass)->forUser($user) as $record) {
+                $name = SharedOwnership::counterpartyName($record->joint_owner_name);
+                $isSpouses = $name === null
+                    || SharedOwnership::isRelationshipPlaceholder($record->joint_owner_name)
+                    || ($spouseName !== null && strcasecmp($name, $spouseName) === 0);
+                if ((int) $record->user_id !== (int) $user->id
+                    || $record->joint_owner_id !== null
+                    || ! SharedOwnership::isShared($record->ownership_type)
+                    || ! $isSpouses) {
+                    continue;
+                }
+                if (! $dryRun) {
+                    app($storeClass)->update((int) $record->id, ['joint_owner_id' => $spouseId], $user, IngestSource::FYN_AI);
+                }
+                $linked[] = ['type' => $type, 'id' => (int) $record->id];
+            }
+        }
+
+        return $linked;
+    }
+
     public function householdHasSpouse(User $user): bool
     {
         if ($user->spouse_id) {

@@ -1313,10 +1313,12 @@ class CoordinatingAgent extends BaseAgent
             // [AI-AUDIT] file log entirely.
             $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $result);
 
-            // A joint record saved mid-onboarding with no named co-owner is the
-            // spouse's — remembered now, filled in when the spouse is known.
-            if (! $user->onboarding_completed
-                && (($result['created'] ?? false) === true || ($result['success'] ?? false) === true)
+            // A joint record saved with no named co-owner is the spouse's —
+            // linked now when the accounts are linked, else remembered and
+            // filled in when the spouse is known. After onboarding too: the
+            // onboarding-only gate left production property 533 joint with no
+            // co-owner (T27, RC8).
+            if ((($result['created'] ?? false) === true || ($result['success'] ?? false) === true)
                 && isset($result['entity_id'], $result['entity_type'])
                 && SharedOwnership::isShared($input['ownership_type'] ?? null)
                 && ($input['joint_owner_id'] ?? null) === null
