@@ -66,7 +66,7 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-body-sm text-neutral-500">Marital Status:</span>
-                <span class="text-body-sm text-horizon-500 text-right capitalize">{{ form.marital_status || '—' }}</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.marital_status ? formatMaritalStatus(form.marital_status) : '—' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-body-sm text-neutral-500">Phone:</span>
@@ -258,10 +258,7 @@
               class="input-field"
             >
               <option value="">Select status</option>
-              <option value="single">Single</option>
-              <option value="married">Married</option>
-              <option value="divorced">Divorced</option>
-              <option value="widowed">Widowed</option>
+              <option v-for="option in maritalStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
           </div>
 
@@ -591,7 +588,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
-import { EDUCATION_LEVEL_OPTIONS, isUkBirthCountry } from '@/constants/profileOptions';
+import { EDUCATION_LEVEL_OPTIONS, MARITAL_STATUS_OPTIONS, formatMaritalStatus, isUkBirthCountry } from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
 import { formatDateOnlyLong } from '@/utils/dateFormatter';
@@ -1004,6 +1001,8 @@ export default {
       // This select used to offer three levels the column cannot hold (a 500 on
       // save) and omit three it can — W-0031.
       educationLevelOptions: EDUCATION_LEVEL_OPTIONS,
+      maritalStatusOptions: MARITAL_STATUS_OPTIONS,
+      formatMaritalStatus,
       isEditing,
       submitting,
       successMessage,

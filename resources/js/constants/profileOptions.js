@@ -33,6 +33,16 @@ export const UK_BIRTH_COUNTRIES = ['England', 'Scotland', 'Wales', 'Northern Ire
 
 export const isUkBirthCountry = (country) => UK_BIRTH_COUNTRIES.includes(country);
 
+// `users.marital_status`. The web Personal Info form lacked civil
+// partnership, which Marriage Allowance turns on (ITA 2007 s55B) — T74.
+export const MARITAL_STATUS_OPTIONS = [
+  { value: 'single', label: 'Single' },
+  { value: 'married', label: 'Married' },
+  { value: 'civil_partnership', label: 'Civil partnership' },
+  { value: 'divorced', label: 'Divorced' },
+  { value: 'widowed', label: 'Widowed' },
+];
+
 export const HEALTH_STATUS_OPTIONS = [
   { value: 'yes', label: 'Yes' },
   { value: 'yes_previous', label: 'Yes, previous health conditions' },
@@ -67,3 +77,4 @@ const labelFrom = (options, value) => options.find((o) => o.value === value)?.la
 export const formatHealthStatus = (value) => (value === 'yes' ? 'Yes, good health' : labelFrom(HEALTH_STATUS_OPTIONS, value));
 export const formatSmokingStatus = (value) => labelFrom(SMOKING_STATUS_OPTIONS, value);
 export const formatEducationLevel = (value) => labelFrom(EDUCATION_LEVEL_OPTIONS, value);
+export const formatMaritalStatus = (value) => labelFrom(MARITAL_STATUS_OPTIONS, value);
