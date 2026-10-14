@@ -605,7 +605,10 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - **T68 ticked to Dev walk (2026-10-14):** Premium Bonds show no interest rate or interest lines on web and /m (one rule, `paysInterest`; #1306, #1307). T58.1's /m tap walked too (Ravi 530).
           - **T69 ticked to Dev walk (2026-10-14):** the Section 24 credit is the basic rate of the lowest of the finance costs, the property profit and the adjusted total income (ITTOIA 2005 s274AA; the task's s399B is the partnership rule) (#1310). Walked web and /m (Robin 509: £960 at £400 rent).
           - Found, added as T77: the web property form demands a monthly mortgage payment Fyn never asked for.
-          - Next: T70, T71, T73 to T77, then T26.
+          - **T70 ticked to Dev walk (2026-10-14):** a Junior ISA or Premium Bonds typed to Fyn opens the savings form (#1312); a Junior ISA for a child on the record takes the date of birth from it and is linked to the child (#1313). Walked web and /m (Robin 509, Ravi 530).
+          - **T78 found and ticked to Dev walk:** a Junior ISA at the ISA limit is told that limit before any form (#1314).
+          - DECISION (CSJ): Junior ISAs saved through Fyn before #1313 have no child linked (csjones 922, 925; production may hold some from release ac). Link them by name? A database change.
+          - Next: T71, T73 to T77, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
