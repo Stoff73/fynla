@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Investment\Recommendation\ContributionWaterfallService;
@@ -50,4 +51,17 @@ it('counts the Premium Bonds already held, against the configured maximum', func
         ->invoke(app(ContributionWaterfallService::class), 10000.0, $context, [], app(TaxConfigService::class)->get('investment.waterfall', []));
     expect($step['skipped'] ?? null)->toBeTrue();
     expect($step['skip_reason'])->toBe('Premium Bonds holding at maximum of £50,000.');
+});
+
+// Found on the T82 /m walk: the refusal reached the user as "Validation failed
+// for account update." The store's own words are what the user needs.
+it('tells the user the store\'s reason when Fyn\'s change is refused', function () {
+    $bonds = premiumBonds($this->user, 10000);
+
+    $result = app(CoordinatingAgent::class)->executeTool('update_record', [
+        'entity_type' => 'savings_account', 'entity_id' => $bonds->id, 'fields' => ['current_balance' => 60000],
+    ], $this->user);
+
+    expect($result['error_type'] ?? null)->toBe('validation_failed')
+        ->and($result['message'])->toBe('Premium Bonds have a maximum holding of £50,000 per person.');
 });
