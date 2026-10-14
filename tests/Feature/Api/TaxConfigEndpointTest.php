@@ -112,6 +112,14 @@ it('returns the full payload structure for an authenticated user', function () {
         ]);
 });
 
+// T79: the web savings form typed in the £50,000 Premium Bonds limit (Rule 2).
+// NS&I: "You are only able to hold up to £50,000 in Premium Bonds."
+it('publishes the Premium Bonds maximum holding from the configuration', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    expect($this->getJson('/api/tax/config')->json('data.savings.premium_bonds_max_holding'))->toBe(50000);
+});
+
 it('returns the seeded 2026/27 ISA, pension and income tax values', function () {
     Sanctum::actingAs(User::factory()->create());
 

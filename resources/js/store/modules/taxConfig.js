@@ -42,6 +42,9 @@ const getters = {
   lifetimeIsaAllowance: (state) => state.config?.isa?.lifetime_isa_allowance ?? null,
   juniorIsaAllowance: (state) => state.config?.isa?.junior_isa_allowance ?? null,
 
+  // Savings
+  premiumBondsMaxHolding: (state) => state.config?.savings?.premium_bonds_max_holding ?? null,
+
   // Pension
   pensionAnnualAllowance: (state) => state.config?.pension?.annual_allowance ?? null,
   moneyPurchaseAnnualAllowance: (state) => state.config?.pension?.money_purchase_annual_allowance ?? null,
