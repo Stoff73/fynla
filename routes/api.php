@@ -395,6 +395,8 @@ Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
     Route::get('/breakdown', [NetWorthController::class, 'getBreakdown']);
     Route::get('/assets-summary', [NetWorthController::class, 'getAssetsSummary']);
     Route::get('/assets-summary-detailed', [NetWorthController::class, 'getAssetsSummaryWithDetails']);
+    // T28: the Liabilities page (a Free module) reads its list here, not the Estate index.
+    Route::get('/liabilities', [NetWorthController::class, 'getLiabilities']);
     Route::get('/joint-assets', [NetWorthController::class, 'getJointAssets']);
     Route::post('/refresh', [NetWorthController::class, 'refresh']);
 });

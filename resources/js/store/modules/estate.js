@@ -227,6 +227,23 @@ const getters = {
 };
 
 const actions = {
+    // The Liabilities page's own list, for every tier (T28).
+    async fetchLiabilities({ commit }) {
+        commit('setLoading', true);
+        commit('setError', null);
+        try {
+            const response = await estateService.getLiabilities();
+            commit('setLiabilities', response.data?.liabilities || []);
+            commit('setLiabilityTotals', response.data?.liability_totals || {});
+            return response;
+        } catch (error) {
+            commit('setError', error.message || 'Failed to load liabilities');
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
     // Fetch all estate data
     async fetchEstateData({ commit }) {
         commit('setLoading', true);

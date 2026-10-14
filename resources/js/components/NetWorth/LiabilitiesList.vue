@@ -245,11 +245,12 @@ export default {
   },
 
   methods: {
-    ...mapActions('estate', ['fetchEstateData', 'createLiability', 'updateLiability', 'deleteLiability']),
+    ...mapActions('estate', ['fetchLiabilities', 'createLiability', 'updateLiability', 'deleteLiability']),
 
     async fetchData() {
       try {
-        await this.fetchEstateData();
+        // Its own list, not the Estate index (a teaser for Free users, T28).
+        await this.fetchLiabilities();
       } catch (error) {
         logger.error('Failed to fetch liabilities:', error);
       }
