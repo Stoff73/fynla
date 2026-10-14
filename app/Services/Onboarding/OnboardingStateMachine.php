@@ -2465,13 +2465,15 @@ final class OnboardingStateMachine
 
     /**
      * The Free limit a blank add form's records count against, when reached:
-     * the same counts as the walk's sections (freeLimitAt).
+     * the same counts as the walk's sections (freeLimitAt). The kind filled
+     * decides it where one form holds both: a Junior ISA on the savings form
+     * counts with the ISAs (CSJ 2026-09-15; T78).
      *
      * @return array{limit: int, noun: string}|null
      */
-    public static function freeLimitForForm(User $user, string $formName): ?array
+    public static function freeLimitForForm(User $user, string $formName, ?string $kind = null): ?array
     {
-        $stateId = match ($formName) {
+        $stateId = $formName === CaptureForms::SAVINGS && $kind === 'junior_isa' ? self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS : match ($formName) {
             CaptureForms::SAVINGS => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
             CaptureForms::ISA, CaptureForms::INVESTMENT => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
             CaptureForms::PENSION, CaptureForms::PENSION_PERSONAL, CaptureForms::DB_PENSION => self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
