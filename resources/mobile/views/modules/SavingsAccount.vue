@@ -81,6 +81,7 @@ import MobileChrome from '../../components/MobileChrome.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { calculateUserShare, coOwnerName, isSharedRecord, sharePercentText } from '../../../js/utils/ownership.js';
+import { formatInterestRate, paysInterest } from '../../../js/utils/interestRate.js';
 
 const ACCOUNT_TYPES = {
   savings_account: 'Savings account',
@@ -90,6 +91,8 @@ const ACCOUNT_TYPES = {
   fixed: 'Fixed term',
   cash_isa: 'Cash ISA',
   lisa: 'Lifetime ISA',
+  junior_isa: 'Junior ISA',
+  premium_bonds: 'Premium Bonds',
 };
 const ACCESS_TYPES = {
   immediate: 'Immediate access',
@@ -175,9 +178,12 @@ export default {
       if (this.isJoint) {
         rows.push({ key: `Your share (${this.sharePercent})`, value: this.fmt(this.userShare) });
       }
-      rows.push({ key: 'Interest rate', value: this.rate(this.account.interest_rate) });
-      rows.push({ key: 'Monthly interest', value: this.monthlyInterest === null ? 'Not recorded' : this.fmt(this.monthlyInterest) });
-      rows.push({ key: 'Annual interest', value: this.annualInterest === null ? 'Not recorded' : this.fmt(this.annualInterest) });
+      // Premium Bonds pay prizes, not interest (T68).
+      if (paysInterest(this.account)) {
+        rows.push({ key: 'Interest rate', value: this.rate(this.account.interest_rate) });
+        rows.push({ key: 'Monthly interest', value: this.monthlyInterest === null ? 'Not recorded' : this.fmt(this.monthlyInterest) });
+        rows.push({ key: 'Annual interest', value: this.annualInterest === null ? 'Not recorded' : this.fmt(this.annualInterest) });
+      }
       return rows;
     },
     infoRows() {
@@ -211,11 +217,8 @@ export default {
   async created() { await this.load(); },
   methods: {
     fmt(v) { return formatCurrency(v); },
-    rate(r) {
-      // A rate never given is null: "Not recorded", never 0% (R10).
-      if (r == null || r === '' || isNaN(Number(r))) return 'Not recorded';
-      return `${Number(r).toFixed(2)}%`;
-    },
+    // A rate never given reads "Not recorded", never 0% (R10). One rule for web and /m.
+    rate: formatInterestRate,
     accountTypeLabel(t) { return ACCOUNT_TYPES[t] || (t ? String(t).replace(/_/g, ' ') : '—'); },
     accessTypeLabel(t) { return ACCESS_TYPES[t] || (t ? String(t).replace(/_/g, ' ') : '—'); },
     isaTypeLabel(t) { return ISA_TYPES[t] || (t ? String(t).replace(/_/g, ' ') : '—'); },

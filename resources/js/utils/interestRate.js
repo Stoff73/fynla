@@ -17,3 +17,16 @@ export function formatInterestRate(rate) {
 export function hasInterestRate(rate) {
   return formatInterestRate(rate) !== 'Not recorded';
 }
+
+/**
+ * Whether an account earns interest at all. Premium Bonds pay prizes from a
+ * prize fund instead (NS&I, Premium Bonds), and the savings form never asks
+ * for their rate, so no rate or interest line is shown for them (T68). Web
+ * and /m both read this one rule.
+ *
+ * @param {{account_type?: string, type?: string}|null|undefined} account
+ * @returns {boolean}
+ */
+export function paysInterest(account) {
+  return (account?.account_type ?? account?.type) !== 'premium_bonds';
+}
