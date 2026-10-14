@@ -77,6 +77,10 @@ final class WriteIntentClassifier
             'protection details', 'my protection',
         ],
         'savings_account' => [
+            // T70: the savings form's Junior ISA and Premium Bonds kinds (T24).
+            // Without them "add my son Leo's Junior ISA" fell to the dependant
+            // record on "my son" and opened the child form.
+            'junior cash isa', 'junior isa', 'jisa', 'premium bonds', 'premium bond',
             'cash isa', 'help to buy isa', 'lifetime isa', 'lisa',
             'savings account', 'easy access account', 'fixed-rate account',
             'fixed term account', 'notice account',
