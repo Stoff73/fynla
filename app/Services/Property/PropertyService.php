@@ -201,7 +201,7 @@ class PropertyService
         $userMonthlyTaxable = $monthlyTaxableIncome * $ownershipMultiplier;
         $userMonthlyInterest = $monthlyMortgageInterest * $ownershipMultiplier;
         // Finance costs are not deducted from the rent (ITTOIA 2005 s272A); they
-        // reduce the tax at the basic rate (ITA 2007 s399A-s399B), read from the
+        // reduce the tax at the basic rate (ITTOIA 2005 s274A-s274AA), read from the
         // tax configuration (Rule 2).
         $basicRate = (float) ($this->taxConfig->getIncomeTax()['bands'][0]['rate'] ?? 0);
         $monthlySection24Credit = $userMonthlyInterest * $basicRate;

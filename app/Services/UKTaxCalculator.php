@@ -294,8 +294,26 @@ class UKTaxCalculator
             $totalTax += $dividendBreakdown['total_income_tax'];
         }
 
-        // Apply Section 24 tax credit (reduces tax bill, not income)
-        $appliedSection24Credit = min($section24Credit, $totalTax);
+        // Apply Section 24 tax credit (reduces tax bill, not income). The credit
+        // passed in is the basic rate of the finance costs; the reduction is the
+        // basic rate of the LOWEST of those costs, the property profits and the
+        // adjusted total income: net income less savings income, dividends and
+        // allowances (ITTOIA 2005 s274AA(2), (3), (6); HMRC PIM2058). It can
+        // never take the tax below nil (T69). One UK property business per
+        // person (ITTOIA 2005 s264), so the rental profit here is its profit.
+        $appliedSection24Credit = 0.0;
+        if ($section24Credit > 0) {
+            $basicRate = (float) ($incomeTaxConfig['bands'][0]['rate'] ?? 0);
+            $nonSavingsIncome = max(0.0, $payAfterSacrifice - $pensionContributions) + $selfEmploymentIncome
+                + $rentalIncome + $pensionIncome + $trustIncome + $otherIncome + $shareVestIncome;
+            $adjustedTotalIncome = max(0.0, $nonSavingsIncome - $personalAllowance - max(0.0, $blindPersonsAllowance));
+            $appliedSection24Credit = min(
+                $section24Credit,
+                $basicRate * max(0.0, $rentalIncome),
+                $basicRate * $adjustedTotalIncome,
+                $totalTax,
+            );
+        }
         $totalTaxAfterCredit = $totalTax - $appliedSection24Credit;
 
         $totalDeductions = $totalTaxAfterCredit + $totalNI;
