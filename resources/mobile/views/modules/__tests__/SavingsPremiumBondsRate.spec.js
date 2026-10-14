@@ -71,6 +71,8 @@ describe('/m Premium Bonds carry no interest rate', () => {
 
     const text = wrapper.text();
     expect(text).toContain('Full balance');
+    // Found on the T68 walk: the section was still headed "Balance & interest".
+    expect(text).not.toContain('Balance & interest');
     expect(text).not.toContain('Interest rate');
     expect(text).not.toContain('Monthly interest');
     expect(text).not.toContain('Annual interest');
