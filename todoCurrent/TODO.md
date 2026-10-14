@@ -608,7 +608,9 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - **T70 ticked to Dev walk (2026-10-14):** a Junior ISA or Premium Bonds typed to Fyn opens the savings form (#1312); a Junior ISA for a child on the record takes the date of birth from it and is linked to the child (#1313). Walked web and /m (Robin 509, Ravi 530).
           - **T78 found and ticked to Dev walk:** a Junior ISA at the ISA limit is told that limit before any form (#1314).
           - DECISION (CSJ): Junior ISAs saved through Fyn before #1313 have no child linked (csjones 922, 925; production may hold some from release ac). Link them by name? A database change.
-          - Next: T71, T73 to T77, then T26.
+          - **T71 ticked to Dev walk (2026-10-14):** the Junior ISA panel names the child's allowance from the configuration; the false 16-17 note is gone (#1316). Web only (no such panel on /m).
+          - Found, added as T79 (Premium Bonds £50,000 typed in) and T80 (the web Add Account form stores a blank rate as 0%).
+          - Next: T73 to T77, T79, T80, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
