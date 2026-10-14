@@ -1306,6 +1306,8 @@ class CoordinatingAgent extends BaseAgent
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
+            $result = self::withStoreReason($result);
+
             // S0.12 — chain-append the completion row. `persisted` for any
             // result without an `error` key; `failed` otherwise. Replaces the
             // [AI-AUDIT] file log entirely.
@@ -3223,6 +3225,27 @@ class CoordinatingAgent extends BaseAgent
         $cap = app(TierGate::class)->hardLimit($user, $entityKey);
 
         return $cap === null ? '' : " That's {$used} of {$cap} on your plan.";
+    }
+
+    /**
+     * A store refusal carries its reason in `errors`; thirteen handlers put a
+     * generic "Validation failed for …" over it, which is what the user was
+     * shown ("Validation failed for account update." for Premium Bonds over
+     * the maximum, T82 walk). One place: the first reason becomes the message.
+     *
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private static function withStoreReason(array $result): array
+    {
+        if (($result['error_type'] ?? null) !== 'validation_failed'
+            || ! str_starts_with((string) ($result['message'] ?? ''), 'Validation failed')
+            || ! is_array($result['errors'] ?? null)) {
+            return $result;
+        }
+        $first = collect($result['errors'])->flatten()->first(fn ($m) => is_string($m) && trim($m) !== '');
+
+        return $first === null ? $result : array_replace($result, ['message' => $first]);
     }
 
     private function tierLimitResult(TierLimitExceededException $exception, User $user, string $message): array
