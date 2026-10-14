@@ -68,3 +68,31 @@ describe('SaveAccountModal — the Premium Bonds limit', () => {
     expect(wrapper.emitted('save')).toBeUndefined();
   });
 });
+
+// T80 (T71 walk, Tunde 524): the rate started at 0, so an account saved with
+// no rate given was stored as 0% (the placeholder-as-fact class, T25, R10).
+describe('SaveAccountModal — a rate never given', () => {
+  it('starts empty and saves no rate when none is typed', async () => {
+    const wrapper = mountModal('savings_account');
+    await flushPromises();
+    expect(wrapper.vm.formData.interest_rate).toBeNull();
+
+    wrapper.vm.formData.institution = 'Marcus';
+    wrapper.vm.formData.current_balance = 6500;
+    expect(wrapper.vm.prepareAccountData().interest_rate).toBeNull();
+  });
+
+  it('saves no rate for Premium Bonds, whose rate is never asked', async () => {
+    const wrapper = mountModal('premium_bonds');
+    await flushPromises();
+    wrapper.vm.formData.interest_rate = 0;
+    expect(wrapper.vm.prepareAccountData().interest_rate).toBeNull();
+  });
+
+  it('keeps a rate the user typed', async () => {
+    const wrapper = mountModal('savings_account');
+    await flushPromises();
+    wrapper.vm.formData.interest_rate = 4.3;
+    expect(wrapper.vm.prepareAccountData().interest_rate).toBe(4.3);
+  });
+});

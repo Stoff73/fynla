@@ -616,7 +616,9 @@ export default {
         account_type: '',
         account_number: '',
         current_balance: 0,
-        interest_rate: 0,
+        // Empty, not 0: a rate never given is stored as null and reads
+        // "Not recorded", never 0% (T80; R10).
+        interest_rate: null,
         access_type: 'immediate',
         notice_period_days: null,
         maturity_date: '',
@@ -1047,7 +1049,11 @@ export default {
         account_type: this.formData.account_type,
         account_number: this.formData.account_number || null,
         current_balance: this.formData.current_balance,
-        interest_rate: this.formData.interest_rate, // Store as percentage (4.55 = 4.55%)
+        // Stored as a percentage (4.55 = 4.55%). None when it was not typed, or
+        // for an NS&I product whose rate the form never asks (T80).
+        interest_rate: this.isNSIProductType || this.formData.interest_rate === '' || this.formData.interest_rate === null
+          ? null
+          : this.formData.interest_rate,
         access_type: this.formData.access_type,
         notice_period_days: this.formData.access_type === 'notice' ? this.formData.notice_period_days : null,
         maturity_date: this.formData.access_type === 'fixed' ? this.formData.maturity_date : null,
