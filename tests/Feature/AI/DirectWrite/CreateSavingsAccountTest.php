@@ -288,3 +288,20 @@ it('ignores isa_subscription_amount on non-ISA accounts', function (): void {
     expect($account->isa_subscription_amount)->toBeNull()
         ->and($account->isa_subscription_year)->toBeNull();
 });
+
+// T70: a model that writes the type as words ("premium bonds") must not have
+// the bonds filed as a current account by the synonym fallback.
+it('create_savings_account files "premium bonds" written as words as Premium Bonds', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
+        'account_name' => 'NS&I Premium Bonds',
+        'institution' => 'NS&I',
+        'account_type' => 'premium bonds',
+        'current_balance' => 10000,
+        'ownership_type' => 'individual',
+    ], $user);
+
+    expect($result['success'])->toBeTrue();
+    expect(SavingsAccount::find($result['entity_id'])->account_type)->toBe('premium_bonds');
+});

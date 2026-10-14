@@ -3292,6 +3292,11 @@ class CoordinatingAgent extends BaseAgent
                     'current account' => 'current_account',
                     'cash isa' => 'cash_isa',
                     'junior isa' => 'junior_isa',
+                    'jisa' => 'junior_isa',
+                    // T70: without these the words fell to the current-account
+                    // fallback below.
+                    'premium bonds' => 'premium_bonds',
+                    'premium bond' => 'premium_bonds',
                     'fixed_rate' => 'fixed',
                     'fixed rate' => 'fixed',
                     'bond' => 'fixed',

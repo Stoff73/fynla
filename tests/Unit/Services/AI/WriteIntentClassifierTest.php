@@ -16,6 +16,18 @@ describe('WriteIntentClassifier::classify — positive cases (write intents)', f
         expect($result['matched_verb'])->toBe('add');
     });
 
+    // T70 (csjones, Robin 509, 2026-10-13): "my son" matched the dependant
+    // record because no savings word named a Junior ISA, so the child form opened.
+    it('routes a child\'s Junior ISA to the savings record, not the dependant', function () {
+        $result = $this->classifier->classify("Add my son Leo's Junior ISA: it's with Fidelity and has £5,000 in it");
+        expect($result['entity_type'])->toBe('savings_account');
+        expect($this->classifier->classify('I opened a JISA for my daughter')['entity_type'])->toBe('savings_account');
+    });
+
+    it('routes Premium Bonds to the savings record', function () {
+        expect($this->classifier->classify('I have £10,000 in Premium Bonds')['entity_type'])->toBe('savings_account');
+    });
+
     it('matches "I have" + entity', function () {
         $result = $this->classifier->classify('I have a workplace pension with Aviva');
         expect($result)->not->toBeNull();
