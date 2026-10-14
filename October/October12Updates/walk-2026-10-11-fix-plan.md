@@ -96,7 +96,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
 | T24 | Fyn's forms gain the fields whose columns exist | F9, F11, F12, F15, Q1, Q15, Q19, Q24 | [x] | [x] | [x] | [x] | [x] | [x] |
 | T25 | Stop storing placeholders (rate 0, "repayment", "To be completed", "Unknown") as facts | Q1, Q9, N7 | [x] | [x] | [x] | [x] | [x] | [x] |
 | T26 | Workplace pensions get their scheme type; production rows corrected | N2 | [x] | [x] | [x] | [x] | [ ] | [ ] |
-| T27 | Joint records added after onboarding link to the partner; partner's figures transferred for the partner to confirm | Q23 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| T27 | Joint records added after onboarding link to the partner; partner's figures transferred for the partner to confirm | Q23 | [x] | [x] | [x] | [x] | [ ] | [ ] |
 | T28 | The Liabilities page shows mortgages to Free users | F12 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T29 | Gift Aid and relief at source priced by band extension; the one-off line in the how-to | F7, Q4 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | T30 | "What you can afford" and "headroom" labels | F8 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -1036,7 +1036,7 @@ Boxes: `[ ]` open, `[x]` done (with evidence in the log below). F, M, P and Q ar
   - **Dev:** csjones `3c8fa48cf` (PHP only). `couples:link-joint-records --dry-run` on csjones: 3 records of user 402 (not run for real).
   - **Dev walk (Rory 504 and Pat 506, linked, both past onboarding):** web 1440, Rory, Fyn: "Add our joint Halifax savings account: £8,000 at 3.5%, held 50/50 with Pat" opened the savings form (Easy access, Halifax, £8,000, 3.5%, Joint) (`T27-01`); saved (`T27-02`): row 930 `joint_owner_id` 506, `joint_owner_name` "Pat". /m 390, Pat signed in through /m: Bank Accounts lists "Halifax £4,000, Your 50% of £8,000" (`T27-03`).
   - **Release needs (CSJ's OK, a database change):** `php artisan couples:link-joint-records --dry-run`, then without (production property 533 among them).
-  - **Part 3 not done:** the partner's figures transferred for the spouse's walk to confirm (ruling 50; Dev was asked his ISA again). Next.
+  - **Part 3, checked (2026-10-14): no change needed.** Ruling 50 already has its home: `SpouseHoldingTransfer` copies what the inviter gave onto the spouse at the link, and `WalkFormPrefill::for` opens the spouse's work, savings, ISA, investment, pension, spouse-income and spending forms on it to confirm (`recordsFor` reads cash ISAs and investment ISAs for the ISA form). The production record (section 1, "P") shows Dev's ISA came from Dev himself: #4082 "Cash ISA with Nationwide, £9,000" was typed at the yes/no bubble step `base_employment_more` and re-asked at #4083 (the T17 scope note). Priya gave Dev's income only, also typed at a bubble step (#3761, F11), so there was no ISA to transfer. That re-ask is the typed-at-a-bubble case T58 now prevents (the box is locked while bubbles answer the step).
 
 - **T5 baseline (seen on the T1 walk, 2026-10-12, csjones):** three questions were handed to capture by the model. The csjones log shows "[FynLoop] LLM-fallback write-intent caught (classifier miss)" for each:
   - the invite question, as `spouse`;
