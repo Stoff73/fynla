@@ -621,7 +621,9 @@ The persistent list of what we are doing, in order. Started 2026-09-30 (CSJ).
           - Found, added as T82: the Premium Bonds maximum is checked only on the web form; a second key with a typed-in fallback.
           - **T80 ticked to Dev walk (2026-10-14):** a rate never given on the web form is saved as none and reads "Not recorded" (#1328).
             - DECISION (CSJ): accounts saved through the web form before #1328 hold 0% where no rate was given (csjones 927, 928; production may hold others). Set them to "not recorded"? A database change.
-          - Next: T81, T82, then T26.
+          - **T81 ticked to Dev walk (2026-10-14):** a postcode or purchase date never given reads "Not recorded" (#1330).
+            - DECISION (CSJ): a property saved through Fyn holds its type as the first address line ("Buy to let"), so the web page reads "Address: Buy to let, Woking". T25 kept it on purpose, because Fyn and the edit chooser name a property by it. Keep it, or store no address and name the property some other way?
+          - Next: T82, then T26.
         - Earlier next action (CSJ 2026-10-12), before T6: T48, one Fyn limit per tier.
           - CSJ: "lets replace both, with 750k and 3 million, so we only have one limit" (Free 750,000 tokens, Premium 3,000,000). It replaces the weekly budget (100,000 / 500,000, which switches to a cheaper model) and the daily stop (500,000 / 2,000,000). Today csjones and production both hold those old values.
           - **Per rolling week (CSJ 2026-10-12: "great question, yes per week please").** Going over the weekly limit stops Fyn. The daily stop and the weekly cheaper-model switch are removed.
