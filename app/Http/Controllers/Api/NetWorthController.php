@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Services\NetWorth\LiabilitiesList;
 use App\Services\NetWorth\NetWorthForecastAssumptionService;
 use App\Services\NetWorth\NetWorthForecastService;
 use App\Services\NetWorth\NetWorthService;
@@ -194,6 +195,23 @@ class NetWorthController extends Controller
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Fetching joint assets');
+        }
+    }
+
+    /**
+     * The Liabilities page's list: debts and mortgages at the viewer's share,
+     * with the totals. Liabilities is a Free module; the Estate index it used to
+     * read gives Free users a teaser (T28).
+     */
+    public function getLiabilities(Request $request, LiabilitiesList $list): JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $list->for($request->user()),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Fetching liabilities');
         }
     }
 

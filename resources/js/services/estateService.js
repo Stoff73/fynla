@@ -15,6 +15,15 @@ const estateService = {
     },
 
     /**
+     * The Liabilities page's list and totals. Liabilities is a Free module; the
+     * Estate index above gives Free users a teaser (T28).
+     */
+    async getLiabilities() {
+        const response = await api.get('/net-worth/liabilities');
+        return response.data;
+    },
+
+    /**
      * Analyse estate position and calculate IHT liability
      * @param {Object} data - Analysis parameters
      * @returns {Promise} Analysis results with IHT calculation and recommendations

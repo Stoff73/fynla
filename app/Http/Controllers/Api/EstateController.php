@@ -24,12 +24,12 @@ use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\NetWorth\LiabilitiesList;
 use App\Services\Stores\Exceptions\GiftOwnedByTrustException;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\GiftStore;
@@ -96,44 +96,6 @@ class EstateController extends Controller
         }
 
         $assets = Asset::where('user_id', $user->id)->limit(100)->get();
-        // Every debt this user is party to, as recorder or co-owner: the same
-        // reach net worth uses (CSJ 2026-10-01).
-        $liabilities = Liability::forUserOrJoint($user->id)->limit(100)->get();
-
-        // Include mortgages as liabilities for net worth display
-        $mortgages = Mortgage::whereHas('property', function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
-        })->with('property')->limit(100)->get();
-
-        // The share is applied HERE, not on the client. This used to hand the
-        // frontend the securing property's ownership pair and leave it to work the
-        // share out — a second implementation of the rule (Rule 20), and one that
-        // nothing on the other end actually read: `LiabilitiesList.vue` summed
-        // `current_balance` whole, so the Total Balance Owed included the 60% of a
-        // tenants-in-common mortgage belonging to an off-platform co-owner
-        // (W-0237). `calculateUserMortgageShare` resolves the property itself now
-        // (W-0228), so the one reader answers it once, on the server.
-        $mortgageLiabilities = $mortgages->map(function (Mortgage $mortgage) use ($user) {
-            $property = $mortgage->property;
-
-            return [
-                'id' => 'mortgage_'.$mortgage->id,
-                'source' => 'property_module',
-                'liability_type' => 'mortgage',
-                'liability_name' => 'Mortgage - '.($property->address_line_1 ?? 'Property'),
-                'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
-                'user_share' => round($this->calculateUserMortgageShare($mortgage, $user->id), 2),
-                'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
-                'user_monthly_payment_share' => round(
-                    $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id),
-                    2
-                ),
-                'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
-                'notes' => ucfirst(str_replace('_', ' ', $mortgage->mortgage_type ?? 'repayment')).' mortgage',
-                'ownership_type' => $property->ownership_type ?? 'individual',
-                'ownership_percentage' => $property->ownership_percentage ?? 100,
-            ];
-        });
 
         $gifts = Gift::where('user_id', $user->id)->limit(100)->get();
         $trusts = Trust::where('user_id', $user->id)->limit(100)->get();
@@ -170,9 +132,8 @@ class EstateController extends Controller
             ];
         });
 
-        $liabilityRows = collect(LiabilityResource::collection($liabilities)->resolve())
-            ->merge($mortgageLiabilities)
-            ->values();
+        // The same list and totals the Liabilities page reads (T28).
+        $liabilityList = app(LiabilitiesList::class)->for($user);
 
         return response()->json([
             'mode' => 'full',
@@ -180,10 +141,10 @@ class EstateController extends Controller
             'data' => [
                 'assets' => AssetResource::collection($assets),
                 'investment_accounts' => $investmentAccountsFormatted,
-                'liabilities' => $liabilityRows->all(),
+                'liabilities' => $liabilityList['liabilities'],
                 // What the debts page totals, per type and in all, at the
                 // viewer's share (CSJ 2026-10-01: the page added these up itself).
-                'liability_totals' => $this->liabilityTotals($liabilityRows),
+                'liability_totals' => $liabilityList['liability_totals'],
                 // The estate pages' own-estate figures (NetWorthAnalyzer, the same
                 // as /m, iOS and the dashboard estate card) and the gifts made in
                 // the last seven years, so no screen adds them up.
@@ -220,22 +181,6 @@ class EstateController extends Controller
                 'ids' => $recent->pluck('id')->values()->all(),
             ],
         ];
-    }
-
-    /**
-     * Totals of the debts list at the viewer's share: `all`, then one entry per
-     * debt type, each with what is owed and the monthly payments.
-     *
-     * @return array<string, array{balance: float, monthly_payments: float}>
-     */
-    private function liabilityTotals($rows): array
-    {
-        $sum = static fn ($group): array => [
-            'balance' => round((float) $group->sum(fn ($r): float => (float) ($r['user_share'] ?? 0)), 2),
-            'monthly_payments' => round((float) $group->sum(fn ($r): float => (float) ($r['user_monthly_payment_share'] ?? 0)), 2),
-        ];
-
-        return ['all' => $sum($rows)] + $rows->groupBy('liability_type')->map($sum)->all();
     }
 
     /**
