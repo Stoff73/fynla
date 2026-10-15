@@ -148,10 +148,11 @@ class ChildBenefitService
         $incomeOverThreshold = $adjustedNetIncome - $threshold;
 
         // 1% per £200 over the threshold, at most 100% (ITEPA 2003 s681C(2)).
-        // A percentage that is not a whole number is rounded down, and so is a
-        // charge that is not a whole number of pounds (s681C(3)).
+        // A percentage that is not a whole number is rounded down (s681C(3)(b)),
+        // and so are the Child Benefit total the percentage is taken of and the
+        // charge, when they are not a whole number of pounds (s681C(3)(a)).
         $clawbackPercentage = min(100.0, floor($incomeOverThreshold / $increment + 1e-9));
-        $charge = floor($childBenefitAmount * $clawbackPercentage / 100 + 1e-9);
+        $charge = floor(floor($childBenefitAmount + 1e-9) * $clawbackPercentage / 100 + 1e-9);
 
         return [
             'applies' => true,

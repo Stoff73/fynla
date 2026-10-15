@@ -152,6 +152,26 @@ describe('ChildBenefitService — HICBC uses Adjusted Net Income', function () {
             ->and((float) $result['hicbc']['net_benefit'])->toBe(1_336.60);
     });
 
+    it('rounds the Child Benefit total down before taking the percentage, as the legislation does', function () {
+        // ITEPA 2003 s681C(3)(a): the total of the amounts in s681C(1) is
+        // rounded down to a whole number of pounds, then the charge is that
+        // total at the percentage, itself rounded down. £19,800 over is 99%;
+        // £1,406.60 → £1,406, × 99% = £1,391.94 → £1,391. Taking 99% of the
+        // unrounded £1,406.60 gives £1,392.53 → £1,392, £1 over the statute.
+        $user = User::factory()->create(['annual_employment_income' => 79_800]);
+        FamilyMember::factory()->child()->create([
+            'user_id' => $user->id,
+            'receives_child_benefit' => true,
+            'date_of_birth' => '2020-01-01',
+        ]);
+
+        $result = $this->service->calculateChildBenefitPosition($user->fresh());
+
+        expect($result['hicbc']['clawback_percentage'])->toBe(99.0)
+            ->and((float) $result['hicbc']['charge'])->toBe(1_391.0)
+            ->and((float) $result['hicbc']['net_benefit'])->toBe(15.60);
+    });
+
     it('respects override income parameter and skips ANI calculation entirely', function () {
         // When caller passes an explicit ANI override, the service must use it
         // directly without re-computing from user fields.
