@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-10-13 session 1. The order of work is `todoCurrent/TODO.md`; the walk fix plan (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) orders the tasks inside item 18. T0 to T15, T17 to T25, T48 and T58 are walked green on csjones, not released; T16 was reverted (#1262). Next: T26.*
+*Last updated: 2026-10-15 session 1. The order of work is `todoCurrent/TODO.md`, re-created 2026-10-15 (the old list is `todoCurrent/archive/TODO-2026-09-30-to-2026-10-14.md`); it carries the open walk fix plan tasks (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) in plan order. T0 to T25 are released (release ac); T26 to T27, T58.1, T61 to T74 and T76 to T82 are walked green on csjones, not released; T28 needs its Dev walk.*
 
 ## The board position
 
@@ -250,7 +250,8 @@ Three small decisions, all optional:
 
 ## Deploy state
 
-- **2026-10-13: prod (fynla.org) = main `f45bc67fd` (release ab).** dev = `fa9aee492`; csjones runs `ea4c4b75e`, with the T48 and T25 migrations run and both bundles built at 09:48 BST from that tree. The next release needs migrations `2026_10_12_120000_one_weekly_fyn_limit_per_tier` and `2026_10_13_100000_make_mortgage_type_nullable`, both bundles, and `php artisan registrations:clear-chat-campaign-stamp --dry-run` then without `--dry-run` (10 users).
+- **2026-10-15: prod (fynla.org) = main `ed6eb011f` (release ac, 2026-10-13 10:16 BST).** dev = `89133ddfb`; csjones runs `db1f47fca` (no code after it on dev), both bundles built 2026-10-14 09:32 BST. The next release needs both bundles, `resources/views/mobile-host.blade.php` and `routes/api.php`; no migrations or seeders; two optional data commands on CSJ's OK (`pensions:backfill-dc-scheme-type`, `couples:link-joint-records`). Full list in `todoCurrent/TODO.md`, "Waiting for release".
+- **Restore point (2026-10-15):** tags `full-fynla/prod-2026-10-15` and `full-fynla/dev-2026-10-15`; bundle and README in `~/FynlaArchive/2026-10-15/`. A simplified Fynla (`/Users/CSJ/Desktop/fynlaSimple`) will get its own database, server folder and iOS app; the full version stays in `~/www/fynla.org/public_html/`.
 
 ## Tech debt deferred
 
