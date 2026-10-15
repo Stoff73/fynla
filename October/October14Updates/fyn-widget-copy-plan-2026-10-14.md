@@ -1,8 +1,8 @@
 # Fyn widget: plan to extract Fyn, the calculations and the tax configuration into a new application
 
-**Date:** 14 October 2026 (amended the same day after CSJ's correction, section 1)
-**Status:** PLAN ONLY. Nothing has been copied, changed or committed. Another agent is working in `/Users/CSJ/Desktop/fynla`, so this plan reads from git, never from that live checkout.
-**Source snapshot:** `dev` at `01290a768` (13 October 2026, 10:01 BST). Copy from this pinned commit (section 8.1), so the other agent's uncommitted work is not picked up.
+**Date:** 14 October 2026 (amended the same day after CSJ's correction, section 1). **Readiness review:** 15 October 2026, section 13.
+**Status:** READY TO COPY. Nothing has been copied yet. The readiness review (section 13) re-checked every cited line against today's `dev` and added the setup steps the first draft missed (section 8).
+**Source snapshot:** the `dev` tip at the moment of copying, recorded in `SOURCE.md` (section 8.1). At the review that was `6f1446ddf` (15 October 2026, 09:10 BST). The first draft pinned `01290a768` because another agent had uncommitted work in the checkout. No other agent is working now (CSJ, 15 October 2026), and the 116 commits since `01290a768` include Fyn fixes (`CaptureForms`, `CoordinatingAgent`, `OnboardingChatDirector`, `OnboardingStateMachine`, `SpouseJointRecords`, `WriteIntentClassifier`), so the copy takes the current tip.
 
 ---
 
@@ -33,7 +33,7 @@ chat client (today: web, /m, native; tomorrow: the widget)
 AiChatController::sendMessage            app/Http/Controllers/Api/AiChatController.php:213
    |  dispatch predicate (onboarding write state, or advice read-only state)
    +--> OnboardingChatDirector  (WRITES: bubbles, capture forms, inline capture)
-   |        app/Services/Onboarding/OnboardingChatDirector.php  (9,744 lines; handleInlineCapture at :8838)
+   |        app/Services/Onboarding/OnboardingChatDirector.php  (9,750 lines; handleInlineCapture at :8844)
    +--> AdviceFyn               (READ-ONLY: write tools stripped, AdviceFyn::WRITE_TOOLS at :170)
    v
 Prompt = FynSystemPrompt::text()  (app/Services/AI/Fyn/FynSystemPrompt.php:97)
@@ -41,7 +41,7 @@ Prompt = FynSystemPrompt::text()  (app/Services/AI/Fyn/FynSystemPrompt.php:97)
    v
 HasAiChat trait (provider loop, history, streaming)   app/Traits/HasAiChat.php (2,423 lines)
    v
-Tools -> CoordinatingAgent::executeTool  app/Agents/CoordinatingAgent.php:1001 (7,375 lines)
+Tools -> CoordinatingAgent::executeTool  app/Agents/CoordinatingAgent.php:1002 (7,417 lines)
    v
 CALCULATIONS: module agents + calculation services
    v
@@ -231,7 +231,7 @@ Phase 1 copies the whole backend (section 8), because 3.1 shows a hand-picked co
 
 | Element | Path |
 |---|---|
-| Endpoint | `AiChatController.php`; `routes/api.php:1510-1532` |
+| Endpoint | `AiChatController.php`; `routes/api.php:1512-1535` |
 | Chat engine | `app/Traits/HasAiChat.php`, `HasAiGuardrails.php` |
 | The two states | `AdviceFyn.php`; `OnboardingChatDirector.php`, `OnboardingStateMachine.php`, `OnboardingWorkflowTable.php`, `OnboardingService.php`, `JourneyStateService.php`, `JourneyFieldResolver.php` |
 | CoALA loop | `app/Services/AI/Loop/` |
@@ -255,7 +255,13 @@ Phase 1 copies the whole backend (section 8), because 3.1 shows a hand-picked co
 | Handoff (2) | `delegate_to_capture`, `capture_complete` |
 | Onboarding (6) | `capture_personal_details`, `capture_spouse_details`, `capture_dependants`, `capture_work_details`, `capture_monthly_expenditure`, `capture_employer_benefits` |
 
-That makes 53 tools. There are also 10 read-only `fetch_*` pointer tools (`fyn-memory/procedural/pointers/`, `app/Services/AI/Pointers/` with 10 handlers). Tools run through `CoordinatingAgent::executeTool` (`app/Agents/CoordinatingAgent.php:1001`). Writes go through `app/Services/Stores/`.
+**Measured on 15 October 2026** (`XaiToolDefinitions::getTools(false)` and `handoffTools()` at `6f1446ddf`; the first draft's "53 plus 10 `fetch_*`" was wrong):
+
+- `getTools()` returns **53** tools: **45** action tools plus **8** read-only `fetch_*` pointer tools (`fetch_cross_module_plan`, `fetch_estate_plan`, `fetch_investment_plan`, `fetch_isa_annual_allowance`, `fetch_protection_plan`, `fetch_recommendations`, `fetch_retirement_plan`, `fetch_savings_plan`).
+- `handoffTools()` adds the **2** handoff tools. The onboarding `capture_*` tools are registered separately (`AiToolDefinitions.php:126`).
+- The ninth pointer, `user-financial-position`, is `mode: prefetch` (`fyn-memory/procedural/pointers/user-financial-position.md`): it goes into the context and is not a tool. There are **10** handler classes in `app/Services/AI/Pointers/Handlers/`, and `ModulePlanHandler` is one of them.
+
+Tools run through `CoordinatingAgent::executeTool` (`app/Agents/CoordinatingAgent.php:1002`). Writes go through `app/Services/Stores/`.
 
 **Memory (nine systems)**
 
@@ -280,7 +286,7 @@ Copy the memory READMEs and `_TEMPLATE.md` files with the corpus.
 | Part | Paths |
 |---|---|
 | Module agents | `app/Agents/` (Coordinating, Protection, Savings, Investment, Retirement, Estate, Goals, TaxOptimisation, Base) |
-| Calculation services | `app/Services/` Tax (49), Investment (59), Estate (34), Coordination (27), Retirement (19), Savings (14), Plans (13), Goals (12), Protection (11), Property, NetWorth, Income, Expenditure, Risk, Trust, Actions, Shared, WhatIf, UserProfile; `UKTaxCalculator.php` (963 lines) |
+| Calculation services | `app/Services/` Tax (49), Investment (59), Estate (34), Coordination (27), Retirement (19), Savings (14), Plans (13), Goals (12), Protection (11), Property, NetWorth, Income, Expenditure, Risk, Trust, Actions, Shared, WhatIf, UserProfile; `UKTaxCalculator.php` (981 lines) |
 | Write layer | `app/Services/Stores/` (35), including normalisers, recalculation and snapshots |
 | Shared maths | traits `CalculatesOwnershipShare`, `ResolvesIncome`, `ResolvesExpenditure`, `HasJointOwnership`, `CalculatesOCF`, `FormatsCurrency`; `app/Support/` (`Money`, `SharedOwnership`, `HouseholdPooling`, `HoldingValuation`, `SavingsInterestRate`, `PremiumAnnualiser`, `StrategyNextStep`, …) |
 | Events the engines fire | `app/Events/` (Pension, Savings, Property, Mortgage, Investment, ReferenceData) and their listeners |
@@ -345,6 +351,8 @@ It is already a compact, phone-sized chat, which is close to a widget.
 
 Found: `.env.example:132-134` still names the retired `grok-4-1-fast-*` models, while `config/services.php:42-44` defaults to `grok-4.3`. The new `.env` takes model names from `config/services.php`.
 
+**Onboarding runs through Save Tax.** `config/onboarding.php:99` sets `forced_campaign` to `env('ONBOARDING_FORCED_CAMPAIGN', 'savetax')` (CSJ, 25 September 2026: "every onboarding goes through Save Tax"). The copy keeps that default, so in step one every new client is onboarded through the Save Tax path. Whether the widget keeps it is the Save Tax decision in section 7.
+
 ---
 
 ## 7. Fynla-only parts to remove in phase 2
@@ -365,19 +373,43 @@ These are copied in phase 1 so nothing breaks unseen. They are then removed one 
 
 ## 8. How to make the copy (when CSJ says go)
 
-1. **Snapshot without touching the live checkout:** `git -C /Users/CSJ/Desktop/fynla archive 01290a768 | tar -x -C <target>`.
-   - This copies only committed files: no `.env`, `vendor`, `node_modules` or gitignored `storage/app/memory`, and none of the other agent's work in progress.
+1. **Snapshot without touching the live checkout:** `git -C /Users/CSJ/Desktop/fynla fetch origin && git -C /Users/CSJ/Desktop/fynla archive origin/dev | tar -x -C /Users/CSJ/Desktop/fyn-widget`.
+   - Copy from full Fynla's `dev`, never from `/Users/CSJ/Desktop/fynlaSimple`. The simplified version is having features stripped out ([[project_full_fynla_restore_point_2026_10_15]]), and the widget needs the full engines.
+   - The archive holds only committed files. `.env`, `vendor`, `node_modules`, `storage/app/memory` and `public/storage` stay behind. `.gitattributes` also leaves out `/.github` and `CHANGELOG.md` (`export-ignore`), so none of Fynla's GitHub Actions come across.
    - The schema dump (3.4) is committed, so it comes across.
-2. **Target folder and repo:** `/Users/CSJ/Desktop/fyn-widget/` (CSJ, 4a). Make it a new git repository, with a `SOURCE.md` recording the base commit, the date and CSJ's product statement (section 1).
-3. **Dependencies:** `composer install`, `npm ci`.
-4. **New environment:**
-   - a new `.env` from `.env.example`, with a new `APP_KEY` and a **new database** (for example `fyn_widget`);
-   - `AI_PROVIDER=openai` and the four `OPENAI_*` model keys set to `gpt-6-luna`, with our own OpenAI key (4.6);
-   - a Vite port other than fynla's `:5173`.
-5. **Database:** create the empty database, run `php artisan migrate` (on the new empty database, never `migrate:fresh`), then `php artisan db:seed`.
-6. **Memory indexes:** `fyn:procedural:validate`, `fyn:pointers:reindex`, `fyn:semantic:reindex`.
-7. **Scheduler and queue:** `schedule:work` and a queue worker.
-8. **Prove it:** section 9.
+   - **Left out on purpose** (checked 15 October 2026; none of these branches is merged into `dev`):
+     - `fix/session5-audit` (`4b65cde10`): the Child Benefit charge rounding, still an open CSJ decision (#1242).
+     - The three `fix/one-figure-*` worktrees under `.claude/worktrees/` (`cec2dc1b8`, `367e8d34f`, `42842e20b`), each one unreviewed `wip:` commit. The commit message of `367e8d34f` reads "CSJ 2026-10-01: not reviewed, not to merge as-is".
+     - If any of them lands on `dev` later, it is ported to the widget by hand.
+2. **Target folder and repo:** `/Users/CSJ/Desktop/fyn-widget/` (CSJ, 4a; it does not exist yet, checked 15 October 2026). Make it a new git repository with no remote, and add a `SOURCE.md` recording the exact source SHA (`git rev-parse origin/dev`), the date and CSJ's product statement (section 1).
+3. **Cut the links back to Fynla before anything runs.** Several committed files carry Fynla's absolute path or point at Fynla's servers. Left alone, a Claude session opened in the widget folder would run its hooks against `/Users/CSJ/Desktop/fynla`.
+
+   | File | Fynla references | Action in the copy |
+   |---|---|---|
+   | `.claude/settings.json` | 9 | repoint at `/Users/CSJ/Desktop/fyn-widget`, as `fynlaSimple` did (`2aef2676f`) |
+   | `.codex/hooks.json` | 9 | repoint at `/Users/CSJ/Desktop/fyn-widget` |
+   | `.codex/config.toml` | 1 | repoint at `/Users/CSJ/Desktop/fyn-widget` |
+   | `.mcp.json` | 1 | repoint at `/Users/CSJ/Desktop/fyn-widget` |
+   | `.claude/hooks/*.sh` | 4 scripts | repoint at `/Users/CSJ/Desktop/fyn-widget` |
+   | `.claude/skills/` | 5 skills | repoint at `/Users/CSJ/Desktop/fyn-widget` |
+   | `deploy/` | builds for fynla.org and csjones | **delete from the copy**: the widget has no server yet, and a widget build must never reach `public_html` |
+   | `CLAUDE.md` | Fynla's rules, servers and deploy steps | replace the opening with a note that this is the Fyn widget (`SOURCE.md`), and remove the "Branching and deployment" section; the coding rules stay |
+
+   The `ssh-fynla` MCP tool is the production server. Do not enable it for the widget folder.
+4. **Dependencies:** `composer install`, `npm ci`. Composer has no private repositories or `auth.json`, so no credentials are needed. Checked toolchain: PHP 8.5.2, Composer 2.9.5, Node 22.22.3, npm 10.9.8; MySQL is running on 3306.
+5. **New environment:**
+   - a new `.env` from `.env.example`, with a new `APP_KEY` (`php artisan key:generate`) and a **new database** `fyn_widget` (the name is free, checked 15 October 2026);
+   - `AI_PROVIDER=openai` (`.env.example:122` says `anthropic`) and the four `OPENAI_*` model keys set to `gpt-6-luna`, with the widget's own OpenAI key (4.6; **CSJ provides it**, section 12);
+   - `MAIL_MAILER=log` (`.env.example:37` says `smtp`), so test sign-ups and the scheduled alert emails never reach a real inbox;
+   - no Revolut, Apple, Google Drive, Plausible, Slack or social-media keys, so the Fynla-only scheduled jobs (`app/Console/Kernel.php:48-112`: payments, Apple notifications, the marketing pipeline) have nothing to reach;
+   - **ports:** Laravel on `8010` and Vite on `5180`. Fynla uses `8000` and `5173`, and `strictPort` is set in `vite.config.js:25-26`. Change `vite.config.js:25` in the copy, and set `APP_URL`, `VITE_API_BASE_URL` and `SANCTUM_STATEFUL_DOMAINS` (`localhost:8010,127.0.0.1:8010`) to match.
+   - **`dev.sh` is gitignored**, so the archive does not carry it. Copy it across by hand and change its ports (`dev.sh:61-62, 111, 126, 153-155`).
+   - **Test database:** `phpunit.xml:46` names `laravel_testing`, which Fynla's tests also use. Rename it to `fyn_widget_testing` in the copy, so a test run in one app never wipes the other's.
+6. **Database:** create `fyn_widget` and `fyn_widget_testing`, run `php artisan migrate` (on the new empty database; never `migrate:fresh`), then `php artisan db:seed`. Laravel loads `database/schema/mysql-schema.sql` through the `mysql` client (on the path at `/usr/local/bin/mysql`) and then runs the 355 migrations. Run `php artisan storage:link`.
+7. **Memory indexes:** `fyn:procedural:validate`, `fyn:pointers:reindex`, `fyn:semantic:reindex`.
+8. **Scheduler and queue:** `schedule:work` and a queue worker. Fyn's own jobs are `ai:conversations:summarise-stale`, `AiIdempotencyCleanupJob`, `AiAuditRetentionJob`, `ai:audit:verify-chain` and `fyn:episodic:reconcile` and `cold-archive` (`app/Console/Kernel.php:33-70`). With the step 5 environment, the alert emails go to the log, and the payment, Apple and pipeline jobs have no keys to call out with.
+9. **First commit** in the new repository: the copy plus the step 3 and 5 changes, so the starting point can be restored.
+10. **Prove it:** section 9.
 
 ---
 
@@ -385,10 +417,10 @@ These are copied in phase 1 so nothing breaks unseen. They are then removed one 
 
 Step one is done only when every check below holds in the new folder, against the new database:
 
-1. **Catalogue:** `fyn:procedural:validate` passes, and the 53 tools plus the 10 `fetch_*` tools are in the catalogue.
+1. **Catalogue:** `fyn:procedural:validate` passes. `XaiToolDefinitions::getTools(false)` returns the same 53 tool names as Fynla at the source SHA (45 action tools and 8 `fetch_*`, Package A), and `handoffTools()` returns 2.
 2. **Tests:** the test folders in Package F pass, run per folder (never a full suite), together with the `/m` chat Vitest specs.
 3. **Tax configuration:** `TaxConfigService::getTaxYear()` returns 2026/27, and a spot set of figures matches the seeder and the GOV.UK source cited in it (for example the personal allowance and the higher-rate threshold).
-4. **Calculations:** for a seeded client, `get_module_analysis` and `get_recommendations` return the same figures as Fynla does for the same client at `01290a768`.
+4. **Calculations:** for a seeded client, `get_module_analysis` and `get_recommendations` return the same figures as Fynla does for the same client at the source SHA in `SOURCE.md`.
 5. **Onboarding writes:** a new client is greeted on the bubbles, answers employment, and the value is saved.
 6. **Capture writes through a form:** "I have a savings account" opens the savings form, and saving it creates the row.
 7. **Advice answers from the engines, read-only:** a pension tax relief question runs a tool and quotes `TaxConfigService` figures. A write request in advice mode goes through `delegate_to_capture`, and `handoff` never reaches the client.
@@ -427,12 +459,13 @@ The six-box format for Fynla fix plans ([[feedback_plan_task_list_and_change_onl
 
 | # | Task | Copy | Boot | Test | Walk |
 |---|---|---|---|---|---|
-| 0 | Decisions for step one taken (CSJ, 14 October 2026: folder, OpenAI `gpt-6-luna`) | n/a | n/a | n/a | n/a |
-| 1 | Snapshot from `01290a768`, new repo, `SOURCE.md` (8.1-8.2) | [ ] | n/a | n/a | n/a |
-| 2 | Dependencies and new `.env` (8.3-8.4) | [ ] | [ ] | n/a | n/a |
-| 3 | New database: schema, migrations, seeders (8.5) | [ ] | [ ] | [ ] | n/a |
-| 4 | Memory indexes (8.6) | [ ] | [ ] | [ ] | n/a |
-| 5 | Scheduler and queue (8.7) | [ ] | [ ] | [ ] | n/a |
+| 0 | Decisions for step one taken (CSJ, 14 October 2026: folder, OpenAI `gpt-6-luna`). Readiness review done (15 October 2026, section 13) | n/a | n/a | n/a | n/a |
+| 1 | Snapshot of the current `dev` tip, new repo, `SOURCE.md` (8.1-8.2) | [ ] | n/a | n/a | n/a |
+| 2 | Links back to Fynla cut: paths repointed, `deploy/` removed, `CLAUDE.md` headed (8.3) | [ ] | n/a | [ ] | n/a |
+| 3 | Dependencies and new `.env`, ports, `dev.sh`, test database (8.4-8.5) | [ ] | [ ] | n/a | n/a |
+| 4 | New database: schema, migrations, seeders, `storage:link` (8.6) | [ ] | [ ] | [ ] | n/a |
+| 5 | Memory indexes (8.7) | [ ] | [ ] | [ ] | n/a |
+| 5a | Scheduler and queue (8.8), first commit (8.9) | [ ] | [ ] | [ ] | n/a |
 | 6 | Proof checks 1-4: catalogue, tests, tax configuration, calculations | n/a | n/a | [ ] | n/a |
 | 7 | Proof checks 5-9 walked live on the copied `/m` | n/a | n/a | [ ] | [ ] |
 
@@ -448,9 +481,45 @@ The six-box format for Fynla fix plans ([[feedback_plan_task_list_and_change_onl
 - Fynla maintains the tax figures;
 - advice runs under each business's licence, with Fynla as the technology provider.
 
-**Still open**
+**Needed before proof check 5 (step one)**
+
+- **The widget's OpenAI key.** Section 4.6 calls for a separate key or OpenAI project, so widget usage and billing stay apart from Fynla's. Only CSJ can create it. Steps 1 to 4 and proof checks 1 to 4 run without it. Checks 5 to 9 call the model. Until the key exists, the copy can borrow Fynla's local development key (`OPENAI_API_KEY` is set in Fynla's local `.env`), with that usage billed to Fynla.
+
+**Still open (later phases)**
 
 1. **The connector's first route (phase 5):** an API that businesses send data to (recommended), a read-only connection to their database, or file uploads (4.1).
 2. **Data a customer gives Fyn (phase 5):** kept in the business's Fyn database only, or sent back to the business's own system (4.5).
 3. **The rest of the customisation list (phase 7):** CSJ will set it out when dashboard work starts.
 4. **Contracts (phase 8, with legal advice):** the outsourcing terms each business's compliance team will need, and the UK GDPR article 28 processor contract (section 5).
+
+---
+
+## 13. Readiness review (15 October 2026)
+
+Done because CSJ confirmed no other agent is working on the code. Every cited line was re-read at `6f1446ddf`.
+
+**What changed in the plan**
+
+| Area | Before | Now | Evidence |
+|---|---|---|---|
+| Source | pinned `01290a768` | the `dev` tip at copy time, recorded in `SOURCE.md` | 116 commits since, changing 13 files in Fyn, onboarding, routes and `/m` (`git diff --stat 01290a768..6f1446ddf`) |
+| Tool count | "53 plus 10 `fetch_*`" | 53 in total (45 action tools and 8 `fetch_*`), plus 2 handoff tools; the ninth pointer is prefetch | `XaiToolDefinitions::getTools(false)`, `handoffTools()`; `user-financial-position.md` `mode: prefetch` |
+| Line references | `OnboardingChatDirector` 9,744 lines with `:8838`; `CoordinatingAgent` 7,375 lines with `:1001`; `routes/api.php:1510-1532`; `UKTaxCalculator` 963 lines | 9,750 lines with `:8844`; 7,417 lines with `:1002`; `:1512-1535`; 981 lines | `wc -l`, `grep -n` at `6f1446ddf` |
+| Setup | 8 steps | 10 steps: cut the links back to Fynla, `dev.sh`, ports, mail, test database, `storage:link`, first commit | section 8 |
+| Onboarding | not stated | every onboarding runs through Save Tax in the copy | `config/onboarding.php:99` |
+
+**Re-checked and still correct:** `AiChatController.php:213` (`sendMessage`), `:51` (terminal events), `:217-219` (consent gate); `AdviceFyn.php:170` (`WRITE_TOOLS`); `FynSystemPrompt.php:97`; `FynContextAssembler.php:73`; `HasAiChat.php` 2,423 lines; `AiProvider.php:226` (`helperConnection`), `:244` (`store: false`); `config/services.php:55-57` (`gpt-6-luna` defaults); `RouteServiceProvider.php:130` (`ai-chat` limit); `TaxConfigService.php` 923 lines; `TaxConfigStore.php` 342 lines; `TaxConfigurationSeeder.php` 1,760 lines with `ACTIVE_TAX_YEAR = '2026/27'` at `:19`; 125 models; 355 migrations; `database/schema/mysql-schema.sql` committed.
+
+**Gaps the first draft missed (now in section 8)**
+
+1. `dev.sh` is gitignored, so `git archive` does not carry it (8.5).
+2. Nine committed Claude and Codex files, four hook scripts and five skills hardcode `/Users/CSJ/Desktop/fynla`. A Claude session in the widget folder would run Fynla's hooks against Fynla (8.3).
+3. `deploy/` builds for fynla.org and csjones. It is deleted from the copy (8.3).
+4. `.env.example` defaults to `MAIL_MAILER=smtp` and `AI_PROVIDER=anthropic` (8.5).
+5. Fynla's ports `8000` and `5173` (`strictPort`) would collide (8.5).
+6. `phpunit.xml:46` shares `laravel_testing` with Fynla (8.5).
+7. `public/storage` is gitignored and needs `storage:link` (8.6).
+
+**Environment checked:** PHP 8.5.2, Composer 2.9.5, Node 22.22.3, npm 10.9.8; MySQL running on 3306 with the `mysql` client at `/usr/local/bin/mysql`; no `fyn_widget` database yet; `/Users/CSJ/Desktop/fyn-widget/` does not exist yet; no private Composer repositories.
+
+**Outstanding before step one starts:** none. The OpenAI key (section 12, "Needed before proof check 5") is needed only from proof check 5 onwards.
