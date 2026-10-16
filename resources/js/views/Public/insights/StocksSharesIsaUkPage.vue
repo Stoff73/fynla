@@ -224,7 +224,7 @@
                 <router-link to="/insights/isa-guide-uk" class="text-sm text-raspberry-500 hover:underline">The Ultimate Guide to ISAs in the UK</router-link>
               </li>
               <li>
-                <router-link to="/insights/isa-allowance-2025-26" class="text-sm text-raspberry-500 hover:underline">ISA Allowance 2025/26: What You Need to Know</router-link>
+                <router-link to="/insights/isa-allowance-2025-26" class="text-sm text-raspberry-500 hover:underline">ISA Allowance: Make the Most of Your Tax-Free Allowance</router-link>
               </li>
               <li>
                 <router-link to="/learn/what-is-an-isa" class="text-sm text-raspberry-500 hover:underline">What Is an ISA?</router-link>
