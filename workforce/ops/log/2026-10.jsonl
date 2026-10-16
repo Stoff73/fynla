@@ -18,3 +18,5 @@
 {"ts":"2026-10-13T16:32:36Z","agent":"chief-of-staff","item":"-","event":"slack_failed","channel":"C0BQ7N1CE82"}
 {"ts":"2026-10-14T16:32:28Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-10-14.md"}
 {"ts":"2026-10-14T16:32:30Z","agent":"chief-of-staff","item":"-","event":"slack_failed","channel":"C0BQ7N1CE82"}
+{"ts":"2026-10-15T16:32:31Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-10-15.md"}
+{"ts":"2026-10-15T16:32:34Z","agent":"chief-of-staff","item":"-","event":"slack_failed","channel":"C0BQ7N1CE82"}

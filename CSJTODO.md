@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-10-15 session 1. The order of work is `todoCurrent/TODO.md`, re-created 2026-10-15 (the old list is `todoCurrent/archive/TODO-2026-09-30-to-2026-10-14.md`); it carries the open walk fix plan tasks (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) in plan order. T0 to T25 are released (release ac); T26 to T27, T58.1, T61 to T74 and T76 to T82 are walked green on csjones, not released; T28 needs its Dev walk.*
+*Last updated: 2026-10-15 session 2 (handover dated 2026-10-16). Dev is `2f4d75146` (#1346, the Child Benefit charge rounding, merged). The Fyn widget carve-out is item 56 of `todoCurrent/TODO.md`, with a decision waiting for you. The order of work is `todoCurrent/TODO.md`, re-created 2026-10-15 (the old list is `todoCurrent/archive/TODO-2026-09-30-to-2026-10-14.md`); it carries the open walk fix plan tasks (`October/October12Updates/walk-2026-10-11-fix-plan.md`, section 0b) in plan order. T0 to T25 are released (release ac); T26 to T27, T58.1, T61 to T74 and T76 to T82 are walked green on csjones, not released; T28 needs its Dev walk.*
 
 ## The board position
 
